@@ -39,7 +39,7 @@ export async function getUserMessageThreads(userId: string): Promise<MessageThre
     if (jobsError) throw jobsError;
 
     const threads: MessageThread[] = await Promise.all(
-      (jobs as { id: string; title: string; homeowner_id: string; contractor_id: string | null; homeowner: Record<string, unknown> | null; contractor: Record<string, unknown> | null }[]).map(async (job) => {
+      (jobs as unknown as { id: string; title: string; homeowner_id: string; contractor_id: string | null; homeowner: Record<string, unknown> | null; contractor: Record<string, unknown> | null }[]).map(async (job) => {
         const [lastMessageResult, unreadResult] = await Promise.all([
           supabase
             .from('messages')

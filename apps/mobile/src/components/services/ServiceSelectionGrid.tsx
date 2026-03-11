@@ -69,7 +69,7 @@ export const ServiceSelectionGrid: React.FC<ServiceSelectionGridProps> = ({
               style={[
                 styles.serviceCard,
                 index % 2 === 0 ? styles.leftCard : styles.rightCard,
-              ]}
+              ] as object}
             />
           ))}
         </View>

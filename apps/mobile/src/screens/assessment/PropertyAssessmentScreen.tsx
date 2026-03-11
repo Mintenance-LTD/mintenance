@@ -190,13 +190,13 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Captured Videos</Text>
               <TouchableOpacity onPress={handleStartVideoCapture}>
-                <Icon name="add-circle" size={24} color="#717171" />
+                <Icon name="add-circle" size={24} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             </View>
             {capturedVideos.map(video => (
               <VideoListItem
                 key={video.id}
-                video={video}
+                video={{ ...video, createdAt: '', duration: video.duration ?? 0 } as unknown as React.ComponentProps<typeof VideoListItem>['video']}
                 onPress={() => handleVideoPress(video)}
                 onRetry={
                   video.status === 'failed'
@@ -280,7 +280,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   content: {
     padding: 16,
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 16,
   },
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
   },
   reviewValue: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     maxWidth: '60%',
     textAlign: 'right',
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: theme.colors.textInverse,
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
   },
 });
 

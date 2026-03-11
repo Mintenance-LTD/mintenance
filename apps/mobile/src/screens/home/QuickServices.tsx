@@ -133,14 +133,14 @@ const styles = StyleSheet.create({
   },
   tabLabel: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textSecondary,
     marginTop: 5,
     textAlign: 'center',
   },
   tabLabelActive: {
     color: theme.colors.textPrimary,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   divider: {
     height: 1,

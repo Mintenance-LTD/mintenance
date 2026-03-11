@@ -4,5 +4,4 @@
 export * from '@mintenance/types';
 export * from './compat';
 
-// Re-export database types if they exist
-export * from './database';
+// Database types are in @mintenance/types

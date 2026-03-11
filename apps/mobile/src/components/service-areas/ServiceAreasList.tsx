@@ -95,13 +95,13 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginBottom: 16,
   },
   subsectionTitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textPrimary,
     marginBottom: 12,
     marginTop: 8,
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginTop: 16,
     marginBottom: 8,

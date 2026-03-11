@@ -192,11 +192,11 @@ export function sanitizeObject<T extends Record<string, unknown>>(
     
     // Apply custom sanitizer if provided
     if (fieldSanitizers && fieldSanitizers[key]) {
-      sanitized[key] = fieldSanitizers[key]!(value);
+      sanitized[key] = fieldSanitizers[key]!(value) as T[Extract<keyof T, string>];
     }
     // Default: sanitize strings
     else if (typeof value === 'string') {
-      sanitized[key] = sanitizeText(value) as unknown;
+      sanitized[key] = sanitizeText(value) as T[Extract<keyof T, string>];
     }
   }
 

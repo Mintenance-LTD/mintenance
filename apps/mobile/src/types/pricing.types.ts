@@ -3,7 +3,12 @@
  * Central types for pricing calculations, complexity analysis, and ML predictions
  */
 
-import type { PricingFactor } from './search';
+interface PricingFactor {
+  name: string;
+  weight: number;
+  value: number;
+  description?: string;
+}
 
 /**
  * Complexity Analysis Result

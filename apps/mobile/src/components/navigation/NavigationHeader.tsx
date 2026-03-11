@@ -33,7 +33,7 @@ export interface HeaderMenuItem {
   onPress: () => void;
 }
 
-interface NavigationHeaderProps {
+export interface NavigationHeaderProps {
   title: string;
   showMenuIcon?: boolean;
   showBackIcon?: boolean;
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderBottomWidth: 0,
     // Subtle shadow instead of border (Airbnb-style)
-    shadowColor: '#000000',
+    shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   logoContainer: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
   logoIcon: { width: 32, height: 32, borderRadius: 8 },
   titleContainer: { flex: 1, paddingHorizontal: 12, justifyContent: 'center' },
-  title: { fontSize: 28, fontWeight: '800', color: theme.colors.textPrimary },
+  title: { fontSize: 28, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
   subtitle: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 1 },
   rightActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   badge: {
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 4,
   },
-  badgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '600' },
+  badgeText: { color: theme.colors.textInverse, fontSize: 10, fontWeight: theme.typography.fontWeight.semibold },
   avatarButton: {
     width: 36,
     height: 36,
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 4,
   },
-  avatarText: { color: '#FFFFFF', fontSize: 12, fontWeight: '600' },
+  avatarText: { color: theme.colors.textInverse, fontSize: 12, fontWeight: theme.typography.fontWeight.semibold },
 
   // Dropdown
   backdrop: {
@@ -335,9 +335,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 12,
     width: 260,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
-    shadowColor: '#000',
+    shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 20,
@@ -359,9 +359,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  dropdownAvatarText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  dropdownAvatarText: { color: theme.colors.textInverse, fontSize: 14, fontWeight: theme.typography.fontWeight.bold },
   dropdownUserInfo: { flex: 1 },
-  dropdownUserName: { fontSize: 14, fontWeight: '700', color: theme.colors.textPrimary },
+  dropdownUserName: { fontSize: 14, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
   dropdownUserRole: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 1 },
   dropdownDivider: { height: 1, backgroundColor: theme.colors.borderLight },
   dropdownItem: {
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dropdownItemText: { flex: 1 },
-  dropdownItemLabel: { fontSize: 14, fontWeight: '600', color: theme.colors.textPrimary },
+  dropdownItemLabel: { fontSize: 14, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary },
   dropdownItemSubtitle: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 1 },
 });
 

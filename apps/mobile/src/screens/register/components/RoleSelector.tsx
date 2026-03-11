@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   },
   roleToggleActive: {
     backgroundColor: theme.colors.surface,
-    borderColor: '#222222',
+    borderColor: theme.colors.textPrimary,
     ...theme.shadows.sm,
   },
   roleRow: {
@@ -115,12 +115,12 @@ const styles = StyleSheet.create({
   },
   roleToggleText: {
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textSecondary,
   },
   roleToggleTextActive: {
     color: theme.colors.textPrimary,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   roleDescription: {
     fontSize: 11,

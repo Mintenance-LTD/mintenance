@@ -15,7 +15,7 @@ export const ServiceAreasActions: React.FC = () => {
         <Ionicons
           name='analytics'
           size={24}
-          color='#717171'
+          color={theme.colors.textSecondary}
         />
         <Text style={styles.actionButtonText}>View Analytics</Text>
       </TouchableOpacity>
@@ -24,7 +24,7 @@ export const ServiceAreasActions: React.FC = () => {
         style={styles.actionButton}
         onPress={() => Alert.alert('Coming Soon', 'Route optimisation features will be available in the next update.')}
       >
-        <Ionicons name='map' size={24} color='#717171' />
+        <Ionicons name='map' size={24} color={theme.colors.textSecondary} />
         <Text style={styles.actionButtonText}>Route Planning</Text>
       </TouchableOpacity>
 
@@ -35,7 +35,7 @@ export const ServiceAreasActions: React.FC = () => {
         <Ionicons
           name='location'
           size={24}
-          color='#717171'
+          color={theme.colors.textSecondary}
         />
         <Text style={styles.actionButtonText}>Coverage Map</Text>
       </TouchableOpacity>
@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
   },
   actionsTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginBottom: 16,
   },
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.textPrimary,
     marginLeft: 12,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
 });
 

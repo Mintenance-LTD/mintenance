@@ -6,7 +6,7 @@
 
 import { SecurityManager } from '../../SecurityManager';
 import { logger } from '../../logger';
-import type { PenetrationTest, PenetrationTestResult, SecurityVulnerability } from '@mintenance/types';
+import type { PenetrationTest, PenetrationTestResult, SecurityVulnerability } from '../types';
 
 export class SqlInjectionTestSuite {
   static createBasicSQLInjectionTest(): PenetrationTest {
@@ -56,10 +56,13 @@ export class SqlInjectionTestSuite {
             fieldName: 'Description',
           });
 
-          const vulnerabilityFound =
-            (titleValidation.sanitized && titleValidation.sanitized.includes('SELECT')) ||
-            (descValidation.sanitized && descValidation.sanitized.includes('UNION')) ||
-            (titleValidation.sanitized && titleValidation.sanitized.includes('DROP'));
+          const titleSanitized = String(titleValidation.sanitized ?? '');
+          const descSanitized = String(descValidation.sanitized ?? '');
+          const vulnerabilityFound = Boolean(
+            (titleSanitized && titleSanitized.includes('SELECT')) ||
+            (descSanitized && descSanitized.includes('UNION')) ||
+            (titleSanitized && titleSanitized.includes('DROP'))
+          );
 
           let vulnerability: SecurityVulnerability | undefined;
 
@@ -75,7 +78,7 @@ export class SqlInjectionTestSuite {
               cwe: 'CWE-89',
               owasp: 'A03:2021 – Injection',
               affectedComponents: ['Database queries', 'Search functionality', 'User input processing'],
-              proofOfConcept: `Input: ${payload}\nSanitized: ${titleValidation.sanitized || descValidation.sanitized}`,
+              proofOfConcept: `Input: ${payload}\nSanitized: ${titleSanitized || descSanitized}`,
               discoveredAt: Date.now(),
               status: 'open',
             };

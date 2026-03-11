@@ -204,7 +204,7 @@ export class AuthService {
         };
       }
 
-      return data;
+      return data as unknown as { user: User | null; session: Session | null };
     }, context);
 
     if (!result.success || !result.data) {
@@ -317,9 +317,9 @@ export class AuthService {
     }
   }
 
-  static onAuthStateChange(callback: (session: unknown) => void) {
+  static onAuthStateChange(callback: (event: string, session: unknown) => void) {
     return supabase.auth.onAuthStateChange((event: unknown, session: unknown) => {
-      callback(session);
+      callback(event as string, session);
     });
   }
 

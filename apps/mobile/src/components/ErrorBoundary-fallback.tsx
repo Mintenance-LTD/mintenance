@@ -103,12 +103,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 30,
-    backgroundColor: '#fff5f5',
+    backgroundColor: theme.colors.errorLight ?? '#fff5f5',
   },
   errorTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#d32f2f',
+    color: theme.colors.error,
     textAlign: 'center',
     marginBottom: 15,
   },
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
     marginBottom: 25,
   },
   errorDetails: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.backgroundSecondary,
     padding: 15,
     borderRadius: 8,
     marginBottom: 25,
@@ -140,16 +140,16 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   retryButton: {
-    backgroundColor: '#1a73e8',
+    backgroundColor: theme.colors.info,
     paddingHorizontal: 30,
     paddingVertical: 12,
     borderRadius: 8,
     marginBottom: 20,
   },
   retryButtonText: {
-    color: 'white',
+    color: theme.colors.textInverse,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   helpText: {
     fontSize: 12,

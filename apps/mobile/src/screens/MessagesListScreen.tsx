@@ -13,13 +13,23 @@ import { theme } from '../theme';
 import { logger } from '../utils/logger';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../contexts/AuthContext';
 import { useHaptics } from '../utils/haptics';
 import { SkeletonMessageCard } from '../components/SkeletonLoader';
 import { Banner } from '../components/ui/Banner';
 import { useMessageThreadsWithRealTime } from '../hooks/useMessaging';
+import type { MessageThread } from '../services/MessagingService';
+import type { MessagingStackParamList } from '../navigation/types';
 
-const AVATAR_COLORS = ['#222222', '#444444', '#555555', '#717171', '#888888', '#999999'];
+const AVATAR_COLORS = [
+  theme.colors.textPrimary,
+  theme.colors.textSecondary,
+  theme.colors.textSecondary,
+  theme.colors.textSecondary,
+  theme.colors.textTertiary,
+  theme.colors.textTertiary,
+];
 
 function getAvatarColor(name: string): string {
   return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
@@ -34,7 +44,7 @@ function getInitials(name: string): string {
 }
 
 const MessagesListScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<MessagingStackParamList>>();
   const { user } = useAuth();
   const haptics = useHaptics();
   const [refreshing, setRefreshing] = useState(false);
@@ -43,16 +53,17 @@ const MessagesListScreen: React.FC = () => {
 
   // Get real message threads
   const {
-    data: conversations = [],
+    data: rawConversations = [],
     isLoading: loading,
     error,
     refetch,
   } = useMessageThreadsWithRealTime();
+  const conversations = rawConversations as MessageThread[];
 
   const filteredConversations = useMemo(() => {
     if (!searchQuery.trim()) return conversations;
     const q = searchQuery.toLowerCase();
-    return conversations.filter((thread: { participants: Array<{ id: string; name: string }>; jobTitle?: string; lastMessage?: { messageText?: string } }) => {
+    return conversations.filter((thread) => {
       const other = thread.participants.find((p) => p.id !== user?.id) || thread.participants[0];
       return (
         other?.name?.toLowerCase().includes(q) ||
@@ -141,7 +152,7 @@ const MessagesListScreen: React.FC = () => {
       ) : (
         <FlatList
           data={filteredConversations}
-          keyExtractor={(item: unknown) => item.jobId}
+          keyExtractor={(item) => item.jobId}
           contentContainerStyle={[
             styles.content,
             conversations.length === 0 && styles.emptyContainer,
@@ -168,7 +179,7 @@ const MessagesListScreen: React.FC = () => {
           renderItem={({ item: thread }) => {
             const otherParticipant =
               thread.participants.find(
-                (p: unknown) => p.id !== user?.id
+                (p) => p.id !== user?.id
               ) || thread.participants[0];
             const formatTime = (timestamp: string) => {
               const date = new Date(timestamp);
@@ -192,10 +203,10 @@ const MessagesListScreen: React.FC = () => {
                 onPress={() => {
                   haptics.buttonPress();
                   navigation.navigate('Messaging', {
-                    jobId: thread.jobId,
+                    conversationId: thread.jobId,
                     jobTitle: thread.jobTitle,
-                    otherUserId: otherParticipant.id,
-                    otherUserName: otherParticipant.name,
+                    recipientId: otherParticipant.id,
+                    recipientName: otherParticipant.name,
                   });
                 }}
                 accessibilityRole='button'
@@ -277,7 +288,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   searchButton: {
@@ -313,8 +324,8 @@ const styles = StyleSheet.create({
   },
   avatarInitials: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.textInverse,
   },
   unreadDot: {
     position: 'absolute',
@@ -322,7 +333,7 @@ const styles = StyleSheet.create({
     right: 2,
     width: 10,
     height: 10,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.primary,
     borderRadius: 5,
     borderWidth: 2,
     borderColor: theme.colors.background,
@@ -338,7 +349,7 @@ const styles = StyleSheet.create({
   },
   contractorName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
   },
   timestamp: {
@@ -348,7 +359,7 @@ const styles = StyleSheet.create({
   jobType: {
     fontSize: 13,
     color: theme.colors.textSecondary,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     marginBottom: 4,
   },
   snippet: {
@@ -357,7 +368,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   unreadSnippet: {
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textPrimary,
   },
   errorContainer: {
@@ -365,10 +376,10 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
     paddingHorizontal: 20,
   },  retryButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 16,
     marginTop: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -378,7 +389,7 @@ const styles = StyleSheet.create({
   },
   retryText: {
     color: theme.colors.textInverse,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     fontSize: 14,
   },
   emptyContainer: {
@@ -388,7 +399,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textSecondary,
     marginTop: 16,
     textAlign: 'center',
@@ -404,7 +415,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     top: 8,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.primary,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -415,7 +426,7 @@ const styles = StyleSheet.create({
   unreadCount: {
     color: theme.colors.textInverse,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
 });
 

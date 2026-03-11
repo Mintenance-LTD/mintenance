@@ -10,7 +10,7 @@ import { logger } from '../utils/logger';
 // here, because background refetch failures would interrupt the user.
 // ============================================================================
 
-const handleQueryError = (error: unknown, query: Query<unknown, Error, unknown>): void => {
+const handleQueryError = (error: Error, query: Query<unknown, unknown, unknown, readonly unknown[]>): void => {
   logger.error('Query error', {
     queryKey: query.queryKey,
     message: error instanceof Error ? error.message : String(error),
@@ -20,10 +20,10 @@ const handleQueryError = (error: unknown, query: Query<unknown, Error, unknown>)
 };
 
 const handleMutationError = (
-  error: unknown,
+  error: Error,
   _variables: unknown,
   _context: unknown,
-  mutation: Mutation<unknown, Error, unknown>,
+  mutation: Mutation<unknown, unknown, unknown, unknown>,
 ): void => {
   logger.error('Mutation error', {
     mutationKey: mutation.options.mutationKey,

@@ -3,6 +3,7 @@
  *
  * Platform-specific implementation for mobile that mirrors the web implementation.
  */
+import { theme } from '../theme';
 
 import { supabase } from '../config/supabase';
 import { logger } from '@mintenance/shared';
@@ -201,9 +202,9 @@ export class FeatureAccessManager {
 
     try {
       // Fetch subscription
-      const { data: subData } = await supabase
+      const { data: subData } = await (supabase
         .from('contractor_subscriptions')
-        .select('plan_type, status')
+        .select('plan_type, status') as unknown as { eq: (...a: unknown[]) => { in: (...a: unknown[]) => { order: (...a: unknown[]) => { limit: (...a: unknown[]) => { maybeSingle: () => Promise<{ data: { plan_type: string; status: string } | null }> } } } } })
         .eq('contractor_id', userId)
         .in('status', ['trial', 'active', 'past_due'])
         .order('created_at', { ascending: false })
@@ -224,14 +225,14 @@ export class FeatureAccessManager {
       }
 
       // Fetch usage
-      const { data: usageData } = await supabase
+      const { data: usageData } = await (supabase
         .from('feature_usage')
-        .select('*')
+        .select('*') as unknown as { eq: (...a: unknown[]) => { gte: (...a: unknown[]) => Promise<{ data: { feature_id: string; used_count: number; limit_count: number }[] | null }> } })
         .eq('user_id', userId)
         .gte('reset_date', new Date().toISOString());
 
       if (usageData) {
-        usageData.forEach((item) => {
+        usageData.forEach((item: { feature_id: string; used_count: number; limit_count: number }) => {
           this.usage.set(item.feature_id, {
             used: item.used_count,
             limit: item.limit_count,
@@ -323,7 +324,7 @@ export class FeatureAccessManager {
    */
   async trackUsage(userId: string, featureId: string, incrementBy: number = 1): Promise<boolean> {
     try {
-      const { error } = await supabase.rpc('increment_feature_usage', {
+      const { error } = await (supabase as unknown as { rpc: (fn: string, params: Record<string, unknown>) => Promise<{ error: Error | null }> }).rpc('increment_feature_usage', {
         p_user_id: userId,
         p_feature_id: featureId,
         p_increment: incrementBy,
@@ -450,13 +451,13 @@ export function formatLimit(limit: number | boolean | 'unlimited' | undefined): 
  */
 export function getCategoryColor(category: string): string {
   const colors: Record<string, string> = {
-    'Job Management': '#3B82F6',
-    'Bidding': '#10B981',
-    'Discovery': '#8B5CF6',
-    'Social': '#F59E0B',
-    'Portfolio': '#EC4899',
-    'Communication': '#06B6D4',
-    'AI & Search': '#6366F1',
+    'Job Management': theme.colors.info,
+    'Bidding': theme.colors.primary,
+    'Discovery': theme.colors.info,
+    'Social': theme.colors.warning,
+    'Portfolio': theme.colors.error,
+    'Communication': theme.colors.info,
+    'AI & Search': theme.colors.info,
   };
-  return colors[category] || '#6B7280';
+  return colors[category] || theme.colors.textSecondary;
 }

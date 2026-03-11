@@ -64,7 +64,7 @@ export const TimeTrackingScreen: React.FC = () => {
   const estimatedEarnings = thisWeekEntries.filter((e) => e.billable).reduce((sum, e) => sum + e.hours * e.hourly_rate, 0);
 
   if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorView onRetry={refetch} />;
+  if (error) return <ErrorView message="Failed to load time entries" onRetry={refetch} />;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -112,9 +112,10 @@ export const TimeTrackingScreen: React.FC = () => {
       <TouchableOpacity
         style={styles.fab}
         onPress={() => navigation.navigate('AddTimeEntry' as never)}
+        accessibilityRole="button"
         accessibilityLabel="Add time entry"
       >
-        <Ionicons name="add" size={28} color="#FFFFFF" />
+        <Ionicons name="add" size={28} color={theme.colors.textInverse} />
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -122,20 +123,20 @@ export const TimeTrackingScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
-  statsRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12 },
-  statCard: { flex: 1, backgroundColor: theme.colors.surface, borderRadius: 10, padding: 12, alignItems: 'center', ...theme.shadows.sm },
-  statLabel: { fontSize: 11, color: theme.colors.textTertiary, fontWeight: '500', textTransform: 'uppercase', marginBottom: 4 },
-  statValue: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
-  list: { padding: 16, paddingBottom: 80 },
-  sectionHeader: { fontSize: 14, fontWeight: '600', color: theme.colors.textSecondary, marginTop: 8, marginBottom: 8 },
-  entryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: theme.colors.surface, borderRadius: 10, padding: 14, marginBottom: 8, ...theme.shadows.sm },
-  entryInfo: { flex: 1, marginRight: 12 },
-  entryTask: { fontSize: 15, fontWeight: '500', color: theme.colors.textPrimary },
-  entryJob: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2 },
+  statsRow: { flexDirection: 'row', gap: theme.spacing.sm, paddingHorizontal: theme.spacing.md, paddingTop: theme.spacing[3] },
+  statCard: { flex: 1, backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.base, padding: theme.spacing[3], alignItems: 'center', ...theme.shadows.sm },
+  statLabel: { fontSize: theme.typography.fontSize.xs, color: theme.colors.textTertiary, fontWeight: theme.typography.fontWeight.medium, textTransform: 'uppercase', marginBottom: theme.spacing.xs },
+  statValue: { fontSize: theme.typography.fontSize.md, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
+  list: { padding: theme.spacing.md, paddingBottom: 80 },
+  sectionHeader: { fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textSecondary, marginTop: theme.spacing.sm, marginBottom: theme.spacing.sm },
+  entryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.base, padding: 14, marginBottom: theme.spacing.sm, ...theme.shadows.sm },
+  entryInfo: { flex: 1, marginRight: theme.spacing[3] },
+  entryTask: { fontSize: theme.typography.fontSize.base, fontWeight: theme.typography.fontWeight.medium, color: theme.colors.textPrimary },
+  entryJob: { fontSize: theme.typography.fontSize.xs, color: theme.colors.textTertiary, marginTop: 2 },
   entryRight: { alignItems: 'flex-end', gap: 2 },
-  entryHours: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
-  entryRate: { fontSize: 12, color: theme.colors.textTertiary },
-  fab: { position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: '#222222', justifyContent: 'center', alignItems: 'center', ...theme.shadows.lg },
+  entryHours: { fontSize: theme.typography.fontSize.md, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
+  entryRate: { fontSize: theme.typography.fontSize.xs, color: theme.colors.textTertiary },
+  fab: { position: 'absolute', bottom: theme.spacing.lg, right: theme.spacing.lg, width: 56, height: 56, borderRadius: theme.borderRadius.full, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center', ...theme.shadows.large },
 });
 
 export default TimeTrackingScreen;

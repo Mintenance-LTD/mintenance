@@ -96,7 +96,7 @@ export class NetworkDiagnosticsService {
       logger.error('❌ Internet connectivity test error:', error);
       return {
         success: false,
-        error: error.message || 'Network request failed'
+        error: error instanceof Error ? error.message : 'Network request failed'
       };
     }
   }
@@ -185,7 +185,7 @@ export class NetworkDiagnosticsService {
   private static getExpoVersion(): string {
     try {
       // This will be available in Expo managed workflow
-      return (global as unknown).__expo?.version || 'not-expo';
+      return (global as unknown as Record<string, { version?: string }>).__expo?.version || 'not-expo';
     } catch {
       return 'unknown';
     }

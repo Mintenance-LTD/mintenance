@@ -133,8 +133,8 @@ export function useRegistrationForm() {
         lastName: form.lastName.trim(),
         role: form.role,
       };
-      if ((signUp as { mock?: boolean })?.mock) {
-        await (signUp as (p: typeof payload) => Promise<void>)(payload);
+      if ((signUp as unknown as { mock?: boolean })?.mock) {
+        await (signUp as unknown as (p: typeof payload) => Promise<void>)(payload);
       } else {
         await signUp(payload.email, payload.password, {
           firstName: payload.firstName,

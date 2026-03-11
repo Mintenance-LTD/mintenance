@@ -10,12 +10,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { theme } from '../../theme';
 import { mobileApiClient } from '../../utils/mobileApiClient';
+import type { ProfileStackParamList } from '../../navigation/types';
 
 interface PaymentRecord {
   id: string;
@@ -27,15 +29,15 @@ interface PaymentRecord {
 }
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  completed: { bg: '#ECFDF5', text: '#047857' },
-  held: { bg: '#EFF6FF', text: '#2563EB' },
-  released: { bg: '#ECFDF5', text: '#047857' },
-  refunded: { bg: '#FEF3C7', text: '#B45309' },
-  pending: { bg: '#F3F4F6', text: '#6B7280' },
+  completed: { bg: theme.colors.primaryLight, text: theme.colors.success },
+  held: { bg: theme.colors.backgroundSecondary, text: theme.colors.info },
+  released: { bg: theme.colors.primaryLight, text: theme.colors.success },
+  refunded: { bg: theme.colors.accentLight, text: theme.colors.warning },
+  pending: { bg: theme.colors.backgroundSecondary, text: theme.colors.textSecondary },
 };
 
 export const FinancialsScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<ProfileStackParamList>>();
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['homeowner-financials'],
@@ -81,8 +83,8 @@ export const FinancialsScreen: React.FC = () => {
   });
 
   if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorView onRetry={refetch} />;
-  if (!data) return <ErrorView onRetry={refetch} />;
+  if (error) return <ErrorView message="Failed to load financial data" onRetry={refetch} />;
+  if (!data) return <ErrorView message="No financial data available" onRetry={refetch} />;
 
   const formatAmount = (amount: number) => `\u00A3${amount.toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;
 
@@ -132,7 +134,7 @@ export const FinancialsScreen: React.FC = () => {
               style={styles.manageLink}
             >
               <Text style={styles.manageLinkText}>Manage Subscription</Text>
-              <Ionicons name="chevron-forward" size={16} color='#717171' />
+              <Ionicons name="chevron-forward" size={16} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </Card>
         )}
@@ -272,7 +274,7 @@ const styles = StyleSheet.create({
   transactionDate: {
     fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textTertiary,
-    marginTop: theme.spacing[0.5],
+    marginTop: 2,
   },
   transactionRight: {
     flexDirection: 'row',

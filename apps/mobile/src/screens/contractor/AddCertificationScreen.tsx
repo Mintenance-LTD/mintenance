@@ -117,7 +117,7 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
             onChangeText={setCertName}
           />
 
-          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Issuing Organisation *</Text>
+          <Text style={[styles.fieldLabel, { marginTop: theme.spacing.md }]}>Issuing Organisation *</Text>
           <TextInput
             style={styles.input}
             placeholder="e.g. CITB, Gas Safe Register"
@@ -126,7 +126,7 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
             onChangeText={setIssuer}
           />
 
-          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Credential / Licence Number</Text>
+          <Text style={[styles.fieldLabel, { marginTop: theme.spacing.md }]}>Credential / Licence Number</Text>
           <TextInput
             style={styles.input}
             placeholder="Optional"
@@ -135,7 +135,7 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
             onChangeText={setCredentialId}
           />
 
-          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Issue Date</Text>
+          <Text style={[styles.fieldLabel, { marginTop: theme.spacing.md }]}>Issue Date</Text>
           <TextInput
             style={styles.input}
             placeholder="DD/MM/YYYY"
@@ -145,7 +145,7 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
             keyboardType="numbers-and-punctuation"
           />
 
-          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Expiry Date</Text>
+          <Text style={[styles.fieldLabel, { marginTop: theme.spacing.md }]}>Expiry Date</Text>
           <TextInput
             style={styles.input}
             placeholder="DD/MM/YYYY (leave blank if no expiry)"
@@ -155,7 +155,7 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
             keyboardType="numbers-and-punctuation"
           />
 
-          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Category</Text>
+          <Text style={[styles.fieldLabel, { marginTop: theme.spacing.md }]}>Category</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
             {CATEGORY_OPTIONS.map((cat) => (
               <TouchableOpacity
@@ -181,27 +181,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingHorizontal: theme.spacing.md,
+    paddingBottom: theme.spacing[3],
     backgroundColor: theme.colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.borderLight,
   },
-  headerButton: { padding: 8, width: 60 },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.textPrimary },
+  headerButton: { padding: theme.spacing.sm, width: 60 },
+  headerTitle: { fontSize: theme.typography.fontSize.lg, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
   saveButton: { alignItems: 'flex-end' },
-  saveButtonText: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
+  saveButtonText: { fontSize: theme.typography.fontSize.md, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
   saveButtonDisabled: { opacity: 0.5 },
-  content: { padding: 16 },
+  content: { padding: theme.spacing.md },
   card: {
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.xl,
-    padding: 20,
+    padding: theme.spacing[5],
     ...theme.shadows.base,
   },
   fieldLabel: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: theme.typography.fontSize.xs,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -211,27 +211,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border,
     borderRadius: theme.borderRadius.md,
-    padding: 12,
-    fontSize: 15,
+    padding: theme.spacing[3],
+    fontSize: theme.typography.fontSize.base,
     color: theme.colors.textPrimary,
     backgroundColor: theme.colors.surfaceSecondary,
   },
-  categoryScroll: { marginTop: 4 },
+  categoryScroll: { marginTop: theme.spacing.xs },
   categoryChip: {
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: theme.spacing.sm,
     borderRadius: theme.borderRadius.full,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    marginRight: 8,
+    marginRight: theme.spacing.sm,
     backgroundColor: theme.colors.background,
   },
   categoryChipActive: {
-    borderColor: '#222222',
-    backgroundColor: '#222222',
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary,
   },
-  categoryText: { fontSize: 13, color: theme.colors.textSecondary },
-  categoryTextActive: { color: '#FFFFFF', fontWeight: '600' },
+  categoryText: { fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary },
+  categoryTextActive: { color: theme.colors.textInverse, fontWeight: theme.typography.fontWeight.semibold },
 });
 
 export default AddCertificationScreen;

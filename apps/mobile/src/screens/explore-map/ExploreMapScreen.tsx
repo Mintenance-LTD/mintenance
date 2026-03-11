@@ -29,16 +29,16 @@ import { MapSearchBar, JobPreviewCard } from './components';
 
 // Category-to-color map for map markers (matches JobsScreen badge colors)
 const CATEGORY_MARKER_COLORS: Record<string, { bg: string; text: string }> = {
-  plumbing:    { bg: '#2563EB', text: '#FFFFFF' },
-  electrical:  { bg: '#D97706', text: '#FFFFFF' },
-  roofing:     { bg: '#7C3AED', text: '#FFFFFF' },
-  painting:    { bg: '#DB2777', text: '#FFFFFF' },
-  carpentry:   { bg: '#92400E', text: '#FFFFFF' },
-  cleaning:    { bg: '#059669', text: '#FFFFFF' },
-  hvac:        { bg: '#0891B2', text: '#FFFFFF' },
-  landscaping: { bg: '#16A34A', text: '#FFFFFF' },
-  appliance:   { bg: '#EA580C', text: '#FFFFFF' },
-  general:     { bg: '#475569', text: '#FFFFFF' },
+  plumbing:    { bg: theme.colors.info, text: theme.colors.white },
+  electrical:  { bg: theme.colors.warning, text: theme.colors.white },
+  roofing:     { bg: theme.colors.info, text: theme.colors.white },
+  painting:    { bg: theme.colors.info, text: theme.colors.white },
+  carpentry:   { bg: theme.colors.warning, text: theme.colors.white },
+  cleaning:    { bg: theme.colors.success, text: theme.colors.white },
+  hvac:        { bg: theme.colors.info, text: theme.colors.white },
+  landscaping: { bg: theme.colors.success, text: theme.colors.white },
+  appliance:   { bg: theme.colors.warning, text: theme.colors.white },
+  general:     { bg: theme.colors.textSecondary, text: theme.colors.white },
 };
 
 // Category tabs - same data as QuickServices for consistency
@@ -177,7 +177,7 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({ onBackToList
               >
                 <View style={[
                   styles.priceMarker,
-                  { backgroundColor: isSelected ? '#FFFFFF' : catColor.bg },
+                  { backgroundColor: isSelected ? theme.colors.white : catColor.bg },
                   isSelected && { borderColor: catColor.bg, borderWidth: 2 },
                 ]}>
                   <Text style={[
@@ -200,7 +200,7 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({ onBackToList
             accessibilityRole="button"
             accessibilityLabel="Search jobs in this area"
           >
-            <Ionicons name="search" size={14} color="#FFFFFF" />
+            <Ionicons name="search" size={14} color={theme.colors.white} />
             <Text style={styles.searchAreaText}>Search this area</Text>
           </TouchableOpacity>
         )}
@@ -266,14 +266,14 @@ const styles = StyleSheet.create({
   },
   categoryLabel: {
     fontSize: 11,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textSecondary,
     marginTop: 4,
     textAlign: 'center',
   },
   categoryLabelActive: {
     color: theme.colors.textPrimary,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   categoryDivider: {
     height: 1,
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
   },
   jobCountText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     paddingHorizontal: 16,
   },
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    shadowColor: '#000000',
+    shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
   },
   priceMarkerText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
   },
 
   // "Search this area" pill — 16px inside the top of the map container
@@ -332,13 +332,13 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 9,
     gap: 6,
     zIndex: 6,
-    shadowColor: '#000000',
+    shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -346,8 +346,8 @@ const styles = StyleSheet.create({
   },
   searchAreaText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.white,
   },
 
   // Loading dots — 16px inside top of map container
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
   },
   loadingDots: {
     flexDirection: 'row',
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.white,
   },
 
   // My location button — bottom-right of map container, above preview card
@@ -380,10 +380,10 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.white,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000000',
+    shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.15,
     shadowRadius: 4,

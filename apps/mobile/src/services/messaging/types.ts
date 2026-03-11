@@ -37,6 +37,9 @@ export interface ActiveChannel {
   createdAt: number;
 }
 
+/** Delivery lifecycle of a message from the sender's perspective. */
+export type MessageDeliveryStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
+
 export interface Message {
   id: string;
   jobId: string;
@@ -51,6 +54,8 @@ export interface Message {
   callDuration?: number;
   senderName?: string;
   senderRole?: string;
+  /** Client-side delivery status for optimistic UI. Absent on server-fetched messages. */
+  deliveryStatus?: MessageDeliveryStatus;
 }
 
 export interface MessageThread {

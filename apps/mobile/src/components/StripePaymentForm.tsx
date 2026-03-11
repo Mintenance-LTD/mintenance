@@ -44,7 +44,7 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
       if (error) throw new Error(error.message);
       if (paymentIntent) await onPaymentSuccess(paymentIntent.id);
     } catch (error) {
-      onPaymentError(error.message || 'Payment failed');
+      onPaymentError(error instanceof Error ? error.message : 'Payment failed');
     } finally {
       setLoading(false);
     }
@@ -64,10 +64,10 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
           postalCode: '12345',
         }}
         cardStyle={{
-          backgroundColor: '#FFFFFF',
-          textColor: '#000000',
-          fontSize: 16,
-          placeholderColor: '#999999',
+          backgroundColor: theme.colors.surface,
+          textColor: theme.colors.textPrimary,
+          fontSize: theme.typography.fontSize.base,
+          placeholderColor: theme.colors.placeholder,
         }}
         style={styles.cardField}
         onCardChange={(cardDetails) => setCardComplete(!!cardDetails?.complete)}
@@ -96,12 +96,12 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
         {loading ? (
           <ActivityIndicator
             testID='activity-indicator'
-            color='#fff'
+            color={theme.colors.textInverse}
             size='small'
           />
         ) : (
           <Text style={styles.payButtonText}>
-            Pay ${amount.toFixed(2)} Securely
+            Pay £{amount.toFixed(2)} Securely
           </Text>
         )}
       </TouchableOpacity>
@@ -111,35 +111,54 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 20,
+    backgroundColor: theme.colors.surface,
+    padding: theme.layout.cardPadding,
+    borderRadius: theme.borderRadius.lg,
+    marginBottom: theme.spacing.lg,
   },
-  title: { fontSize: 18, fontWeight: '600', color: theme.colors.textPrimary, marginBottom: 16 },
+  title: {
+    fontSize: theme.typography.fontSize.lg,
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.textPrimary,
+    marginBottom: theme.spacing.md,
+  },
   cardField: {
     width: '100%',
     height: 50,
-    marginBottom: 20,
+    marginBottom: theme.spacing.lg,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 8,
-    paddingHorizontal: 16,
+    borderColor: theme.colors.border,
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: theme.spacing.md,
   },
   securityInfo: {
-    backgroundColor: '#f0f9ff',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 20,
+    backgroundColor: theme.colors.backgroundSecondary,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    marginBottom: theme.spacing.lg,
   },
-  securityText: { fontSize: 14, color: '#1e40af', fontWeight: '500' },
-  securitySubtext: { fontSize: 12, color: '#64748b', marginTop: 4 },
+  securityText: {
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.info,
+    fontWeight: theme.typography.fontWeight.medium,
+  },
+  securitySubtext: {
+    fontSize: theme.typography.fontSize.xs,
+    color: theme.colors.textSecondary,
+    marginTop: theme.spacing.xs,
+  },
   payButton: {
-    backgroundColor: '#059669',
-    paddingVertical: 16,
-    borderRadius: 8,
+    backgroundColor: theme.colors.primary,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
     alignItems: 'center',
   },
-  payButtonDisabled: { backgroundColor: '#d1d5db' },
-  payButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  payButtonDisabled: {
+    backgroundColor: theme.colors.border,
+  },
+  payButtonText: {
+    color: theme.colors.textInverse,
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
+  },
 });

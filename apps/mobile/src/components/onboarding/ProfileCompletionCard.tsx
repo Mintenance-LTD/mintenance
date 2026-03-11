@@ -12,6 +12,7 @@ import {
   Animated,
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
+import { theme } from '../../theme';
 
 interface ProfileCompletionItem {
   id: string;
@@ -78,7 +79,7 @@ export function ProfileCompletionCard({
               cx={50}
               cy={50}
               r={radius}
-              stroke="#EBEBEB"
+              stroke={theme.colors.border}
               strokeWidth={8}
               fill="none"
             />
@@ -89,12 +90,12 @@ export function ProfileCompletionCard({
               r={radius}
               stroke={
                 completion === 100
-                  ? '#10B981'
+                  ? theme.colors.primary
                   : completion >= 75
-                  ? '#10B981'
+                  ? theme.colors.primary
                   : completion >= 50
-                  ? '#F59E0B'
-                  : '#F97316'
+                  ? theme.colors.accent
+                  : theme.colors.warning
               }
               strokeWidth={8}
               fill="none"
@@ -175,23 +176,19 @@ export function ProfileCompletionCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing[5],
+    ...theme.shadows.md,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: theme.spacing[5],
   },
   circularProgress: {
     position: 'relative',
-    marginRight: 16,
+    marginRight: theme.spacing.md,
   },
   percentageContainer: {
     position: 'absolute',
@@ -203,112 +200,112 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   percentageText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#222222',
+    fontSize: theme.typography.fontSize.xl,
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.textPrimary,
   },
   headerContent: {
     flex: 1,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#222222',
-    marginBottom: 4,
+    fontSize: theme.typography.fontSize.lg,
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.textPrimary,
+    marginBottom: theme.spacing.xs,
   },
   headerDescription: {
-    fontSize: 14,
-    color: '#717171',
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.textSecondary,
   },
   itemsContainer: {
-    gap: 8,
+    gap: theme.spacing.sm,
   },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#FFFFFF',
+    padding: theme.spacing[3],
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: '#EBEBEB',
-    borderRadius: 12,
+    borderColor: theme.colors.border,
+    borderRadius: theme.borderRadius.lg,
   },
   itemCompleted: {
-    backgroundColor: '#F7F7F7',
-    borderColor: '#EBEBEB',
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderColor: theme.colors.border,
   },
   checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: theme.spacing[5],
+    height: theme.spacing[5],
+    borderRadius: theme.borderRadius.full,
     borderWidth: 2,
-    borderColor: '#EBEBEB',
-    marginRight: 12,
+    borderColor: theme.colors.border,
+    marginRight: theme.spacing[3],
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxCompleted: {
-    backgroundColor: '#10B981',
-    borderColor: '#10B981',
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
   },
   checkmark: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: 'bold',
+    color: theme.colors.textInverse,
+    fontSize: theme.typography.fontSize.xs,
+    fontWeight: theme.typography.fontWeight.bold,
   },
   itemLabel: {
     flex: 1,
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#222222',
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.medium,
+    color: theme.colors.textPrimary,
   },
   itemLabelCompleted: {
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textDecorationLine: 'line-through',
   },
   arrow: {
-    fontSize: 20,
-    color: '#B0B0B0',
+    fontSize: theme.typography.fontSize.xl,
+    color: theme.colors.textTertiary,
   },
   celebration: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 20,
-    padding: 16,
-    backgroundColor: '#F0FDF4',
-    borderRadius: 12,
+    marginTop: theme.spacing[5],
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.primaryLight,
+    borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#86EFAC',
+    borderColor: theme.colors.primary,
   },
   celebrationIcon: {
-    fontSize: 32,
-    marginRight: 12,
+    fontSize: theme.typography.fontSize['4xl'],
+    marginRight: theme.spacing[3],
   },
   celebrationContent: {
     flex: 1,
   },
   celebrationTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#065F46',
-    marginBottom: 4,
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.primaryDark,
+    marginBottom: theme.spacing.xs,
   },
   celebrationText: {
-    fontSize: 14,
-    color: '#047857',
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.primaryDark,
   },
   completeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#F0FDF4',
-    borderRadius: 12,
+    padding: theme.spacing[3],
+    backgroundColor: theme.colors.primaryLight,
+    borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#86EFAC',
+    borderColor: theme.colors.primary,
   },
   completeBadgeText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#047857',
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.primaryDark,
   },
 });
 

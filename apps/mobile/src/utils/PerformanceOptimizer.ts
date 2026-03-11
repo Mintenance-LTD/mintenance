@@ -6,6 +6,7 @@
 
 import { InteractionManager } from 'react-native';
 import React from 'react';
+import { logger } from './logger';
 
 interface PerformanceMetric {
   name: string;

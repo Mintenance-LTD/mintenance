@@ -13,7 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-import { Card } from '../../components/ui/Card';
+import { Card } from '../../components/ui/Card/Card';
 import { theme } from '../../theme';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 
@@ -138,7 +138,7 @@ export const SubscriptionScreen: React.FC = () => {
 
   const isLoading = statusLoading || plansLoading;
   if (isLoading) return <LoadingSpinner />;
-  if (statusError) return <ErrorView onRetry={refetchStatus} />;
+  if (statusError) return <ErrorView message="Failed to load subscription status" onRetry={refetchStatus} />;
 
   const currentPlan = status?.subscription;
   const trial = status?.trial;
@@ -197,7 +197,7 @@ export const SubscriptionScreen: React.FC = () => {
               key={plan.id}
               variant={selectedPlan === plan.id ? 'outlined' : 'elevated'}
               padding="md"
-              style={[styles.planCard, isCurrent && styles.currentPlanCard]}
+              style={isCurrent ? { ...styles.planCard, ...styles.currentPlanCard } : styles.planCard}
               interactive
               onPress={() => setSelectedPlan(plan.id)}
             >
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing[4],
   },
   currentPlanCard: {
-    borderColor: '#222222',
+    borderColor: theme.colors.primary,
     borderWidth: 2,
   },
   planHeader: {

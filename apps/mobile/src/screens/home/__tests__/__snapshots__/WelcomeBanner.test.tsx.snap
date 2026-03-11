@@ -4,75 +4,197 @@ exports[`WelcomeBanner Rendering should match snapshot with null user 1`] = `
 <View
   style={
     {
-      "alignItems": "flex-end",
-      "backgroundColor": "#007AFF",
-      "flexDirection": "row",
-      "justifyContent": "space-between",
-      "paddingBottom": 32,
-      "paddingHorizontal": 0,
-      "paddingTop": 60,
+      "backgroundColor": undefined,
+      "paddingBottom": 8,
+      "paddingHorizontal": 24,
+      "paddingTop": 4,
     }
   }
 >
   <View
     style={
       {
-        "flex": 1,
-        "paddingLeft": 20,
+        "alignItems": "center",
+        "backgroundColor": undefined,
+        "borderColor": undefined,
+        "borderRadius": 16,
+        "borderWidth": 1,
+        "elevation": 2,
+        "flexDirection": "row",
+        "paddingHorizontal": 14,
+        "paddingVertical": 12,
+        "shadowColor": "#000000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 8,
       }
     }
   >
-    <Text
+    <TouchableOpacity
+      accessibilityLabel="Request a service"
+      accessibilityRole="button"
+      activeOpacity={0.7}
       style={
         {
-          "color": "#E5E5EA",
-          "fontSize": 14,
-          "fontWeight": "500",
-          "marginBottom": 4,
+          "alignItems": "center",
+          "backgroundColor": "#007AFF",
+          "borderRadius": 18,
+          "height": 36,
+          "justifyContent": "center",
+          "marginRight": 12,
+          "width": 36,
         }
       }
     >
-      Mintenance Service Hub
-    </Text>
-    <Text
+      <Ionicons
+        color="#FFFFFF"
+        name="search"
+        size={18}
+      />
+    </TouchableOpacity>
+    <View
       style={
         {
-          "color": "#E5E5EA",
-          "fontSize": 16,
-          "marginBottom": 4,
+          "alignItems": "center",
+          "flex": 1,
+          "flexDirection": "row",
         }
       }
     >
-      Good morning,
-    </Text>
-    <Text
-      style={
-        {
-          "color": "#FFFFFF",
-          "fontSize": 28,
-          "fontWeight": "700",
-          "marginBottom": 8,
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
         }
-      }
-    />
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Property
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            [
+              {
+                "color": undefined,
+                "fontSize": 13,
+                "marginTop": 1,
+              },
+              null,
+            ]
+          }
+        >
+          Select
+        </Text>
+      </TouchableOpacity>
+      <View
+        style={
+          {
+            "backgroundColor": undefined,
+            "height": 28,
+            "width": 1,
+          }
+        }
+      />
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Urgency
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            [
+              {
+                "color": undefined,
+                "fontSize": 13,
+                "marginTop": 1,
+              },
+              null,
+            ]
+          }
+        >
+          Medium
+        </Text>
+      </TouchableOpacity>
+      <View
+        style={
+          {
+            "backgroundColor": undefined,
+            "height": 28,
+            "width": 1,
+          }
+        }
+      />
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Service
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            {
+              "color": undefined,
+              "fontSize": 13,
+              "marginTop": 1,
+            }
+          }
+        >
+          Browse all
+        </Text>
+      </TouchableOpacity>
+    </View>
   </View>
-  <TouchableOpacity
-    accessibilityHint="Double tap to view and edit your profile"
-    accessibilityLabel="Profile"
-    accessibilityRole="button"
-    style={
-      {
-        "padding": 4,
-        "paddingRight": 20,
-      }
-    }
-  >
-    <Ionicons
-      color="#FFFFFF"
-      name="person-circle"
-      size={48}
-    />
-  </TouchableOpacity>
 </View>
 `;
 
@@ -80,77 +202,197 @@ exports[`WelcomeBanner Rendering should match snapshot with valid user 1`] = `
 <View
   style={
     {
-      "alignItems": "flex-end",
-      "backgroundColor": "#007AFF",
-      "flexDirection": "row",
-      "justifyContent": "space-between",
-      "paddingBottom": 32,
-      "paddingHorizontal": 0,
-      "paddingTop": 60,
+      "backgroundColor": undefined,
+      "paddingBottom": 8,
+      "paddingHorizontal": 24,
+      "paddingTop": 4,
     }
   }
 >
   <View
     style={
       {
-        "flex": 1,
-        "paddingLeft": 20,
+        "alignItems": "center",
+        "backgroundColor": undefined,
+        "borderColor": undefined,
+        "borderRadius": 16,
+        "borderWidth": 1,
+        "elevation": 2,
+        "flexDirection": "row",
+        "paddingHorizontal": 14,
+        "paddingVertical": 12,
+        "shadowColor": "#000000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 8,
       }
     }
   >
-    <Text
+    <TouchableOpacity
+      accessibilityLabel="Request a service"
+      accessibilityRole="button"
+      activeOpacity={0.7}
       style={
         {
-          "color": "#E5E5EA",
-          "fontSize": 14,
-          "fontWeight": "500",
-          "marginBottom": 4,
+          "alignItems": "center",
+          "backgroundColor": "#007AFF",
+          "borderRadius": 18,
+          "height": 36,
+          "justifyContent": "center",
+          "marginRight": 12,
+          "width": 36,
         }
       }
     >
-      Mintenance Service Hub
-    </Text>
-    <Text
+      <Ionicons
+        color="#FFFFFF"
+        name="search"
+        size={18}
+      />
+    </TouchableOpacity>
+    <View
       style={
         {
-          "color": "#E5E5EA",
-          "fontSize": 16,
-          "marginBottom": 4,
+          "alignItems": "center",
+          "flex": 1,
+          "flexDirection": "row",
         }
       }
     >
-      Good morning,
-    </Text>
-    <Text
-      style={
-        {
-          "color": "#FFFFFF",
-          "fontSize": 28,
-          "fontWeight": "700",
-          "marginBottom": 8,
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
         }
-      }
-    >
-      Jane
-    </Text>
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Property
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            [
+              {
+                "color": undefined,
+                "fontSize": 13,
+                "marginTop": 1,
+              },
+              null,
+            ]
+          }
+        >
+          Select
+        </Text>
+      </TouchableOpacity>
+      <View
+        style={
+          {
+            "backgroundColor": undefined,
+            "height": 28,
+            "width": 1,
+          }
+        }
+      />
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Urgency
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            [
+              {
+                "color": undefined,
+                "fontSize": 13,
+                "marginTop": 1,
+              },
+              null,
+            ]
+          }
+        >
+          Medium
+        </Text>
+      </TouchableOpacity>
+      <View
+        style={
+          {
+            "backgroundColor": undefined,
+            "height": 28,
+            "width": 1,
+          }
+        }
+      />
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Service
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            {
+              "color": undefined,
+              "fontSize": 13,
+              "marginTop": 1,
+            }
+          }
+        >
+          Browse all
+        </Text>
+      </TouchableOpacity>
+    </View>
   </View>
-  <TouchableOpacity
-    accessibilityHint="Double tap to view and edit your profile"
-    accessibilityLabel="Profile"
-    accessibilityRole="button"
-    style={
-      {
-        "padding": 4,
-        "paddingRight": 20,
-      }
-    }
-  >
-    <Ionicons
-      color="#FFFFFF"
-      name="person-circle"
-      size={48}
-    />
-  </TouchableOpacity>
 </View>
 `;
 
@@ -158,77 +400,197 @@ exports[`WelcomeBanner Snapshots should match snapshot with contractor user 1`] 
 <View
   style={
     {
-      "alignItems": "flex-end",
-      "backgroundColor": "#007AFF",
-      "flexDirection": "row",
-      "justifyContent": "space-between",
-      "paddingBottom": 32,
-      "paddingHorizontal": 0,
-      "paddingTop": 60,
+      "backgroundColor": undefined,
+      "paddingBottom": 8,
+      "paddingHorizontal": 24,
+      "paddingTop": 4,
     }
   }
 >
   <View
     style={
       {
-        "flex": 1,
-        "paddingLeft": 20,
+        "alignItems": "center",
+        "backgroundColor": undefined,
+        "borderColor": undefined,
+        "borderRadius": 16,
+        "borderWidth": 1,
+        "elevation": 2,
+        "flexDirection": "row",
+        "paddingHorizontal": 14,
+        "paddingVertical": 12,
+        "shadowColor": "#000000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 8,
       }
     }
   >
-    <Text
+    <TouchableOpacity
+      accessibilityLabel="Request a service"
+      accessibilityRole="button"
+      activeOpacity={0.7}
       style={
         {
-          "color": "#E5E5EA",
-          "fontSize": 14,
-          "fontWeight": "500",
-          "marginBottom": 4,
+          "alignItems": "center",
+          "backgroundColor": "#007AFF",
+          "borderRadius": 18,
+          "height": 36,
+          "justifyContent": "center",
+          "marginRight": 12,
+          "width": 36,
         }
       }
     >
-      Mintenance Service Hub
-    </Text>
-    <Text
+      <Ionicons
+        color="#FFFFFF"
+        name="search"
+        size={18}
+      />
+    </TouchableOpacity>
+    <View
       style={
         {
-          "color": "#E5E5EA",
-          "fontSize": 16,
-          "marginBottom": 4,
+          "alignItems": "center",
+          "flex": 1,
+          "flexDirection": "row",
         }
       }
     >
-      Good morning,
-    </Text>
-    <Text
-      style={
-        {
-          "color": "#FFFFFF",
-          "fontSize": 28,
-          "fontWeight": "700",
-          "marginBottom": 8,
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
         }
-      }
-    >
-      Contractor
-    </Text>
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Property
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            [
+              {
+                "color": undefined,
+                "fontSize": 13,
+                "marginTop": 1,
+              },
+              null,
+            ]
+          }
+        >
+          Select
+        </Text>
+      </TouchableOpacity>
+      <View
+        style={
+          {
+            "backgroundColor": undefined,
+            "height": 28,
+            "width": 1,
+          }
+        }
+      />
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Urgency
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            [
+              {
+                "color": undefined,
+                "fontSize": 13,
+                "marginTop": 1,
+              },
+              null,
+            ]
+          }
+        >
+          Medium
+        </Text>
+      </TouchableOpacity>
+      <View
+        style={
+          {
+            "backgroundColor": undefined,
+            "height": 28,
+            "width": 1,
+          }
+        }
+      />
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Service
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            {
+              "color": undefined,
+              "fontSize": 13,
+              "marginTop": 1,
+            }
+          }
+        >
+          Browse all
+        </Text>
+      </TouchableOpacity>
+    </View>
   </View>
-  <TouchableOpacity
-    accessibilityHint="Double tap to view and edit your profile"
-    accessibilityLabel="Profile"
-    accessibilityRole="button"
-    style={
-      {
-        "padding": 4,
-        "paddingRight": 20,
-      }
-    }
-  >
-    <Ionicons
-      color="#FFFFFF"
-      name="person-circle"
-      size={48}
-    />
-  </TouchableOpacity>
 </View>
 `;
 
@@ -236,77 +598,197 @@ exports[`WelcomeBanner Snapshots should match snapshot with different user names
 <View
   style={
     {
-      "alignItems": "flex-end",
-      "backgroundColor": "#007AFF",
-      "flexDirection": "row",
-      "justifyContent": "space-between",
-      "paddingBottom": 32,
-      "paddingHorizontal": 0,
-      "paddingTop": 60,
+      "backgroundColor": undefined,
+      "paddingBottom": 8,
+      "paddingHorizontal": 24,
+      "paddingTop": 4,
     }
   }
 >
   <View
     style={
       {
-        "flex": 1,
-        "paddingLeft": 20,
+        "alignItems": "center",
+        "backgroundColor": undefined,
+        "borderColor": undefined,
+        "borderRadius": 16,
+        "borderWidth": 1,
+        "elevation": 2,
+        "flexDirection": "row",
+        "paddingHorizontal": 14,
+        "paddingVertical": 12,
+        "shadowColor": "#000000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 8,
       }
     }
   >
-    <Text
+    <TouchableOpacity
+      accessibilityLabel="Request a service"
+      accessibilityRole="button"
+      activeOpacity={0.7}
       style={
         {
-          "color": "#E5E5EA",
-          "fontSize": 14,
-          "fontWeight": "500",
-          "marginBottom": 4,
+          "alignItems": "center",
+          "backgroundColor": "#007AFF",
+          "borderRadius": 18,
+          "height": 36,
+          "justifyContent": "center",
+          "marginRight": 12,
+          "width": 36,
         }
       }
     >
-      Mintenance Service Hub
-    </Text>
-    <Text
+      <Ionicons
+        color="#FFFFFF"
+        name="search"
+        size={18}
+      />
+    </TouchableOpacity>
+    <View
       style={
         {
-          "color": "#E5E5EA",
-          "fontSize": 16,
-          "marginBottom": 4,
+          "alignItems": "center",
+          "flex": 1,
+          "flexDirection": "row",
         }
       }
     >
-      Good morning,
-    </Text>
-    <Text
-      style={
-        {
-          "color": "#FFFFFF",
-          "fontSize": 28,
-          "fontWeight": "700",
-          "marginBottom": 8,
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
         }
-      }
-    >
-      Alice
-    </Text>
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Property
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            [
+              {
+                "color": undefined,
+                "fontSize": 13,
+                "marginTop": 1,
+              },
+              null,
+            ]
+          }
+        >
+          Select
+        </Text>
+      </TouchableOpacity>
+      <View
+        style={
+          {
+            "backgroundColor": undefined,
+            "height": 28,
+            "width": 1,
+          }
+        }
+      />
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Urgency
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            [
+              {
+                "color": undefined,
+                "fontSize": 13,
+                "marginTop": 1,
+              },
+              null,
+            ]
+          }
+        >
+          Medium
+        </Text>
+      </TouchableOpacity>
+      <View
+        style={
+          {
+            "backgroundColor": undefined,
+            "height": 28,
+            "width": 1,
+          }
+        }
+      />
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Service
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            {
+              "color": undefined,
+              "fontSize": 13,
+              "marginTop": 1,
+            }
+          }
+        >
+          Browse all
+        </Text>
+      </TouchableOpacity>
+    </View>
   </View>
-  <TouchableOpacity
-    accessibilityHint="Double tap to view and edit your profile"
-    accessibilityLabel="Profile"
-    accessibilityRole="button"
-    style={
-      {
-        "padding": 4,
-        "paddingRight": 20,
-      }
-    }
-  >
-    <Ionicons
-      color="#FFFFFF"
-      name="person-circle"
-      size={48}
-    />
-  </TouchableOpacity>
 </View>
 `;
 
@@ -314,77 +796,197 @@ exports[`WelcomeBanner Snapshots should match snapshot with different user names
 <View
   style={
     {
-      "alignItems": "flex-end",
-      "backgroundColor": "#007AFF",
-      "flexDirection": "row",
-      "justifyContent": "space-between",
-      "paddingBottom": 32,
-      "paddingHorizontal": 0,
-      "paddingTop": 60,
+      "backgroundColor": undefined,
+      "paddingBottom": 8,
+      "paddingHorizontal": 24,
+      "paddingTop": 4,
     }
   }
 >
   <View
     style={
       {
-        "flex": 1,
-        "paddingLeft": 20,
+        "alignItems": "center",
+        "backgroundColor": undefined,
+        "borderColor": undefined,
+        "borderRadius": 16,
+        "borderWidth": 1,
+        "elevation": 2,
+        "flexDirection": "row",
+        "paddingHorizontal": 14,
+        "paddingVertical": 12,
+        "shadowColor": "#000000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 8,
       }
     }
   >
-    <Text
+    <TouchableOpacity
+      accessibilityLabel="Request a service"
+      accessibilityRole="button"
+      activeOpacity={0.7}
       style={
         {
-          "color": "#E5E5EA",
-          "fontSize": 14,
-          "fontWeight": "500",
-          "marginBottom": 4,
+          "alignItems": "center",
+          "backgroundColor": "#007AFF",
+          "borderRadius": 18,
+          "height": 36,
+          "justifyContent": "center",
+          "marginRight": 12,
+          "width": 36,
         }
       }
     >
-      Mintenance Service Hub
-    </Text>
-    <Text
+      <Ionicons
+        color="#FFFFFF"
+        name="search"
+        size={18}
+      />
+    </TouchableOpacity>
+    <View
       style={
         {
-          "color": "#E5E5EA",
-          "fontSize": 16,
-          "marginBottom": 4,
+          "alignItems": "center",
+          "flex": 1,
+          "flexDirection": "row",
         }
       }
     >
-      Good morning,
-    </Text>
-    <Text
-      style={
-        {
-          "color": "#FFFFFF",
-          "fontSize": 28,
-          "fontWeight": "700",
-          "marginBottom": 8,
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
         }
-      }
-    >
-      Bob
-    </Text>
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Property
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            [
+              {
+                "color": undefined,
+                "fontSize": 13,
+                "marginTop": 1,
+              },
+              null,
+            ]
+          }
+        >
+          Select
+        </Text>
+      </TouchableOpacity>
+      <View
+        style={
+          {
+            "backgroundColor": undefined,
+            "height": 28,
+            "width": 1,
+          }
+        }
+      />
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Urgency
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            [
+              {
+                "color": undefined,
+                "fontSize": 13,
+                "marginTop": 1,
+              },
+              null,
+            ]
+          }
+        >
+          Medium
+        </Text>
+      </TouchableOpacity>
+      <View
+        style={
+          {
+            "backgroundColor": undefined,
+            "height": 28,
+            "width": 1,
+          }
+        }
+      />
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Service
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            {
+              "color": undefined,
+              "fontSize": 13,
+              "marginTop": 1,
+            }
+          }
+        >
+          Browse all
+        </Text>
+      </TouchableOpacity>
+    </View>
   </View>
-  <TouchableOpacity
-    accessibilityHint="Double tap to view and edit your profile"
-    accessibilityLabel="Profile"
-    accessibilityRole="button"
-    style={
-      {
-        "padding": 4,
-        "paddingRight": 20,
-      }
-    }
-  >
-    <Ionicons
-      color="#FFFFFF"
-      name="person-circle"
-      size={48}
-    />
-  </TouchableOpacity>
 </View>
 `;
 
@@ -392,75 +994,197 @@ exports[`WelcomeBanner Snapshots should match snapshot with empty firstName 1`] 
 <View
   style={
     {
-      "alignItems": "flex-end",
-      "backgroundColor": "#007AFF",
-      "flexDirection": "row",
-      "justifyContent": "space-between",
-      "paddingBottom": 32,
-      "paddingHorizontal": 0,
-      "paddingTop": 60,
+      "backgroundColor": undefined,
+      "paddingBottom": 8,
+      "paddingHorizontal": 24,
+      "paddingTop": 4,
     }
   }
 >
   <View
     style={
       {
-        "flex": 1,
-        "paddingLeft": 20,
+        "alignItems": "center",
+        "backgroundColor": undefined,
+        "borderColor": undefined,
+        "borderRadius": 16,
+        "borderWidth": 1,
+        "elevation": 2,
+        "flexDirection": "row",
+        "paddingHorizontal": 14,
+        "paddingVertical": 12,
+        "shadowColor": "#000000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 8,
       }
     }
   >
-    <Text
+    <TouchableOpacity
+      accessibilityLabel="Request a service"
+      accessibilityRole="button"
+      activeOpacity={0.7}
       style={
         {
-          "color": "#E5E5EA",
-          "fontSize": 14,
-          "fontWeight": "500",
-          "marginBottom": 4,
+          "alignItems": "center",
+          "backgroundColor": "#007AFF",
+          "borderRadius": 18,
+          "height": 36,
+          "justifyContent": "center",
+          "marginRight": 12,
+          "width": 36,
         }
       }
     >
-      Mintenance Service Hub
-    </Text>
-    <Text
+      <Ionicons
+        color="#FFFFFF"
+        name="search"
+        size={18}
+      />
+    </TouchableOpacity>
+    <View
       style={
         {
-          "color": "#E5E5EA",
-          "fontSize": 16,
-          "marginBottom": 4,
+          "alignItems": "center",
+          "flex": 1,
+          "flexDirection": "row",
         }
       }
     >
-      Good morning,
-    </Text>
-    <Text
-      style={
-        {
-          "color": "#FFFFFF",
-          "fontSize": 28,
-          "fontWeight": "700",
-          "marginBottom": 8,
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
         }
-      }
-    />
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Property
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            [
+              {
+                "color": undefined,
+                "fontSize": 13,
+                "marginTop": 1,
+              },
+              null,
+            ]
+          }
+        >
+          Select
+        </Text>
+      </TouchableOpacity>
+      <View
+        style={
+          {
+            "backgroundColor": undefined,
+            "height": 28,
+            "width": 1,
+          }
+        }
+      />
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Urgency
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            [
+              {
+                "color": undefined,
+                "fontSize": 13,
+                "marginTop": 1,
+              },
+              null,
+            ]
+          }
+        >
+          Medium
+        </Text>
+      </TouchableOpacity>
+      <View
+        style={
+          {
+            "backgroundColor": undefined,
+            "height": 28,
+            "width": 1,
+          }
+        }
+      />
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Service
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            {
+              "color": undefined,
+              "fontSize": 13,
+              "marginTop": 1,
+            }
+          }
+        >
+          Browse all
+        </Text>
+      </TouchableOpacity>
+    </View>
   </View>
-  <TouchableOpacity
-    accessibilityHint="Double tap to view and edit your profile"
-    accessibilityLabel="Profile"
-    accessibilityRole="button"
-    style={
-      {
-        "padding": 4,
-        "paddingRight": 20,
-      }
-    }
-  >
-    <Ionicons
-      color="#FFFFFF"
-      name="person-circle"
-      size={48}
-    />
-  </TouchableOpacity>
 </View>
 `;
 
@@ -468,77 +1192,197 @@ exports[`WelcomeBanner Snapshots should match snapshot with homeowner user 1`] =
 <View
   style={
     {
-      "alignItems": "flex-end",
-      "backgroundColor": "#007AFF",
-      "flexDirection": "row",
-      "justifyContent": "space-between",
-      "paddingBottom": 32,
-      "paddingHorizontal": 0,
-      "paddingTop": 60,
+      "backgroundColor": undefined,
+      "paddingBottom": 8,
+      "paddingHorizontal": 24,
+      "paddingTop": 4,
     }
   }
 >
   <View
     style={
       {
-        "flex": 1,
-        "paddingLeft": 20,
+        "alignItems": "center",
+        "backgroundColor": undefined,
+        "borderColor": undefined,
+        "borderRadius": 16,
+        "borderWidth": 1,
+        "elevation": 2,
+        "flexDirection": "row",
+        "paddingHorizontal": 14,
+        "paddingVertical": 12,
+        "shadowColor": "#000000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 8,
       }
     }
   >
-    <Text
+    <TouchableOpacity
+      accessibilityLabel="Request a service"
+      accessibilityRole="button"
+      activeOpacity={0.7}
       style={
         {
-          "color": "#E5E5EA",
-          "fontSize": 14,
-          "fontWeight": "500",
-          "marginBottom": 4,
+          "alignItems": "center",
+          "backgroundColor": "#007AFF",
+          "borderRadius": 18,
+          "height": 36,
+          "justifyContent": "center",
+          "marginRight": 12,
+          "width": 36,
         }
       }
     >
-      Mintenance Service Hub
-    </Text>
-    <Text
+      <Ionicons
+        color="#FFFFFF"
+        name="search"
+        size={18}
+      />
+    </TouchableOpacity>
+    <View
       style={
         {
-          "color": "#E5E5EA",
-          "fontSize": 16,
-          "marginBottom": 4,
+          "alignItems": "center",
+          "flex": 1,
+          "flexDirection": "row",
         }
       }
     >
-      Good morning,
-    </Text>
-    <Text
-      style={
-        {
-          "color": "#FFFFFF",
-          "fontSize": 28,
-          "fontWeight": "700",
-          "marginBottom": 8,
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
         }
-      }
-    >
-      Homeowner
-    </Text>
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Property
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            [
+              {
+                "color": undefined,
+                "fontSize": 13,
+                "marginTop": 1,
+              },
+              null,
+            ]
+          }
+        >
+          Select
+        </Text>
+      </TouchableOpacity>
+      <View
+        style={
+          {
+            "backgroundColor": undefined,
+            "height": 28,
+            "width": 1,
+          }
+        }
+      />
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Urgency
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            [
+              {
+                "color": undefined,
+                "fontSize": 13,
+                "marginTop": 1,
+              },
+              null,
+            ]
+          }
+        >
+          Medium
+        </Text>
+      </TouchableOpacity>
+      <View
+        style={
+          {
+            "backgroundColor": undefined,
+            "height": 28,
+            "width": 1,
+          }
+        }
+      />
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Service
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            {
+              "color": undefined,
+              "fontSize": 13,
+              "marginTop": 1,
+            }
+          }
+        >
+          Browse all
+        </Text>
+      </TouchableOpacity>
+    </View>
   </View>
-  <TouchableOpacity
-    accessibilityHint="Double tap to view and edit your profile"
-    accessibilityLabel="Profile"
-    accessibilityRole="button"
-    style={
-      {
-        "padding": 4,
-        "paddingRight": 20,
-      }
-    }
-  >
-    <Ionicons
-      color="#FFFFFF"
-      name="person-circle"
-      size={48}
-    />
-  </TouchableOpacity>
 </View>
 `;
 
@@ -546,76 +1390,196 @@ exports[`WelcomeBanner Snapshots should match snapshot with long firstName 1`] =
 <View
   style={
     {
-      "alignItems": "flex-end",
-      "backgroundColor": "#007AFF",
-      "flexDirection": "row",
-      "justifyContent": "space-between",
-      "paddingBottom": 32,
-      "paddingHorizontal": 0,
-      "paddingTop": 60,
+      "backgroundColor": undefined,
+      "paddingBottom": 8,
+      "paddingHorizontal": 24,
+      "paddingTop": 4,
     }
   }
 >
   <View
     style={
       {
-        "flex": 1,
-        "paddingLeft": 20,
+        "alignItems": "center",
+        "backgroundColor": undefined,
+        "borderColor": undefined,
+        "borderRadius": 16,
+        "borderWidth": 1,
+        "elevation": 2,
+        "flexDirection": "row",
+        "paddingHorizontal": 14,
+        "paddingVertical": 12,
+        "shadowColor": "#000000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 8,
       }
     }
   >
-    <Text
+    <TouchableOpacity
+      accessibilityLabel="Request a service"
+      accessibilityRole="button"
+      activeOpacity={0.7}
       style={
         {
-          "color": "#E5E5EA",
-          "fontSize": 14,
-          "fontWeight": "500",
-          "marginBottom": 4,
+          "alignItems": "center",
+          "backgroundColor": "#007AFF",
+          "borderRadius": 18,
+          "height": 36,
+          "justifyContent": "center",
+          "marginRight": 12,
+          "width": 36,
         }
       }
     >
-      Mintenance Service Hub
-    </Text>
-    <Text
+      <Ionicons
+        color="#FFFFFF"
+        name="search"
+        size={18}
+      />
+    </TouchableOpacity>
+    <View
       style={
         {
-          "color": "#E5E5EA",
-          "fontSize": 16,
-          "marginBottom": 4,
+          "alignItems": "center",
+          "flex": 1,
+          "flexDirection": "row",
         }
       }
     >
-      Good morning,
-    </Text>
-    <Text
-      style={
-        {
-          "color": "#FFFFFF",
-          "fontSize": 28,
-          "fontWeight": "700",
-          "marginBottom": 8,
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
         }
-      }
-    >
-      VeryLongFirstNameForTesting
-    </Text>
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Property
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            [
+              {
+                "color": undefined,
+                "fontSize": 13,
+                "marginTop": 1,
+              },
+              null,
+            ]
+          }
+        >
+          Select
+        </Text>
+      </TouchableOpacity>
+      <View
+        style={
+          {
+            "backgroundColor": undefined,
+            "height": 28,
+            "width": 1,
+          }
+        }
+      />
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Urgency
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            [
+              {
+                "color": undefined,
+                "fontSize": 13,
+                "marginTop": 1,
+              },
+              null,
+            ]
+          }
+        >
+          Medium
+        </Text>
+      </TouchableOpacity>
+      <View
+        style={
+          {
+            "backgroundColor": undefined,
+            "height": 28,
+            "width": 1,
+          }
+        }
+      />
+      <TouchableOpacity
+        activeOpacity={0.6}
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": undefined,
+              "fontSize": 11,
+              "fontWeight": "600",
+              "letterSpacing": 0.5,
+              "textTransform": "uppercase",
+            }
+          }
+        >
+          Service
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            {
+              "color": undefined,
+              "fontSize": 13,
+              "marginTop": 1,
+            }
+          }
+        >
+          Browse all
+        </Text>
+      </TouchableOpacity>
+    </View>
   </View>
-  <TouchableOpacity
-    accessibilityHint="Double tap to view and edit your profile"
-    accessibilityLabel="Profile"
-    accessibilityRole="button"
-    style={
-      {
-        "padding": 4,
-        "paddingRight": 20,
-      }
-    }
-  >
-    <Ionicons
-      color="#FFFFFF"
-      name="person-circle"
-      size={48}
-    />
-  </TouchableOpacity>
 </View>
 `;

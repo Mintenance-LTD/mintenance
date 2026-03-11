@@ -68,7 +68,7 @@ const getIconName = (type: NotificationData['type']): keyof typeof Ionicons.glyp
 };
 
 const getIconColor = (_type: NotificationData['type']): string => {
-  return '#717171';
+  return theme.colors.textSecondary;
 };
 
 const filterNotifications = (notifications: NotificationData[], tab: FilterTab): NotificationData[] => {
@@ -267,6 +267,7 @@ export const NotificationScreen: React.FC = () => {
               style={[styles.tab, isActive && styles.tabActive]}
               onPress={() => setActiveTab(tab.key)}
               accessibilityRole="tab"
+              accessibilityLabel={`Filter ${tab.label}${count != null && count > 0 ? `, ${count} notifications` : ''}`}
               accessibilityState={{ selected: isActive }}
             >
               <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
@@ -301,7 +302,7 @@ export const NotificationScreen: React.FC = () => {
             />
           )}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor='#222222' colors={['#222222']} />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
           }
           contentContainerStyle={styles.listContainer}
         />
@@ -335,16 +336,16 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   tabActive: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.primary,
   },
   tabText: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textSecondary,
   },
   tabTextActive: {
     color: theme.colors.textInverse,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   // Compact notification row
   notifRow: {
@@ -358,7 +359,7 @@ const styles = StyleSheet.create({
   },
   notifRowUnread: {
     borderLeftWidth: 3,
-    borderLeftColor: '#222222',
+    borderLeftColor: theme.colors.primary,
   },
   iconCircle: {
     width: 34,
@@ -384,7 +385,7 @@ const styles = StyleSheet.create({
   },
   notifTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginBottom: 1,
   },
@@ -402,8 +403,8 @@ const styles = StyleSheet.create({
   // Header actions
   markAllText: {
     fontSize: 14,
-    color: '#222222',
-    fontWeight: '500',
+    color: theme.colors.textPrimary,
+    fontWeight: theme.typography.fontWeight.medium,
   },
   // Empty state
   emptyContainer: {
@@ -414,7 +415,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginTop: 12,
     marginBottom: 4,

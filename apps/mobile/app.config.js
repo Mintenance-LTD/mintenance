@@ -94,7 +94,7 @@ module.exports = {
   expo: {
     name: "Mintenance",
     slug: "mintenance",
-    owner: "mintanance-ltd",
+    owner: "mintenance-ltd",
     version: "1.2.4",
     orientation: "portrait",
     icon: "./assets/icon.png",
@@ -221,15 +221,14 @@ module.exports = {
         "merchantIdentifier": "merchant.com.mintenance.app",
         "enableGooglePay": true
       }],
-      "expo-router",
       "expo-font",
       "expo-web-browser",
       "@react-native-community/datetimepicker"
     ],
     extra: {
       eas: {
-        projectId: "671d1323-6979-465f-91db-e61471746ab3",
-        owner: "mintanance-ltd"
+        projectId: "1ee95edc-0cc1-4775-b52e-4af46f9e51d0",
+        owner: "mintenance-ltd"
       },
       // Supabase runtime config (read by src/config/supabase.ts)
       // Both URL and key MUST be provided via environment variables. No defaults to avoid leaks.

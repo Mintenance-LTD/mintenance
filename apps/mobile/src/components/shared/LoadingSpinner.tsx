@@ -14,6 +14,7 @@ import { theme } from '../../theme';
 interface LoadingSpinnerProps {
   message?: string;
   size?: 'small' | 'large';
+  color?: string;
   fullScreen?: boolean;
 }
 

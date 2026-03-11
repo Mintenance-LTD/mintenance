@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.md,
     fontSize: theme.typography.fontSize.base,
     color: theme.colors.textPrimary,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   inlineLoader: {
     marginHorizontal: theme.spacing.sm,

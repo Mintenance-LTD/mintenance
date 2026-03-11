@@ -15,7 +15,7 @@ import { theme } from '../../theme';
 import { VideoCallService } from '../../services/VideoCallService';
 import { useAuth } from '../../contexts/AuthContext';
 import { logger } from '../../utils/logger';
-import { haptics } from '../../utils/haptics';
+import haptics from '../../utils/haptics';
 
 interface VideoCallSchedulerProps {
   jobId: string;
@@ -108,7 +108,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
   }, []);
 
   const handleQuickSelect = useCallback((option: ScheduleOption) => {
-    haptics.impact('light');
+    haptics.light();
     setSelectedTime(option.time);
   }, []);
 
@@ -124,42 +124,26 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
     setIsScheduling(true);
 
     try {
-      await haptics.impact('medium');
+      await haptics.medium();
 
-      const participants = [
-        {
-          userId: user.id,
-          displayName: user.first_name + ' ' + (user.last_name || ''),
-          role: 'host' as const,
-        },
-        {
-          userId: otherUserId,
-          displayName: otherUserName,
-          role: 'participant' as const,
-        },
-      ];
+      const participantIds = [user.id, otherUserId];
 
       const scheduledCall = await VideoCallService.scheduleCall(
         jobId,
         user.id,
-        participants,
-        selectedTime,
+        participantIds,
+        selectedTime.toISOString(),
         callType,
-        {
-          title: `${callType.charAt(0).toUpperCase() + callType.slice(1)} call`,
-          description: `Scheduled video call between ${user.first_name} and ${otherUserName}`,
-          estimatedDuration: 30 * 60, // 30 minutes
-        }
       );
 
-      if (scheduledCall.success && scheduledCall.data) {
+      if (scheduledCall?.id) {
         logger.info('Video call scheduled successfully', {
-          callId: scheduledCall.data.id,
+          callId: scheduledCall.id,
           scheduledTime: selectedTime,
           callType,
         });
 
-        onScheduled(scheduledCall.data.id, selectedTime);
+        onScheduled(scheduledCall.id, selectedTime);
         onClose();
 
         Alert.alert(
@@ -168,7 +152,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
           [{ text: 'OK' }]
         );
       } else {
-        throw new Error(scheduledCall.error || 'Failed to schedule call');
+        throw new Error('Failed to schedule call');
       }
     } catch (error) {
       logger.error('Failed to schedule video call:', error);
@@ -259,7 +243,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
                     callType === option.value && styles.callTypeOptionSelected,
                   ]}
                   onPress={() => {
-                    haptics.impact('light');
+                    haptics.light();
                     setCallType(option.value);
                   }}
                 >
@@ -329,7 +313,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
               <TouchableOpacity
                 style={styles.dateTimeButton}
                 onPress={() => {
-                  haptics.impact('light');
+                  haptics.light();
                   setShowDatePicker(true);
                 }}
               >
@@ -416,7 +400,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
   },
   placeholder: {
@@ -431,7 +415,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginBottom: 12,
   },
@@ -457,7 +441,7 @@ const styles = StyleSheet.create({
   participantName: {
     flex: 1,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textPrimary,
   },
   hostBadge: {
@@ -468,7 +452,7 @@ const styles = StyleSheet.create({
   },
   hostBadgeText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.surface,
   },
   callTypeContainer: {
@@ -487,7 +471,7 @@ const styles = StyleSheet.create({
   },
   callTypeLabel: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textPrimary,
   },
   callTypeLabelSelected: {
@@ -509,7 +493,7 @@ const styles = StyleSheet.create({
   },
   quickOptionLabel: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textPrimary,
     marginBottom: 4,
   },
@@ -537,7 +521,7 @@ const styles = StyleSheet.create({
   dateTimeButtonText: {
     flex: 1,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textPrimary,
   },
   summaryContainer: {
@@ -559,12 +543,12 @@ const styles = StyleSheet.create({
   },
   summaryTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
   },
   summaryDateTime: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.primary,
     marginBottom: 4,
   },
@@ -594,7 +578,7 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
   },
   scheduleButton: {
@@ -605,7 +589,7 @@ const styles = StyleSheet.create({
   },
   scheduleButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.surface,
   },
 });

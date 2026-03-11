@@ -64,8 +64,9 @@ export const useAccessibleColors = () => {
       setIsHighContrastEnabled
     );
 
-    const subscription = AccessibilityInfo.addEventListener?.(
-      'highTextContrastChanged' as unknown,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const subscription = (AccessibilityInfo.addEventListener as any)?.(
+      'highTextContrastChanged',
       setIsHighContrastEnabled
     );
 

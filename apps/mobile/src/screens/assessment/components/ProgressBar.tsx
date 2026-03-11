@@ -19,25 +19,25 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({ percentage }) => {
 
 const styles = StyleSheet.create({
   progressContainer: {
-    backgroundColor: 'white',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.borderLight,
   },
   progressBar: {
     height: 6,
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.borderLight,
     borderRadius: 3,
     overflow: 'hidden',
-    marginBottom: 8,
+    marginBottom: theme.spacing.sm,
   },
   progressFill: {
     height: '100%',
     backgroundColor: theme.colors.primary,
   },
   progressText: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.textSecondary,
     textAlign: 'center',
   },

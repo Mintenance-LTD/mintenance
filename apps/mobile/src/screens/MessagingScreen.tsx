@@ -25,6 +25,8 @@ import {
   useMarkMessagesAsRead,
   useRealTimeMessages,
 } from '../hooks/useMessaging';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../lib/queryClient';
 import { ResponsiveContainer, useResponsive } from '../components/responsive';
 import { ChatHeader } from './messaging/components/ChatHeader';
 import { MessageBubble } from './messaging/components/MessageBubble';
@@ -59,12 +61,14 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
   const typingBroadcastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
-    data: messages = [],
+    data: rawMessages,
     isLoading: loading,
     error,
   } = useJobMessages(jobId);
+  const messages = (rawMessages ?? []) as Message[];
   const sendMessageMutation = useSendMessage();
   const markAsReadMutation = useMarkMessagesAsRead();
+  const queryClient = useQueryClient();
 
   const scrollToEnd = useCallback(() => {
     setTimeout(() => {
@@ -82,7 +86,11 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
     callDuration?: number;
     scheduledTime?: string;
   }) => {
-    await sendMessageMutation.mutateAsync(params);
+    const { callId: _callId, callDuration: _callDuration, scheduledTime: _scheduledTime, messageType, ...rest } = params;
+    await sendMessageMutation.mutateAsync({
+      ...rest,
+      messageType: (messageType as 'text' | 'image' | 'file') || 'text',
+    });
   }, [sendMessageMutation]);
 
   const videoCall = useVideoCall({
@@ -154,12 +162,28 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [messages, user?.id, jobId]);
 
+  /** Mark a specific optimistic message as failed in the query cache. */
+  const markMessageFailed = useCallback((tempId: string) => {
+    queryClient.setQueryData(
+      queryKeys.messages.conversation(jobId),
+      (oldData: Message[] | undefined) => {
+        if (!oldData) return oldData;
+        return oldData.map((msg) =>
+          msg.id === tempId ? { ...msg, deliveryStatus: 'failed' as const } : msg
+        );
+      }
+    );
+  }, [jobId, queryClient]);
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !user || sendMessageMutation.isPending) return;
 
     const messageText = newMessage.trim();
     setComposerError(null);
     setNewMessage('');
+
+    // Generate a temp id so we can mark it failed if needed
+    const tempId = `temp_message_${Date.now()}`;
 
     try {
       await sendMessageMutation.mutateAsync({
@@ -172,10 +196,61 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
       scrollToEnd();
     } catch (err) {
       logger.error('Error sending message:', err);
-      setComposerError('Failed to send message. Please try again.');
-      setNewMessage(messageText);
+      // Mark the optimistic message as failed in cache (find latest temp message)
+      const currentMessages: Message[] | undefined = queryClient.getQueryData(
+        queryKeys.messages.conversation(jobId)
+      );
+      const failedMsg = currentMessages?.find(
+        (m) => m.id.startsWith('temp_message_') && m.senderId === user.id && m.messageText === messageText
+      );
+      if (failedMsg) {
+        markMessageFailed(failedMsg.id);
+      } else {
+        // Fallback: show error in composer if we can't find the optimistic message
+        setComposerError('Failed to send message. Please try again.');
+        setNewMessage(messageText);
+      }
     }
   };
+
+  /** Retry sending a failed message. */
+  const handleRetryMessage = useCallback(async (failedMessage: Message) => {
+    if (!user) return;
+
+    // Remove the failed message from cache
+    queryClient.setQueryData(
+      queryKeys.messages.conversation(jobId),
+      (oldData: Message[] | undefined) => {
+        if (!oldData) return oldData;
+        return oldData.filter((msg) => msg.id !== failedMessage.id);
+      }
+    );
+
+    // Re-send
+    try {
+      await sendMessageMutation.mutateAsync({
+        jobId,
+        receiverId: otherUserId,
+        messageText: failedMessage.messageText,
+        senderId: user.id,
+        messageType: (failedMessage.messageType as 'text' | 'image' | 'file') || 'text',
+        attachmentUrl: failedMessage.attachmentUrl,
+      });
+      scrollToEnd();
+    } catch (err) {
+      logger.error('Retry failed:', err);
+      // Find the new optimistic message and mark it failed
+      const currentMessages: Message[] | undefined = queryClient.getQueryData(
+        queryKeys.messages.conversation(jobId)
+      );
+      const retryMsg = currentMessages?.find(
+        (m) => m.id.startsWith('temp_message_') && m.messageText === failedMessage.messageText
+      );
+      if (retryMsg) {
+        markMessageFailed(retryMsg.id);
+      }
+    }
+  }, [user, jobId, otherUserId, sendMessageMutation, scrollToEnd, queryClient, markMessageFailed]);
 
   const handleChangeText = (value: string) => {
     if (composerError) setComposerError(null);
@@ -235,8 +310,9 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
       isDesktop={isDesktop}
       onCallAccept={videoCall.handleCallAccept}
       onCallDecline={videoCall.handleCallDecline}
+      onRetry={handleRetryMessage}
     />
-  ), [user?.id, isDesktop, videoCall.handleCallAccept, videoCall.handleCallDecline]);
+  ), [user?.id, isDesktop, videoCall.handleCallAccept, videoCall.handleCallDecline, handleRetryMessage]);
 
   if (loading) return <MessagingLoading />;
   if (error) return <MessagingError onRetry={() => navigation.goBack()} />;

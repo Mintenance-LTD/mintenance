@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, memo } from 'react';
 import { View, TouchableOpacity, StyleSheet, Animated, ViewStyle } from 'react-native';
+import { theme } from '../../theme';
 
 // ============================================================================
 // ACCORDION COMPOUND COMPONENT
@@ -196,14 +197,19 @@ export const AccordionContent = memo<AccordionContentProps>(({
 
 AccordionContent.displayName = 'Accordion.Content';
 
-// Attach sub-components to Accordion (cast required for memo() + compound component pattern)
-(Accordion as any).Item = AccordionItem;
-(Accordion as any).Trigger = AccordionTrigger;
-(Accordion as any).Content = AccordionContent;
+// Attach sub-components to Accordion using typed intersection
+type AccordionCompound = React.NamedExoticComponent<AccordionProps> & {
+  Item: typeof AccordionItem;
+  Trigger: typeof AccordionTrigger;
+  Content: typeof AccordionContent;
+};
+(Accordion as AccordionCompound).Item = AccordionItem;
+(Accordion as AccordionCompound).Trigger = AccordionTrigger;
+(Accordion as AccordionCompound).Content = AccordionContent;
 
 const styles = StyleSheet.create({
-  accordionItem: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#E5E5E5" },
+  accordionItem: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
   accordionTrigger: { padding: 16, flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "transparent" },
-  accordionTriggerOpen: { backgroundColor: "#F8F9FA" },
+  accordionTriggerOpen: { backgroundColor: theme.colors.backgroundSecondary },
   accordionContent: { padding: 16, paddingTop: 0 },
 });

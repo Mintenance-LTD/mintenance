@@ -95,6 +95,6 @@ export const __queueSupabaseList = (table: string, response: any) => {
   __setMockData(response.data);
 };
 
-export const __getSupabaseMockState = () => ({ mockData });
+export const __getSupabaseMockState = () => ({ mockData: mockState.data });
 
 export default supabase;

@@ -16,5 +16,4 @@ export * from '../location/location.types'
 // Jobs domain types
 export * from '../jobs/job.types'
 
-// Re-export legacy compatibility (temporary during migration)
-export type { Database } from '../database'
+// Database types are in @mintenance/types

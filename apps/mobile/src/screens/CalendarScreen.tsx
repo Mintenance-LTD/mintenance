@@ -67,13 +67,19 @@ const ScheduleCard: React.FC<{
 
   const getTypeColor = () => {
     switch (item.type) {
-      case 'deadline': return '#222222';
-      default: return '#717171';
+      case 'deadline': return theme.colors.primary;
+      default: return theme.colors.textSecondary;
     }
   };
 
   return (
-    <TouchableOpacity style={styles.scheduleCard} onPress={onPress}>
+    <TouchableOpacity
+      style={styles.scheduleCard}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.type === 'meeting' ? 'Meeting' : item.type === 'deadline' ? 'Deadline' : 'Job'}: ${item.job_title}, ${new Date(item.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} at ${item.time_start}`}
+      accessibilityHint="Double tap to view details"
+    >
       <View style={[styles.typeIndicator, { backgroundColor: getTypeColor() }]} />
       <View style={styles.cardContent}>
         <View style={styles.cardHeader}>
@@ -140,7 +146,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           title="No Upcoming Schedule"
           subtitle="Your jobs and meetings will appear here once scheduled."
           ctaLabel="Browse Jobs"
-          onCtaPress={() => navigation.navigate('JobsList')}
+          onCtaPress={() => (navigation as any).navigate('JobsList')}
         />
       ) : (
         <FlatList
@@ -149,11 +155,11 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           renderItem={({ item }) => (
             <ScheduleCard
               item={item}
-              onPress={() => navigation.navigate('JobDetails', { jobId: item.job_id })}
+              onPress={() => (navigation as any).navigate('JobDetails', { jobId: item.job_id })}
             />
           )}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor='#222222' colors={['#222222']} />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
           }
           contentContainerStyle={styles.listContainer}
         />

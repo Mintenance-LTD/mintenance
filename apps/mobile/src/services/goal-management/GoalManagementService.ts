@@ -240,11 +240,11 @@ export class GoalManagementService {
   ): Promise<Goal> {
     try {
       const template = await this.goalRepository.getGoalTemplate(templateId);
-      const goalRequest: CreateGoalRequest = {
+      const goalRequest = {
         ...template,
         contractorId,
         ...customizations,
-      };
+      } as CreateGoalRequest;
 
       return await this.createGoal(goalRequest);
     } catch (error) {

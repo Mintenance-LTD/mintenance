@@ -3,6 +3,7 @@
  *
  * Handles the bottom tab bar rendering and styling.
  * The center "AddTab" renders as a prominent Post a Job button.
+ * Supports notification badges via React Navigation's tabBarBadge option.
  */
 
 import React from 'react';
@@ -13,6 +14,39 @@ import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { NAVIGATION_CONSTANTS, TAB_CONFIG, TAB_STYLES } from '../constants';
 import { useAuth } from '../../contexts/AuthContext';
 import { theme } from '../../theme';
+
+/**
+ * Renders a badge indicator on a tab icon.
+ * - If badge is a number > 0: shows a red circle with count (max "99+")
+ * - If badge is true (boolean): shows a small red dot
+ * - Otherwise: renders nothing
+ */
+const TabBadge: React.FC<{ badge: number | string | boolean | undefined }> = ({ badge }) => {
+  if (badge === undefined || badge === false || badge === 0 || badge === '') {
+    return null;
+  }
+
+  // Boolean true = dot-only indicator
+  if (badge === true) {
+    return <View style={styles.badgeDot} />;
+  }
+
+  // Numeric or string badge with count
+  const numericValue = typeof badge === 'string' ? parseInt(badge, 10) : badge;
+  if (typeof numericValue === 'number' && numericValue <= 0) {
+    return null;
+  }
+
+  const displayText = typeof numericValue === 'number' && numericValue > 99
+    ? '99+'
+    : String(badge);
+
+  return (
+    <View style={styles.badgeContainer}>
+      <Text style={styles.badgeText}>{displayText}</Text>
+    </View>
+  );
+};
 
 export const CustomTabBar: React.FC<BottomTabBarProps> = ({
   state,
@@ -42,6 +76,7 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
 
         const isFocused = state.index === index;
         const isAddTab = route.name === 'AddTab';
+        const badge = options.tabBarBadge;
 
         const onPress = () => {
           const event = navigation.emit({
@@ -100,21 +135,24 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
             accessibilityRole="tab"
             accessibilityState={isFocused ? { selected: true } : {}}
             accessibilityLabel={options.tabBarAccessibilityLabel}
-            testID={options.tabBarTestID}
+            testID={(options as Record<string, unknown>).tabBarTestID as string | undefined}
             onPress={onPress}
             style={styles.tabItem}
           >
-            {React.createElement(Ionicons, {
-              name: (iconName || 'help-outline') as keyof typeof Ionicons.glyphMap,
-              size: isFocused ? NAVIGATION_CONSTANTS.ACTIVE_ICON_SIZE : NAVIGATION_CONSTANTS.ICON_SIZE,
-              color: isFocused ? theme.colors.primary : '#B0B0B0',
-              style: TAB_STYLES.tabBarIconStyle,
-            })}
+            <View style={styles.iconContainer}>
+              {React.createElement(Ionicons, {
+                name: (iconName || 'help-outline') as keyof typeof Ionicons.glyphMap,
+                size: isFocused ? NAVIGATION_CONSTANTS.ACTIVE_ICON_SIZE : NAVIGATION_CONSTANTS.ICON_SIZE,
+                color: isFocused ? theme.colors.primary : theme.colors.textTertiary,
+                style: TAB_STYLES.tabBarIconStyle,
+              })}
+              <TabBadge badge={badge} />
+            </View>
             <Text style={[
               TAB_STYLES.tabBarLabelStyle,
               {
-                color: isFocused ? theme.colors.primary : '#B0B0B0',
-                fontWeight: isFocused ? '500' : '400',
+                color: isFocused ? theme.colors.primary : theme.colors.textTertiary,
+                fontWeight: isFocused ? theme.typography.fontWeight.medium : theme.typography.fontWeight.regular,
               },
             ]}>
               {String(label)}
@@ -126,6 +164,8 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
   );
 };
 
+const BADGE_COLOR = theme.colors.error;
+
 const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
@@ -135,7 +175,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 0,
     ...Platform.select({
       ios: {
-        shadowColor: '#000000',
+        shadowColor: theme.colors.black,
         shadowOffset: { width: 0, height: -2 },
         shadowOpacity: 0.06,
         shadowRadius: 8,
@@ -152,6 +192,41 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     minHeight: 48,
   },
+  iconContainer: {
+    position: 'relative',
+  },
+  badgeContainer: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    backgroundColor: BADGE_COLOR,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: theme.colors.white,
+  },
+  badgeText: {
+    color: theme.colors.textInverse,
+    fontSize: 10,
+    fontWeight: theme.typography.fontWeight.bold,
+    lineHeight: 12,
+    textAlign: 'center',
+  },
+  badgeDot: {
+    position: 'absolute',
+    top: -2,
+    right: -4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: BADGE_COLOR,
+    borderWidth: 2,
+    borderColor: theme.colors.white,
+  },
   addTabContainer: {
     flex: 1,
     alignItems: 'center',
@@ -160,7 +235,7 @@ const styles = StyleSheet.create({
   },
   addLabel: {
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.primary,
     marginTop: 4,
   },
@@ -171,7 +246,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000000',
+    shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,

@@ -55,7 +55,7 @@ export async function handleDatabaseOperation<T>(
       throw ServiceErrorHandler.handleDatabaseError(error, context);
     }
 
-    return data;
+    return data as T;
   }, context);
 }
 

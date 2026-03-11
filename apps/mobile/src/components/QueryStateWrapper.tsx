@@ -11,6 +11,7 @@ import {
 } from './LoadingStates';
 import { useNetworkState } from '../hooks/useNetworkState';
 import { useOfflineSyncStatus } from '../hooks/useOfflineQuery';
+import { theme } from '../theme';
 import { logger } from '../utils/logger';
 
 export interface QueryStateWrapperProps<TData = unknown> {
@@ -169,10 +170,10 @@ export const QueryStateWrapper = <TData,>({
         <View
           style={{
             backgroundColor: theme.colors.surfaceSecondary,
-            padding: 12,
+            padding: theme.spacing[3],
             alignItems: 'center',
             borderBottomWidth: 1,
-            borderBottomColor: '#EBEBEB',
+            borderBottomColor: theme.colors.borderLight,
           }}
         >
           <NetworkStatusIndicator
@@ -283,7 +284,7 @@ export const MutationStateWrapper = <TData, TVariables>({
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backgroundColor: theme.colors.overlayDark50,
             justifyContent: 'center',
             alignItems: 'center',
             zIndex: 1000,
@@ -291,9 +292,9 @@ export const MutationStateWrapper = <TData, TVariables>({
         >
           <View
             style={{
-              backgroundColor: 'white',
-              padding: 24,
-              borderRadius: 12,
+              backgroundColor: theme.colors.surface,
+              padding: theme.spacing.xl,
+              borderRadius: theme.borderRadius.lg,
               alignItems: 'center',
             }}
           >

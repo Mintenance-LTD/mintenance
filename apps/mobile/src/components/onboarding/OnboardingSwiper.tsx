@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Swiper from 'react-native-swiper';
+import { theme } from '../../theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -42,7 +43,8 @@ export function OnboardingSwiper({
   userType = 'homeowner',
 }: OnboardingSwiperProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const swiperRef = useRef<Swiper>(null);
+  // react-native-swiper lacks type definitions
+  const swiperRef = useRef<{ scrollBy: (index: number) => void }>(null);
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   const isLastSlide = currentIndex === slides.length - 1;
@@ -98,7 +100,7 @@ export function OnboardingSwiper({
             key={slide.id}
             style={[
               styles.slide,
-              { backgroundColor: slide.backgroundColor || '#F8F9FA' },
+              { backgroundColor: slide.backgroundColor || theme.colors.backgroundSecondary },
             ]}
           >
             {/* Icon or Image */}
@@ -151,36 +153,36 @@ export function OnboardingSwiper({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingHorizontal: theme.spacing[5],
+    paddingTop: theme.spacing[2],
     height: 50,
   },
   skipButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
   },
   skipText: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontWeight: '500',
+    fontSize: theme.typography.fontSize.base,
+    color: theme.colors.textSecondary,
+    fontWeight: theme.typography.fontWeight.medium,
   },
   slide: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 40,
+    paddingHorizontal: theme.spacing[10],
   },
   imageContainer: {
     width: width * 0.6,
     height: width * 0.6,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: theme.spacing[10],
   },
   icon: {
     fontSize: 120,
@@ -190,21 +192,21 @@ const styles = StyleSheet.create({
     maxWidth: width * 0.8,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#111827',
+    fontSize: theme.typography.fontSize['3xl'],
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.textPrimary,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
   },
   description: {
-    fontSize: 16,
-    color: '#6B7280',
+    fontSize: theme.typography.fontSize.base,
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
   },
   footer: {
-    paddingHorizontal: 40,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 30,
+    paddingHorizontal: theme.spacing[10],
+    paddingBottom: Platform.OS === 'ios' ? theme.spacing[10] : 30,
   },
   pagination: {
     flexDirection: 'row',
@@ -213,34 +215,30 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginHorizontal: 4,
+    width: theme.spacing.sm,
+    height: theme.spacing.sm,
+    borderRadius: theme.borderRadius.sm,
+    marginHorizontal: theme.spacing.xs,
   },
   activeDot: {
-    backgroundColor: '#10B981',
-    width: 24,
+    backgroundColor: theme.colors.primary,
+    width: theme.spacing.lg,
   },
   inactiveDot: {
-    backgroundColor: '#D1D5DB',
+    backgroundColor: theme.colors.border,
   },
   button: {
-    backgroundColor: '#10B981',
-    paddingVertical: 16,
-    borderRadius: 12,
+    backgroundColor: theme.colors.primary,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    ...theme.shadows.large,
   },
   buttonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
+    color: theme.colors.textInverse,
+    fontSize: theme.typography.fontSize.lg,
+    fontWeight: theme.typography.fontWeight.semibold,
   },
 });
 
@@ -252,7 +250,7 @@ export const homeownerSlides: OnboardingSlide[] = [
     description:
       'Find trusted contractors, manage projects, and ensure quality work—all in one place.',
     icon: '🏠',
-    backgroundColor: '#EFF6FF',
+    backgroundColor: theme.colors.infoLight ?? '#EFF6FF',
   },
   {
     id: 'post-jobs',
@@ -260,7 +258,7 @@ export const homeownerSlides: OnboardingSlide[] = [
     description:
       'Describe your project, add photos, and our AI will match you with qualified contractors.',
     icon: '📝',
-    backgroundColor: '#F0FDF4',
+    backgroundColor: theme.colors.primaryLight,
   },
   {
     id: 'compare-bids',
@@ -268,7 +266,7 @@ export const homeownerSlides: OnboardingSlide[] = [
     description:
       'Review multiple quotes side-by-side. Check ratings, reviews, and portfolios.',
     icon: '📊',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.colors.accentLight,
   },
   {
     id: 'secure-payment',
@@ -276,7 +274,7 @@ export const homeownerSlides: OnboardingSlide[] = [
     description:
       'Your money is protected in escrow. Release payments milestone by milestone.',
     icon: '💳',
-    backgroundColor: '#F3E8FF',
+    backgroundColor: theme.colors.secondaryLight ?? '#F3E8FF',
   },
 ];
 
@@ -288,7 +286,7 @@ export const contractorSlides: OnboardingSlide[] = [
     description:
       'Find quality leads, showcase your work, and build your reputation.',
     icon: '⚒️',
-    backgroundColor: '#EFF6FF',
+    backgroundColor: theme.colors.infoLight ?? '#EFF6FF',
   },
   {
     id: 'discover',
@@ -296,7 +294,7 @@ export const contractorSlides: OnboardingSlide[] = [
     description:
       'Swipe through jobs matched to your skills and location. No more wasted time.',
     icon: '🔍',
-    backgroundColor: '#F0FDF4',
+    backgroundColor: theme.colors.primaryLight,
   },
   {
     id: 'showcase',
@@ -304,7 +302,7 @@ export const contractorSlides: OnboardingSlide[] = [
     description:
       'Build a stunning portfolio with before/after photos. Stand out from the competition.',
     icon: '📸',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.colors.accentLight,
   },
   {
     id: 'get-paid',
@@ -312,7 +310,7 @@ export const contractorSlides: OnboardingSlide[] = [
     description:
       'Secure escrow system ensures you get paid for completed work. No more payment delays.',
     icon: '💰',
-    backgroundColor: '#F3E8FF',
+    backgroundColor: theme.colors.secondaryLight ?? '#F3E8FF',
   },
 ];
 

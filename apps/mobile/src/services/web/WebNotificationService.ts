@@ -4,7 +4,7 @@ import { addBreadcrumb, trackUserAction } from '../../config/sentry';
 export interface WebPushNotificationContent {
   title: string;
   body: string;
-  data?: unknown;
+  data?: Record<string, unknown>;
   badge?: string;
   icon?: string;
   image?: string;
@@ -37,8 +37,7 @@ export class WebNotificationService {
 
       addBreadcrumb(
         `Web notification permission: ${status}`,
-        'notification',
-        'info'
+        'notification'
       );
 
       trackUserAction('web_notification_permission_requested', {
@@ -87,11 +86,10 @@ export class WebNotificationService {
         body: content.body,
         icon: content.icon || '/assets/icon.png',
         badge: content.badge || '/assets/icon.png',
-        image: content.image,
         tag: content.tag || notificationId,
         requireInteraction: content.requireInteraction || false,
         data: {
-          ...content.data,
+          ...(content.data ?? {}),
           notificationId,
         },
       });
@@ -103,9 +101,9 @@ export class WebNotificationService {
         notification.close();
 
         // Handle notification click data
-        if (content.data?.screen) {
+        if (content.data?.['screen']) {
           // Navigate to specific screen if specified
-          window.location.hash = `#${content.data.screen}`;
+          window.location.hash = `#${content.data['screen']}`;
         }
 
         trackUserAction('web_notification_clicked', {
@@ -122,8 +120,7 @@ export class WebNotificationService {
 
       addBreadcrumb(
         `Web notification presented: ${content.title}`,
-        'notification',
-        'info'
+        'notification'
       );
 
       trackUserAction('web_notification_presented', {
@@ -144,14 +141,14 @@ export class WebNotificationService {
     userId: string,
     title: string,
     body: string,
-    data?: unknown
+    data?: Record<string, unknown>
   ): Promise<void> {
     try {
       await this.presentNotificationAsync({
         title,
         body,
         data: {
-          ...data,
+          ...(data ?? {}),
           userId,
         },
       });
@@ -180,8 +177,7 @@ export class WebNotificationService {
 
       addBreadcrumb(
         `Web notification cancelled: ${notificationId}`,
-        'notification',
-        'info'
+        'notification'
       );
     } catch (error) {
       logger.error('Error cancelling web notification:', error);
@@ -201,8 +197,7 @@ export class WebNotificationService {
 
       addBreadcrumb(
         'All web notifications cancelled',
-        'notification',
-        'info'
+        'notification'
       );
     } catch (error) {
       logger.error('Error cancelling all web notifications:', error);
@@ -228,8 +223,7 @@ export class WebNotificationService {
 
       addBreadcrumb(
         'Web push notifications initialized',
-        'notification',
-        'info'
+        'notification'
       );
 
       logger.info('Web push notifications initialized successfully');
@@ -273,8 +267,7 @@ export class WebNotificationService {
 
       addBreadcrumb(
         `Web notification scheduled for ${delay}ms: ${content.title}`,
-        'notification',
-        'info'
+        'notification'
       );
 
       return notificationId;

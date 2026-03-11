@@ -55,20 +55,20 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing['2xl'],
   },
   card: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: theme.borderRadius.xl,
     padding: theme.spacing.xl,
     height: 200,
   },
   visa: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.white,
     alignSelf: 'flex-end',
   },
   number: {
     fontSize: 22,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.white,
     letterSpacing: 2,
     marginTop: 40,
@@ -81,12 +81,12 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 10,
-    color: '#D0D0D0',
+    color: theme.colors.textTertiary,
     marginBottom: 4,
   },
   value: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.white,
   },
   chipIcon: {

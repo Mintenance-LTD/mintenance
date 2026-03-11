@@ -1,6 +1,6 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import type { ProfileStackParamList } from "./types";
+import type { ProfileStackParamList } from "../types";
 
 // Account-related screen wrappers
 import {
@@ -24,7 +24,7 @@ import {
   SafeAddCertificationScreen, SafeReportingScreen, SafePayoutsScreen,
 } from "./profile/ProfileBusinessNavigator";
 
-const ProfileStack = createNativeStackNavigator();
+const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 
 export const ProfileNavigator = () => {
   return (
@@ -70,7 +70,7 @@ export const ProfileNavigator = () => {
       <ProfileStack.Screen name="AddTimeEntry" component={SafeAddTimeEntryScreen} options={{ headerShown: false, presentation: "modal" }} />
       <ProfileStack.Screen name="Reporting" component={SafeReportingScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="Payouts" component={SafePayoutsScreen} options={{ headerShown: false }} />
-      <ProfileStack.Screen name="BookingStatus" component={SafeBookingStatusScreen} options={{ headerShown: false }} />
+      <ProfileStack.Screen name="BookingStatus" component={SafeBookingStatusScreen as React.ComponentType<object>} options={{ headerShown: false }} />
     </ProfileStack.Navigator>
   );
 };

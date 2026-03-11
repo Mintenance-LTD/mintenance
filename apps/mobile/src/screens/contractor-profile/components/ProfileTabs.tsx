@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   activeTab: {
-    borderBottomColor: '#222222',
+    borderBottomColor: theme.colors.primary,
   },
   tabText: {
     fontSize: theme.typography.fontSize.lg,

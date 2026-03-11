@@ -21,6 +21,7 @@ exports[`ProfileHeader Component Snapshot Stability renders consistently with di
     }
   >
     <View
+      accessible={false}
       style={
         {
           "backgroundColor": "#D4D4D4",
@@ -100,6 +101,7 @@ exports[`ProfileHeader Component Snapshot Stability renders consistently with ed
     }
   >
     <View
+      accessible={false}
       style={
         {
           "backgroundColor": "#D4D4D4",
@@ -110,11 +112,13 @@ exports[`ProfileHeader Component Snapshot Stability renders consistently with ed
       }
     />
     <TouchableOpacity
+      accessibilityLabel="Edit profile photo"
+      accessibilityRole="button"
       onPress={[MockFunction]}
       style={
         {
           "alignItems": "center",
-          "backgroundColor": "#10B981",
+          "backgroundColor": "#222222",
           "borderRadius": 8,
           "bottom": 0,
           "flexDirection": "row",
@@ -212,6 +216,7 @@ exports[`ProfileHeader Component Snapshot Stability renders consistently without
     }
   >
     <View
+      accessible={false}
       style={
         {
           "backgroundColor": "#D4D4D4",

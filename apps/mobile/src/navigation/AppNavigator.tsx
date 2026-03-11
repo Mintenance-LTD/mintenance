@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { TouchableOpacity, StyleSheet, Platform, View, ActivityIndicator } from 'react-native';
+import { TouchableOpacity, StyleSheet, Platform, View, ActivityIndicator, ViewStyle } from 'react-native';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
@@ -44,6 +44,9 @@ import OfflineSyncStatus from '../components/OfflineSyncStatus';
 // Import QuickJobModal for homeowner (+) button
 import { QuickJobModal } from '../screens/job-posting/QuickJobModal';
 
+// Import messaging hook for unread badge count
+import { useUnreadMessageCount } from '../hooks/useMessaging';
+
 // Import booking screens for root stack
 import { RescheduleBookingScreen } from '../screens/booking/RescheduleBookingScreen';
 import { RateBookingScreen } from '../screens/booking/RateBookingScreen';
@@ -80,7 +83,7 @@ const AddActionScreen: React.FC = () => {
       if (user?.role === 'homeowner') {
         tabNavigation.navigate('HomeTab');
       } else {
-        tabNavigation.navigate('JobsTab', { screen: 'ExploreMap' });
+        (tabNavigation.navigate as (...args: unknown[]) => void)('JobsTab', { screen: 'ExploreMap' });
       }
     }, [tabNavigation, user?.role])
   );
@@ -96,6 +99,7 @@ const TabNavigator: React.FC = () => {
   const { user } = useAuth();
   const haptics = useHaptics();
   const [showQuickJobModal, setShowQuickJobModal] = useState(false);
+  const { data: unreadMessageCount } = useUnreadMessageCount();
 
   // Store root navigation ref for QuickJobModal search callback
   const rootNavRef = React.useRef<NavigationProp<RootStackParamList> | null>(null);
@@ -112,7 +116,7 @@ const TabNavigator: React.FC = () => {
     urgency: string;
   }) => {
     setShowQuickJobModal(false);
-    rootNavRef.current?.navigate('Modal', {
+    (rootNavRef.current?.navigate as ((...args: unknown[]) => void) | undefined)?.('Modal', {
       screen: 'QuickJobPost',
       params,
     });
@@ -141,18 +145,19 @@ const TabNavigator: React.FC = () => {
             <Ionicons name="home" size={size} color={color} />
           ),
           tabBarAccessibilityLabel: 'Home tab',
-          tabBarButton: (props) => (
+          tabBarButton: ({ onPress, style, children, ...rest }) => (
             <TouchableOpacity
-              {...props}
               onPress={(e) => {
                 handleTabPress('HomeTab');
-                props.onPress?.(e);
+                onPress?.(e);
               }}
               accessibilityRole="tab"
               accessibilityLabel="Home tab"
               accessibilityHint="Navigate to home screen"
-              style={[props.style, { minHeight: 44, minWidth: 44 }]}
-            />
+              style={[style as ViewStyle, { minHeight: 44, minWidth: 44 }]}
+            >
+              {children}
+            </TouchableOpacity>
           ),
         }}
       />
@@ -166,18 +171,19 @@ const TabNavigator: React.FC = () => {
             <Ionicons name="briefcase" size={size} color={color} />
           ),
           tabBarAccessibilityLabel: 'Jobs tab',
-          tabBarButton: (props) => (
+          tabBarButton: ({ onPress, style, children, ...rest }) => (
             <TouchableOpacity
-              {...props}
               onPress={(e) => {
                 handleTabPress('JobsTab');
-                props.onPress?.(e);
+                onPress?.(e);
               }}
               accessibilityRole="tab"
               accessibilityLabel="Jobs tab"
               accessibilityHint="Navigate to jobs"
-              style={[props.style, { minHeight: 44, minWidth: 44 }]}
-            />
+              style={[style as ViewStyle, { minHeight: 44, minWidth: 44 }]}
+            >
+              {children}
+            </TouchableOpacity>
           ),
         }}
       />
@@ -192,12 +198,11 @@ const TabNavigator: React.FC = () => {
             user?.role === 'homeowner'
               ? 'Create service request'
               : 'Find jobs near you',
-          tabBarButton: (props) => (
+          tabBarButton: ({ onPress, style, children, ...rest }) => (
             <TouchableOpacity
-              {...props}
               onPress={(e) => {
                 handleTabPress('AddTab');
-                props.onPress?.(e);
+                onPress?.(e);
               }}
               accessibilityRole="button"
               accessibilityLabel={
@@ -206,7 +211,7 @@ const TabNavigator: React.FC = () => {
                   : 'Find jobs near you'
               }
               style={[
-                props.style,
+                style as ViewStyle,
                 {
                   minHeight: 64,
                   minWidth: 64,
@@ -214,7 +219,9 @@ const TabNavigator: React.FC = () => {
                   alignItems: 'center',
                 },
               ]}
-            />
+            >
+              {children}
+            </TouchableOpacity>
           ),
         }}
         listeners={({ navigation }: { navigation: BottomTabNavigationProp<RootTabParamList> }) => ({
@@ -231,7 +238,7 @@ const TabNavigator: React.FC = () => {
               setShowQuickJobModal(true);
             } else {
               // Contractors: centre button = Find Jobs (map of available jobs to bid on)
-              tabNavigation.navigate('JobsTab', { screen: 'ExploreMap' });
+              (tabNavigation.navigate as (...args: unknown[]) => void)('JobsTab', { screen: 'ExploreMap' });
             }
           },
         })}
@@ -242,22 +249,26 @@ const TabNavigator: React.FC = () => {
         component={MessagingNavigator}
         options={{
           tabBarLabel: 'Messages',
+          tabBarBadge: unreadMessageCount && unreadMessageCount > 0
+            ? unreadMessageCount
+            : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="chatbubbles" size={size} color={color} />
           ),
           tabBarAccessibilityLabel: 'Messages tab',
-          tabBarButton: (props) => (
+          tabBarButton: ({ onPress, style, children, ...rest }) => (
             <TouchableOpacity
-              {...props}
               onPress={(e) => {
                 handleTabPress('MessagingTab');
-                props.onPress?.(e);
+                onPress?.(e);
               }}
               accessibilityRole="tab"
               accessibilityLabel="Messages tab"
               accessibilityHint="Navigate to messages and conversations"
-              style={[props.style, { minHeight: 44, minWidth: 44 }]}
-            />
+              style={[style as ViewStyle, { minHeight: 44, minWidth: 44 }]}
+            >
+              {children}
+            </TouchableOpacity>
           ),
         }}
       />
@@ -271,18 +282,19 @@ const TabNavigator: React.FC = () => {
             <Ionicons name="person" size={size} color={color} />
           ),
           tabBarAccessibilityLabel: 'Profile tab',
-          tabBarButton: (props) => (
+          tabBarButton: ({ onPress, style, children, ...rest }) => (
             <TouchableOpacity
-              {...props}
               onPress={(e) => {
                 handleTabPress('ProfileTab');
-                props.onPress?.(e);
+                onPress?.(e);
               }}
               accessibilityRole="tab"
               accessibilityLabel="Profile tab"
               accessibilityHint="Navigate to your profile and settings"
-              style={[props.style, { minHeight: 44, minWidth: 44 }]}
-            />
+              style={[style as ViewStyle, { minHeight: 44, minWidth: 44 }]}
+            >
+              {children}
+            </TouchableOpacity>
           ),
         }}
       />
@@ -302,9 +314,21 @@ const linking: LinkingOptions<RootStackParamList> = {
       Main: {
         screens: {
           HomeTab: 'home',
-          JobsTab: 'jobs',
+          JobsTab: {
+            screens: {
+              JobsList: 'jobs',
+              JobDetails: 'jobs/:jobId',
+              JobPayment: 'payment/:jobId',
+              ContractView: 'contracts/:jobId',
+            },
+          },
           AddTab: 'add',
-          MessagingTab: 'messages',
+          MessagingTab: {
+            screens: {
+              MessagesList: 'messages',
+              Messaging: 'messages/:conversationId',
+            },
+          },
           ProfileTab: 'profile',
         },
       },
@@ -317,6 +341,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       Modal: {
         screens: {
           ServiceRequest: 'request',
+          ContractorProfile: 'contractors/:contractorId',
         },
       },
     },

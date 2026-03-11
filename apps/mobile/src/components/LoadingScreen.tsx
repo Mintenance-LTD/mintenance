@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, ActivityIndicator, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { View, ActivityIndicator, Text, StyleSheet, ViewStyle, TextStyle, DimensionValue } from 'react-native';
+import { theme } from '../theme';
 
 interface LoadingScreenProps {
   message?: string;
@@ -12,7 +13,7 @@ interface LoadingScreenProps {
 export const LoadingScreen: React.FC<LoadingScreenProps> = ({
   message = 'Loading...',
   size = 'large',
-  color = '#10B981',
+  color = theme.colors.primary,
   fullScreen = true,
   overlay = false,
 }) => {
@@ -35,7 +36,7 @@ export const LoadingIndicator: React.FC<{
   size?: 'small' | 'large';
   color?: string;
   style?: ViewStyle;
-}> = ({ size = 'small', color = '#10B981', style }) => {
+}> = ({ size = 'small', color = theme.colors.primary, style }) => {
   return <ActivityIndicator size={size} color={color} style={style} />;
 };
 
@@ -54,7 +55,7 @@ export const LoadingButton: React.FC<{
   title,
   style,
   textStyle,
-  loadingColor = '#FFFFFF',
+  loadingColor = theme.colors.textInverse,
   disabled = false,
 }) => {
   return (
@@ -84,7 +85,7 @@ export const LoadingOverlay: React.FC<{
   return (
     <View style={styles.overlayContainer}>
       <View style={styles.overlayContent}>
-        <ActivityIndicator size="large" color="#10B981" />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
         {message && <Text style={styles.overlayMessage}>{message}</Text>}
       </View>
     </View>
@@ -93,7 +94,7 @@ export const LoadingOverlay: React.FC<{
 
 // Skeleton loader component
 export const SkeletonLoader: React.FC<{
-  width?: number | string;
+  width?: DimensionValue;
   height?: number;
   borderRadius?: number;
   style?: ViewStyle;
@@ -158,11 +159,11 @@ const styles = StyleSheet.create({
   container: {
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: theme.spacing.lg,
   },
   fullScreen: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   overlay: {
     position: 'absolute',
@@ -170,31 +171,31 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: theme.colors.overlayWhite20,
     zIndex: 1000,
   },
   message: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#717171',
+    marginTop: theme.spacing.md,
+    fontSize: theme.typography.fontSize.base,
+    color: theme.colors.textSecondary,
     textAlign: 'center',
   },
   button: {
-    backgroundColor: '#10B981',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
+    backgroundColor: theme.colors.primary,
+    paddingVertical: theme.spacing[3],
+    paddingHorizontal: theme.spacing.xl,
+    borderRadius: theme.borderRadius.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 48,
+    minHeight: theme.layout.minTouchTarget,
   },
   buttonDisabled: {
-    backgroundColor: '#CCCCCC',
+    backgroundColor: theme.colors.border,
   },
   buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    color: theme.colors.textInverse,
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   overlayContainer: {
     position: 'absolute',
@@ -202,34 +203,34 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: theme.colors.overlayDark50,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 9999,
   },
   overlayContent: {
-    backgroundColor: '#FFFFFF',
-    padding: 24,
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.xl,
+    borderRadius: theme.borderRadius.lg,
     alignItems: 'center',
     minWidth: 200,
   },
   overlayMessage: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#222222',
+    marginTop: theme.spacing[3],
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.textPrimary,
   },
   skeleton: {
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.borderLight,
     overflow: 'hidden',
   },
   listItem: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    marginBottom: 8,
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+    borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.borderLight,
   },
   listItemHeader: {
     flexDirection: 'row',
@@ -237,30 +238,30 @@ const styles = StyleSheet.create({
   },
   listItemContent: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: theme.spacing[3],
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#EBEBEB',
-    marginBottom: 16,
+    borderColor: theme.colors.borderLight,
+    marginBottom: theme.spacing.md,
     overflow: 'hidden',
   },
   cardContent: {
-    padding: 16,
+    padding: theme.spacing.md,
   },
   mb4: {
-    marginBottom: 4,
+    marginBottom: theme.spacing.xs,
   },
   mb8: {
-    marginBottom: 8,
+    marginBottom: theme.spacing.sm,
   },
   mt4: {
-    marginTop: 4,
+    marginTop: theme.spacing.xs,
   },
   mt8: {
-    marginTop: 8,
+    marginTop: theme.spacing.sm,
   },
 });
 

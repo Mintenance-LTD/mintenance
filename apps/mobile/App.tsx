@@ -31,9 +31,7 @@ Sentry.init({
   debug: __DEV__,
   tracesSampleRate: __DEV__ ? 1.0 : 0.1,
   integrations: [
-    Sentry.reactNativeTracingIntegration({
-      routingInstrumentation: Sentry.reactNavigationIntegration(),
-    }),
+    Sentry.reactNavigationIntegration(),
   ],
   beforeSend(event, hint) {
     if (__DEV__ && !process.env.EXPO_PUBLIC_SENTRY_DEBUG) {

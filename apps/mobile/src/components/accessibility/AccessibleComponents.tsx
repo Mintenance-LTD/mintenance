@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { useAccessibility } from '../../hooks/useAccessibility';
+import { theme } from '../../theme';
 
 // ============================================================================
 // ACCESSIBLE BUTTON
@@ -447,13 +448,13 @@ const styles = {
     minHeight: 44, // Minimum touch target
   },
   button_primary: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.info,
   },
   button_secondary: {
-    backgroundColor: '#E5E5E7',
+    backgroundColor: theme.colors.border,
   },
   button_danger: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: theme.colors.error,
   },
   button_small: {
     paddingVertical: 8,
@@ -472,16 +473,16 @@ const styles = {
   },
   buttonText: {
     fontSize: 16,
-    fontWeight: '600' as const,
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   buttonText_primary: {
-    color: '#FFFFFF',
+    color: theme.colors.white,
   },
   buttonText_secondary: {
-    color: '#000000',
+    color: theme.colors.black,
   },
   buttonText_danger: {
-    color: '#FFFFFF',
+    color: theme.colors.white,
   },
   buttonText_small: {
     fontSize: 14,
@@ -502,55 +503,55 @@ const styles = {
   },
   inputLabel: {
     fontSize: 16,
-    fontWeight: '600' as const,
+    fontWeight: theme.typography.fontWeight.semibold,
     marginBottom: 4,
-    color: '#000000',
+    color: theme.colors.black,
   },
   inputLabel_error: {
-    color: '#FF3B30',
+    color: theme.colors.error,
   },
   inputLabel_disabled: {
-    color: '#8E8E93',
+    color: theme.colors.textTertiary,
   },
   textInput: {
     borderWidth: 1,
-    borderColor: '#D1D1D6',
+    borderColor: theme.colors.border,
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 16,
     fontSize: 16,
     minHeight: 44,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   textInput_multiline: {
     minHeight: 100,
     textAlignVertical: 'top' as const,
   },
   textInput_error: {
-    borderColor: '#FF3B30',
+    borderColor: theme.colors.error,
   },
   textInput_disabled: {
-    backgroundColor: '#F2F2F7',
-    color: '#8E8E93',
+    backgroundColor: theme.colors.backgroundSecondary,
+    color: theme.colors.textTertiary,
   },
   required: {
-    color: '#FF3B30',
+    color: theme.colors.error,
   },
   errorText: {
-    color: '#FF3B30',
+    color: theme.colors.error,
     fontSize: 14,
     marginTop: 4,
   },
   hintText: {
-    color: '#8E8E93',
+    color: theme.colors.textTertiary,
     fontSize: 14,
     marginTop: 4,
   },
 
   // Header styles
   header: {
-    fontWeight: '700' as const,
-    color: '#000000',
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.black,
   },
   header_h1: {
     fontSize: 28,
@@ -596,38 +597,38 @@ const styles = {
     width: 24,
     height: 24,
     borderWidth: 2,
-    borderColor: '#007AFF',
+    borderColor: theme.colors.info,
     borderRadius: 4,
     marginRight: 12,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
   checkbox_checked: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.info,
   },
   checkbox_disabled: {
-    borderColor: '#8E8E93',
-    backgroundColor: '#F2F2F7',
+    borderColor: theme.colors.textTertiary,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   checkmark: {
-    color: '#FFFFFF',
+    color: theme.colors.white,
     fontSize: 16,
-    fontWeight: '700' as const,
+    fontWeight: theme.typography.fontWeight.bold,
   },
   checkboxLabel: {
     fontSize: 16,
-    color: '#000000',
+    color: theme.colors.black,
     flex: 1,
   },
   checkboxLabel_disabled: {
-    color: '#8E8E93',
+    color: theme.colors.textTertiary,
   },
 
   // Tab styles
   tabBar: {
     flexDirection: 'row' as const,
     borderBottomWidth: 1,
-    borderBottomColor: '#D1D1D6',
+    borderBottomColor: theme.colors.border,
   },
   tab: {
     flex: 1,
@@ -638,7 +639,7 @@ const styles = {
   },
   tab_active: {
     borderBottomWidth: 2,
-    borderBottomColor: '#007AFF',
+    borderBottomColor: theme.colors.info,
   },
   tabIcon: {
     fontSize: 20,
@@ -646,11 +647,11 @@ const styles = {
   },
   tabText: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: theme.colors.textTertiary,
   },
   tabText_active: {
-    color: '#007AFF',
-    fontWeight: '600' as const,
+    color: theme.colors.info,
+    fontWeight: theme.typography.fontWeight.semibold,
   },
 
   // Loading styles
@@ -661,12 +662,12 @@ const styles = {
   },
   loadingText: {
     fontSize: 16,
-    color: '#8E8E93',
+    color: theme.colors.textTertiary,
   },
 
   // Accessibility styles
   boldText: {
-    fontWeight: '700' as const,
+    fontWeight: theme.typography.fontWeight.bold,
   },
 };
 

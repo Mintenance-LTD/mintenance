@@ -15,7 +15,7 @@ export const AssessmentHeader: React.FC<AssessmentHeaderProps> = ({
   return (
     <View style={styles.header}>
       <TouchableOpacity style={styles.backButton} onPress={onGoBack}>
-        <Icon name="arrow-back" size={24} color="#333" />
+        <Icon name="arrow-back" size={24} color={theme.colors.textPrimary} />
       </TouchableOpacity>
       <View style={styles.headerContent}>
         <Text style={styles.headerTitle}>Property Assessment</Text>
@@ -24,7 +24,7 @@ export const AssessmentHeader: React.FC<AssessmentHeaderProps> = ({
         </Text>
       </View>
       <TouchableOpacity style={styles.menuButton}>
-        <Icon name="more-vert" size={24} color="#333" />
+        <Icon name="more-vert" size={24} color={theme.colors.textPrimary} />
       </TouchableOpacity>
     </View>
   );
@@ -34,30 +34,30 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: 'white',
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing[3],
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
-    padding: 8,
+    padding: theme.spacing.sm,
   },
   headerContent: {
     flex: 1,
-    marginHorizontal: 16,
+    marginHorizontal: theme.spacing.md,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: theme.typography.fontSize.lg,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textSecondary,
     marginTop: 2,
   },
   menuButton: {
-    padding: 8,
+    padding: theme.spacing.sm,
   },
 });

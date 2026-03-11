@@ -267,6 +267,6 @@ if (typeof setInterval !== 'undefined') {
 
   // Allow cleanup to be stopped if needed
   if (typeof cleanupInterval === 'object' && 'unref' in cleanupInterval) {
-    (cleanupInterval as unknown).unref();
+    (cleanupInterval as unknown as { unref: () => void }).unref();
   }
 }

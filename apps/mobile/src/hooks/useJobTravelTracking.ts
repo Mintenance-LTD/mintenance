@@ -57,7 +57,7 @@ export function useJobTravelTracking({
   const [error, setError] = useState<string | null>(null);
   
   const locationServiceRef = useRef<JobContextLocationService | null>(null);
-  const subscriptionRef = useRef<(() => void) | null>(null);
+  const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
 
   /**
    * Start tracking contractor travel
@@ -96,7 +96,7 @@ export function useJobTravelTracking({
       locationServiceRef.current = locationService;
 
       // Subscribe to real-time updates
-      subscriptionRef.current = MeetingService.subscribeToContractorTravelLocation(
+      const channel = MeetingService.subscribeToContractorTravelLocation(
         meetingId,
         user.id,
         (data) => {
@@ -115,6 +115,7 @@ export function useJobTravelTracking({
           }
         }
       );
+      subscriptionRef.current = { unsubscribe: () => { channel.unsubscribe(); } };
 
       logger.info('Started travel tracking', { meetingId, contractorId: user.id });
     } catch (err) {
@@ -137,7 +138,7 @@ export function useJobTravelTracking({
       }
 
       if (subscriptionRef.current) {
-        subscriptionRef.current();
+        subscriptionRef.current.unsubscribe();
         subscriptionRef.current = null;
       }
 
@@ -196,7 +197,7 @@ export function useJobTravelTracking({
   useEffect(() => {
     return () => {
       if (subscriptionRef.current) {
-        subscriptionRef.current();
+        subscriptionRef.current.unsubscribe();
       }
       if (locationServiceRef.current) {
         locationServiceRef.current.stopJobTracking().catch((err) => {

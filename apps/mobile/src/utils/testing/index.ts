@@ -14,12 +14,14 @@ import { TestDataBuilder } from './TestFixtures';
 import { setupMocks, cleanupMocks } from './MockSetup';
 import { testHelpers } from './TestHelpers';
 
-export {
+export type {
   TestingConfig,
   TestPerformanceResult,
   TestAccessibilityResult,
   EnhancedRenderOptions,
   EnhancedRenderResult,
+} from './TestUtilities';
+export {
   renderWithProviders,
   createSnapshotTest,
   IntegrationTester,
@@ -27,8 +29,10 @@ export {
 } from './TestUtilities';
 
 // Mock Factories - mock creation and data generation
-export {
+export type {
   MockFactory,
+} from './MockFactories';
+export {
   createMockFactory,
   MockDataGenerator,
 } from './MockFactories';

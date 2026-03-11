@@ -26,7 +26,7 @@ export const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: theme.typography.fontSize.xl,
-    fontWeight: '700' as const,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: theme.spacing[1],
   },
@@ -36,7 +36,7 @@ export const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: theme.typography.fontSize.lg,
-    fontWeight: '700' as const,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: theme.spacing[3],
   },
@@ -70,7 +70,7 @@ export const styles = StyleSheet.create({
   },
   kpiValue: {
     fontSize: theme.typography.fontSize.xl,
-    fontWeight: '700' as const,
+    fontWeight: theme.typography.fontWeight.bold,
     marginBottom: theme.spacing[1],
   },
   kpiSubtitle: {
@@ -274,7 +274,7 @@ export const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.md,
   },
   reportButtonText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontSize: theme.typography.fontSize.base,
     fontWeight: theme.typography.fontWeight.semibold,
     marginLeft: theme.spacing[2],

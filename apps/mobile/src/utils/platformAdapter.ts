@@ -73,7 +73,7 @@ export class WebPlatformServices {
 
       return !!credential;
     } catch (error) {
-      logger.warn('WebAuthn authentication failed:', error);
+      logger.warn('WebAuthn authentication failed', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -90,7 +90,7 @@ export class WebPlatformServices {
         audio: false
       });
     } catch (error) {
-      logger.warn('Web camera access failed:', error);
+      logger.warn('Web camera access failed', { error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -120,7 +120,7 @@ export class WebPlatformServices {
       const permission = await Notification.requestPermission();
       return permission === 'granted';
     } catch (error) {
-      logger.warn('Web notification permission failed:', error);
+      logger.warn('Web notification permission failed', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -143,7 +143,7 @@ export class WebPlatformServices {
         new Notification(title, options);
       }
     } catch (error) {
-      logger.warn('Web notification failed:', error);
+      logger.warn('Web notification failed', { error: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -160,7 +160,9 @@ export class WebPlatformServices {
    * Web File Picker
    */
   static async pickWebFile(options: { accept?: string; multiple?: boolean } = {}): Promise<FileList | null> {
-    if (!platformCapabilities.fileSystem && !(window as unknown).showOpenFilePicker) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const win = window as any;
+    if (!platformCapabilities.fileSystem && !win.showOpenFilePicker) {
       // Fallback to traditional file input
       return new Promise((resolve) => {
         const input = document.createElement('input');
@@ -176,7 +178,7 @@ export class WebPlatformServices {
     }
 
     try {
-      const [fileHandle] = await (window as unknown).showOpenFilePicker({
+      const [fileHandle] = await win.showOpenFilePicker({
         types: options.accept ? [{
           description: 'Allowed files',
           accept: { [options.accept]: [] }
@@ -189,7 +191,7 @@ export class WebPlatformServices {
       dataTransfer.items.add(file);
       return dataTransfer.files;
     } catch (error) {
-      logger.warn('Web file picker failed:', error);
+      logger.warn('Web file picker failed', { error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }

@@ -13,7 +13,6 @@ import {
   TouchableOpacity,
   Image,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,6 +35,7 @@ interface Props {
 interface SelectedPhoto {
   uri: string;
   asset: ImagePicker.ImagePickerAsset;
+  uploaded?: boolean;
 }
 
 export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => {
@@ -95,8 +95,12 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
+  const photosToUpload = photos.filter((p) => !p.uploaded);
+  const hasFailedPhotos = photos.some((p) => !p.uploaded) && photos.some((p) => p.uploaded);
+
   const handleUpload = useCallback(async () => {
-    if (photos.length === 0) {
+    const pending = photos.filter((p) => !p.uploaded);
+    if (pending.length === 0) {
       Alert.alert('No Photos', 'Please select at least one photo to upload.');
       return;
     }
@@ -105,25 +109,50 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
     setUploadProgress(0);
 
     try {
-      const assets = photos.map((p) => p.asset);
+      const assets = pending.map((p) => p.asset);
       const uploadFn = isBefore
         ? PhotoUploadService.uploadBeforePhotos
         : PhotoUploadService.uploadAfterPhotos;
 
-      const results = await uploadFn.call(PhotoUploadService, jobId, assets);
+      const results: Array<{ success: boolean }> = [];
+      for (let i = 0; i < assets.length; i++) {
+        setUploadProgress(((i) / assets.length) * 100);
+        try {
+          const result = await uploadFn.call(PhotoUploadService, jobId, [assets[i]]);
+          results.push(...result);
+        } catch {
+          results.push({ success: false });
+        }
+        setUploadProgress(((i + 1) / assets.length) * 100);
+      }
 
       const successCount = results.filter((r) => r.success).length;
       const failCount = results.length - successCount;
 
+      // Mark successfully uploaded photos
+      if (successCount > 0) {
+        setPhotos((prev) => {
+          const updatedPhotos = [...prev];
+          let resultIndex = 0;
+          for (let i = 0; i < updatedPhotos.length; i++) {
+            if (!updatedPhotos[i].uploaded) {
+              if (results[resultIndex]?.success) {
+                updatedPhotos[i] = { ...updatedPhotos[i], uploaded: true };
+              }
+              resultIndex++;
+            }
+          }
+          return updatedPhotos;
+        });
+      }
+
       if (failCount > 0) {
         Alert.alert(
           'Partial Upload',
-          `${successCount} photo(s) uploaded successfully, ${failCount} failed.`,
-          [{ text: 'OK', onPress: () => navigation.goBack() }]
+          `${successCount} photo(s) uploaded successfully, ${failCount} failed. You can retry the failed uploads.`
         );
       } else {
         if (isBefore) {
-          // Before photos uploaded — offer to start the job immediately
           Alert.alert(
             'Upload Complete',
             `${successCount} before photo(s) uploaded. Ready to start the job?`,
@@ -190,7 +219,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
           <Ionicons
             name={isBefore ? 'camera-outline' : 'checkmark-circle-outline'}
             size={24}
-            color='#717171'
+            color={isBefore ? theme.colors.primary : theme.colors.success}
           />
           <Text style={styles.infoText}>
             {isBefore
@@ -204,13 +233,20 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
           {photos.map((photo, index) => (
             <View key={index} style={styles.photoItem}>
               <Image source={{ uri: photo.uri }} style={styles.photoImage} />
-              <TouchableOpacity
-                style={styles.removeButton}
-                onPress={() => removePhoto(index)}
-                accessibilityLabel={`Remove photo ${index + 1}`}
-              >
-                <Ionicons name="close-circle" size={28} color="#FF3B30" />
-              </TouchableOpacity>
+              {photo.uploaded && (
+                <View style={styles.uploadedBadge}>
+                  <Ionicons name="checkmark-circle" size={28} color={theme.colors.success} />
+                </View>
+              )}
+              {!photo.uploaded && (
+                <TouchableOpacity
+                  style={styles.removeButton}
+                  onPress={() => removePhoto(index)}
+                  accessibilityLabel={`Remove photo ${index + 1}`}
+                >
+                  <Ionicons name="close-circle" size={28} color={theme.colors.error} />
+                </TouchableOpacity>
+              )}
             </View>
           ))}
 
@@ -220,7 +256,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
             onPress={pickFromCamera}
             accessibilityLabel="Take a photo"
           >
-            <Ionicons name="camera" size={32} color='#717171' />
+            <Ionicons name="camera" size={32} color={theme.colors.primary} />
             <Text style={styles.addPhotoText}>Camera</Text>
           </TouchableOpacity>
 
@@ -229,7 +265,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
             onPress={pickFromGallery}
             accessibilityLabel="Choose from gallery"
           >
-            <Ionicons name="images" size={32} color='#717171' />
+            <Ionicons name="images" size={32} color={theme.colors.primary} />
             <Text style={styles.addPhotoText}>Gallery</Text>
           </TouchableOpacity>
         </View>
@@ -243,19 +279,28 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
       {/* Bottom CTA */}
       <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 20) }]}>
         <TouchableOpacity
-          style={[styles.uploadButton, (uploading || photos.length === 0) && styles.uploadButtonDisabled]}
+          style={[styles.uploadButton, (uploading || photosToUpload.length === 0) && styles.uploadButtonDisabled]}
           onPress={handleUpload}
-          disabled={uploading || photos.length === 0}
+          disabled={uploading || photosToUpload.length === 0}
           accessibilityRole="button"
           accessibilityLabel={uploading ? 'Uploading photos' : 'Upload photos'}
         >
           {uploading ? (
-            <ActivityIndicator color="#FFFFFF" />
+            <View style={styles.uploadProgressContainer}>
+              <Text style={styles.uploadButtonText}>
+                Uploading {Math.min(Math.round((uploadProgress / 100) * photosToUpload.length) + 1, photosToUpload.length)} of {photosToUpload.length}...
+              </Text>
+              <View style={styles.progressBarTrack}>
+                <View style={[styles.progressBarFill, { width: `${uploadProgress}%` }]} />
+              </View>
+            </View>
           ) : (
             <>
-              <Ionicons name="cloud-upload" size={20} color="#FFFFFF" />
+              <Ionicons name={hasFailedPhotos ? 'refresh' : 'cloud-upload'} size={20} color={theme.colors.textInverse} />
               <Text style={styles.uploadButtonText}>
-                Upload {photos.length} Photo{photos.length !== 1 ? 's' : ''}
+                {hasFailedPhotos
+                  ? `Retry ${photosToUpload.length} Failed Photo${photosToUpload.length !== 1 ? 's' : ''}`
+                  : `Upload ${photosToUpload.length} Photo${photosToUpload.length !== 1 ? 's' : ''}`}
               </Text>
             </>
           )}
@@ -273,30 +318,30 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing[3],
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.borderLight,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: theme.spacing[10],
+    height: theme.spacing[10],
+    borderRadius: theme.borderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerText: {
     flex: 1,
-    marginLeft: 8,
+    marginLeft: theme.spacing.sm,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: theme.typography.fontSize.lg,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   headerSubtitle: {
-    fontSize: 13,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textSecondary,
     marginTop: 2,
   },
@@ -304,33 +349,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
-    paddingBottom: 120,
+    padding: theme.spacing[5],
+    paddingBottom: theme.spacing[24] + theme.spacing[6],
   },
   infoCard: {
     flexDirection: 'row',
-    backgroundColor: '#F7F7F7',
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
-    marginBottom: 24,
+    backgroundColor: theme.colors.surfaceSecondary,
+    borderRadius: theme.borderRadius.xl,
+    padding: theme.spacing.md,
+    gap: theme.spacing[3],
+    marginBottom: theme.spacing.lg,
     alignItems: 'flex-start',
   },
   infoText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textPrimary,
     lineHeight: 20,
   },
   photoGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: theme.spacing[3],
   },
   photoItem: {
     width: '47%',
     aspectRatio: 1,
-    borderRadius: 12,
+    borderRadius: theme.borderRadius.xl,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -340,31 +385,38 @@ const styles = StyleSheet.create({
   },
   removeButton: {
     position: 'absolute',
-    top: 6,
-    right: 6,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderRadius: 14,
+    top: theme.spacing.sm - 2,
+    right: theme.spacing.sm - 2,
+    backgroundColor: theme.colors.overlayWhite20,
+    borderRadius: theme.borderRadius.xl - 2,
+  },
+  uploadedBadge: {
+    position: 'absolute',
+    top: theme.spacing.sm - 2,
+    left: theme.spacing.sm - 2,
+    backgroundColor: theme.colors.overlayWhite20,
+    borderRadius: theme.borderRadius.xl - 2,
   },
   addPhotoButton: {
     width: '47%',
     aspectRatio: 1,
-    borderRadius: 12,
+    borderRadius: theme.borderRadius.lg,
     borderWidth: 2,
     borderStyle: 'dashed',
     borderColor: theme.colors.borderLight,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: theme.spacing.sm,
     backgroundColor: theme.colors.backgroundSecondary,
   },
   addPhotoText: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textSecondary,
   },
   photoCount: {
-    marginTop: 16,
-    fontSize: 14,
+    marginTop: theme.spacing.md,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textSecondary,
     textAlign: 'center',
   },
@@ -373,30 +425,47 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: theme.spacing[5],
+    paddingTop: theme.spacing.md,
     borderTopWidth: 1,
     borderTopColor: theme.colors.borderLight,
     ...theme.shadows.large,
   },
   uploadButton: {
     backgroundColor: theme.colors.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
+    borderRadius: theme.borderRadius.xl,
+    paddingVertical: theme.spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    minHeight: 52,
+    gap: theme.spacing.sm,
+    minHeight: theme.layout.buttonHeightLarge,
   },
   uploadButtonDisabled: {
     opacity: 0.5,
   },
   uploadButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    color: theme.colors.textInverse,
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
+  },
+  uploadProgressContainer: {
+    flex: 1,
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  progressBarTrack: {
+    width: '80%',
+    height: theme.spacing.xs,
+    backgroundColor: theme.colors.overlayWhite20,
+    borderRadius: theme.borderRadius.sm / 2,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: theme.spacing.xs,
+    backgroundColor: theme.colors.textInverse,
+    borderRadius: theme.borderRadius.sm / 2,
   },
 });
 

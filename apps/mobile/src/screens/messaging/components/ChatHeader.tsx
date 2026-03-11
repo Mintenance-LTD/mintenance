@@ -52,7 +52,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           <Ionicons
             name='videocam'
             size={24}
-            color={isInCall ? theme.colors.textTertiary : '#222222'}
+            color={isInCall ? theme.colors.textTertiary : theme.colors.textPrimary}
           />
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   headerSubtitle: {

@@ -91,7 +91,7 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
     return (
       message.messageType === 'video_call_invitation' &&
       message.receiverId === user?.id &&
-      message.callId &&
+      !!message.callId &&
       !VideoCallService.isUserInCall(user.id)
     );
   };
@@ -107,7 +107,7 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
         onCallAccept?.(message.callId);
       } else if (activeCall?.id === message.callId && activeCall.status === 'scheduled') {
         // Call is scheduled but not started yet - start it
-        await VideoCallService.startCall(message.callId, user.id);
+        await VideoCallService.joinCall(message.callId, user.id);
         onCallAccept?.(message.callId);
       } else {
         Alert.alert(
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     backgroundColor: theme.colors.surface,
     borderBottomLeftRadius: 4,
-    shadowColor: theme.colors.shadow,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: theme.colors.textPrimary,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   durationText: {
     fontSize: 12,
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   actionButtonText: {
     color: theme.colors.surface,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   detailsButton: {
     flexDirection: 'row',
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   detailsButtonText: {
     color: theme.colors.textSecondary,
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   timestamp: {
     fontSize: 10,

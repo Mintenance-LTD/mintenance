@@ -56,9 +56,7 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
     const errorId = this.state.errorId || 'unknown';
     const context: ErrorContext = {
       ...this.props.context,
-      componentStack: errorInfo.componentStack?.substring(0, 500),
       timestamp: Date.now(),
-      errorId,
     };
 
     // Log the error
@@ -250,7 +248,7 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
         {/* Error Icon */}
         <View style={styles.iconContainer}>
           <Ionicons
-            name={this.getErrorIcon(category?.priority)}
+            name={this.getErrorIcon(category?.priority) as React.ComponentProps<typeof Ionicons>['name']}
             size={64}
             color={this.getErrorColor(category?.priority)}
             accessibilityLabel="Error icon"
@@ -261,7 +259,6 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
         <Text
           style={styles.title}
           accessibilityRole="header"
-          accessibilityLevel={1}
         >
           {category?.name || 'Something went wrong'}
         </Text>
@@ -393,7 +390,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     textAlign: 'center',
     marginBottom: 8,
@@ -442,7 +439,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     marginLeft: 8,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textInverse,
   },
   secondaryButton: {
@@ -453,7 +450,7 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     marginLeft: 8,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.primary,
   },
   tertiaryButton: {
@@ -474,7 +471,7 @@ const styles = StyleSheet.create({
   },
   debugTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginBottom: 8,
   },

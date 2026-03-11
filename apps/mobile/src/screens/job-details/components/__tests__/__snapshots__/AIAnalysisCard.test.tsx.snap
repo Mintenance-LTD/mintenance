@@ -2,6 +2,7 @@
 
 exports[`AIAnalysisCard Component Structure should match snapshot for complete analysis 1`] = `
 <View
+  accessibilityLabel="AI Analysis: Plumbing, Medium complexity, estimated 2-4 hours, 85% confidence"
   style={
     {
       "backgroundColor": "#FFFFFF",
@@ -9,13 +10,13 @@ exports[`AIAnalysisCard Component Structure should match snapshot for complete a
       "elevation": 1,
       "marginBottom": 24,
       "padding": 24,
-      "shadowColor": "#000",
+      "shadowColor": "#000000",
       "shadowOffset": {
         "height": 1,
         "width": 0,
       },
-      "shadowOpacity": 0.05,
-      "shadowRadius": 2,
+      "shadowOpacity": 0.04,
+      "shadowRadius": 3,
     }
   }
 >
@@ -30,14 +31,16 @@ exports[`AIAnalysisCard Component Structure should match snapshot for complete a
     }
   >
     <Ionicons
+      accessible={false}
       color="#F59E0B"
       name="sparkles"
       size={20}
     />
     <Text
+      accessibilityRole="header"
       style={
         {
-          "color": "#0F172A",
+          "color": "#222222",
           "flex": 1,
           "fontSize": 19,
           "fontWeight": "600",
@@ -80,7 +83,7 @@ exports[`AIAnalysisCard Component Structure should match snapshot for complete a
     <Text
       style={
         {
-          "color": "#475569",
+          "color": "#717171",
           "fontSize": 13,
           "fontWeight": "600",
           "letterSpacing": 0.5,
@@ -93,7 +96,7 @@ exports[`AIAnalysisCard Component Structure should match snapshot for complete a
     <Text
       style={
         {
-          "color": "#0F172A",
+          "color": "#222222",
           "fontSize": 16,
           "fontWeight": "500",
         }
@@ -104,7 +107,7 @@ exports[`AIAnalysisCard Component Structure should match snapshot for complete a
     <Text
       style={
         {
-          "color": "#475569",
+          "color": "#717171",
           "fontSize": 13,
           "fontWeight": "600",
           "letterSpacing": 0.5,
@@ -117,7 +120,7 @@ exports[`AIAnalysisCard Component Structure should match snapshot for complete a
     <Text
       style={
         {
-          "color": "#0F172A",
+          "color": "#222222",
           "fontSize": 16,
           "fontWeight": "500",
         }
@@ -128,7 +131,7 @@ exports[`AIAnalysisCard Component Structure should match snapshot for complete a
     <Text
       style={
         {
-          "color": "#475569",
+          "color": "#717171",
           "fontSize": 13,
           "fontWeight": "600",
           "letterSpacing": 0.5,
@@ -141,7 +144,7 @@ exports[`AIAnalysisCard Component Structure should match snapshot for complete a
     <Text
       style={
         {
-          "color": "#0F172A",
+          "color": "#222222",
           "fontSize": 16,
           "fontWeight": "500",
         }
@@ -152,7 +155,7 @@ exports[`AIAnalysisCard Component Structure should match snapshot for complete a
     <Text
       style={
         {
-          "color": "#475569",
+          "color": "#717171",
           "fontSize": 13,
           "fontWeight": "600",
           "letterSpacing": 0.5,
@@ -184,7 +187,7 @@ exports[`AIAnalysisCard Component Structure should match snapshot for complete a
         <Text
           style={
             {
-              "color": "#0F172A",
+              "color": "#222222",
               "fontSize": 13,
             }
           }
@@ -205,7 +208,7 @@ exports[`AIAnalysisCard Component Structure should match snapshot for complete a
         <Text
           style={
             {
-              "color": "#0F172A",
+              "color": "#222222",
               "fontSize": 13,
             }
           }
@@ -217,7 +220,7 @@ exports[`AIAnalysisCard Component Structure should match snapshot for complete a
     <Text
       style={
         {
-          "color": "#475569",
+          "color": "#717171",
           "fontSize": 13,
           "fontWeight": "600",
           "letterSpacing": 0.5,
@@ -230,7 +233,7 @@ exports[`AIAnalysisCard Component Structure should match snapshot for complete a
     <Text
       style={
         {
-          "color": "#475569",
+          "color": "#717171",
           "fontSize": 16,
           "lineHeight": 20,
         }
@@ -251,13 +254,13 @@ exports[`AIAnalysisCard Component Structure should match snapshot for loading st
       "elevation": 1,
       "marginBottom": 24,
       "padding": 24,
-      "shadowColor": "#000",
+      "shadowColor": "#000000",
       "shadowOffset": {
         "height": 1,
         "width": 0,
       },
-      "shadowOpacity": 0.05,
-      "shadowRadius": 2,
+      "shadowOpacity": 0.04,
+      "shadowRadius": 3,
     }
   }
 >
@@ -272,14 +275,16 @@ exports[`AIAnalysisCard Component Structure should match snapshot for loading st
     }
   >
     <Ionicons
+      accessible={false}
       color="#F59E0B"
       name="sparkles"
       size={20}
     />
     <Text
+      accessibilityRole="header"
       style={
         {
-          "color": "#0F172A",
+          "color": "#222222",
           "flex": 1,
           "fontSize": 19,
           "fontWeight": "600",
@@ -301,13 +306,14 @@ exports[`AIAnalysisCard Component Structure should match snapshot for loading st
     }
   >
     <ActivityIndicator
-      color="#0F172A"
+      accessibilityLabel="Analyzing job photos"
+      color="#10B981"
       size="small"
     />
     <Text
       style={
         {
-          "color": "#475569",
+          "color": "#717171",
           "fontSize": 16,
         }
       }
@@ -320,6 +326,7 @@ exports[`AIAnalysisCard Component Structure should match snapshot for loading st
 
 exports[`AIAnalysisCard Component Structure should match snapshot for minimal analysis 1`] = `
 <View
+  accessibilityLabel="AI Analysis: Plumbing, Medium complexity, estimated 2-4 hours, 85% confidence"
   style={
     {
       "backgroundColor": "#FFFFFF",
@@ -327,13 +334,13 @@ exports[`AIAnalysisCard Component Structure should match snapshot for minimal an
       "elevation": 1,
       "marginBottom": 24,
       "padding": 24,
-      "shadowColor": "#000",
+      "shadowColor": "#000000",
       "shadowOffset": {
         "height": 1,
         "width": 0,
       },
-      "shadowOpacity": 0.05,
-      "shadowRadius": 2,
+      "shadowOpacity": 0.04,
+      "shadowRadius": 3,
     }
   }
 >
@@ -348,14 +355,16 @@ exports[`AIAnalysisCard Component Structure should match snapshot for minimal an
     }
   >
     <Ionicons
+      accessible={false}
       color="#F59E0B"
       name="sparkles"
       size={20}
     />
     <Text
+      accessibilityRole="header"
       style={
         {
-          "color": "#0F172A",
+          "color": "#222222",
           "flex": 1,
           "fontSize": 19,
           "fontWeight": "600",
@@ -398,7 +407,7 @@ exports[`AIAnalysisCard Component Structure should match snapshot for minimal an
     <Text
       style={
         {
-          "color": "#475569",
+          "color": "#717171",
           "fontSize": 13,
           "fontWeight": "600",
           "letterSpacing": 0.5,
@@ -411,7 +420,7 @@ exports[`AIAnalysisCard Component Structure should match snapshot for minimal an
     <Text
       style={
         {
-          "color": "#0F172A",
+          "color": "#222222",
           "fontSize": 16,
           "fontWeight": "500",
         }
@@ -422,7 +431,7 @@ exports[`AIAnalysisCard Component Structure should match snapshot for minimal an
     <Text
       style={
         {
-          "color": "#475569",
+          "color": "#717171",
           "fontSize": 13,
           "fontWeight": "600",
           "letterSpacing": 0.5,
@@ -435,7 +444,7 @@ exports[`AIAnalysisCard Component Structure should match snapshot for minimal an
     <Text
       style={
         {
-          "color": "#0F172A",
+          "color": "#222222",
           "fontSize": 16,
           "fontWeight": "500",
         }
@@ -446,7 +455,7 @@ exports[`AIAnalysisCard Component Structure should match snapshot for minimal an
     <Text
       style={
         {
-          "color": "#475569",
+          "color": "#717171",
           "fontSize": 13,
           "fontWeight": "600",
           "letterSpacing": 0.5,
@@ -459,7 +468,7 @@ exports[`AIAnalysisCard Component Structure should match snapshot for minimal an
     <Text
       style={
         {
-          "color": "#0F172A",
+          "color": "#222222",
           "fontSize": 16,
           "fontWeight": "500",
         }

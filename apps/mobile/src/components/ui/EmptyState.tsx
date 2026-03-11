@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: theme.typography.fontSize.xl,
-    fontWeight: '700' as const,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginTop: theme.spacing[4],
     marginBottom: theme.spacing[2],
@@ -58,13 +58,13 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing[5],
   },
   ctaButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingVertical: theme.spacing[3],
     paddingHorizontal: theme.spacing[6],
     borderRadius: theme.borderRadius.lg,
   },
   ctaText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontSize: theme.typography.fontSize.base,
     fontWeight: theme.typography.fontWeight.semibold,
   },

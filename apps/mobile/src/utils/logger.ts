@@ -1,17 +1,19 @@
 import { logger as sharedLogger } from '@mintenance/shared';
+type SentryFunctions = {
+  captureMessage: (message: string, level: string) => void;
+  captureException: (error: Error, context?: Record<string, unknown>) => void;
+  addBreadcrumb: (breadcrumb: Record<string, unknown>) => void;
+};
+
 // Global Sentry functions - will be set by Sentry initialization
-let sentryFunctions = {
-  captureMessage: (() => {}) as unknown,
-  captureException: (() => {}) as unknown,
-  addBreadcrumb: (() => {}) as unknown,
+let sentryFunctions: SentryFunctions = {
+  captureMessage: () => {},
+  captureException: () => {},
+  addBreadcrumb: () => {},
 };
 
 // Function to set Sentry functions after initialization
-export const setSentryFunctions = (functions: {
-  captureMessage: unknown;
-  captureException: unknown;
-  addBreadcrumb: unknown;
-}) => {
+export const setSentryFunctions = (functions: SentryFunctions) => {
   sentryFunctions = functions;
 };
 
@@ -68,7 +70,7 @@ class Logger {
     return `[${timestamp}] ${level.toUpperCase()}: ${message}${contextStr}`;
   }
 
-  private toContext(input: unknown): LogContext | undefined {
+  private toContext(input: unknown, _extra?: LogContext): LogContext | undefined {
     if (input == null) return undefined;
     if (typeof input === 'object')
       return this.sanitizeContext(input as LogContext);
@@ -168,7 +170,7 @@ class Logger {
   error(
     messageOrTag: string | Error,
     errorOrContextOrMessage?: unknown | string,
-    maybeContext?: LogContext
+    maybeContext?: LogContext | unknown
   ): void {
     const isMessageError = messageOrTag instanceof Error;
     const isContextError = errorOrContextOrMessage instanceof Error;
@@ -191,7 +193,7 @@ class Logger {
       isMessageError || isContextError
         ? context
         : this.toContext(errorOrContextOrMessage);
-    const sanitizedContext = ctx ? this.sanitizeContext(ctx) : undefined;
+    const sanitizedContext = ctx ? this.sanitizeContext(this.toContext(ctx)) : undefined;
     const formattedMessage = this.formatMessage(
       'error',
       message,
@@ -364,7 +366,7 @@ export const log = {
   error: (
     messageOrTag: string,
     errorOrContextOrMessage?: unknown | string,
-    maybeContext?: LogContext
+    maybeContext?: LogContext | unknown
   ) => logger.error(messageOrTag, errorOrContextOrMessage as unknown, maybeContext),
   performance: (
     operation: string,

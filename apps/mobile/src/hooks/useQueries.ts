@@ -83,7 +83,7 @@ export const useJobDetails = (jobId: string, enabled = true) => {
 
 export const useCreateJob = () => {
   return useMutation({
-    mutationFn: (jobData: unknown) => JobService.createJob(jobData),
+    mutationFn: (jobData: Parameters<typeof JobService.createJob>[0]) => JobService.createJob(jobData),
     onSuccess: () => {
       // Invalidate jobs list to show new job
       invalidateQueries.allJobs();
@@ -105,7 +105,7 @@ export const useUpdateJob = () => {
       jobId: string;
       status: 'posted' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
       contractorId?: string;
-    }) => JobService.updateJobStatus(jobId, status as unknown, contractorId),
+    }) => JobService.updateJobStatus(jobId, status, contractorId),
     onSuccess: (data, variables) => {
       // Invalidate specific job details
       invalidateQueries.jobDetails(variables.jobId);
@@ -123,7 +123,7 @@ export const useDeleteJob = () => {
   return useMutation({
     // Soft-delete by marking as cancelled
     mutationFn: (jobId: string) =>
-      JobService.updateJobStatus(jobId, 'cancelled' as unknown),
+      JobService.updateJobStatus(jobId, 'cancelled'),
     onSuccess: () => {
       invalidateQueries.allJobs();
       HapticService.success();
@@ -295,7 +295,7 @@ export const useSearchContractors = (
 export const useSearchJobs = (query: string, filters?: unknown, enabled = true) => {
   return useQuery({
     queryKey: queryKeys.search.jobs(query, JSON.stringify(filters || {})),
-    queryFn: () => JobService.searchJobs(query, filters),
+    queryFn: () => JobService.searchJobs(query, filters as Parameters<typeof JobService.searchJobs>[1]),
     enabled: enabled && query.length > 2,
     staleTime: 2 * 60 * 1000, // 2 minutes
   });

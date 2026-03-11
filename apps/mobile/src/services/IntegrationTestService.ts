@@ -29,7 +29,12 @@ export class IntegrationTestService {
     };
     errors: string[];
   }> {
-    const results: Record<string, unknown> = {};
+    const results: {
+      aiAnalysis?: { success: boolean; [key: string]: unknown };
+      paymentSetup?: { success: boolean; [key: string]: unknown };
+      messaging?: { success: boolean; [key: string]: unknown };
+      notifications?: { success: boolean; [key: string]: unknown };
+    } = {};
     const errors: string[] = [];
 
     logger.debug('🧪 Starting Integration Test for Job Workflow...');
@@ -80,7 +85,7 @@ export class IntegrationTestService {
       logger.debug('2️⃣ Testing Payment System...');
 
       // Create payment intent
-      const paymentIntent = await PaymentService.createJobPayment(
+      const paymentIntent = await PaymentService.createPaymentIntent(
         jobId,
         jobAmount
       );
@@ -95,7 +100,7 @@ export class IntegrationTestService {
 
       results.paymentSetup = {
         success: true,
-        paymentIntentId: paymentIntent.id,
+        paymentIntentClientSecret: paymentIntent.clientSecret,
         escrowTransactionId: escrowTransaction.id,
         amount: jobAmount,
       };
@@ -139,17 +144,17 @@ export class IntegrationTestService {
       logger.debug('4️⃣ Testing Push Notifications...');
 
       // Send test notification to contractor
-      await NotificationService.sendNotificationToUser(
+      await NotificationService.sendPushNotification(
         contractorId,
         'New Job Available',
         'A new plumbing job has been posted in your area',
-        'job',
-        `/jobs/${jobId}`
+        { jobId },
+        'job_update'
       );
 
       // Get notification count
       const notificationCount =
-        await NotificationService.getUnreadNotificationCount(contractorId);
+        await NotificationService.getUnreadCount(contractorId);
 
       results.notifications = {
         success: true,
@@ -186,7 +191,12 @@ export class IntegrationTestService {
 
     return {
       success,
-      results,
+      results: results as {
+        aiAnalysis: unknown;
+        paymentSetup: unknown;
+        messaging: unknown;
+        notifications: unknown;
+      },
       errors,
     };
   }

@@ -17,6 +17,7 @@ import { BidReviewScreen } from '../../screens/BidReviewScreen';
 import { HomeownerPhotoReviewScreen } from '../../screens/job-details/HomeownerPhotoReviewScreen';
 import { JobPhotoUploadScreen } from '../../screens/job-details/JobPhotoUploadScreen';
 import { ContractViewScreen } from '../../screens/job-details/ContractViewScreen';
+import { ContractPreparationScreen } from '../../screens/job-details/ContractPreparationScreen';
 import { ReviewSubmissionScreen } from '../../screens/job-details/ReviewSubmissionScreen';
 import { JobSignOffScreen } from '../../screens/job-details/JobSignOffScreen';
 import { ExploreMapScreen } from '../../screens/explore-map/ExploreMapScreen';
@@ -97,6 +98,12 @@ const SafePhotoUploadScreen = withScreenErrorBoundary(
 const SafeContractViewScreen = withScreenErrorBoundary(
   ContractViewScreen,
   'Contract View',
+  { fallbackRoute: 'JobDetails' }
+);
+
+const SafeContractPreparationScreen = withScreenErrorBoundary(
+  ContractPreparationScreen,
+  'Contract Preparation',
   { fallbackRoute: 'JobDetails' }
 );
 
@@ -248,6 +255,11 @@ export const JobsNavigator: React.FC = () => {
           headerShown: false,
           gestureEnabled: true,
         }}
+      />
+      <JobsStack.Screen
+        name="ContractPreparation"
+        component={SafeContractPreparationScreen}
+        options={{ title: 'Prepare Contract', presentation: 'modal', gestureEnabled: true }}
       />
       <JobsStack.Screen
         name="ReviewSubmission"

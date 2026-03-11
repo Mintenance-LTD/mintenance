@@ -213,14 +213,6 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
         category,
         priority: urgency,
         photos: photos.length > 0 ? photos : undefined,
-        buildingAssessment: buildingAssessment ? {
-          damageType: buildingAssessment.damageAssessment.damageType,
-          severity: buildingAssessment.damageAssessment.severity,
-          estimatedCost: buildingAssessment.estimatedCost.likely,
-          confidence: buildingAssessment.confidence,
-          safetyHazards: buildingAssessment.safetyHazards.hasSafetyHazards,
-          assessmentId: buildingAssessment.id,
-        } : undefined,
       });
       setSubmissionSuccess(true);
       const delay = process.env.NODE_ENV === 'test' ? 0 : 1500;
@@ -325,7 +317,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     backgroundColor: theme.colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.borderLight,
   },
   backButton: {
     padding: 5,
@@ -336,7 +328,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   placeholder: {

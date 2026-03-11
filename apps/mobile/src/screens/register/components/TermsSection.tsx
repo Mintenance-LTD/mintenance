@@ -18,22 +18,25 @@ export const TermsSection: React.FC<TermsSectionProps> = ({
 }) => {
   return (
     <>
-      <View style={styles.termsContainer}>
-        <TouchableOpacity
-          testID="terms-checkbox"
+      <TouchableOpacity
+        testID="terms-checkbox"
+        style={styles.termsContainer}
+        onPress={onToggleTerms}
+        accessibilityRole='checkbox'
+        accessibilityLabel='Accept terms and conditions'
+        accessibilityHint='Double tap to toggle acceptance of terms and conditions'
+        accessibilityState={{ checked: termsAccepted }}
+        activeOpacity={0.7}
+      >
+        <View
           style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}
-          onPress={onToggleTerms}
-          accessibilityRole='checkbox'
-          accessibilityLabel='Accept terms and conditions'
-          accessibilityHint='Double tap to toggle acceptance of terms and conditions'
-          accessibilityState={{ checked: termsAccepted }}
         >
           {termsAccepted ? (
-            <Ionicons name='checkmark' size={14} color='#FFFFFF' />
+            <Ionicons name='checkmark' size={16} color={theme.colors.textInverse} />
           ) : null}
-        </TouchableOpacity>
+        </View>
         <Text style={styles.termsLabel}>I accept the terms and conditions</Text>
-      </View>
+      </TouchableOpacity>
 
       <Text style={styles.termsText}>
         By signing up, you agree to our{' '}
@@ -95,11 +98,12 @@ const styles = StyleSheet.create({
   termsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 44,
     marginBottom: 12,
   },
   checkbox: {
-    width: 22,
-    height: 22,
+    width: 28,
+    height: 28,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: theme.colors.border,
@@ -123,8 +127,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   linkInline: {
-    color: '#222222',
-    fontWeight: '500',
+    color: theme.colors.textPrimary,
+    fontWeight: theme.typography.fontWeight.medium,
     textDecorationLine: 'underline' as const,
   },
   linksRow: {
@@ -136,6 +140,6 @@ const styles = StyleSheet.create({
   linkText: {
     color: theme.colors.textPrimary,
     textDecorationLine: 'underline',
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
 });

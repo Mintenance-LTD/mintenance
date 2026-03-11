@@ -24,23 +24,22 @@ const baseLogger: EnhancedLogger = createLogger({
 
 // Add mobile-specific context
 const mobileContext = {
-  platform: `mobile-${Platform.OS}`,
+  platform: 'mobile' as const,
+  device: `${Device.brand ?? 'unknown'}-${Device.modelName ?? 'unknown'}`,
   os: Platform.OS,
-  osVersion: Platform.Version,
-  deviceBrand: Device.brand,
-  deviceModel: Device.modelName,
-  deviceYear: Device.deviceYearClass,
-  deviceType: Device.deviceType,
-  appVersion: Application.nativeApplicationVersion,
-  appBuildVersion: Application.nativeBuildVersion,
-  isDevice: Device.isDevice
+  osVersion: String(Platform.Version),
+  deviceYear: Device.deviceYearClass ?? undefined,
+  deviceType: Device.deviceType ?? undefined,
+  appVersion: Application.nativeApplicationVersion ?? undefined,
+  appBuildVersion: Application.nativeBuildVersion ?? undefined,
+  isDevice: Device.isDevice,
 };
 
 // Create logger with mobile context
 const logger = baseLogger.child(mobileContext);
 
 // Track app state changes
-let appStateSubscription: unknown;
+let appStateSubscription: { remove: () => void } | undefined;
 
 if (Platform.OS !== 'web') {
   import('react-native').then(({ AppState }) => {
@@ -110,7 +109,7 @@ export function logApiCall(
     });
   } else {
     const level = status && status >= 400 ? 'error' : 'info';
-    logger.log(level as unknown, 'API call', {
+    logger.log(level as 'info' | 'error', 'API call', {
       method,
       endpoint,
       status,
@@ -335,7 +334,7 @@ export async function logSessionEnd(): Promise<void> {
   const sessionId = await AsyncStorage.getItem('sessionId');
 
   logger.info('Session ended', {
-    sessionId,
+    sessionId: sessionId ?? undefined,
     timestamp: new Date().toISOString()
   });
 }

@@ -122,7 +122,7 @@ export class ServiceHealthMonitor {
         isHealthy = await Promise.race([
           serviceCheck.healthCheckFunction(),
           this.createTimeoutPromise(serviceCheck.timeout)
-        ]);
+        ]) as boolean;
       } else if (serviceCheck.healthCheckUrl) {
         isHealthy = await this.checkUrlHealth(serviceCheck.healthCheckUrl, serviceCheck.timeout);
       } else {
@@ -384,7 +384,7 @@ export function initializeCoreServiceHealthChecks(): void {
       try {
         // Simple Supabase connection test
         const { supabase } = await import('../config/supabase');
-        const { data, error } = await supabase.from('health_check').select('1').limit(1);
+        const { error } = await (supabase.from('health_check').select('1') as unknown as { limit: (n: number) => Promise<{ error: unknown }> }).limit(1);
         return !error;
       } catch {
         return false;

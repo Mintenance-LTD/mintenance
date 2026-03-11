@@ -118,31 +118,31 @@ export const Toast: React.FC<ToastProps> = ({
     switch (type) {
       case 'success':
         return {
-          background: '#F0FDF4',
-          border: '#BBF7D0',
+          background: theme.colors.successLight ?? '#F0FDF4',
+          border: (theme.colors as Record<string, string>).successBorder ?? '#BBF7D0',
           icon: theme.colors.successDark,
-          text: '#166534',
+          text: theme.colors.successDark ?? '#166534',
         };
       case 'error':
         return {
-          background: '#FEF2F2',
-          border: '#FECACA',
+          background: theme.colors.errorLight ?? '#FEF2F2',
+          border: (theme.colors as Record<string, string>).errorBorder ?? '#FECACA',
           icon: theme.colors.errorDark,
-          text: '#991B1B',
+          text: theme.colors.errorDark ?? '#991B1B',
         };
       case 'warning':
         return {
-          background: '#FFFBEB',
-          border: '#FDE68A',
+          background: theme.colors.warningLight ?? '#FFFBEB',
+          border: (theme.colors as Record<string, string>).warningBorder ?? '#FDE68A',
           icon: theme.colors.warningDark,
-          text: '#92400E',
+          text: theme.colors.warningDark ?? '#92400E',
         };
       case 'info':
         return {
-          background: '#EFF6FF',
-          border: '#BFDBFE',
+          background: theme.colors.infoLight ?? '#EFF6FF',
+          border: (theme.colors as Record<string, string>).infoBorder ?? '#BFDBFE',
           icon: theme.colors.infoDark,
-          text: '#1E40AF',
+          text: theme.colors.infoDark ?? '#1E40AF',
         };
       case 'loading':
         return {

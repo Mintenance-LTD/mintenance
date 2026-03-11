@@ -37,7 +37,6 @@ export type RootTabParamList = {
 // ============================================================================
 
 export type AuthStackParamList = {
-  Landing: undefined;
   Login: undefined;
   Register: undefined;
   ForgotPassword: undefined;
@@ -64,6 +63,7 @@ export type JobsStackParamList = {
   PhotoReview: { jobId: string };
   PhotoUpload: { jobId: string; photoType: 'before' | 'after' };
   ContractView: { jobId: string };
+  ContractPreparation: { jobId: string; jobTitle?: string };
   ReviewSubmission: { jobId: string; contractorName?: string; jobTitle?: string };
   JobSignOff: { jobId: string };
 };

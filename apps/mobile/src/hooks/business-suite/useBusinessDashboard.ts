@@ -1,6 +1,7 @@
 /** Business Dashboard, Formatters, and Utilities */
 import { contractorBusinessSuite, BusinessMetrics, FinancialSummary, BusinessGoal } from "../../services/contractor-business";
 import { useI18n } from "../useI18n";
+import { theme } from "../../theme";
 import { useBusinessMetrics, useFinancialSummary } from "./useBusinessMetrics";
 import { useClientAnalytics } from "./useClients";
 
@@ -24,10 +25,10 @@ export const useBusinessSuiteFormatters = () => {
     profitMargin: formatPercentage(metrics.profit_margin),
   });
   const getPerformanceColor = (value: number, thresholds: { excellent: number; good: number; average: number }) => {
-    if (value >= thresholds.excellent) return "#10B981";
-    if (value >= thresholds.good) return "#84CC16";
-    if (value >= thresholds.average) return "#F59E0B";
-    return "#EF4444";
+    if (value >= thresholds.excellent) return theme.colors.primary;
+    if (value >= thresholds.good) return theme.colors.success;
+    if (value >= thresholds.average) return theme.colors.warning;
+    return theme.colors.error;
   };
   const getBusinessInsights = (metrics: BusinessMetrics) => {
     const insights: Array<{ type: "success"|"warning"; title: string; message: string; icon: string }> = [];
@@ -49,7 +50,7 @@ export const useBusinessSuiteFormatters = () => {
     return { trend: "stable", percentage };
   };
   const formatInvoiceStatus = (status: string) => {
-    const m: Record<string,{ label: string; color: string }> = { draft: { label: "Draft", color: "#6B7280" }, sent: { label: "Sent", color: "#3B82F6" }, paid: { label: "Paid", color: "#10B981" }, overdue: { label: "Overdue", color: "#EF4444" }, cancelled: { label: "Cancelled", color: "#6B7280" } };
+    const m: Record<string,{ label: string; color: string }> = { draft: { label: "Draft", color: theme.colors.textSecondary }, sent: { label: "Sent", color: theme.colors.info }, paid: { label: "Paid", color: theme.colors.primary }, overdue: { label: "Overdue", color: theme.colors.error }, cancelled: { label: "Cancelled", color: theme.colors.textSecondary } };
     return m[status] || m.draft;
   };
   const getExpenseCategories = () => [

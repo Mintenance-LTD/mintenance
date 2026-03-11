@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 import { performanceMonitor, usePerformanceMonitoring } from '../../utils/performance';
+import type { PerformanceReport, PerformanceBudget, ComponentPerformance, PerformanceViolation } from '../../utils/performance/types';
 import { useHaptics } from '../../utils/haptics';
 import { logger } from '../../utils/logger';
 import {
@@ -56,9 +57,9 @@ export const PerformanceDashboard: React.FC = () => {
 
   const [refreshing, setRefreshing] = useState(false);
   const [monitoringEnabled, setMonitoringEnabled] = useState(true);
-  const [reportData, setReportData] = useState<unknown>(null);
-  const [budgetStatus, setBudgetStatus] = useState<unknown[]>([]);
-  const [componentMetrics, setComponentMetrics] = useState<unknown[]>([]);
+  const [reportData, setReportData] = useState<PerformanceReport | null>(null);
+  const [budgetStatus, setBudgetStatus] = useState<PerformanceBudget[]>([]);
+  const [componentMetrics, setComponentMetrics] = useState<ComponentPerformance[]>([]);
 
   useEffect(() => {
     loadPerformanceData();
@@ -170,7 +171,7 @@ export const PerformanceDashboard: React.FC = () => {
                 onValueChange={toggleMonitoring}
                 trackColor={{
                   false: theme.colors.surfaceTertiary,
-                  true: '#222222',
+                  true: theme.colors.textPrimary,
                 }}
                 thumbColor={theme.colors.background}
               />
@@ -191,24 +192,24 @@ export const PerformanceDashboard: React.FC = () => {
             />
             <MetricCard
               title="Average Render"
-              value={Math.round(reportData.summary.averageRenderTime)}
+              value={Math.round(reportData.summary.averageRenderTime ?? 0)}
               unit="ms"
-              status={reportData.summary.averageRenderTime > 16 ? 'warning' : 'good'}
+              status={(reportData.summary.averageRenderTime ?? 0) > 16 ? 'warning' : 'good'}
               icon="speedometer"
               description="Component render time"
             />
             <MetricCard
               title="Network Time"
-              value={Math.round(reportData.summary.averageNetworkTime)}
+              value={Math.round(reportData.summary.averageNetworkTime ?? 0)}
               unit="ms"
-              status={reportData.summary.averageNetworkTime > 2000 ? 'critical' : 'good'}
+              status={(reportData.summary.averageNetworkTime ?? 0) > 2000 ? 'critical' : 'good'}
               icon="cloud"
               description="Average API response time"
             />
             <MetricCard
               title="Budget Violations"
-              value={reportData.summary.failedBudgets}
-              status={reportData.summary.failedBudgets > 0 ? 'critical' : 'good'}
+              value={reportData.summary.failedBudgets ?? 0}
+              status={(reportData.summary.failedBudgets ?? 0) > 0 ? 'critical' : 'good'}
               icon="warning"
               description="Performance budget failures"
             />
@@ -221,7 +222,13 @@ export const PerformanceDashboard: React.FC = () => {
           <Card>
             <CardBody>
               {budgetStatus.slice(0, 8).map((budget, index) => (
-                <BudgetStatusRow key={index} {...budget} />
+                <BudgetStatusRow
+                  key={index}
+                  metric={budget.metric ?? 'unknown'}
+                  current={budget.current ?? 0}
+                  budget={budget.budget ?? 0}
+                  status={budget.status ?? 'pass'}
+                />
               ))}
             </CardBody>
           </Card>
@@ -244,12 +251,12 @@ export const PerformanceDashboard: React.FC = () => {
         )}
 
         {/* Recent Violations */}
-        {reportData.violations.length > 0 && (
+        {(reportData.violations?.length ?? 0) > 0 && (
           <View style={styles.section}>
             <H2 style={{ color: theme.colors.textPrimary, marginBottom: 16 }}>Recent Violations</H2>
             <Card>
               <CardBody>
-                {reportData.violations.slice(0, 5).map((violation: unknown, index: number) => (
+                {reportData.violations?.slice(0, 5).map((violation, index) => (
                   <ViolationRow key={index} violation={violation} />
                 ))}
               </CardBody>
@@ -282,7 +289,7 @@ export const PerformanceDashboard: React.FC = () => {
         {/* Footer */}
         <View style={styles.footer}>
           <Caption style={{ color: theme.colors.textTertiary, textAlign: 'center' }}>
-            Last updated: {new Date(reportData.timestamp).toLocaleTimeString()}
+            Last updated: {new Date(reportData.timestamp ?? Date.now()).toLocaleTimeString()}
           </Caption>
         </View>
       </ScrollView>
@@ -320,7 +327,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
     <Card style={styles.metricCard}>
       <CardBody>
         <View style={styles.metricHeader}>
-          <Ionicons name={icon as unknown} size={24} color={getStatusColor()} />
+          <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={24} color={getStatusColor()} />
           {trend && (
             <Ionicons
               name={trend === 'up' ? 'trending-up' : trend === 'down' ? 'trending-down' : 'remove'}
@@ -381,7 +388,7 @@ const BudgetStatusRow: React.FC<BudgetStatusProps> = ({ metric, current, budget,
 // COMPONENT METRIC ROW
 // ============================================================================
 
-const ComponentMetricRow: React.FC<{ component: unknown; rank: number }> = ({ component, rank }) => {
+const ComponentMetricRow: React.FC<{ component: ComponentPerformance; rank: number }> = ({ component, rank }) => {
   return (
     <View style={styles.componentRow}>
       <View style={styles.rankBadge}>
@@ -406,7 +413,7 @@ const ComponentMetricRow: React.FC<{ component: unknown; rank: number }> = ({ co
 // VIOLATION ROW
 // ============================================================================
 
-const ViolationRow: React.FC<{ violation: unknown }> = ({ violation }) => {
+const ViolationRow: React.FC<{ violation: PerformanceViolation }> = ({ violation }) => {
   const getSeverityColor = () => {
     switch (violation.severity) {
       case 'critical':

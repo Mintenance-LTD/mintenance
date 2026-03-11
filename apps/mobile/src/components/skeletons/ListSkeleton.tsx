@@ -11,6 +11,7 @@
 
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { theme } from '../../theme';
 import { Skeleton, SkeletonAvatar, SkeletonGroup } from './Skeleton';
 
 export interface ListSkeletonProps {
@@ -80,10 +81,10 @@ export const ListSkeleton: React.FC<ListSkeletonProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.borderLight,
     overflow: 'hidden',
   },
   item: {
@@ -92,7 +93,7 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F7F7F7',
+    borderBottomColor: theme.colors.backgroundSecondary,
   },
   content: {
     flex: 1,

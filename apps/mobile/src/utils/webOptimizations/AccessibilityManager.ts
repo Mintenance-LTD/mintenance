@@ -46,7 +46,7 @@ export class AccessibilityManager {
 
       logger.info('AccessibilityManager', 'Accessibility initialized successfully');
     } catch (error) {
-      logger.error('AccessibilityManager', 'Failed to initialize accessibility', error);
+      logger.error('AccessibilityManager', 'Failed to initialize accessibility', { error: error instanceof Error ? error.message : String(error) });
     }
   }
 

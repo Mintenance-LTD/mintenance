@@ -104,13 +104,7 @@ export function usePayment({
           throw new Error('Payment confirmation failed');
         }
 
-        // Step 3: Create escrow transaction record
-        await PaymentService.createEscrowTransaction(
-          jobId,
-          userId,
-          contractorId,
-          amount
-        );
+        // Note: Escrow record is created server-side by the create-intent endpoint
 
         Alert.alert(
           'Payment Successful',

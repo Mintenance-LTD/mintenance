@@ -63,11 +63,12 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({
               key={job.id}
               style={styles.scheduleCard}
               onPress={() => onJobDetailsPress(job.id)}
+              accessibilityRole="button"
               accessibilityLabel={`${job.title}, ${job.time || ''}, ${job.status}`}
             >
               <View style={styles.scheduleHeader}>
                 <View style={styles.scheduleIcon}>
-                  <Ionicons name="calendar" size={16} color='#717171' accessible={false} />
+                  <Ionicons name="calendar" size={16} color={theme.colors.textSecondary} accessible={false} />
                 </View>
                 <View style={styles.scheduleInfo}>
                   <Text style={styles.scheduleTitle} numberOfLines={1}>{job.title}</Text>
@@ -123,13 +124,13 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   viewAllLink: {
     fontSize: 14,
-    color: '#222222',
-    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   emptyState: {
     backgroundColor: theme.colors.surface,
@@ -149,7 +150,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginBottom: 4,
   },
@@ -183,7 +184,7 @@ const styles = StyleSheet.create({
   },
   scheduleTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginBottom: 4,
   },
@@ -200,14 +201,14 @@ const styles = StyleSheet.create({
   scheduleStatusText: {
     fontSize: 11,
     color: theme.colors.textInverse,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   completedSection: {
     marginTop: 24,
   },
   completedSectionTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 12,
   },
@@ -235,7 +236,7 @@ const styles = StyleSheet.create({
   },
   completedTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginBottom: 4,
   },
@@ -245,7 +246,7 @@ const styles = StyleSheet.create({
   },
   viewDetailsLink: {
     fontSize: 12,
-    color: '#222222',
-    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    fontWeight: theme.typography.fontWeight.semibold,
   },
 });

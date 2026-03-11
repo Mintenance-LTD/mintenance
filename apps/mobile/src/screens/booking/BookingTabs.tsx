@@ -76,27 +76,27 @@ const styles = StyleSheet.create({
   tabsContainer: {
     flexDirection: 'row',
     backgroundColor: theme.colors.surface,
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 12,
-    padding: 4,
+    marginHorizontal: theme.spacing.md,
+    marginTop: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.xs,
   },
   tab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingVertical: theme.spacing[3],
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
     gap: 6,
   },
   activeTab: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.primary,
   },
   tabText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textSecondary,
   },
   activeTabText: {
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     backgroundColor: theme.colors.accent,
-    borderRadius: 10,
+    borderRadius: theme.borderRadius.full,
     minWidth: 20,
     height: 20,
     alignItems: 'center',
@@ -112,8 +112,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   badgeText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: theme.typography.fontSize.xs,
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textInverse,
   },
 });

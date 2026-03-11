@@ -2,6 +2,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { logger } from '../utils/logger';
 import { handleError } from '../utils/errorHandler';
+import { theme } from '../theme';
 
 interface Props {
   children: ReactNode;
@@ -110,56 +111,56 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#fff8e1',
+    padding: theme.spacing[5],
+    backgroundColor: theme.colors.accentLight,
   },
   icon: {
     fontSize: 48,
-    marginBottom: 16,
+    marginBottom: theme.spacing[4],
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#f57c00',
-    marginBottom: 8,
+    fontSize: theme.typography.fontSize.xl,
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.warning,
+    marginBottom: theme.spacing[2],
     textAlign: 'center',
   },
   message: {
-    fontSize: 16,
-    color: '#e65100',
+    fontSize: theme.typography.fontSize.base,
+    color: theme.colors.warning,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: theme.spacing[6],
     lineHeight: 22,
   },
   button: {
-    backgroundColor: '#ff9800',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginBottom: 16,
+    backgroundColor: theme.colors.accent,
+    paddingHorizontal: theme.spacing[6],
+    paddingVertical: theme.spacing[3],
+    borderRadius: theme.borderRadius.base,
+    marginBottom: theme.spacing[4],
   },
   buttonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: theme.colors.textInverse,
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   exhaustedText: {
-    fontSize: 14,
-    color: '#d84315',
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.error,
     textAlign: 'center',
     fontStyle: 'italic',
-    marginBottom: 16,
+    marginBottom: theme.spacing[4],
   },
   debugContainer: {
-    backgroundColor: '#fff3e0',
-    padding: 12,
-    borderRadius: 6,
-    marginTop: 16,
+    backgroundColor: theme.colors.accentLight,
+    padding: theme.spacing[3],
+    borderRadius: theme.borderRadius.sm,
+    marginTop: theme.spacing[4],
     width: '100%',
   },
   debugText: {
-    fontSize: 12,
-    color: '#e65100',
+    fontSize: theme.typography.fontSize.xs,
+    color: theme.colors.warning,
     fontFamily: 'monospace',
   },
 });

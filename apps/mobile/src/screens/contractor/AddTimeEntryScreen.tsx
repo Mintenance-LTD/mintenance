@@ -97,7 +97,7 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
             multiline
           />
 
-          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Date</Text>
+          <Text style={[styles.fieldLabel, { marginTop: theme.spacing.md }]}>Date</Text>
           <View style={styles.readonlyRow}>
             <Ionicons name="calendar-outline" size={18} color={theme.colors.textTertiary} />
             <Text style={styles.readonlyValue}>
@@ -105,7 +105,7 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
             </Text>
           </View>
 
-          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Hours *</Text>
+          <Text style={[styles.fieldLabel, { marginTop: theme.spacing.md }]}>Hours *</Text>
           <View style={styles.inputRow}>
             <TextInput
               style={[styles.input, styles.inputSmall]}
@@ -118,7 +118,7 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.inputSuffix}>hours</Text>
           </View>
 
-          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Hourly Rate (£)</Text>
+          <Text style={[styles.fieldLabel, { marginTop: theme.spacing.md }]}>Hourly Rate (£)</Text>
           <View style={styles.inputRow}>
             <Text style={styles.inputPrefix}>£</Text>
             <TextInput
@@ -148,7 +148,7 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
             <Switch
               value={billable}
               onValueChange={setBillable}
-              trackColor={{ false: theme.colors.border, true: '#222222' }}
+              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
               thumbColor={theme.colors.background}
             />
           </View>
@@ -164,27 +164,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingHorizontal: theme.spacing.md,
+    paddingBottom: theme.spacing[3],
     backgroundColor: theme.colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.borderLight,
   },
-  headerButton: { padding: 8, width: 60 },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.textPrimary },
+  headerButton: { padding: theme.spacing.sm, width: 60 },
+  headerTitle: { fontSize: theme.typography.fontSize.lg, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
   saveButton: { alignItems: 'flex-end' },
-  saveButtonText: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
+  saveButtonText: { fontSize: theme.typography.fontSize.md, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
   saveButtonDisabled: { opacity: 0.5 },
-  content: { padding: 16 },
+  content: { padding: theme.spacing.md },
   card: {
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.xl,
-    padding: 20,
+    padding: theme.spacing[5],
     ...theme.shadows.base,
   },
   fieldLabel: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: theme.typography.fontSize.xs,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -194,48 +194,48 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border,
     borderRadius: theme.borderRadius.md,
-    padding: 12,
-    fontSize: 15,
+    padding: theme.spacing[3],
+    fontSize: theme.typography.fontSize.base,
     color: theme.colors.textPrimary,
     backgroundColor: theme.colors.surfaceSecondary,
   },
-  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  inputRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
   inputSmall: { width: 120 },
-  inputPrefix: { fontSize: 18, fontWeight: '600', color: theme.colors.textSecondary },
-  inputSuffix: { fontSize: 14, color: theme.colors.textSecondary },
+  inputPrefix: { fontSize: theme.typography.fontSize.lg, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textSecondary },
+  inputSuffix: { fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary },
   readonlyRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: theme.spacing.sm,
     paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: theme.spacing[3],
     backgroundColor: theme.colors.surfaceSecondary,
     borderRadius: theme.borderRadius.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
-  readonlyValue: { fontSize: 15, color: theme.colors.textPrimary },
+  readonlyValue: { fontSize: theme.typography.fontSize.base, color: theme.colors.textPrimary },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: '#F7F7F7',
+    marginTop: theme.spacing[3],
+    padding: theme.spacing[3],
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: theme.borderRadius.md,
   },
-  totalLabel: { fontSize: 13, color: theme.colors.textSecondary },
-  totalValue: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
+  totalLabel: { fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary },
+  totalValue: { fontSize: theme.typography.fontSize.md, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 20,
-    paddingTop: 16,
+    marginTop: theme.spacing[5],
+    paddingTop: theme.spacing.md,
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
   },
-  switchSubtitle: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2 },
+  switchSubtitle: { fontSize: theme.typography.fontSize.xs, color: theme.colors.textTertiary, marginTop: 2 },
 });
 
 export default AddTimeEntryScreen;

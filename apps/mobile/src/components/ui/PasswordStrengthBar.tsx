@@ -23,7 +23,7 @@ function getStrength(password: string): StrengthLevel {
 
   if (score === 1) return { label: 'Weak', segments: 1, color: theme.colors.error };
   if (score === 2) return { label: 'Fair', segments: 2, color: theme.colors.warning };
-  if (score === 3) return { label: 'Good', segments: 3, color: '#F59E0B' };
+  if (score === 3) return { label: 'Good', segments: 3, color: theme.colors.accent };
   return { label: 'Strong', segments: 4, color: theme.colors.success };
 }
 
@@ -67,6 +67,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
 });

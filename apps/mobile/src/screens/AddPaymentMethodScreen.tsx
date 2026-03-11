@@ -151,7 +151,7 @@ const AddPaymentMethodScreen: React.FC = () => {
 
   const renderPayPalForm = () => (
     <View style={styles.paypalContainer}>
-      <Ionicons name="logo-paypal" size={48} color="#003087" style={{ alignSelf: 'center', marginBottom: 16 }} />
+      <Ionicons name="logo-paypal" size={48} color={theme.colors.info} style={{ alignSelf: 'center', marginBottom: 16 }} />
       <Text style={styles.paypalText}>PayPal is coming soon</Text>
       <Text style={styles.paypalSubtext}>
         We're working on PayPal integration. Get notified when it's available.
@@ -164,7 +164,7 @@ const AddPaymentMethodScreen: React.FC = () => {
         }}
         disabled={notifyMePayPal}
       >
-        <Ionicons name={notifyMePayPal ? 'checkmark-circle' : 'notifications-outline'} size={18} color={notifyMePayPal ? theme.colors.success : '#717171'} />
+        <Ionicons name={notifyMePayPal ? 'checkmark-circle' : 'notifications-outline'} size={18} color={notifyMePayPal ? theme.colors.success : theme.colors.textSecondary} />
         <Text style={[styles.notifyButtonText, notifyMePayPal && { color: theme.colors.success }]}>
           {notifyMePayPal ? 'Notifications enabled' : 'Notify me when available'}
         </Text>
@@ -241,7 +241,7 @@ const AddPaymentMethodScreen: React.FC = () => {
             <Ionicons
               name="card"
               size={24}
-              color={paymentType === 'card' ? theme.colors.textInverse : '#717171'}
+              color={paymentType === 'card' ? theme.colors.textInverse : theme.colors.textSecondary}
             />
             <Text style={[
               styles.paymentTypeText,
@@ -272,7 +272,7 @@ const AddPaymentMethodScreen: React.FC = () => {
             <Ionicons
               name="business"
               size={24}
-              color={paymentType === 'bank' ? theme.colors.textInverse : '#717171'}
+              color={paymentType === 'bank' ? theme.colors.textInverse : theme.colors.textSecondary}
             />
             <Text style={[styles.paymentTypeText, paymentType === 'bank' && styles.paymentTypeTextActive]}>
               Bank Account
@@ -290,7 +290,7 @@ const AddPaymentMethodScreen: React.FC = () => {
         {/* Security Info */}
         <View style={styles.securityInfo}>
           <View style={styles.securityHeader}>
-            <Ionicons name="shield-checkmark" size={20} color='#717171' />
+            <Ionicons name="shield-checkmark" size={20} color={theme.colors.textSecondary} />
             <Text style={styles.securityTitle}>Your information is secure</Text>
           </View>
           <Text style={styles.securityText}>
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
   },
   placeholder: {
@@ -367,12 +367,12 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.borderLight,
   },
   paymentTypeButtonActive: {
-    backgroundColor: '#222222',
-    borderColor: '#222222',
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
   },
   paymentTypeText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginTop: 8,
     textAlign: 'center',
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
   },
   comingSoonBadge: {
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textSecondary,
     backgroundColor: theme.colors.backgroundTertiary,
     paddingHorizontal: 6,
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginTop: 24,
     marginBottom: 16,
@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginBottom: 8,
   },
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
   },
   paypalText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     textAlign: 'center',
     marginBottom: 8,
@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
   },
   bankText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     textAlign: 'center',
     marginBottom: 8,
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
   },
   securityTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginLeft: 8,
   },
@@ -522,14 +522,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
     borderWidth: 1.5,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.borderLight,
     alignSelf: 'center',
   },
   notifyButtonActive: {
     borderColor: theme.colors.success,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
-  notifyButtonText: { fontSize: 14, fontWeight: '600', color: theme.colors.textSecondary },
+  notifyButtonText: { fontSize: 14, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textSecondary },
 });
 
 export default AddPaymentMethodScreen;

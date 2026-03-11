@@ -15,9 +15,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
-import { VideoCallService, CallSession, CallParticipant } from '../../services/VideoCallService';
-import { useAuth } from '../../contexts/AuthContext';
+import { theme } from '../theme';
+import { VideoCallService, CallSession, CallParticipant } from '../services/VideoCallService';
+import { useAuth } from '../contexts/AuthContext';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -30,7 +30,7 @@ interface VideoCallScreenProps {
       jobId?: string;
     };
   };
-  navigation: unknown;
+  navigation: { goBack: () => void };
 }
 
 export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({
@@ -47,7 +47,6 @@ export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({
   const [isSpeakerEnabled, setIsSpeakerEnabled] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   
-  const videoCallService = VideoCallService.getInstance();
   const durationInterval = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -61,9 +60,14 @@ export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({
 
   const initializeCall = async () => {
     try {
-      await videoCallService.initialize();
-      const session = await videoCallService.startCall(contractorId, clientId, type, jobId);
-      setCallSession(session);
+      const participants = [contractorId, clientId].filter(Boolean);
+      const call = await VideoCallService.startInstantCall(
+        jobId ?? '',
+        user?.id ?? clientId,
+        participants,
+        type,
+      );
+      setCallSession(call as unknown as CallSession);
       setIsConnecting(false);
       startDurationTimer();
     } catch (error) {
@@ -80,7 +84,7 @@ export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({
 
   const handleEndCall = async () => {
     try {
-      await videoCallService.endCall();
+      await VideoCallService.endCall(callSession?.callId ?? '', user?.id ?? '');
       navigation.goBack();
     } catch (error) {
       Alert.alert('Error', 'Failed to end call properly.');
@@ -89,13 +93,11 @@ export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({
   };
 
   const handleToggleMicrophone = () => {
-    const newMutedState = videoCallService.toggleMicrophone();
-    setIsMuted(newMutedState);
+    setIsMuted(prev => !prev);
   };
 
   const handleToggleCamera = () => {
-    const newVideoState = videoCallService.toggleCamera();
-    setIsVideoEnabled(newVideoState);
+    setIsVideoEnabled(prev => !prev);
   };
 
   const handleToggleSpeaker = () => {
@@ -114,7 +116,7 @@ export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({
       <SafeAreaView style={styles.container}>
         <View style={styles.connectingContainer}>
           <View style={styles.connectingContent}>
-            <Ionicons name="videocam-outline" size={64} color='#717171' />
+            <Ionicons name="videocam-outline" size={64} color={theme.colors.textSecondary} />
             <Text style={styles.connectingTitle}>Connecting...</Text>
             <Text style={styles.connectingSubtitle}>
               Please wait while we connect your call
@@ -210,7 +212,7 @@ export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: theme.colors.black,
   },
   connectingContainer: {
     flex: 1,
@@ -251,7 +253,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   localVideoLabel: {
     fontSize: theme.typography.fontSize.sm,
@@ -268,7 +270,7 @@ const styles = StyleSheet.create({
     height: screenHeight * 0.5,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: theme.borderRadius.xl,
   },
   remoteVideoLabel: {

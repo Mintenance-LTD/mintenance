@@ -20,23 +20,24 @@ import {
   LocationPicker,
   ScheduleActions,
 } from './components';
+import type { User, Job } from '@mintenance/types';
 
 interface Props {
   route: {
     params: {
       contractorId: string;
-      jobId: string;
-      contractor?: unknown;
-      job?: unknown;
+      jobId?: string;
+      contractor?: User;
+      job?: Job;
     };
   };
-  navigation: unknown;
+  navigation: { goBack: () => void };
 }
 
 export const MeetingScheduleScreen: React.FC<Props> = ({ route, navigation }) => {
   const { contractorId, jobId, contractor, job } = route.params;
-  
-  const viewModel = useMeetingScheduleViewModel(contractorId, jobId, contractor, job);
+
+  const viewModel = useMeetingScheduleViewModel(contractorId, jobId ?? '', contractor, job);
 
   if (viewModel.loading) {
     return <LoadingSpinner message="Scheduling meeting..." />;

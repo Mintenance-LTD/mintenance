@@ -105,7 +105,7 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({ naviga
     );
   }
 
-  const statusColor = STATUS_COLORS[invoice.status] ?? '#717171';
+  const statusColor = STATUS_COLORS[invoice.status] ?? theme.colors.textSecondary;
   const canSendReminder = invoice.status === 'sent' || invoice.status === 'overdue';
   const canMarkPaid = invoice.status !== 'paid' && invoice.status !== 'cancelled';
 
@@ -211,7 +211,7 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({ naviga
         <View style={styles.actionsSection}>
           {canSendReminder && (
             <TouchableOpacity style={styles.reminderButton} onPress={handleSendReminder}>
-              <Ionicons name="mail-outline" size={18} color='#717171' />
+              <Ionicons name="mail-outline" size={18} color={theme.colors.textSecondary} />
               <Text style={styles.reminderButtonText}>Send Reminder</Text>
             </TouchableOpacity>
           )}
@@ -240,10 +240,10 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     backgroundColor: theme.colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.borderLight,
   },
   headerButton: { padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.textPrimary },
+  headerTitle: { fontSize: 18, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
   scroll: { flex: 1 },
   statusCard: {
     margin: 16,
@@ -260,8 +260,8 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.sm,
     marginBottom: 12,
   },
-  statusText: { fontSize: 12, fontWeight: '700', color: theme.colors.textInverse },
-  invoiceTotal: { fontSize: 28, fontWeight: '800', color: theme.colors.textPrimary },
+  statusText: { fontSize: 12, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textInverse },
+  invoiceTotal: { fontSize: 28, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
   dueDateText: { fontSize: 14, color: theme.colors.textSecondary, marginTop: 4 },
   section: {
     backgroundColor: theme.colors.background,
@@ -271,23 +271,23 @@ const styles = StyleSheet.create({
     padding: 16,
     ...theme.shadows.sm,
   },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: theme.colors.textSecondary, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
-  clientName: { fontSize: 16, fontWeight: '600', color: theme.colors.textPrimary },
+  sectionTitle: { fontSize: 14, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textSecondary, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  clientName: { fontSize: 16, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary },
   detailText: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 4 },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
   detailLabel: { fontSize: 14, color: theme.colors.textSecondary },
-  detailValue: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: '500' },
+  detailValue: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: theme.typography.fontWeight.medium },
   lineItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
   lineItemLeft: { flex: 1, paddingRight: 12 },
-  lineItemDesc: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: '500' },
+  lineItemDesc: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: theme.typography.fontWeight.medium },
   lineItemMeta: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
-  lineItemAmount: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: '600' },
+  lineItemAmount: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: theme.typography.fontWeight.semibold },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
   totalRowFinal: { borderTopWidth: 1, borderTopColor: theme.colors.border, marginTop: 8, paddingTop: 12 },
   totalLabel: { fontSize: 14, color: theme.colors.textSecondary },
-  totalValue: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: '500' },
-  grandTotalLabel: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
-  grandTotalValue: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
+  totalValue: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: theme.typography.fontWeight.medium },
+  grandTotalLabel: { fontSize: 16, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
+  grandTotalValue: { fontSize: 18, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
   notesText: { fontSize: 14, color: theme.colors.textSecondary, lineHeight: 20 },
   actionsSection: { flexDirection: 'row', gap: 12, marginHorizontal: 16, marginTop: 4 },
   reminderButton: {
@@ -296,13 +296,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#222222',
+    borderColor: theme.colors.primary,
     borderRadius: theme.borderRadius.md,
     paddingVertical: 12,
     gap: 6,
     backgroundColor: theme.colors.background,
   },
-  reminderButtonText: { fontSize: 14, fontWeight: '600', color: theme.colors.textPrimary },
+  reminderButtonText: { fontSize: 14, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary },
   paidButton: {
     flex: 1,
     flexDirection: 'row',
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 6,
   },
-  paidButtonText: { fontSize: 14, fontWeight: '600', color: theme.colors.textInverse },
+  paidButtonText: { fontSize: 14, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textInverse },
   emptyText: { fontSize: 16, color: theme.colors.textSecondary, marginTop: 16 },
   backLink: { fontSize: 14, color: theme.colors.textPrimary, marginTop: 12 },
 });

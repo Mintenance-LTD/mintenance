@@ -170,28 +170,28 @@ const getVariantStyles = (variant: TypographyVariant): TextStyle => {
     case 'display1':
       return {
         fontSize: theme.typography.fontSize['5xl'],
-        fontWeight: '700',
+        fontWeight: theme.typography.fontWeight.bold,
         lineHeight: 1.1,
       };
 
     case 'display2':
       return {
         fontSize: theme.typography.fontSize['4xl'],
-        fontWeight: '700',
+        fontWeight: theme.typography.fontWeight.bold,
         lineHeight: 1.1,
       };
 
     case 'h1':
       return {
         fontSize: theme.typography.fontSize['3xl'],
-        fontWeight: '700',
+        fontWeight: theme.typography.fontWeight.bold,
         lineHeight: 1.15,
       };
 
     case 'h2':
       return {
         fontSize: theme.typography.fontSize['2xl'],
-        fontWeight: '700',
+        fontWeight: theme.typography.fontWeight.bold,
         lineHeight: 1.2,
       };
 

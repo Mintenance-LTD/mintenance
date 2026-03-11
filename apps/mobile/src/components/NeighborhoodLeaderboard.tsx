@@ -52,8 +52,23 @@ export const NeighborhoodLeaderboard: React.FC<
     formatCommunityScore,
     getChampionBadgeEmoji,
     getBadgeLevelColor,
-    getContractorSpecialtyIcon,
-  } = useNeighborhoodFormatters() as Record<string, (...args: unknown[]) => unknown>;
+  } = useNeighborhoodFormatters();
+
+  const getContractorSpecialtyIcon = (specialty: string): string => {
+    const icons: Record<string, string> = {
+      plumbing: '🔧',
+      electrical: '⚡',
+      painting: '🎨',
+      carpentry: '🔨',
+      gardening: '🌱',
+      cleaning: '🧹',
+      roofing: '🏠',
+      heating: '🔥',
+      flooring: '📐',
+      handyman: '🛠️',
+    };
+    return icons[specialty.toLowerCase()] || '🔧';
+  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -79,7 +94,7 @@ export const NeighborhoodLeaderboard: React.FC<
             name={index === 0 ? 'trophy' : index === 1 ? 'medal' : 'ribbon'}
             size={16}
             color={
-              index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32'
+              index === 0 ? theme.colors.accent : index === 1 ? theme.colors.textTertiary : theme.colors.warning
             }
           />
         )}
@@ -106,7 +121,7 @@ export const NeighborhoodLeaderboard: React.FC<
         <Text style={styles.contractorName}>{contractor.contractor_name}</Text>
         <View style={styles.contractorMeta}>
           <View style={styles.metaItem}>
-            <Ionicons name='star' size={12} color='#FFD700' />
+            <Ionicons name='star' size={12} color={theme.colors.accent} />
             <Text style={styles.metaText}>
               {contractor.average_rating.toFixed(1)}
             </Text>
@@ -196,7 +211,7 @@ export const NeighborhoodLeaderboard: React.FC<
                 key={star}
                 name={star <= jobSuccess.rating ? 'star' : 'star-outline'}
                 size={14}
-                color='#FFD700'
+                color={theme.colors.accent}
               />
             ))}
             <Text style={styles.ratingText}>({jobSuccess.rating}/5)</Text>

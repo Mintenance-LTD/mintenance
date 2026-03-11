@@ -5,12 +5,13 @@ exports[`ServiceAreasHeader Snapshot should match snapshot 1`] = `
   style={
     {
       "alignItems": "center",
-      "backgroundColor": "#0F172A",
+      "backgroundColor": "#FFFFFF",
+      "borderBottomColor": "#F0F0F0",
+      "borderBottomWidth": 1,
       "flexDirection": "row",
       "justifyContent": "space-between",
-      "paddingBottom": 16,
       "paddingHorizontal": 16,
-      "paddingTop": 60,
+      "paddingVertical": 12,
     }
   }
 >
@@ -23,7 +24,7 @@ exports[`ServiceAreasHeader Snapshot should match snapshot 1`] = `
     }
   >
     <Text
-      color="#FFFFFF"
+      color="#222222"
       size={24}
       testID="icon-arrow-back"
     >
@@ -33,8 +34,8 @@ exports[`ServiceAreasHeader Snapshot should match snapshot 1`] = `
   <Text
     style={
       {
-        "color": "#FFFFFF",
-        "fontSize": 20,
+        "color": "#222222",
+        "fontSize": 18,
         "fontWeight": "600",
       }
     }
@@ -42,7 +43,7 @@ exports[`ServiceAreasHeader Snapshot should match snapshot 1`] = `
     Service Areas
   </Text>
   <TouchableOpacity
-    onPress={[Function]}
+    accessibilityLabel="Add service area"
     style={
       {
         "padding": 8,
@@ -50,7 +51,7 @@ exports[`ServiceAreasHeader Snapshot should match snapshot 1`] = `
     }
   >
     <Text
-      color="#FFFFFF"
+      color="#222222"
       size={24}
       testID="icon-add"
     >

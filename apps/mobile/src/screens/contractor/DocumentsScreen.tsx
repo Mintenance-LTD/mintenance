@@ -90,7 +90,7 @@ export const DocumentsScreen: React.FC = () => {
   const filtered = filter === 'all' ? documents : documents.filter((d) => d.category === filter);
 
   if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorView onRetry={refetch} />;
+  if (error) return <ErrorView message="Failed to load documents" onRetry={refetch} />;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -126,19 +126,19 @@ export const DocumentsScreen: React.FC = () => {
             <View style={styles.docInfo}>
               <Text style={styles.docName} numberOfLines={1}>{item.filename}</Text>
               <View style={styles.docMeta}>
-                <Badge variant="default" size="sm">{item.category}</Badge>
+                <Badge variant="neutral" size="sm">{item.category}</Badge>
                 <Text style={styles.docDate}>{new Date(item.uploaded_at).toLocaleDateString('en-GB')}</Text>
               </View>
             </View>
             <TouchableOpacity onPress={() => toggleStarMutation.mutate({ id: item.id, starred: !item.starred })}>
-              <Ionicons name={item.starred ? 'star' : 'star-outline'} size={20} color={item.starred ? '#F59E0B' : theme.colors.textTertiary} />
+              <Ionicons name={item.starred ? 'star' : 'star-outline'} size={20} color={item.starred ? theme.colors.warning : theme.colors.textTertiary} />
             </TouchableOpacity>
           </View>
         )}
       />
 
       <TouchableOpacity style={styles.fab} onPress={handlePickDocument} accessibilityLabel="Upload document">
-        <Ionicons name="add" size={28} color="#FFFFFF" />
+        <Ionicons name="add" size={28} color={theme.colors.textInverse} />
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -149,12 +149,12 @@ const styles = StyleSheet.create({
   filterRow: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
   filterChip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.background },
   filterChipActive: { backgroundColor: theme.colors.textPrimary, borderColor: theme.colors.textPrimary },
-  filterChipText: { fontSize: 13, fontWeight: '500', color: theme.colors.textSecondary },
-  filterChipTextActive: { color: '#FFFFFF' },
+  filterChipText: { fontSize: 13, fontWeight: theme.typography.fontWeight.medium, color: theme.colors.textSecondary },
+  filterChipTextActive: { color: theme.colors.textInverse },
   list: { paddingHorizontal: 16, paddingBottom: 80 },
   docRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surface, borderRadius: 10, padding: 14, marginBottom: 8, gap: 12, ...theme.shadows.sm },
   docInfo: { flex: 1 },
-  docName: { fontSize: 15, fontWeight: '500', color: theme.colors.textPrimary },
+  docName: { fontSize: 15, fontWeight: theme.typography.fontWeight.medium, color: theme.colors.textPrimary },
   docMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
   docDate: { fontSize: 12, color: theme.colors.textTertiary },
   fab: { position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center', ...theme.shadows.lg },

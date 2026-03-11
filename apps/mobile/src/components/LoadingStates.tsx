@@ -89,7 +89,6 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
       <Text
         style={styles.title}
         accessibilityRole="header"
-        accessibilityLevel={2}
       >
         {title}
       </Text>
@@ -146,7 +145,6 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       <Text
         style={styles.title}
         accessibilityRole="header"
-        accessibilityLevel={2}
       >
         {title}
       </Text>
@@ -228,7 +226,6 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
       <Text
         style={styles.errorTitle}
         accessibilityRole="header"
-        accessibilityLevel={2}
       >
         {getErrorTitle()}
       </Text>
@@ -335,7 +332,7 @@ export const NetworkStatusIndicator: React.FC<{
       <MaterialIcons
         name={!isOnline ? 'wifi-off' : 'warning'}
         size={16}
-        color={theme.colors.white ?? '#FFFFFF'}
+        color={theme.colors.textInverse}
       />
       <Text style={styles.networkText}>
         {!isOnline ? "You're offline" : 'Connection issues'}
@@ -366,7 +363,6 @@ export const ProgressLoadingState: React.FC<ProgressLoadingProps> = ({
       <Text
         style={styles.title}
         accessibilityRole="header"
-        accessibilityLevel={2}
       >
         {title}
       </Text>
@@ -433,21 +429,21 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: theme.typography.fontSize.lg,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     textAlign: 'center',
     marginBottom: theme.spacing.sm,
   },
   errorTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: theme.typography.fontSize.lg,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.error,
     textAlign: 'center',
     marginBottom: theme.spacing.sm,
   },
   message: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
@@ -461,9 +457,9 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   primaryButtonText: {
-    color: theme.colors.white ?? '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    color: theme.colors.textInverse,
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   retryButton: {
     flexDirection: 'row',
@@ -476,8 +472,8 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     color: theme.colors.primary,
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.medium,
     marginLeft: theme.spacing.xs,
   },
   skeletonItem: {
@@ -512,7 +508,7 @@ const styles = StyleSheet.create({
   },
   inlineText: {
     marginLeft: theme.spacing.xs,
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
   },
   refreshContainer: {
     flexDirection: 'row',
@@ -523,7 +519,7 @@ const styles = StyleSheet.create({
   refreshText: {
     marginLeft: theme.spacing.xs,
     color: theme.colors.textSecondary,
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
   },
   networkIndicator: {
     flexDirection: 'row',
@@ -537,8 +533,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.error,
   },
   networkText: {
-    color: theme.colors.white ?? '#FFFFFF',
-    fontSize: 14,
+    color: theme.colors.textInverse,
+    fontSize: theme.typography.fontSize.sm,
     marginLeft: theme.spacing.xs,
     flex: 1,
   },
@@ -549,9 +545,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   networkRetryText: {
-    color: theme.colors.white ?? '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
+    color: theme.colors.textInverse,
+    fontSize: theme.typography.fontSize.xs,
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   progressBarContainer: {
     width: '100%',
@@ -567,8 +563,8 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   progressText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.primary,
     textAlign: 'center',
     marginBottom: theme.spacing.md,
@@ -583,7 +579,7 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     color: theme.colors.error,
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.medium,
   },
 });

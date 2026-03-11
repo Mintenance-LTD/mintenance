@@ -106,7 +106,7 @@ export const Input = forwardRef<TextInput, InputProps>(
     // EVENT HANDLERS
     // ========================================================================
 
-    const handleFocus = (e: unknown) => {
+    const handleFocus = (e: import('react-native').NativeSyntheticEvent<import('react-native').TargetedEvent>) => {
       setIsFocused(true);
 
       // Animate border and label
@@ -126,7 +126,7 @@ export const Input = forwardRef<TextInput, InputProps>(
       textInputProps.onFocus?.(e);
     };
 
-    const handleBlur = (e: unknown) => {
+    const handleBlur = (e: import('react-native').NativeSyntheticEvent<import('react-native').TargetedEvent>) => {
       setIsFocused(false);
 
       // Animate border

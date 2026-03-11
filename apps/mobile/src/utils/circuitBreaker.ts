@@ -194,7 +194,7 @@ export class CircuitBreaker {
       logger.info(
         `Circuit breaker ${this.config.name} using fallback function`
       );
-      return this.config.fallbackFunction();
+      return this.config.fallbackFunction() as T;
     } else {
       throw new Error(
         `Circuit breaker ${this.config.name} is OPEN - service unavailable`

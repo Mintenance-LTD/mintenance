@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { useListOptimization, useThrottled } from '../../hooks/usePerformance';
+import { theme } from '../../theme';
 
 // ============================================================================
 // TYPES
@@ -82,7 +83,7 @@ export const OptimizedList = memo(<T,>(props: OptimizedListProps<T>) => {
       if (customKeyExtractor) {
         return customKeyExtractor(item, index);
       }
-      return listOptimization.keyExtractor(item, index);
+      return listOptimization.keyExtractor(item as Record<string, unknown>, index);
     },
     [customKeyExtractor, listOptimization.keyExtractor]
   );
@@ -122,8 +123,8 @@ export const OptimizedList = memo(<T,>(props: OptimizedListProps<T>) => {
       <RefreshControl
         refreshing={refreshing}
         onRefresh={onRefresh}
-        tintColor="#007AFF"
-        colors={['#007AFF']}
+        tintColor={theme.colors.info}
+        colors={[theme.colors.info]}
       />
     );
   }, [onRefresh, refreshing]);
@@ -211,7 +212,7 @@ export const OptimizedList = memo(<T,>(props: OptimizedListProps<T>) => {
     }),
     
     ...(Platform.OS === 'android' && {
-      overScrollMode: 'auto',
+      overScrollMode: 'auto' as const,
     }),
   }), [
     data,
@@ -240,8 +241,8 @@ export const OptimizedList = memo(<T,>(props: OptimizedListProps<T>) => {
   // RENDER
   // ============================================================================
 
-  return <FlatList {...optimizedProps} />;
-}) as <T>(props: OptimizedListProps<T>) => JSX.Element;
+  return <FlatList {...(optimizedProps as React.ComponentProps<typeof FlatList>)} />;
+}) as (<T>(props: OptimizedListProps<T>) => React.ReactElement) & { displayName?: string };
 
 OptimizedList.displayName = 'OptimizedList';
 
@@ -261,7 +262,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#666666',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
   },
   emptyContentContainer: {

@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    shadowColor: '#000000',
+    shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   },
   segmentLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
   },
   segmentValueActive: {
     color: theme.colors.textPrimary,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   segmentDivider: {
     width: 1,

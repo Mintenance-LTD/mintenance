@@ -60,8 +60,8 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
         ContractorBusinessSuite.clients.getClientAnalytics(user.id),
         ContractorBusinessSuite.clients.getClients(user.id),
       ]);
-      setClients(clientsData?.clients || []);
-      setAnalytics(analyticsData);
+      setClients((clientsData?.clients as unknown as ClientData[]) || []);
+      setAnalytics(analyticsData as unknown as ClientAnalytics);
     } catch (error) {
       logger.error('Error loading CRM data', error);
       Alert.alert('Error', 'Failed to load client data');
@@ -180,9 +180,9 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
       onPress={() => setSortBy(sort)}
     >
       <Ionicons
-        name={icon as unknown}
+        name={icon as keyof typeof Ionicons.glyphMap}
         size={16}
-        color={sortBy === sort ? '#222222' : theme.colors.textSecondary}
+        color={sortBy === sort ? theme.colors.textPrimary : theme.colors.textSecondary}
       />
       <Text style={[styles.sortText, sortBy === sort && styles.sortTextActive]}>
         {label}
@@ -215,7 +215,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
 
       <ScrollView
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor='#222222' colors={['#222222']} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -264,7 +264,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
           showsHorizontalScrollIndicator={false}
           style={styles.filtersContainer}
         >
-          {renderFilterButton('all', 'All', '#222222')}
+          {renderFilterButton('all', 'All', theme.colors.textPrimary)}
           {renderFilterButton('active', 'Active', theme.colors.success)}
           {renderFilterButton('prospect', 'Prospects', theme.colors.warning)}
           {renderFilterButton(
@@ -316,7 +316,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
                 key={client.id}
                 client={client}
                 onPress={() =>
-                  navigation.navigate('ClientDetail', { client })
+                  (navigation.navigate as (...args: unknown[]) => void)('ClientDetail', { client })
                 }
                 onCall={() => handleCall(client)}
                 onMessage={() => handleMessage(client)}
@@ -343,14 +343,14 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     backgroundColor: theme.colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.borderLight,
   },
   backButton: {
     padding: 8,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   addButton: {
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
   },
   analyticsValue: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 2,
   },
@@ -394,21 +394,21 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: theme.borderRadius.full,
     borderWidth: 1,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.borderLight,
     marginRight: 8,
     backgroundColor: theme.colors.background,
   },
   filterButtonActive: {
-    backgroundColor: '#222222',
-    borderColor: '#222222',
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
   },
   filterText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textPrimary,
   },
   filterTextActive: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   sortContainer: {
     paddingHorizontal: 16,
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
   },
   sortLabel: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textPrimary,
     marginBottom: 8,
   },
@@ -435,8 +435,8 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   sortButtonActive: {
-    borderColor: '#222222',
-    backgroundColor: '#F7F7F7',
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   sortText: {
     fontSize: 12,
@@ -444,8 +444,8 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   sortTextActive: {
-    color: '#222222',
-    fontWeight: '500',
+    color: theme.colors.textPrimary,
+    fontWeight: theme.typography.fontWeight.medium,
   },
   clientList: {
     paddingHorizontal: 16,
@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginTop: 16,
     marginBottom: 8,
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   addClientButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: theme.borderRadius.lg,
@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
   addClientButtonText: {
     color: theme.colors.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
 });
 

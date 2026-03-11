@@ -5,13 +5,23 @@ import { theme } from '../theme';
 
 const screenWidth = Dimensions.get('window').width;
 
+interface ChartDataset {
+  labels: string[];
+  datasets: { data: number[]; color?: (opacity?: number) => string; strokeWidth?: number; colors?: ((opacity: number) => string)[] }[];
+}
+
+interface PieDataItem {
+  name: string;
+  value?: number;
+  population?: number;
+  color: string;
+  legendFontColor?: string;
+  legendFontSize?: number;
+}
+
 interface FinanceChartProps {
   type: 'line' | 'bar' | 'pie';
-  data: {
-    labels?: string[];
-    datasets?: { data: number[] }[];
-    data?: { name: string; population: number; color: string; legendFontColor?: string; legendFontSize?: number }[];
-  };
+  data: ChartDataset | PieDataItem[];
   title: string;
   subtitle?: string;
   height?: number;
@@ -25,9 +35,9 @@ export const FinanceChart: React.FC<FinanceChartProps> = ({
   height = 220,
 }) => {
   const chartConfig = {
-    backgroundGradientFrom: '#ffffff',
+    backgroundGradientFrom: theme.colors.surface,
     backgroundGradientFromOpacity: 0,
-    backgroundGradientTo: '#ffffff',
+    backgroundGradientTo: theme.colors.surface,
     backgroundGradientToOpacity: 0,
     color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
     strokeWidth: 2,
@@ -39,7 +49,7 @@ export const FinanceChart: React.FC<FinanceChartProps> = ({
       strokeOpacity: 0.3,
     },
     propsForLabels: {
-      fontSize: 12,
+      fontSize: theme.typography.rawFontSize.xs,
       fontFamily: 'System',
       fill: theme.colors.textSecondary,
     },
@@ -59,7 +69,7 @@ export const FinanceChart: React.FC<FinanceChartProps> = ({
       case 'line':
         return (
           <LineChart
-            data={data}
+            data={data as ChartDataset}
             width={chartWidth}
             height={height}
             chartConfig={chartConfig}
@@ -76,7 +86,7 @@ export const FinanceChart: React.FC<FinanceChartProps> = ({
       case 'bar':
         return (
           <BarChart
-            data={data}
+            data={data as ChartDataset}
             width={chartWidth}
             height={height}
             chartConfig={chartConfig}
@@ -94,7 +104,7 @@ export const FinanceChart: React.FC<FinanceChartProps> = ({
         return (
           <View style={styles.pieContainer}>
             <PieChart
-              data={data}
+              data={data as PieDataItem[]}
               width={chartWidth}
               height={height}
               chartConfig={pieChartConfig}
@@ -127,25 +137,25 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.lg,
-    padding: 16,
-    marginBottom: 16,
+    padding: theme.spacing[4],
+    marginBottom: theme.spacing[4],
     ...theme.shadows.base,
   },
   header: {
-    marginBottom: 16,
+    marginBottom: theme.spacing[4],
   },
   title: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
-    marginBottom: 4,
+    marginBottom: theme.spacing[1],
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textSecondary,
   },
   chart: {
-    marginVertical: 8,
+    marginVertical: theme.spacing[2],
     borderRadius: theme.borderRadius.base,
   },
   pieContainer: {

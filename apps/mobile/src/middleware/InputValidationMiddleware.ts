@@ -353,13 +353,13 @@ export class InputValidationMiddleware {
       let result: ValidationResult<unknown>;
 
       if (fieldName.includes('email')) {
-        result = this.validateEmail(value || '');
+        result = this.validateEmail(String(value ?? ''));
       } else if (fieldName.includes('phone')) {
-        result = this.validatePhone(value || '');
+        result = this.validatePhone(String(value ?? ''));
       } else if (fieldName.includes('amount') || fieldName.includes('price')) {
-        result = this.validateAmount(value);
+        result = this.validateAmount(typeof value === 'number' ? value : String(value ?? ''));
       } else {
-        result = this.validateText(value || '', { ...options, fieldName });
+        result = this.validateText(String(value ?? ''), { ...options, fieldName });
       }
 
       if (!result.isValid) {

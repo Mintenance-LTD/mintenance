@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
   },
   avatarInitial: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   infoContainer: {
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
   },
   ratingInline: {
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
   },
   subtitle: {
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   },
   actionLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.primary,
   },
 });

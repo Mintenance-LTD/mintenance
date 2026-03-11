@@ -37,7 +37,7 @@ export const styles = StyleSheet.create({
     marginTop: theme.spacing[3],
   },
   retryButtonText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontSize: theme.typography.fontSize.sm,
     fontWeight: theme.typography.fontWeight.medium,
   },
@@ -317,7 +317,7 @@ export const styles = StyleSheet.create({
   },
   badgeLevelText: {
     fontSize: theme.typography.fontSize.xs,
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontWeight: theme.typography.fontWeight.bold,
   },
 });

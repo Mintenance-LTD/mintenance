@@ -471,7 +471,7 @@ export const useAccessibility = () => {
 
 export const AccessibilityTestHelpers = {
   // Test if element has proper accessibility props
-  hasAccessibilityProps: (element: unknown) => {
+  hasAccessibilityProps: (element: { props: Record<string, unknown> }) => {
     return (
       element.props.accessible !== false &&
       (element.props.accessibilityLabel || element.props.accessibilityRole)
@@ -479,9 +479,9 @@ export const AccessibilityTestHelpers = {
   },
 
   // Test if interactive element has proper role
-  hasInteractiveRole: (element: unknown) => {
+  hasInteractiveRole: (element: { props: Record<string, unknown> }) => {
     const interactiveRoles = ['button', 'link', 'tab', 'checkbox', 'radio', 'switch', 'adjustable'];
-    return interactiveRoles.includes(element.props.accessibilityRole);
+    return interactiveRoles.includes(element.props.accessibilityRole as string);
   },
 
   // Test if element has sufficient contrast (mock for testing)

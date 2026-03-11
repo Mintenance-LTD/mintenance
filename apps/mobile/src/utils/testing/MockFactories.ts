@@ -127,11 +127,11 @@ export class MockDataGenerator {
     });
   }
 
-  static generateBids(count: number, jobs: unknown[], contractors: unknown[]): unknown[] {
+  static generateBids(count: number, jobs: Record<string, unknown>[], contractors: Record<string, unknown>[]): unknown[] {
     if (jobs.length === 0 || contractors.length === 0) {
       // If no contractors provided, generate some temporary ones for the bids
       if (contractors.length === 0 && jobs.length > 0) {
-        contractors = this.generateUsers(Math.max(3, count)).filter(u => u.role === 'contractor');
+        contractors = (this.generateUsers(Math.max(3, count)) as Record<string, unknown>[]).filter(u => u.role === 'contractor');
         // If still no contractors due to randomness, force create some
         if (contractors.length === 0) {
           contractors = Array.from({ length: Math.max(3, count) }, (_, i) => ({
@@ -155,7 +155,7 @@ export class MockDataGenerator {
         id: `bid_${Math.random().toString(36).substring(2, 8)}`,
         jobId: job.id,
         contractorId: contractor.id,
-        amount: Math.floor(job.budget * (0.8 + Math.random() * 0.4)), // 80% - 120% of job budget
+        amount: Math.floor(((job as Record<string, unknown>).budget as number ?? 100) * (0.8 + Math.random() * 0.4)), // 80% - 120% of job budget
         description: `Professional bid for ${job.title}. Includes materials and labor.`,
         status: ['pending', 'accepted', 'rejected'][Math.floor(Math.random() * 3)],
         createdAt: new Date(Date.now() - Math.random() * 14 * 24 * 60 * 60 * 1000).toISOString(),
@@ -164,7 +164,7 @@ export class MockDataGenerator {
     });
   }
 
-  static generateMessages(count: number, users: unknown[], jobs: unknown[]): unknown[] {
+  static generateMessages(count: number, users: Record<string, unknown>[], jobs: Record<string, unknown>[]): unknown[] {
     if (users.length === 0) {
       return [];
     }

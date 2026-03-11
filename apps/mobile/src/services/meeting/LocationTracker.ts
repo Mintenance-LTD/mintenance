@@ -50,7 +50,8 @@ export function subscribeToContractorLocation(
 ) {
   return supabase.channel(`contractor_location_${contractorId}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'contractor_locations', filter: `contractor_id=eq.${contractorId}` },
-      (payload: RealtimePayload<DatabaseContractorLocationRow>) => {
+      (rawPayload: unknown) => {
+        const payload = rawPayload as RealtimePayload<DatabaseContractorLocationRow>;
         if (payload.new) {
           callback({ id: payload.new.id, contractorId: payload.new.contractor_id, latitude: payload.new.latitude, longitude: payload.new.longitude, accuracy: payload.new.accuracy, timestamp: payload.new.timestamp, isActive: payload.new.is_active, meetingId: payload.new.meeting_id });
         }
@@ -64,7 +65,8 @@ export function subscribeToMeetingUpdates(
 ) {
   return supabase.channel(`meeting_${meetingId}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'contractor_meetings', filter: `id=eq.${meetingId}` },
-      async (payload: RealtimePayload<{ id: string }>) => {
+      async (rawPayload: unknown) => {
+        const payload = rawPayload as RealtimePayload<{ id: string }>;
         if (payload.new) {
           const meeting = await getMeetingById(payload.new.id);
           callback(meeting);
@@ -80,7 +82,8 @@ export function subscribeToContractorTravelLocation(
 ) {
   return supabase.channel(`contractor_travel_${meetingId}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'contractor_locations', filter: `contractor_id=eq.${contractorId} AND meeting_id=eq.${meetingId} AND is_active=eq.true` },
-      (payload: RealtimePayload<DatabaseContractorLocationRow>) => {
+      (rawPayload: unknown) => {
+        const payload = rawPayload as RealtimePayload<DatabaseContractorLocationRow>;
         if (payload.new) {
           callback({ location: { id: payload.new.id, contractorId: payload.new.contractor_id, latitude: payload.new.latitude, longitude: payload.new.longitude, accuracy: payload.new.accuracy, timestamp: payload.new.timestamp, isActive: payload.new.is_active, meetingId: payload.new.meeting_id }, eta: payload.new.eta_minutes || 0, context: payload.new.context || ContractorLocationContext.TRAVELING_TO_JOB });
         }

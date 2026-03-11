@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
   },
   periodButtonText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textPrimary,
   },
   periodButtonTextActive: {

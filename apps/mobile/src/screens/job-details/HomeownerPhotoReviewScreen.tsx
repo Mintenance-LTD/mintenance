@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   headerSubtitle: {
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
   },
   photoCount: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textSecondary,
   },
   content: {
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
   timestampText: {
     fontSize: 11,
     color: theme.colors.textTertiary,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   thumbnailRow: {
     marginTop: 12,
@@ -426,12 +426,12 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   thumbnailActive: {
-    borderColor: '#222222',
-    backgroundColor: '#F7F7F7',
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   thumbnailText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   instructions: {
@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
   },
   changesLabel: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginBottom: 12,
   },
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontSize: 15,
     color: theme.colors.textSecondary,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   submitButton: {
     backgroundColor: theme.colors.primary,
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: 15,
     color: theme.colors.white,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   buttonDisabled: {
     opacity: 0.5,
@@ -520,12 +520,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.borderLight,
     backgroundColor: theme.colors.surface,
   },
   requestChangesText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
   },
   approveButton: {
@@ -540,12 +540,12 @@ const styles = StyleSheet.create({
   },
   approveButtonText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.white,
   },
   emptyTitle: {
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginTop: 16,
   },

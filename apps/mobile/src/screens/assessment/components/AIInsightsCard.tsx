@@ -16,18 +16,18 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
   return (
     <View style={styles.insightsCard}>
       <View style={styles.insightsHeader}>
-        <Icon name="insights" size={24} color="#007AFF" />
+        <Icon name="insights" size={24} color={theme.colors.info} />
         <Text style={styles.insightsTitle}>AI Analysis Preview</Text>
       </View>
       <View style={styles.insightsList}>
         <View style={styles.insightItem}>
-          <Icon name="warning" size={16} color="#FF9800" />
+          <Icon name="warning" size={16} color={theme.colors.warning} />
           <Text style={styles.insightText}>
             {results.total_damages} potential issues detected
           </Text>
         </View>
         <View style={styles.insightItem}>
-          <Icon name="trending-up" size={16} color="#4CAF50" />
+          <Icon name="trending-up" size={16} color={theme.colors.success} />
           <Text style={styles.insightText}>
             Confidence: {results.confidence_level}
           </Text>
@@ -38,7 +38,7 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
         onPress={onViewFullAnalysis}
       >
         <Text style={styles.viewInsightsText}>View Full Analysis</Text>
-        <Icon name="arrow-forward" size={16} color="#007AFF" />
+        <Icon name="arrow-forward" size={16} color={theme.colors.info} />
       </TouchableOpacity>
     </View>
   );
@@ -46,47 +46,47 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
 
 const styles = StyleSheet.create({
   insightsCard: {
-    backgroundColor: '#E3F2FD',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
   },
   insightsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
+    marginBottom: theme.spacing[3],
+    gap: theme.spacing.sm,
   },
   insightsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1976D2',
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.info,
   },
   insightsList: {
-    marginBottom: 12,
+    marginBottom: theme.spacing[3],
   },
   insightItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    gap: 8,
+    marginBottom: theme.spacing.sm,
+    gap: theme.spacing.sm,
   },
   insightText: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textPrimary,
   },
   viewInsightsButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'white',
-    borderRadius: 8,
-    paddingVertical: 12,
-    gap: 8,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.md,
+    paddingVertical: theme.spacing[3],
+    gap: theme.spacing.sm,
   },
   viewInsightsText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#007AFF',
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.info,
   },
 });

@@ -25,7 +25,7 @@ export const PhotoSection: React.FC<PhotoSectionProps> = ({
           </View>
         )}
         <TouchableOpacity style={styles.photoEditButton} onPress={onPickPhoto} accessibilityRole="button" accessibilityLabel="Change profile photo">
-          <Ionicons name="camera" size={20} color="#717171" />
+          <Ionicons name="camera" size={20} color={theme.colors.textSecondary} />
         </TouchableOpacity>
       </View>
       <TouchableOpacity style={styles.changePhotoButton} onPress={onPickPhoto} accessibilityRole="button" accessibilityLabel="Change profile photo">
@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
   photoSection: { backgroundColor: theme.colors.surface, alignItems: "center", paddingVertical: 32, marginBottom: 16 },
   avatarContainer: { position: "relative", marginBottom: 16 },
   avatar: { width: 100, height: 100, borderRadius: 50 },
-  avatarPlaceholder: { width: 100, height: 100, borderRadius: 50, backgroundColor: "#222222", alignItems: "center", justifyContent: "center" },
+  avatarPlaceholder: { width: 100, height: 100, borderRadius: 50, backgroundColor: theme.colors.textPrimary, alignItems: "center", justifyContent: "center" },
   avatarText: { fontSize: 36, fontWeight: "600", color: theme.colors.textInverse },
   photoEditButton: { position: "absolute", bottom: 0, right: 0, width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.surface, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: theme.colors.border },
   changePhotoButton: { paddingVertical: 8 },

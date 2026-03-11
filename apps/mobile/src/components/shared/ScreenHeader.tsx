@@ -16,8 +16,14 @@ import { theme } from '../../theme';
 interface ScreenHeaderProps {
   title: string;
   onBackPress?: () => void;
+  /** @deprecated Use onBackPress */
+  onBack?: () => void;
   showBackButton?: boolean;
+  /** @deprecated Use showBackButton */
+  showBack?: boolean;
   rightAction?: React.ReactNode;
+  /** @deprecated Use rightAction */
+  rightComponent?: React.ReactNode;
   leftAction?: React.ReactNode;
   subtitle?: string;
 }
@@ -25,17 +31,24 @@ interface ScreenHeaderProps {
 export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   title,
   onBackPress,
-  showBackButton = true,
+  onBack,
+  showBackButton,
+  showBack,
   rightAction,
+  rightComponent,
   leftAction,
   subtitle,
 }) => {
+  const shouldShowBack = showBackButton ?? showBack ?? true;
+  const resolvedOnBack = onBackPress ?? onBack;
+  const resolvedRightAction = rightAction ?? rightComponent;
+
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
       <View style={styles.leftSection}>
-        {showBackButton && onBackPress && (
+        {shouldShowBack && resolvedOnBack && (
           <TouchableOpacity
-            onPress={onBackPress}
+            onPress={resolvedOnBack}
             style={styles.backButton}
             accessibilityRole="button"
             accessibilityLabel="Go back"
@@ -61,7 +74,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
         )}
       </View>
 
-      <View style={styles.rightSection}>{rightAction}</View>
+      <View style={styles.rightSection}>{resolvedRightAction}</View>
     </View>
   );
 };

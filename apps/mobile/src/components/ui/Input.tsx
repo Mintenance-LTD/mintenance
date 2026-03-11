@@ -50,18 +50,18 @@ export const Input = forwardRef<TextInput, InputProps>(
         <View
           style={[
             styles.container,
-            { borderColor: v?.borderColor, backgroundColor: v?.backgroundColor },
+            { borderColor: v?.borderColor as string, backgroundColor: v?.backgroundColor as string },
           ]}
         >
           <TextInput
             ref={ref}
             style={[
               styles.input,
-              { color: v?.color ?? theme.colors.textPrimary },
+              { color: (v?.color as string) ?? theme.colors.textPrimary },
               style,
             ]}
             placeholderTextColor={
-              v?.placeholderTextColor ?? theme.colors.placeholder
+              (v?.placeholderTextColor as string) ?? theme.colors.placeholder
             }
             {...props}
           />

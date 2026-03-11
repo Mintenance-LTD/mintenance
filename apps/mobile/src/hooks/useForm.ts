@@ -123,16 +123,11 @@ export const useForm = <T extends Record<string, unknown>>(
       return null;
     } catch (error) {
       if (error instanceof ValidationError) {
-        // Extract field-specific error
         const fieldPath = String(name);
-        const fieldIssue = error.errors.find(issue => 
-          issue.path.join('.') === fieldPath
-        );
-        
-        if (fieldIssue) {
+        if (error.field === fieldPath) {
           return {
-            message: fieldIssue.message,
-            type: 'validation',
+            message: error.message,
+            type: 'validation' as const,
           };
         }
       }
@@ -149,17 +144,13 @@ export const useForm = <T extends Record<string, unknown>>(
     } catch (error) {
       if (error instanceof ValidationError) {
         const newErrors: Partial<Record<keyof T, FieldError>> = {};
-        
-        error.errors.forEach(issue => {
-          const fieldName = issue.path[0] as keyof T;
-          if (fieldName) {
-            newErrors[fieldName] = {
-              message: issue.message,
-              type: 'validation',
-            };
-          }
-        });
-        
+        if (error.field) {
+          const fieldName = error.field as keyof T;
+          newErrors[fieldName] = {
+            message: error.message,
+            type: 'validation',
+          };
+        }
         return newErrors;
       }
       return {};
@@ -362,40 +353,40 @@ export const useForm = <T extends Record<string, unknown>>(
  */
 export const useFieldArray = <T>(
   name: string,
-  form: UseFormReturn<unknown>
+  form: UseFormReturn<Record<string, unknown>>
 ) => {
-  const value = form.values[name] as T[] || [];
+  const value = (form.values[name] as T[] | undefined) || [];
 
   const append = useCallback((item: T) => {
-    form.setFieldValue(name, [...value, item]);
+    form.setFieldValue(name as keyof Record<string, unknown>, [...value, item]);
   }, [form, name, value]);
 
   const prepend = useCallback((item: T) => {
-    form.setFieldValue(name, [item, ...value]);
+    form.setFieldValue(name as keyof Record<string, unknown>, [item, ...value]);
   }, [form, name, value]);
 
   const remove = useCallback((index: number) => {
     const newValue = value.filter((_, i) => i !== index);
-    form.setFieldValue(name, newValue);
+    form.setFieldValue(name as keyof Record<string, unknown>, newValue);
   }, [form, name, value]);
 
   const insert = useCallback((index: number, item: T) => {
     const newValue = [...value];
     newValue.splice(index, 0, item);
-    form.setFieldValue(name, newValue);
+    form.setFieldValue(name as keyof Record<string, unknown>, newValue);
   }, [form, name, value]);
 
   const move = useCallback((from: number, to: number) => {
     const newValue = [...value];
     const [removed] = newValue.splice(from, 1);
     newValue.splice(to, 0, removed);
-    form.setFieldValue(name, newValue);
+    form.setFieldValue(name as keyof Record<string, unknown>, newValue);
   }, [form, name, value]);
 
   const swap = useCallback((indexA: number, indexB: number) => {
     const newValue = [...value];
     [newValue[indexA], newValue[indexB]] = [newValue[indexB], newValue[indexA]];
-    form.setFieldValue(name, newValue);
+    form.setFieldValue(name as keyof Record<string, unknown>, newValue);
   }, [form, name, value]);
 
   return {

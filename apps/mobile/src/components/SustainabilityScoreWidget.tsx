@@ -25,6 +25,10 @@ interface SustainabilityScoreWidgetProps {
     carbonFootprint?: number;
     recyclingRate?: number;
     energyEfficiency?: number;
+    sustainability_score?: number;
+    predicted_impact?: {
+      carbon_footprint_kg?: number;
+    };
   };
   showDetails?: boolean;
   onScorePress?: () => void;
@@ -85,12 +89,12 @@ export const SustainabilityScoreWidget: React.FC<
     esgScore ||
     (jobAnalysis
       ? ({
-          overall_score: jobAnalysis.sustainability_score,
-          environmental_score: jobAnalysis.sustainability_score,
+          overall_score: jobAnalysis.sustainability_score ?? 0,
+          environmental_score: jobAnalysis.sustainability_score ?? 0,
           social_score: 75,
           governance_score: 70,
           certification_level:
-            jobAnalysis.sustainability_score >= 80 ? 'gold' : 'silver',
+            (jobAnalysis.sustainability_score ?? 0) >= 80 ? 'gold' : 'silver',
           last_calculated: new Date().toISOString(),
         } as ESGScore)
       : null);
@@ -111,7 +115,7 @@ export const SustainabilityScoreWidget: React.FC<
   }
 
   const formatted = formatESGScore(scoreData);
-  const insights = jobAnalysis ? getSustainabilityInsights(jobAnalysis) : [];
+  const insights = jobAnalysis ? getSustainabilityInsights(jobAnalysis as unknown as import('../services/SustainabilityEngine').JobSustainabilityAnalysis) : [];
   const currentLevel = calculateLevel(scoreData.overall_score);
   const nextMilestone = getNextMilestone(scoreData.overall_score);
 
@@ -378,7 +382,7 @@ export const SustainabilityScoreWidget: React.FC<
                     <Text style={styles.detailTitle}>Carbon Footprint</Text>
                     <Text style={styles.detailValue}>
                       {formatCarbonFootprint(
-                        jobAnalysis.predicted_impact.carbon_footprint_kg
+                        jobAnalysis.predicted_impact?.carbon_footprint_kg ?? 0
                       )}
                     </Text>
                     <Text style={styles.detailSubtext}>

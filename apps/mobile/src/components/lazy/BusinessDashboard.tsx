@@ -8,7 +8,7 @@ import { createLazyComponent } from '../../utils/codeSplitting';
 import { LoadingSpinner } from '../LoadingSpinner';
 
 const LazyBusinessDashboard = createLazyComponent(
-  () => import('../components/analytics/BusinessDashboardx'),
+  (() => import('../analytics/BusinessDashboard')) as unknown as () => Promise<{ default: React.ComponentType<Record<string, unknown>> }>,
   {
     chunkName: 'business-dashboard',
     timeout: 10000,
@@ -17,7 +17,7 @@ const LazyBusinessDashboard = createLazyComponent(
   }
 );
 
-export const BusinessDashboard = (props: unknown) => (
+export const BusinessDashboard = (props: Record<string, unknown>) => (
   <Suspense fallback={<LoadingSpinner />}>
     <LazyBusinessDashboard {...props} />
   </Suspense>

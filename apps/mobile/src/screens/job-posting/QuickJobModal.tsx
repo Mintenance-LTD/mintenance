@@ -66,7 +66,7 @@ export const QuickJobModal: React.FC<QuickJobModalProps> = ({ visible, onClose, 
                 <React.Fragment key={step}>
                   <View style={[styles.stepDot, isCompleted && styles.stepDotCompleted, isActive && styles.stepDotActive]}>
                     {isCompleted ? (
-                      <Ionicons name='checkmark' size={10} color='#FFFFFF' />
+                      <Ionicons name='checkmark' size={10} color={theme.colors.textInverse} />
                     ) : (
                       <Text style={[styles.stepDotText, isActive && styles.stepDotTextActive]}>{index + 1}</Text>
                     )}
@@ -98,7 +98,7 @@ export const QuickJobModal: React.FC<QuickJobModalProps> = ({ visible, onClose, 
               </Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.searchButton, canSearch && styles.searchButtonActive]} onPress={handleSearch} disabled={!canSearch} accessibilityRole='button' accessibilityLabel='Search and create job'>
-              <Ionicons name='search' size={20} color={canSearch ? '#FFFFFF' : '#9CA3AF'} />
+              <Ionicons name='search' size={20} color={canSearch ? theme.colors.textInverse : theme.colors.textTertiary} />
             </TouchableOpacity>
           </View>
           <ScrollView style={styles.panelContainer} showsVerticalScrollIndicator={false}>
@@ -117,7 +117,7 @@ export const QuickJobModal: React.FC<QuickJobModalProps> = ({ visible, onClose, 
               <Text style={styles.clearText}>Clear all</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.footerSearchButton, canSearch && styles.footerSearchButtonActive]} onPress={handleSearch} disabled={!canSearch}>
-              <Ionicons name='search' size={18} color='#FFFFFF' />
+              <Ionicons name='search' size={18} color={theme.colors.textInverse} />
               <Text style={styles.footerSearchText}>Search</Text>
             </TouchableOpacity>
           </View>
@@ -131,28 +131,28 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: theme.colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '85%', paddingBottom: Platform.OS === 'ios' ? 34 : 20 },
   handle: { width: 36, height: 4, backgroundColor: theme.colors.borderLight, borderRadius: 2, alignSelf: 'center', marginTop: 10, marginBottom: 16 },
-  title: { fontSize: 20, fontWeight: '700', color: theme.colors.textPrimary, textAlign: 'center', marginBottom: 20, paddingHorizontal: 20 },
+  title: { fontSize: 20, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary, textAlign: 'center', marginBottom: 20, paddingHorizontal: 20 },
   stepIndicator: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 16, paddingHorizontal: 60 },
   stepDot: { width: 22, height: 22, borderRadius: 11, backgroundColor: theme.colors.borderLight, alignItems: 'center', justifyContent: 'center' },
-  stepDotCompleted: { backgroundColor: '#222222' },
-  stepDotActive: { borderWidth: 2, borderColor: '#222222', backgroundColor: theme.colors.surface },
-  stepDotText: { fontSize: 10, fontWeight: '700', color: theme.colors.textTertiary },
-  stepDotTextActive: { color: '#222222' },
+  stepDotCompleted: { backgroundColor: theme.colors.primary },
+  stepDotActive: { borderWidth: 2, borderColor: theme.colors.primary, backgroundColor: theme.colors.surface },
+  stepDotText: { fontSize: 10, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textTertiary },
+  stepDotTextActive: { color: theme.colors.primary },
   stepLine: { flex: 1, height: 2, backgroundColor: theme.colors.borderLight, marginHorizontal: 4 },
-  stepLineCompleted: { backgroundColor: '#222222' },
+  stepLineCompleted: { backgroundColor: theme.colors.primary },
   searchBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, backgroundColor: theme.colors.background, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border, paddingVertical: 10, paddingHorizontal: 12 },
   segment: { flex: 1, alignItems: 'center', paddingVertical: 4, borderRadius: 10 },
-  segmentActive: { backgroundColor: '#F0FDF4' },
-  segmentLabel: { fontSize: 10, fontWeight: '700', color: theme.colors.textPrimary, textTransform: 'uppercase', letterSpacing: 0.5 },
+  segmentActive: { backgroundColor: theme.colors.primaryLight },
+  segmentLabel: { fontSize: 10, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary, textTransform: 'uppercase', letterSpacing: 0.5 },
   segmentValue: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 1 },
-  segmentValueFilled: { color: theme.colors.textPrimary, fontWeight: '600' },
+  segmentValueFilled: { color: theme.colors.textPrimary, fontWeight: theme.typography.fontWeight.semibold },
   segmentDivider: { width: 1, height: 28, backgroundColor: theme.colors.borderLight },
   searchButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.borderLight, alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
   searchButtonActive: { backgroundColor: theme.colors.primary },
   panelContainer: { maxHeight: 340, paddingHorizontal: 20 },
   footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: theme.colors.borderLight, marginTop: 12 },
-  clearText: { fontSize: 15, fontWeight: '600', color: theme.colors.textSecondary, textDecorationLine: 'underline' },
+  clearText: { fontSize: 15, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textSecondary, textDecorationLine: 'underline' },
   footerSearchButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.borderLight, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12, gap: 8 },
   footerSearchButtonActive: { backgroundColor: theme.colors.primary },
-  footerSearchText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
+  footerSearchText: { color: theme.colors.textInverse, fontSize: 15, fontWeight: theme.typography.fontWeight.semibold },
 });

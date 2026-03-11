@@ -73,7 +73,7 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({ navi
 
         {vm.loading && vm.savedCards.length === 0 ? (
           <View style={[styles.loadingBox, { backgroundColor: theme.colors.surface }]}>
-            <ActivityIndicator size="small" color='#222222' />
+            <ActivityIndicator size="small" color={theme.colors.primary} />
             <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
               Loading payment methods...
             </Text>
@@ -85,7 +85,7 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({ navi
               style={[
                 styles.cardRow,
                 { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
-                vm.selectedMethod === card.id && { borderColor: '#222222' },
+                vm.selectedMethod === card.id && { borderColor: theme.colors.primary },
               ]}
               onPress={() => vm.selectMethod(card.id)}
               onLongPress={() => handleDeleteCard(card.id, card.last4)}
@@ -112,14 +112,14 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({ navi
               </View>
               <View style={styles.cardRight}>
                 {card.isDefault && (
-                  <View style={[styles.defaultBadge, { backgroundColor: '#F7F7F7' }]}>
-                    <Text style={[styles.defaultText, { color: '#222222' }]}>Default</Text>
+                  <View style={[styles.defaultBadge, { backgroundColor: theme.colors.backgroundSecondary }]}>
+                    <Text style={[styles.defaultText, { color: theme.colors.textPrimary }]}>Default</Text>
                   </View>
                 )}
                 <View style={[
                   styles.radio,
                   { borderColor: theme.colors.border },
-                  vm.selectedMethod === card.id && { borderColor: '#222222', backgroundColor: '#222222' },
+                  vm.selectedMethod === card.id && { borderColor: theme.colors.primary, backgroundColor: theme.colors.primary },
                 ]} />
               </View>
             </TouchableOpacity>
@@ -138,7 +138,7 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({ navi
           style={[styles.addCardTrigger, { backgroundColor: theme.colors.surface }]}
           onPress={() => navigation.navigate('AddPaymentMethod' as never)}
         >
-          <Ionicons name="add-circle-outline" size={20} color='#717171' />
+          <Ionicons name="add-circle-outline" size={20} color={theme.colors.textSecondary} />
           <Text style={[styles.addCardText, { color: theme.colors.textPrimary }]}>Add New Card</Text>
         </TouchableOpacity>
 
@@ -175,27 +175,27 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({ navi
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { flex: 1, padding: 20 },
+  content: { flex: 1, padding: theme.spacing[5] },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 20,
-    marginBottom: 12,
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
+    marginTop: theme.spacing[5],
+    marginBottom: theme.spacing[3],
   },
   loadingBox: {
-    borderRadius: 12,
-    padding: 24,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.lg,
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing[3],
   },
-  loadingText: { fontSize: 14 },
+  loadingText: { fontSize: theme.typography.fontSize.sm },
   cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
     marginBottom: 10,
     borderWidth: 1,
   },
@@ -203,36 +203,36 @@ const styles = StyleSheet.create({
   cardIconBox: {
     width: 48,
     height: 48,
-    borderRadius: 8,
+    borderRadius: theme.borderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: theme.spacing[3],
   },
-  cardBrand: { fontSize: 15, fontWeight: '500' },
-  cardExpiry: { fontSize: 12, marginTop: 2 },
-  cardRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  defaultBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  defaultText: { fontSize: 11, fontWeight: '600' },
-  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2 },
+  cardBrand: { fontSize: theme.typography.fontSize.base, fontWeight: theme.typography.fontWeight.medium },
+  cardExpiry: { fontSize: theme.typography.fontSize.xs, marginTop: 2 },
+  cardRight: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
+  defaultBadge: { paddingHorizontal: theme.spacing.sm, paddingVertical: 3, borderRadius: theme.borderRadius.sm },
+  defaultText: { fontSize: theme.typography.fontSize.xs, fontWeight: theme.typography.fontWeight.semibold },
+  radio: { width: 22, height: 22, borderRadius: theme.borderRadius.full, borderWidth: 2 },
   emptyBox: {
-    borderRadius: 12,
-    padding: 24,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.lg,
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing[3],
   },
-  emptyText: { fontSize: 14 },
+  emptyText: { fontSize: theme.typography.fontSize.sm },
   addCardTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
+    gap: theme.spacing.sm,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+    marginBottom: theme.spacing.sm,
   },
-  addCardText: { fontSize: 15, fontWeight: '600' },
-  errorText: { fontSize: 13, textAlign: 'center', marginTop: 12 },
+  addCardText: { fontSize: theme.typography.fontSize.base, fontWeight: theme.typography.fontWeight.semibold },
+  errorText: { fontSize: theme.typography.fontSize.sm, textAlign: 'center', marginTop: theme.spacing[3] },
 });
 
 export default PaymentMethodsScreen;

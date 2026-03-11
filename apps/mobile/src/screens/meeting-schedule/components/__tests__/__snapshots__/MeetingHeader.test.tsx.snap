@@ -30,7 +30,7 @@ exports[`MeetingHeader Component Basic Rendering should match snapshot without p
     }
   >
     <Ionicons
-      color="#007AFF"
+      color="#717171"
       name="calendar-outline"
       size={24}
     />
@@ -79,7 +79,7 @@ exports[`MeetingHeader Component Combined Display should match snapshot with bot
     }
   >
     <Ionicons
-      color="#007AFF"
+      color="#717171"
       name="calendar-outline"
       size={24}
     />
@@ -184,7 +184,7 @@ exports[`MeetingHeader Component Contractor Display should match snapshot with c
     }
   >
     <Ionicons
-      color="#007AFF"
+      color="#717171"
       name="calendar-outline"
       size={24}
     />
@@ -262,7 +262,7 @@ exports[`MeetingHeader Component Job Display should match snapshot with job 1`] 
     }
   >
     <Ionicons
-      color="#007AFF"
+      color="#717171"
       name="calendar-outline"
       size={24}
     />

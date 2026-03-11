@@ -181,9 +181,9 @@ const SearchBar: React.FC<SearchBarProps> = ({
           returnKeyType='search'
           clearButtonMode={Platform.OS === 'ios' ? 'while-editing' : 'never'}
           accessibilityRole='search'
-          accessibilityLabel={String(t('search.searchInput', 'Search input'))}
+          accessibilityLabel={String(t('search.searchInput', { defaultValue: 'Search input' }))}
           accessibilityHint={String(
-            t('search.searchHint', 'Enter search terms and tap search')
+            t('search.searchHint', { defaultValue: 'Enter search terms and tap search' })
           )}
         />
 
@@ -205,7 +205,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             accessibilityRole='button'
             accessibilityLabel={String(t('common.clear'))}
             accessibilityHint={String(
-              t('search.clearHint', 'Clear search text')
+              t('search.clearHint', { defaultValue: 'Clear search text' })
             )}
           >
             <Ionicons
@@ -225,7 +225,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             accessibilityRole='button'
             accessibilityLabel={String(t('search.filters'))}
             accessibilityHint={String(
-              t('search.filtersHint', 'Open search filters')
+              t('search.filtersHint', { defaultValue: 'Open search filters' })
             )}
           >
             <Ionicons

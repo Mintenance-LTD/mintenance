@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import { logger } from '@mintenance/shared';
+import { theme } from '../../theme';
 import {
   FlatList,
   FlatListProps,
@@ -33,7 +34,7 @@ import {
  * ```
  */
 
-interface OptimizedFlatListProps<T> extends Omit<FlatListProps<T>, 'getItemLayout'> {
+interface OptimizedFlatListProps<T> extends FlatListProps<T> {
   /**
    * Estimated item size for better scroll performance.
    * If all items have the same height, provide this for optimal performance.
@@ -239,7 +240,7 @@ export function useOptimizedRenderItem<T>(
 // Helper to create memoized item separators
 export function useItemSeparator(
   height: number = 1,
-  color: string = '#e0e0e0'
+  color: string = theme.colors.borderLight
 ): React.ComponentType<Record<string, never>> {
   return useMemo(
     () =>
@@ -253,7 +254,7 @@ export function useItemSeparator(
 const styles = StyleSheet.create({
   separator: {
     height: 1,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: theme.colors.borderLight,
   },
 });
 

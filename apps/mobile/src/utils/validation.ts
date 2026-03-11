@@ -34,7 +34,7 @@ export class ValidationError extends Error {
 /**
  * Validate required fields are present and not empty
  */
-export function validateRequired(obj: unknown, fields: string[]): ValidationResult {
+export function validateRequired(obj: Record<string, unknown>, fields: string[]): ValidationResult {
   const errors: string[] = [];
 
   for (const field of fields) {
@@ -351,7 +351,7 @@ export function validateContractorProfile(profile: Partial<ContractorProfile>): 
 /**
  * Validate job creation form
  */
-export function validateJobForm(formData: unknown): ValidationResult {
+export function validateJobForm(formData: Record<string, unknown>): ValidationResult {
   const allErrors: string[] = [];
 
   // Required fields
@@ -360,17 +360,17 @@ export function validateJobForm(formData: unknown): ValidationResult {
 
   // Field-specific validations
   if (formData.title) {
-    const titleResult = validateStringLength(formData.title, 'title', 5, 100);
+    const titleResult = validateStringLength(formData.title as string, 'title', 5, 100);
     allErrors.push(...titleResult.errors);
   }
 
   if (formData.description) {
-    const descResult = validateStringLength(formData.description, 'description', 10, 1000);
+    const descResult = validateStringLength(formData.description as string, 'description', 10, 1000);
     allErrors.push(...descResult.errors);
   }
 
   if (formData.budget) {
-    const budgetResult = validatePositiveNumber(formData.budget, 'budget');
+    const budgetResult = validatePositiveNumber(formData.budget as number, 'budget');
     allErrors.push(...budgetResult.errors);
   }
 
@@ -383,7 +383,7 @@ export function validateJobForm(formData: unknown): ValidationResult {
 /**
  * Validate bid submission form
  */
-export function validateBidForm(formData: unknown): ValidationResult {
+export function validateBidForm(formData: Record<string, unknown>): ValidationResult {
   const allErrors: string[] = [];
 
   // Required fields
@@ -392,12 +392,12 @@ export function validateBidForm(formData: unknown): ValidationResult {
 
   // Field-specific validations
   if (formData.amount) {
-    const amountResult = validatePositiveNumber(formData.amount, 'amount');
+    const amountResult = validatePositiveNumber(formData.amount as number, 'amount');
     allErrors.push(...amountResult.errors);
   }
 
   if (formData.description) {
-    const descResult = validateStringLength(formData.description, 'description', 10, 500);
+    const descResult = validateStringLength(formData.description as string, 'description', 10, 500);
     allErrors.push(...descResult.errors);
   }
 
@@ -410,30 +410,31 @@ export function validateBidForm(formData: unknown): ValidationResult {
 /**
  * Validate user registration form
  */
-export function validateRegistrationForm(formData: unknown): ValidationResult {
+export function validateRegistrationForm(formData: Record<string, unknown>): ValidationResult {
   const allErrors: string[] = [];
+  const data = formData as { email?: string; password?: string; firstName?: string; lastName?: string; role?: string };
 
   // Required fields
   const requiredResult = validateRequired(formData, ['email', 'password', 'firstName', 'lastName', 'role']);
   allErrors.push(...requiredResult.errors);
 
   // Email validation
-  if (formData.email) {
-    const emailResult = validateEmail(formData.email);
+  if (data.email) {
+    const emailResult = validateEmail(data.email);
     allErrors.push(...emailResult.errors);
   }
 
   // Password validation
-  if (formData.password) {
-    const passwordResult = validateStringLength(formData.password, 'password', 8, 128);
+  if (data.password) {
+    const passwordResult = validateStringLength(data.password, 'password', 8, 128);
     allErrors.push(...passwordResult.errors);
 
     // Password complexity
-    if (formData.password.length >= 8) {
-      const hasUpperCase = /[A-Z]/.test(formData.password);
-      const hasLowerCase = /[a-z]/.test(formData.password);
-      const hasNumbers = /\d/.test(formData.password);
-      const hasSpecialChar = /[!@#$%^&*(),.?\":{}|<>]/.test(formData.password);
+    if (data.password.length >= 8) {
+      const hasUpperCase = /[A-Z]/.test(data.password);
+      const hasLowerCase = /[a-z]/.test(data.password);
+      const hasNumbers = /\d/.test(data.password);
+      const hasSpecialChar = /[!@#$%^&*(),.?\":{}|<>]/.test(data.password);
 
       const complexityCount = [hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChar].filter(Boolean).length;
 
@@ -444,18 +445,18 @@ export function validateRegistrationForm(formData: unknown): ValidationResult {
   }
 
   // Name validations
-  if (formData.firstName) {
-    const firstNameResult = validateStringLength(formData.firstName, 'firstName', 1, 50);
+  if (data.firstName) {
+    const firstNameResult = validateStringLength(data.firstName, 'firstName', 1, 50);
     allErrors.push(...firstNameResult.errors);
   }
 
-  if (formData.lastName) {
-    const lastNameResult = validateStringLength(formData.lastName, 'lastName', 1, 50);
+  if (data.lastName) {
+    const lastNameResult = validateStringLength(data.lastName, 'lastName', 1, 50);
     allErrors.push(...lastNameResult.errors);
   }
 
   // Role validation
-  if (formData.role && !['homeowner', 'contractor'].includes(formData.role)) {
+  if (data.role && !['homeowner', 'contractor'].includes(data.role)) {
     allErrors.push('Role must be either "homeowner" or "contractor"');
   }
 

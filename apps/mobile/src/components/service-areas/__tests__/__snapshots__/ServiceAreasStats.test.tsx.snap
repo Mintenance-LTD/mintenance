@@ -13,33 +13,29 @@ exports[`ServiceAreasStats Rendering should render with custom testable structur
 >
   <View
     style={
-      [
-        {
-          "alignItems": "center",
-          "backgroundColor": "#FFFFFF",
-          "borderLeftWidth": 4,
-          "borderRadius": 12,
-          "elevation": 5,
-          "flex": 1,
-          "flexDirection": "row",
-          "minWidth": 150,
-          "padding": 16,
-          "shadowColor": "#000",
-          "shadowOffset": {
-            "height": 2,
-            "width": 0,
-          },
-          "shadowOpacity": 0.1,
-          "shadowRadius": 3.84,
+      {
+        "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderColor": "#F0F0F0",
+        "borderRadius": 12,
+        "borderWidth": 1,
+        "elevation": 2,
+        "flex": 1,
+        "flexDirection": "row",
+        "minWidth": 150,
+        "padding": 20,
+        "shadowColor": "#000000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
         },
-        {
-          "borderLeftColor": "#0F172A",
-        },
-      ]
+        "shadowOpacity": 0.08,
+        "shadowRadius": 8,
+      }
     }
   >
     <Text
-      color="#0F172A"
+      color="#717171"
       name="map"
       size={20}
     >
@@ -54,16 +50,12 @@ exports[`ServiceAreasStats Rendering should render with custom testable structur
     >
       <Text
         style={
-          [
-            {
-              "fontSize": 20,
-              "fontWeight": "700",
-              "marginBottom": 2,
-            },
-            {
-              "color": "#0F172A",
-            },
-          ]
+          {
+            "color": "#222222",
+            "fontSize": 20,
+            "fontWeight": "700",
+            "marginBottom": 2,
+          }
         }
       >
         1
@@ -71,7 +63,7 @@ exports[`ServiceAreasStats Rendering should render with custom testable structur
       <Text
         style={
           {
-            "color": "#475569",
+            "color": "#717171",
             "fontSize": 12,
           }
         }
@@ -82,33 +74,29 @@ exports[`ServiceAreasStats Rendering should render with custom testable structur
   </View>
   <View
     style={
-      [
-        {
-          "alignItems": "center",
-          "backgroundColor": "#FFFFFF",
-          "borderLeftWidth": 4,
-          "borderRadius": 12,
-          "elevation": 5,
-          "flex": 1,
-          "flexDirection": "row",
-          "minWidth": 150,
-          "padding": 16,
-          "shadowColor": "#000",
-          "shadowOffset": {
-            "height": 2,
-            "width": 0,
-          },
-          "shadowOpacity": 0.1,
-          "shadowRadius": 3.84,
+      {
+        "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderColor": "#F0F0F0",
+        "borderRadius": 12,
+        "borderWidth": 1,
+        "elevation": 2,
+        "flex": 1,
+        "flexDirection": "row",
+        "minWidth": 150,
+        "padding": 20,
+        "shadowColor": "#000000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
         },
-        {
-          "borderLeftColor": "#10B981",
-        },
-      ]
+        "shadowOpacity": 0.08,
+        "shadowRadius": 8,
+      }
     }
   >
     <Text
-      color="#10B981"
+      color="#717171"
       name="checkmark-circle"
       size={20}
     >
@@ -123,16 +111,12 @@ exports[`ServiceAreasStats Rendering should render with custom testable structur
     >
       <Text
         style={
-          [
-            {
-              "fontSize": 20,
-              "fontWeight": "700",
-              "marginBottom": 2,
-            },
-            {
-              "color": "#10B981",
-            },
-          ]
+          {
+            "color": "#222222",
+            "fontSize": 20,
+            "fontWeight": "700",
+            "marginBottom": 2,
+          }
         }
       >
         1
@@ -140,7 +124,7 @@ exports[`ServiceAreasStats Rendering should render with custom testable structur
       <Text
         style={
           {
-            "color": "#475569",
+            "color": "#717171",
             "fontSize": 12,
           }
         }
@@ -151,33 +135,29 @@ exports[`ServiceAreasStats Rendering should render with custom testable structur
   </View>
   <View
     style={
-      [
-        {
-          "alignItems": "center",
-          "backgroundColor": "#FFFFFF",
-          "borderLeftWidth": 4,
-          "borderRadius": 12,
-          "elevation": 5,
-          "flex": 1,
-          "flexDirection": "row",
-          "minWidth": 150,
-          "padding": 16,
-          "shadowColor": "#000",
-          "shadowOffset": {
-            "height": 2,
-            "width": 0,
-          },
-          "shadowOpacity": 0.1,
-          "shadowRadius": 3.84,
+      {
+        "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderColor": "#F0F0F0",
+        "borderRadius": 12,
+        "borderWidth": 1,
+        "elevation": 2,
+        "flex": 1,
+        "flexDirection": "row",
+        "minWidth": 150,
+        "padding": 20,
+        "shadowColor": "#000000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
         },
-        {
-          "borderLeftColor": "#475569",
-        },
-      ]
+        "shadowOpacity": 0.08,
+        "shadowRadius": 8,
+      }
     }
   >
     <Text
-      color="#475569"
+      color="#717171"
       name="pause-circle"
       size={20}
     >
@@ -192,16 +172,12 @@ exports[`ServiceAreasStats Rendering should render with custom testable structur
     >
       <Text
         style={
-          [
-            {
-              "fontSize": 20,
-              "fontWeight": "700",
-              "marginBottom": 2,
-            },
-            {
-              "color": "#475569",
-            },
-          ]
+          {
+            "color": "#222222",
+            "fontSize": 20,
+            "fontWeight": "700",
+            "marginBottom": 2,
+          }
         }
       >
         0
@@ -209,7 +185,7 @@ exports[`ServiceAreasStats Rendering should render with custom testable structur
       <Text
         style={
           {
-            "color": "#475569",
+            "color": "#717171",
             "fontSize": 12,
           }
         }
@@ -220,33 +196,29 @@ exports[`ServiceAreasStats Rendering should render with custom testable structur
   </View>
   <View
     style={
-      [
-        {
-          "alignItems": "center",
-          "backgroundColor": "#FFFFFF",
-          "borderLeftWidth": 4,
-          "borderRadius": 12,
-          "elevation": 5,
-          "flex": 1,
-          "flexDirection": "row",
-          "minWidth": 150,
-          "padding": 16,
-          "shadowColor": "#000",
-          "shadowOffset": {
-            "height": 2,
-            "width": 0,
-          },
-          "shadowOpacity": 0.1,
-          "shadowRadius": 3.84,
+      {
+        "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderColor": "#F0F0F0",
+        "borderRadius": 12,
+        "borderWidth": 1,
+        "elevation": 2,
+        "flex": 1,
+        "flexDirection": "row",
+        "minWidth": 150,
+        "padding": 20,
+        "shadowColor": "#000000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
         },
-        {
-          "borderLeftColor": "#F59E0B",
-        },
-      ]
+        "shadowOpacity": 0.08,
+        "shadowRadius": 8,
+      }
     }
   >
     <Text
-      color="#F59E0B"
+      color="#717171"
       name="star"
       size={20}
     >
@@ -261,16 +233,12 @@ exports[`ServiceAreasStats Rendering should render with custom testable structur
     >
       <Text
         style={
-          [
-            {
-              "fontSize": 20,
-              "fontWeight": "700",
-              "marginBottom": 2,
-            },
-            {
-              "color": "#F59E0B",
-            },
-          ]
+          {
+            "color": "#222222",
+            "fontSize": 20,
+            "fontWeight": "700",
+            "marginBottom": 2,
+          }
         }
       >
         0
@@ -278,7 +246,7 @@ exports[`ServiceAreasStats Rendering should render with custom testable structur
       <Text
         style={
           {
-            "color": "#475569",
+            "color": "#717171",
             "fontSize": 12,
           }
         }

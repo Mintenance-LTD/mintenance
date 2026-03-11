@@ -46,10 +46,10 @@ const getStatusColor = (status: string) => {
       return theme.colors.primary;
     case 'pending':
     case 'processing':
-      return '#F59E0B';
+      return theme.colors.warning;
     case 'failed':
     case 'refunded':
-      return '#EF4444';
+      return theme.colors.error;
     default:
       return theme.colors.textSecondary;
   }
@@ -107,7 +107,7 @@ const PaymentCard: React.FC<{ payment: PaymentRecord }> = ({ payment }) => (
     </View>
     {payment.status === 'refunded' && (
       <View style={styles.refundTimeline}>
-        <Ionicons name="time-outline" size={14} color="#F59E0B" />
+        <Ionicons name="time-outline" size={14} color={theme.colors.warning} />
         <Text style={styles.refundTimelineText}>
           Expected by {getRefundExpectedDate(payment.createdAt)}
         </Text>
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
   },
   paymentTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
   },
   paymentDate: {
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
   },
   paymentAmount: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   statusBadge: {
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   cardFooter: {
     flexDirection: 'row',
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
   },
   receiptButtonText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.primary,
   },
   refundTimeline: {
@@ -386,12 +386,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: '#FFFBEB',
+    backgroundColor: theme.colors.accentLight,
   },
   refundTimelineText: {
     fontSize: 12,
-    fontWeight: '500',
-    color: '#92400E',
+    fontWeight: theme.typography.fontWeight.medium,
+    color: theme.colors.warning,
   },
   loadingMore: {
     paddingVertical: 20,
@@ -415,14 +415,14 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 11,
     color: theme.colors.textTertiary,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
     marginBottom: 4,
   },
   statValue: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   filterRow: {
@@ -445,11 +445,11 @@ const styles = StyleSheet.create({
   },
   filterChipText: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textSecondary,
   },
   filterChipTextActive: {
-    color: '#FFFFFF',
+    color: theme.colors.white,
   },
 });
 

@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { theme } from '../theme';
 import {
   neighborhoodService,
   Neighborhood,
@@ -216,19 +217,19 @@ export const useNeighborhoodFormatters = () => {
 
     if (score >= 80) {
       level = 'Outstanding';
-      color = '#10B981'; // Green-500
+      color = theme.colors.primary;
     } else if (score >= 65) {
       level = 'Excellent';
-      color = '#059669'; // Green-600
+      color = theme.colors.success;
     } else if (score >= 50) {
       level = 'Good';
-      color = '#F59E0B'; // Yellow-500
+      color = theme.colors.warning;
     } else if (score >= 30) {
       level = 'Fair';
-      color = '#EF4444'; // Red-500
+      color = theme.colors.error;
     } else {
       level = 'Poor';
-      color = '#DC2626'; // Red-600
+      color = theme.colors.error;
     }
 
     return { score, level, color };

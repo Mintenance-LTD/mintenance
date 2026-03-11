@@ -39,8 +39,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate }) 
   const avatarUri = user?.profile_image_url || user?.avatar_url;
   const isContractor = user?.role === 'contractor';
   const gradientColors: [string, string, string] = isContractor
-    ? ['#0F766E', '#0D9488', '#0891B2']
-    : ['#1E40AF', '#3B82F6', '#06B6D4'];
+    ? [theme.colors.primaryDark, theme.colors.primary, theme.colors.primary]
+    : [theme.colors.info, theme.colors.info, theme.colors.primary];
 
   return (
     <LinearGradient
@@ -168,14 +168,14 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 34,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.textInverse,
   },
   verifiedDot: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.white,
     borderRadius: 12,
     width: 24,
     height: 24,
@@ -184,8 +184,8 @@ const styles = StyleSheet.create({
   },
   displayName: {
     fontSize: 22,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.textInverse,
     textAlign: 'center',
     marginBottom: 4,
   },
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   subtitleText: {
     fontSize: 13,
     color: 'rgba(255,255,255,0.75)',
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   emailText: {
     fontSize: 13,
@@ -223,6 +223,6 @@ const styles = StyleSheet.create({
   pillText: {
     fontSize: 12,
     color: 'rgba(255,255,255,0.92)',
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
 });

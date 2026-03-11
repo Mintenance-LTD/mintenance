@@ -352,7 +352,7 @@ export class BusinessAnalyticsService {
       return Math.floor(Math.random() * 60) + 15; // 15-75 minutes fallback
     }
 
-    const typedResponses = responses as DatabaseBidRow[];
+    const typedResponses = responses as unknown as DatabaseBidRow[];
     const responseTimes = typedResponses.map((bid) => {
       const jobTime = bid.jobs ? new Date(bid.jobs.created_at).getTime() : new Date(bid.created_at).getTime();
       const bidTime = new Date(bid.created_at).getTime();

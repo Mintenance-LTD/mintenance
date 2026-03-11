@@ -87,8 +87,10 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
                 (rootNavigation as unknown as { navigate: (screen: string, params?: Record<string, unknown>) => void })
                   .navigate('Main', { screen: 'ProfileTab', params: { screen: 'AddPaymentMethod' } });
               }}
+              accessibilityRole="button"
+              accessibilityLabel="Add payment method"
             >
-              <Ionicons name="add-circle-outline" size={24} color='#717171' />
+              <Ionicons name="add-circle-outline" size={24} color={theme.colors.textSecondary} />
               <Text style={styles.addMethodText}>Add Payment Method</Text>
             </TouchableOpacity>
           ) : (
@@ -111,6 +113,9 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
           style={[styles.paymentButton, payment.processing && styles.paymentButtonDisabled]}
           onPress={payment.handlePayment}
           disabled={payment.processing || !payment.selectedMethod}
+          accessibilityRole="button"
+          accessibilityLabel={`Pay ${'\u00A3'}${payment.totalAmount.toFixed(2)}`}
+          accessibilityState={{ disabled: payment.processing || !payment.selectedMethod }}
         >
           {payment.processing ? (
             <LoadingSpinner size="small" color={theme.colors.textInverse} />
@@ -159,7 +164,7 @@ const styles = StyleSheet.create({
   },
   addMethodText: {
     fontSize: theme.typography.fontSize.md,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginLeft: theme.spacing.sm,
   },
   paymentButtonContainer: {

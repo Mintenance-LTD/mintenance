@@ -93,7 +93,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (error) {
-      setFormError(error.message || 'Failed to submit bid. Please try again.');
+      setFormError(error instanceof Error ? error.message : 'Failed to submit bid. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -134,7 +134,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.jobInfo}>
           <Text style={styles.jobTitle}>{job.title}</Text>
           <Text style={styles.jobDescription}>{job.description}</Text>
-          <Text style={styles.jobLocation}>📍 {job.location}</Text>
+          <Text style={styles.jobLocation}>📍 {typeof job.location === 'string' ? job.location : JSON.stringify(job.location)}</Text>
           <Text style={styles.jobBudget}>Budget: {'\u00A3'}{job.budget}</Text>
         </View>
 
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     backgroundColor: theme.colors.surface,
     borderBottomWidth: 0,
-    shadowColor: '#000000',
+    shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   placeholder: {
@@ -295,16 +295,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   jobInfo: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.surfaceSecondary,
     padding: 20,
     marginBottom: 15,
-    borderRadius: 12,
+    borderRadius: 16,
     marginHorizontal: 16,
     marginTop: 16,
   },
   jobTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 10,
   },
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   },
   jobBudget: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   form: {
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginBottom: 8,
     marginTop: 15,
@@ -361,20 +361,20 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   tipBox: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.surfaceSecondary,
     padding: 15,
-    borderRadius: 12,
+    borderRadius: 16,
     marginTop: 20,
   },
   tipTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 10,
   },
   tipText: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 5,
   },
   footer: {
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: theme.colors.textInverse,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
 });
 

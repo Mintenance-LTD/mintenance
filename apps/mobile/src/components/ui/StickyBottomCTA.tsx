@@ -74,7 +74,7 @@ export const StickyBottomCTA: React.FC<StickyBottomCTAProps> = memo(({
           testID={`${testID}-button`}
         >
           {loading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={theme.colors.textInverse} />
           ) : (
             <Text style={styles.buttonText}>{buttonText}</Text>
           )}
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 24,
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   },
   priceText: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.accent,
   },
   priceLabel: {
@@ -138,9 +138,9 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   secondaryText: {
     fontSize: 12,

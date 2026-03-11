@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useCallback, useMemo, useRef, useEffect } from 'react';
 import { InteractionManager, Platform } from 'react-native';
 import { logger } from '../utils/logger';
 
@@ -149,7 +149,7 @@ export const useListOptimization = (
   );
 
   const keyExtractor = useCallback(
-    (item: unknown, index: number) => {
+    (item: { id?: string | number } | null | undefined, index: number) => {
       return item?.id?.toString() || index.toString();
     },
     []

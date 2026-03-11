@@ -5,11 +5,11 @@ import { theme, getPriorityColor } from '../theme';
 
 // Soft-tint status badge colors (matching web UnifiedBadge)
 const STATUS_BADGE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  posted: { bg: '#EFF6FF', text: '#2563EB', border: '#BFDBFE' },
-  assigned: { bg: '#FEF3C7', text: '#B45309', border: '#FDE68A' },
-  in_progress: { bg: '#F0FDFA', text: '#0D9488', border: '#99F6E4' },
-  completed: { bg: '#ECFDF5', text: '#047857', border: '#A7F3D0' },
-  cancelled: { bg: '#F3F4F6', text: '#6B7280', border: '#E5E7EB' },
+  posted: { bg: theme.colors.infoLight ?? '#EFF6FF', text: theme.colors.info, border: theme.colors.infoLight ?? '#BFDBFE' },
+  assigned: { bg: theme.colors.accentLight, text: theme.colors.warning, border: theme.colors.accentLight },
+  in_progress: { bg: theme.colors.primaryLight, text: theme.colors.primary, border: theme.colors.primaryLight },
+  completed: { bg: theme.colors.primaryLight, text: theme.colors.success, border: theme.colors.primaryLight },
+  cancelled: { bg: theme.colors.backgroundSecondary, text: theme.colors.textTertiary, border: theme.colors.borderLight },
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -55,7 +55,7 @@ export const JobCard: React.FC<JobCardProps> = ({
         <Text style={styles.title} numberOfLines={2}>
           {job.title}
         </Text>
-        <Text style={styles.budget}>{formatBudget(job.budget)}</Text>
+        <Text style={styles.budget}>{formatBudget(job.budget ?? 0)}</Text>
       </View>
 
       <Text style={styles.description} numberOfLines={3}>
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
   },
   budget: {
     fontSize: theme.typography.fontSize.xl,
-    fontWeight: '700' as const,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   description: {

@@ -76,9 +76,9 @@ const NotificationSettingsScreen: React.FC = () => {
   const loadSettings = async () => {
     if (!user?.id) return;
     try {
-      const { data } = await supabase
+      const { data } = await (supabase
         .from('profiles')
-        .select('notification_preferences')
+        .select('notification_preferences') as unknown as { eq: (col: string, val: string) => { single: () => Promise<{ data: { notification_preferences?: Record<string, unknown> } | null }> } })
         .eq('id', user.id)
         .single();
       if (data?.notification_preferences) {
@@ -175,9 +175,9 @@ const NotificationSettingsScreen: React.FC = () => {
     }
     setSaving(true);
     try {
-      const { error } = await supabase
+      const { error } = await (supabase
         .from('profiles')
-        .update({ notification_preferences: settings })
+        .update({ notification_preferences: settings }) as unknown as { eq: (col: string, val: string) => Promise<{ error: Error | null }> })
         .eq('id', user.id);
       if (error) throw error;
       Alert.alert('Success', 'Notification settings updated!');
@@ -221,9 +221,9 @@ const NotificationSettingsScreen: React.FC = () => {
       <View style={styles.settingLeft}>
         <View style={styles.iconContainer}>
           <Ionicons
-            name={icon as unknown}
+            name={icon as keyof typeof Ionicons.glyphMap}
             size={20}
-            color={disabled ? '#C7C7CC' : '#717171'}
+            color={disabled ? theme.colors.textTertiary : theme.colors.textSecondary}
           />
         </View>
         <View style={styles.settingInfo}>
@@ -412,7 +412,7 @@ const NotificationSettingsScreen: React.FC = () => {
               >
                 <View style={styles.settingLeft}>
                   <View style={styles.iconContainer}>
-                    <Ionicons name='time-outline' size={20} color='#717171' />
+                    <Ionicons name='time-outline' size={20} color={theme.colors.textSecondary} />
                   </View>
                   <View style={styles.settingInfo}>
                     <Text style={styles.settingTitle}>Start Time</Text>
@@ -427,7 +427,7 @@ const NotificationSettingsScreen: React.FC = () => {
               >
                 <View style={styles.settingLeft}>
                   <View style={styles.iconContainer}>
-                    <Ionicons name='time-outline' size={20} color='#717171' />
+                    <Ionicons name='time-outline' size={20} color={theme.colors.textSecondary} />
                   </View>
                   <View style={styles.settingInfo}>
                     <Text style={styles.settingTitle}>End Time</Text>
@@ -482,7 +482,7 @@ const NotificationSettingsScreen: React.FC = () => {
               <Ionicons
                 name='checkmark-circle'
                 size={20}
-                color='#717171'
+                color={theme.colors.textSecondary}
               />
               <Text style={styles.actionText}>Enable All Notifications</Text>
             </View>
@@ -498,7 +498,7 @@ const NotificationSettingsScreen: React.FC = () => {
               <Ionicons
                 name='close-circle'
                 size={20}
-                color='#717171'
+                color={theme.colors.textSecondary}
               />
               <Text style={styles.actionText}>Disable All Notifications</Text>
             </View>
@@ -511,7 +511,7 @@ const NotificationSettingsScreen: React.FC = () => {
 
           <TouchableOpacity style={styles.actionButton} onPress={handleResetToDefaults}>
             <View style={styles.actionLeft}>
-              <Ionicons name='refresh' size={20} color='#717171' />
+              <Ionicons name='refresh' size={20} color={theme.colors.textSecondary} />
               <Text style={styles.actionText}>Reset to Defaults</Text>
             </View>
             <Ionicons
@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.borderLight,
   },
   backButton: {
     width: 40,
@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     flex: 1,
     textAlign: 'center',
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 20,
   },
@@ -606,7 +606,7 @@ const styles = StyleSheet.create({
   },
   settingTitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textPrimary,
     marginBottom: 2,
   },
@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textPrimary,
     marginLeft: 12,
   },

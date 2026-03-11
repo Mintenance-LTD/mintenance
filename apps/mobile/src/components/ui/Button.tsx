@@ -13,7 +13,8 @@ import { theme } from '../../theme';
 type ButtonVariant = keyof typeof theme.components.button | 'tertiary';
 
 export interface ButtonProps {
-  title: string;
+  title?: string;
+  children?: React.ReactNode;
   onPress?: () => void;
   variant?: ButtonVariant;
   size?: 'sm' | 'md';
@@ -22,6 +23,7 @@ export interface ButtonProps {
   style?: ViewStyle | ViewStyle[];
   textStyle?: TextStyle | TextStyle[];
   accessibilityLabel?: string;
+  accessibilityHint?: string;
   accessibilityState?: {
     disabled?: boolean;
     selected?: boolean;
@@ -34,6 +36,9 @@ export interface ButtonProps {
   iconPosition?: 'left' | 'right';
   iconOnly?: boolean;
   testID?: string;
+  // Extended props for compatibility with Button/Button.tsx API
+  leftIcon?: string;
+  rightIcon?: string;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -129,7 +134,6 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.xl,
   },
   sm: {
-    // Keep min touch target per accessibility while appearing compact
     minHeight: theme.layout.minTouchTarget,
     paddingHorizontal: theme.spacing[2],
     borderRadius: theme.borderRadius.base,

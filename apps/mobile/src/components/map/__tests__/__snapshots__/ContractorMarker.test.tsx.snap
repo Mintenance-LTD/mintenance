@@ -1,8 +1,15 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ContractorMarker Snapshot should match snapshot when not selected and not verified 1`] = `
-<View
-  onTouchEnd={[MockFunction]}
+<TouchableOpacity
+  accessibilityLabel="Contractor marker"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "selected": false,
+    }
+  }
+  onPress={[MockFunction]}
   style={
     [
       {
@@ -17,19 +24,19 @@ exports[`ContractorMarker Snapshot should match snapshot when not selected and n
       {
         "alignItems": "center",
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#0F172A",
+        "borderColor": "#10B981",
         "borderRadius": 20,
         "borderWidth": 2,
-        "elevation": 5,
+        "elevation": 2,
         "height": 40,
         "justifyContent": "center",
-        "shadowColor": "#000",
+        "shadowColor": "#000000",
         "shadowOffset": {
           "height": 2,
           "width": 0,
         },
-        "shadowOpacity": 0.1,
-        "shadowRadius": 3.84,
+        "shadowOpacity": 0.08,
+        "shadowRadius": 8,
         "width": 40,
       }
     }
@@ -41,15 +48,22 @@ exports[`ContractorMarker Snapshot should match snapshot when not selected and n
       -
       20
       -
-      #0F172A
+      #10B981
     </Text>
   </View>
-</View>
+</TouchableOpacity>
 `;
 
 exports[`ContractorMarker Snapshot should match snapshot when not selected and verified 1`] = `
-<View
-  onTouchEnd={[MockFunction]}
+<TouchableOpacity
+  accessibilityLabel="Contractor marker, verified"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "selected": false,
+    }
+  }
+  onPress={[MockFunction]}
   style={
     [
       {
@@ -64,19 +78,19 @@ exports[`ContractorMarker Snapshot should match snapshot when not selected and v
       {
         "alignItems": "center",
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#0F172A",
+        "borderColor": "#10B981",
         "borderRadius": 20,
         "borderWidth": 2,
-        "elevation": 5,
+        "elevation": 2,
         "height": 40,
         "justifyContent": "center",
-        "shadowColor": "#000",
+        "shadowColor": "#000000",
         "shadowOffset": {
           "height": 2,
           "width": 0,
         },
-        "shadowOpacity": 0.1,
-        "shadowRadius": 3.84,
+        "shadowOpacity": 0.08,
+        "shadowRadius": 8,
         "width": 40,
       }
     }
@@ -88,7 +102,7 @@ exports[`ContractorMarker Snapshot should match snapshot when not selected and v
       -
       20
       -
-      #0F172A
+      #10B981
     </Text>
   </View>
   <View
@@ -118,19 +132,26 @@ exports[`ContractorMarker Snapshot should match snapshot when not selected and v
       #FFFFFF
     </Text>
   </View>
-</View>
+</TouchableOpacity>
 `;
 
 exports[`ContractorMarker Snapshot should match snapshot when selected and not verified 1`] = `
-<View
-  onTouchEnd={[MockFunction]}
+<TouchableOpacity
+  accessibilityLabel="Contractor marker"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "selected": true,
+    }
+  }
+  onPress={[MockFunction]}
   style={
     [
       {
         "alignItems": "center",
       },
       {
-        "backgroundColor": "#0F172A",
+        "backgroundColor": "#10B981",
         "transform": [
           {
             "scale": 1.2,
@@ -145,19 +166,19 @@ exports[`ContractorMarker Snapshot should match snapshot when selected and not v
       {
         "alignItems": "center",
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#0F172A",
+        "borderColor": "#10B981",
         "borderRadius": 20,
         "borderWidth": 2,
-        "elevation": 5,
+        "elevation": 2,
         "height": 40,
         "justifyContent": "center",
-        "shadowColor": "#000",
+        "shadowColor": "#000000",
         "shadowOffset": {
           "height": 2,
           "width": 0,
         },
-        "shadowOpacity": 0.1,
-        "shadowRadius": 3.84,
+        "shadowOpacity": 0.08,
+        "shadowRadius": 8,
         "width": 40,
       }
     }
@@ -172,19 +193,26 @@ exports[`ContractorMarker Snapshot should match snapshot when selected and not v
       #FFFFFF
     </Text>
   </View>
-</View>
+</TouchableOpacity>
 `;
 
 exports[`ContractorMarker Snapshot should match snapshot when selected and verified 1`] = `
-<View
-  onTouchEnd={[MockFunction]}
+<TouchableOpacity
+  accessibilityLabel="Contractor marker, verified"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "selected": true,
+    }
+  }
+  onPress={[MockFunction]}
   style={
     [
       {
         "alignItems": "center",
       },
       {
-        "backgroundColor": "#0F172A",
+        "backgroundColor": "#10B981",
         "transform": [
           {
             "scale": 1.2,
@@ -199,19 +227,19 @@ exports[`ContractorMarker Snapshot should match snapshot when selected and verif
       {
         "alignItems": "center",
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#0F172A",
+        "borderColor": "#10B981",
         "borderRadius": 20,
         "borderWidth": 2,
-        "elevation": 5,
+        "elevation": 2,
         "height": 40,
         "justifyContent": "center",
-        "shadowColor": "#000",
+        "shadowColor": "#000000",
         "shadowOffset": {
           "height": 2,
           "width": 0,
         },
-        "shadowOpacity": 0.1,
-        "shadowRadius": 3.84,
+        "shadowOpacity": 0.08,
+        "shadowRadius": 8,
         "width": 40,
       }
     }
@@ -253,5 +281,5 @@ exports[`ContractorMarker Snapshot should match snapshot when selected and verif
       #FFFFFF
     </Text>
   </View>
-</View>
+</TouchableOpacity>
 `;

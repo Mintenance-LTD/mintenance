@@ -26,9 +26,9 @@ export const SpecialOffersCarousel: React.FC<SpecialOffersCarouselProps> = ({
   const [currentIndex, setCurrentIndex] = React.useState(0);
   const flatListRef = useRef<FlatList>(null);
 
-  const onViewRef = React.useRef((viewableItems: unknown) => {
-    if (viewableItems.viewableItems.length > 0) {
-      setCurrentIndex(viewableItems.viewableItems[0].index || 0);
+  const onViewRef = React.useRef((info: { viewableItems: Array<{ index: number | null }> }) => {
+    if (info.viewableItems.length > 0) {
+      setCurrentIndex(info.viewableItems[0].index || 0);
     }
   });
 
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
   },
   offerCard: {
     width: width - 60,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.primary,
     borderRadius: theme.borderRadius.xl,
     padding: theme.spacing.xl,
     marginHorizontal: theme.spacing.md,
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   offerBadgeText: {
     fontSize: theme.typography.fontSize.sm,
     fontWeight: theme.typography.fontWeight.semibold,
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   offerTitle: {
     fontSize: theme.typography.fontSize['2xl'],
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   claimButtonText: {
     fontSize: theme.typography.fontSize.base,
     fontWeight: theme.typography.fontWeight.semibold,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   pagination: {
     flexDirection: 'row',
@@ -164,6 +164,6 @@ const styles = StyleSheet.create({
   },
   paginationDotActive: {
     width: 24,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.primary,
   },
 });

@@ -53,7 +53,7 @@ const StarRating: React.FC<{ rating: number; size?: number }> = ({ rating, size 
         key={star}
         name={star <= rating ? 'star' : star - 0.5 <= rating ? 'star-half' : 'star-outline'}
         size={size}
-        color={star <= rating || star - 0.5 <= rating ? '#222222' : '#B0B0B0'}
+        color={star <= rating || star - 0.5 <= rating ? theme.colors.textPrimary : theme.colors.textTertiary}
       />
     ))}
   </View>
@@ -148,7 +148,7 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
               return (
                 <View key={star} style={styles.distRow}>
                   <Text style={styles.distLabel}>{star}</Text>
-                  <Ionicons name="star" size={12} color="#717171" />
+                  <Ionicons name="star" size={12} color={theme.colors.textSecondary} />
                   <View style={styles.distBarBg}>
                     <View style={[styles.distBarFill, { width: `${pct}%` }]} />
                   </View>
@@ -165,6 +165,9 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
                 key={f}
                 style={[styles.filterChip, filter === f && styles.filterChipActive]}
                 onPress={() => setFilter(f)}
+                accessibilityRole="button"
+                accessibilityLabel={`Filter reviews: ${f === 'all' ? 'All' : f === 'positive' ? '4-5 Stars' : '1-3 Stars'}`}
+                accessibilityState={{ selected: filter === f }}
               >
                 <Text style={[styles.filterChipText, filter === f && styles.filterChipTextActive]}>
                   {f === 'all' ? 'All' : f === 'positive' ? '4-5 Stars' : '1-3 Stars'}
@@ -181,7 +184,7 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
           title="No Reviews Yet"
           subtitle="Reviews from homeowners will appear here after you complete jobs."
           ctaLabel="View My Jobs"
-          onCtaPress={() => navigation.navigate('JobsList')}
+          onCtaPress={() => navigation.navigate('JobsList' as never)}
         />
       ) : (
         <FlatList
@@ -193,7 +196,7 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
           keyExtractor={item => item.id}
           renderItem={({ item }) => <ReviewCard review={item} />}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor='#222222' colors={['#222222']} />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
           }
           contentContainerStyle={styles.listContainer}
         />
@@ -252,7 +255,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: theme.spacing[2],
@@ -302,7 +305,7 @@ const styles = StyleSheet.create({
   distLabel: {
     width: 16,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
   },
   distBarBg: {
@@ -313,7 +316,7 @@ const styles = StyleSheet.create({
   },
   distBarFill: {
     height: 8,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.primary,
     borderRadius: 4,
   },
   distCount: {
@@ -342,11 +345,11 @@ const styles = StyleSheet.create({
   },
   filterChipText: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textSecondary,
   },
   filterChipTextActive: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 });
 

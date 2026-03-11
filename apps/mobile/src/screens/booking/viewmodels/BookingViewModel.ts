@@ -10,6 +10,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { Alert } from 'react-native';
+import type { User, Job } from '@mintenance/types';
 import { JobService } from '../../../services/JobService';
 import { UserService } from '../../../services/UserService';
 import { logger } from '../../../utils/logger';
@@ -80,7 +81,7 @@ export const cancellationReasons: CancellationReason[] = [
 /**
  * Custom hook for Booking business logic
  */
-export const useBookingViewModel = (user: unknown): BookingViewModel => {
+export const useBookingViewModel = (user: User | null): BookingViewModel => {
   const [activeTab, setActiveTab] = useState<BookingStatus>('upcoming');
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,7 +97,7 @@ export const useBookingViewModel = (user: unknown): BookingViewModel => {
 
     setLoading(true);
     try {
-      let allJobs: unknown[] = [];
+      let allJobs: Job[] = [];
 
       if (user.role === 'homeowner') {
         allJobs = await JobService.getJobsByHomeowner(user.id);
@@ -127,19 +128,20 @@ export const useBookingViewModel = (user: unknown): BookingViewModel => {
               }
             }
 
+            const locationStr = typeof job.location === 'string' ? job.location : JSON.stringify(job.location ?? '');
             return {
               id: job.id,
               contractorName,
               serviceName: job.title,
-              address: job.location,
+              address: locationStr,
               serviceId: `#JOB${job.id.slice(-6).toUpperCase()}`,
               date: formatBookingDate(job.created_at),
               time: formatBookingTime(job.created_at),
               status: mapJobStatusToBookingStatus(job.status),
-              amount: job.budget,
-              canCancel: job.status === 'assigned' && user.role === 'homeowner',
-              canReschedule: job.status === 'assigned' && user.role === 'homeowner',
-              estimatedDuration: estimateJobDuration(job.budget),
+              amount: job.budget ?? 0,
+              canCancel: job.status === 'assigned' && user!.role === 'homeowner',
+              canReschedule: job.status === 'assigned' && user!.role === 'homeowner',
+              estimatedDuration: estimateJobDuration(job.budget ?? 0),
               specialInstructions:
                 job.description.length > 100
                   ? `${job.description.substring(0, 100)}...`
@@ -180,7 +182,7 @@ export const useBookingViewModel = (user: unknown): BookingViewModel => {
         bookingId,
         reason,
         customReason: reason === 'other' ? customReason : undefined,
-        cancelledBy: user.id,
+        cancelledBy: user?.id,
         cancelledAt: new Date().toISOString(),
       };
 

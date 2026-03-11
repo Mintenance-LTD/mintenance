@@ -50,7 +50,7 @@ export const styles = StyleSheet.create({
   },
   contractorName: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 8,
   },
@@ -83,7 +83,7 @@ export const styles = StyleSheet.create({
   },
   skillsTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginBottom: 12,
   },
@@ -102,7 +102,7 @@ export const styles = StyleSheet.create({
   skillText: {
     fontSize: 14,
     color: theme.colors.textPrimary,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   locationSection: {
     flexDirection: 'row',
@@ -127,7 +127,7 @@ export const styles = StyleSheet.create({
   detailsButtonText: {
     fontSize: 16,
     color: theme.colors.textPrimary,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     marginRight: 5,
   },
   reviewsSection: {
@@ -135,7 +135,7 @@ export const styles = StyleSheet.create({
   },
   reviewsTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginBottom: 10,
   },
@@ -248,7 +248,7 @@ export const styles = StyleSheet.create({
   },
   portfolioTitle: {
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   portfolioSubtitle: {
@@ -273,7 +273,7 @@ export const styles = StyleSheet.create({
   },
   specialtiesTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginBottom: 10,
   },
@@ -291,7 +291,7 @@ export const styles = StyleSheet.create({
   specialtyText: {
     fontSize: 12,
     color: theme.colors.textPrimary,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   connectButton: {
     marginHorizontal: 10,

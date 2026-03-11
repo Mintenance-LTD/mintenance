@@ -196,7 +196,7 @@ export class GoalAnalyticsService {
 
     if (error) throw error;
 
-    return data?.flatMap(goal => goal.progress.updates) || [];
+    return (data?.flatMap((goal: { progress: { updates: unknown[] } }) => goal.progress.updates) || []) as unknown as import('./types').ProgressUpdate[];
   }
 
   /**
@@ -239,7 +239,7 @@ export class GoalAnalyticsService {
   /**
    * Generate insights
    */
-  private generateInsights(goal: Goal, metrics: unknown): string[] {
+  private generateInsights(goal: Goal, metrics: { completionRate: number; averageVelocity: number; timeToComplete: number; accuracy: number }): string[] {
     const insights: string[] = [];
 
     if (metrics.completionRate > 80) {
@@ -264,7 +264,7 @@ export class GoalAnalyticsService {
   /**
    * Generate recommendations
    */
-  private generateRecommendations(goal: Goal, metrics: unknown): string[] {
+  private generateRecommendations(goal: Goal, metrics: { completionRate: number; averageVelocity: number; timeToComplete: number; accuracy: number }): string[] {
     const recommendations: string[] = [];
 
     if (metrics.completionRate < 30) {

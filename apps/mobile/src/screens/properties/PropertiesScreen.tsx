@@ -31,7 +31,7 @@ const PropertyCard: React.FC<{
 }> = ({ property, onPress }) => (
   <TouchableOpacity style={styles.propertyCard} onPress={onPress}>
     <View style={styles.cardHeader}>
-      <Ionicons name="home-outline" size={24} color='#717171' />
+      <Ionicons name="home-outline" size={24} color={theme.colors.textSecondary} />
       <View style={styles.cardHeaderText}>
         <Text style={styles.propertyAddress} numberOfLines={1}>
           {property.property_name}
@@ -46,7 +46,7 @@ const PropertyCard: React.FC<{
       <View style={styles.metaItem}>
         <Ionicons name="business-outline" size={14} color={theme.colors.textSecondary} />
         <Text style={styles.metaText}>
-          {property.property_type.charAt(0).toUpperCase() + property.property_type.slice(1)}
+          {(property.property_type ?? '').charAt(0).toUpperCase() + (property.property_type ?? '').slice(1)}
         </Text>
       </View>
       {property.bedrooms != null && (
@@ -151,7 +151,7 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
       {!properties || properties.length === 0 ? (
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconCircle}>
-            <Ionicons name="home-outline" size={48} color='#717171' />
+            <Ionicons name="home-outline" size={48} color={theme.colors.textSecondary} />
           </View>
           <Text style={styles.emptyTitle}>No Properties</Text>
           <Text style={styles.emptySubtitle}>
@@ -161,7 +161,7 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
             style={styles.addButton}
             onPress={() => navigation.navigate('AddProperty')}
           >
-            <Ionicons name="add" size={20} color="#fff" />
+            <Ionicons name="add" size={20} color={theme.colors.textInverse} />
             <Text style={styles.addButtonText}>Add Property</Text>
           </TouchableOpacity>
         </View>
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -298,11 +298,11 @@ const styles = StyleSheet.create({
   },
   sortChipText: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textSecondary,
   },
   sortChipTextActive: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 });
 

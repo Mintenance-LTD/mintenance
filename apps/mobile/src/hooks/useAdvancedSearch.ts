@@ -160,7 +160,7 @@ export const useAdvancedSearch = ({
           facets: searchResult.facets,
           loading: false,
           error: null,
-        }));
+        }) as SearchState);
 
         logger.info('Search completed successfully', {
           searchType,
@@ -175,7 +175,7 @@ export const useAdvancedSearch = ({
           return;
         }
 
-        const errorMessage = error.message || 'Search failed. Please try again.';
+        const errorMessage = error instanceof Error ? error.message : 'Search failed. Please try again.';
 
         setSearchState((prev) => ({
           ...prev,

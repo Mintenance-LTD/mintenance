@@ -71,13 +71,13 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  // Start with achievable thresholds - increase as coverage improves
+  // Coverage thresholds - targeting 50% for critical payment app paths
   coverageThreshold: {
     global: {
-      branches: 20,
-      functions: 25,
-      lines: 30,
-      statements: 30,
+      branches: 40,
+      functions: 50,
+      lines: 50,
+      statements: 50,
     },
   },
   // Increase test timeout for complex tests

@@ -86,7 +86,7 @@ const SIZE_CONFIGS = {
 
 const BACKGROUND_STYLES: Record<string, ViewStyle> = {
   white: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   ratingText: {
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   divider: {
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   },
   reviewText: {
     color: theme.colors.textSecondary,
-    fontWeight: '400',
+    fontWeight: theme.typography.fontWeight.regular,
   },
   verifiedBadge: {
     flexDirection: 'row',
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   },
   verifiedText: {
     color: theme.colors.primary,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
 });
 

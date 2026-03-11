@@ -27,8 +27,9 @@ const getMethodDetails = (method: PaymentMethod): string => {
   if (method.type === 'card' && method.card) {
     return `${method.card.brand.toUpperCase()} \u2022\u2022\u2022\u2022 ${method.card.last4}`;
   }
-  if (method.type === 'bank_account' && method.bankAccount) {
-    return `${method.bankAccount.bankName} \u2022\u2022\u2022\u2022 ${method.bankAccount.last4}`;
+  if (method.type === 'bank_account' && (method as PaymentMethod & { bankAccount?: { bankName: string; last4: string } }).bankAccount) {
+    const bank = (method as PaymentMethod & { bankAccount: { bankName: string; last4: string } }).bankAccount;
+    return `${bank.bankName} \u2022\u2022\u2022\u2022 ${bank.last4}`;
   }
   return 'Payment Method';
 };
@@ -48,7 +49,7 @@ export const PaymentMethodOption: React.FC<PaymentMethodOptionProps> = ({
           <Ionicons
             name={getMethodIcon(method.type) as keyof typeof Ionicons.glyphMap}
             size={24}
-            color='#717171'
+            color={theme.colors.textSecondary}
           />
         </View>
         <View style={styles.methodDetails}>
@@ -59,7 +60,7 @@ export const PaymentMethodOption: React.FC<PaymentMethodOptionProps> = ({
         </View>
       </View>
       {isSelected && (
-        <Ionicons name="checkmark-circle" size={24} color='#222222' />
+        <Ionicons name="checkmark-circle" size={24} color={theme.colors.primary} />
       )}
     </TouchableOpacity>
   );
@@ -100,7 +101,7 @@ const styles = StyleSheet.create({
   },
   defaultLabel: {
     fontSize: theme.typography.fontSize.sm,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: theme.spacing.xs,
   },
 });

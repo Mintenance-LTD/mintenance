@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Image,
   Alert,
+  ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -32,10 +33,10 @@ interface AnalysisResult {
 }
 
 const SEVERITY_COLORS: Record<string, { bg: string; text: string }> = {
-  low: { bg: '#ECFDF5', text: '#047857' },
-  medium: { bg: '#FEF9C3', text: '#A16207' },
-  high: { bg: '#FEF3C7', text: '#B45309' },
-  critical: { bg: '#FEE2E2', text: '#DC2626' },
+  low: { bg: theme.colors.primaryLight, text: theme.colors.success },
+  medium: { bg: theme.colors.accentLight, text: theme.colors.warning },
+  high: { bg: theme.colors.accentLight, text: theme.colors.warning },
+  critical: { bg: '#FEE2E2', text: theme.colors.error },
 };
 
 export const AIAssessmentScreen: React.FC = () => {
@@ -124,7 +125,7 @@ export const AIAssessmentScreen: React.FC = () => {
         {!imageUri ? (
           <View style={styles.uploadSection}>
             <View style={styles.iconCircle}>
-              <Ionicons name="camera-outline" size={48} color='#717171' />
+              <Ionicons name="camera-outline" size={48} color={theme.colors.textSecondary} />
             </View>
             <Text style={styles.uploadTitle}>Analyze Property Damage</Text>
             <Text style={styles.uploadDescription}>
@@ -132,12 +133,8 @@ export const AIAssessmentScreen: React.FC = () => {
               with cost estimates.
             </Text>
             <View style={styles.buttonRow}>
-              <Button variant="primary" onPress={takePhoto} leftIcon="camera" style={styles.actionBtn}>
-                Take Photo
-              </Button>
-              <Button variant="outline" onPress={pickImage} leftIcon="images" style={styles.actionBtn}>
-                Gallery
-              </Button>
+              <Button variant="primary" onPress={takePhoto} title="Take Photo" style={styles.actionBtn as ViewStyle} />
+              <Button variant="secondary" onPress={pickImage} title="Gallery" style={styles.actionBtn as ViewStyle} />
             </View>
           </View>
         ) : (
@@ -156,7 +153,7 @@ export const AIAssessmentScreen: React.FC = () => {
 
             {analyzeMutation.isPending && (
               <Card variant="elevated" padding="md" style={styles.loadingCard}>
-                <Ionicons name="sparkles" size={24} color='#717171' />
+                <Ionicons name="sparkles" size={24} color={theme.colors.textSecondary} />
                 <Text style={styles.loadingText}>Analyzing image...</Text>
               </Card>
             )}
@@ -167,7 +164,7 @@ export const AIAssessmentScreen: React.FC = () => {
                   <View style={styles.resultHeader}>
                     <Text style={styles.resultTitle}>Assessment Result</Text>
                     <Badge
-                      variant={result.severity === 'low' ? 'success' : result.severity === 'critical' ? 'danger' : 'warning'}
+                      variant={result.severity === 'low' ? 'success' : result.severity === 'critical' ? 'error' : 'warning'}
                       size="sm"
                     >
                       {result.severity.toUpperCase()}
@@ -199,7 +196,7 @@ export const AIAssessmentScreen: React.FC = () => {
                     <Text style={styles.actionsTitle}>Recommended Actions</Text>
                     {result.recommendedActions.map((action, idx) => (
                       <View key={idx} style={styles.actionItem}>
-                        <Ionicons name="checkmark-circle" size={18} color='#717171' />
+                        <Ionicons name="checkmark-circle" size={18} color={theme.colors.textSecondary} />
                         <Text style={styles.actionText}>{action}</Text>
                       </View>
                     ))}
@@ -210,11 +207,9 @@ export const AIAssessmentScreen: React.FC = () => {
                   variant="primary"
                   fullWidth
                   onPress={handleCreateJob}
-                  leftIcon="add-circle"
-                  style={styles.createJobBtn}
-                >
-                  Create Job from Assessment
-                </Button>
+                  title="Create Job from Assessment"
+                  style={styles.createJobBtn as ViewStyle}
+                />
               </>
             )}
           </>
@@ -242,7 +237,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: theme.spacing[5],

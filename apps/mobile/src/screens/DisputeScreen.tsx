@@ -132,11 +132,14 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
                 selectedReason === reason.id && styles.reasonCardSelected,
               ]}
               onPress={() => setSelectedReason(reason.id)}
+              accessibilityRole="button"
+              accessibilityLabel={`Dispute reason: ${reason.label}`}
+              accessibilityState={{ selected: selectedReason === reason.id }}
             >
               <Ionicons
                 name={reason.icon}
                 size={24}
-                color={selectedReason === reason.id ? '#222222' : theme.colors.textSecondary}
+                color={selectedReason === reason.id ? theme.colors.textPrimary : theme.colors.textSecondary}
               />
               <Text style={[
                 styles.reasonLabel,
@@ -175,14 +178,25 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
             renderItem={({ item }) => (
               <View style={styles.thumbWrap}>
                 <Image source={{ uri: item.uri }} style={styles.thumb} />
-                <TouchableOpacity style={styles.thumbRemove} onPress={() => removeAttachment(item.uri)}>
+                <TouchableOpacity
+                  style={styles.thumbRemove}
+                  onPress={() => removeAttachment(item.uri)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove attached photo"
+                >
                   <Ionicons name="close-circle" size={20} color={theme.colors.error} />
                 </TouchableOpacity>
               </View>
             )}
           />
         )}
-        <TouchableOpacity style={styles.evidenceButton} onPress={handleAddEvidence} disabled={attachments.length >= 6}>
+        <TouchableOpacity
+          style={styles.evidenceButton}
+          onPress={handleAddEvidence}
+          disabled={attachments.length >= 6}
+          accessibilityRole="button"
+          accessibilityLabel={attachments.length === 0 ? 'Add evidence photos' : `${attachments.length} of 6 photos added, add more`}
+        >
           <Ionicons name="camera-outline" size={20} color={theme.colors.textSecondary} />
           <Text style={styles.evidenceButtonText}>
             {attachments.length === 0 ? 'Add Photos' : `${attachments.length}/6 photos added`}
@@ -193,6 +207,9 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
           style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
           onPress={handleSubmit}
           disabled={submitting}
+          accessibilityRole="button"
+          accessibilityLabel="Submit dispute"
+          accessibilityState={{ disabled: submitting }}
         >
           {submitting ? (
             <LoadingSpinner />
@@ -260,8 +277,8 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   reasonCardSelected: {
-    borderColor: '#222222',
-    backgroundColor: '#F7F7F7',
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   reasonLabel: {
     fontSize: theme.typography.fontSize.sm,
@@ -303,7 +320,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   submitButtonText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontSize: theme.typography.fontSize.base,
     fontWeight: theme.typography.fontWeight.semibold,
     marginLeft: theme.spacing[2],
@@ -326,12 +343,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: theme.borderRadius.lg,
     borderWidth: 1.5,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.borderLight,
     borderStyle: 'dashed',
     justifyContent: 'center',
     marginBottom: theme.spacing[5],
   },
-  evidenceButtonText: { fontSize: 15, color: theme.colors.textPrimary, fontWeight: '600' },
+  evidenceButtonText: { fontSize: 15, color: theme.colors.textPrimary, fontWeight: theme.typography.fontWeight.semibold },
 });
 
 export default DisputeScreen;

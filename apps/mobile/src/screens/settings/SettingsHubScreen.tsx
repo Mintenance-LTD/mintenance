@@ -85,7 +85,7 @@ export const SettingsHubScreen: React.FC = () => {
         <Ionicons
           name={item.icon as 'settings'}
           size={20}
-          color={item.destructive ? '#EF4444' : theme.colors.textSecondary}
+          color={item.destructive ? theme.colors.error : theme.colors.textSecondary}
         />
         <Text style={[styles.rowLabel, item.destructive && styles.destructiveText]}>
           {item.label}
@@ -130,7 +130,7 @@ export const SettingsHubScreen: React.FC = () => {
         <Switch
           value={settings?.privacy?.profileVisible ?? true}
           onValueChange={() => togglePrivacy('profileVisible')}
-          trackColor={{ false: '#E2E8F0', true: '#222222' }}
+          trackColor={{ false: theme.colors.borderLight, true: theme.colors.textPrimary }}
         />
       ),
     },
@@ -141,7 +141,7 @@ export const SettingsHubScreen: React.FC = () => {
         <Switch
           value={settings?.privacy?.shareActivityData ?? false}
           onValueChange={() => togglePrivacy('shareActivityData')}
-          trackColor={{ false: '#E2E8F0', true: '#222222' }}
+          trackColor={{ false: theme.colors.borderLight, true: theme.colors.textPrimary }}
         />
       ),
     },
@@ -169,7 +169,7 @@ export const SettingsHubScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScreenHeader title="Settings" showBack onBack={() => navigation.goBack()} />
+      <ScreenHeader title="Settings" showBack onBack={() => (navigation as unknown as { goBack: () => void }).goBack()} />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {renderSection('Account', accountItems)}
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     marginLeft: theme.spacing[3],
   },
   destructiveText: {
-    color: '#EF4444',
+    color: theme.colors.error,
   },
 });
 

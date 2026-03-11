@@ -8,6 +8,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Image, ImageContentFit, ImageTransition } from 'expo-image';
+import { theme } from '../../theme';
 
 // ============================================================================
 // TYPES
@@ -181,7 +182,7 @@ export const OptimizedImage = memo<OptimizedImageProps>((props) => {
       >
         <ActivityIndicator
           size="small"
-          color="#3B82F6"
+          color={theme.colors.info}
           testID={testID ? `${testID}-loading-indicator` : undefined}
         />
       </View>
@@ -284,13 +285,13 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   placeholder: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   placeholderText: {
     fontSize: 24,
-    color: '#9CA3AF',
+    color: theme.colors.textTertiary,
   },
   loading: {
     backgroundColor: 'rgba(243, 244, 246, 0.6)',
@@ -298,7 +299,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   error: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: theme.colors.errorLight ?? '#FEF2F2',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
@@ -306,19 +307,19 @@ const styles = StyleSheet.create({
   errorIcon: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#EF4444',
+    color: theme.colors.error,
     width: 28,
     height: 28,
     lineHeight: 28,
     textAlign: 'center',
     borderWidth: 2,
-    borderColor: '#EF4444',
+    borderColor: theme.colors.error,
     borderRadius: 14,
     marginBottom: 4,
   },
   errorMessage: {
     fontSize: 12,
-    color: '#DC2626',
+    color: theme.colors.error,
     textAlign: 'center',
   },
 });

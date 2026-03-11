@@ -173,9 +173,9 @@ const HelpCenterScreen: React.FC = () => {
               >
                 <View style={styles.quickActionIcon}>
                   <Ionicons
-                    name={action.icon as unknown}
+                    name={action.icon as keyof typeof Ionicons.glyphMap}
                     size={24}
-                    color='#717171'
+                    color={theme.colors.textSecondary}
                   />
                 </View>
                 <Text style={styles.quickActionTitle}>{action.title}</Text>
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: theme.colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.borderLight,
     paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: 'row',
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     flex: 1,
     textAlign: 'center',
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 20,
   },
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
   },
   quickActionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     textAlign: 'center',
     marginBottom: 4,
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
   },
   faqQuestionText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textPrimary,
     flex: 1,
     marginRight: 12,
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
   },
   noResultsText: {
     fontSize: 18,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textTertiary,
     marginTop: 16,
     marginBottom: 8,
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
   },
   resourceText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textPrimary,
     marginLeft: 12,
   },

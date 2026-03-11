@@ -18,6 +18,19 @@ import { theme } from '../../theme';
 import { useToast } from '../../components/ui/Toast';
 import type { ProfileStackParamList, RootTabParamList } from '../../navigation/types';
 
+interface ClientData {
+  client_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  relationship_status: string;
+  total_jobs: number;
+  total_revenue?: number;
+  satisfaction_score?: number;
+  last_job_date?: string;
+}
+
 interface ClientDetailScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'ClientDetail'>;
   route: RouteProp<ProfileStackParamList, 'ClientDetail'>;
@@ -27,7 +40,8 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({ navigati
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const tabNavigation = useNavigation<BottomTabNavigationProp<RootTabParamList>>();
-  const { client } = route.params;
+  const { client: rawClient } = route.params;
+  const client = rawClient as unknown as ClientData;
 
   const handleCall = async () => {
     if (!client.phone) {
@@ -104,15 +118,15 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({ navigati
         {/* Quick Actions */}
         <View style={styles.actionsRow}>
           <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
-            <Ionicons name="call" size={22} color='#717171' />
+            <Ionicons name="call" size={22} color={theme.colors.textSecondary} />
             <Text style={styles.actionBtnText}>Call</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={handleEmail}>
-            <Ionicons name="mail" size={22} color='#717171' />
+            <Ionicons name="mail" size={22} color={theme.colors.textSecondary} />
             <Text style={styles.actionBtnText}>Email</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={handleMessage}>
-            <Ionicons name="chatbubble" size={22} color='#717171' />
+            <Ionicons name="chatbubble" size={22} color={theme.colors.textSecondary} />
             <Text style={styles.actionBtnText}>Message</Text>
           </TouchableOpacity>
         </View>
@@ -177,10 +191,10 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     backgroundColor: theme.colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.borderLight,
   },
   headerButton: { padding: 8, width: 40 },
-  headerTitle: { flex: 1, fontSize: 18, fontWeight: '800', color: theme.colors.textPrimary, textAlign: 'center' },
+  headerTitle: { flex: 1, fontSize: 18, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary, textAlign: 'center' },
   scroll: { flex: 1 },
   profileCard: {
     alignItems: 'center',
@@ -195,15 +209,15 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
   },
-  avatarText: { fontSize: 24, fontWeight: '700', color: theme.colors.textInverse },
-  clientName: { fontSize: 20, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 8 },
+  avatarText: { fontSize: 24, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textInverse },
+  clientName: { fontSize: 20, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary, marginBottom: 8 },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: theme.borderRadius.sm },
-  statusText: { fontSize: 11, fontWeight: '700', color: theme.colors.textInverse },
+  statusText: { fontSize: 11, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textInverse },
   actionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -215,7 +229,7 @@ const styles = StyleSheet.create({
     ...theme.shadows.sm,
   },
   actionBtn: { alignItems: 'center', gap: 6 },
-  actionBtnText: { fontSize: 12, color: theme.colors.textPrimary, fontWeight: '600' },
+  actionBtnText: { fontSize: 12, color: theme.colors.textPrimary, fontWeight: theme.typography.fontWeight.semibold },
   section: {
     backgroundColor: theme.colors.background,
     marginHorizontal: 16,
@@ -224,12 +238,12 @@ const styles = StyleSheet.create({
     padding: 16,
     ...theme.shadows.sm,
   },
-  sectionTitle: { fontSize: 12, fontWeight: '700', color: theme.colors.textTertiary, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionTitle: { fontSize: 12, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textTertiary, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
   detailText: { fontSize: 14, color: theme.colors.textPrimary },
   statsRow: { flexDirection: 'row', justifyContent: 'space-around' },
   stat: { alignItems: 'center' },
-  statValue: { fontSize: 20, fontWeight: '700', color: theme.colors.textPrimary },
+  statValue: { fontSize: 20, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
   statLabel: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
 });
 

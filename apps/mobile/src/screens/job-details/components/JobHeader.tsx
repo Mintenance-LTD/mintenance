@@ -48,7 +48,7 @@ export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
           accessibilityLabel={`Status: ${job.status.replace('_', ' ')}`}
         >
           <Ionicons
-            name={getStatusIcon(job.status) as unknown}
+            name={getStatusIcon(job.status) as keyof typeof Ionicons.glyphMap}
             size={16}
             color={getStatusColor(job.status)}
             accessible={false}

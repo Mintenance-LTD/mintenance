@@ -42,7 +42,7 @@ export const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({
   }
 
   return (
-    <View style={styles.container} accessibilityLabel={`AI Analysis: ${aiAnalysis.category}, ${aiAnalysis.complexity} complexity, estimated ${aiAnalysis.estimatedDuration}, ${Math.round(aiAnalysis.confidence * 100)}% confidence`}>
+    <View style={styles.container} accessibilityLabel={`AI Analysis: ${aiAnalysis.estimatedComplexity} complexity, estimated ${aiAnalysis.estimatedDuration}, ${Math.round(aiAnalysis.confidence * 100)}% confidence`}>
       <View style={styles.header}>
         <Ionicons name="sparkles" size={20} color={theme.colors.accent} accessible={false} />
         <Text style={styles.title} accessibilityRole='header'>AI Analysis</Text>
@@ -54,20 +54,17 @@ export const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({
       </View>
 
       <View style={styles.analysisContent}>
-        <Text style={styles.categoryTitle}>Job Category</Text>
-        <Text style={styles.categoryValue}>{aiAnalysis.category}</Text>
-
         <Text style={styles.categoryTitle}>Estimated Complexity</Text>
-        <Text style={styles.categoryValue}>{aiAnalysis.complexity}</Text>
+        <Text style={styles.categoryValue}>{aiAnalysis.estimatedComplexity}</Text>
 
         <Text style={styles.categoryTitle}>Estimated Duration</Text>
         <Text style={styles.categoryValue}>{aiAnalysis.estimatedDuration}</Text>
 
-        {aiAnalysis.recommendedTools && aiAnalysis.recommendedTools.length > 0 && (
+        {aiAnalysis.suggestedTools && aiAnalysis.suggestedTools.length > 0 && (
           <>
-            <Text style={styles.categoryTitle}>Recommended Tools</Text>
+            <Text style={styles.categoryTitle}>Suggested Tools</Text>
             <View style={styles.toolsList}>
-              {aiAnalysis.recommendedTools.map((tool, index) => (
+              {aiAnalysis.suggestedTools.map((tool: string, index: number) => (
                 <View key={index} style={styles.toolTag}>
                   <Text style={styles.toolText}>{tool}</Text>
                 </View>
@@ -76,10 +73,12 @@ export const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({
           </>
         )}
 
-        {aiAnalysis.notes && (
+        {aiAnalysis.recommendedActions && aiAnalysis.recommendedActions.length > 0 && (
           <>
-            <Text style={styles.categoryTitle}>Additional Notes</Text>
-            <Text style={styles.notesText}>{aiAnalysis.notes}</Text>
+            <Text style={styles.categoryTitle}>Recommended Actions</Text>
+            {aiAnalysis.recommendedActions.map((action: string, index: number) => (
+              <Text key={index} style={styles.notesText}>{action}</Text>
+            ))}
           </>
         )}
       </View>

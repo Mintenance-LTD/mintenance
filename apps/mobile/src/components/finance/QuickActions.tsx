@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
   },
   actionsTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 16,
   },
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     marginTop: 8,
     textAlign: 'center',
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
 });
 

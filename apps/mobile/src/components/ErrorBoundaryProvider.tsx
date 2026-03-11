@@ -40,7 +40,7 @@ export const withScreenErrorBoundary = <P extends object>(
   } = {}
 ) => {
   const ComponentWithErrorBoundary = (props: P) =>
-    React.createElement(ScreenErrorBoundary as React.ComponentType<Record<string, unknown>>, {
+    React.createElement(ScreenErrorBoundary as unknown as React.ComponentType<Record<string, unknown>>, {
       screenName,
       fallbackRoute: options.fallbackRoute,
       showHomeButton: options.showHomeButton,

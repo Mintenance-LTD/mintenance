@@ -26,7 +26,7 @@ interface QuoteDetailScreenProps {
 const STATUS_COLORS: Record<string, string> = {
   accepted: theme.colors.success,
   rejected: theme.colors.error,
-  sent: '#717171',
+  sent: theme.colors.textSecondary,
   viewed: theme.colors.info,
   expired: theme.colors.textSecondary,
   draft: theme.colors.textTertiary,
@@ -94,7 +94,7 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
     );
   }
 
-  const statusColor = STATUS_COLORS[quote.status] ?? '#717171';
+  const statusColor = STATUS_COLORS[quote.status] ?? theme.colors.textSecondary;
 
   return (
     <View style={styles.container}>
@@ -198,7 +198,7 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
               style={styles.editButton}
               onPress={() => navigation.navigate('CreateQuote', { jobId: quote.job_id })}
             >
-              <Ionicons name="pencil-outline" size={18} color='#717171' />
+              <Ionicons name="pencil-outline" size={18} color={theme.colors.textSecondary} />
               <Text style={styles.editButtonText}>Edit Quote</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
@@ -225,10 +225,10 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     backgroundColor: theme.colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.borderLight,
   },
   headerButton: { padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.textPrimary },
+  headerTitle: { fontSize: 18, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
   scroll: { flex: 1 },
   statusCard: {
     margin: 16,
@@ -239,8 +239,8 @@ const styles = StyleSheet.create({
     ...theme.shadows.base,
   },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: theme.borderRadius.sm, marginBottom: 12, alignSelf: 'flex-start' },
-  statusText: { fontSize: 12, fontWeight: '700', color: theme.colors.textInverse },
-  totalAmount: { fontSize: 28, fontWeight: '800', color: theme.colors.textPrimary },
+  statusText: { fontSize: 12, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textInverse },
+  totalAmount: { fontSize: 28, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
   projectTitle: { fontSize: 14, color: theme.colors.textSecondary, marginTop: 4 },
   section: {
     backgroundColor: theme.colors.background,
@@ -250,16 +250,16 @@ const styles = StyleSheet.create({
     padding: 16,
     ...theme.shadows.sm,
   },
-  sectionTitle: { fontSize: 12, fontWeight: '700', color: theme.colors.textTertiary, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
-  clientName: { fontSize: 16, fontWeight: '600', color: theme.colors.textPrimary },
+  sectionTitle: { fontSize: 12, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textTertiary, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  clientName: { fontSize: 16, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary },
   detailText: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 4 },
-  valueText: { fontSize: 14, fontWeight: '500', color: theme.colors.textPrimary },
+  valueText: { fontSize: 14, fontWeight: theme.typography.fontWeight.medium, color: theme.colors.textPrimary },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
   detailLabel: { fontSize: 14, color: theme.colors.textSecondary },
-  detailValue: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: '500' },
+  detailValue: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: theme.typography.fontWeight.medium },
   totalRowFinal: { borderTopWidth: 1, borderTopColor: theme.colors.border, marginTop: 8, paddingTop: 12 },
-  grandTotalLabel: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
-  grandTotalValue: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
+  grandTotalLabel: { fontSize: 16, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
+  grandTotalValue: { fontSize: 18, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
   notesText: { fontSize: 14, color: theme.colors.textSecondary, lineHeight: 20 },
   actionsSection: { flexDirection: 'row', gap: 12, marginHorizontal: 16, marginTop: 4 },
   editButton: {
@@ -268,13 +268,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#222222',
+    borderColor: theme.colors.primary,
     borderRadius: theme.borderRadius.md,
     paddingVertical: 12,
     gap: 6,
     backgroundColor: theme.colors.background,
   },
-  editButtonText: { fontSize: 14, fontWeight: '600', color: theme.colors.textPrimary },
+  editButtonText: { fontSize: 14, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary },
   sendButton: {
     flex: 1,
     flexDirection: 'row',
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 6,
   },
-  sendButtonText: { fontSize: 14, fontWeight: '600', color: theme.colors.textInverse },
+  sendButtonText: { fontSize: 14, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textInverse },
   emptyText: { fontSize: 16, color: theme.colors.textSecondary, marginTop: 16 },
   backLink: { fontSize: 14, color: theme.colors.textPrimary, marginTop: 12 },
 });

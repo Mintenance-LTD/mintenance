@@ -10,6 +10,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme, getStatusColor } from '../../theme';
 import { OptimizedImage } from '../../components/optimized/OptimizedImage';
+import { Skeleton } from '../../components/skeletons/Skeleton';
 
 interface RecentJob {
   id: string;
@@ -23,6 +24,7 @@ interface RecentJob {
 }
 
 interface RecentJobsProps {
+  isLoading?: boolean;
   jobs: RecentJob[];
   onViewAllPress: () => void;
   onJobPress?: (jobId: string) => void;
@@ -46,7 +48,27 @@ function formatStatus(status: string): string {
   return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export const RecentJobs: React.FC<RecentJobsProps> = ({ jobs, onViewAllPress, onJobPress, savedJobIds = [], onSavePress }) => {
+export const RecentJobs: React.FC<RecentJobsProps> = ({ isLoading, jobs, onViewAllPress, onJobPress, savedJobIds = [], onSavePress }) => {
+  if (isLoading) {
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Active Projects</Text>
+        </View>
+        {[1, 2].map((key) => (
+          <View key={key} style={styles.listing}>
+            <Skeleton width="100%" height={200} borderRadius={18} />
+            <View style={styles.listingContent}>
+              <Skeleton width="70%" height={17} borderRadius={4} />
+              <Skeleton width={100} height={20} borderRadius={12} style={{ marginTop: 6 }} />
+              <Skeleton width="100%" height={44} borderRadius={12} style={{ marginTop: 12 }} />
+            </View>
+          </View>
+        ))}
+      </View>
+    );
+  }
+
   const displayJobs = jobs.slice(0, 3);
 
   return (
@@ -114,7 +136,7 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ jobs, onViewAllPress, on
                   <Ionicons
                     name={savedJobIds.includes(job.id) ? 'heart' : 'heart-outline'}
                     size={22}
-                    color={savedJobIds.includes(job.id) ? '#FF385C' : '#FFFFFF'}
+                    color={savedJobIds.includes(job.id) ? theme.colors.error : theme.colors.white}
                   />
                 </TouchableOpacity>
 
@@ -131,7 +153,7 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ jobs, onViewAllPress, on
                 </View>
                 {job.category && (
                   <View style={styles.categoryBadge}>
-                    <Ionicons name={categoryIcon} size={12} color='#717171' />
+                    <Ionicons name={categoryIcon} size={12} color={theme.colors.textSecondary} />
                     <Text style={styles.categoryBadgeText}>
                       {job.category.charAt(0).toUpperCase() + job.category.slice(1)}
                     </Text>
@@ -181,13 +203,13 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   viewAllLink: {
     fontSize: 16,
     color: theme.colors.textPrimary,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     textDecorationLine: 'underline',
   },
   listing: {
@@ -222,7 +244,7 @@ const styles = StyleSheet.create({
   placeholderCategory: {
     marginTop: 10,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textSecondary,
   },
   placeholderHint: {
@@ -249,7 +271,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textInverse,
   },
   listingContent: {
@@ -262,7 +284,7 @@ const styles = StyleSheet.create({
   },
   jobTitle: {
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     flex: 1,
   },
@@ -272,14 +294,14 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     alignSelf: 'flex-start',
     marginTop: 6,
   },
   categoryBadgeText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textSecondary,
   },
   budgetRow: {
@@ -294,7 +316,7 @@ const styles = StyleSheet.create({
   },
   budgetAmount: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   viewDetailsButton: {
@@ -309,7 +331,7 @@ const styles = StyleSheet.create({
   },
   viewDetailsText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textInverse,
   },
   emptyState: {
@@ -318,7 +340,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     textAlign: 'center',
     marginTop: 12,

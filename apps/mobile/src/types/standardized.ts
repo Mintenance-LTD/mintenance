@@ -387,19 +387,19 @@ export interface UpdateUserProfileForm {
 // =============================================
 
 export function isUser(obj: unknown): obj is User {
-  return obj && typeof obj.id === 'string' && typeof obj.email === 'string';
+  return !!obj && typeof obj === 'object' && 'id' in obj && typeof (obj as User).id === 'string' && 'email' in obj && typeof (obj as User).email === 'string';
 }
 
 export function isJob(obj: unknown): obj is Job {
-  return obj && typeof obj.id === 'string' && typeof obj.title === 'string';
+  return !!obj && typeof obj === 'object' && 'id' in obj && typeof (obj as Job).id === 'string' && 'title' in obj && typeof (obj as Job).title === 'string';
 }
 
 export function isBid(obj: unknown): obj is Bid {
-  return obj && typeof obj.id === 'string' && typeof obj.jobId === 'string';
+  return !!obj && typeof obj === 'object' && 'id' in obj && typeof (obj as Bid).id === 'string' && 'jobId' in obj && typeof (obj as Bid).jobId === 'string';
 }
 
 export function isMessage(obj: unknown): obj is Message {
-  return obj && typeof obj.id === 'string' && typeof obj.messageText === 'string';
+  return !!obj && typeof obj === 'object' && 'id' in obj && typeof (obj as Message).id === 'string' && 'messageText' in obj && typeof (obj as Message).messageText === 'string';
 }
 
 // =============================================

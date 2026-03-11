@@ -89,7 +89,7 @@ export const ButtonGroup: React.FC<ButtonGroupProps> = ({
 
         return React.cloneElement(child, {
           ...child.props,
-          style: StyleSheet.flatten([child.props.style, marginStyle]),
+          style: StyleSheet.flatten([child.props.style as ViewStyle, marginStyle]),
         });
       });
     };
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   selectedButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   disabledButtonText: {
     color: theme.colors.textSecondary,

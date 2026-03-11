@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   retryText: {
     color: theme.colors.textInverse,
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
 });
 

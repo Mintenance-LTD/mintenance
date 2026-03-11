@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   },
   errorTitle: {
     fontSize: 24,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     textAlign: 'center',
     marginBottom: theme.spacing.md,
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   },
   errorDetailsTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginTop: theme.spacing.sm,
     marginBottom: theme.spacing.xs,
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: theme.colors.textInverse,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     marginLeft: theme.spacing.sm,
   },
 });

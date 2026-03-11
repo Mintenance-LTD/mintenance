@@ -296,16 +296,19 @@ export class DigitalChecklistService {
     items: ChecklistItem[],
     checklist: DigitalChecklist
   ): { score: number; passed: boolean } {
+    const data = completionData as Record<string, unknown>;
+    const scoringRules = checklist.scoring_rules as Record<string, number> | undefined;
+
     if (checklist.pass_fail_scoring) {
       // Simple pass/fail scoring
       const completedItems = items.filter(item => {
-        const value = completionData[item.id];
+        const value = data[item.id];
         return value !== undefined && value !== null && value !== '';
       });
 
       const requiredItems = items.filter(item => item.is_required);
       const requiredCompleted = requiredItems.filter(item => {
-        const value = completionData[item.id];
+        const value = data[item.id];
         return value !== undefined && value !== null && value !== '';
       });
 
@@ -322,25 +325,25 @@ export class DigitalChecklistService {
         const weight = item.weight || 1;
         totalWeight += weight;
 
-        const value = completionData[item.id];
+        const value = data[item.id];
         if (value !== undefined && value !== null && value !== '') {
           achievedWeight += weight;
         }
       }
 
       const score = totalWeight > 0 ? (achievedWeight / totalWeight) * 100 : 0;
-      const passed = score >= (checklist.scoring_rules?.pass_threshold || 80);
+      const passed = score >= (scoringRules?.pass_threshold || 80);
 
       return { score, passed };
     } else {
       // Simple percentage scoring
       const completedItems = items.filter(item => {
-        const value = completionData[item.id];
+        const value = data[item.id];
         return value !== undefined && value !== null && value !== '';
       });
 
       const score = items.length > 0 ? (completedItems.length / items.length) * 100 : 0;
-      const passed = score >= (checklist.scoring_rules?.pass_threshold || 80);
+      const passed = score >= (scoringRules?.pass_threshold || 80);
 
       return { score, passed };
     }

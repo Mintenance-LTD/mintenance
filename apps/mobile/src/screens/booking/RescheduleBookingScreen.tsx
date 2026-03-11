@@ -90,7 +90,7 @@ export const RescheduleBookingScreen: React.FC<Props> = ({ navigation, route }) 
           <Text style={styles.cardSubtitle}>Select when you would like to reschedule your booking.</Text>
 
           <TouchableOpacity style={styles.pickerRow} onPress={() => setShowDatePicker(true)}>
-            <Ionicons name="calendar-outline" size={22} color='#717171' />
+            <Ionicons name="calendar-outline" size={22} color={theme.colors.textSecondary} />
             <View style={styles.pickerInfo}>
               <Text style={styles.pickerLabel}>Date</Text>
               <Text style={styles.pickerValue}>{formatDate(selectedDate)}</Text>
@@ -99,7 +99,7 @@ export const RescheduleBookingScreen: React.FC<Props> = ({ navigation, route }) 
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.pickerRow} onPress={() => setShowTimePicker(true)}>
-            <Ionicons name="time-outline" size={22} color='#717171' />
+            <Ionicons name="time-outline" size={22} color={theme.colors.textSecondary} />
             <View style={styles.pickerInfo}>
               <Text style={styles.pickerLabel}>Time</Text>
               <Text style={styles.pickerValue}>{formatTime(selectedDate)}</Text>
@@ -147,24 +147,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingHorizontal: theme.spacing.md,
+    paddingBottom: theme.spacing[3],
     backgroundColor: theme.colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.borderLight,
   },
-  headerButton: { padding: 8, width: 40 },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.textPrimary },
-  content: { padding: 16 },
+  headerButton: { padding: theme.spacing.sm, width: 40 },
+  headerTitle: { fontSize: theme.typography.fontSize.lg, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
+  content: { padding: theme.spacing.md },
   card: {
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.xl,
-    padding: 20,
-    marginBottom: 20,
+    padding: theme.spacing[5],
+    marginBottom: theme.spacing[5],
     ...theme.shadows.base,
   },
-  cardTitle: { fontSize: 17, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 4 },
-  cardSubtitle: { fontSize: 13, color: theme.colors.textSecondary, marginBottom: 20 },
+  cardTitle: { fontSize: theme.typography.fontSize.base, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary, marginBottom: theme.spacing.xs },
+  cardSubtitle: { fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary, marginBottom: theme.spacing[5] },
   pickerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -172,17 +172,17 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
   },
-  pickerInfo: { flex: 1, marginLeft: 12 },
-  pickerLabel: { fontSize: 12, color: theme.colors.textTertiary, marginBottom: 2 },
-  pickerValue: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary },
+  pickerInfo: { flex: 1, marginLeft: theme.spacing[3] },
+  pickerLabel: { fontSize: theme.typography.fontSize.xs, color: theme.colors.textTertiary, marginBottom: 2 },
+  pickerValue: { fontSize: theme.typography.fontSize.base, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary },
   confirmButton: {
     backgroundColor: theme.colors.primary,
     borderRadius: theme.borderRadius.lg,
-    paddingVertical: 16,
+    paddingVertical: theme.spacing.md,
     alignItems: 'center',
   },
   confirmButtonDisabled: { opacity: 0.6 },
-  confirmButtonText: { color: theme.colors.textInverse, fontSize: 16, fontWeight: '700' },
+  confirmButtonText: { color: theme.colors.textInverse, fontSize: theme.typography.fontSize.base, fontWeight: theme.typography.fontWeight.bold },
 });
 
 export default RescheduleBookingScreen;

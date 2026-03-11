@@ -115,7 +115,7 @@ export class JobSearchService {
 
     if (error) throw error;
     if (!data) return [];
-    const jobs = data.map(JobCRUDService['formatJob']);
+    const jobs = (data as unknown[]).map((d) => (JobCRUDService as unknown as Record<string, CallableFunction>)['formatJob'](d) as Job);
     return this.enrichJobsWithPhotos(jobs);
   }
 
@@ -131,7 +131,7 @@ export class JobSearchService {
       throw new Error(err.message || String(error));
     }
     if (!data) return [];
-    const jobs = data.map(JobCRUDService['formatJob']);
+    const jobs = (data as unknown[]).map((d) => (JobCRUDService as unknown as Record<string, CallableFunction>)['formatJob'](d) as Job);
     return this.enrichJobsWithPhotos(jobs);
   }
 
@@ -140,21 +140,21 @@ export class JobSearchService {
       .from('jobs')
       .select('*')
       .eq('status', 'posted')
-      .order('created_at', { ascending: false }) as SupabaseJobQuery;
+      .order('created_at', { ascending: false }) as unknown as SupabaseJobQuery;
 
     // Support both chain styles used in tests
     if (typeof q.limit === 'function') {
       const { data, error } = await q.limit(20);
       if (error) throw error;
       if (!data) return [];
-      const jobs = data.map(JobCRUDService['formatJob']);
+      const jobs = (data as unknown[]).map((d) => (JobCRUDService as unknown as Record<string, CallableFunction>)['formatJob'](d) as Job);
       return this.enrichJobsWithPhotos(jobs);
     }
 
     const { data, error } = await q;
     if (error) throw error;
     if (!data) return [];
-    const jobs = data.map(JobCRUDService['formatJob']);
+    const jobs = (data as unknown[]).map((d) => (JobCRUDService as unknown as Record<string, CallableFunction>)['formatJob'](d) as Job);
     return this.enrichJobsWithPhotos(jobs);
   }
 
@@ -174,18 +174,18 @@ export class JobSearchService {
 
     if (error) throw error;
     if (!data) return [];
-    const jobs = data.map(JobCRUDService['formatJob']);
+    const jobs = (data as unknown[]).map((d) => (JobCRUDService as unknown as Record<string, CallableFunction>)['formatJob'](d) as Job);
     return this.enrichJobsWithPhotos(jobs);
   }
 
   static async getJobsByUser(userId: string, role: 'homeowner' | 'contractor'): Promise<Job[]> {
-    let q = supabase.from('jobs').select('*') as SupabaseJobQuery;
+    let q = supabase.from('jobs').select('*') as unknown as SupabaseJobQuery;
     if (role === 'homeowner') q = q.eq('homeowner_id', userId);
     else q = q.eq('contractor_id', userId);
     const { data, error } = await q.order('created_at', { ascending: false });
     if (error) throw error;
     if (!data) return [];
-    const jobs = data.map(JobCRUDService['formatJob']);
+    const jobs = (data as unknown[]).map((d) => (JobCRUDService as unknown as Record<string, CallableFunction>)['formatJob'](d) as Job);
     return this.enrichJobsWithPhotos(jobs);
   }
 
@@ -209,7 +209,7 @@ export class JobSearchService {
       limit = arg2;
     }
 
-    let query = supabase.from('jobs').select('*') as SupabaseJobQuery;
+    let query = supabase.from('jobs').select('*') as unknown as SupabaseJobQuery;
     if (status) {
       query = query.eq('status', status);
     }
@@ -219,7 +219,7 @@ export class JobSearchService {
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) throw error;
       if (!data) return [];
-      const jobs = data.map(JobCRUDService['formatJob']);
+      const jobs = (data as unknown[]).map((d) => (JobCRUDService as unknown as Record<string, CallableFunction>)['formatJob'](d) as Job);
       return this.enrichJobsWithPhotos(jobs);
     }
 
@@ -227,7 +227,7 @@ export class JobSearchService {
       const { data, error } = await query.limit(limit);
       if (error) throw error;
       if (!data) return [];
-      const jobs = data.map(JobCRUDService['formatJob']);
+      const jobs = (data as unknown[]).map((d) => (JobCRUDService as unknown as Record<string, CallableFunction>)['formatJob'](d) as Job);
       return this.enrichJobsWithPhotos(jobs);
     }
 
@@ -236,14 +236,14 @@ export class JobSearchService {
       const { data, error } = await query.limit(20);
       if (error) throw error;
       if (!data) return [];
-      const jobs = data.map(JobCRUDService['formatJob']);
+      const jobs = (data as unknown[]).map((d) => (JobCRUDService as unknown as Record<string, CallableFunction>)['formatJob'](d) as Job);
       return this.enrichJobsWithPhotos(jobs);
     }
 
     const { data, error } = await query;
     if (error) throw error;
     if (!data) return [];
-    const jobs = data.map(JobCRUDService['formatJob']);
+    const jobs = (data as unknown[]).map((d) => (JobCRUDService as unknown as Record<string, CallableFunction>)['formatJob'](d) as Job);
     return this.enrichJobsWithPhotos(jobs);
   }
 
@@ -264,7 +264,7 @@ export class JobSearchService {
       return [];
     }
 
-    let q = supabase.from('jobs').select('*') as SupabaseJobQuery;
+    let q = supabase.from('jobs').select('*') as unknown as SupabaseJobQuery;
 
     // Prefer textSearch when available (some tests mock this)
     if (typeof q.textSearch === 'function') {
@@ -284,14 +284,14 @@ export class JobSearchService {
       const { data, error } = await q.limit(limit);
       if (error) throw error;
       if (!data) return [];
-      const jobs = data.map(JobCRUDService['formatJob']);
+      const jobs = (data as unknown[]).map((d) => (JobCRUDService as unknown as Record<string, CallableFunction>)['formatJob'](d) as Job);
       return this.enrichJobsWithPhotos(jobs);
     }
 
     const { data, error } = await q;
     if (error) throw error;
     if (!data) return [];
-    const jobs = data.map(JobCRUDService['formatJob']);
+    const jobs = (data as unknown[]).map((d) => (JobCRUDService as unknown as Record<string, CallableFunction>)['formatJob'](d) as Job);
     return this.enrichJobsWithPhotos(jobs);
   }
 

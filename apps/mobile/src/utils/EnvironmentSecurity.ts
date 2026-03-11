@@ -473,20 +473,22 @@ export const getTypedEnv = <T>(
 ) => environmentSecurity.getTypedEnv(key, parser, defaultValue, required);
 
 // Common environment getters with validation
+// NOTE: Must use static process.env.EXPO_PUBLIC_* access (not dynamic bracket access)
+// so Metro bundler can inline values at build time.
 export const getApiConfig = () => ({
-  supabaseUrl: getSecureEnv('EXPO_PUBLIC_SUPABASE_URL', true)!,
-  supabaseAnonKey: getSecureEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', true)!,
-  apiBaseUrl: getSecureEnv('EXPO_PUBLIC_API_BASE_URL') || 'http://localhost:3000',
+  supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL || '',
+  supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
+  apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000',
   apiTimeout: getTypedEnv('EXPO_PUBLIC_API_TIMEOUT', EnvironmentSecurity.parsers.number, 30000),
 });
 
 export const getStripeConfig = () => ({
-  publishableKey: getSecureEnv('EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY'),
+  publishableKey: process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY,
   // Secret key should only be accessed server-side
 });
 
 export const getGoogleMapsConfig = () => ({
-  apiKey: getSecureEnv('EXPO_PUBLIC_GOOGLE_MAPS_API_KEY'),
+  apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
 });
 
 export const getFeatureFlags = () => ({

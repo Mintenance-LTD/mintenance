@@ -14,9 +14,9 @@ const getStepStatusIcon = (status: AssessmentStep['status']) => {
     case 'completed':
       return <Icon name="check-circle" size={24} color={theme.colors.success} />;
     case 'in_progress':
-      return <Icon name="pending" size={24} color="#FF9800" />;
+      return <Icon name="pending" size={24} color={theme.colors.warning} />;
     default:
-      return <Icon name="radio-button-unchecked" size={24} color="#999" />;
+      return <Icon name="radio-button-unchecked" size={24} color={theme.colors.textTertiary} />;
   }
 };
 
@@ -55,27 +55,23 @@ const styles = StyleSheet.create({
   stepCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing[3],
+    ...theme.shadows.base,
   },
   stepCardCompleted: {
-    backgroundColor: '#F0FFF4',
+    backgroundColor: theme.colors.primaryLight,
   },
   stepIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: theme.spacing.md,
   },
   stepContent: {
     flex: 1,
@@ -83,25 +79,25 @@ const styles = StyleSheet.create({
   stepHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
-    gap: 8,
+    marginBottom: theme.spacing.xs,
+    gap: theme.spacing.sm,
   },
   stepTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
   },
   requiredBadge: {
     fontSize: 11,
-    color: '#F44336',
-    fontWeight: '600',
-    backgroundColor: '#FFEBEE',
-    paddingHorizontal: 8,
+    color: theme.colors.error,
+    fontWeight: theme.typography.fontWeight.semibold,
+    backgroundColor: theme.colors.errorLight ?? '#FEF2F2',
+    paddingHorizontal: theme.spacing.sm,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: theme.borderRadius.sm,
   },
   stepDescription: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textSecondary,
   },
 });

@@ -1,4 +1,7 @@
 // LinkedIn Parity Features - Groups, Articles, Companies
+
+export type ConnectionStatus = 'pending' | 'accepted' | 'blocked';
+
 export type TradeType =
   | 'electricians'
   | 'plumbers'

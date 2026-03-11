@@ -64,7 +64,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
           </Text>
           <View style={styles.contractorMeta}>
             <View style={styles.ratingContainer}>
-              <Ionicons name='star' size={14} color='#FFD700' />
+              <Ionicons name='star' size={14} color={theme.colors.ratingGold} />
               <Text style={styles.rating}>{contractor.rating}</Text>
             </View>
             <Text style={styles.metaDivider}>•</Text>
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   },
   contractorName: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   contractorSpecialty: {
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   },
   rating: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textPrimary,
   },
   metaDivider: {
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
   },
   pricingText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.primary,
   },
   estimateInfo: {
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
   },
   estimateText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.primary,
   },
   contractorActions: {
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.primary,
   },
   directionsButton: {

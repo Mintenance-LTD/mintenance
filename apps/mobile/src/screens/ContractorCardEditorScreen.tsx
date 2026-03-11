@@ -64,7 +64,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
         setProfile({
           ...contractorProfile,
           specialties: contractorProfile.specialties || [],
-          portfolioImages: contractorProfile.portfolioImages || [],
+          portfolioImages: contractorProfile.portfolio_images || [],
           certifications: contractorProfile.certifications || [],
         });
       }
@@ -273,7 +273,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
                   styles.availabilityOption,
                   profile.availability === option && styles.availabilityOptionActive
                 ]}
-                onPress={() => setProfile(prev => ({ ...prev, availability: option as unknown }))}
+                onPress={() => setProfile(prev => ({ ...prev, availability: option as 'immediate' | 'this_week' | 'this_month' | 'busy' }))}
               >
                 <Text style={[
                   styles.availabilityText,
@@ -295,7 +295,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
             style={styles.addPortfolioButton}
             onPress={() => handleImagePicker('portfolio')}
           >
-            <Ionicons name="add" size={24} color='#717171' />
+            <Ionicons name="add" size={24} color={theme.colors.textSecondary} />
             <Text style={styles.addPortfolioText}>Add Portfolio Images</Text>
           </TouchableOpacity>
 
@@ -391,14 +391,14 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     backgroundColor: theme.colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.borderLight,
   },
   backButton: {
     padding: 8,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   previewButton: {
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 8,
   },
@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textPrimary,
     marginBottom: 8,
   },
@@ -488,8 +488,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   availabilityOptionActive: {
-    backgroundColor: '#222222',
-    borderColor: '#222222',
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
   },
   availabilityText: {
     fontSize: 14,
@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: theme.borderRadius.lg,
     borderWidth: 2,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.borderLight,
     borderStyle: 'dashed',
     marginBottom: 16,
   },
@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 16,
     color: theme.colors.textSecondary,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   portfolioGrid: {
     flexDirection: 'row',
@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
   },
   previewTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   previewContent: {
@@ -583,7 +583,7 @@ const styles = StyleSheet.create({
   },
   previewCompanyName: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 8,
   },
@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
   },
   previewRate: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
 });

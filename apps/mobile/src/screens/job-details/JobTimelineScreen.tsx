@@ -93,7 +93,7 @@ export const JobTimelineScreen: React.FC<Props> = ({ route, navigation }) => {
                   <Ionicons
                     name={index <= currentStepIndex ? 'checkmark' : step.icon}
                     size={16}
-                    color={index <= currentStepIndex ? '#fff' : theme.colors.textTertiary}
+                    color={index <= currentStepIndex ? theme.colors.textInverse : theme.colors.textTertiary}
                   />
                 </View>
                 {index < LIFECYCLE_STEPS.length - 1 && (
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     paddingVertical: theme.spacing[1],
     paddingHorizontal: theme.spacing[3],
     borderRadius: theme.borderRadius.sm,
@@ -159,23 +159,23 @@ const styles = StyleSheet.create({
   },
   timelineStep: {
     flexDirection: 'row',
-    minHeight: 72,
+    minHeight: theme.spacing[16] + theme.spacing.sm,
   },
   stepIndicator: {
     alignItems: 'center',
-    width: 32,
+    width: theme.spacing.xl,
   },
   stepCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: theme.spacing.xl,
+    height: theme.spacing.xl,
+    borderRadius: theme.borderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepLine: {
     width: 2,
     flex: 1,
-    marginVertical: 4,
+    marginVertical: theme.spacing.xs,
   },
   stepContent: {
     flex: 1,
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   },
   currentStepLabel: {
     fontWeight: theme.typography.fontWeight.bold,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   stepDescription: {
     fontSize: theme.typography.fontSize.sm,

@@ -54,7 +54,7 @@ export const ChartSection: React.FC<ChartSectionProps> = ({
           colors: financialData.cash_flow_forecast
             .slice(0, 4)
             .map((flow) =>
-              flow.net_flow >= 0 ? theme.colors.success : theme.colors.error
+              flow.net_flow >= 0 ? () => theme.colors.success : () => theme.colors.error
             ),
         },
       ],
@@ -73,19 +73,19 @@ export const ChartSection: React.FC<ChartSectionProps> = ({
       {
         name: 'Labor',
         value: 30,
-        color: '#34C759',
+        color: theme.colors.success,
         legendFontColor: theme.colors.textSecondary,
       },
       {
         name: 'Transport',
         value: 15,
-        color: '#FF9500',
+        color: theme.colors.warning,
         legendFontColor: theme.colors.textSecondary,
       },
       {
         name: 'Equipment',
         value: 10,
-        color: '#FF3B30',
+        color: theme.colors.error,
         legendFontColor: theme.colors.textSecondary,
       },
     ];

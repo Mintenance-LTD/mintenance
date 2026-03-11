@@ -97,7 +97,7 @@ export const PreviousContractors: React.FC<PreviousContractorsProps> = ({
                   <Ionicons
                     name='chatbubble'
                     size={12}
-                    color='#717171'
+                    color={theme.colors.textSecondary}
                   />
                   <Text style={styles.messageButtonText}>Message</Text>
                 </TouchableOpacity>
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 4,
   },
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   },
   contractorAvatarText: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textInverse,
   },
   verifiedBadge: {
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   },
   contractorName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginBottom: 4,
   },
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: theme.colors.textSecondary,
     marginLeft: 4,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   contractorReview: {
     fontSize: 12,
@@ -244,8 +244,8 @@ const styles = StyleSheet.create({
   },
   messageButtonText: {
     fontSize: 12,
-    color: '#222222',
-    fontWeight: '500',
+    color: theme.colors.textPrimary,
+    fontWeight: theme.typography.fontWeight.medium,
   },
   rehireButton: {
     backgroundColor: theme.colors.primary,
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   rehireButtonText: {
     fontSize: 12,
     color: theme.colors.textInverse,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   emptyContractorState: {
     alignItems: 'center',
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
   },
   emptyContractorText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textSecondary,
     marginTop: 12,
     marginBottom: 4,

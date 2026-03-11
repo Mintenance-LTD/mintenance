@@ -22,7 +22,7 @@ export const generateTestPaymentMethod = (overrides: Record<string, unknown> = {
     last4: '4242',
     exp_month: 12,
     exp_year: 2025,
-    ...overrides.card,
+    ...(overrides.card as Record<string, unknown> ?? {}),
   },
   ...overrides,
 });

@@ -22,7 +22,7 @@ export const useFinanceDashboard = () => {
 
     try {
       const data = await ContractorBusinessSuite.finance.getFinancialSummary(user.id);
-      setFinancialData(data);
+      setFinancialData(data as unknown as FinancialSummary);
     } catch (error) {
       logger.error('Error loading financial data', error);
       Alert.alert('Error', 'Failed to load financial data');

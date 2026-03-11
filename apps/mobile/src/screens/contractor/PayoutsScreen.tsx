@@ -55,7 +55,7 @@ export const PayoutsScreen: React.FC = () => {
   });
 
   if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorView onRetry={refetch} />;
+  if (error) return <ErrorView message="Failed to load payouts" onRetry={refetch} />;
 
   const totalReleased = (escrows || [])
     .filter((e) => e.status === 'released')
@@ -74,7 +74,7 @@ export const PayoutsScreen: React.FC = () => {
           <Ionicons
             name={hasConnectedStripe ? 'checkmark-circle' : 'alert-circle'}
             size={24}
-            color={hasConnectedStripe ? theme.colors.success : '#F59E0B'}
+            color={hasConnectedStripe ? theme.colors.success : theme.colors.warning}
           />
           <View style={styles.connectInfo}>
             <Text style={styles.connectTitle}>
@@ -108,7 +108,7 @@ export const PayoutsScreen: React.FC = () => {
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>In Escrow</Text>
-          <Text style={[styles.statValue, { color: '#3B82F6' }]}>{'\u00A3'}{totalHeld.toFixed(2)}</Text>
+          <Text style={[styles.statValue, { color: theme.colors.info }]}>{'\u00A3'}{totalHeld.toFixed(2)}</Text>
         </View>
       </View>
 
@@ -146,20 +146,20 @@ const styles = StyleSheet.create({
   connectCard: { marginHorizontal: 16, marginTop: 12 },
   connectHeader: { flexDirection: 'row', gap: 12 },
   connectInfo: { flex: 1 },
-  connectTitle: { fontSize: 16, fontWeight: '600', color: theme.colors.textPrimary },
+  connectTitle: { fontSize: 16, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary },
   connectDesc: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 4, lineHeight: 18 },
   setupBtn: { marginTop: 12 },
   statsRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 },
   statCard: { flex: 1, backgroundColor: theme.colors.surface, borderRadius: 10, padding: 12, alignItems: 'center', ...theme.shadows.sm },
-  statLabel: { fontSize: 11, color: theme.colors.textTertiary, fontWeight: '500', textTransform: 'uppercase', marginBottom: 4 },
-  statValue: { fontSize: 16, fontWeight: '700' },
+  statLabel: { fontSize: 11, color: theme.colors.textTertiary, fontWeight: theme.typography.fontWeight.medium, textTransform: 'uppercase', marginBottom: 4 },
+  statValue: { fontSize: 16, fontWeight: theme.typography.fontWeight.bold },
   list: { padding: 16, paddingBottom: 40 },
   escrowRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: theme.colors.surface, borderRadius: 10, padding: 14, marginBottom: 8, ...theme.shadows.sm },
   escrowInfo: { flex: 1, marginRight: 12 },
-  escrowTitle: { fontSize: 15, fontWeight: '500', color: theme.colors.textPrimary },
+  escrowTitle: { fontSize: 15, fontWeight: theme.typography.fontWeight.medium, color: theme.colors.textPrimary },
   escrowDate: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2 },
   escrowRight: { alignItems: 'flex-end', gap: 4 },
-  escrowAmount: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary },
+  escrowAmount: { fontSize: 15, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary },
 });
 
 export default PayoutsScreen;

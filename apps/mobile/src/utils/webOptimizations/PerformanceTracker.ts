@@ -51,7 +51,7 @@ export class PerformanceTracker {
 
       logger.info('PerformanceTracker', 'Performance tracking initialized successfully');
     } catch (error) {
-      logger.error('PerformanceTracker', 'Failed to initialize performance tracking', error);
+      logger.error('PerformanceTracker', 'Failed to initialize performance tracking', { error: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -67,11 +67,12 @@ export class PerformanceTracker {
       document.head.appendChild(script);
 
       // Initialize gtag
-      (window as unknown).dataLayer = (window as unknown).dataLayer || [];
+      const win = window as unknown as { dataLayer: unknown[][]; gtag: (...args: unknown[]) => void };
+      win.dataLayer = win.dataLayer || [];
       const gtag = (...args: unknown[]) => {
-        (window as unknown).dataLayer.push(args);
+        win.dataLayer.push(args);
       };
-      (window as unknown).gtag = gtag;
+      win.gtag = gtag;
 
       gtag('js', new Date());
       gtag('config', analyticsId, {
@@ -82,7 +83,7 @@ export class PerformanceTracker {
 
       logger.info('PerformanceTracker', 'Google Analytics initialized', { analyticsId });
     } catch (error) {
-      logger.error('PerformanceTracker', 'Failed to initialize Google Analytics', error);
+      logger.error('PerformanceTracker', 'Failed to initialize Google Analytics', { error: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -97,14 +98,14 @@ export class PerformanceTracker {
 
     // Largest Contentful Paint (LCP)
     this.observePerformance('largest-contentful-paint', (entries) => {
-      const lcpEntry = entries[entries.length - 1] as unknown;
+      const lcpEntry = entries[entries.length - 1] as PerformanceEntry & { renderTime?: number; loadTime?: number };
       const lcpValue = lcpEntry.renderTime || lcpEntry.loadTime || lcpEntry.startTime;
       this.trackWebVital('LCP', lcpValue);
     });
 
     // First Input Delay (FID)
     this.observePerformance('first-input', (entries) => {
-      const fidEntry = entries[0] as unknown;
+      const fidEntry = entries[0] as PerformanceEntry & { processingStart: number };
       const fidValue = fidEntry.processingStart - fidEntry.startTime;
       this.trackWebVital('FID', fidValue);
     });
@@ -112,9 +113,10 @@ export class PerformanceTracker {
     // Cumulative Layout Shift (CLS)
     let clsValue = 0;
     this.observePerformance('layout-shift', (entries) => {
-      entries.forEach((entry: unknown) => {
-        if (!entry.hadRecentInput) {
-          clsValue += entry.value;
+      entries.forEach((entry) => {
+        const layoutEntry = entry as PerformanceEntry & { hadRecentInput?: boolean; value?: number };
+        if (!layoutEntry.hadRecentInput) {
+          clsValue += layoutEntry.value ?? 0;
         }
       });
       this.trackWebVital('CLS', clsValue);
@@ -279,8 +281,9 @@ export class PerformanceTracker {
     if (!this.analyticsInitialized) return;
 
     // Track to Google Analytics
-    if ((window as unknown).gtag) {
-      (window as unknown).gtag('event', eventName, properties);
+    const win = window as unknown as { gtag?: (...args: unknown[]) => void };
+    if (win.gtag) {
+      win.gtag('event', eventName, properties);
     }
 
     logger.debug('PerformanceTracker', 'Event tracked', { event: eventName, properties });
@@ -293,8 +296,9 @@ export class PerformanceTracker {
     if (!this.analyticsInitialized) return;
 
     // Track to Google Analytics
-    if ((window as unknown).gtag) {
-      (window as unknown).gtag('event', 'timing_complete', {
+    const win = window as unknown as { gtag?: (...args: unknown[]) => void };
+    if (win.gtag) {
+      win.gtag('event', 'timing_complete', {
         name: variable,
         value: value,
         event_category: category,

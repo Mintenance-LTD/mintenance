@@ -33,14 +33,14 @@ function renderStars(rating: number) {
   const stars = [];
   const full = Math.floor(rating);
   for (let i = 0; i < full; i++) {
-    stars.push(<Ionicons key={i} name="star" size={14} color="#222222" />);
+    stars.push(<Ionicons key={i} name="star" size={14} color={theme.colors.primary} />);
   }
   if (rating % 1 !== 0) {
-    stars.push(<Ionicons key="half" name="star-half" size={14} color="#222222" />);
+    stars.push(<Ionicons key="half" name="star-half" size={14} color={theme.colors.primary} />);
   }
   const empty = 5 - Math.ceil(rating);
   for (let i = 0; i < empty; i++) {
-    stars.push(<Ionicons key={`e${i}`} name="star-outline" size={14} color="#B0B0B0" />);
+    stars.push(<Ionicons key={`e${i}`} name="star-outline" size={14} color={theme.colors.textTertiary} />);
   }
   return stars;
 }
@@ -102,7 +102,7 @@ export const BidReviewScreen: React.FC = () => {
           {
             text: 'Message Contractor',
             onPress: () => {
-              navigation.navigate('MessagingTab', {
+              (navigation as unknown as { navigate: (...args: unknown[]) => void }).navigate('MessagingTab', {
                 screen: 'Messaging',
                 params: {
                   conversationId: `${jobId}_${bid.contractor_id}`,
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   headerSubtitle: {
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
   },
   bidCount: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textSecondary,
   },
   swiperContainer: {
@@ -405,8 +405,10 @@ const styles = StyleSheet.create({
   bidCard: {
     flex: 1,
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 20,
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
     ...theme.shadows.base,
   },
   cardScroll: {
@@ -433,7 +435,7 @@ const styles = StyleSheet.create({
   },
   contractorName: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 4,
   },
@@ -451,7 +453,7 @@ const styles = StyleSheet.create({
   },
   amountSection: {
     backgroundColor: theme.colors.surfaceSecondary,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     alignItems: 'center',
     marginBottom: 16,
@@ -463,7 +465,7 @@ const styles = StyleSheet.create({
   },
   amountValue: {
     fontSize: 32,
-    fontWeight: '800',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   detailRow: {
@@ -484,7 +486,7 @@ const styles = StyleSheet.create({
   },
   proposalLabel: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginBottom: 8,
   },
@@ -529,7 +531,7 @@ const styles = StyleSheet.create({
   },
   overlayPassText: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.error,
   },
   overlayAccept: {
@@ -537,12 +539,12 @@ const styles = StyleSheet.create({
   },
   overlayAcceptText: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.success,
   },
   emptyTitle: {
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginTop: 16,
   },
@@ -562,7 +564,7 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: theme.colors.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   processingOverlay: {
     position: 'absolute',
@@ -585,7 +587,7 @@ const styles = StyleSheet.create({
   },
   summaryItem: { alignItems: 'center' },
   summaryLabel: { fontSize: 11, color: theme.colors.textTertiary, textTransform: 'uppercase', letterSpacing: 0.4 },
-  summaryValue: { fontSize: 14, fontWeight: '700', color: theme.colors.textPrimary, marginTop: 2 },
+  summaryValue: { fontSize: 14, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary, marginTop: 2 },
   sortRow: {
     flexDirection: 'row',
     gap: 8,
@@ -600,9 +602,9 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
   },
-  sortChipActive: { borderColor: '#222222', backgroundColor: '#222222' },
-  sortChipText: { fontSize: 12, fontWeight: '500', color: theme.colors.textSecondary },
-  sortChipTextActive: { color: '#FFFFFF', fontWeight: '700' },
+  sortChipActive: { borderColor: theme.colors.primary, backgroundColor: theme.colors.primary },
+  sortChipText: { fontSize: 12, fontWeight: theme.typography.fontWeight.medium, color: theme.colors.textSecondary },
+  sortChipTextActive: { color: theme.colors.textInverse, fontWeight: theme.typography.fontWeight.bold },
 });
 
 export default BidReviewScreen;

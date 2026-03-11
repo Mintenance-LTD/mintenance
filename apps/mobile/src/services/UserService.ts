@@ -530,7 +530,7 @@ export class UserService {
         contractor: DatabaseContractorRow;
       }
 
-      const typedJobs = completedJobs as JobWithContractor[];
+      const typedJobs = completedJobs as unknown as JobWithContractor[];
 
       // Get unique contractors (avoid duplicates if they worked multiple jobs)
       const uniqueContractors = new Map<string, UserProfile>();

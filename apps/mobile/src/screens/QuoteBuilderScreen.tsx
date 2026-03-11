@@ -53,7 +53,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
 
     try {
       const statusFilter =
-        selectedStatus === 'all' ? undefined : [selectedStatus as unknown];
+        selectedStatus === 'all' ? undefined : [selectedStatus as ContractorQuote['status']];
       const data = await QuoteBuilderService.getQuotes(user?.id || '', {
         status: statusFilter,
       });
@@ -88,7 +88,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
     setLoading(true);
 
     try {
-      const statusFilter = status === 'all' ? undefined : [status as unknown];
+      const statusFilter = status === 'all' ? undefined : [status as ContractorQuote['status']];
       const data = await QuoteBuilderService.getQuotes(user?.id || '', {
         status: statusFilter,
       });
@@ -206,6 +206,9 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
             selectedStatus === filter.key && styles.filterChipActive,
           ]}
           onPress={() => handleStatusFilter(filter.key)}
+          accessibilityRole="button"
+          accessibilityLabel={`Filter by ${filter.label}, ${filter.count} quotes`}
+          accessibilityState={{ selected: selectedStatus === filter.key }}
         >
           <Text
             style={[
@@ -231,13 +234,17 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <Ionicons name='arrow-back' size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Quote Builder</Text>
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => navigation.navigate('CreateQuote')}
+          onPress={() => (navigation.navigate as (...args: unknown[]) => void)('CreateQuote')}
+          accessibilityRole="button"
+          accessibilityLabel="Create new quote"
         >
           <Ionicons name='add' size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
@@ -246,7 +253,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
       <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor='#222222' colors={['#222222']} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -265,25 +272,31 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
         <View style={styles.actionsContainer}>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => navigation.navigate('QuoteTemplates')}
+            onPress={() => (navigation.navigate as (...args: unknown[]) => void)('QuoteTemplates')}
+            accessibilityRole="button"
+            accessibilityLabel="View quote templates"
           >
-            <Ionicons name='document-text' size={24} color='#717171' />
+            <Ionicons name='document-text' size={24} color={theme.colors.textSecondary} />
             <Text style={styles.actionButtonText}>Templates</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => setShowAnalytics(prev => !prev)}
+            accessibilityRole="button"
+            accessibilityLabel={showAnalytics ? 'Hide analytics' : 'Show analytics'}
           >
-            <Ionicons name='analytics' size={24} color='#717171' />
+            <Ionicons name='analytics' size={24} color={theme.colors.textSecondary} />
             <Text style={styles.actionButtonText}>Analytics</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => navigation.navigate('CreateQuote')}
+            onPress={() => (navigation.navigate as (...args: unknown[]) => void)('CreateQuote')}
+            accessibilityRole="button"
+            accessibilityLabel="Create new quote"
           >
-            <Ionicons name='add-circle' size={24} color='#717171' />
+            <Ionicons name='add-circle' size={24} color={theme.colors.textSecondary} />
             <Text style={styles.actionButtonText}>New Quote</Text>
           </TouchableOpacity>
         </View>
@@ -336,7 +349,9 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
               </Text>
               <TouchableOpacity
                 style={styles.createButton}
-                onPress={() => navigation.navigate('CreateQuote')}
+                onPress={() => (navigation.navigate as (...args: unknown[]) => void)('CreateQuote')}
+                accessibilityRole="button"
+                accessibilityLabel="Create your first quote"
               >
                 <Text style={styles.createButtonText}>Create Quote</Text>
               </TouchableOpacity>
@@ -347,10 +362,10 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
                 key={quote.id}
                 quote={quote}
                 onPress={() =>
-                  navigation.navigate('QuoteDetail', { quoteId: quote.id })
+                  (navigation.navigate as (...args: unknown[]) => void)('QuoteDetail', { quoteId: quote.id })
                 }
                 onEdit={() =>
-                  navigation.navigate('CreateQuote', { jobId: quote.job_id })
+                  (navigation.navigate as (...args: unknown[]) => void)('CreateQuote', { jobId: quote.job_id })
                 }
                 onSend={() => handleSendQuote(quote.id)}
                 onDuplicate={() => handleDuplicateQuote(quote.id)}
@@ -377,14 +392,14 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     backgroundColor: theme.colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.borderLight,
   },
   backButton: {
     padding: 8,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   addButton: {
@@ -404,7 +419,7 @@ const styles = StyleSheet.create({
   },
   statsTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 16,
   },
@@ -422,7 +437,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 4,
   },
@@ -447,13 +462,13 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   filterChipActive: {
-    backgroundColor: '#222222',
-    borderColor: '#222222',
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
   },
   filterText: {
     fontSize: 14,
     color: theme.colors.textSecondary,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   filterTextActive: {
     color: theme.colors.white,
@@ -476,14 +491,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.colors.textPrimary,
     marginTop: 6,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   quotesContainer: {
     marginBottom: 32,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 16,
   },
@@ -494,7 +509,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginTop: 16,
     marginBottom: 8,
@@ -508,7 +523,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   createButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: theme.borderRadius.lg,
@@ -516,7 +531,7 @@ const styles = StyleSheet.create({
   createButtonText: {
     color: theme.colors.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   analyticsPanel: {
     backgroundColor: theme.colors.background,
@@ -528,7 +543,7 @@ const styles = StyleSheet.create({
   },
   analyticsTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 12,
   },
@@ -542,7 +557,7 @@ const styles = StyleSheet.create({
   },
   analyticsValue: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   analyticsLabel: {

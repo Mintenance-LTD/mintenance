@@ -1,6 +1,13 @@
 // Form Management Module - Domain-separated form and job sheet services
 
 import { serviceHealthMonitor } from '../../utils/serviceHealthMonitor';
+import { FormTemplateService } from './FormTemplateService';
+import { FormFieldService } from './FormFieldService';
+import { JobSheetOperationsService } from './JobSheetOperationsService';
+import { FormSignatureService } from './FormSignatureService';
+import { FormApprovalService } from './FormApprovalService';
+import { FormAnalyticsService } from './FormAnalyticsService';
+import { DigitalChecklistService } from './DigitalChecklistService';
 
 // Core Services
 export { FormTemplateService } from './FormTemplateService';

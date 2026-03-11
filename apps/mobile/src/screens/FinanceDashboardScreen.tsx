@@ -15,7 +15,7 @@ import { SkeletonDashboard } from '../components/ui/LoadingStates';
 import { theme } from '../theme';
 
 interface FinanceDashboardScreenProps {
-  navigation: NativeStackNavigationProp<ProfileStackParamList, 'FinanceDashboard'>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList>;
 }
 
 export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({

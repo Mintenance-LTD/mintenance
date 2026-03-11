@@ -152,7 +152,7 @@ class ErrorMonitoringSystem {
         this.reportError(error, {
           type: 'javascript',
           severity: 'high',
-          context: { source: 'console.error' } as unknown,
+          context: { source: 'console.error' } as unknown as Partial<ErrorContext>,
         });
       }
     };
@@ -167,7 +167,7 @@ class ErrorMonitoringSystem {
         this.reportError(error, {
           type: 'javascript',
           severity: 'high',
-          context: { source: 'unhandledrejection' } as unknown,
+          context: { source: 'unhandledrejection' } as unknown as Partial<ErrorContext>,
         });
       });
     }
@@ -604,7 +604,7 @@ export const withErrorMonitoring = <P extends object>(
         severity: 'high',
         context: {
           component: name,
-          props: this.props as unknown,
+          props: this.props as unknown as Record<string, unknown>,
           componentStack: errorInfo.componentStack || '',
         },
       });

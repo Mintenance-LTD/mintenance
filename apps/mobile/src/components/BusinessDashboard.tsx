@@ -140,7 +140,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
     </View>
   );
 
-  const renderActionItem = (item: { type: string; title: string; dueDate?: string; priority?: string }, index: number) => (
+  const renderActionItem = (item: { type: string; title: string; description?: string; action?: string; dueDate?: string; priority?: string }, index: number) => (
     <TouchableOpacity
       key={index}
       style={[
@@ -428,7 +428,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
           style={styles.reportButton}
           onPress={() => onNavigate?.('BusinessReport')}
         >
-          <Ionicons name='bar-chart' size={20} color='#fff' />
+          <Ionicons name='bar-chart' size={20} color={theme.colors.textInverse} />
           <Text style={styles.reportButtonText}>Generate Business Report</Text>
         </TouchableOpacity>
       </View>

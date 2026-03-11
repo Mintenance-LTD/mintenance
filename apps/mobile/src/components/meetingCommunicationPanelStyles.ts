@@ -45,7 +45,7 @@ export const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textSecondary,
     marginLeft: 8,
   },
@@ -114,7 +114,7 @@ export const styles = StyleSheet.create({
   },
   emptyMessagesText: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textSecondary,
     marginTop: 16,
   },
@@ -166,7 +166,7 @@ export const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginBottom: 12,
   },
@@ -175,7 +175,7 @@ export const styles = StyleSheet.create({
   },
   meetingDateTime: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textPrimary,
     marginBottom: 4,
   },
@@ -201,7 +201,7 @@ export const styles = StyleSheet.create({
   },
   statusButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textInverse,
     marginLeft: 6,
   },
@@ -248,7 +248,7 @@ export const styles = StyleSheet.create({
   },
   rescheduleButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textInverse,
     marginLeft: 6,
   },

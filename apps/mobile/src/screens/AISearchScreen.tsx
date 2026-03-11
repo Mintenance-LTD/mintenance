@@ -142,7 +142,7 @@ export const AISearchScreen: React.FC = () => {
       <View style={styles.resultContent}>
         <View style={styles.resultIcon}>
           <Ionicons
-            name={getResultIcon(item.type) as unknown}
+            name={getResultIcon(item.type) as keyof typeof Ionicons.glyphMap}
             size={24}
             color={getResultTypeColor(item.type)}
           />
@@ -248,7 +248,7 @@ export const AISearchScreen: React.FC = () => {
           accessibilityLabel={showFilters ? 'Hide search filters' : 'Show search filters'}
           accessibilityState={{ expanded: showFilters }}
         >
-          <Ionicons name="options-outline" size={20} color='#717171' />
+          <Ionicons name="options-outline" size={20} color={theme.colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
   },
   clearFiltersText: {
     fontSize: theme.typography.fontSize.sm,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: theme.typography.fontWeight.medium,
   },
   loadingContainer: {
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
   scoreText: {
     fontSize: theme.typography.fontSize.xs,
     fontWeight: theme.typography.fontWeight.semibold,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   emptyContainer: {
     flex: 1,

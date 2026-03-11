@@ -154,6 +154,9 @@ export const InvoiceManagementScreen: React.FC<
         selectedFilter === filter && styles.filterTabActive,
       ]}
       onPress={() => setSelectedFilter(filter)}
+      accessibilityRole="button"
+      accessibilityLabel={`Filter by ${label}, ${count} invoices`}
+      accessibilityState={{ selected: selectedFilter === filter }}
     >
       <Text
         style={[
@@ -186,6 +189,8 @@ export const InvoiceManagementScreen: React.FC<
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <Ionicons
               name='arrow-back'
@@ -200,6 +205,8 @@ export const InvoiceManagementScreen: React.FC<
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => navigation.navigate('CreateInvoice')}
+          accessibilityRole="button"
+          accessibilityLabel="Create new invoice"
         >
           <Ionicons name='add' size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
@@ -342,14 +349,14 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     backgroundColor: theme.colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.borderLight,
   },
   backButton: {
     padding: 8,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   addButton: {
@@ -373,7 +380,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 2,
   },
@@ -402,8 +409,8 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.sm,
   },
   filterTabActive: {
-    backgroundColor: '#222222',
-    shadowColor: '#000000',
+    backgroundColor: theme.colors.primary,
+    shadowColor: theme.colors.black,
     shadowOffset: {
       width: 0,
       height: 1,
@@ -414,7 +421,7 @@ const styles = StyleSheet.create({
   },
   filterTabText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textSecondary,
     lineHeight: 14,
   },
@@ -423,7 +430,7 @@ const styles = StyleSheet.create({
   },
   filterTabCount: {
     fontSize: 11,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textTertiary,
     marginTop: 2,
   },
@@ -443,7 +450,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginTop: 16,
     marginBottom: 8,
@@ -472,7 +479,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginBottom: 12,
   },

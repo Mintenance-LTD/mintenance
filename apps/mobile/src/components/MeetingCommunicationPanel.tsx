@@ -18,8 +18,8 @@ import { MessagingService } from '../services/MessagingService';
 import {
   ContractorMeeting,
   MeetingUpdate,
-  Message,
 } from '@mintenance/types';
+import type { Message } from '../services/messaging/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
@@ -65,8 +65,8 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
       setLoading(true);
 
       // Load job messages
-      if (meeting.jobId) {
-        const jobMessages = await MessagingService.getJobMessages(meeting.jobId);
+      if (meeting.job_id) {
+        const jobMessages = await MessagingService.getJobMessages(meeting.job_id);
         setMessages(jobMessages);
       }
 
@@ -81,15 +81,17 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !user || !meeting.jobId) return;
+    if (!newMessage.trim() || !user || !meeting.job_id) return;
 
     try {
       const otherUserId = user.role === 'homeowner'
-        ? meeting.contractorId
-        : meeting.homeownerId;
+        ? meeting.contractor_id
+        : meeting.homeowner_id;
+
+      if (!otherUserId) return;
 
       await MessagingService.sendMessage(
-        meeting.jobId,
+        meeting.job_id,
         user.id,
         otherUserId,
         newMessage.trim(),
@@ -342,7 +344,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                 <Text style={styles.sectionTitle}>Current Meeting</Text>
                 <View style={styles.meetingDetails}>
                   <Text style={styles.meetingDateTime}>
-                    {new Date(meeting.scheduledDateTime).toLocaleString()}
+                    {new Date(meeting.scheduled_datetime).toLocaleString()}
                   </Text>
                   <Text style={styles.meetingStatus}>
                     Status: {meeting.status.replace('_', ' ').toUpperCase()}
@@ -357,7 +359,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                   <View style={styles.statusButtons}>
                     <TouchableOpacity
                       style={[styles.statusButton, { backgroundColor: theme.colors.success }]}
-                      onPress={() => handleStatusChange('confirmed')}
+                      onPress={() => handleStatusChange('in_progress')}
                     >
                       <Ionicons name="checkmark" size={16} color={theme.colors.textInverse} />
                       <Text style={styles.statusButtonText}>Confirm</Text>
@@ -447,7 +449,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                       <View style={styles.updateIcon}>
                         <Ionicons
                           name={
-                            update.updateType === 'schedule_change'
+                            update.updateType === 'rescheduled'
                               ? 'calendar'
                               : update.updateType === 'status_change'
                               ? 'checkmark-circle'

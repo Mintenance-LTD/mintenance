@@ -25,11 +25,14 @@ interface SliderProps {
   onValueChange?: (value: number) => void;
   minimumValue?: number;
   maximumValue?: number;
+  minimumTrackTintColor?: string;
+  maximumTrackTintColor?: string;
+  thumbTintColor?: string;
   style?: import('react-native').ViewStyle;
 }
 
 const Slider: React.FC<SliderProps> = ({ value, onValueChange, minimumValue, maximumValue, style, ...props }) => (
-  <View style={[{ height: 40, backgroundColor: '#ccc', borderRadius: 4 }, style]} {...props}>
+  <View style={[{ height: 40, backgroundColor: theme.colors.borderLight, borderRadius: 4 }, style]} {...props}>
     <Text style={{ fontSize: 12, textAlign: 'center', paddingTop: 10 }}>
       {value ? Math.round(value) : minimumValue || 0}
     </Text>
@@ -222,7 +225,7 @@ const AdvancedSearchFilters: React.FC<AdvancedSearchFiltersProps> = ({
                 }
                 minimumTrackTintColor={theme.colors.primary}
                 maximumTrackTintColor={theme.colors.surfaceSecondary}
-                thumbStyle={{ backgroundColor: theme.colors.primary }}
+                thumbTintColor={theme.colors.primary}
               />
               <View style={styles.sliderLabels}>
                 <Text style={styles.sliderLabelText}>5 mi</Text>

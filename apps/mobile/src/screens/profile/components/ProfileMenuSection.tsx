@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     color: theme.colors.textPrimary,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   badge: {
     backgroundColor: theme.colors.error,
@@ -127,6 +127,6 @@ const styles = StyleSheet.create({
   badgeText: {
     color: theme.colors.textInverse,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
   },
 });

@@ -21,7 +21,7 @@ export const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
   },
   resetButton: {
@@ -30,7 +30,7 @@ export const styles = StyleSheet.create({
   resetText: {
     color: theme.colors.primary,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   content: {
     flex: 1,
@@ -41,7 +41,7 @@ export const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginBottom: 12,
   },
@@ -51,7 +51,7 @@ export const styles = StyleSheet.create({
   sliderLabel: {
     textAlign: 'center',
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.primary,
     marginBottom: 8,
   },
@@ -90,7 +90,7 @@ export const styles = StyleSheet.create({
   priceInput: {
     flex: 1,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textPrimary,
   },
   switchContainer: {
@@ -201,7 +201,7 @@ export const styles = StyleSheet.create({
   },
   applyButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.surface,
   },
 });

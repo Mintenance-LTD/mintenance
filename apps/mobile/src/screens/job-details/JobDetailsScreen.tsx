@@ -4,7 +4,7 @@
  * Full-bleed hero image carousel, host card, pricing breakdown,
  * detail sections, and sticky bottom CTA.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Share,
+  Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -26,12 +27,11 @@ import { HostCard } from '../../components/ui/HostCard';
 import { StickyBottomCTA } from '../../components/ui/StickyBottomCTA';
 import { JobStatusTracker } from '../../components/JobStatusTracker';
 import { ContractorAssignment } from '../../components/ContractorAssignment';
-import { AIAnalysisCard } from './components';
+import { AIAnalysisCard, JobLifecycleStepper } from './components';
+import { ContractorLocationSection } from './components/ContractorLocationSection';
 import { useAuth } from '../../contexts/AuthContext';
 import { JobsStackParamList } from '../../navigation/types';
 import type { Job } from '@mintenance/types';
-import { Alert } from 'react-native';
-import { JobService } from '../../services/JobService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -60,6 +60,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user } = useAuth();
   const viewModel = useJobDetailsViewModel(jobId);
   const insets = useSafeAreaInsets();
+  const [showEscrowModal, setShowEscrowModal] = useState(false);
 
   if (viewModel.jobLoading) {
     return <LoadingSpinner message="Loading job details..." />;
@@ -103,7 +104,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: theme.spacing[24] + theme.spacing[6] }}
       >
         {/* 1. Hero Image Section (full-bleed) */}
         {hasPhotos ? (
@@ -127,7 +128,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={24} color="#000000" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
 
         {/* Share button overlay */}
@@ -141,8 +142,14 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           accessibilityRole="button"
           accessibilityLabel="Share this job"
         >
-          <Ionicons name="share-outline" size={22} color="#000000" />
+          <Ionicons name="share-outline" size={22} color={theme.colors.textPrimary} />
         </TouchableOpacity>
+
+        {/* Lifecycle Stepper */}
+        <JobLifecycleStepper
+          jobStatus={job.status}
+          contractStatus={viewModel.contractStatus}
+        />
 
         {/* 2. Title Section */}
         <View style={styles.section}>
@@ -221,8 +228,16 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                   <Text style={styles.pricingLabel}>Estimated cost</Text>
                 </View>
                 <View style={styles.escrowBadge}>
-                  <Ionicons name="shield-checkmark" size={16} color='#717171' />
+                  <Ionicons name="shield-checkmark" size={16} color={theme.colors.textSecondary} />
                   <Text style={styles.escrowText}>Escrow protected</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowEscrowModal(true)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Learn how escrow protection works"
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons name="information-circle-outline" size={18} color={theme.colors.textSecondary} />
+                  </TouchableOpacity>
                 </View>
               </View>
             </View>
@@ -285,30 +300,117 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
           </>
         )}
+
+        {/* 10. Location Tracking (contractor on active job) */}
+        {isContractor && job.contractor_id === user?.id && job.status === 'in_progress' && (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.sectionPadded}>
+              <ContractorLocationSection jobId={job.id} />
+            </View>
+          </>
+        )}
       </ScrollView>
 
       {/* Single priority-based CTA — only ever one renders */}
-      {getPriorityCTA({ job: job as CTAContext['job'], isOwner, isContractor, userId: user?.id, budget, navigation })}
+      {getPriorityCTA({
+        job: job as CTAContext['job'],
+        isOwner,
+        isContractor,
+        userId: user?.id,
+        budget,
+        navigation,
+        contractStatus: viewModel.contractStatus,
+        escrowStatus: viewModel.escrowStatus,
+        hasReviewed: viewModel.hasReviewed,
+      })}
+
+      {/* Escrow Explanation Modal */}
+      <Modal
+        visible={showEscrowModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowEscrowModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent} accessibilityRole="none" accessibilityLabel="Escrow protection information">
+            <Text style={styles.modalTitle}>How Escrow Protection Works</Text>
+
+            <View style={styles.escrowStep}>
+              <View style={styles.escrowStepIcon}>
+                <Ionicons name="shield-checkmark" size={24} color={theme.colors.primary} />
+              </View>
+              <View style={styles.escrowStepContent}>
+                <Text style={styles.escrowStepTitle}>Payment Held Securely</Text>
+                <Text style={styles.escrowStepDescription}>
+                  Your payment is held in escrow until the job is complete
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.escrowStep}>
+              <View style={styles.escrowStepIcon}>
+                <Ionicons name="checkmark-circle" size={24} color={theme.colors.primary} />
+              </View>
+              <View style={styles.escrowStepContent}>
+                <Text style={styles.escrowStepTitle}>Approve Completed Work</Text>
+                <Text style={styles.escrowStepDescription}>
+                  Review before/after photos and approve the work
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.escrowStep}>
+              <View style={styles.escrowStepIcon}>
+                <Ionicons name="cash" size={24} color={theme.colors.primary} />
+              </View>
+              <View style={styles.escrowStepContent}>
+                <Text style={styles.escrowStepTitle}>Payment Released</Text>
+                <Text style={styles.escrowStepDescription}>
+                  Funds are released to the contractor after your approval
+                </Text>
+              </View>
+            </View>
+
+            <Text style={styles.escrowFooterNote}>
+              If you don't respond within 7 days, payment is automatically released.
+            </Text>
+
+            <TouchableOpacity
+              style={styles.escrowModalButton}
+              onPress={() => setShowEscrowModal(false)}
+              accessibilityRole="button"
+              accessibilityLabel="Close escrow information"
+            >
+              <Text style={styles.escrowModalButtonText}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
 
 // ── Priority CTA helper — exactly one action shown at a time ──
 //
-// Priority order (highest first):
-//   Contractor: submit bid → view contract → upload before photos → upload after photos
-//   Homeowner:  view bids → view contract → pay now → review work
+// Contractor: submit bid → prepare contract → view contract → upload before photos → upload after photos
+// Homeowner:  view bids → view contract → pay now → review work → leave review
 interface CTAContext {
-  job: Job & { bids?: { length: number }[] };
+  job: Job & { bids?: { length: number }[]; completion_confirmed_by_homeowner?: boolean };
   isOwner: boolean;
   isContractor: boolean;
   userId: string | undefined;
   budget: number;
   navigation: JobDetailsScreenNavigationProp;
+  contractStatus: string | null;
+  escrowStatus: string | null;
+  hasReviewed: boolean;
 }
 
-function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation }: CTAContext): React.ReactElement | null {
+function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation, contractStatus, escrowStatus, hasReviewed }: CTAContext): React.ReactElement | null {
   const isAssignedContractor = isContractor && job.contractor_id === userId;
+
+  // ── Contractor flow ──
 
   if (isContractor && job.status === 'posted') {
     return (
@@ -321,6 +423,52 @@ function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation
     );
   }
 
+  // Contractor: assigned + contract is draft → prepare contract
+  if (isAssignedContractor && job.status === 'assigned' && contractStatus === 'draft') {
+    return (
+      <StickyBottomCTA
+        buttonText="Prepare Contract"
+        onPress={() => navigation.navigate('ContractPreparation', { jobId: job.id, jobTitle: job.title })}
+        secondaryText="Fill in contract terms for homeowner"
+      />
+    );
+  }
+
+  // Contractor: assigned + contract pending (not yet accepted) → view contract
+  if (isAssignedContractor && job.status === 'assigned' && contractStatus && contractStatus !== 'draft' && contractStatus !== 'accepted') {
+    return (
+      <StickyBottomCTA
+        buttonText="View Contract"
+        onPress={() => navigation.navigate('ContractView', { jobId: job.id })}
+        secondaryText="Review and sign contract"
+      />
+    );
+  }
+
+  // Contractor: assigned + contract accepted + escrow held → upload before photos
+  if (isAssignedContractor && job.status === 'assigned' && contractStatus === 'accepted' && escrowStatus === 'held') {
+    return (
+      <StickyBottomCTA
+        buttonText="Upload Before Photos"
+        onPress={() => navigation.navigate('PhotoUpload', { jobId: job.id, photoType: 'before' })}
+        secondaryText="Required before starting work"
+      />
+    );
+  }
+
+  // Contractor: in_progress → upload after photos
+  if (isAssignedContractor && job.status === 'in_progress') {
+    return (
+      <StickyBottomCTA
+        buttonText="Upload After Photos"
+        onPress={() => navigation.navigate('PhotoUpload', { jobId: job.id, photoType: 'after' })}
+        secondaryText="Document completed work"
+      />
+    );
+  }
+
+  // ── Homeowner flow ──
+
   if (isOwner && job.status === 'posted' && job.bids && job.bids.length > 0) {
     return (
       <StickyBottomCTA
@@ -331,34 +479,19 @@ function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation
     );
   }
 
-  if (job.status === 'assigned' && (isOwner || isAssignedContractor)) {
-    // Check if contract is signed and escrow is funded — if so, show before-photo upload for contractor
-    const jobRecord = job as unknown as Record<string, unknown>;
-    const contractSigned = jobRecord.contract_status === 'accepted';
-    const escrowFunded = jobRecord.payment_status === 'paid';
-
-    if (isAssignedContractor && contractSigned && escrowFunded) {
-      // Before-photo upload + Start Job flow (Phase 6 enforcement)
-      return (
-        <StickyBottomCTA
-          buttonText="Upload Before Photos"
-          onPress={() => navigation.navigate('PhotoUpload', { jobId: job.id, photoType: 'before' })}
-          secondaryText="Required before starting work"
-        />
-      );
-    }
-
-    // Contract not yet fully signed — show contract view
+  // Homeowner: assigned + contract pending_homeowner → view/sign contract
+  if (isOwner && job.status === 'assigned' && contractStatus && contractStatus !== 'accepted') {
     return (
       <StickyBottomCTA
         buttonText="View Contract"
         onPress={() => navigation.navigate('ContractView', { jobId: job.id })}
-        secondaryText={isOwner ? 'Sign to unlock payment' : 'Sign to start work'}
+        secondaryText="Review and sign contract"
       />
     );
   }
 
-  if (isOwner && job.status === 'in_progress' && budget > 0) {
+  // Homeowner: assigned + contract accepted + escrow not funded → pay now
+  if (isOwner && job.status === 'assigned' && contractStatus === 'accepted' && escrowStatus !== 'held' && budget > 0) {
     return (
       <StickyBottomCTA
         price={budget}
@@ -374,22 +507,28 @@ function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation
     );
   }
 
-  if (isAssignedContractor && job.status === 'in_progress') {
-    return (
-      <StickyBottomCTA
-        buttonText="Upload After Photos"
-        onPress={() => navigation.navigate('PhotoUpload', { jobId: job.id, photoType: 'after' })}
-        secondaryText="Document completed work"
-      />
-    );
-  }
-
-  if (isOwner && job.status === 'completed') {
+  // Homeowner: completed + not confirmed → review work (before/after photos)
+  if (isOwner && job.status === 'completed' && !job.completion_confirmed_by_homeowner) {
     return (
       <StickyBottomCTA
         buttonText="Review Work"
         onPress={() => navigation.navigate('PhotoReview', { jobId: job.id })}
         secondaryText="Compare before & after photos"
+      />
+    );
+  }
+
+  // Homeowner: completed + confirmed + not reviewed → leave a review
+  if (isOwner && job.status === 'completed' && job.completion_confirmed_by_homeowner && !hasReviewed) {
+    return (
+      <StickyBottomCTA
+        buttonText="Leave a Review"
+        onPress={() => navigation.navigate('ReviewSubmission', {
+          jobId: job.id,
+          jobTitle: job.title,
+          contractorName: undefined,
+        })}
+        secondaryText="Rate your experience"
       />
     );
   }
@@ -430,22 +569,22 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    left: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    left: theme.spacing.md,
+    width: theme.spacing[10],
+    height: theme.spacing[10],
+    borderRadius: theme.borderRadius.full,
+    backgroundColor: theme.colors.overlayWhite20,
     alignItems: 'center',
     justifyContent: 'center',
     ...theme.shadows.sm,
   },
   shareButton: {
     position: 'absolute',
-    right: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    right: theme.spacing.md,
+    width: theme.spacing[10],
+    height: theme.spacing[10],
+    borderRadius: theme.borderRadius.full,
+    backgroundColor: theme.colors.overlayWhite20,
     alignItems: 'center',
     justifyContent: 'center',
     ...theme.shadows.sm,
@@ -453,132 +592,203 @@ const styles = StyleSheet.create({
 
   // ── Sections ──
   section: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing[5],
   },
   sectionPadded: {
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
   },
   sectionLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: theme.typography.fontSize.xs,
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-    marginBottom: 12,
+    marginBottom: theme.spacing[3],
   },
   divider: {
     height: 1,
     backgroundColor: theme.colors.borderLight,
-    marginHorizontal: 24,
+    marginHorizontal: theme.spacing.lg,
   },
 
   // ── Title Section ──
   title: {
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: theme.typography.fontSize['2xl'],
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
-    marginBottom: 8,
+    marginBottom: theme.spacing.sm,
   },
   tagRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 8,
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
   },
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.colors.backgroundSecondary,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-    gap: 4,
+    paddingHorizontal: theme.spacing[3],
+    paddingVertical: theme.spacing.xs + 1,
+    borderRadius: theme.borderRadius.sm + 2,
+    gap: theme.spacing.xs,
   },
   urgentTag: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: theme.colors.error + '15',
   },
   tagText: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textSecondary,
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 4,
+    gap: theme.spacing.xs,
+    marginBottom: theme.spacing.xs,
   },
   locationText: {
-    fontSize: 15,
+    fontSize: theme.typography.fontSize.base,
     color: theme.colors.textSecondary,
   },
   metaText: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textTertiary,
-    marginTop: 4,
+    marginTop: theme.spacing.xs,
   },
 
   // ── Pricing ──
   pricingCard: {
     backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
   },
   pricingMain: {
-    marginBottom: 12,
+    marginBottom: theme.spacing[3],
   },
   pricingAmount: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: theme.typography.fontSize['3xl'],
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   pricingLabel: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textSecondary,
     marginTop: 2,
   },
   escrowBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: theme.spacing.sm - 2,
   },
   escrowText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#717171',
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.medium,
+    color: theme.colors.textSecondary,
   },
 
   // ── Details ──
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    minHeight: 48,
+    paddingVertical: theme.spacing[3],
+    minHeight: theme.spacing[12],
   },
   detailIconContainer: {
-    width: 40,
+    width: theme.spacing[10],
     alignItems: 'center',
   },
   detailContent: {
     flex: 1,
   },
   detailLabel: {
-    fontSize: 13,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textSecondary,
   },
   detailValue: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textPrimary,
     marginTop: 2,
   },
 
   // ── Description ──
   description: {
-    fontSize: 15,
+    fontSize: theme.typography.fontSize.base,
     color: theme.colors.textSecondary,
     lineHeight: 24,
+  },
+
+  // ── Escrow Info Modal ──
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: theme.colors.overlayDark50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: theme.spacing.lg,
+  },
+  modalContent: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.xxl,
+    padding: theme.spacing.lg,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: theme.typography.fontSize.xl,
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: theme.spacing.lg,
+  },
+  escrowStep: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: theme.spacing[5],
+    gap: theme.spacing[3] + 2,
+  },
+  escrowStepIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: theme.borderRadius.full,
+    backgroundColor: theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  escrowStepContent: {
+    flex: 1,
+  },
+  escrowStepTitle: {
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.textPrimary,
+    marginBottom: 2,
+  },
+  escrowStepDescription: {
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.textSecondary,
+    lineHeight: 20,
+  },
+  escrowFooterNote: {
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.textTertiary,
+    textAlign: 'center',
+    marginTop: theme.spacing.xs,
+    marginBottom: theme.spacing[5],
+    lineHeight: 18,
+    fontStyle: 'italic',
+  },
+  escrowModalButton: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.borderRadius.xl - 2,
+    paddingVertical: theme.spacing[3] + 2,
+    alignItems: 'center',
+  },
+  escrowModalButtonText: {
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.textInverse,
   },
 });
 

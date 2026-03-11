@@ -216,9 +216,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.surfaceSecondary },
   header: { backgroundColor: theme.colors.background, paddingTop: 16, paddingBottom: 12, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   backButton: { width: 40, height: 40, borderRadius: theme.borderRadius.xxl, backgroundColor: theme.colors.surfaceSecondary, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 20, fontWeight: "700", color: theme.colors.textPrimary, flex: 1, textAlign: "center", marginHorizontal: 16 },
-  saveButton: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: "#222222", borderRadius: 12 },
-  saveButtonText: { fontSize: 16, fontWeight: "600", color: theme.colors.textInverse },
+  headerTitle: { fontSize: 20, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary, flex: 1, textAlign: "center", marginHorizontal: 16 },
+  saveButton: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: theme.colors.primary, borderRadius: 12 },
+  saveButtonText: { fontSize: 16, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textInverse },
   content: { flex: 1 },
 });
 

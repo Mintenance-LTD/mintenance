@@ -26,18 +26,30 @@ interface DashboardStatus {
   performance: {
     score: number;
     metrics: Record<string, unknown>;
+    startupTime?: number;
+    memoryUsage?: number;
+    navigationTime?: number;
+    apiResponseTime?: number;
+    fps?: number;
   };
   errors: {
     count: number;
     recent: unknown[];
+    errorRate?: number;
+    totalErrors?: number;
+    uniqueErrors?: number;
+    criticalErrors?: number;
   };
   security: {
     status: string;
     issues: unknown[];
+    lastAudit?: number;
+    vulnerabilities?: { critical?: number; high?: number; medium?: number; low?: number };
   };
   health: {
     status: string;
     uptime: number;
+    lastCheck?: number;
   };
 }
 
@@ -60,7 +72,7 @@ export function ProductionMonitoringDashboard() {
   const loadDashboardData = async () => {
     try {
       const data = await dashboardData.getCompleteStatus();
-      setStatus(data);
+      setStatus(data as unknown as DashboardStatus);
       setLastRefresh(Date.now());
     } catch (error) {
       logger.error('Failed to load dashboard data', error);
@@ -93,10 +105,10 @@ export function ProductionMonitoringDashboard() {
   };
 
   const getStatusColor = (status: string, score?: number) => {
-    if (status === 'healthy' || status === 'ready') return '#4CAF50';
-    if (status === 'warning' || (score && score < 80)) return '#FF9800';
-    if (status === 'error' || status === 'not_ready') return '#F44336';
-    return '#9E9E9E';
+    if (status === 'healthy' || status === 'ready') return theme.colors.success;
+    if (status === 'warning' || (score && score < 80)) return theme.colors.warning;
+    if (status === 'error' || status === 'not_ready') return theme.colors.error;
+    return theme.colors.textTertiary;
   };
 
   const formatTimestamp = (timestamp: number) => {
@@ -204,8 +216,8 @@ export function ProductionMonitoringDashboard() {
         <View style={styles.metricsGrid}>
           <View style={styles.metric}>
             <Text style={styles.metricLabel}>Error Rate</Text>
-            <Text style={[styles.metricValue, { color: status.errors.errorRate > 0.01 ? '#F44336' : '#4CAF50' }]}>
-              {(status.errors.errorRate * 100).toFixed(2)}%
+            <Text style={[styles.metricValue, { color: (status.errors.errorRate ?? 0) > 0.01 ? theme.colors.error : theme.colors.success }]}>
+              {((status.errors.errorRate ?? 0) * 100).toFixed(2)}%
             </Text>
           </View>
           <View style={styles.metric}>
@@ -218,8 +230,8 @@ export function ProductionMonitoringDashboard() {
           </View>
           <View style={styles.metric}>
             <Text style={styles.metricLabel}>Critical Errors</Text>
-            <Text style={[styles.metricValue, { color: status.errors.criticalErrors > 0 ? '#F44336' : '#4CAF50' }]}>
-              {status.errors.criticalErrors}
+            <Text style={[styles.metricValue, { color: (status.errors.criticalErrors ?? 0) > 0 ? theme.colors.error : theme.colors.success }]}>
+              {status.errors.criticalErrors ?? 0}
             </Text>
           </View>
         </View>
@@ -237,23 +249,23 @@ export function ProductionMonitoringDashboard() {
         <View style={styles.vulnerabilitiesGrid}>
           <View style={styles.vulnerability}>
             <Text style={styles.vulnerabilityLabel}>Critical</Text>
-            <Text style={[styles.vulnerabilityValue, { color: status.security.vulnerabilities.critical > 0 ? '#F44336' : '#4CAF50' }]}>
-              {status.security.vulnerabilities.critical}
+            <Text style={[styles.vulnerabilityValue, { color: (status.security.vulnerabilities?.critical ?? 0) > 0 ? theme.colors.error : theme.colors.success }]}>
+              {status.security.vulnerabilities?.critical ?? 0}
             </Text>
           </View>
           <View style={styles.vulnerability}>
             <Text style={styles.vulnerabilityLabel}>High</Text>
-            <Text style={[styles.vulnerabilityValue, { color: status.security.vulnerabilities.high > 0 ? '#FF9800' : '#4CAF50' }]}>
-              {status.security.vulnerabilities.high}
+            <Text style={[styles.vulnerabilityValue, { color: (status.security.vulnerabilities?.high ?? 0) > 0 ? theme.colors.warning : theme.colors.success }]}>
+              {status.security.vulnerabilities?.high ?? 0}
             </Text>
           </View>
           <View style={styles.vulnerability}>
             <Text style={styles.vulnerabilityLabel}>Medium</Text>
-            <Text style={styles.vulnerabilityValue}>{status.security.vulnerabilities.medium}</Text>
+            <Text style={styles.vulnerabilityValue}>{status.security.vulnerabilities?.medium ?? 0}</Text>
           </View>
           <View style={styles.vulnerability}>
             <Text style={styles.vulnerabilityLabel}>Low</Text>
-            <Text style={styles.vulnerabilityValue}>{status.security.vulnerabilities.low}</Text>
+            <Text style={styles.vulnerabilityValue}>{status.security.vulnerabilities?.low ?? 0}</Text>
           </View>
         </View>
       </View>
@@ -264,7 +276,7 @@ export function ProductionMonitoringDashboard() {
           <Text style={styles.cardTitle}>🌐 Web Platform Status</Text>
           <View style={styles.statusRow}>
             <Text style={styles.statusLabel}>Optimizations:</Text>
-            <Text style={[styles.statusValue, { color: webPlatform.isOptimized() ? '#4CAF50' : '#FF9800' }]}>
+            <Text style={[styles.statusValue, { color: webPlatform.isOptimized() ? theme.colors.success : theme.colors.warning }]}>
               {webPlatform.isOptimized() ? 'Active' : 'Inactive'}
             </Text>
           </View>
@@ -294,7 +306,7 @@ export function ProductionMonitoringDashboard() {
         </View>
         <View style={styles.statusRow}>
           <Text style={styles.statusLabel}>Last Check:</Text>
-          <Text style={styles.statusValue}>{formatTimestamp(status.health.lastCheck)}</Text>
+          <Text style={styles.statusValue}>{formatTimestamp(status.health.lastCheck ?? Date.now())}</Text>
         </View>
       </View>
 
@@ -311,7 +323,7 @@ export function ProductionMonitoringDashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     padding: 24,
   },
   header: {
@@ -319,13 +331,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#222222',
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 12,
   },
   headerButtons: {
@@ -333,14 +345,14 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   refreshButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
   refreshButtonText: {
-    color: 'white',
-    fontWeight: '700',
+    color: theme.colors.white,
+    fontWeight: theme.typography.fontWeight.bold,
     fontSize: 14,
   },
   healthButton: {
@@ -350,12 +362,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   healthButtonText: {
-    color: 'white',
-    fontWeight: '700',
+    color: theme.colors.white,
+    fontWeight: theme.typography.fontWeight.bold,
     fontSize: 14,
   },
   card: {
-    backgroundColor: 'white',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -363,8 +375,8 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#222222',
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   statusRow: {
@@ -375,12 +387,12 @@ const styles = StyleSheet.create({
   },
   statusLabel: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   statusValue: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#222222',
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.textPrimary,
   },
   metricsGrid: {
     flexDirection: 'row',
@@ -396,13 +408,13 @@ const styles = StyleSheet.create({
   },
   metricLabel: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 4,
   },
   metricValue: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#222222',
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.textPrimary,
   },
   vulnerabilitiesGrid: {
     flexDirection: 'row',
@@ -414,13 +426,13 @@ const styles = StyleSheet.create({
   },
   vulnerabilityLabel: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 4,
   },
   vulnerabilityValue: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#222222',
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.textPrimary,
   },
   footer: {
     marginTop: 20,
@@ -428,19 +440,19 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     fontStyle: 'italic',
   },
   loadingText: {
     fontSize: 16,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginTop: 50,
   },
   errorText: {
     fontSize: 16,
-    color: '#F44336',
+    color: theme.colors.error,
     textAlign: 'center',
     marginTop: 50,
     marginBottom: 20,

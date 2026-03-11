@@ -130,7 +130,8 @@ export class PWAManager {
   /**
    * Show install banner
    */
-  private showInstallBanner(deferredPrompt: unknown): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private showInstallBanner(deferredPrompt: any): void {
     // Create install banner
     const banner = document.createElement('div');
     banner.id = 'pwa-install-banner';

@@ -108,7 +108,7 @@ export const QuoteTemplatesScreen: React.FC<QuoteTemplatesScreenProps> = ({ navi
       activeOpacity={0.7}
     >
       <View style={styles.templateIcon}>
-        <Ionicons name={item.icon} size={28} color='#717171' />
+        <Ionicons name={item.icon} size={28} color={theme.colors.textSecondary} />
       </View>
       <View style={styles.templateInfo}>
         <View style={styles.templateHeader}>
@@ -161,10 +161,10 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     backgroundColor: theme.colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.borderLight,
   },
   headerButton: { padding: 8, width: 40 },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.textPrimary },
+  headerTitle: { fontSize: 18, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
   listContent: { padding: 16 },
   subtitle: { fontSize: 14, color: theme.colors.textSecondary, marginBottom: 16, lineHeight: 20 },
   templateCard: {
@@ -187,10 +187,10 @@ const styles = StyleSheet.create({
   },
   templateInfo: { flex: 1, marginRight: 8 },
   templateHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  templateTitle: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary, flex: 1 },
-  templateCategory: { fontSize: 11, color: theme.colors.textSecondary, fontWeight: '600', backgroundColor: theme.colors.surfaceSecondary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginLeft: 6 },
+  templateTitle: { fontSize: 15, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary, flex: 1 },
+  templateCategory: { fontSize: 11, color: theme.colors.textSecondary, fontWeight: theme.typography.fontWeight.semibold, backgroundColor: theme.colors.surfaceSecondary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginLeft: 6 },
   templateDescription: { fontSize: 13, color: theme.colors.textSecondary, lineHeight: 18, marginBottom: 6 },
-  templatePrice: { fontSize: 13, fontWeight: '600', color: theme.colors.textPrimary },
+  templatePrice: { fontSize: 13, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary },
 });
 
 export default QuoteTemplatesScreen;

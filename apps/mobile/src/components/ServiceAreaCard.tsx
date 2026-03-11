@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   },
   areaName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginRight: 8,
   },
@@ -265,8 +265,8 @@ const styles = StyleSheet.create({
   },
   primaryText: {
     fontSize: 9,
-    fontWeight: '700',
-    color: '#fff',
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.textInverse,
   },
   description: {
     fontSize: 14,
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   detailsRow: {
     flexDirection: 'row',
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
   },
   pricingValue: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   surchargesRow: {
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
   surchargeText: {
     fontSize: 11,
     color: theme.colors.textSecondary,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   emergencyText: {
     color: theme.colors.error,

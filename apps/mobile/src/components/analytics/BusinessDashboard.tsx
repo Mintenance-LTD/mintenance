@@ -49,7 +49,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
   trend = 'neutral',
   color = theme.colors.primary,
 }) => {
-  const trendColor = trend === 'up' ? '#10B981' : trend === 'down' ? '#EF4444' : '#717171';
+  const trendColor = trend === 'up' ? theme.colors.success : trend === 'down' ? theme.colors.error : theme.colors.textSecondary;
   
   return (
     <View style={[styles.metricCard, { borderLeftColor: color }]}>
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: theme.typography.fontSize.xl,
-    fontWeight: '700' as const,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   refreshButton: {
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
   metricCard: {
     flex: 1,
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
+    borderRadius: theme.borderRadius.lg,
     padding: theme.spacing[4],
     borderLeftWidth: 4,
     ...theme.shadows.base,
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
   },
   metricValue: {
     fontSize: theme.typography.fontSize.xl,
-    fontWeight: '700' as const,
+    fontWeight: theme.typography.fontWeight.bold,
     marginBottom: theme.spacing[1],
   },
   changeContainer: {
@@ -270,13 +270,13 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: theme.typography.fontSize.lg,
-    fontWeight: '700' as const,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: theme.spacing[3],
   },
   insightCard: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
+    borderRadius: theme.borderRadius.lg,
     padding: theme.spacing[4],
     marginBottom: theme.spacing[3],
     ...theme.shadows.base,
@@ -290,21 +290,21 @@ const styles = StyleSheet.create({
   insightText: {
     fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textSecondary,
-    lineHeight: 20,
+    lineHeight: theme.spacing[5],
   },
   actionGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: theme.spacing[3],
   },
   actionButton: {
-    width: (width - theme.spacing[4] * 2 - 12) / 2,
+    width: (width - theme.spacing[4] * 2 - theme.spacing[3]) / 2,
     backgroundColor: theme.colors.primary,
-    borderRadius: 12,
+    borderRadius: theme.borderRadius.lg,
     padding: theme.spacing[3],
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 60,
+    minHeight: theme.layout.headerHeight,
   },
   actionText: {
     color: theme.colors.textInverse,

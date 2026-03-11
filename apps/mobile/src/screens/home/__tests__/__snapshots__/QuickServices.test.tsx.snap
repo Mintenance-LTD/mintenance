@@ -4,124 +4,65 @@ exports[`QuickServices Component Snapshots should match snapshot 1`] = `
 <View
   style={
     {
-      "marginBottom": 32,
+      "marginBottom": 20,
+      "marginHorizontal": -24,
     }
   }
 >
-  <Text
-    style={
+  <ScrollView
+    contentContainerStyle={
       {
-        "color": "#0F172A",
-        "fontSize": 18,
-        "fontWeight": "700",
-        "marginBottom": 4,
+        "gap": 18,
+        "paddingHorizontal": 24,
       }
     }
-  >
-    Need Help With?
-  </Text>
-  <Text
-    style={
-      {
-        "color": "#475569",
-        "fontSize": 14,
-        "marginBottom": 16,
-      }
-    }
-  >
-    Quick access to common services
-  </Text>
-  <View
-    columns={2}
-    gap={16}
-    responsive={
-      {
-        "desktop": 4,
-        "mobile": 2,
-        "tablet": 3,
-      }
-    }
-    style={
-      {
-        "flexDirection": "row",
-        "flexWrap": "wrap",
-        "justifyContent": "space-between",
-        "marginBottom": 20,
-      }
-    }
-    testID="responsive-grid"
+    horizontal={true}
+    showsHorizontalScrollIndicator={false}
   >
     <TouchableOpacity
       accessibilityLabel="Find plumbing contractors"
       accessibilityRole="button"
       onPress={[Function]}
       style={
-        {
-          "alignItems": "center",
-          "backgroundColor": "#FFFFFF",
-          "borderRadius": 16,
-          "elevation": 5,
-          "marginBottom": 12,
-          "padding": 16,
-          "shadowColor": "#000",
-          "shadowOffset": {
-            "height": 2,
-            "width": 0,
+        [
+          {
+            "alignItems": "center",
+            "borderBottomColor": "transparent",
+            "borderBottomWidth": 2,
+            "minWidth": 68,
+            "paddingBottom": 8,
+            "paddingVertical": 10,
           },
-          "shadowOpacity": 0.1,
-          "shadowRadius": 3.84,
-          "width": "48%",
-        }
+          {
+            "borderBottomColor": "#222222",
+          },
+        ]
       }
     >
-      <View
+      <Text
+        accessibilityLabel="Icon: water-outline, size: 24, color: #222222"
+        testID="icon-water-outline"
+      >
+        water-outline
+      </Text>
+      <Text
         style={
           [
             {
-              "alignItems": "center",
-              "borderRadius": 24,
-              "height": 48,
-              "justifyContent": "center",
-              "marginBottom": 12,
-              "width": 48,
+              "color": "#717171",
+              "fontSize": 13,
+              "fontWeight": "500",
+              "marginTop": 5,
+              "textAlign": "center",
             },
             {
-              "backgroundColor": "#60A5FA",
+              "color": "#222222",
+              "fontWeight": "600",
             },
           ]
         }
       >
-        <Text
-          accessibilityLabel="Icon: water, size: 24, color: #2563EB"
-          testID="icon-water"
-        >
-          water
-        </Text>
-      </View>
-      <Text
-        style={
-          {
-            "color": "#0F172A",
-            "fontSize": 16,
-            "fontWeight": "600",
-            "marginBottom": 4,
-            "textAlign": "center",
-          }
-        }
-      >
         Plumbing
-      </Text>
-      <Text
-        style={
-          {
-            "color": "#475569",
-            "fontSize": 12,
-            "lineHeight": 16,
-            "textAlign": "center",
-          }
-        }
-      >
-        Leaks, pipes, drains
       </Text>
     </TouchableOpacity>
     <TouchableOpacity
@@ -129,72 +70,40 @@ exports[`QuickServices Component Snapshots should match snapshot 1`] = `
       accessibilityRole="button"
       onPress={[Function]}
       style={
-        {
-          "alignItems": "center",
-          "backgroundColor": "#FFFFFF",
-          "borderRadius": 16,
-          "elevation": 5,
-          "marginBottom": 12,
-          "padding": 16,
-          "shadowColor": "#000",
-          "shadowOffset": {
-            "height": 2,
-            "width": 0,
+        [
+          {
+            "alignItems": "center",
+            "borderBottomColor": "transparent",
+            "borderBottomWidth": 2,
+            "minWidth": 68,
+            "paddingBottom": 8,
+            "paddingVertical": 10,
           },
-          "shadowOpacity": 0.1,
-          "shadowRadius": 3.84,
-          "width": "48%",
-        }
+          false,
+        ]
       }
     >
-      <View
-        style={
-          [
-            {
-              "alignItems": "center",
-              "borderRadius": 24,
-              "height": 48,
-              "justifyContent": "center",
-              "marginBottom": 12,
-              "width": 48,
-            },
-            {
-              "backgroundColor": "#FBBF24",
-            },
-          ]
-        }
-      >
-        <Text
-          accessibilityLabel="Icon: flash, size: 24, color: #D97706"
-          testID="icon-flash"
-        >
-          flash
-        </Text>
-      </View>
       <Text
-        style={
-          {
-            "color": "#0F172A",
-            "fontSize": 16,
-            "fontWeight": "600",
-            "marginBottom": 4,
-            "textAlign": "center",
-          }
-        }
+        accessibilityLabel="Icon: flash-outline, size: 24, color: #717171"
+        testID="icon-flash-outline"
       >
-        Electrical
+        flash-outline
       </Text>
       <Text
         style={
-          {
-            "color": "#475569",
-            "fontSize": 12,
-            "lineHeight": 16,
-            "textAlign": "center",
-          }
+          [
+            {
+              "color": "#717171",
+              "fontSize": 13,
+              "fontWeight": "500",
+              "marginTop": 5,
+              "textAlign": "center",
+            },
+            false,
+          ]
         }
       >
-        Wiring, outlets, lights
+        Electrical
       </Text>
     </TouchableOpacity>
     <TouchableOpacity
@@ -202,72 +111,40 @@ exports[`QuickServices Component Snapshots should match snapshot 1`] = `
       accessibilityRole="button"
       onPress={[Function]}
       style={
-        {
-          "alignItems": "center",
-          "backgroundColor": "#FFFFFF",
-          "borderRadius": 16,
-          "elevation": 5,
-          "marginBottom": 12,
-          "padding": 16,
-          "shadowColor": "#000",
-          "shadowOffset": {
-            "height": 2,
-            "width": 0,
+        [
+          {
+            "alignItems": "center",
+            "borderBottomColor": "transparent",
+            "borderBottomWidth": 2,
+            "minWidth": 68,
+            "paddingBottom": 8,
+            "paddingVertical": 10,
           },
-          "shadowOpacity": 0.1,
-          "shadowRadius": 3.84,
-          "width": "48%",
-        }
+          false,
+        ]
       }
     >
-      <View
-        style={
-          [
-            {
-              "alignItems": "center",
-              "borderRadius": 24,
-              "height": 48,
-              "justifyContent": "center",
-              "marginBottom": 12,
-              "width": 48,
-            },
-            {
-              "backgroundColor": "#F1F5F9",
-            },
-          ]
-        }
-      >
-        <Text
-          accessibilityLabel="Icon: home, size: 24, color: #0F172A"
-          testID="icon-home"
-        >
-          home
-        </Text>
-      </View>
       <Text
-        style={
-          {
-            "color": "#0F172A",
-            "fontSize": 16,
-            "fontWeight": "600",
-            "marginBottom": 4,
-            "textAlign": "center",
-          }
-        }
+        accessibilityLabel="Icon: home-outline, size: 24, color: #717171"
+        testID="icon-home-outline"
       >
-        Appliances
+        home-outline
       </Text>
       <Text
         style={
-          {
-            "color": "#475569",
-            "fontSize": 12,
-            "lineHeight": 16,
-            "textAlign": "center",
-          }
+          [
+            {
+              "color": "#717171",
+              "fontSize": 13,
+              "fontWeight": "500",
+              "marginTop": 5,
+              "textAlign": "center",
+            },
+            false,
+          ]
         }
       >
-        Washer, fridge, oven
+        Appliances
       </Text>
     </TouchableOpacity>
     <TouchableOpacity
@@ -275,120 +152,215 @@ exports[`QuickServices Component Snapshots should match snapshot 1`] = `
       accessibilityRole="button"
       onPress={[Function]}
       style={
-        {
-          "alignItems": "center",
-          "backgroundColor": "#FFFFFF",
-          "borderRadius": 16,
-          "elevation": 5,
-          "marginBottom": 12,
-          "padding": 16,
-          "shadowColor": "#000",
-          "shadowOffset": {
-            "height": 2,
-            "width": 0,
+        [
+          {
+            "alignItems": "center",
+            "borderBottomColor": "transparent",
+            "borderBottomWidth": 2,
+            "minWidth": 68,
+            "paddingBottom": 8,
+            "paddingVertical": 10,
           },
-          "shadowOpacity": 0.1,
-          "shadowRadius": 3.84,
-          "width": "48%",
-        }
+          false,
+        ]
       }
     >
-      <View
+      <Text
+        accessibilityLabel="Icon: snow-outline, size: 24, color: #717171"
+        testID="icon-snow-outline"
+      >
+        snow-outline
+      </Text>
+      <Text
         style={
           [
             {
-              "alignItems": "center",
-              "borderRadius": 24,
-              "height": 48,
-              "justifyContent": "center",
-              "marginBottom": 12,
-              "width": 48,
+              "color": "#717171",
+              "fontSize": 13,
+              "fontWeight": "500",
+              "marginTop": 5,
+              "textAlign": "center",
             },
-            {
-              "backgroundColor": "#34D399",
-            },
+            false,
           ]
-        }
-      >
-        <Text
-          accessibilityLabel="Icon: snow, size: 24, color: #059669"
-          testID="icon-snow"
-        >
-          snow
-        </Text>
-      </View>
-      <Text
-        style={
-          {
-            "color": "#0F172A",
-            "fontSize": 16,
-            "fontWeight": "600",
-            "marginBottom": 4,
-            "textAlign": "center",
-          }
         }
       >
         HVAC
       </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      accessibilityLabel="Find roofing contractors"
+      accessibilityRole="button"
+      onPress={[Function]}
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderBottomColor": "transparent",
+            "borderBottomWidth": 2,
+            "minWidth": 68,
+            "paddingBottom": 8,
+            "paddingVertical": 10,
+          },
+          false,
+        ]
+      }
+    >
+      <Text
+        accessibilityLabel="Icon: home-outline, size: 24, color: #717171"
+        testID="icon-home-outline"
+      >
+        home-outline
+      </Text>
       <Text
         style={
-          {
-            "color": "#475569",
-            "fontSize": 12,
-            "lineHeight": 16,
-            "textAlign": "center",
-          }
+          [
+            {
+              "color": "#717171",
+              "fontSize": 13,
+              "fontWeight": "500",
+              "marginTop": 5,
+              "textAlign": "center",
+            },
+            false,
+          ]
         }
       >
-        AC, heating, vents
+        Roofing
       </Text>
     </TouchableOpacity>
-  </View>
-  <TouchableOpacity
-    accessibilityLabel="Browse all services"
-    accessibilityRole="button"
-    onPress={[Function]}
+    <TouchableOpacity
+      accessibilityLabel="Find painting contractors"
+      accessibilityRole="button"
+      onPress={[Function]}
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderBottomColor": "transparent",
+            "borderBottomWidth": 2,
+            "minWidth": 68,
+            "paddingBottom": 8,
+            "paddingVertical": 10,
+          },
+          false,
+        ]
+      }
+    >
+      <Text
+        accessibilityLabel="Icon: color-palette-outline, size: 24, color: #717171"
+        testID="icon-color-palette-outline"
+      >
+        color-palette-outline
+      </Text>
+      <Text
+        style={
+          [
+            {
+              "color": "#717171",
+              "fontSize": 13,
+              "fontWeight": "500",
+              "marginTop": 5,
+              "textAlign": "center",
+            },
+            false,
+          ]
+        }
+      >
+        Painting
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      accessibilityLabel="Find carpentry contractors"
+      accessibilityRole="button"
+      onPress={[Function]}
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderBottomColor": "transparent",
+            "borderBottomWidth": 2,
+            "minWidth": 68,
+            "paddingBottom": 8,
+            "paddingVertical": 10,
+          },
+          false,
+        ]
+      }
+    >
+      <Text
+        accessibilityLabel="Icon: hammer-outline, size: 24, color: #717171"
+        testID="icon-hammer-outline"
+      >
+        hammer-outline
+      </Text>
+      <Text
+        style={
+          [
+            {
+              "color": "#717171",
+              "fontSize": 13,
+              "fontWeight": "500",
+              "marginTop": 5,
+              "textAlign": "center",
+            },
+            false,
+          ]
+        }
+      >
+        Carpentry
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      accessibilityLabel="Find cleaning contractors"
+      accessibilityRole="button"
+      onPress={[Function]}
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderBottomColor": "transparent",
+            "borderBottomWidth": 2,
+            "minWidth": 68,
+            "paddingBottom": 8,
+            "paddingVertical": 10,
+          },
+          false,
+        ]
+      }
+    >
+      <Text
+        accessibilityLabel="Icon: sparkles-outline, size: 24, color: #717171"
+        testID="icon-sparkles-outline"
+      >
+        sparkles-outline
+      </Text>
+      <Text
+        style={
+          [
+            {
+              "color": "#717171",
+              "fontSize": 13,
+              "fontWeight": "500",
+              "marginTop": 5,
+              "textAlign": "center",
+            },
+            false,
+          ]
+        }
+      >
+        Cleaning
+      </Text>
+    </TouchableOpacity>
+  </ScrollView>
+  <View
     style={
       {
-        "alignItems": "center",
-        "backgroundColor": "#FFFFFF",
-        "borderColor": "#F1F5F9",
-        "borderRadius": 16,
-        "borderWidth": 1,
-        "flexDirection": "row",
-        "gap": 8,
-        "justifyContent": "center",
-        "paddingHorizontal": 20,
-        "paddingVertical": 16,
+        "backgroundColor": "#F0F0F0",
+        "height": 1,
       }
     }
-  >
-    <Text
-      accessibilityLabel="Icon: grid-outline, size: 20, color: #0F172A"
-      testID="icon-grid-outline"
-    >
-      grid-outline
-    </Text>
-    <Text
-      style={
-        {
-          "color": "#0F172A",
-          "flex": 1,
-          "fontSize": 16,
-          "fontWeight": "600",
-          "textAlign": "center",
-        }
-      }
-    >
-      Browse All Services
-    </Text>
-    <Text
-      accessibilityLabel="Icon: arrow-forward, size: 16, color: #0F172A"
-      testID="icon-arrow-forward"
-    >
-      arrow-forward
-    </Text>
-  </TouchableOpacity>
+  />
 </View>
 `;
 
@@ -396,124 +368,65 @@ exports[`QuickServices Component Snapshots should match snapshot with custom han
 <View
   style={
     {
-      "marginBottom": 32,
+      "marginBottom": 20,
+      "marginHorizontal": -24,
     }
   }
 >
-  <Text
-    style={
+  <ScrollView
+    contentContainerStyle={
       {
-        "color": "#0F172A",
-        "fontSize": 18,
-        "fontWeight": "700",
-        "marginBottom": 4,
+        "gap": 18,
+        "paddingHorizontal": 24,
       }
     }
-  >
-    Need Help With?
-  </Text>
-  <Text
-    style={
-      {
-        "color": "#475569",
-        "fontSize": 14,
-        "marginBottom": 16,
-      }
-    }
-  >
-    Quick access to common services
-  </Text>
-  <View
-    columns={2}
-    gap={16}
-    responsive={
-      {
-        "desktop": 4,
-        "mobile": 2,
-        "tablet": 3,
-      }
-    }
-    style={
-      {
-        "flexDirection": "row",
-        "flexWrap": "wrap",
-        "justifyContent": "space-between",
-        "marginBottom": 20,
-      }
-    }
-    testID="responsive-grid"
+    horizontal={true}
+    showsHorizontalScrollIndicator={false}
   >
     <TouchableOpacity
       accessibilityLabel="Find plumbing contractors"
       accessibilityRole="button"
       onPress={[Function]}
       style={
-        {
-          "alignItems": "center",
-          "backgroundColor": "#FFFFFF",
-          "borderRadius": 16,
-          "elevation": 5,
-          "marginBottom": 12,
-          "padding": 16,
-          "shadowColor": "#000",
-          "shadowOffset": {
-            "height": 2,
-            "width": 0,
+        [
+          {
+            "alignItems": "center",
+            "borderBottomColor": "transparent",
+            "borderBottomWidth": 2,
+            "minWidth": 68,
+            "paddingBottom": 8,
+            "paddingVertical": 10,
           },
-          "shadowOpacity": 0.1,
-          "shadowRadius": 3.84,
-          "width": "48%",
-        }
+          {
+            "borderBottomColor": "#222222",
+          },
+        ]
       }
     >
-      <View
+      <Text
+        accessibilityLabel="Icon: water-outline, size: 24, color: #222222"
+        testID="icon-water-outline"
+      >
+        water-outline
+      </Text>
+      <Text
         style={
           [
             {
-              "alignItems": "center",
-              "borderRadius": 24,
-              "height": 48,
-              "justifyContent": "center",
-              "marginBottom": 12,
-              "width": 48,
+              "color": "#717171",
+              "fontSize": 13,
+              "fontWeight": "500",
+              "marginTop": 5,
+              "textAlign": "center",
             },
             {
-              "backgroundColor": "#60A5FA",
+              "color": "#222222",
+              "fontWeight": "600",
             },
           ]
         }
       >
-        <Text
-          accessibilityLabel="Icon: water, size: 24, color: #2563EB"
-          testID="icon-water"
-        >
-          water
-        </Text>
-      </View>
-      <Text
-        style={
-          {
-            "color": "#0F172A",
-            "fontSize": 16,
-            "fontWeight": "600",
-            "marginBottom": 4,
-            "textAlign": "center",
-          }
-        }
-      >
         Plumbing
-      </Text>
-      <Text
-        style={
-          {
-            "color": "#475569",
-            "fontSize": 12,
-            "lineHeight": 16,
-            "textAlign": "center",
-          }
-        }
-      >
-        Leaks, pipes, drains
       </Text>
     </TouchableOpacity>
     <TouchableOpacity
@@ -521,72 +434,40 @@ exports[`QuickServices Component Snapshots should match snapshot with custom han
       accessibilityRole="button"
       onPress={[Function]}
       style={
-        {
-          "alignItems": "center",
-          "backgroundColor": "#FFFFFF",
-          "borderRadius": 16,
-          "elevation": 5,
-          "marginBottom": 12,
-          "padding": 16,
-          "shadowColor": "#000",
-          "shadowOffset": {
-            "height": 2,
-            "width": 0,
+        [
+          {
+            "alignItems": "center",
+            "borderBottomColor": "transparent",
+            "borderBottomWidth": 2,
+            "minWidth": 68,
+            "paddingBottom": 8,
+            "paddingVertical": 10,
           },
-          "shadowOpacity": 0.1,
-          "shadowRadius": 3.84,
-          "width": "48%",
-        }
+          false,
+        ]
       }
     >
-      <View
-        style={
-          [
-            {
-              "alignItems": "center",
-              "borderRadius": 24,
-              "height": 48,
-              "justifyContent": "center",
-              "marginBottom": 12,
-              "width": 48,
-            },
-            {
-              "backgroundColor": "#FBBF24",
-            },
-          ]
-        }
-      >
-        <Text
-          accessibilityLabel="Icon: flash, size: 24, color: #D97706"
-          testID="icon-flash"
-        >
-          flash
-        </Text>
-      </View>
       <Text
-        style={
-          {
-            "color": "#0F172A",
-            "fontSize": 16,
-            "fontWeight": "600",
-            "marginBottom": 4,
-            "textAlign": "center",
-          }
-        }
+        accessibilityLabel="Icon: flash-outline, size: 24, color: #717171"
+        testID="icon-flash-outline"
       >
-        Electrical
+        flash-outline
       </Text>
       <Text
         style={
-          {
-            "color": "#475569",
-            "fontSize": 12,
-            "lineHeight": 16,
-            "textAlign": "center",
-          }
+          [
+            {
+              "color": "#717171",
+              "fontSize": 13,
+              "fontWeight": "500",
+              "marginTop": 5,
+              "textAlign": "center",
+            },
+            false,
+          ]
         }
       >
-        Wiring, outlets, lights
+        Electrical
       </Text>
     </TouchableOpacity>
     <TouchableOpacity
@@ -594,72 +475,40 @@ exports[`QuickServices Component Snapshots should match snapshot with custom han
       accessibilityRole="button"
       onPress={[Function]}
       style={
-        {
-          "alignItems": "center",
-          "backgroundColor": "#FFFFFF",
-          "borderRadius": 16,
-          "elevation": 5,
-          "marginBottom": 12,
-          "padding": 16,
-          "shadowColor": "#000",
-          "shadowOffset": {
-            "height": 2,
-            "width": 0,
+        [
+          {
+            "alignItems": "center",
+            "borderBottomColor": "transparent",
+            "borderBottomWidth": 2,
+            "minWidth": 68,
+            "paddingBottom": 8,
+            "paddingVertical": 10,
           },
-          "shadowOpacity": 0.1,
-          "shadowRadius": 3.84,
-          "width": "48%",
-        }
+          false,
+        ]
       }
     >
-      <View
-        style={
-          [
-            {
-              "alignItems": "center",
-              "borderRadius": 24,
-              "height": 48,
-              "justifyContent": "center",
-              "marginBottom": 12,
-              "width": 48,
-            },
-            {
-              "backgroundColor": "#F1F5F9",
-            },
-          ]
-        }
-      >
-        <Text
-          accessibilityLabel="Icon: home, size: 24, color: #0F172A"
-          testID="icon-home"
-        >
-          home
-        </Text>
-      </View>
       <Text
-        style={
-          {
-            "color": "#0F172A",
-            "fontSize": 16,
-            "fontWeight": "600",
-            "marginBottom": 4,
-            "textAlign": "center",
-          }
-        }
+        accessibilityLabel="Icon: home-outline, size: 24, color: #717171"
+        testID="icon-home-outline"
       >
-        Appliances
+        home-outline
       </Text>
       <Text
         style={
-          {
-            "color": "#475569",
-            "fontSize": 12,
-            "lineHeight": 16,
-            "textAlign": "center",
-          }
+          [
+            {
+              "color": "#717171",
+              "fontSize": 13,
+              "fontWeight": "500",
+              "marginTop": 5,
+              "textAlign": "center",
+            },
+            false,
+          ]
         }
       >
-        Washer, fridge, oven
+        Appliances
       </Text>
     </TouchableOpacity>
     <TouchableOpacity
@@ -667,119 +516,214 @@ exports[`QuickServices Component Snapshots should match snapshot with custom han
       accessibilityRole="button"
       onPress={[Function]}
       style={
-        {
-          "alignItems": "center",
-          "backgroundColor": "#FFFFFF",
-          "borderRadius": 16,
-          "elevation": 5,
-          "marginBottom": 12,
-          "padding": 16,
-          "shadowColor": "#000",
-          "shadowOffset": {
-            "height": 2,
-            "width": 0,
+        [
+          {
+            "alignItems": "center",
+            "borderBottomColor": "transparent",
+            "borderBottomWidth": 2,
+            "minWidth": 68,
+            "paddingBottom": 8,
+            "paddingVertical": 10,
           },
-          "shadowOpacity": 0.1,
-          "shadowRadius": 3.84,
-          "width": "48%",
-        }
+          false,
+        ]
       }
     >
-      <View
+      <Text
+        accessibilityLabel="Icon: snow-outline, size: 24, color: #717171"
+        testID="icon-snow-outline"
+      >
+        snow-outline
+      </Text>
+      <Text
         style={
           [
             {
-              "alignItems": "center",
-              "borderRadius": 24,
-              "height": 48,
-              "justifyContent": "center",
-              "marginBottom": 12,
-              "width": 48,
+              "color": "#717171",
+              "fontSize": 13,
+              "fontWeight": "500",
+              "marginTop": 5,
+              "textAlign": "center",
             },
-            {
-              "backgroundColor": "#34D399",
-            },
+            false,
           ]
-        }
-      >
-        <Text
-          accessibilityLabel="Icon: snow, size: 24, color: #059669"
-          testID="icon-snow"
-        >
-          snow
-        </Text>
-      </View>
-      <Text
-        style={
-          {
-            "color": "#0F172A",
-            "fontSize": 16,
-            "fontWeight": "600",
-            "marginBottom": 4,
-            "textAlign": "center",
-          }
         }
       >
         HVAC
       </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      accessibilityLabel="Find roofing contractors"
+      accessibilityRole="button"
+      onPress={[Function]}
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderBottomColor": "transparent",
+            "borderBottomWidth": 2,
+            "minWidth": 68,
+            "paddingBottom": 8,
+            "paddingVertical": 10,
+          },
+          false,
+        ]
+      }
+    >
+      <Text
+        accessibilityLabel="Icon: home-outline, size: 24, color: #717171"
+        testID="icon-home-outline"
+      >
+        home-outline
+      </Text>
       <Text
         style={
-          {
-            "color": "#475569",
-            "fontSize": 12,
-            "lineHeight": 16,
-            "textAlign": "center",
-          }
+          [
+            {
+              "color": "#717171",
+              "fontSize": 13,
+              "fontWeight": "500",
+              "marginTop": 5,
+              "textAlign": "center",
+            },
+            false,
+          ]
         }
       >
-        AC, heating, vents
+        Roofing
       </Text>
     </TouchableOpacity>
-  </View>
-  <TouchableOpacity
-    accessibilityLabel="Browse all services"
-    accessibilityRole="button"
-    onPress={[Function]}
+    <TouchableOpacity
+      accessibilityLabel="Find painting contractors"
+      accessibilityRole="button"
+      onPress={[Function]}
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderBottomColor": "transparent",
+            "borderBottomWidth": 2,
+            "minWidth": 68,
+            "paddingBottom": 8,
+            "paddingVertical": 10,
+          },
+          false,
+        ]
+      }
+    >
+      <Text
+        accessibilityLabel="Icon: color-palette-outline, size: 24, color: #717171"
+        testID="icon-color-palette-outline"
+      >
+        color-palette-outline
+      </Text>
+      <Text
+        style={
+          [
+            {
+              "color": "#717171",
+              "fontSize": 13,
+              "fontWeight": "500",
+              "marginTop": 5,
+              "textAlign": "center",
+            },
+            false,
+          ]
+        }
+      >
+        Painting
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      accessibilityLabel="Find carpentry contractors"
+      accessibilityRole="button"
+      onPress={[Function]}
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderBottomColor": "transparent",
+            "borderBottomWidth": 2,
+            "minWidth": 68,
+            "paddingBottom": 8,
+            "paddingVertical": 10,
+          },
+          false,
+        ]
+      }
+    >
+      <Text
+        accessibilityLabel="Icon: hammer-outline, size: 24, color: #717171"
+        testID="icon-hammer-outline"
+      >
+        hammer-outline
+      </Text>
+      <Text
+        style={
+          [
+            {
+              "color": "#717171",
+              "fontSize": 13,
+              "fontWeight": "500",
+              "marginTop": 5,
+              "textAlign": "center",
+            },
+            false,
+          ]
+        }
+      >
+        Carpentry
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      accessibilityLabel="Find cleaning contractors"
+      accessibilityRole="button"
+      onPress={[Function]}
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderBottomColor": "transparent",
+            "borderBottomWidth": 2,
+            "minWidth": 68,
+            "paddingBottom": 8,
+            "paddingVertical": 10,
+          },
+          false,
+        ]
+      }
+    >
+      <Text
+        accessibilityLabel="Icon: sparkles-outline, size: 24, color: #717171"
+        testID="icon-sparkles-outline"
+      >
+        sparkles-outline
+      </Text>
+      <Text
+        style={
+          [
+            {
+              "color": "#717171",
+              "fontSize": 13,
+              "fontWeight": "500",
+              "marginTop": 5,
+              "textAlign": "center",
+            },
+            false,
+          ]
+        }
+      >
+        Cleaning
+      </Text>
+    </TouchableOpacity>
+  </ScrollView>
+  <View
     style={
       {
-        "alignItems": "center",
-        "backgroundColor": "#FFFFFF",
-        "borderColor": "#F1F5F9",
-        "borderRadius": 16,
-        "borderWidth": 1,
-        "flexDirection": "row",
-        "gap": 8,
-        "justifyContent": "center",
-        "paddingHorizontal": 20,
-        "paddingVertical": 16,
+        "backgroundColor": "#F0F0F0",
+        "height": 1,
       }
     }
-  >
-    <Text
-      accessibilityLabel="Icon: grid-outline, size: 20, color: #0F172A"
-      testID="icon-grid-outline"
-    >
-      grid-outline
-    </Text>
-    <Text
-      style={
-        {
-          "color": "#0F172A",
-          "flex": 1,
-          "fontSize": 16,
-          "fontWeight": "600",
-          "textAlign": "center",
-        }
-      }
-    >
-      Browse All Services
-    </Text>
-    <Text
-      accessibilityLabel="Icon: arrow-forward, size: 16, color: #0F172A"
-      testID="icon-arrow-forward"
-    >
-      arrow-forward
-    </Text>
-  </TouchableOpacity>
+  />
 </View>
 `;

@@ -74,10 +74,12 @@ export async function createQuote(
     if (lineItemsError) throw lineItemsError;
 
     if (quoteData.template_id) {
-      await supabase
-        .from('quote_templates')
-        .update({ usage_count: supabase.raw('usage_count + 1') })
-        .eq('id', quoteData.template_id);
+      try {
+        await supabase.rpc('increment_quote_template_usage', { template_id_param: quoteData.template_id });
+      } catch {
+        // Fallback: template usage tracking is non-critical
+        logger.warn('Failed to increment template usage count', { service: 'quote-builder' });
+      }
     }
 
     const { error: analyticsError } = await supabase.from('quote_analytics').insert({

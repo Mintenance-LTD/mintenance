@@ -14,7 +14,8 @@ import {
   ScrollView,
   RefreshControl,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { FadeIn, SlideIn } from '../../components/animations/primitives';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserService } from '../../services/UserService';
 import { theme } from '../../theme';
@@ -26,10 +27,11 @@ import type { HeaderMenuItem } from '../../components/navigation/NavigationHeade
 import { ContractorBanner } from './ContractorBanner';
 import { StatsSection } from './StatsSection';
 import { ScheduleSection } from './ScheduleSection';
+import { QuickActions } from './QuickActions';
 
 export const ContractorDashboard: React.FC = () => {
   const { user } = useAuth();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<Record<string, object | undefined>>>();
   const haptics = useHaptics();
   const queryClient = useQueryClient();
 
@@ -66,56 +68,56 @@ export const ContractorDashboard: React.FC = () => {
       label: 'Browse Jobs',
       subtitle: 'Find new opportunities',
       icon: 'search',
-      iconColor: '#717171',
-      iconBg: '#F7F7F7',
+      iconColor: theme.colors.primary,
+      iconBg: theme.colors.primaryLight,
       onPress: openJobsList,
     },
     {
       label: 'Inbox',
       subtitle: 'Messages & updates',
       icon: 'mail',
-      iconColor: '#717171',
-      iconBg: '#F7F7F7',
+      iconColor: theme.colors.info,
+      iconBg: theme.colors.accentLight,
       onPress: () => navigation.navigate('MessagingTab', { screen: 'MessagesList' }),
     },
     {
       label: 'Quotes',
       subtitle: 'Build & send estimates',
       icon: 'document-text',
-      iconColor: '#717171',
-      iconBg: '#F7F7F7',
+      iconColor: theme.colors.info,
+      iconBg: theme.colors.accentLight,
       onPress: () => navigation.navigate('ProfileTab', { screen: 'QuoteBuilder' }),
     },
     {
       label: 'Invoices',
       subtitle: 'Manage billing',
       icon: 'receipt',
-      iconColor: '#717171',
-      iconBg: '#F7F7F7',
+      iconColor: theme.colors.warning,
+      iconBg: theme.colors.accentLight,
       onPress: () => navigation.navigate('ProfileTab', { screen: 'InvoiceManagement' }),
     },
     {
       label: 'Expenses',
       subtitle: 'Track costs',
       icon: 'wallet',
-      iconColor: '#717171',
-      iconBg: '#F7F7F7',
+      iconColor: theme.colors.error,
+      iconBg: theme.colors.accentLight,
       onPress: () => navigation.navigate('ProfileTab', { screen: 'Expenses' }),
     },
     {
       label: 'Calendar',
       subtitle: 'Schedule & plan',
       icon: 'calendar',
-      iconColor: '#717171',
-      iconBg: '#F7F7F7',
+      iconColor: theme.colors.success,
+      iconBg: theme.colors.primaryLight,
       onPress: () => navigation.navigate('ProfileTab', { screen: 'Calendar' }),
     },
     {
       label: 'Profile & Settings',
       subtitle: 'Edit your account',
       icon: 'person-circle',
-      iconColor: '#717171',
-      iconBg: '#F7F7F7',
+      iconColor: theme.colors.textSecondary,
+      iconBg: theme.colors.backgroundSecondary,
       onPress: () => navigation.navigate('ProfileTab' as never),
     },
   ];
@@ -171,15 +173,20 @@ export const ContractorDashboard: React.FC = () => {
           />
         }
       >
+        <FadeIn duration={400}>
         <ContractorBanner
           user={user}
           onFindJobsPress={openJobsList}
           activeJobs={contractorStats?.activeJobs ?? 0}
           monthlyEarnings={contractorStats?.monthlyEarnings ?? 0}
         />
+        </FadeIn>
 
+        <SlideIn direction="up" distance={20} duration={400} delay={150}>
         <StatsSection stats={contractorStats} />
+        </SlideIn>
 
+        <SlideIn direction="up" distance={20} duration={400} delay={300}>
         <ScheduleSection
           stats={contractorStats}
           upcomingJobs={
@@ -197,6 +204,18 @@ export const ContractorDashboard: React.FC = () => {
           onViewAllPress={openMeetingSchedule}
           onJobDetailsPress={openJobDetails}
         />
+        </SlideIn>
+
+        <FadeIn duration={400} delay={450}>
+        <QuickActions
+          onBrowseJobsPress={openJobsList}
+          onInboxPress={() => navigation.navigate('MessagingTab', { screen: 'MessagesList' })}
+          onQuotesPress={() => navigation.navigate('ProfileTab', { screen: 'QuoteBuilder' })}
+          onInvoicesPress={() => navigation.navigate('ProfileTab', { screen: 'InvoiceManagement' })}
+          onExpensesPress={() => navigation.navigate('ProfileTab', { screen: 'Expenses' })}
+          onCalendarPress={() => navigation.navigate('ProfileTab', { screen: 'Calendar' })}
+        />
+        </FadeIn>
       </ScrollView>
     </View>
   );
@@ -209,32 +228,32 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: theme.spacing.lg,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: theme.colors.background,
-    padding: 40,
+    padding: theme.spacing[10],
   },
   errorText: {
-    fontSize: 16,
+    fontSize: theme.typography.briefSizes.bodyLarge,
     color: theme.colors.error,
-    marginBottom: 20,
+    marginBottom: theme.spacing[5],
     textAlign: 'center',
   },
   retryButton: {
     backgroundColor: theme.colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing[3],
+    borderRadius: theme.borderRadius.lg,
     flexDirection: 'row',
     alignItems: 'center',
   },
   retryButtonText: {
     color: theme.colors.textInverse,
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: theme.typography.briefSizes.bodyLarge,
+    fontWeight: theme.typography.fontWeight.semibold,
   },
 });

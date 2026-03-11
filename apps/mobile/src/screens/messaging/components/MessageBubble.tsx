@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Linking } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Linking, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Message } from '../../../services/MessagingService';
+import { Message, MessageDeliveryStatus } from '../../../services/MessagingService';
 import VideoCallMessage from '../../../components/messaging/VideoCallMessage';
 import { theme } from '../../../theme';
 import { formatMessageTime } from '../utils';
@@ -12,7 +12,91 @@ interface MessageBubbleProps {
   isDesktop: boolean;
   onCallAccept: (callId: string) => void;
   onCallDecline: (callId: string) => void;
+  onRetry?: (message: Message) => void;
 }
+
+/**
+ * Resolves the effective delivery status for a sent message.
+ * Server-fetched messages won't have `deliveryStatus` set, so we derive it
+ * from the `read` flag and the presence of a temp id.
+ */
+function resolveDeliveryStatus(item: Message): MessageDeliveryStatus {
+  if (item.deliveryStatus) return item.deliveryStatus;
+  if (item.read) return 'read';
+  // Messages with temp IDs that lack a deliveryStatus are still sending
+  if (item.id.startsWith('temp_message_')) return 'sending';
+  return 'delivered';
+}
+
+/**
+ * Renders the delivery status indicator for sent messages.
+ * - sending: small spinner + "Sending..." text
+ * - sent/delivered: single checkmark (tertiary color)
+ * - read: double checkmark (primary color)
+ * - failed: warning icon + "Failed to send. Tap to retry"
+ */
+const DeliveryStatusIndicator: React.FC<{
+  status: MessageDeliveryStatus;
+  isFromCurrentUser: boolean;
+  onRetry?: () => void;
+}> = ({ status, isFromCurrentUser, onRetry }) => {
+  if (!isFromCurrentUser) return null;
+
+  if (status === 'failed') {
+    return (
+      <TouchableOpacity
+        style={styles.failedRow}
+        onPress={onRetry}
+        accessibilityRole="button"
+        accessibilityLabel="Retry sending message"
+      >
+        <Ionicons name="alert-circle" size={14} color={theme.colors.error} />
+        <Text style={styles.failedText}>Failed to send. Tap to retry</Text>
+      </TouchableOpacity>
+    );
+  }
+
+  if (status === 'sending') {
+    return (
+      <View style={styles.statusRow}>
+        <ActivityIndicator size={10} color={theme.colors.overlayWhite20} />
+        <Text style={styles.sendingText}>Sending...</Text>
+      </View>
+    );
+  }
+
+  if (status === 'read') {
+    return (
+      <View style={styles.statusRow}>
+        <View style={styles.doubleCheckContainer}>
+          <Ionicons
+            name="checkmark"
+            size={12}
+            color={theme.colors.primary}
+            style={styles.checkFirst}
+          />
+          <Ionicons
+            name="checkmark"
+            size={12}
+            color={theme.colors.primary}
+            style={styles.checkSecond}
+          />
+        </View>
+      </View>
+    );
+  }
+
+  // sent / delivered — single checkmark
+  return (
+    <View style={styles.statusRow}>
+      <Ionicons
+        name="checkmark"
+        size={12}
+        color={theme.colors.textTertiary}
+      />
+    </View>
+  );
+};
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
   item,
@@ -20,6 +104,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   isDesktop,
   onCallAccept,
   onCallDecline,
+  onRetry,
 }) => {
   if (item.messageType?.includes('video_call')) {
     return (
@@ -35,23 +120,28 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   }
 
   const isFileMessage = item.messageType === 'file' && item.attachmentUrl;
-  const isSystemMessage = item.messageType === 'system';
+  const isSystemMessage = (item.messageType as string) === 'system';
   const isImageAttachment = item.attachmentUrl && item.messageType !== 'file';
+
+  const deliveryStatus = isFromCurrentUser ? resolveDeliveryStatus(item) : undefined;
+  const isFailed = deliveryStatus === 'failed';
+
+  const handleRetry = () => onRetry?.(item);
 
   // File/document message
   if (isFileMessage) {
     const docName = item.messageText?.replace(/^Shared document:\s*/i, '') || 'Document';
     return (
       <View style={[styles.messageContainer, isFromCurrentUser ? styles.currentUserMessage : styles.otherUserMessage]}>
-        <View style={[styles.messageBubble, { maxWidth: isDesktop ? '60%' : '80%' }, isFromCurrentUser ? styles.currentUserBubble : styles.otherUserBubble]}>
+        <View style={[styles.messageBubble, { maxWidth: isDesktop ? '60%' : '80%' }, isFromCurrentUser ? styles.currentUserBubble : styles.otherUserBubble, isFailed && styles.failedBubble]}>
           {!isFromCurrentUser && <Text style={styles.senderName}>{item.senderName}</Text>}
           <View style={styles.documentRow}>
             <View style={[styles.documentIcon, isFromCurrentUser ? styles.documentIconSent : styles.documentIconReceived]}>
-              <Ionicons name="document-text" size={20} color={isFromCurrentUser ? 'rgba(255,255,255,0.8)' : theme.colors.primary} />
+              <Ionicons name="document-text" size={20} color={isFromCurrentUser ? theme.colors.overlayWhite20 : theme.colors.primary} />
             </View>
             <View style={styles.documentInfo}>
               <Text style={[styles.documentName, isFromCurrentUser ? styles.currentUserText : styles.otherUserText]} numberOfLines={2}>{docName}</Text>
-              <Text style={[styles.documentLabel, isFromCurrentUser ? { color: 'rgba(255,255,255,0.5)' } : { color: theme.colors.textTertiary }]}>Shared document</Text>
+              <Text style={[styles.documentLabel, isFromCurrentUser ? { color: theme.colors.overlayWhite20 } : { color: theme.colors.textTertiary }]}>Shared document</Text>
             </View>
           </View>
           <TouchableOpacity
@@ -60,13 +150,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             accessibilityRole="link"
             accessibilityLabel={`View document: ${docName}`}
           >
-            <Ionicons name="open-outline" size={14} color={isFromCurrentUser ? '#FFFFFF' : theme.colors.primary} />
-            <Text style={[styles.viewDocText, isFromCurrentUser ? { color: '#FFFFFF' } : { color: theme.colors.primary }]}>View Document</Text>
+            <Ionicons name="open-outline" size={14} color={isFromCurrentUser ? theme.colors.textInverse : theme.colors.primary} />
+            <Text style={[styles.viewDocText, isFromCurrentUser ? { color: theme.colors.textInverse } : { color: theme.colors.primary }]}>View Document</Text>
           </TouchableOpacity>
           <View style={styles.metaRow}>
             <Text style={[styles.messageTime, isFromCurrentUser ? styles.currentUserTime : styles.otherUserTime]}>{formatMessageTime(item.createdAt)}</Text>
-            {isFromCurrentUser && (
-              <Ionicons name={item.read ? 'checkmark-done' : 'checkmark'} size={13} color={item.read ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.6)'} style={styles.readReceipt} />
+            {isFromCurrentUser && deliveryStatus && (
+              <DeliveryStatusIndicator status={deliveryStatus} isFromCurrentUser onRetry={handleRetry} />
             )}
           </View>
         </View>
@@ -80,7 +170,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       <View style={[styles.messageContainer, isFromCurrentUser ? styles.currentUserMessage : styles.otherUserMessage]}>
         <View style={[styles.messageBubble, { maxWidth: isDesktop ? '60%' : '80%' }, isFromCurrentUser ? styles.systemBubbleSent : styles.systemBubbleReceived]}>
           <View style={styles.systemRow}>
-            <Ionicons name="clipboard-outline" size={16} color={isFromCurrentUser ? 'rgba(255,255,255,0.7)' : theme.colors.primary} style={{ marginTop: 2 }} />
+            <Ionicons name="clipboard-outline" size={16} color={isFromCurrentUser ? theme.colors.overlayWhite20 : theme.colors.primary} style={{ marginTop: 2 }} />
             <Text style={[styles.messageText, isFromCurrentUser ? styles.currentUserText : { color: theme.colors.primary }]}>{item.messageText}</Text>
           </View>
           <View style={styles.metaRow}>
@@ -103,6 +193,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           styles.messageBubble,
           { maxWidth: isDesktop ? '60%' : '80%' },
           isFromCurrentUser ? styles.currentUserBubble : styles.otherUserBubble,
+          isFailed && styles.failedBubble,
         ]}
       >
         {!isFromCurrentUser && (
@@ -135,23 +226,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           >
             {formatMessageTime(item.createdAt)}
           </Text>
-          {isFromCurrentUser && (
-            <Ionicons
-              name={item.read ? 'checkmark-done' : 'checkmark'}
-              size={13}
-              color={item.read ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.6)'}
-              style={styles.readReceipt}
-            />
+          {isFromCurrentUser && deliveryStatus && (
+            <DeliveryStatusIndicator status={deliveryStatus} isFromCurrentUser onRetry={handleRetry} />
           )}
         </View>
       </View>
+      {isFailed && (
+        <DeliveryStatusIndicator status="failed" isFromCurrentUser onRetry={handleRetry} />
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   messageContainer: {
-    marginVertical: 4,
+    marginVertical: theme.spacing.xs,
   },
   currentUserMessage: {
     alignItems: 'flex-end',
@@ -161,35 +250,34 @@ const styles = StyleSheet.create({
   },
   messageBubble: {
     maxWidth: '80%',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing[3],
     borderRadius: 18,
   },
   currentUserBubble: {
-    backgroundColor: '#222222',
-    borderBottomRightRadius: 4,
+    backgroundColor: theme.colors.primary,
+    borderBottomRightRadius: theme.borderRadius.xs,
   },
   otherUserBubble: {
     backgroundColor: theme.colors.surface,
-    borderBottomLeftRadius: 4,
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
+    borderBottomLeftRadius: theme.borderRadius.xs,
+    ...theme.shadows.sm,
+  },
+  failedBubble: {
+    opacity: 0.7,
   },
   senderName: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.textSecondary,
-    fontWeight: '500',
-    marginBottom: 4,
+    fontWeight: theme.typography.fontWeight.medium,
+    marginBottom: theme.spacing.xs,
   },
   messageText: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     lineHeight: 20,
   },
   currentUserText: {
-    color: theme.colors.surface,
+    color: theme.colors.textInverse,
   },
   otherUserText: {
     color: theme.colors.textPrimary,
@@ -197,13 +285,14 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
+    justifyContent: 'flex-end',
+    marginTop: theme.spacing.xs,
   },
   messageTime: {
     fontSize: 11,
   },
   currentUserTime: {
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: theme.colors.overlayWhite20,
   },
   otherUserTime: {
     color: theme.colors.textTertiary,
@@ -214,34 +303,34 @@ const styles = StyleSheet.create({
   attachedImage: {
     width: 200,
     height: 150,
-    borderRadius: 8,
-    marginBottom: 4,
+    borderRadius: theme.borderRadius.md,
+    marginBottom: theme.spacing.xs,
   },
   documentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: theme.spacing.sm,
   },
   documentIcon: {
     width: 36,
     height: 36,
-    borderRadius: 8,
+    borderRadius: theme.borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
+    marginRight: theme.spacing.sm,
   },
   documentIconSent: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: theme.colors.overlayWhite15,
   },
   documentIconReceived: {
-    backgroundColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   documentInfo: {
     flex: 1,
   },
   documentName: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.semibold,
     marginBottom: 2,
   },
   documentLabel: {
@@ -251,37 +340,69 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginBottom: 4,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+    marginBottom: theme.spacing.xs,
   },
   viewDocButtonSent: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: theme.colors.overlayWhite15,
   },
   viewDocButtonReceived: {
-    backgroundColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   viewDocText: {
-    fontSize: 13,
-    fontWeight: '600',
-    marginLeft: 6,
+    fontSize: theme.typography.fontSize.xs,
+    fontWeight: theme.typography.fontWeight.semibold,
+    marginLeft: theme.spacing.xs,
   },
   systemBubbleSent: {
-    backgroundColor: '#1a3a2a',
-    borderBottomRightRadius: 4,
+    backgroundColor: theme.colors.primaryDark,
+    borderBottomRightRadius: theme.borderRadius.xs,
   },
   systemBubbleReceived: {
-    backgroundColor: '#f0fdf4',
-    borderBottomLeftRadius: 4,
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
+    backgroundColor: theme.colors.primaryLight,
+    borderBottomLeftRadius: theme.borderRadius.xs,
+    ...theme.shadows.sm,
   },
   systemRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
+    gap: theme.spacing.sm,
+  },
+  // Delivery status styles
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: theme.spacing.xs,
+  },
+  sendingText: {
+    fontSize: 10,
+    color: theme.colors.overlayWhite20,
+    marginLeft: 3,
+  },
+  doubleCheckContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: 18,
+    height: 12,
+  },
+  checkFirst: {
+    position: 'absolute',
+    left: 0,
+  },
+  checkSecond: {
+    position: 'absolute',
+    left: 5,
+  },
+  failedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: theme.spacing.xs,
+    paddingVertical: 2,
+  },
+  failedText: {
+    fontSize: 11,
+    color: theme.colors.error,
+    marginLeft: theme.spacing.xs,
   },
 });

@@ -130,11 +130,11 @@ global.__PAYMENT_PERFORMANCE__ = {
   markEnd: (label: string) => {
     const startTime = global.__PAYMENT_PERFORMANCE__[`${label}_start`];
     if (startTime) {
-      global.__PAYMENT_PERFORMANCE__[`${label}_duration`] = Date.now() - startTime;
+      global.__PAYMENT_PERFORMANCE__[`${label}_duration`] = Date.now() - (startTime as number);
     }
   },
-  getDuration: (label: string) => {
-    return global.__PAYMENT_PERFORMANCE__[`${label}_duration`] || 0;
+  getDuration: (label: string): number => {
+    return (global.__PAYMENT_PERFORMANCE__[`${label}_duration`] as number) || 0;
   },
 };
 
@@ -174,8 +174,8 @@ global.__PAYMENT_TEST_UTILS__ = {
   validatePaymentResponse: (response: unknown) => {
     expect(response).toBeDefined();
     expect(response).toHaveProperty('client_secret');
-    expect(typeof response.client_secret).toBe('string');
-    expect(response.client_secret).toMatch(/^pi_test_/);
+    expect(typeof (response as Record<string, unknown>).client_secret).toBe('string');
+    expect((response as Record<string, unknown>).client_secret).toMatch(/^pi_test_/);
   },
 };
 

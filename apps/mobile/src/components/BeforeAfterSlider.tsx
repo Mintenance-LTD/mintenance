@@ -124,9 +124,9 @@ const styles = StyleSheet.create({
   labelLeft: { left: 12 },
   labelRight: { right: 12 },
   labelText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
   },
   sliderLine: {
     position: 'absolute',
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
   arrowText: {
     fontSize: 12,
     color: theme.colors.textPrimary,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
   },
 });
 

@@ -74,7 +74,7 @@ export class PhotoUploadService {
           uri: photo.uri,
           type: mimeType,
           name: `before_${Date.now()}.${ext || 'jpg'}`,
-        } as unknown);
+        } as unknown as Blob);
         formData.append('metadata', JSON.stringify(metadata));
 
         let response: { photoId?: string; url?: string };
@@ -138,7 +138,7 @@ export class PhotoUploadService {
           uri: photo.uri,
           type: mimeType,
           name: `after_${Date.now()}.${ext || 'jpg'}`,
-        } as unknown);
+        } as unknown as Blob);
         formData.append('metadata', JSON.stringify(metadata));
 
         let data: { photoId?: string; url?: string };
@@ -196,7 +196,7 @@ export class PhotoUploadService {
         uri: video.uri,
         type: 'video/mp4',
         name: `walkthrough_${Date.now()}.mp4`,
-      } as unknown);
+      } as unknown as Blob);
       formData.append('metadata', JSON.stringify(metadata));
 
       const data = await mobileApiClient.postFormData<{ photoId?: string; url?: string }>(

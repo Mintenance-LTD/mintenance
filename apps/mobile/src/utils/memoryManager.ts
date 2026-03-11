@@ -556,6 +556,6 @@ export const withMemoryTracking = <P extends object>(
       };
     }, []);
 
-    return React.createElement(WrappedComponent, { ...props, ref });
+    return React.createElement(WrappedComponent as React.ComponentType<Record<string, unknown>>, { ...props, ref });
   });
 };

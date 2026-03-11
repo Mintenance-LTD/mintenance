@@ -14,6 +14,9 @@ import { useHaptics } from '../../../utils/haptics';
 import { logger } from '../../../utils/logger';
 import type { Booking } from './BookingViewModel';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyNavigation = NavigationProp<Record<string, object | undefined>>;
+
 export interface BookingNavigationActions {
   goBack: () => void;
   openSearch: () => void;
@@ -29,11 +32,11 @@ export interface BookingNavigationActions {
  * Navigation coordinator for BookingStatus screen
  */
 export class BookingNavigationCoordinator implements BookingNavigationActions {
-  private navigation: NavigationProp<unknown>;
+  private navigation: AnyNavigation;
   private haptics: ReturnType<typeof useHaptics>;
 
   constructor(
-    navigation: NavigationProp<unknown>,
+    navigation: AnyNavigation,
     haptics: ReturnType<typeof useHaptics>
   ) {
     this.navigation = navigation;
@@ -52,7 +55,7 @@ export class BookingNavigationCoordinator implements BookingNavigationActions {
    * Open booking search/filter screen
    */
   openSearch = () => {
-    this.haptics.impact('light');
+    this.haptics.light();
     this.navigation.getParent?.()?.navigate('Modal', {
       screen: 'BookingSearch'
     });
@@ -81,7 +84,7 @@ export class BookingNavigationCoordinator implements BookingNavigationActions {
    * Navigate to reschedule booking screen
    */
   openReschedule = (booking: Booking) => {
-    this.haptics.impact('light');
+    this.haptics.light();
     this.navigation.getParent?.()?.navigate('Modal', {
       screen: 'RescheduleBooking',
       params: { booking }
@@ -92,7 +95,7 @@ export class BookingNavigationCoordinator implements BookingNavigationActions {
    * Navigate to leave review screen
    */
   openReview = (booking: Booking) => {
-    this.haptics.impact('light');
+    this.haptics.light();
     this.navigation.getParent?.()?.navigate('Modal', {
       screen: 'LeaveReview',
       params: { booking }
@@ -114,7 +117,7 @@ export class BookingNavigationCoordinator implements BookingNavigationActions {
    */
   shareBooking = async (booking: Booking) => {
     try {
-      this.haptics.impact('light');
+      this.haptics.light();
 
       const shareContent = {
         title: 'Booking Details',
@@ -136,7 +139,7 @@ export class BookingNavigationCoordinator implements BookingNavigationActions {
  * Custom hook for Booking navigation
  */
 export const useBookingNavigation = (
-  navigation: NavigationProp<unknown>
+  navigation: AnyNavigation
 ): BookingNavigationActions => {
   const haptics = useHaptics();
   const coordinator = new BookingNavigationCoordinator(navigation, haptics);
@@ -164,3 +167,6 @@ export type BookingNavigationRoutes = {
   LeaveReview: { booking: Booking };
   HelpCenter: undefined;
 };
+
+// Re-export AnyNavigation type alias for external usage
+export type { AnyNavigation as BookingNavigationType };

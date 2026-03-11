@@ -7,6 +7,7 @@ import {
   Alert,
   Linking,
 } from 'react-native';
+import { FadeIn, SlideIn } from '../components/animations/primitives';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
@@ -19,6 +20,7 @@ import { ProfileHeader } from './profile/components/ProfileHeader';
 import { HomeownerStats } from './profile/components/HomeownerStats';
 import { ContractorPerformance } from './profile/components/ContractorPerformance';
 import { ProfileMenuSection } from './profile/components/ProfileMenuSection';
+import { ProfileCompleteness } from './profile/components/ProfileCompleteness';
 import { useProfileStats } from './profile/hooks/useProfileStats';
 import { supabase } from '../config/supabase';
 
@@ -47,38 +49,38 @@ const ProfileScreen: React.FC = () => {
 
   const accountMenuItems = useMemo(() => {
     const items = [
-      { label: 'Edit Profile', icon: 'person-outline', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('EditProfile') },
-      { label: 'Notifications', icon: 'notifications-outline', iconColor: '#717171', iconBg: '#F7F7F7', badge: unreadNotifications, onPress: () => navigation.navigate('NotificationSettings') },
-      { label: 'Payment Methods', icon: 'card-outline', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('PaymentMethods') },
+      { label: 'Edit Profile', icon: 'person-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('EditProfile') },
+      { label: 'Notifications', icon: 'notifications-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, badge: unreadNotifications, onPress: () => navigation.navigate('NotificationSettings') },
+      { label: 'Payment Methods', icon: 'card-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('PaymentMethods') },
     ];
 
     if (user?.role === 'homeowner') {
       items.push(
-        { label: 'My Properties', icon: 'home-outline', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('Properties') },
-        { label: 'Subscription', icon: 'ribbon-outline', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('Subscription') },
-        { label: 'Financials', icon: 'wallet-outline', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('Financials') },
+        { label: 'My Properties', icon: 'home-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('Properties') },
+        { label: 'Subscription', icon: 'ribbon-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('Subscription') },
+        { label: 'Financials', icon: 'wallet-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('Financials') },
       );
     }
 
     items.push(
-      { label: 'Calendar', icon: 'calendar-outline', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('Calendar') },
-      { label: 'Reviews', icon: 'star-outline', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('Reviews') },
+      { label: 'Calendar', icon: 'calendar-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('Calendar') },
+      { label: 'Reviews', icon: 'star-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('Reviews') },
     );
 
     if (user?.role === 'contractor') {
       items.push(
-        { label: 'Finance Dashboard', icon: 'analytics-outline', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('FinanceDashboard') },
-        { label: 'Invoice Management', icon: 'receipt-outline', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('InvoiceManagement') },
-        { label: 'Client Management', icon: 'people-outline', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('CRMDashboard') },
-        { label: 'Quote Builder', icon: 'document-text-outline', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('QuoteBuilder') },
-        { label: 'Service Areas', icon: 'map-outline', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('ServiceAreas') },
-        { label: 'Edit Discovery Card', icon: 'card', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('ContractorCardEditor') },
-        { label: 'Expenses', icon: 'receipt-outline', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('Expenses') },
-        { label: 'Documents', icon: 'document-outline', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('Documents') },
-        { label: 'Certifications', icon: 'ribbon-outline', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('Certifications') },
-        { label: 'Time Tracking', icon: 'time-outline', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('TimeTracking') },
-        { label: 'Reports & Analytics', icon: 'bar-chart-outline', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('Reporting') },
-        { label: 'Payouts', icon: 'cash-outline', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('Payouts') },
+        { label: 'Finance Dashboard', icon: 'analytics-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('FinanceDashboard') },
+        { label: 'Invoice Management', icon: 'receipt-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('InvoiceManagement') },
+        { label: 'Client Management', icon: 'people-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('CRMDashboard') },
+        { label: 'Quote Builder', icon: 'document-text-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('QuoteBuilder') },
+        { label: 'Service Areas', icon: 'map-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('ServiceAreas') },
+        { label: 'Edit Discovery Card', icon: 'card', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('ContractorCardEditor') },
+        { label: 'Expenses', icon: 'receipt-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('Expenses') },
+        { label: 'Documents', icon: 'document-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('Documents') },
+        { label: 'Certifications', icon: 'ribbon-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('Certifications') },
+        { label: 'Time Tracking', icon: 'time-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('TimeTracking') },
+        { label: 'Reports & Analytics', icon: 'bar-chart-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('Reporting') },
+        { label: 'Payouts', icon: 'cash-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('Payouts') },
       );
     }
 
@@ -86,13 +88,13 @@ const ProfileScreen: React.FC = () => {
   }, [user?.role, navigation, unreadNotifications]);
 
   const supportMenuItems = useMemo(() => [
-    { label: 'Settings', icon: 'settings-outline', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('SettingsHub') },
-    { label: 'Help Center', icon: 'help-circle-outline', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('HelpCenter') },
+    { label: 'Settings', icon: 'settings-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('SettingsHub') },
+    { label: 'Help Center', icon: 'help-circle-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('HelpCenter') },
     {
       label: 'Contact Us',
       icon: 'mail-outline',
-      iconColor: '#717171',
-      iconBg: '#F7F7F7',
+      iconColor: theme.colors.textSecondary,
+      iconBg: theme.colors.backgroundSecondary,
       onPress: () => {
         Linking.openURL('mailto:support@mintenance.app?subject=Support%20Request').catch(() =>
           Alert.alert('Contact Us', 'Unable to open email. Please contact support@mintenance.app')
@@ -102,8 +104,8 @@ const ProfileScreen: React.FC = () => {
     {
       label: 'Terms of Service',
       icon: 'document-outline',
-      iconColor: '#717171',
-      iconBg: '#F7F7F7',
+      iconColor: theme.colors.textSecondary,
+      iconBg: theme.colors.backgroundSecondary,
       onPress: () => {
         Linking.openURL(TERMS_URL).catch(() =>
           Alert.alert('Terms of Service', 'Unable to open the Terms right now. Please try again later.')
@@ -115,8 +117,8 @@ const ProfileScreen: React.FC = () => {
     {
       label: 'Privacy Policy',
       icon: 'shield-checkmark-outline',
-      iconColor: '#717171',
-      iconBg: '#F7F7F7',
+      iconColor: theme.colors.textSecondary,
+      iconBg: theme.colors.backgroundSecondary,
       onPress: () => {
         Linking.openURL(PRIVACY_URL).catch(() =>
           Alert.alert('Privacy Policy', 'Unable to open the Privacy Policy right now. Please try again later.')
@@ -135,7 +137,13 @@ const ProfileScreen: React.FC = () => {
       style={{ flex: 1 }}
     >
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <FadeIn duration={400}>
         <ProfileHeader user={user} joinDate={userStats.joinDate} />
+        </FadeIn>
+
+        <SlideIn direction="up" distance={15} duration={400} delay={150}>
+        <ProfileCompleteness user={user} completedJobs={userStats.completedJobs} />
+        </SlideIn>
 
         {user?.role === 'homeowner' && (
           <HomeownerStats
@@ -153,8 +161,10 @@ const ProfileScreen: React.FC = () => {
           />
         )}
 
+        <FadeIn duration={400} delay={300}>
         <ProfileMenuSection title="Account" items={accountMenuItems} />
         <ProfileMenuSection title="Support" items={supportMenuItems} />
+        </FadeIn>
 
         <ThemeModeSelector style={styles.themeSelector} />
 

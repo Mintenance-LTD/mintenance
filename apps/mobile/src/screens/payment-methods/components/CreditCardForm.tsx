@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    gap: 12,
+    gap: theme.spacing[3],
   },
   halfWidth: {
     flex: 1,
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 24,
     height: 24,
-    borderRadius: 4,
+    borderRadius: theme.borderRadius.sm,
     borderWidth: 2,
     borderColor: theme.colors.border,
     justifyContent: 'center',
@@ -154,8 +154,8 @@ const styles = StyleSheet.create({
     marginRight: theme.spacing.sm,
   },
   checkboxSelected: {
-    borderColor: '#222222',
-    backgroundColor: '#222222',
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary,
   },
   saveCardText: {
     fontSize: theme.typography.fontSize.base,

@@ -142,7 +142,7 @@ export const useCreateJob = () => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       bids: [],
-    }),
+    }) as unknown as Job,
   });
 };
 

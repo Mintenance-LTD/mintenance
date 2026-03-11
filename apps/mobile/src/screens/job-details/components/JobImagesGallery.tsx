@@ -39,7 +39,7 @@ export const JobImagesGallery: React.FC<JobImagesGalleryProps> = ({ job }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Ionicons name="images-outline" size={20} color='#717171' />
+        <Ionicons name="images-outline" size={20} color={theme.colors.textSecondary} />
         <Text style={styles.title}>Job Photos ({job.photos.length})</Text>
       </View>
 
@@ -48,22 +48,25 @@ export const JobImagesGallery: React.FC<JobImagesGalleryProps> = ({ job }) => {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.galleryContainer}
       >
-        {job.photos.map((photo, index) => (
+        {job.photos.map((photo, index) => {
+          const photoUrl = typeof photo === 'string' ? photo : (photo as { url: string }).url;
+          const photoDesc = typeof photo === 'string' ? undefined : (photo as { description?: string }).description;
+          return (
           <View key={index} style={styles.imageContainer}>
-            <Image 
-              source={{ uri: photo.url }} 
+            <Image
+              source={{ uri: photoUrl }}
               style={styles.image}
               resizeMode="cover"
             />
-            {photo.description && (
+            {photoDesc && (
               <View style={styles.imageOverlay}>
                 <Text style={styles.imageDescription} numberOfLines={2}>
-                  {photo.description}
+                  {photoDesc}
                 </Text>
               </View>
             )}
           </View>
-        ))}
+        ); })}
       </ScrollView>
     </View>
   );
@@ -106,7 +109,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: theme.colors.overlayDark50,
     borderBottomLeftRadius: theme.borderRadius.md,
     borderBottomRightRadius: theme.borderRadius.md,
     padding: theme.spacing.sm,

@@ -44,10 +44,7 @@ const ConnectButton: React.FC<ConnectButtonProps> = ({
 
   const loadConnectionStatus = async () => {
     try {
-      const status = await MutualConnectionsService.getConnectionStatus(
-        currentUserId,
-        targetUserId
-      );
+      const status = await MutualConnectionsService.getConnectionStatus();
       setConnectionStatus(status);
       onConnectionChange?.(status);
     } catch (error) {
@@ -62,11 +59,7 @@ const ConnectButton: React.FC<ConnectButtonProps> = ({
       setLoading(true);
       haptics.light();
 
-      await MutualConnectionsService.sendConnectionRequest(
-        currentUserId,
-        targetUserId,
-        `Hi ${targetUserName}, I'd like to connect with you on Mintenance!`
-      );
+      await MutualConnectionsService.sendConnectionRequest();
 
       setConnectionStatus('pending');
       onConnectionChange?.('pending');
@@ -105,11 +98,11 @@ const ConnectButton: React.FC<ConnectButtonProps> = ({
               haptics.light();
 
               // Find and cancel the pending request
-              const requests = await MutualConnectionsService.getConnectionRequests(targetUserId);
+              const requests = await MutualConnectionsService.getConnectionRequests();
               const pendingRequest = requests.find(r => r.requesterId === currentUserId);
 
               if (pendingRequest) {
-                await MutualConnectionsService.rejectConnectionRequest(pendingRequest.id);
+                await MutualConnectionsService.rejectConnectionRequest();
                 setConnectionStatus(null);
                 onConnectionChange?.(null);
               }
@@ -277,7 +270,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   text: {
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
 });
 

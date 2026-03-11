@@ -44,29 +44,19 @@ export class BidManagementService {
     description: string;
     estimatedDurationDays?: number;
   }): Promise<Bid> {
-    // Default bid expiry: 14 days from submission
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 14);
+    // Route through web API for server-side validation, subscription checks, and notifications
+    const response = await mobileApiClient.post<{ bid: DatabaseBidsRow }>('/api/contractor/submit-bid', {
+      job_id: bidData.jobId,
+      amount: bidData.amount,
+      message: bidData.description,
+      estimated_duration_days: bidData.estimatedDurationDays,
+    });
 
-    const { data, error } = await supabase
-      .from('bids')
-      .insert([
-        {
-          job_id: bidData.jobId,
-          contractor_id: bidData.contractorId,
-          amount: bidData.amount,
-          message: bidData.description,
-          status: 'pending',
-          expires_at: expiresAt.toISOString(),
-          created_at: new Date().toISOString(),
-          ...(bidData.estimatedDurationDays && { estimated_duration_days: bidData.estimatedDurationDays }),
-        },
-      ])
-      .select()
-      .single();
+    if (!response.bid) {
+      throw new Error('No bid returned from API');
+    }
 
-    if (error) throw error;
-    return this.formatBid(data);
+    return this.formatBid(response.bid);
   }
 
   static async getBidsByJob(jobId: string): Promise<Bid[]> {

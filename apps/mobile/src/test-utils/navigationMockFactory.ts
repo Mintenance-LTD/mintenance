@@ -79,11 +79,10 @@ export class NavigationMockFactory {
     const baseMock = this.createBaseMock();
     return {
       ...baseMock,
-      // Type-safe navigation for Auth stack
       navigate: jest.fn((screen: keyof AuthStackParamList, params?: any) => {
         // Navigation logging handled by navigation service in real app
       }),
-    } as unknown;
+    } as unknown as StackNavigationProp<AuthStackParamList, 'Login'>;
   }
 
   static createJobsNavigationMock(): StackNavigationProp<JobsStackParamList, 'JobsList'> {
@@ -93,7 +92,7 @@ export class NavigationMockFactory {
       navigate: jest.fn((screen: keyof JobsStackParamList, params?: any) => {
         // Navigation logging handled by navigation service in real app
       }),
-    } as unknown;
+    } as unknown as StackNavigationProp<JobsStackParamList, 'JobsList'>;
   }
 
   static createRootNavigationMock(): StackNavigationProp<RootStackParamList, 'Main'> {
@@ -103,7 +102,7 @@ export class NavigationMockFactory {
       navigate: jest.fn((screen: keyof RootStackParamList, params?: any) => {
         // Navigation logging handled by navigation service in real app
       }),
-    } as unknown;
+    } as unknown as StackNavigationProp<RootStackParamList, 'Main'>;
   }
 
   static createMessagingNavigationMock(): StackNavigationProp<MessagingStackParamList, 'MessagesList'> {
@@ -113,7 +112,7 @@ export class NavigationMockFactory {
       navigate: jest.fn((screen: keyof MessagingStackParamList, params?: any) => {
         // Navigation logging handled by navigation service in real app
       }),
-    } as unknown;
+    } as unknown as StackNavigationProp<MessagingStackParamList, 'MessagesList'>;
   }
 
   static createProfileNavigationMock(): StackNavigationProp<ProfileStackParamList, 'ProfileMain'> {
@@ -123,17 +122,18 @@ export class NavigationMockFactory {
       navigate: jest.fn((screen: keyof ProfileStackParamList, params?: any) => {
         // Navigation logging handled by navigation service in real app
       }),
-    } as unknown;
+    } as unknown as StackNavigationProp<ProfileStackParamList, 'ProfileMain'>;
   }
 
-  static createGenericNavigationMock(): StackNavigationProp<unknown> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  static createGenericNavigationMock(): StackNavigationProp<any> {
     const baseMock = this.createBaseMock();
     return {
       ...baseMock,
       navigate: jest.fn((screen: string, params?: any) => {
         // Navigation logging handled by navigation service in real app
       }),
-    } as unknown;
+    } as unknown as StackNavigationProp<any>;
   }
 
   static resetAllMocks(): void {

@@ -562,37 +562,6 @@ export class ServiceAreasService {
       throw new Error('Service area data cannot be null or undefined');
     }
 
-    // Type assertion to access properties
-    const dbData = data as Record<string, unknown>;
-
-    return {
-      id: dbData.id,
-      contractor_id: dbData.contractor_id,
-      area_name: dbData.area_name,
-      description: dbData.description,
-      area_type: dbData.area_type,
-      center_latitude: dbData.center_latitude,
-      center_longitude: dbData.center_longitude,
-      radius_km: dbData.radius_km,
-      boundary_coordinates: dbData.boundary_coordinates,
-      postal_codes: dbData.postal_codes,
-      cities: dbData.cities,
-      base_travel_charge: dbData.base_travel_charge,
-      per_km_rate: dbData.per_km_rate,
-      minimum_job_value: dbData.minimum_job_value,
-      priority_level: dbData.priority_level,
-      is_primary_area: dbData.is_primary_area,
-      is_active: dbData.is_active,
-      max_distance_km: dbData.max_distance_km,
-      response_time_hours: dbData.response_time_hours,
-      weekend_surcharge: dbData.weekend_surcharge,
-      evening_surcharge: dbData.evening_surcharge,
-      emergency_available: dbData.emergency_available,
-      emergency_surcharge: dbData.emergency_surcharge,
-      preferred_days: dbData.preferred_days,
-      preferred_hours: dbData.preferred_hours,
-      created_at: dbData.created_at,
-      updated_at: dbData.updated_at,
-    };
+    return data as ServiceArea;
   }
 }

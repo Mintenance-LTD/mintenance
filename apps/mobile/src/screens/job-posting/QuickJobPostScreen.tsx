@@ -44,6 +44,8 @@ const REPAIR_TEMPLATES = [
     description: 'Fix dripping tap, leaking pipe, or water issue',
     budgetRange: '\u00A350-150',
     budget: '100',
+    iconColor: theme.colors.primary,
+    iconBg: theme.colors.primaryLight,
   },
   {
     id: 'electrical-issue',
@@ -53,6 +55,8 @@ const REPAIR_TEMPLATES = [
     description: 'Fix power outlet, switch, or minor electrical problem',
     budgetRange: '\u00A375-200',
     budget: '150',
+    iconColor: theme.colors.warningDark,
+    iconBg: theme.colors.accentLight,
   },
   {
     id: 'paint-touchup',
@@ -62,6 +66,8 @@ const REPAIR_TEMPLATES = [
     description: 'Paint room, touch-up walls, or refresh surfaces',
     budgetRange: '\u00A3100-300',
     budget: '200',
+    iconColor: theme.colors.info,
+    iconBg: theme.colors.backgroundSecondary,
   },
   {
     id: 'general-repair',
@@ -71,6 +77,8 @@ const REPAIR_TEMPLATES = [
     description: 'Fix door, window, furniture, or general maintenance',
     budgetRange: '\u00A350-200',
     budget: '100',
+    iconColor: theme.colors.textSecondary,
+    iconBg: theme.colors.backgroundSecondary,
   },
   {
     id: 'blocked-drain',
@@ -80,6 +88,8 @@ const REPAIR_TEMPLATES = [
     description: 'Unblock sink, toilet, or drainage issue',
     budgetRange: '\u00A375-150',
     budget: '100',
+    iconColor: theme.colors.infoDark,
+    iconBg: theme.colors.backgroundSecondary,
   },
   {
     id: 'emergency',
@@ -89,6 +99,8 @@ const REPAIR_TEMPLATES = [
     description: 'Urgent fix needed ASAP',
     budgetRange: '\u00A3150+',
     budget: '300',
+    iconColor: theme.colors.errorDark,
+    iconBg: theme.colors.accentLight,
   },
 ];
 
@@ -100,10 +112,10 @@ const BUDGET_RANGES = [
 ];
 
 const URGENCY_OPTIONS = [
-  { label: 'Today', value: 'today', color: '#FEE2E2', textColor: '#B91C1C' },
-  { label: 'Tomorrow', value: 'tomorrow', color: '#FFEDD5', textColor: '#C2410C' },
-  { label: 'This Week', value: 'this_week', color: '#FEF9C3', textColor: '#A16207' },
-  { label: 'Not Urgent', value: 'not_urgent', color: '#F1F5F9', textColor: '#475569' },
+  { label: 'Today', value: 'today', color: theme.colors.accentLight, textColor: theme.colors.errorDark },
+  { label: 'Tomorrow', value: 'tomorrow', color: theme.colors.accentLight, textColor: theme.colors.error },
+  { label: 'This Week', value: 'this_week', color: theme.colors.accentLight, textColor: theme.colors.warning },
+  { label: 'Not Urgent', value: 'not_urgent', color: theme.colors.backgroundSecondary, textColor: theme.colors.textSecondary },
 ];
 
 interface RouteParams {
@@ -214,7 +226,7 @@ export const QuickJobPostScreen: React.FC = () => {
         <View style={styles.propertyBanner}>
           <Text style={styles.propertyLabel}>Property</Text>
           <View style={styles.propertyRow}>
-            <Ionicons name="home" size={20} color='#717171' />
+            <Ionicons name="home" size={20} color={theme.colors.textSecondary} />
             <View style={styles.propertyText}>
               <Text style={styles.propertyNameText}>{params?.propertyName || 'My Property'}</Text>
               <Text style={styles.propertyAddressText} numberOfLines={1}>
@@ -237,11 +249,13 @@ export const QuickJobPostScreen: React.FC = () => {
                 ]}
                 onPress={() => handleTemplateSelect(template)}
               >
-                <Ionicons
-                  name={template.icon as keyof typeof Ionicons.glyphMap}
-                  size={22}
-                  color={selectedTemplate === template.id ? '#222222' : theme.colors.textSecondary}
-                />
+                <View style={[styles.templateIconCircle, { backgroundColor: template.iconBg }]}>
+                  <Ionicons
+                    name={template.icon as keyof typeof Ionicons.glyphMap}
+                    size={20}
+                    color={template.iconColor}
+                  />
+                </View>
                 <Text
                   style={[styles.templateTitle, selectedTemplate === template.id && styles.templateTitleActive]}
                 >
@@ -350,10 +364,10 @@ export const QuickJobPostScreen: React.FC = () => {
           accessibilityLabel={submitting ? 'Posting job' : 'Post job'}
         >
           {submitting ? (
-            <ActivityIndicator color="#FFFFFF" />
+            <ActivityIndicator color={theme.colors.textInverse} />
           ) : (
             <>
-              <Ionicons name="paper-plane" size={18} color="#FFFFFF" />
+              <Ionicons name="paper-plane" size={18} color={theme.colors.textInverse} />
               <Text style={styles.submitText}>Post Job</Text>
             </>
           )}
@@ -387,7 +401,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   headerSpacer: {
@@ -407,15 +421,15 @@ const styles = StyleSheet.create({
   // Property banner
   propertyBanner: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: '#222222',
+    borderColor: theme.colors.primary,
     padding: 16,
     marginBottom: 24,
   },
   propertyLabel: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -431,7 +445,7 @@ const styles = StyleSheet.create({
   },
   propertyNameText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
   },
   propertyAddressText: {
@@ -446,7 +460,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 14,
   },
@@ -460,25 +474,32 @@ const styles = StyleSheet.create({
   templateCard: {
     width: '31%',
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.borderLight,
     padding: 14,
     alignItems: 'flex-start',
-    minHeight: 100,
+    minHeight: 110,
   },
   templateCardActive: {
-    borderColor: '#222222',
-    backgroundColor: '#F7F7F7',
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primaryLight,
+  },
+  templateIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   templateTitle: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginTop: 8,
   },
   templateTitleActive: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   templateBudget: {
     fontSize: 11,
@@ -489,7 +510,7 @@ const styles = StyleSheet.create({
   // Inputs
   inputLabel: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textSecondary,
     marginBottom: 8,
     marginTop: 4,
@@ -518,24 +539,24 @@ const styles = StyleSheet.create({
   budgetChip: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.borderLight,
     backgroundColor: theme.colors.surface,
     alignItems: 'center',
   },
   budgetChipActive: {
-    borderColor: '#222222',
-    backgroundColor: '#F7F7F7',
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primaryLight,
   },
   budgetText: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textSecondary,
   },
   budgetTextActive: {
-    color: '#222222',
-    fontWeight: '700',
+    color: theme.colors.primary,
+    fontWeight: theme.typography.fontWeight.bold,
   },
 
   // Urgency
@@ -549,7 +570,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 18,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 12,
     gap: 6,
     flex: 1,
     minWidth: '46%',
@@ -560,7 +581,7 @@ const styles = StyleSheet.create({
   },
   urgencyText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
 
   // More options link
@@ -573,8 +594,8 @@ const styles = StyleSheet.create({
   },
   moreOptionsText: {
     fontSize: 14,
-    color: '#222222',
-    fontWeight: '500',
+    color: theme.colors.textPrimary,
+    fontWeight: theme.typography.fontWeight.medium,
   },
 
   // Footer
@@ -594,7 +615,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: theme.colors.primary,
-    borderRadius: 14,
+    borderRadius: 16,
     paddingVertical: 16,
     gap: 8,
   },
@@ -602,9 +623,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.gray300,
   },
   submitText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
   },
 });
 

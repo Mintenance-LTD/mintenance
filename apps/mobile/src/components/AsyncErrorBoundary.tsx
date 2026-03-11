@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginBottom: 8,
     textAlign: 'center',
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: theme.colors.textInverse,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   buttonIcon: {
     marginRight: 8,

@@ -17,7 +17,7 @@ import type {
   SecurityVulnerability,
   PenetrationTestResult,
   PenetrationTestSuite
-} from '@mintenance/types';
+} from '../types';
 
 export class SecurityAuditService {
   private vulnerabilities: SecurityVulnerability[] = [];
@@ -131,7 +131,7 @@ export class SecurityAuditService {
               vulnerabilityFound: result.vulnerabilityFound,
             });
           } catch (error) {
-            logger.error('SecurityAudit', `Test failed: ${test.name}`, error);
+            logger.error('SecurityAudit', `Test failed: ${test.name}`, { error: error instanceof Error ? error.message : String(error) });
             this.testResults.push({
               testId: test.id,
               testName: test.name,

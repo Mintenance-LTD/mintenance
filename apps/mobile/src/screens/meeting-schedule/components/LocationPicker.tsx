@@ -52,7 +52,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
           </View>
           <View style={styles.locationText}>
             <Text style={styles.locationLabel}>Meeting Location</Text>
-            <Text style={styles.locationAddress}>{location.address}</Text>
+            <Text style={styles.locationAddress}>{(location as LocationData & { address?: string }).address ?? ''}</Text>
           </View>
         </View>
       )}

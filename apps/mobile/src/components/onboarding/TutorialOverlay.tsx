@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Rect, Defs, Mask } from 'react-native-svg';
+import { theme } from '../../theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -263,9 +264,9 @@ const styles = StyleSheet.create({
   highlightRing: {
     position: 'absolute',
     borderWidth: 3,
-    borderColor: '#10B981',
+    borderColor: theme.colors.primary,
     borderRadius: 12,
-    shadowColor: '#10B981',
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
@@ -273,10 +274,10 @@ const styles = StyleSheet.create({
   },
   tooltip: {
     position: 'absolute',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     padding: 24,
-    shadowColor: '#000',
+    shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -291,31 +292,31 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#D1D5DB',
+    backgroundColor: theme.colors.border,
     marginRight: 8,
   },
   progressDotActive: {
     width: 24,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
   },
   progressDotCompleted: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
   },
   stepCounter: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#10B981',
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.primary,
     marginBottom: 8,
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#111827',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   description: {
     fontSize: 16,
-    color: '#6B7280',
+    color: theme.colors.textSecondary,
     lineHeight: 24,
     marginBottom: 24,
   },
@@ -326,24 +327,24 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   primaryButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   secondaryButton: {
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   secondaryButtonText: {
-    color: '#6B7280',
+    color: theme.colors.textSecondary,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
 });
 

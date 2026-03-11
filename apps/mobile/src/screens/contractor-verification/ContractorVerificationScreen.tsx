@@ -26,7 +26,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { sanitize } from '@mintenance/security';
 
 interface VerificationScreenProps {
-  navigation: unknown;
+  navigation: { goBack: () => void };
 }
 
 interface VerificationData {
@@ -56,22 +56,22 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
   const checkVerificationStatus = async () => {
     if (!user?.id) return;
     try {
-      const { data } = await supabase
+      const result = await ((supabase
         .from('profiles')
-        .select('company_name, business_address, license_number, license_type, license_expiry, verification_status')
-        .eq('id', user.id)
-        .single();
-      if (data) {
-        if (data.verification_status === 'verified') {
+        .select('company_name, business_address, license_number, license_type, license_expiry, verification_status') as any)
+        .eq('id', user.id)).single() as { data: Record<string, string> | null };
+      const profile = result.data;
+      if (profile) {
+        if (profile.verification_status === 'verified') {
           setIsVerified(true);
         }
-        if (data.company_name) {
+        if (profile.company_name) {
           setFormData({
-            companyName: data.company_name || '',
-            businessAddress: data.business_address || '',
-            licenseNumber: data.license_number || '',
-            licenseType: data.license_type || 'trade',
-            licenseExpiry: data.license_expiry || '',
+            companyName: profile.company_name || '',
+            businessAddress: profile.business_address || '',
+            licenseNumber: profile.license_number || '',
+            licenseType: profile.license_type || 'trade',
+            licenseExpiry: profile.license_expiry || '',
           });
         }
       }
@@ -103,7 +103,7 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
     try {
       setLoading(true);
 
-      const { error } = await supabase
+      const { error } = await (supabase
         .from('profiles')
         .update({
           company_name: sanitize.companyName(formData.companyName),
@@ -112,8 +112,7 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
           license_type: formData.licenseType,
           license_expiry: formData.licenseExpiry || null,
           verification_status: 'pending',
-        })
-        .eq('id', user.id);
+        }) as any).eq('id', user.id) as { error: Error | null };
 
       if (error) throw error;
 
@@ -310,11 +309,11 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 16,
     color: theme.colors.textPrimary,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.text,
   },
   scrollView: {
@@ -322,12 +321,12 @@ const styles = StyleSheet.create({
   },
   infoBanner: {
     flexDirection: 'row',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     margin: theme.spacing.md,
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
     borderWidth: 1,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.borderLight,
   },
   infoBannerIcon: {
     fontSize: 32,
@@ -338,7 +337,7 @@ const styles = StyleSheet.create({
   },
   infoBannerTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.text,
     marginBottom: 4,
   },
@@ -357,7 +356,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.text,
     marginBottom: theme.spacing.xs,
   },
@@ -395,7 +394,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#222222',
+    borderColor: theme.colors.primary,
     marginRight: theme.spacing.sm,
     justifyContent: 'center',
     alignItems: 'center',
@@ -404,7 +403,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.primary,
   },
   radioLabel: {
     fontSize: 14,
@@ -419,7 +418,7 @@ const styles = StyleSheet.create({
   },
   benefitsTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.text,
     marginBottom: theme.spacing.sm,
   },
@@ -441,7 +440,7 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: 'white',
   },
   privacyNote: {

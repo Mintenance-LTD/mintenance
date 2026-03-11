@@ -11,7 +11,7 @@
 
 import { logger } from '../utils/logger';
 import { circuitBreakerManager } from '../utils/circuitBreaker';
-import { measurePerformance } from '../utils/performance';
+import { performanceMonitor } from '../utils/performance';
 import { ComplexityAnalyzer } from './complexity/ComplexityAnalyzer';
 import {
   MarketRateCalculator,
@@ -153,7 +153,7 @@ export class PricingEngine {
   async analyzePricing(input: JobPricingInput): Promise<PricingAnalysis> {
     await this.initialize();
 
-    return measurePerformance('pricing_engine', async () => {
+    return performanceMonitor.measureAsync('pricing_engine', async () => {
       return circuitBreakerManager.execute('ml_service', async () => {
         logger.info('Starting comprehensive pricing analysis', {
           jobTitle: input.title,
@@ -318,7 +318,12 @@ export class PricingEngine {
 
     // ML factors (highest priority)
     if (mlPrediction?.factors) {
-      factors.push(...mlPrediction.factors);
+      factors.push(...mlPrediction.factors.map(f => ({
+        name: f.name,
+        impact: f.value,
+        description: f.description || '',
+        weight: f.weight,
+      })));
     }
 
     // Complexity factors

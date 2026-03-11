@@ -23,14 +23,14 @@ const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 };
 
 const CATEGORY_COLORS: Record<string, { icon: string; bg: string }> = {
-  plumbing:   { icon: '#717171', bg: '#F7F7F7' },
-  electrical: { icon: '#717171', bg: '#F7F7F7' },
-  roofing:    { icon: '#717171', bg: '#F7F7F7' },
-  painting:   { icon: '#717171', bg: '#F7F7F7' },
-  carpentry:  { icon: '#717171', bg: '#F7F7F7' },
-  cleaning:   { icon: '#717171', bg: '#F7F7F7' },
-  hvac:       { icon: '#717171', bg: '#F7F7F7' },
-  general:    { icon: '#717171', bg: '#F7F7F7' },
+  plumbing:   { icon: theme.colors.success, bg: theme.colors.primaryLight },
+  electrical: { icon: theme.colors.warning, bg: theme.colors.accentLight },
+  roofing:    { icon: theme.colors.success, bg: theme.colors.primaryLight },
+  painting:   { icon: theme.colors.info, bg: theme.colors.accentLight },
+  carpentry:  { icon: theme.colors.warning, bg: theme.colors.accentLight },
+  cleaning:   { icon: theme.colors.info, bg: theme.colors.accentLight },
+  hvac:       { icon: theme.colors.error, bg: theme.colors.accentLight },
+  general:    { icon: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary },
 };
 
 function timeAgo(dateStr: string): string {
@@ -121,7 +121,7 @@ export const JobPreviewCard: React.FC<JobPreviewCardProps> = ({
             accessibilityLabel="Bid on this job"
             activeOpacity={0.85}
           >
-            <Ionicons name="cash-outline" size={15} color="#FFFFFF" />
+            <Ionicons name="cash-outline" size={15} color={theme.colors.white} />
             <Text style={styles.bidButtonText}>Bid Now</Text>
           </TouchableOpacity>
 
@@ -164,12 +164,12 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.white,
     borderRadius: 20,
     paddingTop: 16,
     paddingHorizontal: 16,
     paddingBottom: 16,
-    shadowColor: '#000000',
+    shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 16,
@@ -196,9 +196,9 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.colors.error,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: theme.colors.white,
   },
   info: {
     flex: 1,
@@ -206,14 +206,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     lineHeight: 20,
   },
   meta: {
     fontSize: 12,
     color: theme.colors.textSecondary,
-    fontWeight: '400',
+    fontWeight: theme.typography.fontWeight.regular,
   },
   budgetRow: {
     flexDirection: 'row',
@@ -223,19 +223,19 @@ const styles = StyleSheet.create({
   },
   budget: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   urgentBadge: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: theme.colors.accentLight,
     borderRadius: 6,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
   urgentText: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#DC2626',
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.error,
   },
   dismissButton: {
     width: 28,
@@ -269,8 +269,8 @@ const styles = StyleSheet.create({
   },
   bidButtonText: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.white,
   },
   detailsButton: {
     flex: 1,
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
   },
   detailsButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
   },
   skipButton: {
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
   },
   skipButtonText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textSecondary,
   },
 });

@@ -173,10 +173,10 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({ route, navigation }) =
           accessibilityLabel="Submit review"
         >
           {submitting ? (
-            <ActivityIndicator color="#FFFFFF" />
+            <ActivityIndicator color={theme.colors.textInverse} />
           ) : (
             <>
-              <Ionicons name="send" size={20} color="#FFFFFF" />
+              <Ionicons name="send" size={20} color={theme.colors.textInverse} />
               <Text style={styles.submitButtonText}>Submit Review</Text>
             </>
           )}
@@ -197,95 +197,95 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing[3],
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.borderLight,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: theme.spacing[10],
+    height: theme.spacing[10],
+    borderRadius: theme.borderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     flex: 1,
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: theme.typography.fontSize.lg,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
-    marginLeft: 8,
+    marginLeft: theme.spacing.sm,
   },
   headerSpacer: {
-    width: 40,
+    width: theme.spacing[10],
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
+    padding: theme.spacing[5],
   },
   jobInfoCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.xl,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
     borderWidth: 1,
     borderColor: theme.colors.borderLight,
   },
   jobTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
   },
   contractorName: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textSecondary,
-    marginTop: 4,
+    marginTop: theme.spacing.xs,
   },
   ratingSection: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: theme.spacing.xl,
   },
   sectionLabel: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
     alignSelf: 'flex-start',
   },
   starsRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: theme.spacing.sm,
   },
   starButton: {
-    padding: 4,
+    padding: theme.spacing.xs,
   },
   ratingLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#222222',
-    marginTop: 8,
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.medium,
+    color: theme.colors.textPrimary,
+    marginTop: theme.spacing.sm,
   },
   commentSection: {
-    marginBottom: 24,
+    marginBottom: theme.spacing.lg,
   },
   commentInput: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.xl,
     borderWidth: 1,
     borderColor: theme.colors.borderLight,
-    padding: 16,
-    fontSize: 15,
+    padding: theme.spacing.md,
+    fontSize: theme.typography.fontSize.base,
     color: theme.colors.textPrimary,
     minHeight: 140,
     lineHeight: 22,
   },
   charCount: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.textTertiary,
-    marginTop: 8,
+    marginTop: theme.spacing.sm,
     textAlign: 'right',
   },
   charCountWarning: {
@@ -299,30 +299,30 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: theme.spacing[5],
+    paddingTop: theme.spacing.md,
     borderTopWidth: 1,
     borderTopColor: theme.colors.borderLight,
     ...theme.shadows.large,
   },
   submitButton: {
     backgroundColor: theme.colors.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
+    borderRadius: theme.borderRadius.xl,
+    paddingVertical: theme.spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    minHeight: 52,
+    gap: theme.spacing.sm,
+    minHeight: theme.layout.buttonHeightLarge,
   },
   submitButtonDisabled: {
     opacity: 0.5,
   },
   submitButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    color: theme.colors.textInverse,
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
   },
 });
 

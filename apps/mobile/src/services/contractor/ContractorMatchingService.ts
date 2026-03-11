@@ -131,7 +131,7 @@ export async function getLikedContractors(homeownerId: string): Promise<Contract
       .eq('action', 'like');
 
     if (error) throw error;
-    return matches?.map((m: DatabaseMatchRow) => mapUserToContractorProfile(m.contractor!)) || [];
+    return (matches as unknown as DatabaseMatchRow[])?.map((m) => mapUserToContractorProfile(m.contractor!)) || [];
   } catch (error) {
     logger.error('Error fetching liked contractors:', error);
     throw error;

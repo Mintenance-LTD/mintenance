@@ -5,7 +5,7 @@
  */
 
 import { SecurityManager } from '../../SecurityManager';
-import type { PenetrationTest, PenetrationTestResult, SecurityVulnerability } from '@mintenance/types';
+import type { PenetrationTest, PenetrationTestResult, SecurityVulnerability } from '../types';
 
 export class XssTestSuite {
   static createReflectedXSSTest(): PenetrationTest {
@@ -45,13 +45,15 @@ export class XssTestSuite {
             fieldName: 'User Input',
           });
 
-          const vulnerabilityFound =
-            validation.sanitized && (
-              validation.sanitized.includes('<script>') ||
-              validation.sanitized.includes('javascript:') ||
-              validation.sanitized.includes('onerror=') ||
-              validation.sanitized.includes('onload=')
-            );
+          const sanitizedStr = String(validation.sanitized ?? '');
+          const vulnerabilityFound = Boolean(
+            sanitizedStr && (
+              sanitizedStr.includes('<script>') ||
+              sanitizedStr.includes('javascript:') ||
+              sanitizedStr.includes('onerror=') ||
+              sanitizedStr.includes('onload=')
+            )
+          );
 
           let vulnerability: SecurityVulnerability | undefined;
 
@@ -67,7 +69,7 @@ export class XssTestSuite {
               cwe: 'CWE-79',
               owasp: 'A03:2021 – Injection',
               affectedComponents: ['User input fields', 'Display components', 'Message rendering'],
-              proofOfConcept: `Input: ${payload}\nSanitized: ${validation.sanitized}`,
+              proofOfConcept: `Input: ${payload}\nSanitized: ${sanitizedStr}`,
               discoveredAt: Date.now(),
               status: 'open',
             };

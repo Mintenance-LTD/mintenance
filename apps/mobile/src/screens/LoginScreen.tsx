@@ -11,6 +11,7 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { FadeIn, SlideIn } from '../components/animations/primitives';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -39,8 +40,11 @@ const TRUST_ITEMS = [
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { signIn, loading } = useAuth();
+
+  const togglePasswordVisibility = () => setPasswordVisible((prev) => !prev);
 
   // Development mode test credentials
   const isDev = __DEV__ || process.env.NODE_ENV === 'development';
@@ -62,7 +66,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
     if (!email || !password) {
       haptics.error();
-      setErrorMessage(String(t('auth.fillAllFields', 'Please fill in all fields')));
+      setErrorMessage(String(t('auth.fillAllFields', { defaultValue: 'Please fill in all fields' })));
       return;
     }
 
@@ -72,7 +76,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       haptics.loginSuccess();
     } catch (error) {
       haptics.loginFailed();
-      setErrorMessage(String(getErrorMessage('loginFailed', error.message)));
+      setErrorMessage(String(getErrorMessage('loginFailed', error instanceof Error ? error.message : String(error))));
     }
   };
 
@@ -80,6 +84,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container} testID="login-screen">
         {/* Header with brand and trust indicators */}
+        <FadeIn duration={500}>
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <Image
@@ -112,6 +117,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             ))}
           </View>
         </View>
+        </FadeIn>
 
         <KeyboardAvoidingView
           style={styles.keyboardContainer}
@@ -123,10 +129,12 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             keyboardShouldPersistTaps='handled'
           >
             {/* Form heading */}
+            <SlideIn direction="up" distance={20} duration={400} delay={200}>
             <View style={styles.formHeading}>
               <Text style={styles.formTitle}>Sign in to your account</Text>
               <Text style={styles.formSubtitle}>Enter your details below</Text>
             </View>
+            </SlideIn>
 
               {errorMessage ? (
                 <Banner
@@ -156,7 +164,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   accessibilityHint={String(
                     t(
                       'auth.emailHint',
-                      'Please enter your email address to sign in'
+                      { defaultValue: 'Please enter your email address to sign in' }
                     )
                   )}
                   textContentType='emailAddress'
@@ -165,7 +173,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   size='lg'
                   fullWidth
                   required
-                  containerStyle={{ marginBottom: 16 }}
+                  containerStyle={{ marginBottom: theme.spacing.md }}
                 />
 
                 <Input
@@ -180,11 +188,13 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                     }
                   }}
                   leftIcon='lock-closed-outline'
-                  secureTextEntry
+                  rightIcon={passwordVisible ? 'eye-off-outline' : 'eye-outline'}
+                  onRightIconPress={togglePasswordVisibility}
+                  secureTextEntry={!passwordVisible}
                   accessibilityHint={String(
                     t(
                       'auth.passwordHint',
-                      'Please enter your password to sign in'
+                      { defaultValue: 'Please enter your password to sign in' }
                     )
                   )}
                   textContentType='password'
@@ -207,7 +217,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   accessibilityHint={String(
                     t(
                       'auth.forgotPasswordHint',
-                      'Double tap to reset your password'
+                      { defaultValue: 'Double tap to reset your password' }
                     )
                   )}
                 >
@@ -222,7 +232,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                     testID="loading-spinner"
                     size="large"
                     color={theme.colors.primary}
-                    style={{ marginVertical: 20 }}
+                    style={{ marginVertical: theme.spacing.lg }}
                     accessibilityLabel="Signing in"
                   />
                 )}
@@ -240,8 +250,8 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                     loading ? String(t('auth.loggingIn')) : String(auth.login())
                   }
                   fullWidth
-                  style={{ borderRadius: theme.borderRadius.xxl, marginTop: 8 }}
-                  textStyle={buttonText.textStyle as unknown}
+                  style={{ borderRadius: theme.borderRadius.xxl, marginTop: theme.spacing.sm }}
+                  textStyle={buttonText.textStyle as import('react-native').TextStyle}
                 />
               </View>
 
@@ -252,19 +262,19 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 <View style={styles.dividerLine} />
               </View>
 
-              <View style={{ paddingHorizontal: 24 }}>
+              <View style={{ paddingHorizontal: theme.spacing.xl }}>
                 <Button
-                  variant='outline'
+                  variant='secondary'
                   title='Create Account'
                   onPress={() => {
                     haptics.buttonPress();
                     navigation.navigate('Register');
                   }}
                   accessibilityLabel={String(
-                    t('auth.signUpForAccount', 'Sign up for new account')
+                    t('auth.signUpForAccount', { defaultValue: 'Sign up for new account' })
                   )}
                   accessibilityHint={String(
-                    t('auth.signUpHint', 'Double tap to create a new account')
+                    t('auth.signUpHint', { defaultValue: 'Double tap to create a new account' })
                   )}
                   fullWidth
                   style={{ borderRadius: theme.borderRadius.xxl }}
@@ -317,7 +327,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   headerTitle: {
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   headerSubtitle: {
@@ -336,12 +346,12 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.backgroundSecondary,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 999,
+    borderRadius: theme.borderRadius.full,
     gap: 4,
   },
   trustText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textSecondary,
   },
   keyboardContainer: {
@@ -359,7 +369,7 @@ const styles = StyleSheet.create({
   },
   formTitle: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 4,
   },
@@ -372,12 +382,12 @@ const styles = StyleSheet.create({
   },
   forgotPasswordLink: {
     alignSelf: 'flex-end',
-    paddingVertical: 4,
+    paddingVertical: 16,
     marginBottom: 8,
   },
   forgotPasswordText: {
     color: theme.colors.textPrimary,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     textDecorationLine: 'underline',
   },
   dividerSection: {
@@ -396,7 +406,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     fontSize: 13,
     color: theme.colors.textTertiary,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   // Development styles
   devSection: {
@@ -412,7 +422,7 @@ const styles = StyleSheet.create({
   devTitle: {
     textAlign: 'center',
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textTertiary,
     marginBottom: 4,
   },

@@ -64,13 +64,13 @@ export function toSnakeCase(str: string): string {
  */
 export function keysToCamelCase<T extends Record<string, unknown>>(obj: T): Record<string, unknown> {
   if (obj === null || obj === undefined) return obj;
-  if (Array.isArray(obj)) return obj.map(keysToCamelCase);
+  if (Array.isArray(obj)) return obj.map((item) => keysToCamelCase(item as Record<string, unknown>)) as unknown as Record<string, unknown>;
   if (typeof obj !== 'object') return obj;
 
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     const camelKey = toCamelCase(key);
-    result[camelKey] = keysToCamelCase(value);
+    result[camelKey] = keysToCamelCase(value as Record<string, unknown>);
   }
   return result;
 }
@@ -80,13 +80,13 @@ export function keysToCamelCase<T extends Record<string, unknown>>(obj: T): Reco
  */
 export function keysToSnakeCase<T extends Record<string, unknown>>(obj: T): Record<string, unknown> {
   if (obj === null || obj === undefined) return obj;
-  if (Array.isArray(obj)) return obj.map(keysToSnakeCase);
+  if (Array.isArray(obj)) return obj.map((item) => keysToSnakeCase(item as Record<string, unknown>)) as unknown as Record<string, unknown>;
   if (typeof obj !== 'object') return obj;
 
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     const snakeKey = toSnakeCase(key);
-    result[snakeKey] = keysToSnakeCase(value);
+    result[snakeKey] = keysToSnakeCase(value as Record<string, unknown>);
   }
   return result;
 }
@@ -175,16 +175,17 @@ export function mapDatabaseToApp<T extends Record<string, unknown>>(
   dbData: unknown,
   fieldMapping: Record<string, string>
 ): T {
-  if (!dbData) return dbData;
-  
+  if (!dbData) return dbData as T;
+
+  const data = dbData as Record<string, unknown>;
   const result: Record<string, unknown> = {};
-  
+
   for (const [appField, dbField] of Object.entries(fieldMapping)) {
-    if (dbData.hasOwnProperty(dbField)) {
-      result[appField] = dbData[dbField];
+    if (data.hasOwnProperty(dbField)) {
+      result[appField] = data[dbField];
     }
   }
-  
+
   return result as T;
 }
 
@@ -195,16 +196,17 @@ export function mapAppToDatabase<T extends Record<string, unknown>>(
   appData: unknown,
   fieldMapping: Record<string, string>
 ): T {
-  if (!appData) return appData;
-  
+  if (!appData) return appData as T;
+
+  const data = appData as Record<string, unknown>;
   const result: Record<string, unknown> = {};
-  
+
   for (const [appField, dbField] of Object.entries(fieldMapping)) {
-    if (appData.hasOwnProperty(appField)) {
-      result[dbField] = appData[appField];
+    if (data.hasOwnProperty(appField)) {
+      result[dbField] = data[appField];
     }
   }
-  
+
   return result as T;
 }
 

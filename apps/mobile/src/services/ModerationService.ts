@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase';
-import type { ContractorPost, ContractorPostComment } from '../types/standardized';
+import type { ContractorPost, ContractorPostComment, ContractorPostType } from '../types/standardized';
 import { logger } from '../utils/logger';
 
 // Database row interface for Supabase queries
@@ -131,8 +131,9 @@ export class ModerationService {
       if (error) throw error;
 
       return (
-        posts?.map((post: DatabasePostRow) => ({
+        (posts as unknown as DatabasePostRow[])?.map((post) => ({
           id: post.id,
+          type: post.post_type as ContractorPostType,
           contractorId: post.contractor_id,
           postType: post.post_type,
           title: post.title,
@@ -151,6 +152,9 @@ export class ModerationService {
           rentalPrice: post.rental_price,
           availableFrom: post.available_from,
           availableUntil: post.available_until,
+          likes: post.likes_count || 0,
+          comments: post.comments_count || 0,
+          shares: post.shares_count || 0,
           likesCount: post.likes_count || 0,
           commentsCount: post.comments_count || 0,
           sharesCount: post.shares_count || 0,
@@ -174,7 +178,7 @@ export class ModerationService {
               }
             : undefined,
         })) || []
-      );
+      ) as unknown as ContractorPost[];
     } catch (error) {
       logger.error('Error fetching flagged posts:', error);
       throw error;

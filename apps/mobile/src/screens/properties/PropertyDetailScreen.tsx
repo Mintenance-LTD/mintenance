@@ -127,7 +127,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
         }
       >
         <View style={styles.addressCard}>
-          <Ionicons name="home" size={32} color='#717171' />
+          <Ionicons name="home" size={32} color={theme.colors.textSecondary} />
           <Text style={styles.addressLine1}>{property.property_name}</Text>
           <Text style={styles.addressCity}>
             {property.address}
@@ -140,7 +140,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
           <InfoRow
             icon="business-outline"
             label="Type"
-            value={formatType(property.property_type)}
+            value={formatType(property.property_type ?? '')}
           />
 
           {property.bedrooms != null && (
@@ -200,7 +200,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
               <TouchableOpacity
                 key={job.id}
                 style={styles.jobRow}
-                onPress={() => navigation.navigate('JobsTab', { screen: 'JobDetails', params: { jobId: job.id } })}
+                onPress={() => (navigation as any).navigate('JobsTab', { screen: 'JobDetails', params: { jobId: job.id } })}
                 accessibilityRole="button"
                 accessibilityLabel={`View ${job.title}`}
               >

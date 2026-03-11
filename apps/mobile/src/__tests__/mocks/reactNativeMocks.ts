@@ -275,7 +275,7 @@ export class ReactNativeMockFactory {
     const NativeModules = this.createNativeModulesMock();
 
     // Mock React Native components
-    const mockComponent = jest.fn(({ children, ...props }: { children: unknown; [key: string]: unknown }) => children) as jest.MockedFunction<(props: { children: unknown; [key: string]: unknown }) => unknown> & { displayName: string };
+    const mockComponent = jest.fn(({ children }: { children: unknown; [key: string]: unknown }) => children) as unknown as jest.MockedFunction<(props: { children: unknown; [key: string]: unknown }) => unknown> & { displayName: string };
     mockComponent.displayName = 'MockComponent';
 
     return {

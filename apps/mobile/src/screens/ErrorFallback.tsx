@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Updates from 'expo-updates';
 import { logger } from '@mintenance/shared';
+import { theme } from '../theme';
 
 interface ErrorFallbackProps {
   error: Error;
@@ -27,7 +28,7 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
 
   const handleRestart = async () => {
     try {
-      logger.info('ErrorFallback', 'Attempting to restart app');
+      logger.info('[ErrorFallback] Attempting to restart app');
 
       if (!__DEV__ && Updates.isEnabled) {
         await Updates.reloadAsync();
@@ -35,7 +36,7 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
         resetError();
       }
     } catch (restartError) {
-      logger.error('ErrorFallback', 'Failed to restart app', {
+      logger.error('[ErrorFallback] Failed to restart app', {
         error: restartError,
       });
       resetError();
@@ -45,12 +46,12 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
   const handleContactSupport = () => {
     const subject = encodeURIComponent('App Error Report');
     const body = encodeURIComponent(
-      `Error: ${error.message}\n\nError ID: ${error.digest || 'N/A'}\n\nPlease describe what you were doing when this error occurred:`
+      `Error: ${error.message}\n\nError ID: ${(error as Error & { digest?: string }).digest || 'N/A'}\n\nPlease describe what you were doing when this error occurred:`
     );
     const mailtoUrl = `mailto:support@mintenance.com?subject=${subject}&body=${body}`;
 
     Linking.openURL(mailtoUrl).catch((err) => {
-      logger.error('ErrorFallback', 'Failed to open email client', { error: err });
+      logger.error('[ErrorFallback] Failed to open email client', { error: err });
     });
   };
 
@@ -63,7 +64,7 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
           await Updates.reloadAsync();
         }
       } catch (updateError) {
-        logger.error('ErrorFallback', 'Failed to check for updates', {
+        logger.error('[ErrorFallback] Failed to check for updates', {
           error: updateError,
         });
       }
@@ -79,7 +80,7 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
         {/* Error Icon */}
         <View style={styles.iconContainer}>
           <View style={styles.iconBackground}>
-            <Ionicons name="warning" size={48} color="#EF4444" />
+            <Ionicons name="warning" size={48} color={theme.colors.error} />
           </View>
         </View>
 
@@ -93,10 +94,10 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
         </Text>
 
         {/* Error ID */}
-        {error.digest && (
+        {(error as Error & { digest?: string }).digest && (
           <View style={styles.errorIdContainer}>
             <Text style={styles.errorIdLabel}>Error ID:</Text>
-            <Text style={styles.errorId}>{error.digest}</Text>
+            <Text style={styles.errorId}>{(error as Error & { digest?: string }).digest}</Text>
           </View>
         )}
 
@@ -119,7 +120,7 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
             accessibilityLabel='Try again'
             accessibilityHint='Double tap to restart the application'
           >
-            <Ionicons name="refresh" size={20} color="#FFFFFF" />
+            <Ionicons name="refresh" size={20} color={theme.colors.textInverse} />
             <Text style={styles.primaryButtonText}>Try Again</Text>
           </TouchableOpacity>
 
@@ -132,7 +133,7 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
               accessibilityLabel='Check for updates'
               accessibilityHint='Double tap to check if a newer version is available'
             >
-              <Ionicons name="download-outline" size={20} color="#3B82F6" />
+              <Ionicons name="download-outline" size={20} color={theme.colors.info} />
               <Text style={styles.secondaryButtonText}>Check for Updates</Text>
             </TouchableOpacity>
           )}
@@ -145,7 +146,7 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
             accessibilityLabel='Contact support'
             accessibilityHint='Double tap to send an email to our support team'
           >
-            <Ionicons name="mail-outline" size={20} color="#6B7280" />
+            <Ionicons name="mail-outline" size={20} color={theme.colors.textSecondary} />
             <Text style={styles.outlineButtonText}>Contact Support</Text>
           </TouchableOpacity>
         </View>
@@ -199,181 +200,181 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 20,
+    padding: theme.spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconContainer: {
-    marginBottom: 24,
+    marginBottom: theme.spacing.xl,
   },
   iconBackground: {
     width: 80,
     height: 80,
-    borderRadius: 40,
-    backgroundColor: '#FEE2E2',
+    borderRadius: theme.borderRadius.full,
+    backgroundColor: theme.colors.errorLight ?? '#FEE2E2',
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 12,
+    fontSize: theme.typography.fontSize.xl,
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.textPrimary,
+    marginBottom: theme.spacing[3],
     textAlign: 'center',
   },
   message: {
-    fontSize: 16,
-    color: '#6B7280',
+    fontSize: theme.typography.fontSize.base,
+    color: theme.colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: theme.spacing.xl,
     lineHeight: 24,
-    paddingHorizontal: 20,
+    paddingHorizontal: theme.spacing.lg,
   },
   errorIdContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
-    padding: 12,
-    backgroundColor: '#F7F7F7',
-    borderRadius: 12,
+    marginBottom: theme.spacing.xl,
+    padding: theme.spacing[3],
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: theme.borderRadius.lg,
   },
   errorIdLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginRight: 8,
+    fontSize: theme.typography.fontSize.xs,
+    color: theme.colors.textSecondary,
+    marginRight: theme.spacing.sm,
   },
   errorId: {
-    fontSize: 12,
-    color: '#111827',
+    fontSize: theme.typography.fontSize.xs,
+    color: theme.colors.textPrimary,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   infoBox: {
     width: '100%',
-    padding: 16,
-    backgroundColor: '#EBF5FF',
-    borderRadius: 12,
-    marginBottom: 24,
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: theme.borderRadius.lg,
+    marginBottom: theme.spacing.xl,
   },
   infoTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E40AF',
-    marginBottom: 8,
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.info,
+    marginBottom: theme.spacing.sm,
   },
   infoText: {
-    fontSize: 12,
-    color: '#3B82F6',
+    fontSize: theme.typography.fontSize.xs,
+    color: theme.colors.info,
     marginVertical: 2,
   },
   buttonContainer: {
     width: '100%',
-    marginBottom: 24,
+    marginBottom: theme.spacing.xl,
   },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    marginVertical: 6,
+    paddingVertical: theme.spacing[3],
+    paddingHorizontal: theme.spacing.xl,
+    borderRadius: theme.borderRadius.lg,
+    marginVertical: theme.spacing.xs,
   },
   primaryButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: theme.colors.primary,
   },
   primaryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginLeft: 8,
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.textInverse,
+    marginLeft: theme.spacing.sm,
   },
   secondaryButton: {
-    backgroundColor: '#DBEAFE',
+    backgroundColor: theme.colors.primaryLight,
   },
   secondaryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#3B82F6',
-    marginLeft: 8,
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.primary,
+    marginLeft: theme.spacing.sm,
   },
   outlineButton: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.borderLight,
   },
   outlineButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#6B7280',
-    marginLeft: 8,
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.textSecondary,
+    marginLeft: theme.spacing.sm,
   },
   tipsContainer: {
     width: '100%',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#EBEBEB',
-    marginBottom: 24,
+    borderColor: theme.colors.borderLight,
+    marginBottom: theme.spacing.xl,
   },
   tipsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 12,
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.textPrimary,
+    marginBottom: theme.spacing[3],
   },
   tipItem: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginVertical: 4,
+    fontSize: theme.typography.fontSize.xs,
+    color: theme.colors.textSecondary,
+    marginVertical: theme.spacing.xs,
     lineHeight: 20,
   },
   debugContainer: {
     width: '100%',
-    padding: 16,
-    backgroundColor: '#FEF2F2',
-    borderRadius: 12,
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.errorLight ?? '#FEF2F2',
+    borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#FCA5A5',
+    borderColor: theme.colors.error,
   },
   debugTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#DC2626',
-    marginBottom: 12,
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.error,
+    marginBottom: theme.spacing[3],
   },
   debugContent: {
-    backgroundColor: '#FFFFFF',
-    padding: 12,
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing[3],
+    borderRadius: theme.borderRadius.lg,
   },
   debugLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#7F1D1D',
-    marginTop: 8,
-    marginBottom: 4,
+    fontSize: theme.typography.fontSize.xs,
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.error,
+    marginTop: theme.spacing.sm,
+    marginBottom: theme.spacing.xs,
   },
   debugText: {
     fontSize: 11,
-    color: '#EF4444',
+    color: theme.colors.error,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    marginBottom: 8,
+    marginBottom: theme.spacing.sm,
   },
   stackTrace: {
     maxHeight: 120,
-    backgroundColor: '#F7F7F7',
-    padding: 8,
-    borderRadius: 4,
-    marginBottom: 8,
+    backgroundColor: theme.colors.backgroundSecondary,
+    padding: theme.spacing.sm,
+    borderRadius: theme.borderRadius.sm,
+    marginBottom: theme.spacing.sm,
   },
   stackTraceText: {
     fontSize: 10,
-    color: '#DC2626',
+    color: theme.colors.error,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
 });

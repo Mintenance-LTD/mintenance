@@ -56,9 +56,10 @@ export const useI18n = () => {
   };
 
   // Enhanced translation function with fallbacks
-  const translate = (key: string, options?: unknown) => {
+  const translate = (key: string, options?: Record<string, unknown> | string) => {
     try {
-      return t(key, options);
+      const opts = typeof options === 'string' ? { defaultValue: options } : options;
+      return t(key, opts as Record<string, string>);
     } catch (error) {
       logger.warn('Translation missing for key: ${key}');
       // Return the key as fallback
@@ -67,21 +68,21 @@ export const useI18n = () => {
   };
 
   // Pluralization helper
-  const translatePlural = (key: string, count: number, options?: unknown) => {
-    return t(key, { count, ...options });
+  const translatePlural = (key: string, count: number, options?: Record<string, unknown>) => {
+    return t(key, { count, ...options } as Record<string, string> & { count: number });
   };
 
   // Context-aware translations
   const translateWithContext = (
     key: string,
     context: string,
-    options?: unknown
+    options?: Record<string, unknown>
   ) => {
     const contextKey = `${key}_${context}`;
-    const translation = t(contextKey, { defaultValue: '', ...options });
+    const translation = t(contextKey, { defaultValue: '', ...options } as Record<string, string>);
 
     // Fallback to base key if context-specific translation doesn't exist
-    return translation || t(key, options);
+    return translation || t(key, options as Record<string, string>);
   };
 
   // Helper for getting localized strings with interpolation

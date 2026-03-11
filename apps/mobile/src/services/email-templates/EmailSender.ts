@@ -33,9 +33,17 @@ export async function sendEmail(emailData: {
     if (historyError) throw historyError;
 
     if (emailData.template_id) {
-      await supabase.from('email_templates').update({
-        times_used: supabase.raw('times_used + 1'), last_used: new Date().toISOString(),
-      }).eq('id', emailData.template_id);
+      try {
+        await supabase.rpc('increment_email_template_usage', { template_id_param: emailData.template_id });
+        await supabase.from('email_templates').update({
+          last_used: new Date().toISOString(),
+        }).eq('id', emailData.template_id!);
+      } catch {
+        // Fallback: just update last_used if RPC not available
+        await supabase.from('email_templates').update({
+          last_used: new Date().toISOString(),
+        }).eq('id', emailData.template_id!);
+      }
     }
 
     return { success: true, email_id: emailRecord.id };

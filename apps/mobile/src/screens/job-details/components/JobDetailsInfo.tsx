@@ -40,17 +40,17 @@ export const JobDetailsInfo: React.FC<JobDetailsInfoProps> = ({ job }) => {
       <View style={styles.infoGrid}>
         <View style={styles.infoItem}>
           <View style={styles.infoIcon}>
-            <Ionicons name="location-outline" size={20} color='#717171' />
+            <Ionicons name="location-outline" size={20} color={theme.colors.textSecondary} />
           </View>
           <View style={styles.infoContent}>
             <Text style={styles.infoLabel}>Location</Text>
-            <Text style={styles.infoValue}>{job.location || 'Not specified'}</Text>
+            <Text style={styles.infoValue}>{typeof job.location === 'string' ? job.location : 'Not specified'}</Text>
           </View>
         </View>
 
         <View style={styles.infoItem}>
           <View style={styles.infoIcon}>
-            <Ionicons name="cash-outline" size={20} color='#717171' />
+            <Ionicons name={"cash-outline" as keyof typeof Ionicons.glyphMap} size={20} color={theme.colors.textSecondary} />
           </View>
           <View style={styles.infoContent}>
             <Text style={styles.infoLabel}>Budget Range</Text>
@@ -65,7 +65,7 @@ export const JobDetailsInfo: React.FC<JobDetailsInfoProps> = ({ job }) => {
 
         <View style={styles.infoItem}>
           <View style={styles.infoIcon}>
-            <Ionicons name="calendar-outline" size={20} color='#717171' />
+            <Ionicons name="calendar-outline" size={20} color={theme.colors.textSecondary} />
           </View>
           <View style={styles.infoContent}>
             <Text style={styles.infoLabel}>Timeline</Text>
@@ -77,7 +77,7 @@ export const JobDetailsInfo: React.FC<JobDetailsInfoProps> = ({ job }) => {
 
         <View style={styles.infoItem}>
           <View style={styles.infoIcon}>
-            <Ionicons name="time-outline" size={20} color='#717171' />
+            <Ionicons name="time-outline" size={20} color={theme.colors.textSecondary} />
           </View>
           <View style={styles.infoContent}>
             <Text style={styles.infoLabel}>Created</Text>
@@ -114,9 +114,9 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
   },
   infoIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: theme.spacing[10],
+    height: theme.spacing[10],
+    borderRadius: theme.borderRadius.full,
     backgroundColor: theme.colors.surfaceTertiary,
     justifyContent: 'center',
     alignItems: 'center',

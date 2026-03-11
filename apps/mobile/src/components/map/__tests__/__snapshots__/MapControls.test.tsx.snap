@@ -10,18 +10,18 @@ exports[`MapControls Snapshot should match snapshot when loading 1`] = `
         "backgroundColor": "#FFFFFF",
         "borderRadius": 24,
         "bottom": 100,
-        "elevation": 5,
+        "elevation": 2,
         "height": 48,
         "justifyContent": "center",
         "position": "absolute",
         "right": 20,
-        "shadowColor": "#000",
+        "shadowColor": "#000000",
         "shadowOffset": {
           "height": 2,
           "width": 0,
         },
-        "shadowOpacity": 0.1,
-        "shadowRadius": 3.84,
+        "shadowOpacity": 0.08,
+        "shadowRadius": 8,
         "width": 48,
       }
     }
@@ -33,7 +33,7 @@ exports[`MapControls Snapshot should match snapshot when loading 1`] = `
       -
       24
       -
-      #0F172A
+      #10B981
     </Text>
   </TouchableOpacity>,
   <View
@@ -58,13 +58,13 @@ exports[`MapControls Snapshot should match snapshot when loading 1`] = `
     }
   >
     <ActivityIndicator
-      color="#0F172A"
+      color="#10B981"
       size="large"
     />
     <Text
       style={
         {
-          "color": "#475569",
+          "color": "#717171",
           "fontSize": 14,
           "marginTop": 8,
         }
@@ -85,18 +85,18 @@ exports[`MapControls Snapshot should match snapshot when not loading 1`] = `
       "backgroundColor": "#FFFFFF",
       "borderRadius": 24,
       "bottom": 100,
-      "elevation": 5,
+      "elevation": 2,
       "height": 48,
       "justifyContent": "center",
       "position": "absolute",
       "right": 20,
-      "shadowColor": "#000",
+      "shadowColor": "#000000",
       "shadowOffset": {
         "height": 2,
         "width": 0,
       },
-      "shadowOpacity": 0.1,
-      "shadowRadius": 3.84,
+      "shadowOpacity": 0.08,
+      "shadowRadius": 8,
       "width": 48,
     }
   }
@@ -108,7 +108,7 @@ exports[`MapControls Snapshot should match snapshot when not loading 1`] = `
     -
     24
     -
-    #0F172A
+    #10B981
   </Text>
 </TouchableOpacity>
 `;

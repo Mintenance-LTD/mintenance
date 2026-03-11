@@ -7,6 +7,7 @@ type CardVariant = keyof typeof theme.components.card;
 export interface CardProps {
   children?: React.ReactNode;
   variant?: CardVariant;
+  padding?: string;
   style?: ViewStyle | ViewStyle[];
 }
 

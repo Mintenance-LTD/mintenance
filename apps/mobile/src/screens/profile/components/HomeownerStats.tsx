@@ -26,24 +26,24 @@ export const HomeownerStats: React.FC<HomeownerStatsProps> = ({
   const stats: StatCard[] = [
     {
       icon: 'list',
-      iconColor: '#717171',
-      iconBg: '#F7F7F7',
+      iconColor: theme.colors.info,
+      iconBg: theme.colors.accentLight,
       valueColor: theme.colors.textPrimary,
       value: totalJobs,
       label: 'Posted',
     },
     {
       icon: 'checkmark-circle',
-      iconColor: '#717171',
-      iconBg: '#F7F7F7',
+      iconColor: theme.colors.primary,
+      iconBg: theme.colors.primaryLight,
       valueColor: theme.colors.textPrimary,
       value: completedJobs,
       label: 'Completed',
     },
     {
       icon: 'time',
-      iconColor: '#717171',
-      iconBg: '#F7F7F7',
+      iconColor: theme.colors.warning,
+      iconBg: theme.colors.accentLight,
       valueColor: theme.colors.textPrimary,
       value: activeJobs,
       label: 'Active',
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   row: {
@@ -103,12 +103,12 @@ const styles = StyleSheet.create({
   },
   value: {
     fontSize: 26,
-    fontWeight: '800',
+    fontWeight: theme.typography.fontWeight.bold,
     marginBottom: 2,
   },
   label: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textSecondary,
   },
 });

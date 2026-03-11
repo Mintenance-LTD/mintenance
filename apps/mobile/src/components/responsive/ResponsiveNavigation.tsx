@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
   },
   userRole: {
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
   },
   sidebarItemTextActive: {
     color: theme.colors.primary,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
 
   // Bottom tabs styles (Mobile)
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
   },
   tabTextActive: {
     color: theme.colors.primary,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
 
   // Badge styles
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
   badgeText: {
     color: theme.colors.surface,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   tabBadge: {
     position: 'absolute',
@@ -349,6 +349,6 @@ const styles = StyleSheet.create({
   tabBadgeText: {
     color: theme.colors.surface,
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
 });

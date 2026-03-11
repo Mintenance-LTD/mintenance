@@ -92,7 +92,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
               <Ionicons
                 name={getStatusIcon(actualStatus) as keyof typeof Ionicons.glyphMap}
                 size={12}
-                color='#fff'
+                color={theme.colors.textInverse}
               />
               <Text style={styles.statusText}>
                 {actualStatus.toUpperCase()}
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   },
   quoteNumber: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
   },
   statusBadge: {
@@ -302,12 +302,12 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 10,
-    fontWeight: '700',
-    color: '#fff',
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.textInverse,
   },
   projectTitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textPrimary,
     marginBottom: 4,
   },
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
   },
   amount: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 2,
   },
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
   },
   breakdownValue: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
   },
   additionalInfo: {
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
   infoChipText: {
     fontSize: 11,
     color: theme.colors.textSecondary,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   actions: {
     flexDirection: 'row',

@@ -18,7 +18,7 @@ export const LocationSection: React.FC<LocationSectionProps> = ({
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Location</Text>
       <TouchableOpacity style={styles.locationButton} onPress={onUseMyLocation} disabled={locating} accessibilityRole="button" accessibilityLabel="Use current GPS location">
-        {locating ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="location" size={18} color="#FFFFFF" />}
+        {locating ? <ActivityIndicator size="small" color={theme.colors.textInverse} /> : <Ionicons name="location" size={18} color={theme.colors.textInverse} />}
         <Text style={styles.locationButtonText}>{locating ? "Detecting location..." : "Use My Location"}</Text>
       </TouchableOpacity>
       <View style={styles.inputGroup}>
@@ -46,8 +46,8 @@ const styles = StyleSheet.create({
   inputGroup: { marginBottom: 20 },
   label: { fontSize: 16, fontWeight: "500", color: theme.colors.textPrimary, marginBottom: 8 },
   input: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, backgroundColor: theme.colors.surface, color: theme.colors.textPrimary },
-  locationButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "#222222", borderRadius: 10, paddingVertical: 12, gap: 8, marginBottom: 20 },
-  locationButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "600" },
+  locationButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.textPrimary, borderRadius: 10, paddingVertical: 12, gap: 8, marginBottom: 20 },
+  locationButtonText: { color: theme.colors.textInverse, fontSize: 15, fontWeight: "600" },
   locationRow: { flexDirection: "row", marginBottom: 0 },
   locationRowLeft: { flex: 3, marginBottom: 20 },
   locationRowSpacer: { width: 12 },

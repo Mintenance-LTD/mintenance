@@ -1,6 +1,6 @@
 import { supabase } from '../config/supabase';
 import { mobileApiClient } from '../utils/mobileApiClient';
-import { checkRateLimit } from '../middleware/RateLimiter';
+import { BidManagementService } from './BidManagementService';
 
 export interface BidData {
   job_id: string;
@@ -40,64 +40,30 @@ export interface Bid extends BidData {
 
 export class BidService {
   static async createBid(bidData: BidData): Promise<Bid> {
-    // Rate limit check
-    if (!checkRateLimit('bid_submit', bidData.contractor_id)) {
-      throw new Error('Too many bid submissions. Please try again later.');
-    }
-
-    // Validation
+    // Client-side validation for quick UX feedback
     if (bidData.amount <= 0) {
       throw new Error('Bid amount must be greater than 0');
     }
-
     if (!bidData.message.trim()) {
       throw new Error('Bid message is required');
     }
 
-    if (
-      bidData.availability &&
-      !/^\d{4}-\d{2}-\d{2}$/.test(bidData.availability)
-    ) {
-      throw new Error('Invalid availability date format');
-    }
+    // Delegate to BidManagementService which routes through web API
+    const result = await BidManagementService.submitBid({
+      jobId: bidData.job_id,
+      contractorId: bidData.contractor_id,
+      amount: bidData.amount,
+      description: bidData.message,
+    });
 
-    // Check if contractor is trying to bid on their own job
-    const { data: job } = await supabase
-      .from('jobs')
-      .select('homeowner_id')
-      .eq('id', bidData.job_id)
-      .single();
-
-    if (job?.homeowner_id === bidData.contractor_id) {
-      throw new Error('Cannot bid on your own job');
-    }
-
-    const { data, error } = await supabase
-      .from('bids')
-      .insert([
-        {
-          ...bidData,
-          status: 'pending',
-        },
-      ])
-      .select(
-        `
-        *,
-        contractor:contractor_id (
-          id,
-          first_name,
-          last_name,
-          email,
-          rating,
-          reviews_count,
-          profile_picture
-        )
-      `
-      )
-      .single();
-
-    if (error) throw error;
-    return data;
+    // Return in BidService's Bid format
+    return {
+      ...bidData,
+      id: result.id,
+      status: result.status as Bid['status'],
+      created_at: result.createdAt,
+      updated_at: result.createdAt,
+    };
   }
 
   static async getBidsByJob(jobId: string, status?: string): Promise<Bid[]> {

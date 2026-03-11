@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,11 @@ import {
   Platform,
   Image,
 } from 'react-native';
+import { FadeIn, SlideIn } from '../components/animations/primitives';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { AuthStackParamList } from '../navigation/types';
 import { theme } from '../theme';
 import Button from '../components/ui/Button';
@@ -21,6 +23,121 @@ import { RoleSelector } from './register/components/RoleSelector';
 import { TermsSection, TermsModal } from './register/components/TermsSection';
 import { useRegistrationForm } from './register/hooks/useRegistrationForm';
 import { PasswordStrengthBar } from '../components/ui/PasswordStrengthBar';
+
+const STEPS = [
+  { number: 1, label: 'Personal' },
+  { number: 2, label: 'Contact' },
+  { number: 3, label: 'Password' },
+] as const;
+
+interface FormProgressProps {
+  currentStep: number;
+}
+
+const FormProgress: React.FC<FormProgressProps> = ({ currentStep }) => {
+  return (
+    <View style={progressStyles.container}>
+      <View style={progressStyles.row}>
+        {STEPS.map((step, index) => {
+          const isCompleted = step.number < currentStep;
+          const isActive = step.number === currentStep;
+          const isFuture = step.number > currentStep;
+
+          return (
+            <React.Fragment key={step.number}>
+              {index > 0 && (
+                <View
+                  style={[
+                    progressStyles.line,
+                    {
+                      backgroundColor: isCompleted || isActive
+                        ? theme.colors.primary
+                        : theme.colors.borderLight,
+                    },
+                  ]}
+                />
+              )}
+              <View style={progressStyles.stepColumn}>
+                <View
+                  style={[
+                    progressStyles.circle,
+                    isCompleted || isActive
+                      ? { backgroundColor: theme.colors.primary }
+                      : { backgroundColor: theme.colors.backgroundSecondary },
+                  ]}
+                >
+                  {isCompleted ? (
+                    <Ionicons name="checkmark" size={16} color={theme.colors.textInverse} />
+                  ) : (
+                    <Text
+                      style={[
+                        progressStyles.circleText,
+                        isActive
+                          ? { color: theme.colors.textInverse }
+                          : { color: theme.colors.textTertiary },
+                      ]}
+                    >
+                      {step.number}
+                    </Text>
+                  )}
+                </View>
+                <Text
+                  style={[
+                    progressStyles.label,
+                    isActive
+                      ? { color: theme.colors.primary, fontWeight: theme.typography.fontWeight.semibold }
+                      : isFuture
+                        ? { color: theme.colors.textTertiary }
+                        : { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  {step.label}
+                </Text>
+              </View>
+            </React.Fragment>
+          );
+        })}
+      </View>
+    </View>
+  );
+};
+
+const progressStyles = StyleSheet.create({
+  container: {
+    paddingHorizontal: 24,
+    marginBottom: 16,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
+  line: {
+    height: 2,
+    flex: 1,
+    marginTop: 14,
+  },
+  stepColumn: {
+    alignItems: 'center',
+    width: 56,
+  },
+  circle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  circleText: {
+    fontSize: 13,
+    fontWeight: theme.typography.fontWeight.semibold,
+  },
+  label: {
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+});
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
@@ -47,9 +164,16 @@ const RegisterScreen: React.FC<Props> = () => {
     handleRegister,
   } = useRegistrationForm();
 
+  const currentStep = useMemo(() => {
+    if (form.email.trim().length > 0) return 3;
+    if (form.firstName.trim().length > 0 && form.lastName.trim().length > 0) return 2;
+    return 1;
+  }, [form.firstName, form.lastName, form.email]);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container}>
+        <FadeIn duration={500}>
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <Image
@@ -62,6 +186,7 @@ const RegisterScreen: React.FC<Props> = () => {
           </View>
           <Text style={styles.headerSubtitle}>Create your free account</Text>
         </View>
+        </FadeIn>
 
         <KeyboardAvoidingView
           style={styles.keyboardContainer}
@@ -73,10 +198,14 @@ const RegisterScreen: React.FC<Props> = () => {
             keyboardShouldPersistTaps='handled'
           >
             {/* Form heading */}
+            <SlideIn direction="up" distance={20} duration={400} delay={200}>
             <View style={styles.formHeading}>
               <Text style={styles.formTitle}>Get Started</Text>
               <Text style={styles.formSubtitle}>Fill in your details to create an account</Text>
             </View>
+            </SlideIn>
+
+            <FormProgress currentStep={currentStep} />
 
             <View style={styles.formContainer}>
               {submissionSuccess ? (
@@ -300,7 +429,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   headerSubtitle: {
@@ -323,7 +452,7 @@ const styles = StyleSheet.create({
   },
   formTitle: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 4,
   },
@@ -336,7 +465,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -362,9 +491,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   loginLinkText: {
-    color: '#222222',
+    color: theme.colors.primary,
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
 });
 

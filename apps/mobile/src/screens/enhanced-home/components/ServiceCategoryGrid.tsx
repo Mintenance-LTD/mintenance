@@ -37,9 +37,9 @@ export const ServiceCategoryGrid: React.FC<ServiceCategoryGridProps> = ({
           >
             <View style={styles.serviceIcon}>
               <Ionicons
-                name={service.icon}
+                name={service.icon as keyof typeof Ionicons.glyphMap}
                 size={28}
-                color='#717171'
+                color={theme.colors.textSecondary}
               />
             </View>
             <Text style={styles.serviceName}>{service.name}</Text>

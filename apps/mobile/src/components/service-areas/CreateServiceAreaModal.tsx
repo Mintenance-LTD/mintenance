@@ -203,7 +203,7 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
             >
               <View style={[styles.checkbox, isPrimary && styles.checkboxChecked]}>
                 {isPrimary && (
-                  <Ionicons name="checkmark" size={14} color="#fff" />
+                  <Ionicons name="checkmark" size={14} color={theme.colors.textInverse} />
                 )}
               </View>
               <View style={styles.checkLabel}>
@@ -222,7 +222,7 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
             disabled={isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color={theme.colors.textInverse} />
             ) : (
               <Text style={styles.submitText}>Save Service Area</Text>
             )}
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
   },
   closeBtn: {
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textSecondary,
     marginBottom: 6,
     marginTop: 14,
@@ -310,10 +310,10 @@ const styles = StyleSheet.create({
   radiusChipText: {
     fontSize: 13,
     color: theme.colors.textSecondary,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   radiusChipTextActive: {
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   checkRow: {
     flexDirection: 'row',
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
   },
   checkTitle: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textPrimary,
   },
   checkSub: {
@@ -362,8 +362,8 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   submitText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
 });

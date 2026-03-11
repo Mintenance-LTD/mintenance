@@ -387,7 +387,7 @@ class SyncManagerService {
     switch (table) {
       case 'users': {
         const userRow = record as DatabaseUserRow;
-        await AuthService.updateUserProfile(userRow.id, record);
+        await AuthService.updateUserProfile(userRow.id, record as Partial<User>);
         break;
       }
       case 'jobs':
@@ -401,7 +401,7 @@ class SyncManagerService {
           messageRow.receiver_id,
           messageRow.message_text,
           messageRow.sender_id,
-          messageRow.message_type,
+          messageRow.message_type as 'text' | 'image' | 'file',
           messageRow.attachment_url || undefined
         );
         break;
@@ -452,7 +452,7 @@ class SyncManagerService {
 
     switch (type) {
       case 'CREATE':
-        await JobService.createJob(data);
+        await JobService.createJob(data as Parameters<typeof JobService.createJob>[0]);
         break;
       case 'UPDATE':
         if (!jobData.jobId || !jobData.status) {
@@ -460,7 +460,7 @@ class SyncManagerService {
         }
         await JobService.updateJobStatus(
           jobData.jobId,
-          jobData.status,
+          jobData.status as Job['status'],
           jobData.contractorId
         );
         break;
@@ -479,7 +479,7 @@ class SyncManagerService {
           messageData.receiverId,
           messageData.messageText,
           messageData.senderId,
-          messageData.messageType,
+          messageData.messageType as 'text' | 'image' | 'file',
           messageData.attachmentUrl
         );
         break;

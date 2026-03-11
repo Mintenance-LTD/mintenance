@@ -39,7 +39,7 @@ export const TabHeader: React.FC<TabHeaderProps> = ({
           <Ionicons
             name="arrow-back"
             size={24}
-            color={theme.colors.text}
+            color={theme.colors.textPrimary}
           />
         </TouchableOpacity>
 
@@ -49,7 +49,7 @@ export const TabHeader: React.FC<TabHeaderProps> = ({
           <Ionicons
             name="search"
             size={24}
-            color={theme.colors.text}
+            color={theme.colors.textPrimary}
           />
         </TouchableOpacity>
       </View>
@@ -95,34 +95,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 16,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+    paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing[5],
+    paddingHorizontal: theme.spacing[5],
   },
   headerButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: theme.borderRadius.full,
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.text,
+    fontSize: theme.typography.fontSize.lg,
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.textPrimary,
   },
   tabsContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: theme.spacing[5],
+    marginBottom: theme.spacing[5],
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    marginRight: 16,
+    paddingVertical: theme.spacing[3],
+    paddingHorizontal: theme.spacing.sm,
+    marginRight: theme.spacing.md,
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
     flexDirection: 'row',
@@ -130,30 +130,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   activeTab: {
-    borderBottomColor: '#222222',
+    borderBottomColor: theme.colors.primary,
   },
   tabText: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textSecondary,
     marginRight: 6,
   },
   activeTabText: {
-    color: '#222222',
-    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   tabBadge: {
     backgroundColor: theme.colors.error,
-    borderRadius: 10,
+    borderRadius: theme.borderRadius.full,
     minWidth: 20,
     height: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: theme.spacing.xs,
   },
   tabBadgeText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
+    color: theme.colors.textInverse,
+    fontSize: theme.typography.fontSize.xs,
+    fontWeight: theme.typography.fontWeight.semibold,
   },
 });

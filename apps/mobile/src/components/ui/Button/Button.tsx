@@ -9,6 +9,7 @@ import {
   View,
   AccessibilityRole,
   Animated,
+  StyleProp,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../theme';
@@ -44,8 +45,8 @@ export interface ButtonProps {
   loading?: boolean;
 
   // Icons
-  leftIcon?: keyof typeof Ionicons.glyphMap;
-  rightIcon?: keyof typeof Ionicons.glyphMap;
+  leftIcon?: string;
+  rightIcon?: string;
   iconSize?: number;
 
   // Behavior
@@ -60,7 +61,7 @@ export interface ButtonProps {
   testID?: string;
 
   // Style overrides
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   textStyle?: TextStyle;
 }
 
@@ -166,9 +167,9 @@ export const Button = forwardRef<React.ElementRef<typeof TouchableOpacity>, Butt
     // RENDER CONTENT
     // ========================================================================
 
-    const renderIcon = (iconName: keyof typeof Ionicons.glyphMap, position: ButtonIconPosition) => (
+    const renderIcon = (iconName: string, position: ButtonIconPosition) => (
       <Ionicons
-        name={iconName}
+        name={iconName as React.ComponentProps<typeof Ionicons>['name']}
         size={computedIconSize}
         color={iconColor}
         style={[
@@ -275,7 +276,7 @@ const getButtonStyles = (
       return {
         ...baseStyle,
         backgroundColor: disabled || loading
-          ? '#DDDDDD'
+          ? theme.colors.border
           : theme.colors.primary,
         ...theme.shadows.sm,
       };
@@ -286,8 +287,8 @@ const getButtonStyles = (
         backgroundColor: 'transparent',
         borderWidth: 1,
         borderColor: disabled || loading
-          ? '#DDDDDD'
-          : '#DDDDDD',
+          ? theme.colors.border
+          : theme.colors.border,
       };
 
     case 'outline':
@@ -310,7 +311,7 @@ const getButtonStyles = (
       return {
         ...baseStyle,
         backgroundColor: disabled || loading
-          ? '#DDDDDD'
+          ? theme.colors.border
           : theme.colors.error,
         ...theme.shadows.sm,
       };
@@ -319,7 +320,7 @@ const getButtonStyles = (
       return {
         ...baseStyle,
         backgroundColor: disabled || loading
-          ? '#DDDDDD'
+          ? theme.colors.border
           : theme.colors.success,
         ...theme.shadows.sm,
       };
@@ -348,7 +349,7 @@ const getTextStyles = (
         ...baseStyle,
         color: disabled
           ? theme.colors.placeholder
-          : '#FFFFFF',
+          : theme.colors.textInverse,
       };
 
     case 'secondary':
@@ -384,7 +385,7 @@ const getIconColor = (variant: ButtonVariant, disabled: boolean): string => {
     case 'primary':
     case 'danger':
     case 'success':
-      return '#FFFFFF';
+      return theme.colors.textInverse;
 
     case 'secondary':
       return theme.colors.textPrimary;

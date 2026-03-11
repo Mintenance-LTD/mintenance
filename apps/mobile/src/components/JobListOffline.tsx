@@ -26,12 +26,13 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
   showCreateButton = false,
 }) => {
   const {
-    data: jobs = [],
+    data: jobsData,
     isLoading,
     isError,
     error,
     refetch,
   } = useAvailableJobs();
+  const jobs = (jobsData ?? []) as Job[];
   const { isOnline, connectionQuality } = useNetworkState();
   const createJobMutation = useCreateJob();
 
@@ -142,9 +143,9 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
             size={14}
             color={theme.colors.textSecondary}
           />
-          <Text style={styles.jobLocationText}>{job.location}</Text>
+          <Text style={styles.jobLocationText}>{typeof job.location === 'string' ? job.location : 'Unknown location'}</Text>
         </View>
-        <Text style={styles.jobBudget}>${job.budget.toLocaleString()}</Text>
+        <Text style={styles.jobBudget}>${(job.budget ?? 0).toLocaleString()}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -241,7 +242,7 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
           refreshControl={
             <RefreshControl
               refreshing={isLoading}
-              onRefresh={handleRefresh}
+              onRefresh={() => { handleRefresh(); }}
               colors={[theme.colors.primary]}
               tintColor={theme.colors.primary}
             />

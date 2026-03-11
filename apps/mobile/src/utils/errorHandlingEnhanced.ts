@@ -80,7 +80,7 @@ export function categorizeError(error: unknown): CategorizedError {
   // Handle standard Error objects
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
-    const errorAny = error as unknown;
+    const errorAny = error as Error & { code?: string; status?: number };
 
     // Network errors
     if (
@@ -185,7 +185,7 @@ export function categorizeError(error: unknown): CategorizedError {
 
     // Server errors
     if (
-      errorAny.status >= 500 ||
+      (errorAny.status ?? 0) >= 500 ||
       message.includes('server error') ||
       message.includes('internal error')
     ) {

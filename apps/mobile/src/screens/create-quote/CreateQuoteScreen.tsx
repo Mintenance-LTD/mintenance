@@ -60,7 +60,7 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
           setProjectTitle={viewModel.setProjectTitle}
           onTemplatePress={() => viewModel.setShowTemplateModal(true)}
           selectedTemplate={viewModel.selectedTemplate}
-          templates={viewModel.templates}
+          templates={viewModel.templates as unknown as { id: string; name: string }[]}
         />
 
         <ClientInfo

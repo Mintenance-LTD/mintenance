@@ -10,6 +10,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { User } from '@mintenance/types';
+import { theme } from '../../theme';
 
 interface ContractorBannerProps {
   user: User | null;
@@ -39,7 +40,7 @@ export const ContractorBanner: React.FC<ContractorBannerProps> = ({
 
   return (
     <LinearGradient
-      colors={['#0F766E', '#0D9488', '#0891B2']}
+      colors={[theme.colors.primaryDark, theme.colors.primary, theme.colors.primary]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.hero}
@@ -55,14 +56,14 @@ export const ContractorBanner: React.FC<ContractorBannerProps> = ({
 
         <View style={styles.badgeRow}>
           <View style={styles.badge}>
-            <Ionicons name="briefcase-outline" size={13} color="rgba(255,255,255,0.9)" />
+            <Ionicons name="briefcase-outline" size={13} color={theme.colors.textInverseMuted} />
             <Text style={styles.badgeText}>
               {activeJobs} active {activeJobs === 1 ? 'job' : 'jobs'}
             </Text>
           </View>
           {monthlyEarnings > 0 && (
             <View style={styles.badge}>
-              <Ionicons name="cash-outline" size={13} color="rgba(255,255,255,0.9)" />
+              <Ionicons name="cash-outline" size={13} color={theme.colors.textInverseMuted} />
               <Text style={styles.badgeText}>£{monthlyEarnings.toFixed(0)} earned</Text>
             </View>
           )}
@@ -76,7 +77,7 @@ export const ContractorBanner: React.FC<ContractorBannerProps> = ({
           accessibilityLabel="Browse available jobs"
         >
           <Text style={styles.findJobsBtnText}>Browse Available Jobs</Text>
-          <Ionicons name="arrow-forward" size={15} color="#0D9488" />
+          <Ionicons name="arrow-forward" size={15} color={theme.colors.primary} />
         </TouchableOpacity>
       </View>
     </LinearGradient>
@@ -91,7 +92,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     overflow: 'hidden',
     minHeight: 176,
-    shadowColor: '#0F766E',
+    shadowColor: theme.colors.primaryDark,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.35,
     shadowRadius: 16,
@@ -102,7 +103,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: theme.colors.overlayWhite10,
     top: -70,
     right: -50,
   },
@@ -111,7 +112,7 @@ const styles = StyleSheet.create({
     width: 110,
     height: 110,
     borderRadius: 55,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: theme.colors.overlayWhite10,
     bottom: -35,
     left: 10,
   },
@@ -120,15 +121,15 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.75)',
-    fontWeight: '500',
+    color: theme.colors.textInverseMuted,
+    fontWeight: theme.typography.fontWeight.medium,
     letterSpacing: 0.3,
     marginBottom: 4,
   },
   name: {
     fontSize: 26,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.textInverse,
     marginBottom: 14,
     letterSpacing: -0.3,
   },
@@ -142,26 +143,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: theme.colors.overlayWhite15,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 20,
   },
   badgeText: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.95)',
-    fontWeight: '500',
+    color: theme.colors.textInverseMuted,
+    fontWeight: theme.typography.fontWeight.medium,
   },
   findJobsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.white,
     borderRadius: 12,
     paddingVertical: 11,
     paddingHorizontal: 18,
     alignSelf: 'flex-start',
-    shadowColor: '#000',
+    shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -169,7 +170,7 @@ const styles = StyleSheet.create({
   },
   findJobsBtnText: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#0D9488',
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.primary,
   },
 });

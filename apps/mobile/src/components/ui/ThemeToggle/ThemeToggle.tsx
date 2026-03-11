@@ -74,7 +74,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
               <Ionicons
                 name={colorScheme === 'light' ? 'sunny' : 'moon'}
                 size={12}
-                color={colorScheme === 'light' ? '#FFA500' : '#4A90E2'}
+                color={colorScheme === 'light' ? theme.colors.accent : theme.colors.info}
               />
             </View>
             <Ionicons
@@ -245,7 +245,7 @@ const getButtonStyles = (variant: string, size: string) => {
 
 const getTextStyles = (size: string) => ({
   fontSize: size === 'sm' ? 12 : size === 'lg' ? 16 : 14,
-  fontWeight: '500' as const,
+  fontWeight: theme.typography.fontWeight.medium,
   color: theme.colors.textPrimary,
   marginLeft: theme.spacing[2],
 });

@@ -8,6 +8,7 @@ import { useI18n } from '../hooks/useI18n';
 interface InvoiceWithExtras extends Invoice {
   client_name?: string;
   reminder_sent_count?: number;
+  currency?: string;
 }
 
 interface InvoiceCardProps {
@@ -77,7 +78,7 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
           <Ionicons
             name={getStatusIcon(invoice.status) as keyof typeof Ionicons.glyphMap}
             size={14}
-            color='#fff'
+            color={theme.colors.textInverse}
           />
           <Text style={styles.statusText}>{invoice.status.toUpperCase()}</Text>
         </View>
@@ -108,7 +109,7 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
           </View>
         )}
 
-        {invoice.reminder_sent_count > 0 && (
+        {(invoice.reminder_sent_count ?? 0) > 0 && (
           <Text style={styles.reminderText}>
             {invoice.reminder_sent_count} reminder(s) sent
           </Text>
@@ -167,7 +168,7 @@ const styles = StyleSheet.create({
   },
   invoiceNumber: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
   },
   clientName: {
@@ -184,8 +185,8 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 11,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.textInverse,
     marginLeft: 4,
   },
   details: {
@@ -199,7 +200,7 @@ const styles = StyleSheet.create({
   },
   amount: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   dueDate: {
@@ -215,7 +216,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.colors.error,
     marginLeft: 4,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   reminderText: {
     fontSize: 12,
@@ -243,7 +244,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.colors.primary,
     marginLeft: 4,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   paidButton: {
     borderColor: theme.colors.success,
@@ -253,6 +254,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.colors.success,
     marginLeft: 4,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
 });

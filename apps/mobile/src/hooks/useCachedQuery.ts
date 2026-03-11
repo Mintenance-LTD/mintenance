@@ -65,7 +65,7 @@ export function useCachedQuery<TData>({
         onSuccess?.(data);
         return data;
       } catch (error) {
-        logger.error('useCachedQuery', `Error fetching ${cacheKey}`, error as Error);
+        logger.error('useCachedQuery', `Error fetching ${cacheKey}`, { error: error instanceof Error ? error.message : String(error) });
         onError?.(error as Error);
 
         // Try to return stale cached data on error
@@ -81,9 +81,10 @@ export function useCachedQuery<TData>({
     gcTime: cacheTime,
     staleTime,
     enabled,
-    retry: (failureCount, error: Error | unknown) => {
+    retry: (failureCount, error: Error) => {
       // Don't retry on 4xx errors
-      if (error?.status >= 400 && error?.status < 500) {
+      const status = (error as Error & { status?: number }).status;
+      if (status && status >= 400 && status < 500) {
         return false;
       }
       return failureCount < 3;
@@ -126,7 +127,7 @@ export function usePrefetchCached() {
         gcTime: cacheTime,
       });
     } catch (error) {
-      logger.error('usePrefetchCached', `Error prefetching ${cacheKey}`, error as Error);
+      logger.error('usePrefetchCached', `Error prefetching ${cacheKey}`, { error: error instanceof Error ? error.message : String(error) });
     }
   };
 }
@@ -172,13 +173,14 @@ export function useCachedMutation<TData, TVariables>({
         return { previousValue };
       }
     },
-    onError: (error, variables, context: unknown) => {
+    onError: (error, variables, context) => {
       // Rollback on error
-      if (optimisticUpdate && context?.previousValue) {
-        queryClient.setQueryData(optimisticUpdate.queryKey, context.previousValue);
+      const ctx = context as { previousValue?: unknown } | undefined;
+      if (optimisticUpdate && ctx?.previousValue) {
+        queryClient.setQueryData(optimisticUpdate.queryKey, ctx.previousValue);
       }
 
-      logger.error('useCachedMutation', 'Mutation error', error);
+      logger.error('useCachedMutation', 'Mutation error', { error: error.message });
       onError?.(error, variables);
     },
     onSuccess: async (data, variables) => {
@@ -187,7 +189,7 @@ export function useCachedMutation<TData, TVariables>({
         for (const key of invalidateKeys) {
           await queryClient.invalidateQueries({ queryKey: key });
           const cacheKey = Array.isArray(key) ? key.join(':') : String(key);
-          await cacheService.delete(cacheKey);
+          await cacheService.remove(cacheKey);
         }
       }
 
@@ -203,7 +205,7 @@ export function useCacheStats() {
   const cacheService = CacheService.getInstance();
 
   return useQuery({
-    queryKey: QUERY_KEYS.CACHE_STATS,
+    queryKey: ['cache_stats'],
     queryFn: () => cacheService.getStats(),
     staleTime: STALE_TIMES.DYNAMIC,
     gcTime: CACHE_TIMES.DYNAMIC,
@@ -224,12 +226,12 @@ export function useClearCache() {
       }
 
       if (options?.clearDisk !== false) {
-        await cacheService.clearAll();
+        await cacheService.clear();
       }
 
       logger.info('useClearCache', 'Cache cleared successfully');
     } catch (error) {
-      logger.error('useClearCache', 'Error clearing cache', error as Error);
+      logger.error('useClearCache', 'Error clearing cache', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   };
@@ -279,8 +281,8 @@ export const CACHE_PATTERNS = {
  * Example: Jobs list with disk caching
  */
 export function useJobsWithCache() {
-  return useCachedQuery({
-    queryKey: QUERY_KEYS.JOBS_LIST,
+  return useCachedQuery<Job[]>({
+    queryKey: [QUERY_KEYS.JOBS],
     queryFn: () => mobileApiClient.get('/api/jobs'),
     ...CACHE_PATTERNS.DYNAMIC,
   });
@@ -291,7 +293,7 @@ export function useJobsWithCache() {
  */
 export function useContractorProfile(contractorId: string) {
   return useCachedQuery({
-    queryKey: QUERY_KEYS.CONTRACTOR_PROFILE(contractorId),
+    queryKey: [QUERY_KEYS.CONTRACTORS, contractorId],
     queryFn: () => mobileApiClient.get(`/api/contractors/${contractorId}`),
     ...CACHE_PATTERNS.SEMI_STATIC,
     enabled: !!contractorId,
@@ -302,14 +304,15 @@ export function useContractorProfile(contractorId: string) {
  * Example: Create job with optimistic update
  */
 export function useCreateJob() {
-  return useCachedMutation({
-    mutationFn: (jobData: unknown) => mobileApiClient.post('/api/jobs', jobData),
-    invalidateKeys: [QUERY_KEYS.JOBS_LIST],
+  return useCachedMutation<Job, Record<string, unknown>>({
+    mutationFn: (jobData) => mobileApiClient.post('/api/jobs', jobData),
+    invalidateKeys: [[QUERY_KEYS.JOBS]],
     optimisticUpdate: {
-      queryKey: QUERY_KEYS.JOBS_LIST,
-      updater: (old: unknown[], variables: unknown) => {
+      queryKey: [QUERY_KEYS.JOBS],
+      updater: (old: unknown, variables: Record<string, unknown>) => {
+        const oldArr = Array.isArray(old) ? old : [];
         return [
-          ...old,
+          ...oldArr,
           {
             ...variables,
             id: `temp-${Date.now()}`,

@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   selected: {
-    borderColor: '#222222',
+    borderColor: theme.colors.primary,
   },
   left: {
     flexDirection: 'row',
@@ -79,12 +79,12 @@ const styles = StyleSheet.create({
   radio: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: theme.borderRadius.full,
     borderWidth: 2,
     borderColor: theme.colors.border,
   },
   radioSelected: {
-    borderColor: '#222222',
-    backgroundColor: '#222222',
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary,
   },
 });

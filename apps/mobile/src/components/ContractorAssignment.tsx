@@ -35,7 +35,8 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
   const [selectedBid, setSelectedBid] = useState<string | null>(null);
 
   // Get bids for this job
-  const { data: bids = [], isLoading, error, refetch } = useJobBids(job.id);
+  const { data: bidsData = [], isLoading, error, refetch } = useJobBids(job.id);
+  const bids = bidsData as Bid[];
   const acceptBidMutation = useAcceptBid();
 
   const isHomeowner = user?.role === 'homeowner';
@@ -81,7 +82,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       logger.error('Failed to accept bid:', error);
       Alert.alert(
         'Error',
-        error.message || 'Failed to accept bid. Please try again.'
+        (error instanceof Error ? error.message : String(error)) || 'Failed to accept bid. Please try again.'
       );
     } finally {
       setSelectedBid(null);
@@ -128,7 +129,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       >
         {isLowestBid && (
           <View style={styles.lowestBidBadge}>
-            <Ionicons name='trophy' size={14} color='#FFD700' />
+            <Ionicons name='trophy' size={14} color={theme.colors.warning} />
             <Text style={styles.lowestBidText}>Lowest Bid</Text>
           </View>
         )}
@@ -166,7 +167,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
                 style={[
                   styles.budgetComparison,
                   {
-                    color: bid.amount <= job.budget ? '#10B981' : '#EF4444',
+                    color: bid.amount <= job.budget ? theme.colors.success : theme.colors.error,
                   },
                 ]}
               >
@@ -218,10 +219,10 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
               disabled={isSelected || acceptBidMutation.isPending}
             >
               {isSelected && acceptBidMutation.isPending ? (
-                <ActivityIndicator size='small' color='#FFFFFF' />
+                <ActivityIndicator size='small' color={theme.colors.textInverse} />
               ) : (
                 <>
-                  <Ionicons name='checkmark' size={16} color='#FFFFFF' />
+                  <Ionicons name='checkmark' size={16} color={theme.colors.textInverse} />
                   <Text style={styles.acceptButtonText}>Accept Bid</Text>
                 </>
               )}
@@ -230,7 +231,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
 
           {bid.status === 'accepted' && (
             <View style={styles.acceptedBadge}>
-              <Ionicons name='checkmark-circle' size={16} color='#10B981' />
+              <Ionicons name='checkmark-circle' size={16} color={theme.colors.success} />
               <Text style={styles.acceptedText}>Accepted</Text>
             </View>
           )}
@@ -282,7 +283,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       <View style={styles.container}>
         {renderHeader()}
         <View style={styles.errorContainer}>
-          <Ionicons name='warning-outline' size={48} color='#EF4444' />
+          <Ionicons name='warning-outline' size={48} color={theme.colors.error} />
           <Text style={styles.errorText}>Failed to load bids</Text>
           <TouchableOpacity
             style={styles.retryButton}
@@ -319,31 +320,31 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: theme.typography.fontSize.lg,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
-    marginBottom: 4,
+    marginBottom: theme.spacing.xs,
   },
   bidCount: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textSecondary,
   },
   bidsList: {
-    gap: 12,
+    gap: theme.spacing[3],
   },
   bidCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
     ...theme.shadows.base,
   },
   lowestBidCard: {
-    borderColor: '#FFD700',
+    borderColor: theme.colors.warning,
     borderWidth: 2,
   },
   selectedBidCard: {
@@ -353,27 +354,27 @@ const styles = StyleSheet.create({
   lowestBidBadge: {
     position: 'absolute',
     top: -8,
-    left: 16,
-    backgroundColor: '#FFF7ED',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    left: theme.spacing.md,
+    backgroundColor: theme.colors.accentLight,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.borderRadius.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: theme.spacing.xs,
   },
   lowestBidText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#F59E0B',
+    fontSize: theme.typography.fontSize.xs,
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.warning,
   },
   contractorHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: theme.spacing[3],
   },
   contractorAvatar: {
-    marginRight: 12,
+    marginRight: theme.spacing[3],
   },
   avatar: {
     width: 40,
@@ -384,52 +385,52 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contractorName: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   contractorRating: {
-    fontSize: 14,
-    color: '#F59E0B',
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.warning,
     marginBottom: 2,
   },
   bidTime: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.textTertiary,
   },
   bidAmount: {
     alignItems: 'flex-end',
   },
   bidPrice: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: theme.typography.fontSize.lg,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.primary,
     marginBottom: 2,
   },
   budgetComparison: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: theme.typography.fontSize.xs,
+    fontWeight: theme.typography.fontWeight.medium,
   },
   bidDescription: {
-    marginBottom: 12,
-    paddingTop: 12,
+    marginBottom: theme.spacing[3],
+    paddingTop: theme.spacing[3],
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
   },
   bidDescriptionText: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textSecondary,
     lineHeight: 20,
   },
   timeline: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 12,
+    gap: theme.spacing.xs,
+    marginBottom: theme.spacing[3],
   },
   timelineText: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textSecondary,
   },
   bidActions: {
@@ -438,95 +439,95 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   viewProfileButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
+    paddingHorizontal: theme.spacing[3],
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
     borderWidth: 1,
     borderColor: theme.colors.primary,
   },
   viewProfileText: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.primary,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   acceptButton: {
     backgroundColor: theme.colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing[3],
+    borderRadius: theme.borderRadius.md,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: theme.spacing.xs,
   },
   acceptButtonLoading: {
     opacity: 0.7,
   },
   acceptButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
+    color: theme.colors.textInverse,
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   acceptedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#ECFDF5',
-    borderRadius: 6,
+    gap: theme.spacing.xs,
+    paddingHorizontal: theme.spacing[3],
+    paddingVertical: theme.spacing.sm,
+    backgroundColor: theme.colors.primaryLight,
+    borderRadius: theme.borderRadius.md,
   },
   acceptedText: {
-    color: '#10B981',
-    fontSize: 14,
-    fontWeight: '500',
+    color: theme.colors.success,
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.medium,
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 48,
-    paddingHorizontal: 32,
+    paddingVertical: 64,
+    paddingHorizontal: theme.spacing['2xl'],
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: theme.typography.fontSize.lg,
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
   },
   emptyDescription: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
   },
   loadingContainer: {
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: theme.spacing['2xl'],
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textSecondary,
-    marginTop: 12,
+    marginTop: theme.spacing[3],
   },
   errorContainer: {
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: theme.spacing['2xl'],
   },
   errorText: {
-    fontSize: 16,
-    color: '#EF4444',
-    marginTop: 16,
-    marginBottom: 16,
+    fontSize: theme.typography.fontSize.base,
+    color: theme.colors.error,
+    marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.md,
   },
   retryButton: {
     backgroundColor: theme.colors.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing[3],
+    borderRadius: theme.borderRadius.md,
   },
   retryText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
+    color: theme.colors.textInverse,
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.semibold,
   },
 });
 

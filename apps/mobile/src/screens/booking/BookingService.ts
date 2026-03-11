@@ -28,7 +28,7 @@ export class BookingService {
       const allJobs = await JobService.getUserJobs(user.id);
 
       // Transform jobs into booking format
-      const bookings: Booking[] = await Promise.all(
+      const bookings = await Promise.all(
         (allJobs || []).map(async (job: Job) => {
           const otherUserId = user.role === 'homeowner' ? job.contractor_id : job.homeowner_id;
           const otherUser = otherUserId ? await this.getUserInfo(otherUserId) : null;
@@ -40,10 +40,10 @@ export class BookingService {
               : 'Unknown',
             contractorImage: otherUser?.profile_image_url,
             serviceName: job.title || 'Service Request',
-            address: job.location || 'Address not provided',
+            address: (job.location || 'Address not provided') as string,
             serviceId: job.id,
-            date: this.formatDate(job.scheduled_start_date || job.created_at),
-            time: this.formatTime(job.scheduled_start_date || job.created_at),
+            date: this.formatDate(job.created_at),
+            time: this.formatTime(job.created_at),
             status: this.mapJobStatusToBookingStatus(job.status),
             amount: job.budget || 0,
             rating: undefined,

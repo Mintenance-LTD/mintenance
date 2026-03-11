@@ -20,6 +20,7 @@ import {
   LayoutAnimation,
   Platform,
 } from 'react-native';
+import { theme } from '../../theme';
 
 // ============================================================================
 // MODAL COMPOUND COMPONENT
@@ -240,19 +241,26 @@ export const ModalClose = memo<ModalCloseProps>(({
 
 ModalClose.displayName = 'Modal.Close';
 
-// Attach sub-components to Modal (cast required for memo() + compound component pattern)
-(Modal as any).Trigger = ModalTrigger;
-(Modal as any).Content = ModalContent;
-(Modal as any).Header = ModalHeader;
-(Modal as any).Title = ModalTitle;
-(Modal as any).Close = ModalClose;
+// Attach sub-components to Modal using typed intersection
+type ModalCompound = React.NamedExoticComponent<ModalProps> & {
+  Trigger: typeof ModalTrigger;
+  Content: typeof ModalContent;
+  Header: typeof ModalHeader;
+  Title: typeof ModalTitle;
+  Close: typeof ModalClose;
+};
+(Modal as ModalCompound).Trigger = ModalTrigger;
+(Modal as ModalCompound).Content = ModalContent;
+(Modal as ModalCompound).Header = ModalHeader;
+(Modal as ModalCompound).Title = ModalTitle;
+(Modal as ModalCompound).Close = ModalClose;
 
 const styles = StyleSheet.create({
-  trigger: { padding: 12, backgroundColor: "#007AFF", borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  trigger: { padding: 12, backgroundColor: theme.colors.primary, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   modalContainer: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, justifyContent: "center", alignItems: "center", zIndex: 1000 },
   overlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0, 0, 0, 0.5)" },
-  content: { backgroundColor: "white", borderRadius: 12, padding: 20, margin: 20, maxWidth: "90%", maxHeight: "80%", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 8 },
-  header: { marginBottom: 16, paddingBottom: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#E5E5E5" },
-  title: { fontSize: 18, fontWeight: "600", color: "#1A1A1A" },
+  content: { backgroundColor: theme.colors.surface, borderRadius: 12, padding: 20, margin: 20, maxWidth: "90%", maxHeight: "80%", shadowColor: theme.colors.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 8 },
+  header: { marginBottom: 16, paddingBottom: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
+  title: { fontSize: 18, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary },
   closeButton: { position: "absolute", top: 12, right: 12, padding: 8 },
 });

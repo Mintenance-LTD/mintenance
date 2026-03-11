@@ -168,7 +168,7 @@ export class ErrorCapture {
       version: Platform.Version.toString(),
       device: Platform.OS === 'ios' ? 'iOS Device' : 'Android Device',
       network: typeof navigator !== 'undefined' && 'connection' in navigator
-        ? (navigator as unknown).connection?.effectiveType
+        ? (navigator as unknown as Record<string, { effectiveType?: string }>).connection?.effectiveType
         : 'unknown'
     };
   }

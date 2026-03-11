@@ -7,6 +7,7 @@
 
 import React, { Component, ReactNode } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { theme } from '../theme';
 import { logger } from '@mintenance/shared';
 
 interface Props {
@@ -68,11 +69,11 @@ export class ErrorBoundary extends Component<Props, State> {
         });
       }).catch((importError) => {
         // Fallback if Sentry fails to load
-        logger.warn('Failed to report error to Sentry', importError);
+        logger.warn('Failed to report error to Sentry', { error: importError instanceof Error ? importError.message : String(importError) });
       });
     } catch (sentryError) {
       // Prevent Sentry errors from crashing the app
-      logger.warn('Sentry error reporting failed', sentryError);
+      logger.warn('Sentry error reporting failed', { error: sentryError instanceof Error ? sentryError.message : String(sentryError) });
     }
   }
 
@@ -127,10 +128,10 @@ export class ErrorBoundary extends Component<Props, State> {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: theme.spacing.lg,
   },
   content: {
     maxWidth: 400,
@@ -138,58 +139,58 @@ const styles = StyleSheet.create({
   },
   emoji: {
     fontSize: 64,
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 12,
+    fontSize: theme.typography.fontSize.xl,
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.textPrimary,
+    marginBottom: theme.spacing[3],
     textAlign: 'center',
   },
   message: {
-    fontSize: 16,
-    color: '#6B7280',
+    fontSize: theme.typography.fontSize.base,
+    color: theme.colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: theme.spacing.xl,
     lineHeight: 24,
   },
   button: {
-    backgroundColor: '#0EA5E9',
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginTop: 16,
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: theme.spacing['2xl'],
+    paddingVertical: theme.spacing[3],
+    borderRadius: theme.borderRadius.lg,
+    marginTop: theme.spacing.md,
   },
   buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    color: theme.colors.textInverse,
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   errorDetails: {
-    marginTop: 20,
-    padding: 16,
-    backgroundColor: '#FEE2E2',
-    borderRadius: 12,
+    marginTop: theme.spacing.lg,
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.errorLight ?? '#FEE2E2',
+    borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#EF4444',
+    borderColor: theme.colors.error,
     width: '100%',
   },
   errorTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#991B1B',
-    marginBottom: 8,
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.error,
+    marginBottom: theme.spacing.sm,
   },
   errorMessage: {
-    fontSize: 13,
-    color: '#7F1D1D',
-    marginBottom: 8,
-    fontWeight: '600',
+    fontSize: theme.typography.fontSize.xs,
+    color: theme.colors.error,
+    marginBottom: theme.spacing.sm,
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   errorStack: {
     fontSize: 11,
-    color: '#991B1B',
+    color: theme.colors.error,
     fontFamily: 'monospace',
   },
 });

@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
   },
   insightsTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginBottom: 12,
   },

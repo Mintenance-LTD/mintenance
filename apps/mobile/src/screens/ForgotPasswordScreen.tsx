@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -33,6 +33,30 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [resendTimer, setResendTimer] = useState(30);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (success && resendTimer > 0) {
+      timerRef.current = setInterval(() => {
+        setResendTimer((prev) => {
+          if (prev <= 1) {
+            if (timerRef.current) clearInterval(timerRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [success]);
+
+  const handleResend = useCallback(async () => {
+    setResendTimer(30);
+    await handleResetPassword();
+  }, [email]);
 
   const clearError = useCallback(() => {
     if (errorMessage) {
@@ -61,8 +85,9 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
     } catch (error) {
       logger.error('Password reset failed', error);
       setErrorMessage(
-        error.message ||
-          'Failed to send reset email. Please check your email address and try again.'
+        error instanceof Error
+          ? error.message
+          : 'Failed to send reset email. Please check your email address and try again.'
       );
     } finally {
       setLoading(false);
@@ -94,9 +119,31 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
             />
             <Text style={styles.successTitle} accessibilityRole='header'>Email Sent!</Text>
             <Text style={styles.successMessage}>
-              We've sent a password reset link to {email}. Please check your email
+              We've sent a password reset link to{' '}
+              <Text style={styles.emailHighlight}>{email}</Text>. Please check your email
               and follow the instructions.
             </Text>
+
+            {resendTimer > 0 ? (
+              <Text
+                style={styles.resendTimerText}
+                accessibilityLabel={`Resend available in ${resendTimer} seconds`}
+              >
+                Resend in {resendTimer}s
+              </Text>
+            ) : (
+              <TouchableOpacity
+                onPress={handleResend}
+                disabled={loading}
+                accessibilityRole='button'
+                accessibilityLabel='Resend password reset email'
+                accessibilityHint='Double tap to resend the password reset email'
+              >
+                <Text style={styles.resendLinkText}>
+                  {loading ? 'Sending...' : "Didn't receive it? Resend"}
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={styles.backButton}
@@ -161,7 +208,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
           ) : null}
           <View style={styles.formContainer}>
             <View style={styles.instructionContainer}>
-              <Ionicons name='mail' size={48} color='#717171' accessible={false} />
+              <Ionicons name='mail' size={48} color={theme.colors.textSecondary} accessible={false} />
               <Text style={styles.instructionTitle} accessibilityRole='header'>Forgot your password?</Text>
               <Text style={styles.instructionText}>
                 Enter your email address and we'll send you a link to reset your
@@ -241,7 +288,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.borderLight,
   },
   backIconButton: {
     position: 'absolute',
@@ -261,7 +308,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   keyboardContainer: {
@@ -283,7 +330,7 @@ const styles = StyleSheet.create({
   },
   instructionTitle: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginTop: 16,
     marginBottom: 12,
@@ -323,7 +370,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
-    shadowColor: '#000000',
+    shadowColor: theme.colors.black,
     shadowOffset: {
       width: 0,
       height: 4,
@@ -340,7 +387,7 @@ const styles = StyleSheet.create({
   resetButtonText: {
     color: theme.colors.textInverse,
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   backLinkButton: {
     paddingVertical: 12,
@@ -349,7 +396,7 @@ const styles = StyleSheet.create({
   backLinkText: {
     color: theme.colors.textPrimary,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     textDecorationLine: 'underline',
   },
   successContainer: {
@@ -360,7 +407,7 @@ const styles = StyleSheet.create({
   },
   successTitle: {
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginTop: 24,
     marginBottom: 16,
@@ -373,6 +420,23 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 32,
   },
+  emailHighlight: {
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.textPrimary,
+  },
+  resendTimerText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  resendLinkText: {
+    fontSize: 14,
+    color: theme.colors.primary,
+    fontWeight: theme.typography.fontWeight.semibold,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
   backButton: {
     backgroundColor: theme.colors.primary,
     borderRadius: theme.borderRadius.xxl,
@@ -382,7 +446,7 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: theme.colors.textInverse,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
 });
 

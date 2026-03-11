@@ -43,17 +43,17 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
           {serviceCategories.map((category) => (
             <TouchableOpacity
               key={category.id}
-              style={[styles.categoryCard, { backgroundColor: '#F7F7F7' }]}
+              style={[styles.categoryCard, { backgroundColor: theme.colors.backgroundSecondary }]}
               onPress={() => onSelect(category)}
               accessibilityRole="button"
               accessibilityLabel={`${category.name} service category`}
               accessibilityHint="Double tap to select this category"
             >
-              <View style={[styles.categoryIcon, { backgroundColor: '#EBEBEB' }]}>
+              <View style={[styles.categoryIcon, { backgroundColor: theme.colors.borderLight }]}>
                 <Ionicons
                   name={category.icon as keyof typeof Ionicons.glyphMap}
                   size={30}
-                  color="#717171"
+                  color={theme.colors.textSecondary}
                 />
               </View>
               <Text style={styles.categoryName}>{category.name}</Text>

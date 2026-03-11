@@ -50,7 +50,7 @@ export class Reporter {
   }
 
   generateBudgetReport(budgetStatus: PerformanceBudget[], totalRules: number): string {
-    let report = '# =Ê Performance Budget Report\n\n';
+    let report = '# =ï¿½ Performance Budget Report\n\n';
     report += `**Generated:** ${new Date().toLocaleString()}\n`;
     report += `**Rules:** ${totalRules} total, ${budgetStatus.length} enabled\n\n`;
 
@@ -61,7 +61,7 @@ export class Reporter {
 
     report += `## Summary\n`;
     report += `-  **Passed:** ${passed}\n`;
-    report += `-   **Warnings:** ${warned}\n`;
+    report += `- ï¿½ **Warnings:** ${warned}\n`;
     report += `- L **Failed:** ${failed}\n\n`;
 
     // Budget Status by Category
@@ -72,11 +72,11 @@ export class Reporter {
 
       report += `## ${category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ')}\n\n`;
       categoryBudgets.forEach(budget => {
-        const emoji = budget.status === 'pass' ? '' : budget.status === 'warn' ? ' ' : 'L';
-        const value = this.formatValue(budget.current, budget.unit || '');
-        const target = this.formatValue(budget.target || budget.budget, budget.unit || '');
+        const emoji = budget.status === 'pass' ? '' : budget.status === 'warn' ? 'ï¿½' : 'L';
+        const value = this.formatValue(budget.current ?? 0, budget.unit || '');
+        const target = this.formatValue(budget.target ?? budget.budget ?? 0, budget.unit || '');
 
-        report += `${emoji} **${budget.metric}**: ${value} / ${target} (${budget.percentage.toFixed(1)}%)\n`;
+        report += `${emoji} **${budget.metric}**: ${value} / ${target} (${(budget.percentage ?? 0).toFixed(1)}%)\n`;
       });
       report += '\n';
     });

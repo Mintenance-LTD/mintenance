@@ -143,7 +143,7 @@ export const ClientCard: React.FC<ClientCardProps> = ({
               <Text style={styles.metricValue}>
                 {client.satisfaction_score.toFixed(1)}
               </Text>
-              <Ionicons name='star' size={12} color='#FFD700' />
+              <Ionicons name='star' size={12} color={theme.colors.accent} />
             </View>
             <Text style={styles.metricLabel}>Rating</Text>
           </View>
@@ -199,82 +199,82 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.lg,
-    padding: 16,
-    marginBottom: 12,
+    padding: theme.spacing[4],
+    marginBottom: theme.spacing[3],
     ...theme.shadows.base,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: theme.spacing[3],
   },
   clientInfo: {
     flex: 1,
-    marginRight: 12,
+    marginRight: theme.spacing[3],
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: theme.spacing[1],
   },
   clientName: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
-    marginLeft: 6,
+    marginLeft: theme.spacing[1],
   },
   clientEmail: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textSecondary,
     marginBottom: 2,
   },
   clientPhone: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textSecondary,
   },
   statusContainer: {
     alignItems: 'flex-end',
   },
   statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: theme.spacing[2],
+    paddingVertical: theme.spacing[1],
     borderRadius: theme.borderRadius.sm,
-    marginBottom: 4,
+    marginBottom: theme.spacing[1],
   },
   statusText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#fff',
+    fontSize: theme.typography.fontSize.xs,
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.textInverse,
   },
   riskBadge: {
-    paddingHorizontal: 6,
+    paddingHorizontal: theme.spacing[1],
     paddingVertical: 2,
     borderRadius: theme.borderRadius.sm,
     borderWidth: 1,
   },
   riskText: {
-    fontSize: 9,
-    fontWeight: '500',
+    fontSize: theme.typography.fontSize.xs,
+    fontWeight: theme.typography.fontWeight.medium,
   },
   metrics: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
-    paddingVertical: 8,
+    marginBottom: theme.spacing[3],
+    paddingVertical: theme.spacing[2],
   },
   metric: {
     alignItems: 'center',
     flex: 1,
   },
   metricValue: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   metricLabel: {
-    fontSize: 11,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.textSecondary,
   },
   rating: {
@@ -285,22 +285,22 @@ const styles = StyleSheet.create({
   lastActivity: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    paddingTop: 8,
+    marginBottom: theme.spacing[3],
+    paddingTop: theme.spacing[2],
   },
   lastActivityText: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.textSecondary,
-    marginLeft: 4,
+    marginLeft: theme.spacing[1],
   },
   actions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 8,
+    gap: theme.spacing[2],
   },
   actionButton: {
-    width: 32,
-    height: 32,
+    width: theme.spacing[8],
+    height: theme.spacing[8],
     borderRadius: theme.borderRadius.full,
     backgroundColor: theme.colors.surfaceSecondary,
     alignItems: 'center',

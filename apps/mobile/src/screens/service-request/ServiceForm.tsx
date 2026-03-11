@@ -88,8 +88,8 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
               style={[
                 styles.subcategoryChip,
                 selectedSubcategory === sub && {
-                  backgroundColor: '#222222',
-                  borderColor: '#222222',
+                  backgroundColor: theme.colors.primary,
+                  borderColor: theme.colors.primary,
                 },
               ]}
               onPress={() => onSubcategorySelect(sub)}
@@ -132,7 +132,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
                   <Ionicons
                     name="home-outline"
                     size={20}
-                    color={selectedProperty?.id === property.id ? '#222222' : theme.colors.textSecondary}
+                    color={selectedProperty?.id === property.id ? theme.colors.textPrimary : theme.colors.textSecondary}
                   />
                   <View style={styles.propertyOptionText}>
                     <Text style={[
@@ -146,7 +146,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
                     </Text>
                   </View>
                   {selectedProperty?.id === property.id && (
-                    <Ionicons name="checkmark-circle" size={22} color='#222222' />
+                    <Ionicons name="checkmark-circle" size={22} color={theme.colors.textPrimary} />
                   )}
                 </View>
               </TouchableOpacity>
@@ -231,8 +231,8 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
               key={level.id}
               style={[
                 styles.priorityCard,
-                { borderColor: '#EBEBEB' },
-                priority === level.id && { backgroundColor: '#222222', borderColor: '#222222' },
+                { borderColor: theme.colors.borderLight },
+                priority === level.id && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
               ]}
               onPress={() => onPriorityChange(level.id)}
               accessibilityRole="radio"
@@ -266,7 +266,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
                 accessibilityRole="button"
                 accessibilityLabel={`Remove photo ${index + 1}`}
               >
-                <Ionicons name="close-circle" size={24} color="#FF3B30" />
+                <Ionicons name="close-circle" size={24} color={theme.colors.error} />
               </TouchableOpacity>
             </View>
           ))}

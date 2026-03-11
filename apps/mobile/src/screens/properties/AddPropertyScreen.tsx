@@ -166,8 +166,8 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
               accessibilityLabel="Use current location to fill address"
             >
               {locating
-                ? <ActivityIndicator size="small" color="#FFFFFF" />
-                : <Ionicons name="location" size={18} color="#FFFFFF" />
+                ? <ActivityIndicator size="small" color={theme.colors.textInverse} />
+                : <Ionicons name="location" size={18} color={theme.colors.textInverse} />
               }
               <Text style={styles.locationButtonText}>
                 {locating ? 'Locating...' : 'Use Current Location'}
@@ -400,8 +400,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   typeChipSelected: {
-    backgroundColor: '#222222',
-    borderColor: '#222222',
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
   },
   typeChipText: {
     fontSize: theme.typography.fontSize.sm,
@@ -415,19 +415,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.primary,
     borderRadius: theme.borderRadius.md,
     paddingVertical: 12,
     gap: 8,
     marginBottom: theme.spacing[3],
   },
   locationButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: theme.typography.fontSize.sm,
     fontWeight: theme.typography.fontWeight.semibold,
   },
   submitButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.primary,
     borderRadius: theme.borderRadius.xl,
     paddingVertical: theme.spacing[4],
     alignItems: 'center',

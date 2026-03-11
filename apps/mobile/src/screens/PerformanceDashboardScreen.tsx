@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { theme } from '../theme';
 import { performanceMonitor } from '../utils/performance';
 import type { PerformanceBudget, PerformanceReport } from '../utils/performance/types';
 import { logger } from '../utils/logger';
@@ -26,8 +27,8 @@ export const PerformanceDashboardScreen: React.FC = () => {
       const latestReport = performanceMonitor.generateReport();
       setReport(latestReport);
       logger.debug('Performance report loaded', {
-        metricsCount: latestReport.metrics.length,
-        budgetsCount: latestReport.budgets.length,
+        metricsCount: latestReport.metrics?.length ?? 0,
+        budgetsCount: latestReport.budgets?.length ?? 0,
       });
     } catch (error) {
       logger.error('Failed to load performance report', error);
@@ -41,14 +42,14 @@ export const PerformanceDashboardScreen: React.FC = () => {
   };
 
   const getBudgetStatusColor = (budget: PerformanceBudget): string => {
-    if (budget.status === 'pass') return '#10b981'; // green
-    if (budget.status === 'warning') return '#f59e0b'; // orange
-    return '#ef4444'; // red
+    if (budget.status === 'pass') return theme.colors.primary; // green
+    if (budget.status === 'warn') return theme.colors.warning; // orange
+    return theme.colors.error; // red
   };
 
   const getBudgetStatusIcon = (budget: PerformanceBudget): string => {
     if (budget.status === 'pass') return '✓';
-    if (budget.status === 'warning') return '⚠';
+    if (budget.status === 'warn') return '⚠';
     return '✕';
   };
 
@@ -73,10 +74,17 @@ export const PerformanceDashboardScreen: React.FC = () => {
     );
   }
 
+  const budgets = report.budgets ?? [];
+  const violations = report.violations ?? [];
+  const metrics = report.metrics ?? [];
+  const healthScore = budgets.length > 0
+    ? Math.round((budgets.filter(b => b.status === 'pass').length / budgets.length) * 100)
+    : 100;
+
   const filteredBudgets =
     selectedCategory === 'violations'
-      ? report.budgets.filter(b => b.status !== 'pass')
-      : report.budgets;
+      ? budgets.filter(b => b.status !== 'pass')
+      : budgets;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -90,44 +98,44 @@ export const PerformanceDashboardScreen: React.FC = () => {
       <View style={styles.header}>
         <Text style={styles.title} accessibilityRole='header'>Performance Dashboard</Text>
         <Text style={styles.subtitle}>
-          {report.metrics.length} metrics tracked
+          {metrics.length} metrics tracked
         </Text>
       </View>
 
       {/* Summary Cards */}
       <View style={styles.summaryContainer}>
-        <View style={styles.summaryCard} accessibilityLabel={`${report.budgets.length} total budgets`}>
-          <Text style={styles.summaryValue}>{report.budgets.length}</Text>
+        <View style={styles.summaryCard} accessibilityLabel={`${budgets.length} total budgets`}>
+          <Text style={styles.summaryValue}>{budgets.length}</Text>
           <Text style={styles.summaryLabel}>Total Budgets</Text>
         </View>
 
-        <View style={styles.summaryCard} accessibilityLabel={`${report.violations.length} violations`}>
+        <View style={styles.summaryCard} accessibilityLabel={`${violations.length} violations`}>
           <Text
             style={[
               styles.summaryValue,
-              { color: report.violations.length > 0 ? '#ef4444' : '#10b981' },
+              { color: violations.length > 0 ? theme.colors.error : theme.colors.primary },
             ]}
           >
-            {report.violations.length}
+            {violations.length}
           </Text>
           <Text style={styles.summaryLabel}>Violations</Text>
         </View>
 
-        <View style={styles.summaryCard} accessibilityLabel={`Health score: ${Math.round(report.summary.healthScore)}`}>
+        <View style={styles.summaryCard} accessibilityLabel={`Health score: ${healthScore}`}>
           <Text
             style={[
               styles.summaryValue,
               {
                 color:
-                  report.summary.healthScore > 80
-                    ? '#10b981'
-                    : report.summary.healthScore > 60
-                      ? '#f59e0b'
-                      : '#ef4444',
+                  healthScore > 80
+                    ? theme.colors.primary
+                    : healthScore > 60
+                      ? theme.colors.warning
+                      : theme.colors.error,
               },
             ]}
           >
-            {Math.round(report.summary.healthScore)}
+            {healthScore}
           </Text>
           <Text style={styles.summaryLabel}>Health Score</Text>
         </View>
@@ -214,17 +222,17 @@ export const PerformanceDashboardScreen: React.FC = () => {
                   <Text
                     style={[
                       styles.budgetValue,
-                      budget.status !== 'pass' && { color: '#ef4444' },
+                      budget.status !== 'pass' && { color: theme.colors.error },
                     ]}
                   >
-                    {formatValue(budget.current, budget.metric)}
+                    {formatValue(budget.current ?? 0, budget.metric ?? '')}
                   </Text>
                 </View>
 
                 <View style={styles.budgetRow}>
                   <Text style={styles.budgetLabel}>Budget:</Text>
                   <Text style={styles.budgetValue}>
-                    {formatValue(budget.budget, budget.metric)}
+                    {formatValue(budget.budget ?? 0, budget.metric ?? '')}
                   </Text>
                 </View>
 
@@ -233,10 +241,10 @@ export const PerformanceDashboardScreen: React.FC = () => {
                   <Text
                     style={[
                       styles.budgetValue,
-                      budget.percentage > 100 && { color: '#ef4444' },
+                      (budget.percentage ?? 0) > 100 && { color: theme.colors.error },
                     ]}
                   >
-                    {Math.round(budget.percentage)}%
+                    {Math.round(budget.percentage ?? 0)}%
                   </Text>
                 </View>
               </View>
@@ -247,7 +255,7 @@ export const PerformanceDashboardScreen: React.FC = () => {
                   style={[
                     styles.progressFill,
                     {
-                      width: `${Math.min(budget.percentage, 100)}%`,
+                      width: `${Math.min(budget.percentage ?? 0, 100)}%`,
                       backgroundColor: getBudgetStatusColor(budget),
                     },
                   ]}
@@ -259,11 +267,11 @@ export const PerformanceDashboardScreen: React.FC = () => {
       </View>
 
       {/* Recent Violations */}
-      {report.violations.length > 0 && (
+      {violations.length > 0 && (
         <View style={styles.violationsContainer}>
           <Text style={styles.sectionTitle} accessibilityRole='header'>Recent Violations</Text>
 
-          {report.violations.slice(0, 5).map((violation, index) => (
+          {violations.slice(0, 5).map((violation, index) => (
             <View key={index} style={styles.violationCard}>
               <View style={styles.violationHeader}>
                 <Text style={styles.violationMetric}>{violation.metric}</Text>
@@ -273,8 +281,8 @@ export const PerformanceDashboardScreen: React.FC = () => {
                     {
                       backgroundColor:
                         violation.severity === 'critical'
-                          ? '#ef4444'
-                          : '#f59e0b',
+                          ? theme.colors.error
+                          : theme.colors.warning,
                     },
                   ]}
                 >
@@ -305,9 +313,9 @@ export const PerformanceDashboardScreen: React.FC = () => {
       <View style={styles.summaryTextContainer}>
         <Text style={styles.sectionTitle}>Summary</Text>
         <Text style={styles.summaryDescription}>
-          {report.summary.totalMetrics} metrics collected across{' '}
-          {report.summary.categories.length} categories. Average response time:{' '}
-          {Math.round(report.summary.averageResponseTime)}ms
+          {report.summary.totalMetrics} metrics collected.
+          Average response time:{' '}
+          {Math.round(report.summary.averageResponseTime ?? 0)}ms
         </Text>
       </View>
     </ScrollView>
@@ -318,27 +326,27 @@ export const PerformanceDashboardScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   loadingText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginTop: 50,
   },
   header: {
     padding: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.surface,
   },
   title: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: theme.colors.textSecondary,
   },
   summaryContainer: {
     flexDirection: 'row',
@@ -347,11 +355,11 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -359,13 +367,13 @@ const styles = StyleSheet.create({
   },
   summaryValue: {
     fontSize: 28,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   summaryLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
   },
   filterContainer: {
@@ -378,27 +386,27 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
   },
   filterButtonActive: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: theme.colors.info,
   },
   filterText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#6b7280',
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.textSecondary,
   },
   filterTextActive: {
-    color: '#ffffff',
+    color: theme.colors.white,
   },
   budgetsContainer: {
     padding: 16,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   emptyState: {
@@ -407,14 +415,14 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: theme.colors.textSecondary,
   },
   budgetCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -431,13 +439,13 @@ const styles = StyleSheet.create({
   },
   budgetName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   budgetCategory: {
     fontSize: 12,
-    color: '#6b7280',
+    color: theme.colors.textSecondary,
     textTransform: 'capitalize',
   },
   statusBadge: {
@@ -449,8 +457,8 @@ const styles = StyleSheet.create({
   },
   statusIcon: {
     fontSize: 16,
-    color: '#ffffff',
-    fontWeight: '700',
+    color: theme.colors.white,
+    fontWeight: theme.typography.fontWeight.bold,
   },
   budgetDetails: {
     gap: 8,
@@ -463,16 +471,16 @@ const styles = StyleSheet.create({
   },
   budgetLabel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: theme.colors.textSecondary,
   },
   budgetValue: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.textPrimary,
   },
   progressBar: {
     height: 6,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: theme.colors.border,
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -484,12 +492,12 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   violationCard: {
-    backgroundColor: '#fef2f2',
+    backgroundColor: theme.colors.accentLight,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderLeftWidth: 4,
-    borderLeftColor: '#ef4444',
+    borderLeftColor: theme.colors.error,
   },
   violationHeader: {
     flexDirection: 'row',
@@ -499,8 +507,8 @@ const styles = StyleSheet.create({
   },
   violationMetric: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.textPrimary,
     flex: 1,
   },
   severityBadge: {
@@ -510,12 +518,12 @@ const styles = StyleSheet.create({
   },
   severityText: {
     fontSize: 10,
-    fontWeight: '700',
-    color: '#ffffff',
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.white,
   },
   violationTime: {
     fontSize: 12,
-    color: '#6b7280',
+    color: theme.colors.textSecondary,
     marginBottom: 8,
   },
   violationDetails: {
@@ -523,14 +531,14 @@ const styles = StyleSheet.create({
   },
   violationLabel: {
     fontSize: 13,
-    color: '#374151',
+    color: theme.colors.textPrimary,
   },
   summaryTextContainer: {
     padding: 16,
   },
   summaryDescription: {
     fontSize: 14,
-    color: '#6b7280',
+    color: theme.colors.textSecondary,
     lineHeight: 20,
   },
 });

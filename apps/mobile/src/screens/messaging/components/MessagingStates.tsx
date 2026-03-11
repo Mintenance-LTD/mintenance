@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textSecondary,
     marginTop: 16,
   },
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   },
   retryText: {
     color: theme.colors.surface,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     fontSize: 14,
   },
 });

@@ -18,7 +18,7 @@ export const styles = StyleSheet.create({
   },
   permissionTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginTop: 16,
     marginBottom: 8,
@@ -40,7 +40,7 @@ export const styles = StyleSheet.create({
   permissionButtonText: {
     color: theme.colors.surface,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   connectingContainer: {
     flex: 1,
@@ -65,7 +65,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: theme.colors.overlayDark50 ?? '#1a1a1a',
   },
   videoPlaceholder: {
     color: theme.colors.surface,
@@ -81,7 +81,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#2a2a2a',
+    backgroundColor: theme.colors.overlayDark30 ?? '#2a2a2a',
   },
   videoDisabledText: {
     color: theme.colors.surface,
@@ -121,7 +121,7 @@ export const styles = StyleSheet.create({
   pipLabelText: {
     color: theme.colors.surface,
     fontSize: 10,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   switchCameraButton: {
     position: 'absolute',
@@ -155,7 +155,7 @@ export const styles = StyleSheet.create({
   participantName: {
     color: theme.colors.surface,
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     marginBottom: 4,
   },
   durationContainer: {
@@ -171,7 +171,7 @@ export const styles = StyleSheet.create({
   durationText: {
     color: theme.colors.surface,
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     opacity: 0.8,
   },
   recordingIndicator: {
@@ -255,7 +255,7 @@ export const styles = StyleSheet.create({
   secondaryButtonText: {
     color: theme.colors.surface,
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   secondaryButtonTextActive: {
     color: theme.colors.primary,

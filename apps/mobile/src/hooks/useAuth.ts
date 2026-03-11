@@ -1,30 +1,36 @@
 import { useState, useEffect } from 'react';
-import type { User } from '@/types';
-import { User } from '@mintenance/types';
-import { AuthService } from '../services/AuthService';
+import type { User } from '@mintenance/types';
+import type { Session } from '@supabase/supabase-js';
+import { AuthService, SignUpData } from '../services/AuthService';
 
 export interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (userData: unknown) => Promise<void>;
+  signUp: (userData: SignUpData) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
 }
 
+interface AuthResult {
+  user: User | null;
+  session: Session | null;
+}
+
 export function useAuth(): AuthContextType {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<unknown>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Get initial session
-    AuthService.getCurrentSession().then((session) => {
-      setSession(session);
-      if (session?.user) {
-        AuthService.getCurrentUser().then((user) => {
-          setUser(user);
+    AuthService.getCurrentSession().then((currentSession) => {
+      const sess = currentSession as Session | null;
+      setSession(sess);
+      if (sess?.user) {
+        AuthService.getCurrentUser().then((currentUser) => {
+          setUser(currentUser);
           setLoading(false);
         });
       } else {
@@ -33,11 +39,12 @@ export function useAuth(): AuthContextType {
     });
 
     // Listen for auth changes
-    const unsubscribe = AuthService.onAuthStateChange((session) => {
-      setSession(session);
-      if (session?.user) {
-        AuthService.getCurrentUser().then((user) => {
-          setUser(user);
+    const { data: { subscription } } = AuthService.onAuthStateChange((_event: string, authSession: unknown) => {
+      const sess = authSession as unknown as Session | null;
+      setSession(sess);
+      if (sess?.user) {
+        AuthService.getCurrentUser().then((currentUser) => {
+          setUser(currentUser);
         });
       } else {
         setUser(null);
@@ -46,9 +53,7 @@ export function useAuth(): AuthContextType {
     });
 
     return () => {
-      if (typeof unsubscribe === 'function') {
-        unsubscribe();
-      }
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -63,10 +68,10 @@ export function useAuth(): AuthContextType {
     }
   };
 
-  const signUp = async (userData: unknown) => {
+  const signUp = async (userData: SignUpData) => {
     setLoading(true);
     try {
-      const result = await AuthService.signUp(userData);
+      const result = (await AuthService.signUp(userData)) as AuthResult;
       setUser(result.user);
       setSession(result.session);
     } finally {

@@ -198,8 +198,8 @@ class VideoService {
    */
   async getVideoMetadata(videoPath: string): Promise<VideoMetadata> {
     try {
-      const fileInfo = await FileSystem.getInfoAsync(videoPath, { size: true });
-      const fileSize = (fileInfo as { size?: number }).size || 0;
+      const fileInfo = await FileSystem.getInfoAsync(videoPath);
+      const fileSize = (fileInfo as unknown as { size?: number }).size || 0;
 
       return {
         duration: 0,
@@ -279,8 +279,8 @@ class VideoService {
       }
 
       // Get public URL
-      const { data: publicData } = supabase.storage
-        .from('assessment-videos')
+      const { data: publicData } = (supabase.storage
+        .from('assessment-videos') as unknown as { getPublicUrl: (path: string) => { data: { publicUrl: string } } })
         .getPublicUrl(storagePath);
 
       logger.info('Video uploaded successfully', { url: publicData.publicUrl });
@@ -428,7 +428,11 @@ class VideoService {
           const maxAttempts = 60; // 2 minutes with 2-second intervals
 
           while (!processingComplete && attempts < maxAttempts) {
-            const status = await this.getSAM2ProcessingStatus(processingId);
+            const status = await this.getSAM2ProcessingStatus(processingId) as {
+              status: string;
+              result?: unknown;
+              error?: string;
+            };
 
             if (status.status === 'completed') {
               processingComplete = true;

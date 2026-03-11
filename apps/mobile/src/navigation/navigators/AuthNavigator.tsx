@@ -3,7 +3,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../types';
 
 // Import existing screens
-import LandingScreen from '../../screens/LandingScreen';
 import LoginScreen from '../../screens/LoginScreen';
 import RegisterScreen from '../../screens/RegisterScreen';
 import ForgotPasswordScreen from '../../screens/ForgotPasswordScreen';
@@ -16,22 +15,16 @@ import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider'
 // SCREEN WRAPPERS WITH ERROR BOUNDARIES
 // ============================================================================
 
-const SafeLandingScreen = withScreenErrorBoundary(
-  LandingScreen,
-  'Landing',
-  { fallbackRoute: 'Login' }
-);
-
 const SafeLoginScreen = withScreenErrorBoundary(
   LoginScreen,
   'Login',
-  { fallbackRoute: 'Landing' }
+  { fallbackRoute: 'Login' }
 );
 
 const SafeRegisterScreen = withScreenErrorBoundary(
   RegisterScreen,
   'Register',
-  { fallbackRoute: 'Landing' }
+  { fallbackRoute: 'Login' }
 );
 
 const SafeForgotPasswordScreen = withScreenErrorBoundary(
@@ -60,13 +53,8 @@ export const AuthNavigator: React.FC = () => {
         gestureEnabled: true,
         animation: 'slide_from_right',
       }}
-      initialRouteName="Landing"
+      initialRouteName="Login"
     >
-      <AuthStack.Screen
-        name="Landing"
-        component={SafeLandingScreen}
-        options={{ title: 'Welcome' }}
-      />
       <AuthStack.Screen
         name="Login"
         component={SafeLoginScreen}

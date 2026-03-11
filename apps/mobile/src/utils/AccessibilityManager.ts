@@ -5,9 +5,21 @@
  * Provides high-level accessibility utilities and consistent behavior.
  */
 
-import { AccessibilityInfo, Platform, Vibration } from 'react-native';
+import { AccessibilityInfo, Platform, TextStyle, Vibration } from 'react-native';
 import { theme } from '../theme';
 import { logger } from './logger';
+
+interface AccessibilityProps {
+  onPress?: unknown;
+  accessibilityLabel?: string;
+  accessibilityRole?: string;
+  style?: {
+    backgroundColor?: string;
+    color?: string;
+    width?: number;
+    height?: number;
+  };
+}
 
 // ============================================================================
 // ACCESSIBILITY MANAGER CLASS
@@ -184,7 +196,7 @@ export class AccessibilityManager {
   /**
    * Get text style adjusted for accessibility
    */
-  public getAdjustedTextStyle(baseStyle: unknown) {
+  public getAdjustedTextStyle(baseStyle: TextStyle) {
     return {
       ...baseStyle,
       fontSize: this.getAdjustedFontSize(baseStyle.fontSize || 16),
@@ -234,7 +246,7 @@ export class AccessibilityManager {
   /**
    * Validate accessibility props for components
    */
-  public validateAccessibilityProps(props: unknown): {
+  public validateAccessibilityProps(props: AccessibilityProps): {
     isValid: boolean;
     warnings: string[];
   } {
@@ -327,7 +339,7 @@ export class AccessibilityManager {
   /**
    * Get accessibility testing report for a component tree
    */
-  public getAccessibilityReport(componentProps: unknown[]): {
+  public getAccessibilityReport(componentProps: AccessibilityProps[]): {
     totalElements: number;
     accessibleElements: number;
     issues: {
@@ -371,12 +383,12 @@ const accessibilityManager = new Proxy(
   {},
   {
     get(_target, prop) {
-      const instance = AccessibilityManager.getInstance() as Record<string, unknown>;
+      const instance = AccessibilityManager.getInstance() as unknown as Record<string, unknown>;
       const value = instance[prop as keyof typeof instance];
       return typeof value === 'function' ? value.bind(instance) : value;
     },
     set(_target, prop, value) {
-      const instance = AccessibilityManager.getInstance() as Record<string, unknown>;
+      const instance = AccessibilityManager.getInstance() as unknown as Record<string, unknown>;
       instance[prop as keyof typeof instance] = value;
       return true;
     },

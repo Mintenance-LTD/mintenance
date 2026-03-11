@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { JobsStackParamList } from '../../navigation/types';
+import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { Button } from '../../components/ui/Button';
 import { theme } from '../../theme';
@@ -95,8 +96,8 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorView onRetry={refetch} />;
-  if (!job) return <ErrorView onRetry={refetch} />;
+  if (error) return <ErrorView message="Failed to load job details" onRetry={refetch} />;
+  if (!job) return <ErrorView message="Job not found" onRetry={refetch} />;
 
   const isAlreadyConfirmed = job.completion_confirmed_by_homeowner;
 
@@ -136,20 +137,16 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
                   fullWidth
                   onPress={handleApprove}
                   loading={confirmMutation.isPending}
-                  leftIcon="checkmark-circle"
-                >
-                  Approve Work
-                </Button>
+                  title="Approve Work"
+                />
 
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   fullWidth
                   onPress={() => setShowChangesForm(true)}
                   style={styles.secondaryAction}
-                  leftIcon="create-outline"
-                >
-                  Request Changes
-                </Button>
+                  title="Request Changes"
+                />
               </View>
             ) : (
               <View style={styles.changesForm}>
@@ -217,9 +214,9 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing[6],
   },
   confirmedBanner: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: theme.colors.primaryLight,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: theme.colors.primaryLight,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing[5],
     alignItems: 'center',
@@ -227,11 +224,11 @@ const styles = StyleSheet.create({
   confirmedText: {
     fontSize: theme.typography.fontSize.lg,
     fontWeight: theme.typography.fontWeight.semibold,
-    color: '#047857',
+    color: theme.colors.success,
   },
   confirmedSubtext: {
     fontSize: theme.typography.fontSize.sm,
-    color: '#059669',
+    color: theme.colors.success,
     marginTop: theme.spacing[1],
   },
   section: {

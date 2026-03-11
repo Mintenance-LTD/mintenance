@@ -299,7 +299,7 @@ const getSizeStyles = (size: BadgeSize): ViewStyle => {
     case 'sm':
       return {
         paddingHorizontal: theme.spacing[2],
-        paddingVertical: theme.spacing[0.5],
+        paddingVertical: 2,
         minHeight: 20,
       };
     case 'md':
@@ -311,7 +311,7 @@ const getSizeStyles = (size: BadgeSize): ViewStyle => {
     case 'lg':
       return {
         paddingHorizontal: theme.spacing[4],
-        paddingVertical: theme.spacing[1.5],
+        paddingVertical: 6,
         minHeight: 32,
       };
     default:
@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     marginLeft: theme.spacing[1],
-    padding: theme.spacing[0.5],
+    padding: 2,
   },
 });
 

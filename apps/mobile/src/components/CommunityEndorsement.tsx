@@ -248,7 +248,7 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
                           <Ionicons
                             name='checkmark-circle'
                             size={16}
-                            color='#fff'
+                            color={theme.colors.textInverse}
                           />
                         )}
                       </TouchableOpacity>
@@ -339,10 +339,10 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
             disabled={isPending || (!selectedSkill && !customSkill.trim())}
           >
             {isPending ? (
-              <ActivityIndicator color='#fff' size='small' />
+              <ActivityIndicator color={theme.colors.textInverse} size='small' />
             ) : (
               <>
-                <Ionicons name='heart' size={20} color='#fff' />
+                <Ionicons name='heart' size={20} color={theme.colors.textInverse} />
                 <Text style={styles.submitButtonText}>Add Endorsement</Text>
               </>
             )}
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
     marginRight: theme.spacing[1],
   },
   selectedSkillText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   customSkillContainer: {
     marginTop: theme.spacing[4],
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: theme.typography.fontSize.base,
     fontWeight: theme.typography.fontWeight.semibold,
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
 });
 

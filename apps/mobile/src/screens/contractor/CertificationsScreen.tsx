@@ -28,11 +28,11 @@ interface Certification {
   verified: boolean;
 }
 
-const getExpiryStatus = (expiryDate: string): { label: string; variant: 'success' | 'warning' | 'danger' } => {
+const getExpiryStatus = (expiryDate: string): { label: string; variant: 'success' | 'warning' | 'error' } => {
   const expiry = new Date(expiryDate);
   const now = new Date();
   const daysUntil = Math.floor((expiry.getTime() - now.getTime()) / (1000 * 86400));
-  if (daysUntil < 0) return { label: 'Expired', variant: 'danger' };
+  if (daysUntil < 0) return { label: 'Expired', variant: 'error' };
   if (daysUntil < 30) return { label: 'Expiring Soon', variant: 'warning' };
   return { label: 'Active', variant: 'success' };
 };
@@ -51,7 +51,7 @@ export const CertificationsScreen: React.FC = () => {
   const certifications = data || [];
 
   if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorView onRetry={refetch} />;
+  if (error) return <ErrorView message="Failed to load certifications" onRetry={refetch} />;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -100,7 +100,7 @@ export const CertificationsScreen: React.FC = () => {
         onPress={() => navigation.navigate('AddCertification' as never)}
         accessibilityLabel="Add certification"
       >
-        <Ionicons name="add" size={28} color="#FFFFFF" />
+        <Ionicons name="add" size={28} color={theme.colors.textInverse} />
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -108,17 +108,17 @@ export const CertificationsScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
-  list: { padding: 16, paddingBottom: 80 },
-  certRow: { backgroundColor: theme.colors.surface, borderRadius: 12, padding: 16, marginBottom: 12, ...theme.shadows.sm },
-  certHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
-  certInfo: { flex: 1, marginRight: 12 },
-  certName: { fontSize: 16, fontWeight: '600', color: theme.colors.textPrimary },
-  certIssuer: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 2 },
+  list: { padding: theme.spacing.md, paddingBottom: 80 },
+  certRow: { backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.lg, padding: theme.spacing.md, marginBottom: theme.spacing[3], ...theme.shadows.sm },
+  certHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: theme.spacing.sm },
+  certInfo: { flex: 1, marginRight: theme.spacing[3] },
+  certName: { fontSize: theme.typography.fontSize.md, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary },
+  certIssuer: { fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary, marginTop: 2 },
   certBadges: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   certMeta: { flexDirection: 'row', justifyContent: 'space-between' },
-  certDate: { fontSize: 12, color: theme.colors.textTertiary },
-  credentialId: { fontSize: 11, color: theme.colors.textTertiary, marginTop: 6 },
-  fab: { position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: '#222222', justifyContent: 'center', alignItems: 'center', ...theme.shadows.lg },
+  certDate: { fontSize: theme.typography.fontSize.xs, color: theme.colors.textTertiary },
+  credentialId: { fontSize: theme.typography.fontSize.xs, color: theme.colors.textTertiary, marginTop: 6 },
+  fab: { position: 'absolute', bottom: theme.spacing.lg, right: theme.spacing.lg, width: 56, height: 56, borderRadius: theme.borderRadius.full, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center', ...theme.shadows.large },
 });
 
 export default CertificationsScreen;

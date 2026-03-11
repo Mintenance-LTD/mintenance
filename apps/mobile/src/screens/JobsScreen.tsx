@@ -44,15 +44,15 @@ const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 };
 
 const CATEGORY_COLORS: Record<string, { icon: string; bg: string; text: string }> = {
-  plumbing:    { icon: '#717171', bg: '#F7F7F7', text: '#717171' },
-  electrical:  { icon: '#717171', bg: '#F7F7F7', text: '#717171' },
-  roofing:     { icon: '#717171', bg: '#F7F7F7', text: '#717171' },
-  painting:    { icon: '#717171', bg: '#F7F7F7', text: '#717171' },
-  carpentry:   { icon: '#717171', bg: '#F7F7F7', text: '#717171' },
-  cleaning:    { icon: '#717171', bg: '#F7F7F7', text: '#717171' },
-  hvac:        { icon: '#717171', bg: '#F7F7F7', text: '#717171' },
-  landscaping: { icon: '#717171', bg: '#F7F7F7', text: '#717171' },
-  general:     { icon: '#717171', bg: '#F7F7F7', text: '#717171' },
+  plumbing:    { icon: theme.colors.primary, bg: theme.colors.primaryLight, text: theme.colors.primary },
+  electrical:  { icon: theme.colors.warning, bg: theme.colors.accentLight, text: theme.colors.warning },
+  roofing:     { icon: theme.colors.success, bg: theme.colors.primaryLight, text: theme.colors.success },
+  painting:    { icon: theme.colors.info, bg: theme.colors.backgroundSecondary, text: theme.colors.info },
+  carpentry:   { icon: theme.colors.warning, bg: theme.colors.accentLight, text: theme.colors.warning },
+  cleaning:    { icon: theme.colors.info, bg: theme.colors.backgroundSecondary, text: theme.colors.info },
+  hvac:        { icon: theme.colors.error, bg: theme.colors.accentLight, text: theme.colors.error },
+  landscaping: { icon: theme.colors.success, bg: theme.colors.primaryLight, text: theme.colors.success },
+  general:     { icon: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary, text: theme.colors.textSecondary },
 };
 
 const FILTER_LABELS: Record<FilterStatus, string> = {
@@ -227,7 +227,7 @@ const JobsScreen: React.FC = () => {
                 accessibilityLabel="Search jobs"
               />
               {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Clear search">
                   <Ionicons name="close-circle" size={18} color={theme.colors.textTertiary} />
                 </TouchableOpacity>
               )}
@@ -340,7 +340,7 @@ const JobCard: React.FC<{
               <View style={styles.overlayRow}>
                 {isUrgent && (
                   <View style={styles.urgentTag}>
-                    <Ionicons name="flame" size={11} color="#FFFFFF" />
+                    <Ionicons name="flame" size={11} color={theme.colors.textInverse} />
                     <Text style={styles.urgentTagText}>Urgent</Text>
                   </View>
                 )}
@@ -357,7 +357,7 @@ const JobCard: React.FC<{
           <View style={styles.placeholderOverlay}>
             {isUrgent && (
               <View style={styles.urgentTag}>
-                <Ionicons name="flame" size={11} color="#FFFFFF" />
+                <Ionicons name="flame" size={11} color={theme.colors.textInverse} />
                 <Text style={styles.urgentTagText}>Urgent</Text>
               </View>
             )}
@@ -376,7 +376,7 @@ const JobCard: React.FC<{
         accessibilityRole="button"
         accessibilityLabel={saved ? 'Remove from saved' : 'Save job'}
       >
-        <Ionicons name={saved ? 'heart' : 'heart-outline'} size={20} color={saved ? '#EF4444' : '#FFFFFF'} />
+        <Ionicons name={saved ? 'heart' : 'heart-outline'} size={20} color={saved ? theme.colors.error : theme.colors.white} />
       </TouchableOpacity>
 
       {/* Content */}
@@ -410,7 +410,7 @@ const JobCard: React.FC<{
             )}
             {!!bidCount && bidCount > 0 && (
               <View style={styles.bidBadge}>
-                <Ionicons name="people-outline" size={11} color="#EA580C" />
+                <Ionicons name="people-outline" size={11} color={theme.colors.warning} />
                 <Text style={styles.bidBadgeText}>{bidCount}</Text>
               </View>
             )}
@@ -485,16 +485,19 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   filterChip: {
-    backgroundColor: '#F7F7F7',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
   },
   filterChipActive: {
     backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
   },
-  filterChipText: { fontSize: 13, color: '#717171', fontWeight: '500' },
-  filterChipTextActive: { color: theme.colors.textInverse, fontWeight: '600' },
+  filterChipText: { fontSize: 13, color: theme.colors.textSecondary, fontWeight: theme.typography.fontWeight.medium },
+  filterChipTextActive: { color: theme.colors.textInverse, fontWeight: theme.typography.fontWeight.semibold },
 
   listContainer: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 24 },
 
@@ -521,17 +524,17 @@ const styles = StyleSheet.create({
   },
   overlayRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   statusTag: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 5 },
-  statusTagText: { fontSize: 11, fontWeight: '600', color: theme.colors.white },
+  statusTagText: { fontSize: 11, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.white },
   urgentTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.colors.error,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 5,
     gap: 3,
   },
-  urgentTagText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
+  urgentTagText: { fontSize: 11, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textInverse },
 
   saveButton: {
     position: 'absolute',
@@ -550,7 +553,7 @@ const styles = StyleSheet.create({
   cardTopRow: { marginBottom: 4 },
   jobTitle: {
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
   },
   cardMeta: { flexDirection: 'row', gap: 12, marginBottom: 8 },
@@ -558,29 +561,29 @@ const styles = StyleSheet.create({
   metaText: { fontSize: 12, color: theme.colors.textTertiary },
 
   cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  priceText: { fontSize: 17, fontWeight: '700', color: theme.colors.textPrimary },
+  priceText: { fontSize: 17, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
   footerRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 
   categoryTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  categoryTagText: { fontSize: 12, fontWeight: '600' },
+  categoryTagText: { fontSize: 12, fontWeight: theme.typography.fontWeight.semibold },
 
   bidBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.accentLight,
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 8,
   },
-  bidBadgeText: { fontSize: 11, fontWeight: '600', color: '#717171' },
+  bidBadgeText: { fontSize: 11, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.warning },
   aiBadge: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 8,
   },
-  aiBadgeText: { fontSize: 11, fontWeight: '600', color: '#717171' },
+  aiBadgeText: { fontSize: 11, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.info },
 
   jobDescription: {
     fontSize: 13,
@@ -598,7 +601,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     gap: 12,
   },
-  emptyTitle: { fontSize: 22, fontWeight: '700', color: theme.colors.textPrimary, textAlign: 'center' },
+  emptyTitle: { fontSize: 22, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary, textAlign: 'center' },
   emptyDescription: { fontSize: 16, color: theme.colors.textSecondary, textAlign: 'center', lineHeight: 24, maxWidth: 280 },
   errorBanner: {
     flexDirection: 'row',
@@ -611,7 +614,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   errorText: { flex: 1, fontSize: 14, color: theme.colors.error },
-  retryText: { fontSize: 14, fontWeight: '600', color: '#222222' },
+  retryText: { fontSize: 14, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary },
 });
 
 export default JobsScreen;

@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 8,
     textAlign: 'center',
@@ -362,22 +362,22 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   methodButtonActive: {
-    borderBottomColor: '#222222',
+    borderBottomColor: theme.colors.primary,
   },
   methodButtonText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textSecondary,
   },
   methodButtonTextActive: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   inputContainer: {
     marginBottom: 24,
   },
   label: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     color: theme.colors.textPrimary,
     marginBottom: 8,
   },
@@ -401,11 +401,12 @@ const styles = StyleSheet.create({
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 44,
     marginBottom: 24,
   },
   checkbox: {
-    width: 20,
-    height: 20,
+    width: 24,
+    height: 24,
     borderWidth: 2,
     borderColor: theme.colors.borderDark,
     borderRadius: 4,
@@ -414,13 +415,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#222222',
-    borderColor: '#222222',
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
   },
   checkmark: {
     color: theme.colors.white,
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
   },
   checkboxLabel: {
     fontSize: 14,
@@ -439,7 +440,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: theme.colors.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   helpContainer: {
     alignItems: 'center',
@@ -455,8 +456,8 @@ const styles = StyleSheet.create({
   },
   helpLink: {
     fontSize: 14,
-    color: '#222222',
-    fontWeight: '500',
+    color: theme.colors.primary,
+    fontWeight: theme.typography.fontWeight.medium,
   },
   backButton: {
     alignItems: 'center',

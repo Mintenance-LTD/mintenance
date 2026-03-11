@@ -66,8 +66,8 @@ export class FormTemplateService {
     validateRequired(contractorId, 'contractorId', context);
     validateRequired(templateData.template_name, 'template_name', context);
 
-    return handleDatabaseOperation(
-      () => supabase
+    return handleDatabaseOperation<FormTemplate>(
+      () => (supabase
         .from('form_templates')
         .insert({
           contractor_id: contractorId,
@@ -85,7 +85,7 @@ export class FormTemplateService {
           instructions: templateData.instructions,
           is_active: true,
           version: 1,
-        })
+        }) as unknown as { select: () => { single: () => Promise<{ data: FormTemplate | null; error: Error | unknown }> } })
         .select()
         .single(),
       context
@@ -101,10 +101,10 @@ export class FormTemplateService {
 
     validateRequired(contractorId, 'contractorId', context);
 
-    const result = await handleDatabaseOperation(
-      () => supabase
+    const result = await handleDatabaseOperation<FormTemplate[]>(
+      () => (supabase
         .from('form_templates')
-        .select('*')
+        .select('*') as unknown as { eq: (col: string, val: unknown) => { eq: (col: string, val: unknown) => { order: (col: string, opts: { ascending: boolean }) => Promise<{ data: FormTemplate[] | null; error: Error | unknown }> } } })
         .eq('contractor_id', contractorId)
         .eq('is_active', true)
         .order('usage_count', { ascending: false }),
@@ -116,9 +116,9 @@ export class FormTemplateService {
 
   static async getFormTemplate(templateId: string): Promise<FormTemplate | null> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from('form_templates')
-        .select('*')
+        .select('*') as unknown as { eq: (col: string, val: unknown) => { eq: (col: string, val: unknown) => { single: () => Promise<{ data: FormTemplate | null; error: { code?: string } | null }> } } })
         .eq('id', templateId)
         .eq('is_active', true)
         .single();
@@ -136,18 +136,18 @@ export class FormTemplateService {
     templateData: Partial<CreateFormTemplateData>
   ): Promise<FormTemplate> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from('form_templates')
         .update({
           ...templateData,
           updated_at: new Date().toISOString(),
-        })
+        }) as unknown as { eq: (col: string, val: string) => { select: () => { single: () => Promise<{ data: FormTemplate | null; error: Error | null }> } } })
         .eq('id', templateId)
         .select()
         .single();
 
       if (error) throw error;
-      return data;
+      return data as FormTemplate;
     } catch (error) {
       logger.error('Error updating form template', error);
       throw new Error('Failed to update form template');
@@ -156,9 +156,9 @@ export class FormTemplateService {
 
   static async deleteFormTemplate(templateId: string): Promise<void> {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase
         .from('form_templates')
-        .update({ is_active: false })
+        .update({ is_active: false }) as unknown as { eq: (col: string, val: string) => Promise<{ error: Error | null }> })
         .eq('id', templateId);
 
       if (error) throw error;

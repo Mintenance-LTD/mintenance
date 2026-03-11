@@ -63,7 +63,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({
           <Text style={styles.serviceName}>{booking.serviceName}</Text>
           <View style={styles.statusContainer}>
             <Ionicons
-              name={getStatusIcon(booking.status) as unknown}
+              name={getStatusIcon(booking.status) as React.ComponentProps<typeof Ionicons>['name']}
               size={16}
               color={getStatusColor(booking.status)}
             />
@@ -136,7 +136,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({
                     onReschedule(booking);
                   }}
                 >
-                  <Ionicons name="refresh-outline" size={16} color='#717171' />
+                  <Ionicons name="refresh-outline" size={16} color={theme.colors.textSecondary} />
                   <Text style={styles.actionButtonText}>Reschedule</Text>
                 </TouchableOpacity>
               )}
@@ -189,96 +189,96 @@ export const BookingCard: React.FC<BookingCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: theme.borderRadius.xl,
+    padding: theme.spacing.md,
     ...theme.shadows.base,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: theme.spacing[3],
   },
   serviceInfo: {
     flex: 1,
   },
   serviceName: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: theme.typography.fontSize.lg,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
-    marginBottom: 4,
+    marginBottom: theme.spacing.xs,
   },
   statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: theme.spacing.xs,
   },
   status: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.semibold,
   },
   shareButton: {
-    padding: 4,
+    padding: theme.spacing.xs,
   },
   contractorInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
   },
   contractorAvatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#222222',
+    borderRadius: theme.borderRadius.full,
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: theme.spacing[3],
   },
   contractorInitial: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textInverse,
   },
   contractorDetails: {
     flex: 1,
   },
   contractorName: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   address: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textSecondary,
   },
   bookingDetails: {
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    gap: 8,
+    marginBottom: theme.spacing.sm,
+    gap: theme.spacing.sm,
   },
   detailText: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textSecondary,
   },
   instructionsContainer: {
     backgroundColor: theme.colors.surfaceSecondary,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing[3],
+    marginBottom: theme.spacing.md,
   },
   instructionsLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: theme.typography.fontSize.xs,
+    fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.textSecondary,
-    marginBottom: 4,
+    marginBottom: theme.spacing.xs,
   },
   instructionsText: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textPrimary,
     lineHeight: 20,
   },
@@ -291,33 +291,33 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   priceLabel: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.textSecondary,
     marginBottom: 2,
   },
   price: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: theme.typography.fontSize.xl,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
   },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: theme.spacing.sm,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.colors.surfaceSecondary,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 4,
+    paddingHorizontal: theme.spacing[3],
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+    gap: theme.spacing.xs,
   },
   actionButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#222222',
+    fontSize: theme.typography.fontSize.xs,
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.textPrimary,
   },
   cancelButton: {
     backgroundColor: theme.colors.errorLight,
@@ -328,11 +328,11 @@ const styles = StyleSheet.create({
   viewDetailsButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: theme.spacing.xs,
   },
   viewDetailsText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#222222',
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.textPrimary,
   },
 });

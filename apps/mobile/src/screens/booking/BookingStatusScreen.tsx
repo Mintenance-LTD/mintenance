@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
@@ -112,19 +112,19 @@ export const BookingStatusScreen: React.FC<{
 
   const handleRescheduleBooking = (booking: Booking) => {
     // Navigation logic would be handled here
-    navigation.navigate('RescheduleBooking', { bookingId: booking.id });
+    (navigation as { navigate: (screen: string, params?: Record<string, unknown>) => void }).navigate('RescheduleBooking', { bookingId: booking.id });
   };
 
   const handleRateBooking = (booking: Booking) => {
-    navigation.navigate('RateBooking', { bookingId: booking.id });
+    (navigation as { navigate: (screen: string, params?: Record<string, unknown>) => void }).navigate('RateBooking', { bookingId: booking.id });
   };
 
-  const handleShareBooking = (booking: Booking) => {
+  const handleShareBooking = (_booking: Booking) => {
     // Share logic would be handled here
   };
 
   const handleViewBookingDetails = (booking: Booking) => {
-    navigation.navigate('BookingDetails', { bookingId: booking.id });
+    (navigation as { navigate: (screen: string, params?: Record<string, unknown>) => void }).navigate('BookingDetails', { bookingId: booking.id });
   };
 
   // Loading state
@@ -149,7 +149,7 @@ export const BookingStatusScreen: React.FC<{
     <SafeAreaView style={styles.container}>
       {loading && <BookingLoading />}
       {!loading && error && (
-        <BookingError message={error} onRetry={loadBookings} />
+        <BookingError error={error} onRetry={loadBookings} />
       )}
       {!loading && !error && bookings.filter(b => b.status === activeTab).length === 0 && (
         <View accessibilityRole="summary" style={{ padding: 24 }}>

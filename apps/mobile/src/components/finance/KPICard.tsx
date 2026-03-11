@@ -77,11 +77,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.textSecondary,
     marginLeft: 8,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
   },
   kpiValue: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: 4,
   },
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   },
   changeText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: theme.typography.fontWeight.medium,
     marginLeft: 4,
   },
 });

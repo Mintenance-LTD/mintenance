@@ -107,7 +107,7 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
           <Ionicons
             name={'brain' as keyof typeof Ionicons.glyphMap}
             size={20}
-            color='#fff'
+            color={theme.colors.textInverse}
             style={styles.buttonIcon}
           />
           <Text style={styles.analyzeButtonText}>Analyze Pricing</Text>
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.md,
   },
   analyzeButtonText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontSize: theme.typography.fontSize.base,
     fontWeight: theme.typography.fontWeight.medium,
     marginLeft: theme.spacing[1],

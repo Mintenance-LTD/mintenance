@@ -6,10 +6,10 @@ import { BuildingAssessment } from './types';
 
 const getSeverityColor = (severity: string) => {
   switch (severity) {
-    case 'critical': return '#FF3B30';
-    case 'severe': return '#FF9500';
-    case 'moderate': return '#FFCC00';
-    case 'minimal': return '#34C759';
+    case 'critical': return theme.colors.error;
+    case 'severe': return theme.colors.warning;
+    case 'moderate': return theme.colors.accent;
+    case 'minimal': return theme.colors.success;
     default: return theme.colors.textSecondary;
   }
 };
@@ -65,7 +65,7 @@ export const AssessmentBody: React.FC<Props> = ({ assessment, onSubmitCorrection
           <Text style={styles.riskLevel}>Risk Level: {assessment.safetyHazards.riskLevel.toUpperCase()}</Text>
           {assessment.safetyHazards.criticalFlags.map((flag, index) => (
             <View key={index} style={styles.criticalFlag}>
-              <Ionicons name='alert-circle' size={16} color='#FF3B30' />
+              <Ionicons name='alert-circle' size={16} color={theme.colors.error} />
               <Text style={styles.criticalFlagText}>{flag}</Text>
             </View>
           ))}
@@ -145,7 +145,7 @@ export const AssessmentBody: React.FC<Props> = ({ assessment, onSubmitCorrection
 const styles = StyleSheet.create({
   content: { maxHeight: 400 },
   section: { padding: 16 },
-  safetySection: { backgroundColor: "#FFF5F5" },
+  safetySection: { backgroundColor: theme.colors.errorLight ?? "#FFF5F5" },
   sectionHeader: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
   sectionTitle: { fontSize: 14, fontWeight: "600", color: theme.colors.textPrimary, marginBottom: 12 },
   damageInfo: { gap: 8 },
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 14, color: theme.colors.textSecondary, width: 80 },
   value: { fontSize: 14, color: theme.colors.textPrimary, flex: 1 },
   severityBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
-  severityText: { color: "#FFF", fontSize: 12, fontWeight: "600" },
+  severityText: { color: theme.colors.textInverse, fontSize: 12, fontWeight: "600" },
   description: { fontSize: 14, color: theme.colors.textPrimary, lineHeight: 20, marginTop: 8 },
   issuesList: { marginTop: 12 },
   issuesTitle: { fontSize: 13, fontWeight: "600", marginBottom: 8, color: theme.colors.textSecondary },
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   safetyContent: { gap: 8 },
   riskLevel: { fontSize: 14, fontWeight: "600", color: theme.colors.textPrimary, marginBottom: 8 },
   criticalFlag: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
-  criticalFlagText: { fontSize: 13, color: "#FF3B30", marginLeft: 8 },
+  criticalFlagText: { fontSize: 13, color: theme.colors.error, marginLeft: 8 },
   safetyDetails: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 8, lineHeight: 18 },
   costEstimate: { gap: 8 },
   costRow: { flexDirection: "row", alignItems: "center" },
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
   riskScore: { flexDirection: "row", alignItems: "center" },
   riskCategory: { flexDirection: "row", alignItems: "center" },
   categoryBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
-  categoryText: { fontSize: 11, color: "#FFF", fontWeight: "600" },
+  categoryText: { fontSize: 11, color: theme.colors.textInverse, fontWeight: "600" },
   recommendedAction: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 8, lineHeight: 18 },
   recommendations: { gap: 8 },
   recommendationItem: { flexDirection: "row", alignItems: "flex-start" },

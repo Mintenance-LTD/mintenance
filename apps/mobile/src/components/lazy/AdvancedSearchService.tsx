@@ -8,7 +8,7 @@ import { createLazyComponent } from '../../utils/codeSplitting';
 import { LoadingSpinner } from '../LoadingSpinner';
 
 const LazyAdvancedSearchService = createLazyComponent(
-  () => import('../services/AdvancedSearchService'),
+  (() => import('../../services/AdvancedSearchService')) as unknown as () => Promise<{ default: React.ComponentType<Record<string, unknown>> }>,
   {
     chunkName: 'advanced-search-service',
     timeout: 10000,
@@ -17,7 +17,7 @@ const LazyAdvancedSearchService = createLazyComponent(
   }
 );
 
-export const AdvancedSearchService = (props: unknown) => (
+export const AdvancedSearchService = (props: Record<string, unknown>) => (
   <Suspense fallback={<LoadingSpinner />}>
     <LazyAdvancedSearchService {...props} />
   </Suspense>

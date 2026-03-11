@@ -14,6 +14,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useJob } from '../../../hooks/useJobs';
 import { AIAnalysisService, AIAnalysis } from '../../../services/AIAnalysisService';
 import UnifiedAIServiceMobile from '../../../services/UnifiedAIServiceMobile';
+import { mobileApiClient } from '../../../utils/mobileApiClient';
 import type { Job } from '@mintenance/types';
 
 export interface JobDetailsState {
@@ -22,6 +23,9 @@ export interface JobDetailsState {
   job: Job | undefined;
   jobLoading: boolean;
   jobError: unknown;
+  contractStatus: string | null;
+  escrowStatus: string | null;
+  hasReviewed: boolean;
 }
 
 export interface JobDetailsActions {
@@ -40,14 +44,18 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
   const { user } = useAuth();
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [contractStatus, setContractStatus] = useState<string | null>(null);
+  const [escrowStatus, setEscrowStatus] = useState<string | null>(null);
+  const [hasReviewed, setHasReviewed] = useState(false);
 
   // Use React Query hooks
   const {
-    data: job,
+    data: rawJobData,
     isLoading: jobLoading,
     error: jobError,
     refetch: refetchJob,
   } = useJob(jobId);
+  const job = rawJobData as Job | undefined;
 
   const loadAIAnalysis = useCallback(async (jobData: Job) => {
     try {
@@ -73,6 +81,40 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
     // Refetch to get fresh data
     refetchJob();
   }, [jobId, refetchJob]);
+
+  // Fetch contract status, escrow status, and review state for CTA logic
+  useEffect(() => {
+    let cancelled = false;
+    if (!job || !user) return;
+
+    const fetchCTAData = async () => {
+      try {
+        const [contractsRes, escrowRes, reviewsRes] = await Promise.allSettled([
+          mobileApiClient.get<{ contracts?: { status: string }[] }>(`/api/contracts?job_id=${jobId}`),
+          mobileApiClient.get<{ escrow?: { status: string } }>(`/api/jobs/${jobId}/escrow`),
+          mobileApiClient.get<{ reviews?: { id: string }[] }>(`/api/jobs/${jobId}/reviews?user_id=${user.id}`),
+        ]);
+
+        if (cancelled) return;
+
+        if (contractsRes.status === 'fulfilled' && contractsRes.value?.contracts?.[0]) {
+          setContractStatus(contractsRes.value.contracts[0].status);
+        }
+        if (escrowRes.status === 'fulfilled' && escrowRes.value?.escrow) {
+          setEscrowStatus(escrowRes.value.escrow.status);
+        }
+        if (reviewsRes.status === 'fulfilled') {
+          const reviews = reviewsRes.value?.reviews;
+          setHasReviewed(Array.isArray(reviews) && reviews.length > 0);
+        }
+      } catch {
+        // Non-critical — CTA will fall back to default behavior
+      }
+    };
+
+    fetchCTAData();
+    return () => { cancelled = true; };
+  }, [job, jobId, user]);
 
   // REQUEST CANCELLATION FIX: Load AI analysis when job data is available with cleanup
   useEffect(() => {
@@ -113,6 +155,9 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
     job,
     jobLoading,
     jobError,
+    contractStatus,
+    escrowStatus,
+    hasReviewed,
 
     // Actions
     loadAIAnalysis,

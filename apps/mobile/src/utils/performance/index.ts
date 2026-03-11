@@ -25,7 +25,7 @@ export function measurePerformance(
   name?: string,
   category: PerformanceMetric['category'] = 'custom'
 ) {
-  return function (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (target: object, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
     const methodName = name || `${target.constructor.name}.${propertyKey}`;
 
