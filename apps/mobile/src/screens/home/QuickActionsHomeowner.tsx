@@ -1,12 +1,13 @@
 /**
  * QuickActionsHomeowner Component
  *
- * Web-dashboard-style quick actions for homeowners.
- * Full-width rows with colored icon chips, title + subtitle, chevron.
+ * Airbnb category-bar-style horizontal icon circles.
+ * Each action is a circle icon with label below, scrollable row.
+ * Clean, minimal, easy to scan at a glance.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 
@@ -19,10 +20,9 @@ interface QuickActionsHomeownerProps {
 
 interface ActionItem {
   label: string;
-  subtitle: string;
   icon: keyof typeof Ionicons.glyphMap;
   iconColor: string;
-  iconBg: string;
+  bgColor: string;
   onPress: () => void;
 }
 
@@ -34,113 +34,88 @@ export const QuickActionsHomeowner: React.FC<QuickActionsHomeownerProps> = ({
 }) => {
   const actions: ActionItem[] = [
     {
-      label: 'Post a Job',
-      subtitle: 'Get quotes from local pros',
+      label: 'Post Job',
       icon: 'add-circle',
-      iconColor: theme.colors.primary,
-      iconBg: theme.colors.primaryLight,
+      iconColor: '#10B981',
+      bgColor: '#D1FAE5',
       onPress: onPostJobPress,
     },
     {
-      label: 'Find Contractors',
-      subtitle: 'Browse verified professionals',
+      label: 'Find Pros',
       icon: 'search',
-      iconColor: theme.colors.info,
-      iconBg: theme.colors.backgroundSecondary,
+      iconColor: '#3B82F6',
+      bgColor: '#DBEAFE',
       onPress: onFindContractorsPress,
     },
     {
-      label: 'My Properties',
-      subtitle: 'Manage your homes',
+      label: 'Properties',
       icon: 'home',
-      iconColor: theme.colors.info,
-      iconBg: theme.colors.backgroundSecondary,
+      iconColor: '#8B5CF6',
+      bgColor: '#EDE9FE',
       onPress: onPropertiesPress,
     },
     {
       label: 'Messages',
-      subtitle: 'Chat with contractors',
-      icon: 'chatbubbles',
-      iconColor: theme.colors.warning,
-      iconBg: theme.colors.accentLight,
+      icon: 'chatbubble',
+      iconColor: '#F59E0B',
+      bgColor: '#FEF3C7',
       onPress: onMessagesPress,
     },
   ];
 
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Quick Actions</Text>
-      <View style={styles.list}>
-        {actions.map((action, index) => (
+    <View style={styles.container}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {actions.map((action) => (
           <TouchableOpacity
             key={action.label}
-            style={[styles.row, index === actions.length - 1 && styles.rowLast]}
+            style={styles.actionItem}
             onPress={action.onPress}
             accessibilityRole="button"
             accessibilityLabel={action.label}
             activeOpacity={0.7}
           >
-            <View style={[styles.iconChip, { backgroundColor: action.iconBg }]}>
-              <Ionicons name={action.icon} size={20} color={action.iconColor} />
+            <View style={[styles.iconCircle, { backgroundColor: action.bgColor }]}>
+              <Ionicons name={action.icon} size={24} color={action.iconColor} />
             </View>
-            <View style={styles.textBlock}>
-              <Text style={styles.rowTitle}>{action.label}</Text>
-              <Text style={styles.rowSubtitle}>{action.subtitle}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
+            <Text style={styles.actionLabel} numberOfLines={1}>
+              {action.label}
+            </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  section: {
+  container: {
     marginBottom: 28,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    marginBottom: 12,
+  scrollContent: {
+    gap: 20,
+    paddingRight: 8,
   },
-  list: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
-  },
-  row: {
-    flexDirection: 'row',
+  actionItem: {
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
-    gap: 14,
+    width: 72,
   },
-  rowLast: {
-    borderBottomWidth: 0,
-  },
-  iconChip: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+  iconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 8,
   },
-  textBlock: {
-    flex: 1,
-  },
-  rowTitle: {
-    fontSize: 15,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginBottom: 2,
-  },
-  rowSubtitle: {
+  actionLabel: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    fontWeight: '500',
+    color: '#222222',
+    textAlign: 'center',
   },
 });

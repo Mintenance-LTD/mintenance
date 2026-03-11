@@ -1,8 +1,9 @@
 /**
  * HomeownerDashboard Component
  *
- * Homeowner dashboard with profile header,
- * stats overview, bids, appointments, and recent jobs.
+ * Airbnb-inspired homeowner dashboard with clean header,
+ * floating search pill, horizontal stat cards, icon action bar,
+ * bids section, appointments, and listing-style recent jobs.
  */
 
 import React, { useState } from 'react';
@@ -16,6 +17,7 @@ import {
   Image,
   Modal,
   Pressable,
+  Platform,
 } from 'react-native';
 import { FadeIn, SlideIn } from '../../components/animations/primitives';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
@@ -60,7 +62,7 @@ export const HomeownerDashboard: React.FC = () => {
     .map((j) => j?.id)
     .filter(Boolean) as string[];
 
-  // Bids query — single batch request, depends on jobs
+  // Bids query
   const { data: recentBids = [], isLoading: bidsLoading } = useQuery({
     queryKey: ['homeownerBids', activeJobIds.slice(0, 5).join(',')],
     queryFn: async () => {
@@ -84,7 +86,7 @@ export const HomeownerDashboard: React.FC = () => {
     enabled: !!user && activeJobIds.length > 0,
   });
 
-  // Unread notifications count
+  // Unread notifications
   const { data: unreadCount = 0 } = useQuery({
     queryKey: ['unreadNotifications', user?.id],
     queryFn: async () => {
@@ -96,10 +98,10 @@ export const HomeownerDashboard: React.FC = () => {
       }
     },
     enabled: !!user,
-    refetchInterval: 30000, // refresh every 30s
+    refetchInterval: 30000,
   });
 
-  // Appointments query
+  // Appointments
   const { data: appointments } = useQuery({
     queryKey: ['appointments', user?.id],
     queryFn: async () => {
@@ -122,9 +124,12 @@ export const HomeownerDashboard: React.FC = () => {
   if (jobsError) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Failed to load dashboard data</Text>
+        <View style={styles.errorIconWrap}>
+          <Ionicons name="alert-circle-outline" size={32} color="#EF4444" />
+        </View>
+        <Text style={styles.errorText}>Failed to load dashboard</Text>
         <TouchableOpacity style={styles.retryButton} onPress={() => refetchJobs()}>
-          <Text style={styles.retryButtonText}>Retry</Text>
+          <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
       </View>
     );
@@ -136,9 +141,9 @@ export const HomeownerDashboard: React.FC = () => {
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* Clean top bar - Web dashboard style */}
-      <View style={[styles.topBar, { backgroundColor: theme.colors.background }]}>
+    <View style={styles.container}>
+      {/* Clean header */}
+      <View style={styles.topBar}>
         <TouchableOpacity
           style={styles.brandButton}
           onPress={() => navigation.navigate('HomeTab' as never)}
@@ -157,16 +162,14 @@ export const HomeownerDashboard: React.FC = () => {
             accessibilityLabel="Notifications"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <View style={styles.notificationCircle}>
-              <Ionicons name="notifications-outline" size={20} color={theme.colors.textPrimary} />
-              {unreadCount > 0 && (
-                <View style={styles.notificationBadge}>
-                  <Text style={styles.notificationBadgeText}>
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </Text>
-                </View>
-              )}
-            </View>
+            <Ionicons name="notifications-outline" size={22} color="#222222" />
+            {unreadCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.profileButton}
@@ -207,8 +210,11 @@ export const HomeownerDashboard: React.FC = () => {
                 accessibilityRole="button"
                 accessibilityLabel={item.label}
               >
-                <Ionicons name={item.icon} size={20} color={theme.colors.textSecondary} />
+                <View style={styles.dropdownIconWrap}>
+                  <Ionicons name={item.icon} size={18} color="#717171" />
+                </View>
                 <Text style={styles.dropdownItemText}>{item.label}</Text>
+                <Ionicons name="chevron-forward" size={14} color="#B0B0B0" />
               </TouchableOpacity>
             ))}
             <View style={styles.dropdownDivider} />
@@ -221,8 +227,11 @@ export const HomeownerDashboard: React.FC = () => {
               accessibilityRole="button"
               accessibilityLabel="View profile"
             >
-              <Ionicons name="person-outline" size={20} color={theme.colors.textSecondary} />
+              <View style={styles.dropdownIconWrap}>
+                <Ionicons name="person-outline" size={18} color="#717171" />
+              </View>
               <Text style={styles.dropdownItemText}>View Profile</Text>
+              <Ionicons name="chevron-forward" size={14} color="#B0B0B0" />
             </TouchableOpacity>
             <View style={styles.dropdownDivider} />
             <TouchableOpacity
@@ -234,8 +243,10 @@ export const HomeownerDashboard: React.FC = () => {
               accessibilityRole="button"
               accessibilityLabel="Sign out"
             >
-              <Ionicons name="log-out-outline" size={20} color={theme.colors.error} />
-              <Text style={[styles.dropdownItemText, { color: theme.colors.error }]}>Sign Out</Text>
+              <View style={[styles.dropdownIconWrap, { backgroundColor: '#FEE2E2' }]}>
+                <Ionicons name="log-out-outline" size={18} color="#EF4444" />
+              </View>
+              <Text style={[styles.dropdownItemText, { color: '#EF4444' }]}>Sign Out</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -243,12 +254,12 @@ export const HomeownerDashboard: React.FC = () => {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        testID='home-scroll-view'
+        testID="home-scroll-view"
         refreshControl={
-          <RefreshControl refreshing={isFetching} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+          <RefreshControl refreshing={isFetching} onRefresh={handleRefresh} tintColor="#10B981" colors={['#10B981']} />
         }
       >
-        {/* Welcome greeting */}
+        {/* Greeting */}
         <FadeIn duration={400}>
           <View style={styles.welcomeRow}>
             <Text style={styles.welcomeGreeting}>
@@ -264,53 +275,55 @@ export const HomeownerDashboard: React.FC = () => {
           </View>
         </FadeIn>
 
-        {/* Search bar - Airbnb-style segmented search */}
+        {/* Search pill */}
         <SlideIn direction="up" distance={20} duration={400} delay={100}>
-        <WelcomeBanner
-          onWherePress={() => navigation.navigate('ProfileTab', { screen: 'Properties' })}
-          onUrgencyPress={() => navigation.navigate('JobsTab', { screen: 'PostJob' })}
-          onServicePress={() => navigation.navigate('Modal', { screen: 'ServiceRequest' } as never)}
-        />
+          <WelcomeBanner
+            onWherePress={() => navigation.navigate('ProfileTab', { screen: 'Properties' })}
+            onUrgencyPress={() => navigation.navigate('JobsTab', { screen: 'PostJob' })}
+            onServicePress={() => navigation.navigate('Modal', { screen: 'ServiceRequest' } as never)}
+          />
         </SlideIn>
 
-        <View style={styles.homeownerContent}>
+        <View style={styles.mainContent}>
+          {/* Stats */}
           <SlideIn direction="up" distance={20} duration={400} delay={200}>
-          <StatsCards
-            isLoading={jobsLoading}
-            activeJobs={homeownerJobs.filter((j) => j?.status === 'in_progress' || j?.status === 'assigned').length}
-            completedJobs={homeownerJobs.filter((j) => j?.status === 'completed').length}
-          />
+            <StatsCards
+              isLoading={jobsLoading}
+              activeJobs={homeownerJobs.filter((j) => j?.status === 'in_progress' || j?.status === 'assigned').length}
+              completedJobs={homeownerJobs.filter((j) => j?.status === 'completed').length}
+            />
           </SlideIn>
 
-          {/* Quick Actions - matching web dashboard pattern */}
+          {/* Quick Actions */}
           <SlideIn direction="up" distance={20} duration={400} delay={300}>
-          <QuickActionsHomeowner
-            onPostJobPress={() => navigation.navigate('JobsTab', { screen: 'PostJob' })}
-            onPropertiesPress={() => navigation.navigate('ProfileTab', { screen: 'Properties' })}
-            onFindContractorsPress={() => navigation.navigate('Modal', { screen: 'EnhancedHome' } as never)}
-            onMessagesPress={() => navigation.navigate('MessagingTab' as never)}
-          />
+            <QuickActionsHomeowner
+              onPostJobPress={() => navigation.navigate('JobsTab', { screen: 'PostJob' })}
+              onPropertiesPress={() => navigation.navigate('ProfileTab', { screen: 'Properties' })}
+              onFindContractorsPress={() => navigation.navigate('Modal', { screen: 'EnhancedHome' } as never)}
+              onMessagesPress={() => navigation.navigate('MessagingTab' as never)}
+            />
           </SlideIn>
 
+          {/* Bids */}
           <FadeIn duration={400} delay={400}>
-          <BidsReceived
-            isLoading={bidsLoading}
-            bids={recentBids}
-            onViewAllPress={openJobsList}
-            onReviewPress={(bidId) => {
-              const bid = recentBids.find((b) => b.id === bidId);
-              if (bid?.jobId) {
-                navigation.navigate('JobsTab', { screen: 'BidReview', params: { jobId: bid.jobId } });
-              }
-            }}
-          />
+            <BidsReceived
+              isLoading={bidsLoading}
+              bids={recentBids}
+              onViewAllPress={openJobsList}
+              onReviewPress={(bidId) => {
+                const bid = recentBids.find((b) => b.id === bidId);
+                if (bid?.jobId) {
+                  navigation.navigate('JobsTab', { screen: 'BidReview', params: { jobId: bid.jobId } });
+                }
+              }}
+            />
           </FadeIn>
 
-          {/* Upcoming Appointments */}
+          {/* Appointments */}
           {(appointments && appointments.length > 0) && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
+                <Text style={styles.sectionTitle}>Upcoming</Text>
                 {appointments.length > 3 && (
                   <TouchableOpacity
                     onPress={() => navigation.navigate('ProfileTab', { screen: 'Calendar' })}
@@ -323,31 +336,35 @@ export const HomeownerDashboard: React.FC = () => {
               </View>
               {appointments.slice(0, 3).map((apt) => (
                 <View key={apt.id} style={styles.appointmentCard}>
-                  <View style={styles.appointmentIcon}>
-                    <Ionicons name="calendar" size={18} color={theme.colors.textSecondary} />
+                  <View style={styles.appointmentDateBlock}>
+                    <Text style={styles.appointmentDay}>
+                      {new Date(apt.date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric' })}
+                    </Text>
+                    <Text style={styles.appointmentMonth}>
+                      {new Date(apt.date + 'T00:00:00').toLocaleDateString('en-GB', { month: 'short' })}
+                    </Text>
                   </View>
                   <View style={styles.appointmentInfo}>
                     <Text style={styles.appointmentTitle} numberOfLines={1}>{apt.title}</Text>
                     <Text style={styles.appointmentMeta}>
-                      {new Date(apt.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
-                      {apt.time ? ` at ${apt.time.slice(0, 5)}` : ''}
+                      {apt.time ? apt.time.slice(0, 5) : ''}
+                      {apt.contractor ? ` · ${apt.contractor.name}` : ''}
                     </Text>
-                    {apt.contractor && (
-                      <Text style={styles.appointmentContractor}>with {apt.contractor.name}</Text>
-                    )}
                   </View>
+                  <Ionicons name="chevron-forward" size={16} color="#B0B0B0" />
                 </View>
               ))}
             </View>
           )}
 
+          {/* Recent Jobs */}
           <FadeIn duration={400} delay={500}>
-          <RecentJobs
-            isLoading={jobsLoading}
-            jobs={homeownerJobs}
-            onViewAllPress={openJobsList}
-            onJobPress={(jobId) => navigation.navigate('JobsTab', { screen: 'JobDetails', params: { jobId } })}
-          />
+            <RecentJobs
+              isLoading={jobsLoading}
+              jobs={homeownerJobs}
+              onViewAllPress={openJobsList}
+              onJobPress={(jobId) => navigation.navigate('JobsTab', { screen: 'JobDetails', params: { jobId } })}
+            />
           </FadeIn>
         </View>
       </ScrollView>
@@ -358,19 +375,18 @@ export const HomeownerDashboard: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: theme.spacing[3],
+    paddingHorizontal: 20,
+    paddingTop: 8,
     paddingBottom: 10,
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 0,
-    ...theme.shadows.sm,
-    zIndex: 10,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   brandButton: {
     flexDirection: 'row',
@@ -378,205 +394,244 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   brandIcon: {
-    width: theme.spacing.xl,
-    height: theme.spacing.xl,
-    borderRadius: theme.borderRadius.base,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
   },
   brandText: {
-    fontSize: theme.typography.briefSizes.title,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#222222',
+    letterSpacing: -0.3,
   },
   rightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.sm,
+    gap: 4,
+  },
+  notificationButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  notificationBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   profileButton: {
-    minHeight: theme.layout.minTouchTarget,
-    minWidth: theme.layout.minTouchTarget,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },
   profileAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: theme.colors.primary,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#222222',
     alignItems: 'center',
     justifyContent: 'center',
   },
   profileAvatarText: {
-    fontSize: 15,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textInverse,
-  },
-  notificationButton: {
-    width: theme.layout.minTouchTarget,
-    height: theme.layout.minTouchTarget,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  notificationCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  notificationBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: theme.colors.error,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: theme.spacing.xs,
-  },
-  notificationBadgeText: {
-    fontSize: 10,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textInverse,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   welcomeRow: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: theme.spacing[5],
-    paddingBottom: theme.spacing.xs,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 4,
+    backgroundColor: '#FFFFFF',
   },
   welcomeGreeting: {
-    fontSize: theme.typography.briefSizes.headline,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#222222',
     lineHeight: 34,
+    letterSpacing: -0.3,
   },
   welcomeSubtitle: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.xs,
+    color: '#717171',
+    marginTop: 2,
   },
-  homeownerContent: {
-    paddingHorizontal: theme.spacing.lg,
-    backgroundColor: theme.colors.background,
-    paddingTop: theme.spacing[5],
+  mainContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
   dropdownOverlay: {
     flex: 1,
-    backgroundColor: theme.colors.overlayDark30,
+    backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'flex-start',
     alignItems: 'flex-end',
     paddingTop: 70,
-    paddingRight: theme.spacing.md,
+    paddingRight: 16,
   },
   dropdownMenu: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 14,
-    paddingVertical: theme.spacing.sm,
-    minWidth: 200,
-    ...theme.shadows.xl,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 8,
+    minWidth: 220,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 24,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
   dropdownItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing[3],
-    paddingHorizontal: theme.spacing.md,
-    gap: theme.spacing[3],
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  dropdownIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   dropdownItemText: {
+    flex: 1,
     fontSize: 15,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontWeight: '500',
+    color: '#222222',
   },
   dropdownDivider: {
-    height: 1,
-    backgroundColor: theme.colors.borderLight,
-    marginVertical: theme.spacing.xs,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#EBEBEB',
+    marginVertical: 4,
+    marginHorizontal: 16,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.background,
-    padding: theme.spacing[10],
+    backgroundColor: '#F7F7F7',
+    padding: 40,
+  },
+  errorIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
   errorText: {
-    fontSize: theme.typography.briefSizes.bodyLarge,
-    color: theme.colors.error,
-    marginBottom: theme.spacing[5],
+    fontSize: 16,
+    color: '#222222',
+    fontWeight: '600',
+    marginBottom: 16,
     textAlign: 'center',
   },
   retryButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing[3],
-    borderRadius: theme.borderRadius.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
+    backgroundColor: '#10B981',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
   },
   retryButtonText: {
-    color: theme.colors.textInverse,
-    fontSize: theme.typography.briefSizes.bodyLarge,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
   },
-  // Sections
   section: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: 24,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing[3],
+    marginBottom: 14,
   },
   sectionTitle: {
-    fontSize: theme.typography.briefSizes.secondary,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#222222',
+    letterSpacing: -0.3,
   },
-  // Appointments
+  viewAllLink: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#222222',
+    textDecorationLine: 'underline',
+  },
   appointmentCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     padding: 14,
-    marginBottom: theme.spacing.sm,
-    ...theme.shadows.sm,
+    marginBottom: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
   },
-  appointmentIcon: {
-    width: theme.spacing[10],
-    height: theme.spacing[10],
-    borderRadius: theme.borderRadius.lg,
-    backgroundColor: theme.colors.backgroundSecondary,
+  appointmentDateBlock: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#F7F7F7',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: theme.spacing[3],
+    marginRight: 12,
+  },
+  appointmentDay: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222222',
+    lineHeight: 22,
+  },
+  appointmentMonth: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#717171',
+    textTransform: 'uppercase',
   },
   appointmentInfo: {
     flex: 1,
   },
   appointmentTitle: {
     fontSize: 15,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     marginBottom: 2,
   },
   appointmentMeta: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
-  },
-  appointmentContractor: {
-    fontSize: 12,
-    color: theme.colors.textTertiary,
-    marginTop: 2,
-  },
-  viewAllLink: {
-    fontSize: theme.typography.briefSizes.body,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.primary,
+    color: '#717171',
   },
 });

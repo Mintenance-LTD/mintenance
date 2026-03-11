@@ -1,14 +1,14 @@
 /**
  * StatsCards Component
  *
- * Web-dashboard-style KPI cards in a 2x2 grid.
- * Each card: icon in colored circle, bold metric, label.
+ * Airbnb-style horizontal scrollable stat cards.
+ * Each card: colored left accent bar, bold metric, label.
+ * Clean, borderless, with soft shadow.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import { Skeleton } from '../../components/skeletons/Skeleton';
 
 interface StatsCardsProps {
@@ -22,41 +22,36 @@ interface StatsCardsProps {
 interface StatConfig {
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
-  iconColor: string;
-  iconBg: string;
+  accentColor: string;
   getValue: (props: StatsCardsProps) => string;
 }
 
 const STATS: StatConfig[] = [
   {
-    label: 'Active Jobs',
+    label: 'Active',
     icon: 'briefcase',
-    iconColor: theme.colors.primary,
-    iconBg: theme.colors.primaryLight,
+    accentColor: '#10B981',
     getValue: (p) => `${p.activeJobs ?? 0}`,
   },
   {
-    label: 'Total Spent',
+    label: 'Completed',
+    icon: 'checkmark-circle',
+    accentColor: '#3B82F6',
+    getValue: (p) => `${p.completedJobs ?? 0}`,
+  },
+  {
+    label: 'Spent',
     icon: 'card',
-    iconColor: theme.colors.success,
-    iconBg: theme.colors.primaryLight,
+    accentColor: '#F59E0B',
     getValue: (p) => {
       const v = p.totalSpent ?? 0;
       return v > 0 ? `\u00A3${v.toLocaleString()}` : '\u00A30';
     },
   },
   {
-    label: 'Completed',
-    icon: 'checkmark-circle',
-    iconColor: theme.colors.success,
-    iconBg: theme.colors.primaryLight,
-    getValue: (p) => `${p.completedJobs ?? 0}`,
-  },
-  {
     label: 'Saved Pros',
     icon: 'star',
-    iconColor: theme.colors.warning,
-    iconBg: theme.colors.accentLight,
+    accentColor: '#EF4444',
     getValue: (p) => `${p.savedPros ?? 0}`,
   },
 ];
@@ -65,76 +60,100 @@ export const StatsCards: React.FC<StatsCardsProps> = (props) => {
   if (props.isLoading) {
     return (
       <View style={styles.container}>
-        <View style={styles.grid}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           {STATS.map((stat) => (
             <View key={stat.label} style={styles.card}>
               <Skeleton width={40} height={40} borderRadius={12} />
-              <Skeleton width={60} height={26} borderRadius={6} style={{ marginTop: 12 }} />
-              <Skeleton width={80} height={12} borderRadius={4} style={{ marginTop: 6 }} />
+              <Skeleton width={40} height={28} borderRadius={6} style={{ marginTop: 12 }} />
+              <Skeleton width={60} height={12} borderRadius={4} style={{ marginTop: 6 }} />
             </View>
           ))}
-        </View>
+        </ScrollView>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <View style={styles.grid}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {STATS.map((stat) => (
           <View
             key={stat.label}
             style={styles.card}
             accessibilityLabel={`${stat.label}: ${stat.getValue(props)}`}
           >
-            <View style={[styles.iconCircle, { backgroundColor: stat.iconBg }]}>
-              <Ionicons name={stat.icon} size={20} color={stat.iconColor} />
+            <View style={[styles.accentBar, { backgroundColor: stat.accentColor }]} />
+
+            <View style={[styles.iconCircle, { backgroundColor: stat.accentColor + '15' }]}>
+              <Ionicons name={stat.icon} size={20} color={stat.accentColor} />
             </View>
+
             <Text style={styles.value}>{stat.getValue(props)}</Text>
             <Text style={styles.label}>{stat.label}</Text>
           </View>
         ))}
-      </View>
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: 24,
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+  scrollContent: {
+    paddingRight: 20,
+    gap: 12,
   },
   card: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.xl,
-    padding: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
+    width: 130,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    paddingLeft: 20,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  accentBar: {
+    position: 'absolute',
+    left: 0,
+    top: 12,
+    bottom: 12,
+    width: 4,
+    borderRadius: 2,
   },
   iconCircle: {
-    width: theme.spacing[10],
-    height: theme.spacing[10],
-    borderRadius: theme.borderRadius.lg,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: theme.spacing[3],
+    marginBottom: 12,
   },
   value: {
     fontSize: 26,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    letterSpacing: -0.3,
+    fontWeight: '700',
+    color: '#222222',
+    letterSpacing: -0.5,
     marginBottom: 2,
   },
   label: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
-    fontWeight: theme.typography.fontWeight.medium,
+    color: '#717171',
+    fontWeight: '500',
   },
 });

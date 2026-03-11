@@ -1,14 +1,14 @@
 /**
  * WelcomeBanner Component
  *
- * Functional segmented search bar: Property | Urgency | Service.
- * Each segment opens its own picker or the ServiceRequest modal.
+ * Airbnb-style floating search pill with "What needs fixing?" prompt.
+ * Tapping opens the service request modal. Filter chips below for
+ * property and urgency selection.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 
 interface WelcomeBannerProps {
   onWherePress?: () => void;
@@ -26,101 +26,167 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({
   urgencyLabel,
 }) => {
   return (
-    <View style={styles.welcomeBanner}>
-      <View style={styles.searchBar}>
+    <View style={styles.wrapper}>
+      {/* Main search pill */}
+      <TouchableOpacity
+        style={styles.searchPill}
+        onPress={onServicePress}
+        activeOpacity={0.9}
+        accessibilityRole="button"
+        accessibilityLabel="Request a service"
+      >
+        <View style={styles.searchIconCircle}>
+          <Ionicons name="search" size={16} color="#FFFFFF" />
+        </View>
+        <View style={styles.searchTextBlock}>
+          <Text style={styles.searchHeadline}>What needs fixing?</Text>
+          <Text style={styles.searchHint}>
+            {propertyLabel || 'Any property'} · {urgencyLabel || 'Any urgency'} · Browse all
+          </Text>
+        </View>
+        <View style={styles.filterButton}>
+          <Ionicons name="options-outline" size={16} color="#222222" />
+        </View>
+      </TouchableOpacity>
+
+      {/* Quick filter chips */}
+      <View style={styles.chipRow}>
         <TouchableOpacity
-          style={styles.searchIconContainer}
+          style={[styles.chip, propertyLabel ? styles.chipActive : null]}
+          onPress={onWherePress}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Select property"
+        >
+          <Ionicons name="home-outline" size={14} color={propertyLabel ? '#222222' : '#717171'} />
+          <Text style={[styles.chipText, propertyLabel ? styles.chipTextActive : null]}>
+            {propertyLabel || 'Property'}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.chip, urgencyLabel && urgencyLabel !== 'Medium' ? styles.chipActive : null]}
+          onPress={onUrgencyPress}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Select urgency"
+        >
+          <Ionicons
+            name="time-outline"
+            size={14}
+            color={urgencyLabel && urgencyLabel !== 'Medium' ? '#222222' : '#717171'}
+          />
+          <Text
+            style={[
+              styles.chipText,
+              urgencyLabel && urgencyLabel !== 'Medium' ? styles.chipTextActive : null,
+            ]}
+          >
+            {urgencyLabel || 'Urgency'}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.chip}
           onPress={onServicePress}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Request a service"
+          accessibilityLabel="Browse services"
         >
-          <Ionicons name="search" size={18} color={theme.colors.textInverse} />
+          <Ionicons name="grid-outline" size={14} color="#717171" />
+          <Text style={styles.chipText}>Services</Text>
         </TouchableOpacity>
-        <View style={styles.searchSegments}>
-          <TouchableOpacity style={styles.segment} onPress={onWherePress} activeOpacity={0.6}>
-            <Text style={styles.segmentLabel}>Property</Text>
-            <Text style={[styles.segmentValue, propertyLabel ? styles.segmentValueActive : null]} numberOfLines={1}>
-              {propertyLabel || 'Select'}
-            </Text>
-          </TouchableOpacity>
-          <View style={styles.segmentDivider} />
-          <TouchableOpacity style={styles.segment} onPress={onUrgencyPress} activeOpacity={0.6}>
-            <Text style={styles.segmentLabel}>Urgency</Text>
-            <Text style={[styles.segmentValue, urgencyLabel && urgencyLabel !== 'Medium' ? styles.segmentValueActive : null]} numberOfLines={1}>
-              {urgencyLabel || 'Medium'}
-            </Text>
-          </TouchableOpacity>
-          <View style={styles.segmentDivider} />
-          <TouchableOpacity style={styles.segment} onPress={onServicePress} activeOpacity={0.6}>
-            <Text style={styles.segmentLabel}>Service</Text>
-            <Text style={styles.segmentValue} numberOfLines={1}>Browse all</Text>
-          </TouchableOpacity>
-        </View>
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  welcomeBanner: {
-    backgroundColor: theme.colors.background,
+  wrapper: {
+    paddingHorizontal: 20,
     paddingTop: 4,
-    paddingBottom: 8,
-    paddingHorizontal: 24,
+    paddingBottom: 12,
   },
-  searchBar: {
+  searchPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 40,
+    paddingVertical: 14,
+    paddingLeft: 14,
+    paddingRight: 10,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 16,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
-  searchIconContainer: {
+  searchIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchTextBlock: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  searchHeadline: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222222',
+    letterSpacing: -0.2,
+  },
+  searchHint: {
+    fontSize: 12,
+    color: '#717171',
+    marginTop: 1,
+  },
+  filterButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.colors.primary,
+    borderWidth: 1,
+    borderColor: '#EBEBEB',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginLeft: 8,
   },
-  searchSegments: {
-    flex: 1,
+  chipRow: {
+    flexDirection: 'row',
+    marginTop: 12,
+    gap: 8,
+  },
+  chip: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#EBEBEB',
   },
-  segment: {
-    flex: 1,
-    alignItems: 'center',
+  chipActive: {
+    borderColor: '#222222',
+    backgroundColor: '#F7F7F7',
   },
-  segmentLabel: {
-    fontSize: 11,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  segmentValue: {
+  chipText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
-    marginTop: 1,
+    fontWeight: '500',
+    color: '#717171',
   },
-  segmentValueActive: {
-    color: theme.colors.textPrimary,
-    fontWeight: theme.typography.fontWeight.semibold,
-  },
-  segmentDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: theme.colors.borderLight,
+  chipTextActive: {
+    color: '#222222',
+    fontWeight: '600',
   },
 });

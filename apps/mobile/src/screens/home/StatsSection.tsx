@@ -1,13 +1,14 @@
 /**
  * StatsSection Component
  *
- * Monochrome stat cards with bold numbers — Airbnb style.
+ * Airbnb-style contractor stat cards in a 2x2 grid.
+ * Borderless, soft shadow, tinted icon circle,
+ * large bold number, muted label.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import { ContractorStats } from '../../services/UserService';
 
 interface StatsSectionProps {
@@ -20,41 +21,36 @@ interface StatConfig {
   iconBg: string;
   getValue: (s: ContractorStats | null) => string;
   label: string;
-  valueColor: string;
 }
 
 const STAT_CONFIG: StatConfig[] = [
   {
     icon: 'cash',
-    iconColor: theme.colors.success,
-    iconBg: theme.colors.primaryLight,
+    iconColor: '#10B981',
+    iconBg: '#D1FAE5',
     getValue: (s) => `\u00A3${s?.monthlyEarnings?.toFixed(0) || '0'}`,
-    label: 'Monthly Earnings',
-    valueColor: theme.colors.textPrimary,
+    label: 'Earnings',
   },
   {
     icon: 'checkmark-circle',
-    iconColor: theme.colors.primary,
-    iconBg: theme.colors.primaryLight,
+    iconColor: '#3B82F6',
+    iconBg: '#DBEAFE',
     getValue: (s) => `${s?.completedJobs || 0}`,
-    label: 'Jobs Completed',
-    valueColor: theme.colors.textPrimary,
+    label: 'Completed',
   },
   {
     icon: 'star',
-    iconColor: theme.colors.warning,
-    iconBg: theme.colors.accentLight,
+    iconColor: '#F59E0B',
+    iconBg: '#FEF3C7',
     getValue: (s) => s?.rating?.toFixed(1) || 'New',
-    label: 'Avg Rating',
-    valueColor: theme.colors.textPrimary,
+    label: 'Rating',
   },
   {
     icon: 'flash',
-    iconColor: theme.colors.info,
-    iconBg: theme.colors.backgroundSecondary,
+    iconColor: '#8B5CF6',
+    iconBg: '#EDE9FE',
     getValue: (s) => s?.responseTime || 'N/A',
-    label: 'Response Time',
-    valueColor: theme.colors.textPrimary,
+    label: 'Response',
   },
 ];
 
@@ -78,9 +74,7 @@ export const StatsSection: React.FC<StatsSectionProps> = ({ stats }) => {
             <View style={[styles.iconWrap, { backgroundColor: cfg.iconBg }]}>
               <Ionicons name={cfg.icon} size={20} color={cfg.iconColor} accessible={false} />
             </View>
-            <Text style={[styles.value, { color: cfg.valueColor }]}>
-              {cfg.getValue(stats)}
-            </Text>
+            <Text style={styles.value}>{cfg.getValue(stats)}</Text>
             <Text style={styles.label}>{cfg.label}</Text>
           </View>
         ))}
@@ -92,56 +86,67 @@ export const StatsSection: React.FC<StatsSectionProps> = ({ stats }) => {
 const styles = StyleSheet.create({
   section: {
     marginBottom: 28,
-    marginTop: theme.spacing[5],
+    marginTop: 20,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
-    marginBottom: 14,
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: theme.typography.briefSizes.secondary,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#222222',
+    letterSpacing: -0.3,
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: theme.colors.textTertiary,
-    fontWeight: theme.typography.fontWeight.medium,
+    color: '#B0B0B0',
+    fontWeight: '400',
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 12,
   },
   card: {
-    backgroundColor: theme.colors.surface,
     flex: 1,
     minWidth: '45%',
+    backgroundColor: '#FFFFFF',
     padding: 18,
-    borderRadius: theme.borderRadius.xl,
+    borderRadius: 16,
     alignItems: 'flex-start',
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   iconWrap: {
-    width: theme.spacing[10],
-    height: theme.spacing[10],
-    borderRadius: theme.borderRadius.lg,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: theme.spacing[3],
+    marginBottom: 14,
   },
   value: {
     fontSize: 28,
-    fontWeight: theme.typography.fontWeight.bold,
-    marginBottom: 3,
-    letterSpacing: -0.3,
+    fontWeight: '700',
+    color: '#222222',
+    marginBottom: 2,
+    letterSpacing: -0.5,
   },
   label: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 13,
+    color: '#717171',
+    fontWeight: '400',
   },
 });

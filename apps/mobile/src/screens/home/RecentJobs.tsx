@@ -1,12 +1,12 @@
 /**
  * RecentJobs Component
  *
- * Airbnb listing-style cards: borderless, full-width rounded images,
- * heart overlay, title + location + star rating layout.
+ * Airbnb listing-style cards: borderless, full-width images,
+ * heart overlay, status badge, category + budget below.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme, getStatusColor } from '../../theme';
 import { OptimizedImage } from '../../components/optimized/OptimizedImage';
@@ -61,7 +61,6 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ isLoading, jobs, onViewA
             <View style={styles.listingContent}>
               <Skeleton width="70%" height={17} borderRadius={4} />
               <Skeleton width={100} height={20} borderRadius={12} style={{ marginTop: 6 }} />
-              <Skeleton width="100%" height={44} borderRadius={12} style={{ marginTop: 12 }} />
             </View>
           </View>
         ))}
@@ -102,7 +101,7 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ isLoading, jobs, onViewA
               accessibilityLabel={`${job.title}, ${formatStatus(job.status || 'posted')}`}
               activeOpacity={0.95}
             >
-              {/* Image - Airbnb style with rounded corners, no card wrapper */}
+              {/* Image */}
               <View style={styles.imageContainer}>
                 {hasPhoto ? (
                   <OptimizedImage
@@ -114,18 +113,17 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ isLoading, jobs, onViewA
                 ) : (
                   <View style={styles.placeholderHero}>
                     <View style={styles.placeholderIconCircle}>
-                      <Ionicons name={categoryIcon} size={32} color={theme.colors.textSecondary} />
+                      <Ionicons name={categoryIcon} size={32} color="#717171" />
                     </View>
                     {job.category && (
                       <Text style={styles.placeholderCategory}>
                         {job.category.charAt(0).toUpperCase() + job.category.slice(1)}
                       </Text>
                     )}
-                    <Text style={styles.placeholderHint}>No photos yet</Text>
                   </View>
                 )}
 
-                {/* Heart/save overlay (top-right) */}
+                {/* Heart overlay */}
                 <TouchableOpacity
                   style={styles.heartOverlay}
                   onPress={() => onSavePress?.(job.id)}
@@ -136,55 +134,45 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ isLoading, jobs, onViewA
                   <Ionicons
                     name={savedJobIds.includes(job.id) ? 'heart' : 'heart-outline'}
                     size={22}
-                    color={savedJobIds.includes(job.id) ? theme.colors.error : theme.colors.white}
+                    color={savedJobIds.includes(job.id) ? '#EF4444' : '#FFFFFF'}
                   />
                 </TouchableOpacity>
 
-                {/* Status badge overlay (top-left) */}
+                {/* Status badge */}
                 <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
                   <Text style={styles.statusText}>{formatStatus(job.status || 'posted')}</Text>
                 </View>
               </View>
 
-              {/* Content below image - Web dashboard style */}
+              {/* Content below image */}
               <View style={styles.listingContent}>
-                <View style={styles.titleRow}>
-                  <Text style={styles.jobTitle} numberOfLines={1}>{job.title}</Text>
+                <Text style={styles.jobTitle} numberOfLines={1}>{job.title}</Text>
+
+                <View style={styles.metaRow}>
+                  {job.category && (
+                    <View style={styles.categoryChip}>
+                      <Ionicons name={categoryIcon} size={12} color="#717171" />
+                      <Text style={styles.categoryText}>
+                        {job.category.charAt(0).toUpperCase() + job.category.slice(1)}
+                      </Text>
+                    </View>
+                  )}
+
+                  {budget > 0 && (
+                    <Text style={styles.budgetText}>{'\u00A3'}{budget.toLocaleString()}</Text>
+                  )}
                 </View>
-                {job.category && (
-                  <View style={styles.categoryBadge}>
-                    <Ionicons name={categoryIcon} size={12} color={theme.colors.textSecondary} />
-                    <Text style={styles.categoryBadgeText}>
-                      {job.category.charAt(0).toUpperCase() + job.category.slice(1)}
-                    </Text>
-                  </View>
-                )}
-                {budget > 0 && (
-                  <View style={styles.budgetRow}>
-                    <Text style={styles.budgetLabel}>Budget</Text>
-                    <Text style={styles.budgetAmount}>{'\u00A3'}{budget.toLocaleString()}</Text>
-                  </View>
-                )}
-                <TouchableOpacity
-                  style={styles.viewDetailsButton}
-                  onPress={() => onJobPress?.(job.id)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`View details for ${job.title}`}
-                >
-                  <Text style={styles.viewDetailsText}>View Details</Text>
-                  <Ionicons name="arrow-forward" size={14} color={theme.colors.textInverse} />
-                </TouchableOpacity>
               </View>
             </TouchableOpacity>
           );
         })
       ) : (
         <View style={styles.emptyState}>
-          <Ionicons name="briefcase-outline" size={32} color={theme.colors.textTertiary} />
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="briefcase-outline" size={28} color="#B0B0B0" />
+          </View>
           <Text style={styles.emptyText}>No jobs posted yet</Text>
-          <Text style={styles.emptySubtext}>
-            Post your first job to get started!
-          </Text>
+          <Text style={styles.emptySubtext}>Post your first job to get started!</Text>
         </View>
       )}
     </View>
@@ -203,13 +191,14 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
+    letterSpacing: -0.3,
   },
   viewAllLink: {
-    fontSize: 16,
-    color: theme.colors.textPrimary,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 14,
+    color: '#222222',
+    fontWeight: '600',
     textDecorationLine: 'underline',
   },
   listing: {
@@ -231,33 +220,30 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: '#F7F7F7',
   },
   placeholderIconCircle: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: theme.colors.border,
+    backgroundColor: '#EBEBEB',
     alignItems: 'center',
     justifyContent: 'center',
   },
   placeholderCategory: {
     marginTop: 10,
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textSecondary,
-  },
-  placeholderHint: {
-    marginTop: 4,
-    fontSize: 12,
-    color: theme.colors.textTertiary,
+    fontWeight: '600',
+    color: '#717171',
   },
   heartOverlay: {
     position: 'absolute',
     top: 12,
     right: 12,
-    width: 32,
-    height: 32,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(0,0,0,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -266,88 +252,79 @@ const styles = StyleSheet.create({
     top: 12,
     left: 12,
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingVertical: 5,
+    borderRadius: 8,
   },
   statusText: {
     fontSize: 12,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textInverse,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   listingContent: {
-    paddingTop: 12,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    paddingTop: 10,
   },
   jobTitle: {
     fontSize: 17,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    flex: 1,
+    fontWeight: '600',
+    color: '#222222',
+    marginBottom: 6,
   },
-  categoryBadge: {
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-    marginTop: 6,
   },
-  categoryBadgeText: {
+  categoryText: {
     fontSize: 13,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textSecondary,
+    color: '#717171',
+    fontWeight: '500',
   },
-  budgetRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  budgetLabel: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  budgetAmount: {
-    fontSize: 18,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-  },
-  viewDetailsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.primary,
-    borderRadius: 12,
-    paddingVertical: 12,
-    marginTop: 12,
-    gap: 6,
-  },
-  viewDetailsText: {
-    fontSize: 14,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textInverse,
+  budgetText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#222222',
+    letterSpacing: -0.3,
   },
   emptyState: {
     padding: 40,
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  },
+  emptyIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   emptyText: {
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     textAlign: 'center',
-    marginTop: 12,
   },
   emptySubtext: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginTop: 4,
   },
 });

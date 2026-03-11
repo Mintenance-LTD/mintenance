@@ -1,8 +1,9 @@
 /**
  * ContractorDashboard Component
  *
- * Displays the contractor-specific dashboard with stats and schedule.
- * Quick actions are accessible via the profile avatar dropdown in the header.
+ * Airbnb-inspired contractor dashboard with clean header,
+ * gradient hero banner, stat cards, timeline schedule,
+ * and horizontal quick action icons.
  */
 
 import React from 'react';
@@ -13,6 +14,7 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { FadeIn, SlideIn } from '../../components/animations/primitives';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
@@ -68,56 +70,56 @@ export const ContractorDashboard: React.FC = () => {
       label: 'Browse Jobs',
       subtitle: 'Find new opportunities',
       icon: 'search',
-      iconColor: theme.colors.primary,
-      iconBg: theme.colors.primaryLight,
+      iconColor: '#10B981',
+      iconBg: '#D1FAE5',
       onPress: openJobsList,
     },
     {
       label: 'Inbox',
       subtitle: 'Messages & updates',
       icon: 'mail',
-      iconColor: theme.colors.info,
-      iconBg: theme.colors.accentLight,
+      iconColor: '#3B82F6',
+      iconBg: '#DBEAFE',
       onPress: () => navigation.navigate('MessagingTab', { screen: 'MessagesList' }),
     },
     {
       label: 'Quotes',
       subtitle: 'Build & send estimates',
       icon: 'document-text',
-      iconColor: theme.colors.info,
-      iconBg: theme.colors.accentLight,
+      iconColor: '#8B5CF6',
+      iconBg: '#EDE9FE',
       onPress: () => navigation.navigate('ProfileTab', { screen: 'QuoteBuilder' }),
     },
     {
       label: 'Invoices',
       subtitle: 'Manage billing',
       icon: 'receipt',
-      iconColor: theme.colors.warning,
-      iconBg: theme.colors.accentLight,
+      iconColor: '#F59E0B',
+      iconBg: '#FEF3C7',
       onPress: () => navigation.navigate('ProfileTab', { screen: 'InvoiceManagement' }),
     },
     {
       label: 'Expenses',
       subtitle: 'Track costs',
       icon: 'wallet',
-      iconColor: theme.colors.error,
-      iconBg: theme.colors.accentLight,
+      iconColor: '#EF4444',
+      iconBg: '#FEE2E2',
       onPress: () => navigation.navigate('ProfileTab', { screen: 'Expenses' }),
     },
     {
       label: 'Calendar',
       subtitle: 'Schedule & plan',
       icon: 'calendar',
-      iconColor: theme.colors.success,
-      iconBg: theme.colors.primaryLight,
+      iconColor: '#06B6D4',
+      iconBg: '#CFFAFE',
       onPress: () => navigation.navigate('ProfileTab', { screen: 'Calendar' }),
     },
     {
       label: 'Profile & Settings',
       subtitle: 'Edit your account',
       icon: 'person-circle',
-      iconColor: theme.colors.textSecondary,
-      iconBg: theme.colors.backgroundSecondary,
+      iconColor: '#717171',
+      iconBg: '#F7F7F7',
       onPress: () => navigation.navigate('ProfileTab' as never),
     },
   ];
@@ -129,14 +131,17 @@ export const ContractorDashboard: React.FC = () => {
   if (isError) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Failed to load dashboard data</Text>
+        <View style={styles.errorIconWrap}>
+          <Text style={styles.errorEmoji}>!</Text>
+        </View>
+        <Text style={styles.errorText}>Failed to load dashboard</Text>
         <TouchableOpacity
           style={styles.retryButton}
           onPress={() => refetch()}
           accessibilityRole="button"
           accessibilityLabel="Retry loading dashboard"
         >
-          <Text style={styles.retryButtonText}>Retry</Text>
+          <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
       </View>
     );
@@ -168,53 +173,53 @@ export const ContractorDashboard: React.FC = () => {
           <RefreshControl
             refreshing={isFetching}
             onRefresh={handleRefresh}
-            tintColor={theme.colors.primary}
-            colors={[theme.colors.primary]}
+            tintColor="#10B981"
+            colors={['#10B981']}
           />
         }
       >
         <FadeIn duration={400}>
-        <ContractorBanner
-          user={user}
-          onFindJobsPress={openJobsList}
-          activeJobs={contractorStats?.activeJobs ?? 0}
-          monthlyEarnings={contractorStats?.monthlyEarnings ?? 0}
-        />
+          <ContractorBanner
+            user={user}
+            onFindJobsPress={openJobsList}
+            activeJobs={contractorStats?.activeJobs ?? 0}
+            monthlyEarnings={contractorStats?.monthlyEarnings ?? 0}
+          />
         </FadeIn>
 
         <SlideIn direction="up" distance={20} duration={400} delay={150}>
-        <StatsSection stats={contractorStats} />
+          <StatsSection stats={contractorStats} />
         </SlideIn>
 
         <SlideIn direction="up" distance={20} duration={400} delay={300}>
-        <ScheduleSection
-          stats={contractorStats}
-          upcomingJobs={
-            contractorStats?.nextAppointment
-              ? [
-                  {
-                    id: contractorStats.nextAppointment.jobId,
-                    title: `${contractorStats.nextAppointment.type} — ${contractorStats.nextAppointment.client}`,
-                    time: contractorStats.nextAppointment.time,
-                    status: 'Upcoming',
-                  },
-                ]
-              : []
-          }
-          onViewAllPress={openMeetingSchedule}
-          onJobDetailsPress={openJobDetails}
-        />
+          <ScheduleSection
+            stats={contractorStats}
+            upcomingJobs={
+              contractorStats?.nextAppointment
+                ? [
+                    {
+                      id: contractorStats.nextAppointment.jobId,
+                      title: `${contractorStats.nextAppointment.type} — ${contractorStats.nextAppointment.client}`,
+                      time: contractorStats.nextAppointment.time,
+                      status: 'Upcoming',
+                    },
+                  ]
+                : []
+            }
+            onViewAllPress={openMeetingSchedule}
+            onJobDetailsPress={openJobDetails}
+          />
         </SlideIn>
 
         <FadeIn duration={400} delay={450}>
-        <QuickActions
-          onBrowseJobsPress={openJobsList}
-          onInboxPress={() => navigation.navigate('MessagingTab', { screen: 'MessagesList' })}
-          onQuotesPress={() => navigation.navigate('ProfileTab', { screen: 'QuoteBuilder' })}
-          onInvoicesPress={() => navigation.navigate('ProfileTab', { screen: 'InvoiceManagement' })}
-          onExpensesPress={() => navigation.navigate('ProfileTab', { screen: 'Expenses' })}
-          onCalendarPress={() => navigation.navigate('ProfileTab', { screen: 'Calendar' })}
-        />
+          <QuickActions
+            onBrowseJobsPress={openJobsList}
+            onInboxPress={() => navigation.navigate('MessagingTab', { screen: 'MessagesList' })}
+            onQuotesPress={() => navigation.navigate('ProfileTab', { screen: 'QuoteBuilder' })}
+            onInvoicesPress={() => navigation.navigate('ProfileTab', { screen: 'InvoiceManagement' })}
+            onExpensesPress={() => navigation.navigate('ProfileTab', { screen: 'Expenses' })}
+            onCalendarPress={() => navigation.navigate('ProfileTab', { screen: 'Calendar' })}
+          />
         </FadeIn>
       </ScrollView>
     </View>
@@ -224,36 +229,49 @@ export const ContractorDashboard: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
   content: {
     flex: 1,
-    paddingHorizontal: theme.spacing.lg,
+    paddingHorizontal: 20,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.background,
-    padding: theme.spacing[10],
+    backgroundColor: '#F7F7F7',
+    padding: 40,
+  },
+  errorIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  errorEmoji: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#EF4444',
   },
   errorText: {
-    fontSize: theme.typography.briefSizes.bodyLarge,
-    color: theme.colors.error,
-    marginBottom: theme.spacing[5],
+    fontSize: 16,
+    color: '#222222',
+    fontWeight: '600',
+    marginBottom: 16,
     textAlign: 'center',
   },
   retryButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing[3],
-    borderRadius: theme.borderRadius.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
+    backgroundColor: '#10B981',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
   },
   retryButtonText: {
-    color: theme.colors.textInverse,
-    fontSize: theme.typography.briefSizes.bodyLarge,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

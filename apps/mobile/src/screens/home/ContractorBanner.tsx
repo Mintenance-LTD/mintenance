@@ -1,16 +1,16 @@
 /**
  * ContractorBanner Component
  *
- * Modern gradient hero card with business name, active stats,
- * and a prominent Find Jobs CTA button.
+ * Editorial-style hero card with gradient background,
+ * geometric accent shapes, business name, live stats,
+ * and a prominent "Browse Jobs" CTA.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { User } from '@mintenance/types';
-import { theme } from '../../theme';
 
 interface ContractorBannerProps {
   user: User | null;
@@ -40,44 +40,47 @@ export const ContractorBanner: React.FC<ContractorBannerProps> = ({
 
   return (
     <LinearGradient
-      colors={[theme.colors.primaryDark, theme.colors.primary, theme.colors.primary]}
+      colors={['#064E3B', '#059669', '#10B981']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.hero}
     >
-      <View style={styles.decorCircle1} />
-      <View style={styles.decorCircle2} />
+      {/* Decorative geometric shapes */}
+      <View style={styles.decorTopRight} />
+      <View style={styles.decorBottomLeft} />
+      <View style={styles.decorDiamond} />
 
       <View style={styles.content}>
         <Text style={styles.greeting}>{getTimeGreeting()}</Text>
-        <Text style={styles.name} numberOfLines={1}>
-          {businessName}
-        </Text>
+        <Text style={styles.name} numberOfLines={1}>{businessName}</Text>
 
-        <View style={styles.badgeRow}>
-          <View style={styles.badge}>
-            <Ionicons name="briefcase-outline" size={13} color={theme.colors.textInverseMuted} />
-            <Text style={styles.badgeText}>
-              {activeJobs} active {activeJobs === 1 ? 'job' : 'jobs'}
-            </Text>
+        {/* Live stats row */}
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{activeJobs}</Text>
+            <Text style={styles.statLabel}>Active Jobs</Text>
           </View>
           {monthlyEarnings > 0 && (
-            <View style={styles.badge}>
-              <Ionicons name="cash-outline" size={13} color={theme.colors.textInverseMuted} />
-              <Text style={styles.badgeText}>£{monthlyEarnings.toFixed(0)} earned</Text>
-            </View>
+            <>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>£{monthlyEarnings.toFixed(0)}</Text>
+                <Text style={styles.statLabel}>This Month</Text>
+              </View>
+            </>
           )}
         </View>
 
+        {/* CTA */}
         <TouchableOpacity
-          style={styles.findJobsBtn}
+          style={styles.ctaButton}
           onPress={onFindJobsPress}
           activeOpacity={0.85}
           accessibilityRole="button"
           accessibilityLabel="Browse available jobs"
         >
-          <Text style={styles.findJobsBtnText}>Browse Available Jobs</Text>
-          <Ionicons name="arrow-forward" size={15} color={theme.colors.primary} />
+          <Text style={styles.ctaText}>Browse Available Jobs</Text>
+          <Ionicons name="arrow-forward" size={16} color="#059669" />
         </TouchableOpacity>
       </View>
     </LinearGradient>
@@ -86,91 +89,120 @@ export const ContractorBanner: React.FC<ContractorBannerProps> = ({
 
 const styles = StyleSheet.create({
   hero: {
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 24,
-    marginTop: 16,
+    marginTop: 12,
     marginBottom: 8,
     overflow: 'hidden',
-    minHeight: 176,
-    shadowColor: theme.colors.primaryDark,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 8,
+    minHeight: 200,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#064E3B',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
-  decorCircle1: {
+  decorTopRight: {
     position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: theme.colors.overlayWhite10,
-    top: -70,
-    right: -50,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    top: -60,
+    right: -40,
   },
-  decorCircle2: {
+  decorBottomLeft: {
     position: 'absolute',
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    backgroundColor: theme.colors.overlayWhite10,
-    bottom: -35,
-    left: 10,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    bottom: -40,
+    left: -20,
+  },
+  decorDiamond: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    top: 30,
+    right: 60,
+    transform: [{ rotate: '45deg' }],
+    borderRadius: 8,
   },
   content: {
     zIndex: 1,
   },
   greeting: {
     fontSize: 13,
-    color: theme.colors.textInverseMuted,
-    fontWeight: theme.typography.fontWeight.medium,
-    letterSpacing: 0.3,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
     marginBottom: 4,
   },
   name: {
-    fontSize: 26,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textInverse,
-    marginBottom: 14,
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 20,
+    letterSpacing: -0.5,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  statItem: {
+    alignItems: 'flex-start',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
     letterSpacing: -0.3,
   },
-  badgeRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 20,
-    flexWrap: 'wrap',
-  },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: theme.colors.overlayWhite15,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  badgeText: {
+  statLabel: {
     fontSize: 12,
-    color: theme.colors.textInverseMuted,
-    fontWeight: theme.typography.fontWeight.medium,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '500',
+    marginTop: 2,
   },
-  findJobsBtn: {
+  statDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    marginHorizontal: 20,
+  },
+  ctaButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: theme.colors.white,
-    borderRadius: 12,
-    paddingVertical: 11,
-    paddingHorizontal: 18,
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingVertical: 13,
+    paddingHorizontal: 20,
     alignSelf: 'flex-start',
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
-  findJobsBtnText: {
-    fontSize: 14,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.primary,
+  ctaText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#059669',
   },
 });

@@ -1,29 +1,24 @@
 /**
  * BidsReceived Component
  *
- * Displays recent bids received on homeowner jobs,
- * matching the web dashboard's "Bids Received" section.
+ * Clean Airbnb-style bid cards with avatar, contractor info,
+ * bold bid amount, and subtle review button.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 import { Skeleton } from '../../components/skeletons/Skeleton';
 
-const AVATAR_COLORS = [
-  theme.colors.error, theme.colors.info, theme.colors.success, theme.colors.info,
-  theme.colors.warning, theme.colors.success, theme.colors.warning, theme.colors.textSecondary,
-];
+const AVATAR_COLORS = ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#EC4899', '#6B7280'];
 
 const getAvatarColor = (name: string): string => {
   const charCode = name.charCodeAt(0) || 0;
   return AVATAR_COLORS[charCode % AVATAR_COLORS.length];
 };
 
-const getInitial = (name: string): string => {
-  return (name.charAt(0) || '?').toUpperCase();
-};
+const getInitial = (name: string): string => (name.charAt(0) || '?').toUpperCase();
 
 interface Bid {
   id: string;
@@ -37,7 +32,7 @@ interface Bid {
 const getBidLabel = (bid: Bid, allBids: Bid[]): { text: string; color: string; bg: string } | null => {
   if (allBids.length < 2) return null;
   const sorted = [...allBids].sort((a, b) => a.amount - b.amount);
-  if (sorted[0].id === bid.id) return { text: 'Best Price', color: theme.colors.success, bg: theme.colors.primaryLight };
+  if (sorted[0].id === bid.id) return { text: 'Best Price', color: '#10B981', bg: '#D1FAE5' };
   return null;
 };
 
@@ -62,14 +57,13 @@ export const BidsReceived: React.FC<BidsReceivedProps> = ({
         </View>
         {[1, 2, 3].map((key) => (
           <View key={key} style={styles.bidCard}>
-            <Skeleton width={40} height={40} borderRadius={20} />
+            <Skeleton width={44} height={44} borderRadius={22} />
             <View style={styles.bidInfo}>
               <Skeleton width={120} height={14} borderRadius={4} />
               <Skeleton width={90} height={12} borderRadius={4} style={{ marginTop: 4 }} />
             </View>
             <View style={styles.bidRight}>
               <Skeleton width={60} height={22} borderRadius={4} />
-              <Skeleton width={56} height={28} borderRadius={12} style={{ marginTop: 4 }} />
             </View>
           </View>
         ))}
@@ -84,10 +78,10 @@ export const BidsReceived: React.FC<BidsReceivedProps> = ({
           <Text style={styles.title}>Bids Received</Text>
         </View>
         <View style={styles.emptyInline}>
-          <Ionicons name='mail-open-outline' size={16} color={theme.colors.textTertiary} />
+          <Ionicons name="mail-open-outline" size={16} color="#B0B0B0" />
           <Text style={styles.emptyInlineText}>No bids yet</Text>
           {onViewAllPress ? (
-            <TouchableOpacity onPress={onViewAllPress} accessibilityRole='button' accessibilityLabel='View your posted jobs'>
+            <TouchableOpacity onPress={onViewAllPress} accessibilityRole="button" accessibilityLabel="View your posted jobs">
               <Text style={styles.emptyLink}>View jobs</Text>
             </TouchableOpacity>
           ) : null}
@@ -110,35 +104,35 @@ export const BidsReceived: React.FC<BidsReceivedProps> = ({
       {bids.slice(0, 3).map((bid) => {
         const label = getBidLabel(bid, bids);
         return (
-        <View key={bid.id} style={styles.bidCard}>
-          <View style={[styles.bidAvatar, { backgroundColor: getAvatarColor(bid.contractorName) }]}>
-            <Text style={styles.avatarInitial}>{getInitial(bid.contractorName)}</Text>
-          </View>
-          <View style={styles.bidInfo}>
-            <View style={styles.nameRow}>
-              <Text style={styles.contractorName} numberOfLines={1}>{bid.contractorName}</Text>
-              {label && (
-                <View style={[styles.bidLabel, { backgroundColor: label.bg }]}>
-                  <Text style={[styles.bidLabelText, { color: label.color }]}>{label.text}</Text>
-                </View>
+          <View key={bid.id} style={styles.bidCard}>
+            <View style={[styles.bidAvatar, { backgroundColor: getAvatarColor(bid.contractorName) }]}>
+              <Text style={styles.avatarInitial}>{getInitial(bid.contractorName)}</Text>
+            </View>
+            <View style={styles.bidInfo}>
+              <View style={styles.nameRow}>
+                <Text style={styles.contractorName} numberOfLines={1}>{bid.contractorName}</Text>
+                {label && (
+                  <View style={[styles.bidLabel, { backgroundColor: label.bg }]}>
+                    <Text style={[styles.bidLabelText, { color: label.color }]}>{label.text}</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.jobTitle} numberOfLines={1}>{bid.jobTitle}</Text>
+            </View>
+            <View style={styles.bidRight}>
+              <Text style={styles.bidAmount}>£{bid.amount.toLocaleString()}</Text>
+              {onReviewPress && (
+                <TouchableOpacity
+                  style={styles.reviewButton}
+                  onPress={() => onReviewPress(bid.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Review bid from ${bid.contractorName}`}
+                >
+                  <Text style={styles.reviewText}>Review</Text>
+                </TouchableOpacity>
               )}
             </View>
-            <Text style={styles.jobTitle} numberOfLines={1}>{bid.jobTitle}</Text>
           </View>
-          <View style={styles.bidRight}>
-            <Text style={styles.bidAmount}>£{bid.amount.toLocaleString()}</Text>
-            {onReviewPress && (
-              <TouchableOpacity
-                style={styles.reviewButton}
-                onPress={() => onReviewPress(bid.id)}
-                accessibilityRole="button"
-                accessibilityLabel={`Review bid from ${bid.contractorName}`}
-              >
-                <Text style={styles.reviewText}>Review</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
         );
       })}
     </View>
@@ -147,65 +141,77 @@ export const BidsReceived: React.FC<BidsReceivedProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: theme.spacing[5],
+    marginBottom: 24,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing[3],
+    marginBottom: 14,
   },
   title: {
-    fontSize: theme.typography.briefSizes.title,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#222222',
+    letterSpacing: -0.3,
   },
   viewAll: {
-    color: theme.colors.textPrimary,
-    fontWeight: theme.typography.fontWeight.semibold,
-    fontSize: theme.typography.briefSizes.body,
+    color: '#222222',
+    fontWeight: '600',
+    fontSize: 14,
+    textDecorationLine: 'underline',
   },
   bidCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.sm,
-    ...theme.shadows.sm,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   emptyInline: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.sm,
-    paddingVertical: 10,
-    paddingHorizontal: theme.spacing.md,
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: theme.borderRadius.base,
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
   },
   emptyInlineText: {
     flex: 1,
-    fontSize: theme.typography.briefSizes.body,
-    color: theme.colors.textSecondary,
+    fontSize: 14,
+    color: '#717171',
   },
   emptyLink: {
     fontSize: 13,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     textDecorationLine: 'underline',
   },
   bidAvatar: {
-    width: theme.spacing[10],
-    height: theme.spacing[10],
-    borderRadius: theme.spacing[5],
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: theme.spacing[3],
+    marginRight: 12,
   },
   avatarInitial: {
-    fontSize: theme.typography.briefSizes.bodyLarge,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.white,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   bidInfo: {
     flex: 1,
@@ -219,40 +225,41 @@ const styles = StyleSheet.create({
   bidLabel: {
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: 6,
   },
   bidLabelText: {
     fontSize: 10,
-    fontWeight: theme.typography.fontWeight.bold,
+    fontWeight: '700',
   },
   contractorName: {
-    fontSize: theme.typography.briefSizes.body,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222222',
   },
   jobTitle: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    color: '#717171',
   },
   bidRight: {
     alignItems: 'flex-end',
-    marginLeft: theme.spacing[3],
+    marginLeft: 12,
   },
   bidAmount: {
-    fontSize: 22,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.xs,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#222222',
+    marginBottom: 4,
+    letterSpacing: -0.3,
   },
   reviewButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.lg,
-    paddingHorizontal: theme.spacing[3],
+    backgroundColor: '#10B981',
+    borderRadius: 10,
+    paddingHorizontal: 14,
     paddingVertical: 6,
   },
   reviewText: {
-    color: theme.colors.white,
+    color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
   },
 });
