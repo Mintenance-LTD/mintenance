@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
   Image,
   ScrollView,
@@ -24,6 +22,7 @@ import { useI18n } from '../hooks/useI18n';
 import Button from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Banner } from '../components/ui/Banner';
+import { TouchableOpacity } from 'react-native';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -46,18 +45,13 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
   const togglePasswordVisibility = () => setPasswordVisible((prev) => !prev);
 
-  // Development mode test credentials
   const isDev = __DEV__ || process.env.NODE_ENV === 'development';
 
-  // Dynamic text scaling for accessibility
   const headerTitleText = useAccessibleText(28);
   const buttonText = useAccessibleText(18);
   const linkText = useAccessibleText(14);
 
-  // Haptic feedback
   const haptics = useHaptics();
-
-  // Internationalization
   const { t, auth, common, getErrorMessage } = useI18n();
 
   const handleLogin = async () => {
@@ -83,7 +77,6 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container} testID="login-screen">
-        {/* Header with brand and trust indicators */}
         <FadeIn duration={500}>
         <View style={styles.header}>
           <View style={styles.headerContent}>
@@ -100,18 +93,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               Mintenance
             </Text>
           </View>
-          <Text
-            style={styles.headerSubtitle}
-            accessibilityRole='text'
-          >
+          <Text style={styles.headerSubtitle} accessibilityRole='text'>
             Connect homeowners and contractors easily
           </Text>
 
-          {/* Trust indicators */}
           <View style={styles.trustRow}>
             {TRUST_ITEMS.map((item) => (
               <View key={item.label} style={styles.trustPill}>
-                <Ionicons name={item.icon} size={13} color={theme.colors.textSecondary} />
+                <Ionicons name={item.icon} size={13} color="#717171" />
                 <Text style={styles.trustText}>{item.label}</Text>
               </View>
             ))}
@@ -128,7 +117,6 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps='handled'
           >
-            {/* Form heading */}
             <SlideIn direction="up" distance={20} duration={400} delay={200}>
             <View style={styles.formHeading}>
               <Text style={styles.formTitle}>Sign in to your account</Text>
@@ -144,7 +132,6 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 />
               ) : null}
 
-              {/* Login Form */}
               <View style={styles.formContainer}>
                 <Input
                   testID="email-input"
@@ -153,19 +140,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   value={email}
                   onChangeText={(value) => {
                     setEmail(value);
-                    if (errorMessage) {
-                      setErrorMessage(null);
-                    }
+                    if (errorMessage) setErrorMessage(null);
                   }}
                   leftIcon='mail-outline'
                   keyboardType='email-address'
                   autoCapitalize='none'
                   autoCorrect={false}
                   accessibilityHint={String(
-                    t(
-                      'auth.emailHint',
-                      { defaultValue: 'Please enter your email address to sign in' }
-                    )
+                    t('auth.emailHint', { defaultValue: 'Please enter your email address to sign in' })
                   )}
                   textContentType='emailAddress'
                   autoComplete='email'
@@ -173,7 +155,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   size='lg'
                   fullWidth
                   required
-                  containerStyle={{ marginBottom: theme.spacing.md }}
+                  containerStyle={{ marginBottom: 16 }}
                 />
 
                 <Input
@@ -183,19 +165,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   value={password}
                   onChangeText={(value) => {
                     setPassword(value);
-                    if (errorMessage) {
-                      setErrorMessage(null);
-                    }
+                    if (errorMessage) setErrorMessage(null);
                   }}
                   leftIcon='lock-closed-outline'
                   rightIcon={passwordVisible ? 'eye-off-outline' : 'eye-outline'}
                   onRightIconPress={togglePasswordVisibility}
                   secureTextEntry={!passwordVisible}
                   accessibilityHint={String(
-                    t(
-                      'auth.passwordHint',
-                      { defaultValue: 'Please enter your password to sign in' }
-                    )
+                    t('auth.passwordHint', { defaultValue: 'Please enter your password to sign in' })
                   )}
                   textContentType='password'
                   autoComplete='password'
@@ -205,7 +182,6 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   required
                 />
 
-                {/* Forgot password link (right-aligned) */}
                 <TouchableOpacity
                   style={styles.forgotPasswordLink}
                   onPress={() => {
@@ -215,10 +191,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   accessibilityRole='button'
                   accessibilityLabel={String(auth.forgotPassword())}
                   accessibilityHint={String(
-                    t(
-                      'auth.forgotPasswordHint',
-                      { defaultValue: 'Double tap to reset your password' }
-                    )
+                    t('auth.forgotPasswordHint', { defaultValue: 'Double tap to reset your password' })
                   )}
                 >
                   <Text style={[styles.forgotPasswordText, linkText.textStyle]}>
@@ -226,18 +199,16 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   </Text>
                 </TouchableOpacity>
 
-                {/* Loading Spinner */}
                 {loading && (
                   <ActivityIndicator
                     testID="loading-spinner"
                     size="large"
-                    color={theme.colors.primary}
-                    style={{ marginVertical: theme.spacing.lg }}
+                    color="#10B981"
+                    style={{ marginVertical: 24 }}
                     accessibilityLabel="Signing in"
                   />
                 )}
 
-                {/* Log In Button */}
                 <Button
                   variant='primary'
                   title={
@@ -250,19 +221,18 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                     loading ? String(t('auth.loggingIn')) : String(auth.login())
                   }
                   fullWidth
-                  style={{ borderRadius: theme.borderRadius.xxl, marginTop: theme.spacing.sm }}
+                  style={{ borderRadius: 28, marginTop: 8 }}
                   textStyle={buttonText.textStyle as import('react-native').TextStyle}
                 />
               </View>
 
-            {/* Divider + Sign Up CTA */}
-              <View style={styles.dividerSection}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>New to Mintenance?</Text>
-                <View style={styles.dividerLine} />
-              </View>
+            <View style={styles.dividerSection}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>New to Mintenance?</Text>
+              <View style={styles.dividerLine} />
+            </View>
 
-              <View style={{ paddingHorizontal: theme.spacing.xl }}>
+              <View style={{ paddingHorizontal: 24 }}>
                 <Button
                   variant='secondary'
                   title='Create Account'
@@ -277,11 +247,10 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                     t('auth.signUpHint', { defaultValue: 'Double tap to create a new account' })
                   )}
                   fullWidth
-                  style={{ borderRadius: theme.borderRadius.xxl }}
+                  style={{ borderRadius: 28 }}
                 />
               </View>
 
-              {/* Development Test Login Notice */}
               {isDev && (
                 <View style={styles.devSection}>
                   <Text style={styles.devTitle}>Development Mode</Text>
@@ -301,14 +270,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#FFFFFF',
   },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#FFFFFF',
   },
   header: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#FFFFFF',
     paddingTop: 20,
     paddingBottom: 12,
     paddingHorizontal: 24,
@@ -323,16 +292,15 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     marginRight: 10,
-    backgroundColor: theme.colors.white,
-    borderRadius: 8,
+    borderRadius: 10,
   },
   headerTitle: {
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
   },
   headerSubtitle: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -343,23 +311,23 @@ const styles = StyleSheet.create({
   trustPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: theme.borderRadius.full,
+    backgroundColor: '#F7F7F7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
     gap: 4,
   },
   trustText: {
     fontSize: 12,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textSecondary,
+    fontWeight: '600',
+    color: '#717171',
   },
   keyboardContainer: {
     flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#FFFFFF',
     paddingTop: 20,
     paddingBottom: 24,
   },
@@ -368,14 +336,15 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   formTitle: {
-    fontSize: 28,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#222222',
     marginBottom: 4,
+    letterSpacing: -0.3,
   },
   formSubtitle: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   formContainer: {
     paddingHorizontal: 24,
@@ -386,8 +355,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   forgotPasswordText: {
-    color: theme.colors.textPrimary,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#222222',
+    fontWeight: '600',
     textDecorationLine: 'underline',
   },
   dividerSection: {
@@ -399,39 +368,37 @@ const styles = StyleSheet.create({
   },
   dividerLine: {
     flex: 1,
-    height: 1,
-    backgroundColor: theme.colors.border,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#EBEBEB',
   },
   dividerText: {
     marginHorizontal: 12,
     fontSize: 13,
-    color: theme.colors.textTertiary,
-    fontWeight: theme.typography.fontWeight.medium,
+    color: '#B0B0B0',
+    fontWeight: '500',
   },
-  // Development styles
   devSection: {
     marginTop: 16,
     marginHorizontal: 24,
     padding: 12,
-    backgroundColor: theme.colors.surfaceSecondary,
-    borderRadius: 8,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: '#EBEBEB',
     borderStyle: 'dashed',
   },
   devTitle: {
     textAlign: 'center',
     fontSize: 12,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textTertiary,
+    fontWeight: '700',
+    color: '#B0B0B0',
     marginBottom: 4,
   },
   devNote: {
     textAlign: 'center',
     fontSize: 11,
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
   },
 });
 
 export default LoginScreen;
-

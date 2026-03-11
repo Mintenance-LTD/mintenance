@@ -1,13 +1,12 @@
 /**
  * BookingTabs Component
- * 
- * Displays the tab navigation for different booking statuses
- * (upcoming, completed, cancelled).
+ *
+ * Airbnb-style segmented tab bar for booking statuses.
+ * Dark active state, soft backgrounds, clean badges.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { theme } from '../../theme';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { BookingStatus, Booking } from './BookingStatusScreen';
 
 interface BookingTabsProps {
@@ -22,52 +21,50 @@ export const BookingTabs: React.FC<BookingTabsProps> = ({
   bookings,
 }) => {
   const tabs = [
-    { 
-      id: 'upcoming' as BookingStatus, 
-      name: 'Upcoming', 
-      count: bookings.filter(b => b.status === 'upcoming').length 
+    {
+      id: 'upcoming' as BookingStatus,
+      name: 'Upcoming',
+      count: bookings.filter(b => b.status === 'upcoming').length,
     },
-    { 
-      id: 'completed' as BookingStatus, 
-      name: 'Completed', 
-      count: bookings.filter(b => b.status === 'completed').length 
+    {
+      id: 'completed' as BookingStatus,
+      name: 'Completed',
+      count: bookings.filter(b => b.status === 'completed').length,
     },
-    { 
-      id: 'cancelled' as BookingStatus, 
-      name: 'Cancelled', 
-      count: bookings.filter(b => b.status === 'cancelled').length 
+    {
+      id: 'cancelled' as BookingStatus,
+      name: 'Cancelled',
+      count: bookings.filter(b => b.status === 'cancelled').length,
     },
   ];
 
   return (
     <View style={styles.tabsContainer}>
-      {tabs.map((tab) => (
-        <TouchableOpacity
-          key={tab.id}
-          style={[
-            styles.tab,
-            activeTab === tab.id && styles.activeTab,
-          ]}
-          onPress={() => onTabChange(tab.id)}
-          accessibilityRole="tab"
-          accessibilityLabel={`${tab.name} tab, ${tab.count} bookings`}
-          accessibilityState={{ selected: activeTab === tab.id }}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === tab.id && styles.activeTabText,
-            ]}
+      {tabs.map((tab) => {
+        const isActive = activeTab === tab.id;
+        return (
+          <TouchableOpacity
+            key={tab.id}
+            style={[styles.tab, isActive && styles.activeTab]}
+            onPress={() => onTabChange(tab.id)}
+            activeOpacity={0.7}
+            accessibilityRole="tab"
+            accessibilityLabel={`${tab.name} tab, ${tab.count} bookings`}
+            accessibilityState={{ selected: isActive }}
           >
-            {tab.name}
-          </Text>
-          {tab.count > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{tab.count}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      ))}
+            <Text style={[styles.tabText, isActive && styles.activeTabText]}>
+              {tab.name}
+            </Text>
+            {tab.count > 0 && (
+              <View style={[styles.badge, isActive && styles.activeBadge]}>
+                <Text style={[styles.badgeText, isActive && styles.activeBadgeText]}>
+                  {tab.count}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 };
@@ -75,45 +72,60 @@ export const BookingTabs: React.FC<BookingTabsProps> = ({
 const styles = StyleSheet.create({
   tabsContainer: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
-    marginHorizontal: theme.spacing.md,
-    marginTop: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.xs,
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 14,
+    padding: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 6,
+      },
+      android: { elevation: 1 },
+    }),
   },
   tab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: theme.spacing[3],
-    paddingHorizontal: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    gap: 5,
   },
   activeTab: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
   },
   tabText: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#717171',
   },
   activeTabText: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
   },
   badge: {
-    backgroundColor: theme.colors.accent,
-    borderRadius: theme.borderRadius.full,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 10,
     minWidth: 20,
     height: 20,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 6,
   },
+  activeBadge: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
   badgeText: {
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textInverse,
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#717171',
+  },
+  activeBadgeText: {
+    color: '#FFFFFF',
   },
 });

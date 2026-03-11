@@ -9,6 +9,7 @@ import {
   TextInput,
   ScrollView,
   Dimensions,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,7 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { JobService } from '../services/JobService';
 import { Job } from '@mintenance/types';
-import { theme, getStatusColor as themeGetStatusColor } from '../theme';
+import { getStatusColor as themeGetStatusColor } from '../theme';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { NavigationHeader } from '../components/navigation';
 import { ImageCarousel } from '../components/ui/ImageCarousel';
@@ -44,15 +45,15 @@ const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 };
 
 const CATEGORY_COLORS: Record<string, { icon: string; bg: string; text: string }> = {
-  plumbing:    { icon: theme.colors.primary, bg: theme.colors.primaryLight, text: theme.colors.primary },
-  electrical:  { icon: theme.colors.warning, bg: theme.colors.accentLight, text: theme.colors.warning },
-  roofing:     { icon: theme.colors.success, bg: theme.colors.primaryLight, text: theme.colors.success },
-  painting:    { icon: theme.colors.info, bg: theme.colors.backgroundSecondary, text: theme.colors.info },
-  carpentry:   { icon: theme.colors.warning, bg: theme.colors.accentLight, text: theme.colors.warning },
-  cleaning:    { icon: theme.colors.info, bg: theme.colors.backgroundSecondary, text: theme.colors.info },
-  hvac:        { icon: theme.colors.error, bg: theme.colors.accentLight, text: theme.colors.error },
-  landscaping: { icon: theme.colors.success, bg: theme.colors.primaryLight, text: theme.colors.success },
-  general:     { icon: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary, text: theme.colors.textSecondary },
+  plumbing:    { icon: '#10B981', bg: '#D1FAE5', text: '#10B981' },
+  electrical:  { icon: '#F59E0B', bg: '#FEF3C7', text: '#F59E0B' },
+  roofing:     { icon: '#10B981', bg: '#D1FAE5', text: '#10B981' },
+  painting:    { icon: '#3B82F6', bg: '#DBEAFE', text: '#3B82F6' },
+  carpentry:   { icon: '#F59E0B', bg: '#FEF3C7', text: '#F59E0B' },
+  cleaning:    { icon: '#3B82F6', bg: '#DBEAFE', text: '#3B82F6' },
+  hvac:        { icon: '#EF4444', bg: '#FEE2E2', text: '#EF4444' },
+  landscaping: { icon: '#10B981', bg: '#D1FAE5', text: '#10B981' },
+  general:     { icon: '#717171', bg: '#F7F7F7', text: '#717171' },
 };
 
 const FILTER_LABELS: Record<FilterStatus, string> = {
@@ -105,11 +106,8 @@ const JobsScreen: React.FC = () => {
     queryKey: ['jobs', user?.id, user?.role],
     queryFn: async () => {
       if (user!.role === 'homeowner') {
-        // Homeowners see jobs they have posted
         return JobService.getJobsByHomeowner(user!.id);
       }
-      // Contractors see only their own active jobs (assigned, in_progress, completed).
-      // Available jobs to bid on are shown via the "Find Jobs" map (ExploreMapScreen).
       return JobService.getJobsByUser(user!.id, 'contractor');
     },
     enabled: !!user,
@@ -170,12 +168,10 @@ const JobsScreen: React.FC = () => {
 
   const isContractor = user?.role === 'contractor';
 
-  // When map mode is active, render the explore map full-screen
   if (viewMode === 'map' && isContractor) {
     return <ExploreMapScreen onBackToList={() => setViewMode('list')} />;
   }
 
-  // Contractors only have active-job statuses here; available jobs live in Find Jobs (map)
   const contractorFilters: FilterStatus[] = ['all', 'assigned', 'in_progress', 'completed'];
   const homeownerFilters: FilterStatus[] = ['all', 'posted', 'assigned', 'in_progress', 'completed'];
   const visibleFilters = isContractor ? contractorFilters : homeownerFilters;
@@ -185,7 +181,7 @@ const JobsScreen: React.FC = () => {
     : `${filteredJobs.length} ${user?.role === 'homeowner' ? 'jobs' : 'active jobs'}`;
 
   return (
-    <SafeAreaView style={[styles.mainContainer, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView style={styles.mainContainer}>
       <NavigationHeader
         title={user?.role === 'homeowner' ? 'My Jobs' : 'Job Marketplace'}
         subtitle={subtitle}
@@ -199,13 +195,13 @@ const JobsScreen: React.FC = () => {
       <ResponsiveContainer
         maxWidth={{ mobile: undefined, tablet: 768, desktop: 1200 }}
         padding={{ mobile: 0, tablet: 16, desktop: 24 }}
-        style={[styles.container, { backgroundColor: theme.colors.background }]}
+        style={styles.container}
         testID="jobs-screen"
       >
-        <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
+        <View style={styles.header}>
           {isError && (
             <View style={styles.errorBanner}>
-              <Ionicons name="alert-circle" size={18} color={theme.colors.error} />
+              <Ionicons name="alert-circle" size={18} color="#EF4444" />
               <Text style={styles.errorText}>
                 {queryError instanceof Error ? queryError.message : 'Failed to load jobs'}
               </Text>
@@ -217,18 +213,18 @@ const JobsScreen: React.FC = () => {
 
           <View style={styles.searchRow}>
             <View style={styles.searchContainer}>
-              <Ionicons name="search" size={18} color={theme.colors.textSecondary} style={styles.searchIcon} />
+              <Ionicons name="search" size={18} color="#717171" style={styles.searchIcon} />
               <TextInput
                 style={styles.searchInput}
                 placeholder="Search by trade, location..."
-                placeholderTextColor={theme.colors.textTertiary}
+                placeholderTextColor="#B0B0B0"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 accessibilityLabel="Search jobs"
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Clear search">
-                  <Ionicons name="close-circle" size={18} color={theme.colors.textTertiary} />
+                  <Ionicons name="close-circle" size={18} color="#B0B0B0" />
                 </TouchableOpacity>
               )}
             </View>
@@ -239,7 +235,7 @@ const JobsScreen: React.FC = () => {
                 accessibilityRole="button"
                 accessibilityLabel="Switch to map view"
               >
-                <Ionicons name="map-outline" size={20} color={theme.colors.textPrimary} />
+                <Ionicons name="map-outline" size={20} color="#222222" />
               </TouchableOpacity>
             )}
           </View>
@@ -270,7 +266,9 @@ const JobsScreen: React.FC = () => {
           contentContainerStyle={styles.listContainer}
           ListEmptyComponent={() => (
             <View style={styles.emptyContainer}>
-              <Ionicons name="briefcase-outline" size={48} color={theme.colors.textTertiary} />
+              <View style={styles.emptyIconWrap}>
+                <Ionicons name="briefcase-outline" size={32} color="#717171" />
+              </View>
               <Text style={styles.emptyTitle}>No Jobs</Text>
               <Text style={styles.emptyDescription}>
                 {user?.role === 'homeowner'
@@ -280,7 +278,7 @@ const JobsScreen: React.FC = () => {
             </View>
           )}
           refreshControl={
-            <RefreshControl refreshing={isFetching} onRefresh={onRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+            <RefreshControl refreshing={isFetching} onRefresh={onRefresh} tintColor="#10B981" colors={['#10B981']} />
           }
           showsVerticalScrollIndicator={false}
         />
@@ -307,7 +305,6 @@ const JobCard: React.FC<{
   const photos = item.photos || item.images || [];
   const hasPhotos = photos.length > 0;
 
-  // Show city/town only — strip full address noise
   const rawLocation = typeof item.location === 'string' ? item.location : item.city || '';
   const locationStr = item.city || rawLocation.split(',').slice(-2, -1)[0]?.trim() || rawLocation;
 
@@ -327,12 +324,11 @@ const JobCard: React.FC<{
       accessibilityLabel={`${item.title}, £${budget.toLocaleString()}, ${locationStr}`}
       accessibilityHint="Double tap to view job details"
     >
-      {/* Photo or placeholder – compact 130px height */}
       {hasPhotos ? (
         <View style={styles.heroSection}>
           <ImageCarousel
             images={photos}
-            height={130}
+            height={140}
             width={SCREEN_WIDTH - 32}
             showDots={photos.length > 1}
             gradientOverlay
@@ -340,7 +336,7 @@ const JobCard: React.FC<{
               <View style={styles.overlayRow}>
                 {isUrgent && (
                   <View style={styles.urgentTag}>
-                    <Ionicons name="flame" size={11} color={theme.colors.textInverse} />
+                    <Ionicons name="flame" size={11} color="#FFFFFF" />
                     <Text style={styles.urgentTagText}>Urgent</Text>
                   </View>
                 )}
@@ -357,7 +353,7 @@ const JobCard: React.FC<{
           <View style={styles.placeholderOverlay}>
             {isUrgent && (
               <View style={styles.urgentTag}>
-                <Ionicons name="flame" size={11} color={theme.colors.textInverse} />
+                <Ionicons name="flame" size={11} color="#FFFFFF" />
                 <Text style={styles.urgentTagText}>Urgent</Text>
               </View>
             )}
@@ -368,7 +364,6 @@ const JobCard: React.FC<{
         </View>
       )}
 
-      {/* Save button – absolute top-right */}
       <TouchableOpacity
         style={styles.saveButton}
         onPress={(e) => { e.stopPropagation?.(); onSave(); }}
@@ -376,10 +371,9 @@ const JobCard: React.FC<{
         accessibilityRole="button"
         accessibilityLabel={saved ? 'Remove from saved' : 'Save job'}
       >
-        <Ionicons name={saved ? 'heart' : 'heart-outline'} size={20} color={saved ? theme.colors.error : theme.colors.white} />
+        <Ionicons name={saved ? 'heart' : 'heart-outline'} size={20} color={saved ? '#EF4444' : '#FFFFFF'} />
       </TouchableOpacity>
 
-      {/* Content */}
       <View style={styles.cardContent}>
         <View style={styles.cardTopRow}>
           <Text style={styles.jobTitle} numberOfLines={1}>{item.title}</Text>
@@ -388,12 +382,12 @@ const JobCard: React.FC<{
         <View style={styles.cardMeta}>
           {locationStr ? (
             <View style={styles.metaItem}>
-              <Ionicons name="location-outline" size={13} color={theme.colors.textTertiary} />
+              <Ionicons name="location-outline" size={13} color="#B0B0B0" />
               <Text style={styles.metaText}>{locationStr}</Text>
             </View>
           ) : null}
           <View style={styles.metaItem}>
-            <Ionicons name="time-outline" size={13} color={theme.colors.textTertiary} />
+            <Ionicons name="time-outline" size={13} color="#B0B0B0" />
             <Text style={styles.metaText}>{daysAgo === 0 ? 'Today' : daysAgo === 1 ? '1d ago' : `${daysAgo}d ago`}</Text>
           </View>
         </View>
@@ -410,7 +404,7 @@ const JobCard: React.FC<{
             )}
             {!!bidCount && bidCount > 0 && (
               <View style={styles.bidBadge}>
-                <Ionicons name="people-outline" size={11} color={theme.colors.warning} />
+                <Ionicons name="people-outline" size={11} color="#F59E0B" />
                 <Text style={styles.bidBadgeText}>{bidCount}</Text>
               </View>
             )}
@@ -445,9 +439,9 @@ const formatStatus = (status: string) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: theme.colors.background },
-  container: { flex: 1, backgroundColor: theme.colors.background },
-  header: { backgroundColor: theme.colors.background, paddingBottom: 8 },
+  mainContainer: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  header: { backgroundColor: '#FFFFFF', paddingBottom: 8 },
 
   searchRow: {
     flexDirection: 'row',
@@ -461,22 +455,20 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: 20,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 24,
     paddingHorizontal: 14,
     height: 44,
-    ...theme.shadows.base,
   },
   searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, fontSize: 15, color: theme.colors.textPrimary },
+  searchInput: { flex: 1, fontSize: 15, color: '#222222' },
   mapToggle: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: '#F7F7F7',
     alignItems: 'center',
     justifyContent: 'center',
-    ...theme.shadows.base,
   },
 
   filterRow: {
@@ -485,33 +477,40 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   filterChip: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: theme.colors.borderLight,
+    borderColor: '#EBEBEB',
   },
   filterChipActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: '#222222',
+    borderColor: '#222222',
   },
-  filterChipText: { fontSize: 13, color: theme.colors.textSecondary, fontWeight: theme.typography.fontWeight.medium },
-  filterChipTextActive: { color: theme.colors.textInverse, fontWeight: theme.typography.fontWeight.semibold },
+  filterChipText: { fontSize: 13, color: '#717171', fontWeight: '500' },
+  filterChipTextActive: { color: '#FFFFFF', fontWeight: '600' },
 
-  listContainer: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 24 },
+  listContainer: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24 },
 
-  // Compact Job Card
   jobCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     marginBottom: 14,
     overflow: 'hidden',
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
   heroSection: { borderTopLeftRadius: 16, borderTopRightRadius: 16, overflow: 'hidden' },
   placeholderHero: {
-    height: 90,
+    height: 100,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -523,18 +522,18 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   overlayRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  statusTag: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 5 },
-  statusTagText: { fontSize: 11, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.white },
+  statusTag: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  statusTagText: { fontSize: 11, fontWeight: '600', color: '#FFFFFF' },
   urgentTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.error,
+    backgroundColor: '#EF4444',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 5,
+    borderRadius: 6,
     gap: 3,
   },
-  urgentTagText: { fontSize: 11, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textInverse },
+  urgentTagText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
 
   saveButton: {
     position: 'absolute',
@@ -543,56 +542,55 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: 'rgba(0,0,0,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 5,
   },
 
-  cardContent: { padding: 12 },
+  cardContent: { padding: 14 },
   cardTopRow: { marginBottom: 4 },
   jobTitle: {
-    fontSize: 17,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#222222',
   },
   cardMeta: { flexDirection: 'row', gap: 12, marginBottom: 8 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  metaText: { fontSize: 12, color: theme.colors.textTertiary },
+  metaText: { fontSize: 12, color: '#B0B0B0' },
 
   cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  priceText: { fontSize: 17, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
+  priceText: { fontSize: 17, fontWeight: '700', color: '#222222' },
   footerRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 
   categoryTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  categoryTagText: { fontSize: 12, fontWeight: theme.typography.fontWeight.semibold },
+  categoryTagText: { fontSize: 12, fontWeight: '600' },
 
   bidBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: theme.colors.accentLight,
+    backgroundColor: '#FEF3C7',
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 8,
   },
-  bidBadgeText: { fontSize: 11, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.warning },
+  bidBadgeText: { fontSize: 11, fontWeight: '600', color: '#F59E0B' },
   aiBadge: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: '#DBEAFE',
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 8,
   },
-  aiBadgeText: { fontSize: 11, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.info },
+  aiBadgeText: { fontSize: 11, fontWeight: '700', color: '#3B82F6' },
 
   jobDescription: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     lineHeight: 18,
     marginTop: 6,
   },
 
-  // Empty & Error
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -601,20 +599,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     gap: 12,
   },
-  emptyTitle: { fontSize: 22, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary, textAlign: 'center' },
-  emptyDescription: { fontSize: 16, color: theme.colors.textSecondary, textAlign: 'center', lineHeight: 24, maxWidth: 280 },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTitle: { fontSize: 20, fontWeight: '700', color: '#222222', textAlign: 'center' },
+  emptyDescription: { fontSize: 15, color: '#717171', textAlign: 'center', lineHeight: 22, maxWidth: 280 },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.accentLight,
+    backgroundColor: '#FEE2E2',
     marginHorizontal: 16,
     marginTop: 8,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     gap: 8,
   },
-  errorText: { flex: 1, fontSize: 14, color: theme.colors.error },
-  retryText: { fontSize: 14, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary },
+  errorText: { flex: 1, fontSize: 14, color: '#EF4444' },
+  retryText: { fontSize: 14, fontWeight: '600', color: '#222222' },
 });
 
 export default JobsScreen;

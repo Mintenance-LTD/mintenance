@@ -51,8 +51,8 @@ const FormProgress: React.FC<FormProgressProps> = ({ currentStep }) => {
                     progressStyles.line,
                     {
                       backgroundColor: isCompleted || isActive
-                        ? theme.colors.primary
-                        : theme.colors.borderLight,
+                        ? '#10B981'
+                        : '#EBEBEB',
                     },
                   ]}
                 />
@@ -62,19 +62,19 @@ const FormProgress: React.FC<FormProgressProps> = ({ currentStep }) => {
                   style={[
                     progressStyles.circle,
                     isCompleted || isActive
-                      ? { backgroundColor: theme.colors.primary }
-                      : { backgroundColor: theme.colors.backgroundSecondary },
+                      ? { backgroundColor: '#10B981' }
+                      : { backgroundColor: '#F7F7F7' },
                   ]}
                 >
                   {isCompleted ? (
-                    <Ionicons name="checkmark" size={16} color={theme.colors.textInverse} />
+                    <Ionicons name="checkmark" size={16} color="#FFFFFF" />
                   ) : (
                     <Text
                       style={[
                         progressStyles.circleText,
                         isActive
-                          ? { color: theme.colors.textInverse }
-                          : { color: theme.colors.textTertiary },
+                          ? { color: '#FFFFFF' }
+                          : { color: '#B0B0B0' },
                       ]}
                     >
                       {step.number}
@@ -85,10 +85,10 @@ const FormProgress: React.FC<FormProgressProps> = ({ currentStep }) => {
                   style={[
                     progressStyles.label,
                     isActive
-                      ? { color: theme.colors.primary, fontWeight: theme.typography.fontWeight.semibold }
+                      ? { color: '#10B981', fontWeight: '600' }
                       : isFuture
-                        ? { color: theme.colors.textTertiary }
-                        : { color: theme.colors.textSecondary },
+                        ? { color: '#B0B0B0' }
+                        : { color: '#717171' },
                   ]}
                 >
                   {step.label}
@@ -116,6 +116,7 @@ const progressStyles = StyleSheet.create({
     height: 2,
     flex: 1,
     marginTop: 14,
+    borderRadius: 1,
   },
   stepColumn: {
     alignItems: 'center',
@@ -130,7 +131,7 @@ const progressStyles = StyleSheet.create({
   },
   circleText: {
     fontSize: 13,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
   },
   label: {
     fontSize: 11,
@@ -197,7 +198,6 @@ const RegisterScreen: React.FC<Props> = () => {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps='handled'
           >
-            {/* Form heading */}
             <SlideIn direction="up" distance={20} duration={400} delay={200}>
             <View style={styles.formHeading}>
               <Text style={styles.formTitle}>Get Started</Text>
@@ -220,7 +220,6 @@ const RegisterScreen: React.FC<Props> = () => {
                 onRoleChange={(role) => updateField('role', role)}
               />
 
-              {/* Personal Details */}
               <Text style={styles.sectionLabel}>Personal Details</Text>
 
               <Input
@@ -261,7 +260,6 @@ const RegisterScreen: React.FC<Props> = () => {
                 required
               />
 
-              {/* Contact Information */}
               <Text style={styles.sectionLabel}>Contact Information</Text>
 
               <Input
@@ -300,7 +298,6 @@ const RegisterScreen: React.FC<Props> = () => {
                 fullWidth
               />
 
-              {/* Create Password */}
               <Text style={styles.sectionLabel}>Create Password</Text>
 
               <Input
@@ -360,10 +357,9 @@ const RegisterScreen: React.FC<Props> = () => {
                 loading={loading}
                 accessibilityLabel={loading ? 'Creating account' : 'Create account'}
                 fullWidth
-                style={{ borderRadius: theme.borderRadius.xxl, marginBottom: 16 }}
+                style={{ borderRadius: 28, marginBottom: 16 }}
               />
 
-              {/* Sign In link */}
               <View style={styles.loginSection}>
                 <View style={styles.loginDivider} />
                 <View style={styles.loginLinkContainer}>
@@ -402,14 +398,14 @@ const RegisterScreen: React.FC<Props> = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#FFFFFF',
   },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#FFFFFF',
   },
   header: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#FFFFFF',
     paddingTop: 20,
     paddingBottom: 12,
     paddingHorizontal: 24,
@@ -424,17 +420,16 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     marginRight: 10,
-    backgroundColor: theme.colors.white,
-    borderRadius: 8,
+    borderRadius: 10,
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
   },
   headerSubtitle: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     textAlign: 'center',
   },
   keyboardContainer: {
@@ -442,7 +437,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#FFFFFF',
     paddingTop: 20,
     paddingBottom: 32,
   },
@@ -451,33 +446,34 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   formTitle: {
-    fontSize: 28,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#222222',
     marginBottom: 4,
+    letterSpacing: -0.3,
   },
   formSubtitle: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   formContainer: {
     paddingHorizontal: 24,
   },
   sectionLabel: {
     fontSize: 12,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textTertiary,
+    fontWeight: '600',
+    color: '#B0B0B0',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginTop: 16,
+    marginTop: 20,
     marginBottom: 8,
   },
   loginSection: {
     marginTop: 8,
   },
   loginDivider: {
-    height: 1,
-    backgroundColor: theme.colors.border,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#EBEBEB',
     marginBottom: 16,
   },
   loginLinkContainer: {
@@ -487,15 +483,14 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   loginPromptText: {
-    color: theme.colors.textSecondary,
+    color: '#717171',
     fontSize: 15,
   },
   loginLinkText: {
-    color: theme.colors.primary,
+    color: '#10B981',
     fontSize: 15,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
   },
 });
 
 export default RegisterScreen;
-

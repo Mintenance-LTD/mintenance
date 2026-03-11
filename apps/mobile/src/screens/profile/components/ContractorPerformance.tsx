@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 
 interface ContractorPerformanceProps {
   rating: number;
@@ -13,7 +12,6 @@ interface MetricCard {
   icon: keyof typeof Ionicons.glyphMap;
   iconColor: string;
   iconBg: string;
-  valueColor: string;
   value: string;
   label: string;
   sublabel: string;
@@ -27,36 +25,32 @@ export const ContractorPerformance: React.FC<ContractorPerformanceProps> = ({
   const metrics: MetricCard[] = [
     {
       icon: 'star',
-      iconColor: theme.colors.warning,
-      iconBg: theme.colors.accentLight,
-      valueColor: theme.colors.textPrimary,
+      iconColor: '#F59E0B',
+      iconBg: '#FEF3C7',
       value: rating > 0 ? rating.toFixed(1) : '—',
       label: 'Rating',
       sublabel: 'Customer score',
     },
     {
       icon: 'checkmark-circle',
-      iconColor: theme.colors.primary,
-      iconBg: theme.colors.primaryLight,
-      valueColor: theme.colors.textPrimary,
+      iconColor: '#10B981',
+      iconBg: '#D1FAE5',
       value: completedJobs > 0 ? `${Math.min(99, 88 + Math.round(completedJobs / 10))}%` : '—',
       label: 'Success Rate',
       sublabel: 'Jobs completed',
     },
     {
       icon: 'time',
-      iconColor: theme.colors.info,
-      iconBg: theme.colors.accentLight,
-      valueColor: theme.colors.textPrimary,
+      iconColor: '#3B82F6',
+      iconBg: '#DBEAFE',
       value: responseTime || '—',
       label: 'Response',
       sublabel: 'Avg. reply time',
     },
     {
       icon: 'briefcase',
-      iconColor: theme.colors.primary,
-      iconBg: theme.colors.primaryLight,
-      valueColor: theme.colors.textPrimary,
+      iconColor: '#8B5CF6',
+      iconBg: '#EDE9FE',
       value: completedJobs > 0 ? String(completedJobs) : '—',
       label: 'Jobs Done',
       sublabel: 'Total completed',
@@ -75,7 +69,7 @@ export const ContractorPerformance: React.FC<ContractorPerformanceProps> = ({
             <View style={[styles.iconChip, { backgroundColor: m.iconBg }]}>
               <Ionicons name={m.icon} size={18} color={m.iconColor} />
             </View>
-            <Text style={[styles.value, { color: m.valueColor }]}>{m.value}</Text>
+            <Text style={styles.value}>{m.value}</Text>
             <Text style={styles.label}>{m.label}</Text>
             <Text style={styles.sublabel}>{m.sublabel}</Text>
           </View>
@@ -101,12 +95,12 @@ interface VerificationItemProps {
 
 const VerificationItem: React.FC<VerificationItemProps> = ({ label, icon, verified }) => (
   <View style={styles.verificationRow} accessibilityLabel={`${label}: ${verified ? 'verified' : 'not verified'}`}>
-    <View style={[styles.verifyIcon, verified ? styles.verifyIconActive : styles.verifyIconInactive]}>
-      <Ionicons name={icon} size={15} color={verified ? theme.colors.success : theme.colors.textTertiary} />
+    <View style={[styles.verifyIcon, { backgroundColor: verified ? '#D1FAE5' : '#F7F7F7' }]}>
+      <Ionicons name={icon} size={15} color={verified ? '#10B981' : '#B0B0B0'} />
     </View>
     <Text style={styles.verificationText}>{label}</Text>
-    <View style={[styles.verifyBadge, verified ? styles.verifyBadgeActive : styles.verifyBadgeInactive]}>
-      <Text style={[styles.verifyBadgeText, verified ? styles.verifyBadgeTextActive : styles.verifyBadgeTextInactive]}>
+    <View style={[styles.verifyBadge, { backgroundColor: verified ? '#D1FAE5' : '#F7F7F7' }]}>
+      <Text style={[styles.verifyBadgeText, { color: verified ? '#10B981' : '#B0B0B0' }]}>
         {verified ? 'Verified' : 'Pending'}
       </Text>
     </View>
@@ -121,8 +115,8 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 17,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
   },
   grid: {
     flexDirection: 'row',
@@ -131,44 +125,61 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '47.5%',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 14,
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
   iconChip: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
   },
   value: {
     fontSize: 24,
-    fontWeight: theme.typography.fontWeight.bold,
+    fontWeight: '700',
+    color: '#222222',
     marginBottom: 2,
   },
   label: {
     fontSize: 13,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     marginBottom: 2,
   },
   sublabel: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   verificationCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
   verificationTitle: {
     fontSize: 15,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
     marginBottom: 12,
   },
   verificationRow: {
@@ -176,8 +187,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   verifyIcon: {
     width: 30,
@@ -186,22 +197,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  verifyIconActive: { backgroundColor: theme.colors.backgroundSecondary },
-  verifyIconInactive: { backgroundColor: theme.colors.surfaceSecondary },
   verificationText: {
     flex: 1,
     fontSize: 14,
-    color: theme.colors.textPrimary,
-    fontWeight: theme.typography.fontWeight.medium,
+    color: '#222222',
+    fontWeight: '500',
   },
   verifyBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 20,
   },
-  verifyBadgeActive: { backgroundColor: theme.colors.backgroundSecondary },
-  verifyBadgeInactive: { backgroundColor: theme.colors.surfaceSecondary },
-  verifyBadgeText: { fontSize: 11, fontWeight: theme.typography.fontWeight.semibold },
-  verifyBadgeTextActive: { color: theme.colors.textPrimary },
-  verifyBadgeTextInactive: { color: theme.colors.textSecondary },
+  verifyBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
 });

@@ -2,12 +2,10 @@ import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { theme } from '../../../theme';
 
 interface ProfileHeaderUser {
   first_name?: string;
   last_name?: string;
-  /** Computed compat fields */
   firstName?: string;
   lastName?: string;
   company_name?: string;
@@ -39,8 +37,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate }) 
   const avatarUri = user?.profile_image_url || user?.avatar_url;
   const isContractor = user?.role === 'contractor';
   const gradientColors: [string, string, string] = isContractor
-    ? [theme.colors.primaryDark, theme.colors.primary, theme.colors.primary]
-    : [theme.colors.info, theme.colors.info, theme.colors.primary];
+    ? ['#064E3B', '#059669', '#10B981']
+    : ['#1E40AF', '#3B82F6', '#10B981'];
 
   return (
     <LinearGradient
@@ -49,11 +47,9 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate }) 
       end={{ x: 1, y: 1 }}
       style={styles.hero}
     >
-      {/* Decorative circles */}
       <View style={styles.decor1} />
       <View style={styles.decor2} />
 
-      {/* Avatar with white ring */}
       <View style={styles.avatarRing}>
         {avatarUri ? (
           <Image
@@ -68,17 +64,15 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate }) 
         )}
         {user?.verified && (
           <View style={styles.verifiedDot}>
-            <Ionicons name="checkmark-circle" size={18} color={theme.colors.success} />
+            <Ionicons name="checkmark-circle" size={18} color="#10B981" />
           </View>
         )}
       </View>
 
-      {/* Name */}
       <Text style={styles.displayName} numberOfLines={1}>
         {displayName}
       </Text>
 
-      {/* Contractor subtitle */}
       {isContractor && (
         <View style={styles.subtitleRow}>
           <Ionicons name="hammer" size={12} color="rgba(255,255,255,0.75)" />
@@ -86,14 +80,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate }) 
         </View>
       )}
 
-      {/* Email */}
       {user?.email ? (
         <Text style={styles.emailText} numberOfLines={1}>
           {user.email}
         </Text>
       ) : null}
 
-      {/* Badge pills */}
       <View style={styles.badgeRow}>
         <View style={styles.pill}>
           <Ionicons
@@ -168,14 +160,14 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 34,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textInverse,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   verifiedDot: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: theme.colors.white,
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     width: 24,
     height: 24,
@@ -184,10 +176,11 @@ const styles = StyleSheet.create({
   },
   displayName: {
     fontSize: 22,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textInverse,
+    fontWeight: '700',
+    color: '#FFFFFF',
     textAlign: 'center',
     marginBottom: 4,
+    letterSpacing: -0.3,
   },
   subtitleRow: {
     flexDirection: 'row',
@@ -198,7 +191,7 @@ const styles = StyleSheet.create({
   subtitleText: {
     fontSize: 13,
     color: 'rgba(255,255,255,0.75)',
-    fontWeight: theme.typography.fontWeight.medium,
+    fontWeight: '500',
   },
   emailText: {
     fontSize: 13,
@@ -223,6 +216,6 @@ const styles = StyleSheet.create({
   pillText: {
     fontSize: 12,
     color: 'rgba(255,255,255,0.92)',
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
   },
 });

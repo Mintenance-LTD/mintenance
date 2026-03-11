@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 
 interface MenuItem {
   label: string;
@@ -44,13 +43,13 @@ export const ProfileMenuSection: React.FC<ProfileMenuSectionProps> = ({
             <View
               style={[
                 styles.iconChip,
-                { backgroundColor: item.iconBg ?? theme.colors.surfaceSecondary },
+                { backgroundColor: item.iconBg ?? '#F7F7F7' },
               ]}
             >
               <Ionicons
                 name={item.icon as keyof typeof Ionicons.glyphMap}
-                size={18}
-                color={item.iconColor ?? theme.colors.textSecondary}
+                size={17}
+                color={item.iconColor ?? '#717171'}
               />
             </View>
             <Text style={styles.menuText}>{item.label}</Text>
@@ -61,7 +60,7 @@ export const ProfileMenuSection: React.FC<ProfileMenuSectionProps> = ({
                 </Text>
               </View>
             )}
-            <Ionicons name="chevron-forward" size={15} color={theme.colors.textTertiary} />
+            <Ionicons name="chevron-forward" size={14} color="#B0B0B0" />
           </TouchableOpacity>
         ))}
       </View>
@@ -77,18 +76,26 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textTertiary,
+    fontWeight: '700',
+    color: '#B0B0B0',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 8,
     paddingHorizontal: 4,
   },
   card: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     overflow: 'hidden',
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
   menuItem: {
     flexDirection: 'row',
@@ -98,24 +105,24 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   menuItemBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   iconChip: {
     width: 34,
     height: 34,
-    borderRadius: 9,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   menuText: {
     flex: 1,
     fontSize: 15,
-    color: theme.colors.textPrimary,
-    fontWeight: theme.typography.fontWeight.medium,
+    color: '#222222',
+    fontWeight: '500',
   },
   badge: {
-    backgroundColor: theme.colors.error,
+    backgroundColor: '#EF4444',
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -125,8 +132,8 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   badgeText: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
     fontSize: 11,
-    fontWeight: theme.typography.fontWeight.bold,
+    fontWeight: '700',
   },
 });

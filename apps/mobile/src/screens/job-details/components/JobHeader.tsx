@@ -1,65 +1,44 @@
 /**
  * JobHeader Component
- * 
- * Job title, status, and basic information header.
- * 
- * @filesize Target: <80 lines
- * @compliance Single Responsibility - Job header display
+ *
+ * Airbnb-style job header with clean status badge and date.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 import type { Job } from '@mintenance/types';
 
 interface JobHeaderProps {
   job: Job;
 }
 
-export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return theme.colors.success;
-      case 'in_progress': return theme.colors.warning;
-      case 'pending': return theme.colors.primary;
-      case 'cancelled': return theme.colors.error;
-      default: return theme.colors.textSecondary;
-    }
-  };
+const STATUS_STYLES: Record<string, { color: string; bg: string; icon: keyof typeof Ionicons.glyphMap }> = {
+  completed:   { color: '#10B981', bg: '#D1FAE5', icon: 'checkmark-circle' },
+  in_progress: { color: '#F59E0B', bg: '#FEF3C7', icon: 'time' },
+  pending:     { color: '#3B82F6', bg: '#DBEAFE', icon: 'hourglass' },
+  posted:      { color: '#3B82F6', bg: '#DBEAFE', icon: 'hourglass' },
+  assigned:    { color: '#8B5CF6', bg: '#EDE9FE', icon: 'person' },
+  cancelled:   { color: '#EF4444', bg: '#FEE2E2', icon: 'close-circle' },
+};
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed': return 'checkmark-circle';
-      case 'in_progress': return 'time';
-      case 'pending': return 'hourglass';
-      case 'cancelled': return 'close-circle';
-      default: return 'help-circle';
-    }
-  };
+export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
+  const status = STATUS_STYLES[job.status] || { color: '#717171', bg: '#F7F7F7', icon: 'help-circle' as keyof typeof Ionicons.glyphMap };
 
   return (
     <View style={styles.container}>
       <Text style={styles.jobTitle} accessibilityRole='header'>{job.title}</Text>
-      
+
       <View style={styles.statusRow}>
-        <View
-          style={styles.statusBadge}
-          accessibilityLabel={`Status: ${job.status.replace('_', ' ')}`}
-        >
-          <Ionicons
-            name={getStatusIcon(job.status) as keyof typeof Ionicons.glyphMap}
-            size={16}
-            color={getStatusColor(job.status)}
-            accessible={false}
-          />
-          <Text style={[styles.statusText, { color: getStatusColor(job.status) }]}>
+        <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
+          <Ionicons name={status.icon} size={14} color={status.color} accessible={false} />
+          <Text style={[styles.statusText, { color: status.color }]}>
             {job.status.replace('_', ' ').toUpperCase()}
           </Text>
         </View>
-        
+
         <View style={styles.dateRow}>
-          <Ionicons name="calendar-outline" size={16} color={theme.colors.textSecondary} />
+          <Ionicons name="calendar-outline" size={14} color="#B0B0B0" />
           <Text style={styles.dateText}>
             {new Date(job.created_at).toLocaleDateString()}
           </Text>
@@ -75,49 +54,57 @@ export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
-    ...theme.shadows.sm,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
   jobTitle: {
-    fontSize: theme.typography.fontSize['2xl'],
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.md,
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#222222',
+    marginBottom: 12,
+    letterSpacing: -0.3,
   },
   statusRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
+    marginBottom: 12,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surfaceTertiary,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.xs,
-    gap: theme.spacing.xs,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    gap: 4,
   },
   statusText: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 12,
+    fontWeight: '600',
   },
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.xs,
+    gap: 4,
   },
   dateText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    color: '#717171',
   },
   description: {
-    fontSize: theme.typography.fontSize.md,
-    color: theme.colors.textSecondary,
-    lineHeight: 20,
+    fontSize: 15,
+    color: '#717171',
+    lineHeight: 22,
   },
 });
