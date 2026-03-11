@@ -8,12 +8,12 @@ import {
   RefreshControl,
   Alert,
   Modal,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../theme';
 import { logger } from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { type Invoice, FinancialManagementService } from '../services/contractor-business';
@@ -24,7 +24,6 @@ import { useToast } from '../components/ui/Toast';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import type { JobsStackParamList, ProfileStackParamList } from '../navigation/types';
 
-// Shared between ProfileStack and JobsStack — navigates to CreateInvoice and InvoiceDetail
 type InvoiceNavigation = CompositeNavigationProp<
   NativeStackNavigationProp<JobsStackParamList>,
   NativeStackNavigationProp<ProfileStackParamList>
@@ -83,7 +82,6 @@ export const InvoiceManagementScreen: React.FC<
     if (!selectedInvoice || !user) return;
 
     try {
-      // Mark invoice as 'sent' to trigger reminder flow
       await FinancialManagementService.updateInvoiceStatus(
         selectedInvoice.id,
         'sent',
@@ -130,18 +128,39 @@ export const InvoiceManagementScreen: React.FC<
     return invoice.status === selectedFilter;
   });
 
-  const getFilterCounts = () => {
-    const counts = {
-      all: invoices.length,
-      draft: invoices.filter((i) => i.status === 'draft').length,
-      sent: invoices.filter((i) => i.status === 'sent').length,
-      overdue: invoices.filter((i) => i.status === 'overdue').length,
-      paid: invoices.filter((i) => i.status === 'paid').length,
-    };
-    return counts;
-  };
+  const getFilterCounts = () => ({
+    all: invoices.length,
+    draft: invoices.filter((i) => i.status === 'draft').length,
+    sent: invoices.filter((i) => i.status === 'sent').length,
+    overdue: invoices.filter((i) => i.status === 'overdue').length,
+    paid: invoices.filter((i) => i.status === 'paid').length,
+  });
 
   const filterCounts = getFilterCounts();
+
+  const STAT_ITEMS = [
+    {
+      value: `£${invoices.reduce((sum, inv) => sum + inv.total_amount, 0).toFixed(0)}`,
+      label: 'Outstanding',
+      iconColor: '#3B82F6',
+      iconBg: '#DBEAFE',
+      icon: 'wallet-outline' as const,
+    },
+    {
+      value: String(filterCounts.overdue),
+      label: 'Overdue',
+      iconColor: '#EF4444',
+      iconBg: '#FEE2E2',
+      icon: 'alert-circle-outline' as const,
+    },
+    {
+      value: String(filterCounts.paid),
+      label: 'Paid',
+      iconColor: '#10B981',
+      iconBg: '#D1FAE5',
+      icon: 'checkmark-circle-outline' as const,
+    },
+  ];
 
   const renderFilterTab = (
     filter: typeof selectedFilter,
@@ -149,6 +168,7 @@ export const InvoiceManagementScreen: React.FC<
     count: number
   ) => (
     <TouchableOpacity
+      key={filter}
       style={[
         styles.filterTab,
         selectedFilter === filter && styles.filterTabActive,
@@ -192,49 +212,35 @@ export const InvoiceManagementScreen: React.FC<
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Ionicons
-              name='arrow-back'
-              size={24}
-              color={theme.colors.textPrimary}
-            />
+            <Ionicons name='arrow-back' size={24} color='#222222' />
           </TouchableOpacity>
         ) : (
           <View style={styles.backButton} />
         )}
-        <Text style={styles.headerTitle}>Invoice Management</Text>
+        <Text style={styles.headerTitle}>Invoices</Text>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => navigation.navigate('CreateInvoice')}
           accessibilityRole="button"
           accessibilityLabel="Create new invoice"
         >
-          <Ionicons name='add' size={24} color={theme.colors.textPrimary} />
+          <View style={styles.addIconWrap}>
+            <Ionicons name='add' size={20} color='#FFFFFF' />
+          </View>
         </TouchableOpacity>
       </View>
 
       {/* Statistics Cards */}
       <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>
-            £
-            {invoices
-              .reduce((sum, inv) => sum + inv.total_amount, 0)
-              .toFixed(2)}
-          </Text>
-          <Text style={styles.statLabel}>Total Outstanding</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={[styles.statValue, { color: theme.colors.error }]}>
-            {filterCounts.overdue}
-          </Text>
-          <Text style={styles.statLabel}>Overdue</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={[styles.statValue, { color: theme.colors.success }]}>
-            {filterCounts.paid}
-          </Text>
-          <Text style={styles.statLabel}>Paid This Month</Text>
-        </View>
+        {STAT_ITEMS.map((stat) => (
+          <View key={stat.label} style={styles.statCard}>
+            <View style={[styles.statIconWrap, { backgroundColor: stat.iconBg }]}>
+              <Ionicons name={stat.icon} size={16} color={stat.iconColor} />
+            </View>
+            <Text style={styles.statValue}>{stat.value}</Text>
+            <Text style={styles.statLabel}>{stat.label}</Text>
+          </View>
+        ))}
       </View>
 
       {listError && (
@@ -243,32 +249,28 @@ export const InvoiceManagementScreen: React.FC<
         </View>
       )}
 
-      {/* Compact Filter Tabs */}
-      <View style={styles.filtersContainer}>
-        <View style={styles.segmentedControl}>
-          {renderFilterTab('all', 'All', filterCounts.all)}
-          {renderFilterTab('draft', 'Draft', filterCounts.draft)}
-          {renderFilterTab('sent', 'Sent', filterCounts.sent)}
-          {renderFilterTab('overdue', 'Overdue', filterCounts.overdue)}
-          {renderFilterTab('paid', 'Paid', filterCounts.paid)}
-        </View>
-      </View>
+      {/* Filter Tabs - Dark active */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersContainer} contentContainerStyle={styles.filtersContent}>
+        {renderFilterTab('all', 'All', filterCounts.all)}
+        {renderFilterTab('draft', 'Draft', filterCounts.draft)}
+        {renderFilterTab('sent', 'Sent', filterCounts.sent)}
+        {renderFilterTab('overdue', 'Overdue', filterCounts.overdue)}
+        {renderFilterTab('paid', 'Paid', filterCounts.paid)}
+      </ScrollView>
 
       {/* Invoice List */}
       <ScrollView
         style={styles.invoiceList}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#222222" colors={['#222222']} />
         }
         showsVerticalScrollIndicator={false}
       >
         {filteredInvoices.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons
-              name='document-outline'
-              size={64}
-              color={theme.colors.textTertiary}
-            />
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name='document-outline' size={32} color='#B0B0B0' />
+            </View>
             <Text style={styles.emptyTitle}>No invoices found</Text>
             <Text style={styles.emptyText}>
               {selectedFilter === 'all'
@@ -280,6 +282,7 @@ export const InvoiceManagementScreen: React.FC<
                 variant='primary'
                 title='Create Invoice'
                 onPress={() => navigation.navigate('CreateInvoice')}
+                style={{ borderRadius: 28 }}
               />
             )}
           </View>
@@ -326,7 +329,7 @@ export const InvoiceManagementScreen: React.FC<
                 variant='primary'
                 title='Send Reminder'
                 onPress={sendReminderConfirm}
-                style={{ flex: 1 }}
+                style={{ flex: 1, borderRadius: 28 }}
               />
             </View>
           </View>
@@ -339,7 +342,7 @@ export const InvoiceManagementScreen: React.FC<
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
   },
   header: {
     flexDirection: 'row',
@@ -347,96 +350,119 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   backButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222222',
   },
   addButton: {
-    padding: 8,
+    padding: 4,
+  },
+  addIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#222222',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   statsContainer: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 14,
     paddingBottom: 8,
-    gap: 8,
+    gap: 10,
   },
   statCard: {
     flex: 1,
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.md,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
     alignItems: 'center',
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
+  },
+  statIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
   },
   statValue: {
-    fontSize: 16,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222222',
     marginBottom: 2,
   },
   statLabel: {
-    fontSize: 10,
-    color: theme.colors.textSecondary,
+    fontSize: 11,
+    color: '#717171',
     textAlign: 'center',
-    lineHeight: 12,
   },
   filtersContainer: {
-    paddingHorizontal: 16,
     paddingVertical: 8,
   },
-  segmentedControl: {
-    flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: 4,
-    ...theme.shadows.sm,
+  filtersContent: {
+    paddingHorizontal: 16,
+    gap: 8,
   },
   filterTab: {
-    flex: 1,
     alignItems: 'center',
     paddingVertical: 8,
-    paddingHorizontal: 4,
-    borderRadius: theme.borderRadius.sm,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+      },
+      android: { elevation: 1 },
+    }),
   },
   filterTabActive: {
-    backgroundColor: theme.colors.primary,
-    shadowColor: theme.colors.black,
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: '#222222',
   },
   filterTabText: {
-    fontSize: 12,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textSecondary,
-    lineHeight: 14,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#717171',
   },
   filterTabTextActive: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
   },
   filterTabCount: {
     fontSize: 11,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textTertiary,
+    fontWeight: '500',
+    color: '#B0B0B0',
     marginTop: 2,
   },
   filterTabCountActive: {
-    color: theme.colors.textInverse,
-    opacity: 0.9,
+    color: 'rgba(255,255,255,0.8)',
   },
   invoiceList: {
     flex: 1,
@@ -448,44 +474,51 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
     paddingHorizontal: 32,
   },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginTop: 16,
-    marginBottom: 8,
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#222222',
+    marginBottom: 6,
   },
   emptyText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 20,
   },
-  // createButton styles replaced by shared Button
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 32,
   },
   modalContent: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.xl,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
     padding: 24,
     width: '100%',
     maxWidth: 400,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
     marginBottom: 12,
   },
   modalText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     lineHeight: 20,
     marginBottom: 24,
   },
@@ -493,7 +526,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
-  // modal buttons replaced by shared Button
 });
 
 export default InvoiceManagementScreen;

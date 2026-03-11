@@ -9,12 +9,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../navigation/types';
-import { theme } from '../theme';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../components/shared';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useAuth } from '../contexts/AuthContext';
@@ -52,25 +52,17 @@ interface Props {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'Calendar'>;
 }
 
+const TYPE_STYLES: Record<string, { iconColor: string; iconBg: string; icon: keyof typeof Ionicons.glyphMap }> = {
+  job: { iconColor: '#10B981', iconBg: '#D1FAE5', icon: 'hammer-outline' },
+  meeting: { iconColor: '#3B82F6', iconBg: '#DBEAFE', icon: 'people-outline' },
+  deadline: { iconColor: '#EF4444', iconBg: '#FEE2E2', icon: 'alarm-outline' },
+};
+
 const ScheduleCard: React.FC<{
   item: ScheduleItem;
   onPress: () => void;
 }> = ({ item, onPress }) => {
-  const getTypeIcon = () => {
-    switch (item.type) {
-      case 'job': return 'hammer-outline' as const;
-      case 'meeting': return 'people-outline' as const;
-      case 'deadline': return 'alarm-outline' as const;
-      default: return 'calendar-outline' as const;
-    }
-  };
-
-  const getTypeColor = () => {
-    switch (item.type) {
-      case 'deadline': return theme.colors.primary;
-      default: return theme.colors.textSecondary;
-    }
-  };
+  const typeStyle = TYPE_STYLES[item.type] || { iconColor: '#717171', iconBg: '#F7F7F7', icon: 'calendar-outline' as const };
 
   return (
     <TouchableOpacity
@@ -79,25 +71,25 @@ const ScheduleCard: React.FC<{
       accessibilityRole="button"
       accessibilityLabel={`${item.type === 'meeting' ? 'Meeting' : item.type === 'deadline' ? 'Deadline' : 'Job'}: ${item.job_title}, ${new Date(item.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} at ${item.time_start}`}
       accessibilityHint="Double tap to view details"
+      activeOpacity={0.7}
     >
-      <View style={[styles.typeIndicator, { backgroundColor: getTypeColor() }]} />
+      <View style={[styles.typeIconWrap, { backgroundColor: typeStyle.iconBg }]}>
+        <Ionicons name={typeStyle.icon} size={20} color={typeStyle.iconColor} />
+      </View>
       <View style={styles.cardContent}>
-        <View style={styles.cardHeader}>
-          <Ionicons name={getTypeIcon()} size={18} color={getTypeColor()} />
-          <Text style={styles.scheduleTitle} numberOfLines={1}>{item.job_title}</Text>
-        </View>
+        <Text style={styles.scheduleTitle} numberOfLines={1}>{item.job_title}</Text>
         <Text style={styles.scheduleTime}>
           {new Date(item.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
           {' '}{item.time_start}{item.time_end ? ` - ${item.time_end}` : ''}
         </Text>
         {item.address && (
           <View style={styles.addressRow}>
-            <Ionicons name="location-outline" size={14} color={theme.colors.textTertiary} />
+            <Ionicons name="location-outline" size={13} color="#B0B0B0" />
             <Text style={styles.addressText} numberOfLines={1}>{item.address}</Text>
           </View>
         )}
       </View>
-      <Ionicons name="chevron-forward" size={18} color={theme.colors.textTertiary} />
+      <Ionicons name="chevron-forward" size={14} color="#B0B0B0" />
     </TouchableOpacity>
   );
 };
@@ -159,7 +151,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
             />
           )}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#222222" colors={['#222222']} />
           }
           contentContainerStyle={styles.listContainer}
         />
@@ -171,58 +163,60 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
   listContainer: {
-    padding: theme.spacing[4],
+    padding: 16,
+    gap: 10,
   },
   scheduleCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing[3],
-    marginBottom: theme.spacing[2],
-    ...theme.shadows.sm,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    gap: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
-  typeIndicator: {
-    width: 4,
-    height: '100%',
-    borderRadius: 2,
-    marginRight: theme.spacing[3],
-    minHeight: 48,
+  typeIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardContent: {
     flex: 1,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
   scheduleTitle: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
-    marginLeft: theme.spacing[2],
-    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222222',
+    marginBottom: 3,
   },
   scheduleTime: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    color: '#717171',
     marginBottom: 2,
   },
   addressRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
   addressText: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textTertiary,
-    marginLeft: 4,
+    fontSize: 12,
+    color: '#B0B0B0',
     flex: 1,
   },
 });
 
 export default CalendarScreen;
-

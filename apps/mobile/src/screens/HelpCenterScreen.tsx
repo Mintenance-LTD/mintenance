@@ -5,17 +5,30 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   Linking,
   Alert,
+  Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { theme } from '../theme';
 import Button from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { HELP_LINKS } from '../config/links';
+
+const QUICK_ACTION_STYLES: Record<string, { iconColor: string; iconBg: string }> = {
+  contact: { iconColor: '#3B82F6', iconBg: '#DBEAFE' },
+  chat: { iconColor: '#8B5CF6', iconBg: '#EDE9FE' },
+  call: { iconColor: '#10B981', iconBg: '#D1FAE5' },
+  email: { iconColor: '#F59E0B', iconBg: '#FEF3C7' },
+};
+
+const RESOURCE_STYLES: Record<string, { iconColor: string; iconBg: string }> = {
+  book: { iconColor: '#3B82F6', iconBg: '#DBEAFE' },
+  'play-circle': { iconColor: '#EF4444', iconBg: '#FEE2E2' },
+  globe: { iconColor: '#8B5CF6', iconBg: '#EDE9FE' },
+  people: { iconColor: '#10B981', iconBg: '#D1FAE5' },
+};
 
 const HelpCenterScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -66,14 +79,14 @@ const HelpCenterScreen: React.FC = () => {
     {
       id: 'contact',
       title: 'Contact Support',
-      description: 'Get help from our support team',
+      description: 'Get help from our team',
       icon: 'headset',
       action: () => handleContactSupport(),
     },
     {
       id: 'chat',
       title: 'Live Chat',
-      description: 'Chat with us in real-time',
+      description: 'Chat in real-time',
       icon: 'chatbubbles',
       action: () => handleLiveChat(),
     },
@@ -130,6 +143,13 @@ const HelpCenterScreen: React.FC = () => {
       faq.answer.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const resources = [
+    { icon: 'book' as const, label: 'User Guide', url: HELP_LINKS.userGuide },
+    { icon: 'play-circle' as const, label: 'Video Tutorials', url: HELP_LINKS.videos },
+    { icon: 'globe' as const, label: 'Knowledge Base', url: HELP_LINKS.knowledgeBase },
+    { icon: 'people' as const, label: 'Community Forum', url: HELP_LINKS.community },
+  ];
+
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top }]}>
@@ -137,11 +157,7 @@ const HelpCenterScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons
-            name='arrow-back'
-            size={24}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-back' size={24} color='#222222' />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Help Center</Text>
         <View style={styles.placeholder} />
@@ -165,44 +181,51 @@ const HelpCenterScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Get Help Now</Text>
           <View style={styles.quickActionsGrid}>
-            {quickActions.map((action) => (
-              <TouchableOpacity
-                key={action.id}
-                style={styles.quickActionCard}
-                onPress={action.action}
-              >
-                <View style={styles.quickActionIcon}>
-                  <Ionicons
-                    name={action.icon as keyof typeof Ionicons.glyphMap}
-                    size={24}
-                    color={theme.colors.textSecondary}
-                  />
-                </View>
-                <Text style={styles.quickActionTitle}>{action.title}</Text>
-                <Text style={styles.quickActionDescription}>
-                  {action.description}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {quickActions.map((action) => {
+              const colors = QUICK_ACTION_STYLES[action.id] || { iconColor: '#717171', iconBg: '#F7F7F7' };
+              return (
+                <TouchableOpacity
+                  key={action.id}
+                  style={styles.quickActionCard}
+                  onPress={action.action}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.quickActionIcon, { backgroundColor: colors.iconBg }]}>
+                    <Ionicons
+                      name={action.icon as keyof typeof Ionicons.glyphMap}
+                      size={22}
+                      color={colors.iconColor}
+                    />
+                  </View>
+                  <Text style={styles.quickActionTitle}>{action.title}</Text>
+                  <Text style={styles.quickActionDescription}>
+                    {action.description}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
         {/* FAQ Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
-          {filteredFaqs.map((faq) => (
+          {filteredFaqs.map((faq, idx) => (
             <TouchableOpacity
               key={faq.id}
-              style={styles.faqItem}
+              style={[styles.faqItem, idx < filteredFaqs.length - 1 && styles.faqItemBorder]}
               onPress={() => toggleFaq(faq.id)}
+              activeOpacity={0.7}
             >
               <View style={styles.faqQuestion}>
                 <Text style={styles.faqQuestionText}>{faq.question}</Text>
-                <Ionicons
-                  name={expandedFaq === faq.id ? 'chevron-up' : 'chevron-down'}
-                  size={20}
-                  color={theme.colors.textTertiary}
-                />
+                <View style={[styles.faqChevronWrap, expandedFaq === faq.id && styles.faqChevronActive]}>
+                  <Ionicons
+                    name={expandedFaq === faq.id ? 'chevron-up' : 'chevron-down'}
+                    size={16}
+                    color={expandedFaq === faq.id ? '#FFFFFF' : '#B0B0B0'}
+                  />
+                </View>
               </View>
               {expandedFaq === faq.id && (
                 <View style={styles.faqAnswer}>
@@ -214,11 +237,9 @@ const HelpCenterScreen: React.FC = () => {
 
           {filteredFaqs.length === 0 && searchQuery && (
             <View style={styles.noResults}>
-              <Ionicons
-                name='search'
-                size={48}
-                color={theme.colors.textTertiary}
-              />
+              <View style={styles.noResultsIconWrap}>
+                <Ionicons name='search' size={28} color='#B0B0B0' />
+              </View>
               <Text style={styles.noResultsText}>No results found</Text>
               <Text style={styles.noResultsSubtext}>
                 Try different keywords or contact support
@@ -231,76 +252,32 @@ const HelpCenterScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Additional Resources</Text>
 
-          <TouchableOpacity
-            style={styles.resourceItem}
-            onPress={() => Linking.openURL(HELP_LINKS.userGuide)}
-          >
-            <View style={styles.resourceLeft}>
-              <Ionicons name='book' size={20} color={theme.colors.textTertiary} />
-              <Text style={styles.resourceText}>User Guide</Text>
-            </View>
-            <Ionicons
-              name='chevron-forward'
-              size={16}
-              color={theme.colors.textTertiary}
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.resourceItem}
-            onPress={() => Linking.openURL(HELP_LINKS.videos)}
-          >
-            <View style={styles.resourceLeft}>
-              <Ionicons
-                name='play-circle'
-                size={20}
-                color={theme.colors.textTertiary}
-              />
-              <Text style={styles.resourceText}>Video Tutorials</Text>
-            </View>
-            <Ionicons
-              name='chevron-forward'
-              size={16}
-              color={theme.colors.textTertiary}
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.resourceItem}
-            onPress={() => Linking.openURL(HELP_LINKS.knowledgeBase)}
-          >
-            <View style={styles.resourceLeft}>
-              <Ionicons name='globe' size={20} color={theme.colors.textTertiary} />
-              <Text style={styles.resourceText}>Knowledge Base</Text>
-            </View>
-            <Ionicons
-              name='chevron-forward'
-              size={16}
-              color={theme.colors.textTertiary}
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.resourceItem}
-            onPress={() => Linking.openURL(HELP_LINKS.community)}
-          >
-            <View style={styles.resourceLeft}>
-              <Ionicons name='people' size={20} color={theme.colors.textTertiary} />
-              <Text style={styles.resourceText}>Community Forum</Text>
-            </View>
-            <Ionicons
-              name='chevron-forward'
-              size={16}
-              color={theme.colors.textTertiary}
-            />
-          </TouchableOpacity>
+          {resources.map((res, idx) => {
+            const colors = RESOURCE_STYLES[res.icon] || { iconColor: '#717171', iconBg: '#F7F7F7' };
+            return (
+              <TouchableOpacity
+                key={res.icon}
+                style={[styles.resourceItem, idx < resources.length - 1 && styles.resourceItemBorder]}
+                onPress={() => Linking.openURL(res.url)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.resourceLeft}>
+                  <View style={[styles.resourceIconWrap, { backgroundColor: colors.iconBg }]}>
+                    <Ionicons name={res.icon} size={17} color={colors.iconColor} />
+                  </View>
+                  <Text style={styles.resourceText}>{res.label}</Text>
+                </View>
+                <Ionicons name='chevron-forward' size={14} color='#B0B0B0' />
+              </TouchableOpacity>
+            );
+          })}
 
           <Button
             variant='primary'
             title='Contact Support'
             onPress={handleContactSupport}
             fullWidth
-            style={{ marginTop: 16 }}
+            style={{ marginTop: 16, borderRadius: 28 }}
           />
         </View>
 
@@ -313,12 +290,12 @@ const HelpCenterScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
   },
   header: {
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
     paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: 'row',
@@ -328,13 +305,15 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F7F7F7',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222222',
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 16,
@@ -346,78 +325,82 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   searchSection: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.surfaceTertiary,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: theme.colors.textPrimary,
-    marginLeft: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
   section: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     marginBottom: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    marginBottom: 20,
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#222222',
+    marginBottom: 16,
   },
   quickActionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    gap: 10,
   },
   quickActionCard: {
     width: '48%',
-    backgroundColor: theme.colors.surfaceSecondary,
-    borderRadius: 12,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 16,
     padding: 16,
     alignItems: 'center',
-    marginBottom: 12,
   },
   quickActionIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   quickActionTitle: {
-    fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#222222',
     textAlign: 'center',
     marginBottom: 4,
   },
   quickActionDescription: {
-    fontSize: 12,
-    color: theme.colors.textTertiary,
+    fontSize: 11,
+    color: '#717171',
     textAlign: 'center',
   },
   faqItem: {
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
-    paddingVertical: 16,
+    paddingVertical: 14,
+  },
+  faqItemBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   faqQuestion: {
     flexDirection: 'row',
@@ -425,56 +408,84 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   faqQuestionText: {
-    fontSize: 16,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222222',
     flex: 1,
     marginRight: 12,
   },
+  faqChevronWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  faqChevronActive: {
+    backgroundColor: '#222222',
+  },
   faqAnswer: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#EBEBEB',
   },
   faqAnswerText: {
-    fontSize: 15,
-    color: theme.colors.textSecondary,
-    lineHeight: 22,
+    fontSize: 14,
+    color: '#717171',
+    lineHeight: 21,
   },
   noResults: {
     alignItems: 'center',
     paddingVertical: 32,
   },
+  noResultsIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
   noResultsText: {
-    fontSize: 18,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textTertiary,
-    marginTop: 16,
-    marginBottom: 8,
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#222222',
+    marginBottom: 4,
   },
   noResultsSubtext: {
-    fontSize: 14,
-    color: theme.colors.textTertiary,
+    fontSize: 13,
+    color: '#717171',
     textAlign: 'center',
   },
   resourceItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingVertical: 13,
+  },
+  resourceItemBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   resourceLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
+  },
+  resourceIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   resourceText: {
-    fontSize: 16,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
-    marginLeft: 12,
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#222222',
   },
   bottomPadding: {
     height: 32,

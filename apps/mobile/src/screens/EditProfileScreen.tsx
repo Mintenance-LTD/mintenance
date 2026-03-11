@@ -6,7 +6,6 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { useAuth } from '../contexts/AuthContext';
-import { theme } from '../theme';
 import { AuthService } from '../services/AuthService';
 import { mobileApiClient } from '../utils/mobileApiClient';
 import { PhotoSection } from './EditProfileSections/PhotoSection';
@@ -54,7 +53,7 @@ const EditProfileScreen: React.FC = () => {
         // Non-critical — fields remain empty, user can type manually
       });
   }, [user?.id]);
-  const handleUseMyLocation = async () => {
+  const handleUseMyLocation = async () => {
     try {
       setLocating(true);
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -63,7 +62,6 @@ const EditProfileScreen: React.FC = () => {
         return;
       }
       const { coords } = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-      // Persist GPS coords so handleSave can write lat/lng to the profile
       setGpsLat(coords.latitude);
       setGpsLng(coords.longitude);
 
@@ -89,7 +87,6 @@ const EditProfileScreen: React.FC = () => {
     try {
       setLoading(true);
 
-      // Resolve lat/lng: prefer GPS coords; fall back to forward-geocoding the typed address
       let latitude: number | undefined = gpsLat ?? undefined;
       let longitude: number | undefined = gpsLng ?? undefined;
 
@@ -120,7 +117,6 @@ const EditProfileScreen: React.FC = () => {
         longitude,
       };
 
-      // Strip undefined values before sending to Supabase
       const filteredUpdates = Object.fromEntries(
         Object.entries(updates).filter(([, v]) => v !== undefined)
       );
@@ -195,7 +191,7 @@ const EditProfileScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} accessibilityRole='button' accessibilityLabel='Go back'>
-          <Ionicons name='arrow-back' size={24} color={theme.colors.textPrimary} />
+          <Ionicons name='arrow-back' size={24} color='#222222' />
         </TouchableOpacity>
         <Text style={styles.headerTitle} accessibilityRole='header'>Edit Profile</Text>
         <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={loading} accessibilityRole='button' accessibilityLabel={loading ? 'Saving profile changes' : 'Save profile changes'}>
@@ -213,13 +209,51 @@ const EditProfileScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.surfaceSecondary },
-  header: { backgroundColor: theme.colors.background, paddingTop: 16, paddingBottom: 12, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  backButton: { width: 40, height: 40, borderRadius: theme.borderRadius.xxl, backgroundColor: theme.colors.surfaceSecondary, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 20, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary, flex: 1, textAlign: "center", marginHorizontal: 16 },
-  saveButton: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: theme.colors.primary, borderRadius: 12 },
-  saveButtonText: { fontSize: 16, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textInverse },
-  content: { flex: 1 },
+  container: {
+    flex: 1,
+    backgroundColor: '#F7F7F7',
+  },
+  header: {
+    backgroundColor: '#FFFFFF',
+    paddingTop: 16,
+    paddingBottom: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222222',
+    flex: 1,
+    textAlign: 'center',
+    marginHorizontal: 16,
+  },
+  saveButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#222222',
+    borderRadius: 20,
+  },
+  saveButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  content: {
+    flex: 1,
+  },
 });
 
 export default EditProfileScreen;

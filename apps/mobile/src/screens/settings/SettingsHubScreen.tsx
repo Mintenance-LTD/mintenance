@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Switch,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
@@ -18,8 +19,6 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ScreenHeader } from '../../components/shared';
-import { Card } from '../../components/ui/Card';
-import { theme } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 
@@ -38,6 +37,8 @@ interface UserSettings {
 interface SettingsRow {
   label: string;
   icon: string;
+  iconColor?: string;
+  iconBg?: string;
   onPress?: () => void;
   rightElement?: React.ReactNode;
   destructive?: boolean;
@@ -77,23 +78,26 @@ export const SettingsHubScreen: React.FC = () => {
       key={item.label}
       style={[styles.row, !isLast && styles.rowBorder]}
       onPress={item.onPress}
-      disabled={!item.onPress}
+      disabled={!item.onPress && !item.rightElement}
       accessibilityRole="button"
       accessibilityLabel={item.label}
+      activeOpacity={0.7}
     >
       <View style={styles.rowLeft}>
-        <Ionicons
-          name={item.icon as 'settings'}
-          size={20}
-          color={item.destructive ? theme.colors.error : theme.colors.textSecondary}
-        />
+        <View style={[styles.iconChip, { backgroundColor: item.iconBg ?? '#F7F7F7' }]}>
+          <Ionicons
+            name={item.icon as 'settings'}
+            size={17}
+            color={item.destructive ? '#EF4444' : (item.iconColor ?? '#717171')}
+          />
+        </View>
         <Text style={[styles.rowLabel, item.destructive && styles.destructiveText]}>
           {item.label}
         </Text>
       </View>
       {item.rightElement || (
         item.onPress && (
-          <Ionicons name="chevron-forward" size={18} color={theme.colors.textTertiary} />
+          <Ionicons name="chevron-forward" size={14} color="#B0B0B0" />
         )
       )}
     </TouchableOpacity>
@@ -102,23 +106,23 @@ export const SettingsHubScreen: React.FC = () => {
   const renderSection = (title: string, items: SettingsRow[]) => (
     <View style={styles.section} key={title}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      <Card variant="elevated" padding="none">
+      <View style={styles.card}>
         {items.map((item, idx) => renderRow(item, idx === items.length - 1))}
-      </Card>
+      </View>
     </View>
   );
 
   const accountItems: SettingsRow[] = [
-    { label: 'Edit Profile', icon: 'person-outline', onPress: () => navigation.navigate('EditProfile') },
-    { label: 'Notification Preferences', icon: 'notifications-outline', onPress: () => navigation.navigate('NotificationSettings') },
-    { label: 'Payment Methods', icon: 'card-outline', onPress: () => navigation.navigate('PaymentMethods') },
+    { label: 'Edit Profile', icon: 'person-outline', iconColor: '#3B82F6', iconBg: '#DBEAFE', onPress: () => navigation.navigate('EditProfile') },
+    { label: 'Notification Preferences', icon: 'notifications-outline', iconColor: '#F59E0B', iconBg: '#FEF3C7', onPress: () => navigation.navigate('NotificationSettings') },
+    { label: 'Payment Methods', icon: 'card-outline', iconColor: '#10B981', iconBg: '#D1FAE5', onPress: () => navigation.navigate('PaymentMethods') },
   ];
 
   if (user?.role === 'homeowner') {
     accountItems.push(
-      { label: 'My Properties', icon: 'home-outline', onPress: () => navigation.navigate('Properties') },
-      { label: 'Subscription', icon: 'ribbon-outline', onPress: () => navigation.navigate('Subscription') },
-      { label: 'Financials', icon: 'wallet-outline', onPress: () => navigation.navigate('Financials') },
+      { label: 'My Properties', icon: 'home-outline', iconColor: '#8B5CF6', iconBg: '#EDE9FE', onPress: () => navigation.navigate('Properties') },
+      { label: 'Subscription', icon: 'ribbon-outline', iconColor: '#EC4899', iconBg: '#FCE7F3', onPress: () => navigation.navigate('Subscription') },
+      { label: 'Financials', icon: 'wallet-outline', iconColor: '#10B981', iconBg: '#D1FAE5', onPress: () => navigation.navigate('Financials') },
     );
   }
 
@@ -126,43 +130,53 @@ export const SettingsHubScreen: React.FC = () => {
     {
       label: 'Profile Visible',
       icon: 'eye-outline',
+      iconColor: '#3B82F6',
+      iconBg: '#DBEAFE',
       rightElement: (
         <Switch
           value={settings?.privacy?.profileVisible ?? true}
           onValueChange={() => togglePrivacy('profileVisible')}
-          trackColor={{ false: theme.colors.borderLight, true: theme.colors.textPrimary }}
+          trackColor={{ false: '#EBEBEB', true: '#222222' }}
+          thumbColor="#FFFFFF"
         />
       ),
     },
     {
       label: 'Share Activity Data',
       icon: 'analytics-outline',
+      iconColor: '#8B5CF6',
+      iconBg: '#EDE9FE',
       rightElement: (
         <Switch
           value={settings?.privacy?.shareActivityData ?? false}
           onValueChange={() => togglePrivacy('shareActivityData')}
-          trackColor={{ false: theme.colors.borderLight, true: theme.colors.textPrimary }}
+          trackColor={{ false: '#EBEBEB', true: '#222222' }}
+          thumbColor="#FFFFFF"
         />
       ),
     },
   ];
 
   const supportItems: SettingsRow[] = [
-    { label: 'Help Center', icon: 'help-circle-outline', onPress: () => navigation.navigate('HelpCenter') },
-    { label: 'Payment History', icon: 'receipt-outline', onPress: () => navigation.navigate('PaymentHistory') },
-    { label: 'Calendar', icon: 'calendar-outline', onPress: () => navigation.navigate('Calendar') },
-    { label: 'Reviews', icon: 'star-outline', onPress: () => navigation.navigate('Reviews') },
+    { label: 'Help Center', icon: 'help-circle-outline', iconColor: '#3B82F6', iconBg: '#DBEAFE', onPress: () => navigation.navigate('HelpCenter') },
+    { label: 'Payment History', icon: 'receipt-outline', iconColor: '#10B981', iconBg: '#D1FAE5', onPress: () => navigation.navigate('PaymentHistory') },
+    { label: 'Calendar', icon: 'calendar-outline', iconColor: '#F59E0B', iconBg: '#FEF3C7', onPress: () => navigation.navigate('Calendar') },
+    { label: 'Reviews', icon: 'star-outline', iconColor: '#F59E0B', iconBg: '#FEF3C7', onPress: () => navigation.navigate('Reviews') },
   ];
 
   const legalItems: SettingsRow[] = [
     {
       label: 'Privacy Policy',
       icon: 'shield-checkmark-outline',
+      iconColor: '#10B981',
+      iconBg: '#D1FAE5',
       onPress: () => WebBrowser.openBrowserAsync(LEGAL_URLS.privacyPolicy),
     },
     {
       label: 'Terms & Conditions',
       icon: 'document-text-outline',
+      iconColor: '#717171',
+      iconBg: '#F7F7F7',
       onPress: () => WebBrowser.openBrowserAsync(LEGAL_URLS.termsAndConditions),
     },
   ];
@@ -184,50 +198,72 @@ export const SettingsHubScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: '#F7F7F7',
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: theme.layout.screenPadding,
-    paddingBottom: theme.spacing[10],
+    padding: 16,
+    paddingBottom: 40,
   },
   section: {
-    marginBottom: theme.spacing[6],
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textTertiary,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#B0B0B0',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: theme.spacing[2],
-    marginLeft: theme.spacing[1],
+    letterSpacing: 0.8,
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: theme.spacing[3],
-    paddingHorizontal: theme.spacing[4],
+    paddingVertical: 13,
+    paddingHorizontal: 14,
   },
   rowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   rowLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    gap: 12,
+  },
+  iconChip: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   rowLabel: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textPrimary,
-    marginLeft: theme.spacing[3],
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#222222',
   },
   destructiveText: {
-    color: theme.colors.error,
+    color: '#EF4444',
   },
 });
 
