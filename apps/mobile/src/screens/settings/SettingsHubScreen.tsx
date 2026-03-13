@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Switch,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
@@ -182,13 +183,16 @@ export const SettingsHubScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       {/* Green gradient hero */}
       <LinearGradient
         colors={['#064E3B', '#059669', '#10B981']}
-        style={[styles.hero, { paddingTop: insets.top + 12 }]}
+        style={styles.hero}
       >
         <View style={styles.decorCircle1} />
         <View style={styles.decorCircle2} />
+
+        <View style={{ height: insets.top + 12 }} />
 
         <TouchableOpacity
           style={styles.backButton}

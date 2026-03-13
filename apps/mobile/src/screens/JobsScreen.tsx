@@ -575,7 +575,7 @@ const JobCard: React.FC<{
   const timeLabel = daysAgo === 0 ? 'Today' : daysAgo === 1 ? '1d ago' : `${daysAgo}d ago`;
   const statusStyle = STATUS_STYLES[item.status];
 
-  const contractorName = (item as Record<string, unknown>).contractor_name as string | undefined;
+  const contractorName = (item as unknown as Record<string, unknown>).contractor_name as string | undefined;
 
   const formatBudget = (amt: number) => {
     if (amt >= 1000) return `£${(amt / 1000).toFixed(amt % 1000 === 0 ? 0 : 1)}k`;

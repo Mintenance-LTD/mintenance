@@ -10,7 +10,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  Alert, Platform, TextInput, ActivityIndicator,
+  Alert, Platform, TextInput, ActivityIndicator, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -64,6 +64,7 @@ export const DeleteAccountScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
       <ScreenHeader title="Delete Account" showBack onBack={() => navigation.goBack()} />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         <View style={styles.warningCard}>

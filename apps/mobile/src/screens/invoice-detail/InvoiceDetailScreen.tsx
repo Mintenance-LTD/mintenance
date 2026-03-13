@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -113,6 +114,7 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({ naviga
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>

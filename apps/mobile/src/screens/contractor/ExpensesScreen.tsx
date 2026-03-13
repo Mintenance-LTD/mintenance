@@ -3,6 +3,7 @@ import {
   View,
   Text,
   FlatList,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
@@ -10,6 +11,7 @@ import {
   Alert,
   Animated,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -20,7 +22,8 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
-import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Expense {
   id: string;
@@ -47,28 +50,47 @@ const CATEGORY_COLORS: Record<string, string> = {
 export const ExpensesScreen: React.FC = () => {
   const navigation = useNavigation();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [filter, setFilter] = useState<CategoryFilter>('all');
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ description: '', category: 'materials', amount: '', billable: false });
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['contractor-expenses'],
+    queryKey: ['contractor-expenses', user?.id],
     queryFn: async () => {
-      interface ApiExpense { id: string; description: string; category: string; amount: number; date: string; isBillable: boolean; jobId?: string }
-      const res = await mobileApiClient.get<{ expenses: ApiExpense[]; total: number }>('/api/contractor/expenses');
-      return {
-        expenses: (res.expenses || []).map((e): Expense => ({
-          id: e.id, description: e.description, category: e.category,
-          amount: e.amount, date: e.date, billable: e.isBillable, job_id: e.jobId,
-        })),
-        total: res.total,
-      };
+      if (!user?.id) return { expenses: [], total: 0 };
+      const { data: rows, error: err } = await supabase
+        .from('contractor_expenses')
+        .select('*')
+        .eq('contractor_id', user.id)
+        .order('date', { ascending: false });
+      if (err) throw new Error(err.message);
+      const expenses: Expense[] = (rows || []).map((e) => ({
+        id: e.id,
+        description: e.description || '',
+        category: e.category || 'other',
+        amount: e.amount || 0,
+        date: e.date || e.created_at,
+        billable: e.billable ?? e.is_billable ?? false,
+        job_id: e.job_id,
+      }));
+      return { expenses, total: expenses.reduce((s, e) => s + e.amount, 0) };
     },
+    enabled: !!user?.id,
   });
 
   const createMutation = useMutation({
     mutationFn: async (expense: { description: string; category: string; amount: number; billable: boolean }) => {
-      return mobileApiClient.post('/api/contractor/expenses', { ...expense, date: new Date().toISOString() });
+      if (!user?.id) throw new Error('Not authenticated');
+      const { error: err } = await supabase.from('contractor_expenses').insert({
+        contractor_id: user.id,
+        description: expense.description,
+        category: expense.category,
+        amount: expense.amount,
+        billable: expense.billable,
+        date: new Date().toISOString(),
+      });
+      if (err) throw new Error(err.message);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contractor-expenses'] });
@@ -85,7 +107,11 @@ export const ExpensesScreen: React.FC = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (expenseId: string) => {
-      return mobileApiClient.delete(`/api/contractor/expenses?id=${expenseId}`);
+      const { error: err } = await supabase
+        .from('contractor_expenses')
+        .delete()
+        .eq('id', expenseId);
+      if (err) throw new Error(err.message);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contractor-expenses'] });
@@ -139,6 +165,7 @@ export const ExpensesScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
       <ScreenHeader title="Expenses" showBack onBack={() => navigation.goBack()} />
 
       {/* Stats */}
@@ -158,15 +185,16 @@ export const ExpensesScreen: React.FC = () => {
         ))}
       </View>
 
-      {/* Filter Chips */}
-      <FlatList
+      {/* Filter Chips — horizontal ScrollView to avoid FlatList sizing bugs */}
+      <ScrollView
         horizontal
-        data={['all', 'materials', 'tools', 'fuel', 'software', 'insurance', 'marketing', 'other'] as CategoryFilter[]}
-        keyExtractor={(item) => item}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.filterRow}
-        renderItem={({ item }) => (
+        style={styles.filterScrollView}
+      >
+        {(['all', 'materials', 'tools', 'fuel', 'software', 'insurance', 'marketing', 'other'] as CategoryFilter[]).map((item) => (
           <TouchableOpacity
+            key={item}
             style={[styles.filterChip, filter === item && styles.filterChipActive]}
             onPress={() => setFilter(item)}
             accessibilityRole="button"
@@ -177,8 +205,8 @@ export const ExpensesScreen: React.FC = () => {
               {item === 'all' ? 'All' : item.charAt(0).toUpperCase() + item.slice(1)}
             </Text>
           </TouchableOpacity>
-        )}
-      />
+        ))}
+      </ScrollView>
 
       {/* Add Form */}
       {showForm && (
@@ -258,6 +286,7 @@ const styles = StyleSheet.create({
   statIconWrap: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
   statLabel: { fontSize: 11, color: '#B0B0B0', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6 },
   statValue: { fontSize: 16, fontWeight: '700', color: '#222222', marginBottom: 2 },
+  filterScrollView: { flexGrow: 0 },
   filterRow: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
   filterChip: {
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#FFFFFF',

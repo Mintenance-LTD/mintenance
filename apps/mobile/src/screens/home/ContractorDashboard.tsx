@@ -17,6 +17,7 @@ import {
   Platform,
   Image,
   Modal,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -129,6 +130,12 @@ export const ContractorDashboard: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {/* Force translucent status bar so gradient fills behind it */}
+      <StatusBar
+        translucent
+        backgroundColor="transparent"
+        barStyle="light-content"
+      />
       <ScrollView
         testID="home-scroll-view"
         showsVerticalScrollIndicator={false}
@@ -141,18 +148,18 @@ export const ContractorDashboard: React.FC = () => {
           />
         }
       >
-        {/* Full-bleed green gradient hero */}
+        {/* Full-bleed green gradient hero — extends behind status bar */}
         <LinearGradient
           colors={['#064E3B', '#059669', '#10B981']}
-          style={[styles.hero, { paddingTop: insets.top + 8 }]}
+          style={styles.hero}
         >
           {/* Decorative circles */}
           <View style={styles.decorCircle1} />
           <View style={styles.decorCircle2} />
           <View style={styles.decorDiamond} />
 
-          {/* Header bar: logo + bell + avatar */}
-          <View style={styles.headerBar}>
+          {/* Header bar: logo + bell + avatar — safe area padding applied here */}
+          <View style={[styles.headerBar, { marginTop: insets.top + 8 }]}>
             <View style={styles.logoWrap}>
               <Image source={appIcon} style={styles.logoIcon} />
             </View>
@@ -196,8 +203,10 @@ export const ContractorDashboard: React.FC = () => {
 
         </LinearGradient>
 
-        {/* Curved bottom edge with shadow */}
-        <View style={styles.heroCurve} />
+        {/* Stat cards overlapping hero bottom edge */}
+        <View style={styles.overlappingStats}>
+          <StatsSection stats={contractorStats} />
+        </View>
 
         {/* Content below hero */}
         <View style={styles.content}>
@@ -211,10 +220,6 @@ export const ContractorDashboard: React.FC = () => {
               onCalendarPress={() => navigation.navigate('ProfileTab', { screen: 'Calendar' })}
             />
           </FadeIn>
-
-          <SlideIn direction="up" distance={20} duration={400} delay={150}>
-            <StatsSection stats={contractorStats} />
-          </SlideIn>
 
           <SlideIn direction="up" distance={20} duration={400} delay={300}>
             <ScheduleSection
@@ -287,22 +292,16 @@ export const ContractorDashboard: React.FC = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F7F7F7' },
   hero: {
-    paddingBottom: 36,
+    paddingBottom: 56,
     paddingHorizontal: 20,
     overflow: 'hidden',
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
   },
-  heroCurve: {
-    height: 6,
-    marginTop: -1,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-    backgroundColor: 'transparent',
-    ...Platform.select({
-      ios: { shadowColor: '#064E3B', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8 },
-      android: { elevation: 4, backgroundColor: '#F7F7F7' },
-    }),
+  overlappingStats: {
+    marginTop: -36,
+    paddingHorizontal: 20,
+    zIndex: 10,
   },
   decorCircle1: {
     position: 'absolute', top: -60, right: -40, width: 180, height: 180, borderRadius: 90,
@@ -346,7 +345,7 @@ const styles = StyleSheet.create({
   heroStatValue: { fontSize: 30, fontWeight: '700', color: '#FFFFFF', letterSpacing: -0.3 },
   heroStatLabel: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: '500', marginTop: 2 },
   heroStatDivider: { width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.2)', marginHorizontal: 20 },
-  content: { paddingHorizontal: 20, paddingTop: 24 },
+  content: { paddingHorizontal: 20, paddingTop: 8 },
   errorContainer: {
     flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F7F7F7', padding: 40,
   },

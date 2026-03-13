@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   TextInput,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -219,6 +220,7 @@ const AddPaymentMethodScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+    <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

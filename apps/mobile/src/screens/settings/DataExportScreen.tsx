@@ -10,7 +10,7 @@
 import React from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  Alert, Platform, ActivityIndicator,
+  Alert, Platform, ActivityIndicator, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -79,6 +79,7 @@ export const DataExportScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
       <ScreenHeader title="Export My Data" showBack onBack={() => navigation.goBack()} />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         <View style={styles.card}>

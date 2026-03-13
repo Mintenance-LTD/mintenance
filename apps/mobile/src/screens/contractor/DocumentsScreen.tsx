@@ -145,11 +145,23 @@ export const DocumentsScreen: React.FC = () => {
 
   const uploadMutation = useMutation({
     mutationFn: async (file: { uri: string; name: string; mimeType: string }) => {
-      const formData = new FormData();
-      formData.append('file', { uri: file.uri, type: file.mimeType, name: file.name } as unknown as Blob);
-      formData.append('category', filter === 'all' ? 'other' : filter);
-      const endpoint = isContractor ? '/api/contractor/documents' : '/api/documents';
-      return mobileApiClient.postFormData(endpoint, formData);
+      const filePath = `${user?.id}/${Date.now()}_${file.name}`;
+      const response = await fetch(file.uri);
+      const blob = await response.blob();
+      const { error: uploadErr } = await supabase.storage
+        .from('documents')
+        .upload(filePath, blob, { contentType: file.mimeType });
+      if (uploadErr) throw new Error(uploadErr.message);
+      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(filePath);
+      const { error: insertErr } = await supabase.from('contractor_documents').insert({
+        contractor_id: user?.id,
+        filename: file.name,
+        file_url: urlData.publicUrl,
+        file_path: filePath,
+        category: filter === 'all' ? 'other' : filter,
+        file_size: blob.size,
+      });
+      if (insertErr) throw new Error(insertErr.message);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });

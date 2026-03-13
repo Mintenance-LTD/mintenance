@@ -3,14 +3,15 @@
  * @filesize Target: <200 lines
  */
 import React, { useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Platform, RefreshControl, TextInput } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Platform, RefreshControl, TextInput, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface TrainingModule {
   id: string;
@@ -31,14 +32,29 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export const TrainingScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['contractor-training'],
+    queryKey: ['contractor-training', user?.id],
     queryFn: async () => {
-      const res = await mobileApiClient.get<{ modules: TrainingModule[] }>('/api/contractor/training');
-      return res.modules || [];
+      if (!user?.id) return [];
+      const { data: rows, error: err } = await supabase
+        .from('training_modules')
+        .select('*')
+        .order('title', { ascending: true });
+      if (err) throw new Error(err.message);
+      return (rows || []).map((m: Record<string, unknown>): TrainingModule => ({
+        id: m.id as string,
+        title: m.title as string || '',
+        description: m.description as string || '',
+        category: m.category as string || 'general',
+        completed: (m.completed as boolean) ?? false,
+        duration_minutes: (m.duration_minutes as number) || 0,
+        url: m.url as string | undefined,
+      }));
     },
+    enabled: !!user?.id,
   });
 
   const modules = data || [];
@@ -52,6 +68,7 @@ export const TrainingScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
       <ScreenHeader title="Training" showBack onBack={() => navigation.goBack()} />
 
       {categories.length > 0 && (

@@ -3,14 +3,14 @@
  * @filesize Target: <200 lines
  */
 import React, { useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Platform, RefreshControl, TextInput } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Platform, RefreshControl, TextInput, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
 
 interface DiscoverContractor {
   id: string;
@@ -31,9 +31,24 @@ export const DiscoverScreen: React.FC = () => {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['discover-contractors', selectedCategory],
     queryFn: async () => {
-      const params = selectedCategory !== 'All' ? `?category=${selectedCategory.toLowerCase()}` : '';
-      const res = await mobileApiClient.get<{ contractors: DiscoverContractor[] }>(`/api/discover${params}`);
-      return res.contractors || [];
+      let query = supabase
+        .from('contractor_profiles')
+        .select('id, full_name, trade, rating, review_count, distance_km, profile_image_url')
+        .order('rating', { ascending: false });
+      if (selectedCategory !== 'All') {
+        query = query.ilike('trade', `%${selectedCategory.toLowerCase()}%`);
+      }
+      const { data: rows, error: err } = await query;
+      if (err) throw new Error(err.message);
+      return (rows || []).map((r: Record<string, unknown>): DiscoverContractor => ({
+        id: r.id as string,
+        name: (r.full_name as string) || '',
+        trade: (r.trade as string) || '',
+        rating: (r.rating as number) || 0,
+        review_count: (r.review_count as number) || 0,
+        distance_km: (r.distance_km as number) || 0,
+        profile_image_url: r.profile_image_url as string | undefined,
+      }));
     },
   });
 
@@ -44,6 +59,7 @@ export const DiscoverScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
       <ScreenHeader title="Discover" showBack onBack={() => navigation.goBack()} />
 
       <FlatList
@@ -96,7 +112,7 @@ export const DiscoverScreen: React.FC = () => {
             <TouchableOpacity
               style={styles.viewBtn}
               activeOpacity={0.7}
-              onPress={() => navigation.navigate('ContractorProfile' as never, { id: item.id } as never)}
+              onPress={() => (navigation as { navigate: (screen: string, params: Record<string, string>) => void }).navigate('ContractorProfile', { id: item.id })}
             >
               <Text style={styles.viewBtnText}>View Profile</Text>
               <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />

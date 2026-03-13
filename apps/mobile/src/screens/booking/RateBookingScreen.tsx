@@ -8,6 +8,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -59,6 +60,7 @@ export const RateBookingScreen: React.FC<Props> = ({ navigation, route }) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#222222" />

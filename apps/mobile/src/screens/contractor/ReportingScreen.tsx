@@ -218,17 +218,19 @@ export const ReportingScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor="#FFFFFF" colors={['#10B981']} />}
       >
-        {/* Green Gradient Hero */}
+        {/* Green Gradient Hero — full bleed behind status bar */}
         <LinearGradient
           colors={['#064E3B', '#059669', '#10B981']}
-          style={[styles.hero, { paddingTop: insets.top + 12 }]}
+          style={styles.hero}
         >
+          {/* Safe area spacing for content only */}
+          <View style={{ height: insets.top }} />
           <View style={styles.decorCircle1} />
           <View style={styles.decorCircle2} />
 

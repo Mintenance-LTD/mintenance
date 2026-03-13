@@ -190,7 +190,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
         {/* Analytics Cards */}
         <View style={styles.analyticsContainer}>
           {ANALYTICS_ITEMS.map((item) => {
-            const raw = analytics ? (analytics as Record<string, unknown>)[item.key] : 0;
+            const raw = analytics ? (analytics as unknown as Record<string, unknown>)[item.key] : 0;
             const numValue = Number(raw ?? 0) || 0;
             const displayValue = item.round ? Math.round(numValue) : numValue;
             return (

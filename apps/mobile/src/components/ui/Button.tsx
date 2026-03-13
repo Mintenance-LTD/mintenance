@@ -10,7 +10,7 @@ import {
   Platform,
 } from 'react-native';
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'tertiary';
+type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'tertiary' | 'ghost' | 'danger' | 'success';
 
 export interface ButtonProps {
   title?: string;
@@ -45,6 +45,9 @@ const VARIANT_STYLES: Record<ButtonVariant, { backgroundColor: string; color: st
   secondary: { backgroundColor: '#F7F7F7', color: '#222222', borderColor: '#EBEBEB' },
   outline: { backgroundColor: 'transparent', color: '#222222', borderColor: '#EBEBEB' },
   tertiary: { backgroundColor: 'transparent', color: '#3B82F6', borderColor: 'transparent' },
+  ghost: { backgroundColor: 'transparent', color: '#717171', borderColor: 'transparent' },
+  danger: { backgroundColor: '#EF4444', color: '#FFFFFF', borderColor: 'transparent' },
+  success: { backgroundColor: '#10B981', color: '#FFFFFF', borderColor: 'transparent' },
 };
 
 export const Button: React.FC<ButtonProps> = ({

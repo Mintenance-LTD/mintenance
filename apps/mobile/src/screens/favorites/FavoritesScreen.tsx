@@ -3,14 +3,15 @@
  * @filesize Target: <200 lines
  */
 import React, { useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Platform, RefreshControl, TextInput, Alert } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Platform, RefreshControl, TextInput, Alert, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface FavoriteContractor {
   id: string;
@@ -39,18 +40,41 @@ const StarRating: React.FC<{ rating: number }> = ({ rating }) => (
 export const FavoritesScreen: React.FC = () => {
   const navigation = useNavigation();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['favorites'],
+    queryKey: ['favorites', user?.id],
     queryFn: async () => {
-      const res = await mobileApiClient.get<{ favorites: FavoriteContractor[] }>('/api/properties/favorites');
-      return res.favorites || [];
+      if (!user?.id) return [];
+      const { data: rows, error: err } = await supabase
+        .from('favorites')
+        .select('id, contractor_id, contractor:contractor_id(full_name, trade, rating, review_count, profile_image_url)')
+        .eq('user_id', user.id);
+      if (err) throw new Error(err.message);
+      return (rows || []).map((r: Record<string, unknown>): FavoriteContractor => {
+        const c = r.contractor as Record<string, unknown> | null;
+        return {
+          id: r.id as string,
+          contractor_id: r.contractor_id as string,
+          name: (c?.full_name as string) || 'Unknown',
+          trade: (c?.trade as string) || '',
+          rating: (c?.rating as number) || 0,
+          review_count: (c?.review_count as number) || 0,
+          profile_image_url: c?.profile_image_url as string | undefined,
+        };
+      });
     },
+    enabled: !!user?.id,
   });
 
   const removeMutation = useMutation({
     mutationFn: async (contractorId: string) => {
-      await mobileApiClient.delete(`/api/properties/favorites/${contractorId}`);
+      const { error: err } = await supabase
+        .from('favorites')
+        .delete()
+        .eq('user_id', user?.id || '')
+        .eq('contractor_id', contractorId);
+      if (err) throw new Error(err.message);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['favorites'] });
@@ -75,6 +99,7 @@ export const FavoritesScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
       <ScreenHeader title="Favourites" showBack onBack={() => navigation.goBack()} />
 
       <FlatList

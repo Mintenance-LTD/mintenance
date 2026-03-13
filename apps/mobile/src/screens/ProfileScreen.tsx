@@ -133,7 +133,7 @@ const ProfileScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-    <StatusBar barStyle="light-content" />
+    <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
     <ResponsiveContainer
       maxWidth={{ mobile: undefined, tablet: 768, desktop: 1200 }}
       padding={{ mobile: 0, tablet: 16, desktop: 24 }}

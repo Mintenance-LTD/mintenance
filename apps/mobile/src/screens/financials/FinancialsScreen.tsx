@@ -16,7 +16,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { LoadingSpinner, ErrorView } from '../../components/shared';
-import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 import type { ProfileStackParamList } from '../../navigation/types';
 
 interface PaymentRecord {
@@ -53,18 +54,37 @@ const STATUS_COLORS: Record<string, string> = {
 export const FinancialsScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<ProfileStackParamList>>();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['homeowner-financials'],
+    queryKey: ['homeowner-financials', user?.id],
     queryFn: async () => {
-      const [paymentsRes, subscriptionRes] = await Promise.all([
-        mobileApiClient.get<{ payments: PaymentRecord[] }>('/api/payments/history?limit=50'),
-        mobileApiClient.get<{ subscription: { planType: string; status: string } | null }>(
-          '/api/subscriptions/status'
-        ),
-      ]);
+      if (!user?.id) throw new Error('Not authenticated');
+      const { data: rows, error: err } = await supabase
+        .from('escrow_payments')
+        .select('id, amount, status, created_at, category, jobs(title)')
+        .eq('homeowner_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (err) throw new Error(err.message);
 
-      const payments = paymentsRes.payments || [];
+      const payments: PaymentRecord[] = (rows || []).map((r: Record<string, unknown>) => ({
+        id: r.id as string,
+        amount: (r.amount as number) || 0,
+        status: r.status as string || 'pending',
+        created_at: r.created_at as string,
+        job_title: (r.jobs as Record<string, unknown>)?.title as string | undefined,
+        category: r.category as string | undefined,
+      }));
+
+      // Fetch subscription from profile
+      const { data: subRow } = await supabase
+        .from('user_subscriptions')
+        .select('plan_type, status')
+        .eq('user_id', user.id)
+        .single();
+
+      const subscriptionRes = subRow ? { subscription: { planType: subRow.plan_type as string, status: subRow.status as string } } : { subscription: null };
 
       const totalSpent = payments
         .filter((p) => ['completed', 'released', 'release_pending'].includes(p.status))
@@ -132,7 +152,7 @@ export const FinancialsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
 
       <ScrollView
         style={styles.scrollView}
@@ -145,11 +165,13 @@ export const FinancialsScreen: React.FC = () => {
           colors={['#064E3B', '#059669', '#10B981']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.hero, { paddingTop: insets.top + 12 }]}
+          style={styles.hero}
         >
           <View style={styles.heroDecorCircle} />
           <View style={styles.heroDecorSmall} />
           <View style={styles.heroDecorDiamond} />
+
+          <View style={{ height: insets.top + 12 }} />
 
           {/* Back button + title row */}
           <View style={styles.heroNav}>

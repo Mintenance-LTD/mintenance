@@ -8,6 +8,7 @@ import {
   Platform,
   RefreshControl,
   TextInput,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -15,7 +16,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Connection {
   id: string;
@@ -30,22 +32,48 @@ interface Connection {
 export const ConnectionsScreen: React.FC = () => {
   const navigation = useNavigation();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['contractor-connections'],
+    queryKey: ['contractor-connections', user?.id],
     queryFn: async () => {
-      const res = await mobileApiClient.get<{ connections: Connection[] }>('/api/contractor/following');
-      return res.connections || [];
+      if (!user?.id) return [];
+      const { data: rows, error: err } = await supabase
+        .from('contractor_connections')
+        .select('id, connected_contractor_id, is_following, profiles:connected_contractor_id(full_name, trade, rating, review_count, avatar_url)')
+        .eq('contractor_id', user.id);
+      if (err) throw new Error(err.message);
+      return (rows || []).map((r: Record<string, unknown>): Connection => {
+        const profile = r.profiles as Record<string, unknown> | null;
+        return {
+          id: r.id as string,
+          name: (profile?.full_name as string) || 'Unknown',
+          trade: (profile?.trade as string) || '',
+          rating: (profile?.rating as number) || 0,
+          review_count: (profile?.review_count as number) || 0,
+          avatar_url: profile?.avatar_url as string | undefined,
+          is_following: (r.is_following as boolean) ?? true,
+        };
+      });
     },
+    enabled: !!user?.id,
   });
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, follow }: { id: string; follow: boolean }) => {
       if (follow) {
-        await mobileApiClient.post(`/api/contractor/following/${id}`, {});
+        const { error: err } = await supabase
+          .from('contractor_connections')
+          .update({ is_following: true })
+          .eq('id', id);
+        if (err) throw new Error(err.message);
       } else {
-        await mobileApiClient.delete(`/api/contractor/following/${id}`);
+        const { error: err } = await supabase
+          .from('contractor_connections')
+          .update({ is_following: false })
+          .eq('id', id);
+        if (err) throw new Error(err.message);
       }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contractor-connections'] }),
@@ -63,6 +91,7 @@ export const ConnectionsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
       <ScreenHeader title="Connections" showBack onBack={() => navigation.goBack()} />
 
       <View style={styles.searchWrap}>

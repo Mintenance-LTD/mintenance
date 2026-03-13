@@ -19,6 +19,7 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -130,6 +131,7 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}

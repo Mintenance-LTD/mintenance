@@ -42,7 +42,7 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
 
       <ScrollView
         style={styles.scroll}
@@ -57,12 +57,14 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
           colors={['#064E3B', '#059669', '#10B981']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.hero, { paddingTop: insets.top + 12 }]}
+          style={styles.hero}
         >
           <View style={styles.heroDecorCircle} />
           <View style={styles.heroDecorSmall} />
           <View style={styles.heroDecorDiamond} />
 
+          {/* Safe area spacing */}
+          <View style={{ height: insets.top + 12 }} />
           {/* Nav row */}
           <View style={styles.heroNav}>
             <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>

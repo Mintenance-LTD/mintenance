@@ -3,14 +3,14 @@
  * @filesize Target: <200 lines
  */
 import React, { useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Platform, RefreshControl, TextInput } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Platform, RefreshControl, TextInput, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
 
 interface HelpArticle {
   id: string;
@@ -35,8 +35,20 @@ export const HelpCenterScreen: React.FC = () => {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['help-articles'],
     queryFn: async () => {
-      const res = await mobileApiClient.get<{ articles: HelpArticle[] }>('/api/help/articles/popular');
-      return res.articles || [];
+      const { data: rows, error: err } = await supabase
+        .from('help_articles')
+        .select('id, title, preview, category, content')
+        .eq('published', true)
+        .order('view_count', { ascending: false })
+        .limit(20);
+      if (err) throw new Error(err.message);
+      return (rows || []).map((r: Record<string, unknown>): HelpArticle => ({
+        id: r.id as string,
+        title: (r.title as string) || '',
+        preview: (r.preview as string) || '',
+        category: (r.category as string) || '',
+        content: r.content as string | undefined,
+      }));
     },
   });
 
@@ -50,6 +62,7 @@ export const HelpCenterScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
       <ScreenHeader title="Help Centre" showBack onBack={() => navigation.goBack()} />
 
       <FlatList

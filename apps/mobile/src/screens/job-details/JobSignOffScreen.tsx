@@ -7,6 +7,7 @@ import {
   Alert,
   StyleSheet,
   RefreshControl,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -14,6 +15,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { JobsStackParamList } from '../../navigation/types';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { Button } from '../../components/ui/Button';
+import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 
 type Props = NativeStackScreenProps<JobsStackParamList, 'JobSignOff'>;
@@ -32,15 +34,21 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
   const { data: job, isLoading, error, refetch } = useQuery({
     queryKey: ['job-signoff', jobId],
     queryFn: async () => {
-      const response = await mobileApiClient.get<{ job: {
-        id: string;
-        title: string;
-        status: string;
-        completion_confirmed_by_homeowner: boolean;
-        contractor_name?: string;
-        photos?: JobPhotoPair[];
-      } }>(`/api/jobs/${jobId}`);
-      return response.job;
+      const { data: row, error: err } = await supabase
+        .from('jobs')
+        .select('id, title, status, completion_confirmed_by_homeowner, contractor:contractor_id(full_name)')
+        .eq('id', jobId)
+        .single();
+      if (err) throw new Error(err.message);
+      const r = row as Record<string, unknown>;
+      const contractor = r.contractor as Record<string, unknown> | null;
+      return {
+        id: r.id as string,
+        title: r.title as string,
+        status: r.status as string,
+        completion_confirmed_by_homeowner: (r.completion_confirmed_by_homeowner as boolean) ?? false,
+        contractor_name: contractor?.full_name as string | undefined,
+      };
     },
   });
 
@@ -101,6 +109,7 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
       <ScreenHeader title="Review Work" showBack onBack={() => navigation.goBack()} />
 
       <ScrollView

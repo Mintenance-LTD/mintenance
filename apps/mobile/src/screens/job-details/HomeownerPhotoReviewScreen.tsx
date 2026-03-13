@@ -16,12 +16,14 @@ import {
   TextInput,
   Alert,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider';
 import type { JobsStackParamList } from '../../navigation/types';
@@ -53,14 +55,22 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
       setLoading(true);
 
       // Fetch job title
-      const jobRes = await mobileApiClient.get<{ job: { title?: string } }>(`/api/jobs/${jobId}`);
-      if (jobRes?.job?.title) setJobTitle(jobRes.job.title);
+      const { data: jobRow } = await supabase
+        .from('jobs')
+        .select('title')
+        .eq('id', jobId)
+        .single();
+      if (jobRow?.title) setJobTitle(jobRow.title as string);
 
       // Fetch before and after photos
-      const photosRes = await mobileApiClient.get<{ photos: Array<{ id: string; photo_url: string; photo_type: string; created_at: string }> }>(
-        `/api/jobs/${jobId}/photos?types=before,after`
-      );
-      const photos = photosRes?.photos || [];
+      const { data: photoRows, error: photosErr } = await supabase
+        .from('job_photos_metadata')
+        .select('id, photo_url, photo_type, created_at')
+        .eq('job_id', jobId)
+        .in('photo_type', ['before', 'after'])
+        .order('created_at', { ascending: true });
+      if (photosErr) throw new Error(photosErr.message);
+      const photos = (photoRows || []) as Array<{ id: string; photo_url: string; photo_type: string; created_at: string }>;
 
       // Pair before and after photos
       const beforePhotos = (photos || []).filter(p => p.photo_type === 'before');
@@ -178,6 +188,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} accessibilityRole="button">

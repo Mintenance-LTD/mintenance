@@ -16,6 +16,7 @@ import {
   Linking,
   TextInput,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +25,7 @@ import { RouteProp } from '@react-navigation/native';
 import * as WebBrowser from 'expo-web-browser';
 import { HapticService } from '../../utils/haptics';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { JobsStackParamList } from '../../navigation/types';
 
@@ -70,10 +72,30 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await mobileApiClient.get(`/api/contracts?job_id=${jobId}`) as { data: { contracts?: Contract[] } };
-      const data = response.data;
-      setContract(data.contracts?.[0] || null);
-    } catch (err) {
+      const { data: rows, error: err } = await supabase
+        .from('contracts')
+        .select('*')
+        .eq('job_id', jobId)
+        .limit(1);
+      if (err) throw new Error(err.message);
+      const row = rows?.[0] as Record<string, unknown> | undefined;
+      setContract(row ? {
+        id: row.id as string,
+        job_id: row.job_id as string,
+        contractor_id: row.contractor_id as string,
+        homeowner_id: row.homeowner_id as string,
+        status: row.status as string,
+        title: row.title as string | null,
+        description: row.description as string | null,
+        amount: row.amount as number,
+        start_date: row.start_date as string | null,
+        end_date: row.end_date as string | null,
+        contractor_signed_at: row.contractor_signed_at as string | null,
+        homeowner_signed_at: row.homeowner_signed_at as string | null,
+        terms: (row.terms as Record<string, unknown>) || {},
+        created_at: row.created_at as string,
+      } : null);
+    } catch {
       setError('Failed to load contract');
     } finally {
       setLoading(false);
@@ -218,6 +240,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity

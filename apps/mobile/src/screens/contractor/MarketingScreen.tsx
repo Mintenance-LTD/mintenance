@@ -7,13 +7,15 @@ import {
   TouchableOpacity,
   Platform,
   RefreshControl,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
-import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface MarketingStats {
   profile_views: number;
@@ -38,13 +40,26 @@ const TIPS: MarketingTip[] = [
 
 export const MarketingScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { user } = useAuth();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['contractor-marketing-stats'],
+    queryKey: ['contractor-marketing-stats', user?.id],
     queryFn: async () => {
-      const res = await mobileApiClient.get<{ stats: MarketingStats }>('/api/contractor/marketing-stats');
-      return res.stats;
+      if (!user?.id) return null;
+      const { data: row, error: err } = await supabase
+        .from('contractor_profiles')
+        .select('profile_views, enquiries, conversion_rate, views_trend')
+        .eq('user_id', user.id)
+        .single();
+      if (err) return null;
+      return {
+        profile_views: (row?.profile_views as number) || 0,
+        enquiries: (row?.enquiries as number) || 0,
+        conversion_rate: (row?.conversion_rate as number) || 0,
+        views_trend: (row?.views_trend as number) || 0,
+      } as MarketingStats;
     },
+    enabled: !!user?.id,
   });
 
   if (isLoading) return <LoadingSpinner />;
@@ -59,6 +74,7 @@ export const MarketingScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
       <ScreenHeader title="Marketing" showBack onBack={() => navigation.goBack()} />
 
       <FlatList

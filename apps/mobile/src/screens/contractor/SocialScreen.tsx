@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Platform,
   RefreshControl,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -14,7 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Post {
   id: string;
@@ -33,21 +35,47 @@ interface SocialStats {
 
 export const SocialScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { user } = useAuth();
 
   const { data: posts, isLoading: postsLoading, error: postsError, refetch: refetchPosts } = useQuery({
-    queryKey: ['contractor-posts'],
+    queryKey: ['contractor-posts', user?.id],
     queryFn: async () => {
-      const res = await mobileApiClient.get<{ posts: Post[] }>('/api/contractor/posts');
-      return res.posts || [];
+      if (!user?.id) return [];
+      const { data: rows, error: err } = await supabase
+        .from('contractor_posts')
+        .select('*')
+        .eq('contractor_id', user.id)
+        .order('created_at', { ascending: false });
+      if (err) throw new Error(err.message);
+      return (rows || []).map((p: Record<string, unknown>): Post => ({
+        id: p.id as string,
+        title: p.title as string || '',
+        content: p.content as string || '',
+        created_at: p.created_at as string,
+        likes_count: (p.likes_count as number) || 0,
+        comments_count: (p.comments_count as number) || 0,
+        image_url: p.image_url as string | undefined,
+      }));
     },
+    enabled: !!user?.id,
   });
 
   const { data: stats } = useQuery({
-    queryKey: ['contractor-followers'],
+    queryKey: ['contractor-followers', user?.id],
     queryFn: async () => {
-      const res = await mobileApiClient.get<{ stats: SocialStats }>('/api/contractor/followers');
-      return res.stats || { followers: 0, following: 0 };
+      if (!user?.id) return { followers: 0, following: 0 };
+      const { data: row, error: err } = await supabase
+        .from('contractor_profiles')
+        .select('followers_count, following_count')
+        .eq('user_id', user.id)
+        .single();
+      if (err) return { followers: 0, following: 0 };
+      return {
+        followers: (row?.followers_count as number) || 0,
+        following: (row?.following_count as number) || 0,
+      } as SocialStats;
     },
+    enabled: !!user?.id,
   });
 
   if (postsLoading) return <LoadingSpinner />;
@@ -55,6 +83,7 @@ export const SocialScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
       <ScreenHeader title="Social" showBack onBack={() => navigation.goBack()} />
 
       <FlatList

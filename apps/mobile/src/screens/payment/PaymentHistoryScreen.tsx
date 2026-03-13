@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   Linking,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,7 +21,8 @@ import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared
 import { EmptyState } from '../../components/ui/EmptyState';
 import { useResponsive } from '../../hooks/useResponsive';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface EscrowPayment {
   id: string;
@@ -175,6 +177,7 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<FilterType>('all');
   const { isTablet } = useResponsive();
+  const { user } = useAuth();
   const numColumns = isTablet ? 2 : 1;
 
   const {
@@ -186,21 +189,36 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ['payment-history'],
-    queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
-      const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
-      if (pageParam) params.set('cursor', pageParam);
-      const result = await mobileApiClient.get<{
-        payments?: EscrowPayment[];
-        nextCursor?: string;
-      }>(`/api/payments/history?${params.toString()}`);
+    queryKey: ['payment-history', user?.id],
+    queryFn: async ({ pageParam }: { pageParam: number | undefined }) => {
+      if (!user?.id) return { payments: [], nextCursor: undefined };
+      const offset = pageParam || 0;
+      const { data: rows, error: err } = await supabase
+        .from('escrow_payments')
+        .select('id, job_id, payer_id, payee_id, amount, status, created_at, updated_at, job:job_id(title, description)')
+        .or(`payer_id.eq.${user.id},payee_id.eq.${user.id}`)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + PAGE_SIZE - 1);
+      if (err) throw new Error(err.message);
+      const payments = (rows || []).map((r: Record<string, unknown>): PaymentRecord => {
+        const job = r.job as Record<string, unknown> | null;
+        return {
+          id: r.id as string,
+          jobId: r.job_id as string,
+          jobTitle: (job?.title as string) || 'Payment',
+          amount: Number(r.amount ?? 0),
+          status: r.status as string,
+          createdAt: r.created_at as string,
+        };
+      });
       return {
-        payments: (result.payments || []).map(mapEscrowToPayment),
-        nextCursor: result.nextCursor,
+        payments,
+        nextCursor: payments.length >= PAGE_SIZE ? offset + PAGE_SIZE : undefined,
       };
     },
-    initialPageParam: undefined as string | undefined,
+    initialPageParam: undefined as number | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
+    enabled: !!user?.id,
   });
 
   const allPayments = data?.pages.flatMap((page) => page.payments) || [];
@@ -235,6 +253,7 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
       <ScreenHeader title="Payment History" showBack onBack={() => navigation.goBack()} />
 
       {/* Stats Row */}

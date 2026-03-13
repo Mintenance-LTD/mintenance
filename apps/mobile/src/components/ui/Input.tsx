@@ -8,7 +8,7 @@ import {
   ViewStyle,
 } from 'react-native';
 
-type InputVariant = 'default' | 'outline' | 'error';
+type InputVariant = 'default' | 'outline' | 'error' | 'filled' | 'underline';
 
 export interface InputProps extends TextInputProps {
   containerStyle?: ViewStyle | ViewStyle[];
@@ -28,6 +28,8 @@ const VARIANT_STYLES: Record<InputVariant, { borderColor: string; backgroundColo
   default: { borderColor: '#EBEBEB', backgroundColor: '#F7F7F7', color: '#222222', placeholderTextColor: '#B0B0B0' },
   outline: { borderColor: '#EBEBEB', backgroundColor: '#FFFFFF', color: '#222222', placeholderTextColor: '#B0B0B0' },
   error: { borderColor: '#EF4444', backgroundColor: '#FEF2F2', color: '#222222', placeholderTextColor: '#B0B0B0' },
+  filled: { borderColor: 'transparent', backgroundColor: '#F0F0F0', color: '#222222', placeholderTextColor: '#B0B0B0' },
+  underline: { borderColor: '#EBEBEB', backgroundColor: 'transparent', color: '#222222', placeholderTextColor: '#B0B0B0' },
 };
 
 export const Input = forwardRef<TextInput, InputProps>(

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -15,7 +16,8 @@ import { useQuery } from '@tanstack/react-query';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Badge } from '../../components/ui/Badge';
-import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Certification {
   id: string;
@@ -39,13 +41,30 @@ const getExpiryStatus = (expiryDate: string): { label: string; variant: 'success
 
 export const CertificationsScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { user } = useAuth();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['contractor-certifications'],
+    queryKey: ['contractor-certifications', user?.id],
     queryFn: async () => {
-      const res = await mobileApiClient.get<{ certifications: Certification[] }>('/api/contractor/certifications');
-      return res.certifications || [];
+      if (!user?.id) return [];
+      const { data: rows, error: err } = await supabase
+        .from('contractor_certifications')
+        .select('*')
+        .eq('contractor_id', user.id)
+        .order('issue_date', { ascending: false });
+      if (err) throw new Error(err.message);
+      return (rows || []).map((c: Record<string, unknown>): Certification => ({
+        id: c.id as string,
+        name: c.name as string || '',
+        issuer: c.issuer as string || '',
+        issue_date: c.issue_date as string,
+        expiry_date: c.expiry_date as string,
+        credential_id: c.credential_id as string | undefined,
+        category: c.category as string || 'general',
+        verified: (c.verified as boolean) ?? false,
+      }));
     },
+    enabled: !!user?.id,
   });
 
   const certifications = data || [];
@@ -55,6 +74,7 @@ export const CertificationsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
       <ScreenHeader title="Certifications" showBack onBack={() => navigation.goBack()} />
 
       <FlatList

@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
 import type { RootStackParamList } from '../../navigation/types';
 
 interface Props {
@@ -20,7 +20,15 @@ export const BookingDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
 
   const { data: job, isLoading } = useQuery({
     queryKey: ['booking-details', bookingId],
-    queryFn: () => mobileApiClient.get<{ title?: string; status?: string; description?: string; created_at?: string }>(`/api/jobs/${bookingId}`),
+    queryFn: async () => {
+      const { data: row, error: err } = await supabase
+        .from('jobs')
+        .select('title, status, description, created_at')
+        .eq('id', bookingId)
+        .single();
+      if (err) throw new Error(err.message);
+      return row as { title?: string; status?: string; description?: string; created_at?: string } | null;
+    },
   });
 
   if (isLoading) {
@@ -29,6 +37,7 @@ export const BookingDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#222222" />

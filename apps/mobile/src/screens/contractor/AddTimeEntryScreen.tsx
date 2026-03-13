@@ -9,12 +9,15 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useToast } from '../../components/ui/Toast';
-import { mobileApiClient } from '../../utils/mobileApiClient';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../../config/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 import type { ProfileStackParamList } from '../../navigation/types';
 
 interface Props {
@@ -24,6 +27,8 @@ interface Props {
 export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const toast = useToast();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const [taskDescription, setTaskDescription] = useState('');
   const [hours, setHours] = useState('');
@@ -44,16 +49,24 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
+    if (!user?.id) {
+      toast.error('Not authenticated', 'Please log in again.');
+      return;
+    }
+
     setLoading(true);
     try {
-      await mobileApiClient.post('/api/contractor/time-tracking', {
-        taskDescription: taskDescription.trim(),
-        durationMinutes: Math.round(parseFloat(hours) * 60),
-        hourlyRate: parseFloat(hourlyRate) || 0,
-        isBillable: billable,
+      const { error: err } = await supabase.from('time_entries').insert({
+        contractor_id: user.id,
+        task_description: taskDescription.trim(),
+        duration_minutes: Math.round(parseFloat(hours) * 60),
+        hourly_rate: parseFloat(hourlyRate) || 0,
+        is_billable: billable,
         date,
-        startTime,
+        start_time: startTime,
       });
+      if (err) throw new Error(err.message);
+      queryClient.invalidateQueries({ queryKey: ['contractor-time-tracking'] });
       toast.success('Time entry added', `${hours}h logged successfully`);
       navigation.goBack();
     } catch {
@@ -68,6 +81,7 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
           <Ionicons name="close" size={24} color="#222222" />

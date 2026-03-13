@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Platform,
   RefreshControl,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -14,7 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface TeamMember {
   id: string;
@@ -28,13 +30,29 @@ interface TeamMember {
 
 export const TeamScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { user } = useAuth();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['contractor-team'],
+    queryKey: ['contractor-team', user?.id],
     queryFn: async () => {
-      const res = await mobileApiClient.get<{ members: TeamMember[] }>('/api/contractor/team');
-      return res.members || [];
+      if (!user?.id) return [];
+      const { data: rows, error: err } = await supabase
+        .from('contractor_team_members')
+        .select('*')
+        .eq('contractor_id', user.id)
+        .order('name', { ascending: true });
+      if (err) throw new Error(err.message);
+      return (rows || []).map((m: Record<string, unknown>): TeamMember => ({
+        id: m.id as string,
+        name: m.name as string || '',
+        role: m.role as string || '',
+        phone: m.phone as string || '',
+        email: m.email as string || '',
+        avatar_url: m.avatar_url as string | undefined,
+        status: (m.status as TeamMember['status']) || 'active',
+      }));
     },
+    enabled: !!user?.id,
   });
 
   const members = data || [];
@@ -44,6 +62,7 @@ export const TeamScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
       <ScreenHeader title="Team" showBack onBack={() => navigation.goBack()} />
 
       <FlatList

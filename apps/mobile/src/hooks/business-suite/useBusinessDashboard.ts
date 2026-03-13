@@ -69,13 +69,13 @@ export const useBusinessDashboard = (contractorId: string) => {
   const { data: clientAnalytics, isLoading: clientsLoading } = useClientAnalytics(contractorId);
   const { getBusinessInsights, calculateGrowthTrend } = useBusinessSuiteFormatters();
   const kpis = metrics ? {
-    revenue: { current: metrics.total_revenue, trend: financialSummary ? calculateGrowthTrend(financialSummary.monthlyRevenue) : null },
+    revenue: { current: metrics.total_revenue, trend: financialSummary ? calculateGrowthTrend(financialSummary.monthly_revenue) : null },
     jobs: { completed: metrics.completed_jobs, total: metrics.total_jobs, completionRate: metrics.completion_rate },
     satisfaction: { rating: metrics.client_satisfaction, trend: clientAnalytics?.trends?.satisfactionTrend.slice(-3) || [] },
-    profitability: { margin: metrics.profit_margin, projection: financialSummary?.yearlyProjection || 0 },
+    profitability: { margin: metrics.profit_margin, projection: financialSummary?.yearly_projection || 0 },
   } : null;
   const actionItems = [
-    ...((financialSummary?.overdueAmount ?? 0) > 0 ? [{ type: "urgent" as const, title: "Overdue Invoices", description: "Overdue payments", action: "Follow up with clients" }] : []),
+    ...((financialSummary?.overdue_amount ?? 0) > 0 ? [{ type: "urgent" as const, title: "Overdue Invoices", description: "Overdue payments", action: "Follow up with clients" }] : []),
     ...(metrics && metrics.response_time_avg > 120 ? [{ type: "warning" as const, title: "Slow Response Time", description: "Average response time over 2 hours", action: "Improve response efficiency" }] : []),
   ];
   return { kpis, insights: metrics ? getBusinessInsights(metrics) : [], actionItems, isLoading: metricsLoading || financialLoading || clientsLoading, lastUpdated: metrics?.updated_at || new Date().toISOString() };

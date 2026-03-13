@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import { ScrollView, TouchableOpacity, Text, View, StyleSheet, Alert, ActivityIndicator, RefreshControl, Platform } from 'react-native';
+import { ScrollView, TouchableOpacity, Text, View, StyleSheet, Alert, ActivityIndicator, RefreshControl, Platform, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader } from '../../components/shared';
@@ -53,6 +53,7 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({ navi
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
       <ScreenHeader
         title="Payment Method"
         onBackPress={() => navigation.goBack()}

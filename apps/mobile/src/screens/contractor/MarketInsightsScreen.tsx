@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Platform,
   RefreshControl,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -14,7 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface DemandCategory {
   id: string;
@@ -30,13 +32,27 @@ const DEMAND_LABELS = { high: 'High Demand', medium: 'Medium', low: 'Low' };
 
 export const MarketInsightsScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { user } = useAuth();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['contractor-market-insights'],
+    queryKey: ['contractor-market-insights', user?.id],
     queryFn: async () => {
-      const res = await mobileApiClient.get<{ categories: DemandCategory[] }>('/api/contractor/market-insights');
-      return res.categories || [];
+      if (!user?.id) return [];
+      const { data: rows, error: err } = await supabase
+        .from('market_insights')
+        .select('*')
+        .order('job_count', { ascending: false });
+      if (err) throw new Error(err.message);
+      return (rows || []).map((c: Record<string, unknown>): DemandCategory => ({
+        id: c.id as string,
+        category: c.category as string || '',
+        demand_level: (c.demand_level as DemandCategory['demand_level']) || 'low',
+        avg_price: (c.avg_price as number) || 0,
+        job_count: (c.job_count as number) || 0,
+        competition_count: (c.competition_count as number) || 0,
+      }));
     },
+    enabled: !!user?.id,
   });
 
   const categories = data || [];
@@ -49,6 +65,7 @@ export const MarketInsightsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
       <ScreenHeader title="Market Insights" showBack onBack={() => navigation.goBack()} />
 
       <FlatList

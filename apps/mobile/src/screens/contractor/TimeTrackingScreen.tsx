@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Platform,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -15,7 +16,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '../../components/ui/Badge';
-import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface TimeEntry {
   id: string;
@@ -30,21 +32,29 @@ interface TimeEntry {
 export const TimeTrackingScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const { user } = useAuth();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['contractor-time-tracking'],
+    queryKey: ['contractor-time-tracking', user?.id],
     queryFn: async () => {
-      try {
-        interface ApiEntry { id: string; taskDescription: string; jobTitle?: string; date: string; duration: number; hourlyRate: number; isBillable: boolean }
-        const res = await mobileApiClient.get<{ entries: ApiEntry[] }>('/api/contractor/time-tracking');
-        return (res.entries || []).map((e): TimeEntry => ({
-          id: e.id, task_description: e.taskDescription, job_title: e.jobTitle,
-          date: e.date, hours: e.duration / 60, hourly_rate: e.hourlyRate, billable: e.isBillable,
-        }));
-      } catch {
-        return [];
-      }
+      if (!user?.id) return [];
+      const { data: rows, error: err } = await supabase
+        .from('time_entries')
+        .select('id, task_description, job_title, date, duration_minutes, hourly_rate, is_billable')
+        .eq('contractor_id', user.id)
+        .order('date', { ascending: false });
+      if (err) throw new Error(err.message);
+      return (rows || []).map((e: Record<string, unknown>): TimeEntry => ({
+        id: e.id as string,
+        task_description: e.task_description as string || '',
+        job_title: e.job_title as string | undefined,
+        date: e.date as string,
+        hours: ((e.duration_minutes as number) || 0) / 60,
+        hourly_rate: (e.hourly_rate as number) || 0,
+        billable: (e.is_billable as boolean) ?? false,
+      }));
     },
+    enabled: !!user?.id,
   });
 
   const entries = data || [];
@@ -70,13 +80,16 @@ export const TimeTrackingScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       {/* Green gradient hero */}
       <LinearGradient
         colors={['#064E3B', '#059669', '#10B981']}
-        style={[styles.hero, { paddingTop: insets.top + 12 }]}
+        style={styles.hero}
       >
         <View style={styles.decorCircle1} />
         <View style={styles.decorCircle2} />
+
+        <View style={{ height: insets.top + 12 }} />
 
         <TouchableOpacity
           style={styles.backButton}

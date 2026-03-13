@@ -8,12 +8,15 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useToast } from '../../components/ui/Toast';
-import { mobileApiClient } from '../../utils/mobileApiClient';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../../config/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 import type { ProfileStackParamList } from '../../navigation/types';
 
 interface Props {
@@ -43,6 +46,8 @@ const toISODate = (ddmmyyyy: string): string | undefined => {
 export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const toast = useToast();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const [certName, setCertName] = useState('');
   const [issuer, setIssuer] = useState('');
@@ -65,16 +70,24 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
+    if (!user?.id) {
+      toast.error('Not authenticated', 'Please log in again.');
+      return;
+    }
+
     setLoading(true);
     try {
-      await mobileApiClient.post('/api/contractor/certifications', {
+      const { error: err } = await supabase.from('contractor_certifications').insert({
+        contractor_id: user.id,
         name: certName.trim(),
         issuer: issuer.trim(),
-        credentialId: credentialId.trim() || undefined,
-        issueDate: issueDateISO,
-        expiryDate: expiryDateISO || undefined,
+        credential_id: credentialId.trim() || null,
+        issue_date: issueDateISO,
+        expiry_date: expiryDateISO || null,
         category: selectedCategory || 'general',
       });
+      if (err) throw new Error(err.message);
+      queryClient.invalidateQueries({ queryKey: ['contractor-certifications'] });
       toast.success('Certification added', `${certName} has been saved`);
       navigation.goBack();
     } catch {
@@ -89,6 +102,7 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
           <Ionicons name="close" size={24} color="#222222" />

@@ -147,7 +147,7 @@ export const HomeownerDashboard: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
 
       {/* Profile dropdown menu */}
       <Modal
@@ -228,14 +228,14 @@ export const HomeownerDashboard: React.FC = () => {
           colors={['#064E3B', '#059669', '#10B981']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.hero, { paddingTop: insets.top + 8 }]}
+          style={styles.hero}
         >
           <View style={styles.heroDecorCircle} />
           <View style={styles.heroDecorSmall} />
           <View style={styles.heroDecorDiamond} />
 
-          {/* Nav bar */}
-          <View style={styles.heroNav}>
+          {/* Nav bar — with safe area top padding */}
+          <View style={[styles.heroNav, { marginTop: insets.top + 8 }]}>
             <TouchableOpacity
               style={styles.brandButton}
               onPress={() => navigation.navigate('HomeTab' as never)}

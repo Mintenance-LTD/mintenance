@@ -8,13 +8,14 @@ import {
   Switch,
   Alert,
   Platform,
+  StatusBar,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '../components/ui/Button';
-import { mobileApiClient } from '../utils/mobileApiClient';
+import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
 interface IconConfig {
@@ -101,9 +102,13 @@ const NotificationSettingsScreen: React.FC = () => {
   const loadSettings = async () => {
     if (!user?.id) return;
     try {
-      const result = await mobileApiClient.get<{ preferences: Record<string, unknown> }>('/api/users/notification-preferences');
-      if (result.preferences) {
-        setSettings((prev) => ({ ...prev, ...result.preferences }));
+      const { data: row } = await supabase
+        .from('notification_preferences')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      if (row) {
+        setSettings((prev) => ({ ...prev, ...row }));
       }
     } catch {
       // Use defaults if no saved preferences
@@ -196,7 +201,10 @@ const NotificationSettingsScreen: React.FC = () => {
     }
     setSaving(true);
     try {
-      await mobileApiClient.patch<{ success: boolean }>('/api/users/notification-preferences', settings);
+      const { error: err } = await supabase
+        .from('notification_preferences')
+        .upsert({ user_id: user.id, ...settings }, { onConflict: 'user_id' });
+      if (err) throw err;
       Alert.alert('Success', 'Notification settings updated!');
       navigation.goBack();
     } catch {
@@ -270,6 +278,7 @@ const NotificationSettingsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           style={styles.backButton}

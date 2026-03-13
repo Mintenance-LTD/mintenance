@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Platform,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -17,6 +18,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
+import { supabase } from '../../config/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 
 interface Escrow {
@@ -32,29 +35,42 @@ const EMPTY_ESCROWS: Escrow[] = [];
 export const PayoutsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const { user } = useAuth();
 
   const { data: escrows, isLoading, error, refetch } = useQuery({
-    queryKey: ['contractor-escrows'],
+    queryKey: ['contractor-escrows', user?.id],
     queryFn: async () => {
-      try {
-        const res = await mobileApiClient.get<{ success: boolean; data: Escrow[] }>('/api/contractor/escrows');
-        return res.data || [];
-      } catch {
-        return EMPTY_ESCROWS;
-      }
+      if (!user?.id) return EMPTY_ESCROWS;
+      const { data: rows, error: err } = await supabase
+        .from('escrow_payments')
+        .select('id, amount, status, created_at, jobs(title)')
+        .eq('contractor_id', user.id)
+        .order('created_at', { ascending: false });
+      if (err) throw new Error(err.message);
+      return (rows || []).map((e: Record<string, unknown>): Escrow => ({
+        id: e.id as string,
+        jobTitle: (e.jobs as Record<string, unknown>)?.title as string || 'Untitled Job',
+        amount: e.amount as number || 0,
+        status: e.status as string || 'pending',
+        createdAt: e.created_at as string,
+      }));
     },
+    enabled: !!user?.id,
   });
 
   const { data: profile } = useQuery({
-    queryKey: ['contractor-stripe-status'],
+    queryKey: ['contractor-stripe-status', user?.id],
     queryFn: async () => {
-      try {
-        const res = await mobileApiClient.get<{ data: { stripe_account_id?: string; stripe_onboarding_complete?: boolean } }>('/api/contractor/profile-data');
-        return res.data;
-      } catch {
-        return null;
-      }
+      if (!user?.id) return null;
+      const { data: row, error: err } = await supabase
+        .from('contractor_profiles')
+        .select('stripe_account_id, stripe_onboarding_complete')
+        .eq('user_id', user.id)
+        .single();
+      if (err) return null;
+      return row;
     },
+    enabled: !!user?.id,
   });
   const hasConnectedStripe = !!profile?.stripe_account_id && !!profile?.stripe_onboarding_complete;
 
@@ -152,14 +168,17 @@ export const PayoutsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       {/* Green gradient hero */}
       <LinearGradient
         colors={['#064E3B', '#059669', '#10B981']}
-        style={[styles.hero, { paddingTop: insets.top + 12 }]}
+        style={styles.hero}
       >
         {/* Decorative circles */}
         <View style={styles.decorCircle1} />
         <View style={styles.decorCircle2} />
+
+        <View style={{ height: insets.top + 12 }} />
 
         {/* Back button */}
         <TouchableOpacity

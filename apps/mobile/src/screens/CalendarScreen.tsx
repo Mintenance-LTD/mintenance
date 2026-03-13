@@ -23,7 +23,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../navigation/types';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { mobileApiClient as apiClient } from '../utils/mobileApiClient';
+import { supabase } from '../config/supabase';
 
 interface ScheduleItem {
   id: string;
@@ -144,22 +144,26 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
   const { data: schedule, isLoading, error, refetch } = useQuery({
     queryKey: ['contractor-schedule', user?.id],
     queryFn: async () => {
-      const response = await apiClient.get<AppointmentsResponse>('/api/appointments');
-      return (response.appointments || []).map((appointment) => ({
-        id: appointment.id,
-        job_id: appointment.jobId || appointment.id,
-        job_title: appointment.jobTitle || appointment.title,
-        date: appointment.date,
-        time_start: appointment.time,
-        time_end: appointment.endTime,
-        type: (appointment.type === 'job' || appointment.type === 'meeting' || appointment.type === 'deadline')
-          ? appointment.type
-          : 'meeting',
-        status: appointment.status,
-        address: appointment.location,
-      })) as ScheduleItem[];
+      if (!user?.id) return [];
+      const { data: rows, error: err } = await supabase
+        .from('appointments')
+        .select('id, job_id, title, date, time_start, time_end, type, status, location, jobs(title)')
+        .eq('contractor_id', user.id)
+        .order('date', { ascending: true });
+      if (err) throw new Error(err.message);
+      return (rows || []).map((a: Record<string, unknown>): ScheduleItem => ({
+        id: a.id as string,
+        job_id: (a.job_id as string) || (a.id as string),
+        job_title: (a.jobs as Record<string, unknown>)?.title as string || (a.title as string) || 'Untitled',
+        date: a.date as string,
+        time_start: a.time_start as string || '09:00',
+        time_end: a.time_end as string | undefined,
+        type: (['job', 'meeting', 'deadline'].includes(a.type as string) ? a.type : 'meeting') as ScheduleItem['type'],
+        status: a.status as string || 'scheduled',
+        address: a.location as string | undefined,
+      }));
     },
-    enabled: !!user,
+    enabled: !!user?.id,
   });
 
   const filteredSchedule = useMemo(() => {
@@ -205,13 +209,15 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
 
       {/* ── Green Gradient Hero ── */}
-      <LinearGradient colors={['#064E3B', '#059669', '#10B981']} style={[styles.hero, { paddingTop: insets.top + 12 }]}>
+      <LinearGradient colors={['#064E3B', '#059669', '#10B981']} style={styles.hero}>
         {/* Decorative circles */}
         <View style={[styles.decorCircle, styles.decorCircle1]} />
         <View style={[styles.decorCircle, styles.decorCircle2]} />
+
+        <View style={{ height: insets.top + 12 }} />
 
         {/* Top bar */}
         <View style={styles.heroTopBar}>

@@ -18,12 +18,15 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 import { HapticService } from '../../utils/haptics';
 import { JobsStackParamList } from '../../navigation/types';
 
@@ -45,6 +48,7 @@ interface ContractDraft {
 export const ContractPreparationScreen: React.FC<Props> = ({ route, navigation }) => {
   const { jobId, jobTitle } = route.params;
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
 
   // Form state
   const [title, setTitle] = useState(jobTitle ? `Contract for ${jobTitle}` : '');
@@ -67,31 +71,33 @@ export const ContractPreparationScreen: React.FC<Props> = ({ route, navigation }
     let cancelled = false;
     const loadData = async () => {
       try {
+        if (!user?.id) return;
+
         const [verificationRes, profileRes, contractsRes] = await Promise.allSettled([
-          mobileApiClient.get<{ verification?: { company_name?: string; license_number?: string } }>('/api/contractor/verification'),
-          mobileApiClient.get<{ profile?: { insurance_provider?: string; insurance_policy_number?: string } }>('/api/contractor/profile-data'),
-          mobileApiClient.get<{ contracts?: ContractDraft[] }>(`/api/contracts?job_id=${jobId}`),
+          supabase.from('contractor_verifications').select('company_name, license_number').eq('contractor_id', user.id).single(),
+          supabase.from('contractor_profiles').select('insurance_provider, insurance_policy_number').eq('user_id', user.id).single(),
+          supabase.from('contracts').select('id, amount, title, description').eq('job_id', jobId).limit(1),
         ]);
 
         if (cancelled) return;
 
-        if (verificationRes.status === 'fulfilled' && verificationRes.value?.verification) {
-          const v = verificationRes.value.verification;
-          if (v.company_name) setCompanyName(v.company_name);
-          if (v.license_number) setLicenseRegistration(v.license_number);
+        if (verificationRes.status === 'fulfilled' && verificationRes.value?.data) {
+          const v = verificationRes.value.data as Record<string, unknown>;
+          if (v.company_name) setCompanyName(v.company_name as string);
+          if (v.license_number) setLicenseRegistration(v.license_number as string);
         }
 
-        if (profileRes.status === 'fulfilled' && profileRes.value?.profile) {
-          const p = profileRes.value.profile;
-          if (p.insurance_provider) setInsuranceProvider(p.insurance_provider);
-          if (p.insurance_policy_number) setInsurancePolicyNumber(p.insurance_policy_number);
+        if (profileRes.status === 'fulfilled' && profileRes.value?.data) {
+          const p = profileRes.value.data as Record<string, unknown>;
+          if (p.insurance_provider) setInsuranceProvider(p.insurance_provider as string);
+          if (p.insurance_policy_number) setInsurancePolicyNumber(p.insurance_policy_number as string);
         }
 
-        if (contractsRes.status === 'fulfilled' && contractsRes.value?.contracts?.[0]) {
-          const c = contractsRes.value.contracts[0];
+        if (contractsRes.status === 'fulfilled' && contractsRes.value?.data?.[0]) {
+          const c = contractsRes.value.data[0] as Record<string, unknown>;
           if (c.amount) setAmount(String(c.amount));
-          if (c.title) setTitle(c.title);
-          if (c.description) setDescription(c.description);
+          if (c.title) setTitle(c.title as string);
+          if (c.description) setDescription(c.description as string);
         }
       } catch {
         // Non-critical - form still works without pre-fill
@@ -169,6 +175,7 @@ export const ContractPreparationScreen: React.FC<Props> = ({ route, navigation }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel="Go back">

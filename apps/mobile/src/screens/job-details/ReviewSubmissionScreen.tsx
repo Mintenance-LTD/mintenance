@@ -16,6 +16,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -67,6 +68,7 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({ route, navigation }) =
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity

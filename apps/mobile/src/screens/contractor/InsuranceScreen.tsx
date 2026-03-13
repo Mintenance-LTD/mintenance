@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Platform,
   RefreshControl,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -14,7 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface InsurancePolicy {
   id: string;
@@ -45,13 +47,32 @@ const formatCurrency = (amount: number) =>
 
 export const InsuranceScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { user } = useAuth();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['contractor-insurance'],
+    queryKey: ['contractor-insurance', user?.id],
     queryFn: async () => {
-      const res = await mobileApiClient.get<{ policies: InsurancePolicy[] }>('/api/contractor/insurance');
-      return res.policies || [];
+      if (!user?.id) return [];
+      const { data: rows, error: err } = await supabase
+        .from('contractor_insurance')
+        .select('*')
+        .eq('contractor_id', user.id)
+        .order('expiry_date', { ascending: false });
+      if (err) throw new Error(err.message);
+      return (rows || []).map((p: Record<string, unknown>): InsurancePolicy => ({
+        id: p.id as string,
+        type: p.type as string || '',
+        provider: p.provider as string || '',
+        policy_number: p.policy_number as string || '',
+        coverage_amount: p.coverage_amount as number || 0,
+        expiry_date: p.expiry_date as string,
+        status: (p.status as InsurancePolicy['status']) || 'pending',
+        public_liability: p.public_liability as number || 0,
+        professional_indemnity: p.professional_indemnity as number || 0,
+        document_url: p.document_url as string | undefined,
+      }));
     },
+    enabled: !!user?.id,
   });
 
   const policies = data || [];
@@ -61,6 +82,7 @@ export const InsuranceScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
       <ScreenHeader title="Insurance" showBack onBack={() => navigation.goBack()} />
 
       <FlatList

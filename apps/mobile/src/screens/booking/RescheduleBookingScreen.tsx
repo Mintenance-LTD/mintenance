@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Platform,
   ScrollView,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -75,6 +76,7 @@ export const RescheduleBookingScreen: React.FC<Props> = ({ navigation, route }) 
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#222222" />

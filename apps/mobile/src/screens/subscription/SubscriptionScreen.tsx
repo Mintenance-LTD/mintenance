@@ -9,6 +9,7 @@ import {
   Platform,
   ActivityIndicator,
   TouchableOpacity,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -165,6 +166,7 @@ export const SubscriptionScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
       <ScreenHeader title="Subscription" showBack onBack={() => navigation.goBack()} />
 
       <ScrollView

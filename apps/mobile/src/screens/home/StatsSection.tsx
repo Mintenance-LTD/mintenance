@@ -56,55 +56,25 @@ const STAT_CONFIG: StatConfig[] = [
 
 export const StatsSection: React.FC<StatsSectionProps> = ({ stats }) => {
   return (
-    <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle} accessibilityRole="header">
-          Your Stats
-        </Text>
-        <Text style={styles.sectionSubtitle}>Overview</Text>
-      </View>
-
-      <View style={styles.grid}>
-        {STAT_CONFIG.map((cfg) => (
-          <View
-            key={cfg.label}
-            style={styles.card}
-            accessibilityLabel={`${cfg.label}: ${cfg.getValue(stats)}`}
-          >
-            <View style={[styles.iconWrap, { backgroundColor: cfg.iconBg }]}>
-              <Ionicons name={cfg.icon} size={20} color={cfg.iconColor} accessible={false} />
-            </View>
-            <Text style={styles.value}>{cfg.getValue(stats)}</Text>
-            <Text style={styles.label}>{cfg.label}</Text>
+    <View style={styles.grid}>
+      {STAT_CONFIG.map((cfg) => (
+        <View
+          key={cfg.label}
+          style={styles.card}
+          accessibilityLabel={`${cfg.label}: ${cfg.getValue(stats)}`}
+        >
+          <View style={[styles.iconWrap, { backgroundColor: cfg.iconBg }]}>
+            <Ionicons name={cfg.icon} size={20} color={cfg.iconColor} accessible={false} />
           </View>
-        ))}
-      </View>
+          <Text style={styles.value}>{cfg.getValue(stats)}</Text>
+          <Text style={styles.label}>{cfg.label}</Text>
+        </View>
+      ))}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  section: {
-    marginBottom: 28,
-    marginTop: 20,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#222222',
-    letterSpacing: -0.3,
-  },
-  sectionSubtitle: {
-    fontSize: 13,
-    color: '#B0B0B0',
-    fontWeight: '400',
-  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
