@@ -11,6 +11,7 @@ import {
   RefreshControl,
   Alert,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,7 +20,7 @@ import { RouteProp } from '@react-navigation/native';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
 import type { Property } from '@mintenance/types';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { Badge } from '../../components/ui/Badge';
@@ -53,17 +54,28 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
 
   const { data: property, isLoading, error, refetch } = useQuery({
     queryKey: ['property', propertyId],
-    queryFn: () => apiClient.get<Property>(`/api/properties/${propertyId}`),
+    queryFn: async () => {
+      const { data, error: err } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('id', propertyId)
+        .single();
+      if (err) throw new Error(err.message);
+      return data as Property;
+    },
     enabled: !!user && !!propertyId,
   });
 
   const { data: jobsData } = useQuery({
     queryKey: ['property-jobs', propertyId],
     queryFn: async () => {
-      const res = await apiClient.get<{ jobs: Array<{ id: string; title: string; status: string; budget?: number; created_at: string }> }>(
-        `/api/jobs?propertyId=${propertyId}`
-      );
-      return res.jobs || [];
+      const { data: rows, error: err } = await supabase
+        .from('jobs')
+        .select('id, title, status, budget, created_at')
+        .eq('property_id', propertyId)
+        .order('created_at', { ascending: false });
+      if (err) return [];
+      return rows || [];
     },
     enabled: !!user && !!propertyId,
   });
@@ -74,7 +86,10 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
     .reduce((sum, j) => sum + (j.budget || 0), 0);
 
   const deleteMutation = useMutation({
-    mutationFn: () => apiClient.delete(`/api/properties/${propertyId}`),
+    mutationFn: async () => {
+      const { error: err } = await supabase.from('properties').delete().eq('id', propertyId);
+      if (err) throw new Error(err.message);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['properties'] });
       navigation.goBack();
@@ -111,6 +126,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
       <ScreenHeader
         title="Property Details"
         showBack

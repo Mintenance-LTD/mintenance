@@ -12,7 +12,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, ScrollView,
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
-import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
 import { QuickJobModalProps, SearchSegment, URGENCY_OPTIONS, JOB_CATEGORIES, Property } from './QuickJobSteps/types';
 import { WherePanel } from './QuickJobSteps/WherePanel';
 import { WhenPanel } from './QuickJobSteps/WhenPanel';
@@ -29,8 +29,13 @@ export const QuickJobModal: React.FC<QuickJobModalProps> = ({ visible, onClose, 
     queryKey: ['properties', user?.id],
     queryFn: async () => {
       try {
-        const res = await apiClient.get<{ properties: Property[] }>('/api/properties');
-        return res?.properties ?? [];
+        const { data: rows, error: err } = await supabase
+          .from('properties')
+          .select('id, property_name, address, property_type')
+          .eq('owner_id', user!.id)
+          .order('property_name', { ascending: true });
+        if (err) return [];
+        return (rows || []) as Property[];
       } catch {
         return [];
       }

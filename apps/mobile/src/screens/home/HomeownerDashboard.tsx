@@ -28,7 +28,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { JobService } from '../../services/JobService';
 import { BidService } from '../../services/BidService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
 
 import { logger } from '../../utils/logger';
 import { RecentJobs } from './RecentJobs';
@@ -92,8 +92,13 @@ export const HomeownerDashboard: React.FC = () => {
     queryKey: ['unreadNotifications', user?.id],
     queryFn: async () => {
       try {
-        const res = await apiClient.get<{ count: number }>('/api/notifications/unread-count');
-        return res.count || 0;
+        const { count, error } = await supabase
+          .from('notifications')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user!.id)
+          .eq('read', false);
+        if (error) return 0;
+        return count || 0;
       } catch {
         return 0;
       }
@@ -106,8 +111,25 @@ export const HomeownerDashboard: React.FC = () => {
   const { data: appointments } = useQuery({
     queryKey: ['appointments', user?.id],
     queryFn: async () => {
-      const res = await apiClient.get<{ appointments: Array<{ id: string; title: string; date: string; time: string; contractor?: { name: string } }> }>('/api/appointments');
-      return res.appointments || [];
+      const today = new Date().toISOString().split('T')[0];
+      const { data: rows, error: err } = await supabase
+        .from('bookings')
+        .select('id, title, date, time, contractor:contractor_id(full_name)')
+        .eq('homeowner_id', user!.id)
+        .gte('date', today)
+        .order('date', { ascending: true })
+        .limit(10);
+      if (err) return [];
+      return (rows || []).map((r: Record<string, unknown>) => {
+        const contractor = r.contractor as Record<string, unknown> | null;
+        return {
+          id: r.id as string,
+          title: r.title as string || '',
+          date: r.date as string,
+          time: r.time as string || '',
+          contractor: contractor ? { name: contractor.full_name as string } : undefined,
+        };
+      });
     },
     enabled: !!user,
   });
