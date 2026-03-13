@@ -19,9 +19,10 @@ interface ProfileHeaderUser {
 interface ProfileHeaderProps {
   user: ProfileHeaderUser | null;
   joinDate: string;
+  topInset?: number;
 }
 
-export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate }) => {
+export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate, topInset = 0 }) => {
   const firstName = user?.first_name || user?.firstName || '';
   const lastName = user?.last_name || user?.lastName || '';
   const displayName =
@@ -38,17 +39,18 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate }) 
   const isContractor = user?.role === 'contractor';
   const gradientColors: [string, string, string] = isContractor
     ? ['#064E3B', '#059669', '#10B981']
-    : ['#1E40AF', '#3B82F6', '#10B981'];
+    : ['#064E3B', '#059669', '#10B981'];
 
   return (
     <LinearGradient
       colors={gradientColors}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
-      style={styles.hero}
+      style={[styles.hero, { paddingTop: topInset + 20 }]}
     >
       <View style={styles.decor1} />
       <View style={styles.decor2} />
+      <View style={styles.decor3} />
 
       <View style={styles.avatarRing}>
         {avatarUri ? (
@@ -110,19 +112,17 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate }) 
 
 const styles = StyleSheet.create({
   hero: {
-    paddingTop: 32,
     paddingBottom: 28,
     paddingHorizontal: 24,
     alignItems: 'center',
-    marginBottom: 16,
     overflow: 'hidden',
   },
   decor1: {
     position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(255,255,255,0.06)',
     top: -60,
     right: -50,
   },
@@ -131,9 +131,19 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     bottom: -40,
     left: -30,
+  },
+  decor3: {
+    position: 'absolute',
+    width: 50,
+    height: 50,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    top: 100,
+    right: 70,
+    transform: [{ rotate: '45deg' }],
+    borderRadius: 6,
   },
   avatarRing: {
     width: 100,

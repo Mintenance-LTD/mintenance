@@ -11,7 +11,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 
 interface DashboardHeaderProps {
   userName: string;
@@ -55,7 +54,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             <Ionicons
               name="person"
               size={24}
-              color={theme.colors.textSecondary}
+              color="#717171"
             />
           </View>
         </TouchableOpacity>
@@ -78,7 +77,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           <Ionicons
             name="notifications-outline"
             size={24}
-            color={theme.colors.textPrimary}
+            color="#222222"
           />
           {unreadNotifications > 0 && (
             <View style={styles.badge} accessible={false}>
@@ -99,7 +98,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           <Ionicons
             name="settings-outline"
             size={24}
-            color={theme.colors.textPrimary}
+            color="#222222"
           />
         </TouchableOpacity>
       </View>
@@ -112,9 +111,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing[5],
-    paddingVertical: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
   },
   userInfo: {
     flexDirection: 'row',
@@ -122,36 +121,34 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   profileButton: {
-    marginRight: theme.spacing[3],
+    marginRight: 12,
   },
   avatarPlaceholder: {
-    width: theme.spacing['2xl'],
-    height: theme.spacing['2xl'],
-    borderRadius: theme.spacing.lg,
-    backgroundColor: theme.colors.background,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F7F7F7',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: theme.colors.borderLight,
   },
   greetingContainer: {
     flex: 1,
   },
   greeting: {
-    fontSize: theme.typography.briefSizes.body,
-    color: theme.colors.textSecondary,
-    fontWeight: theme.typography.fontWeight.regular,
+    fontSize: 14,
+    color: '#717171',
+    fontWeight: '400',
   },
   userName: {
-    fontSize: theme.typography.briefSizes.title,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#222222',
     marginTop: 2,
   },
   roleText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
-    fontWeight: theme.typography.fontWeight.medium,
+    color: '#717171',
+    fontWeight: '500',
     marginTop: 1,
   },
   actionButtons: {
@@ -159,30 +156,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconButton: {
-    width: theme.layout.minTouchTarget,
-    height: theme.layout.minTouchTarget,
+    width: 44,
+    height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: theme.spacing.sm,
+    marginLeft: 8,
     position: 'relative',
   },
   badge: {
     position: 'absolute',
     top: -2,
     right: -2,
-    backgroundColor: theme.colors.error,
+    backgroundColor: '#EF4444',
     borderRadius: 10,
-    minWidth: theme.spacing[5],
-    height: theme.spacing[5],
+    minWidth: 20,
+    height: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.xs,
+    paddingHorizontal: 4,
   },
   badgeText: {
-    color: theme.colors.white,
+    color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
   },
 });

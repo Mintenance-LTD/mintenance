@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
-import { theme } from '../../theme';
 
 interface BudgetRangeSliderProps {
   minValue: string;
@@ -28,7 +27,7 @@ export const BudgetRangeSlider: React.FC<BudgetRangeSliderProps> = ({
           onChangeText={onMinChange}
           keyboardType="numeric"
           placeholder="Min"
-          placeholderTextColor={theme.colors.textTertiary}
+          placeholderTextColor="#B0B0B0"
           accessibilityLabel="Minimum budget"
         />
       </View>
@@ -43,7 +42,7 @@ export const BudgetRangeSlider: React.FC<BudgetRangeSliderProps> = ({
           onChangeText={onMaxChange}
           keyboardType="numeric"
           placeholder="Max"
-          placeholderTextColor={theme.colors.textTertiary}
+          placeholderTextColor="#B0B0B0"
           accessibilityLabel="Maximum budget"
         />
       </View>
@@ -60,8 +59,8 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     marginBottom: 8,
   },
   row: {
@@ -73,23 +72,21 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#F7F7F7',
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
   prefix: {
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textSecondary,
+    fontWeight: '600',
+    color: '#717171',
     marginRight: 4,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: theme.colors.textPrimary,
+    color: '#222222',
     padding: 0,
   },
   separator: {
@@ -99,12 +96,12 @@ const styles = StyleSheet.create({
   dash: {
     width: 12,
     height: 2,
-    backgroundColor: theme.colors.textTertiary,
+    backgroundColor: '#B0B0B0',
     borderRadius: 1,
   },
   errorText: {
     fontSize: 12,
-    color: theme.colors.error,
+    color: '#EF4444',
     marginTop: 4,
   },
 });

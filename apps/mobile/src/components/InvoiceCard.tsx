@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../theme';
 import { Invoice } from '../services/contractor-business';
 import { useI18n } from '../hooks/useI18n';
 
@@ -18,6 +17,20 @@ interface InvoiceCardProps {
   onMarkPaid: () => void;
 }
 
+const STATUS_COLORS: Record<string, string> = {
+  paid: '#10B981',
+  overdue: '#EF4444',
+  sent: '#F59E0B',
+  draft: '#717171',
+};
+
+const STATUS_ICONS: Record<string, string> = {
+  paid: 'checkmark-circle',
+  overdue: 'warning',
+  sent: 'mail',
+  draft: 'document-outline',
+};
+
 export const InvoiceCard: React.FC<InvoiceCardProps> = ({
   invoice,
   onPress,
@@ -25,35 +38,8 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
   onMarkPaid,
 }) => {
   const { formatters } = useI18n();
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return theme.colors.success;
-      case 'overdue':
-        return theme.colors.error;
-      case 'sent':
-        return theme.colors.warning;
-      case 'draft':
-        return theme.colors.textSecondary;
-      default:
-        return theme.colors.primary;
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return 'checkmark-circle';
-      case 'overdue':
-        return 'warning';
-      case 'sent':
-        return 'mail';
-      case 'draft':
-        return 'document-outline';
-      default:
-        return 'document';
-    }
-  };
+  const statusColor = STATUS_COLORS[invoice.status] || '#222222';
+  const statusIcon = STATUS_ICONS[invoice.status] || 'document';
 
   const isOverdue = invoice.status === 'overdue';
   const canSendReminder = invoice.status === 'sent' || isOverdue;
@@ -72,13 +58,13 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
         <View
           style={[
             styles.statusBadge,
-            { backgroundColor: getStatusColor(invoice.status) },
+            { backgroundColor: statusColor },
           ]}
         >
           <Ionicons
-            name={getStatusIcon(invoice.status) as keyof typeof Ionicons.glyphMap}
+            name={statusIcon as keyof typeof Ionicons.glyphMap}
             size={14}
-            color={theme.colors.textInverse}
+            color="#FFFFFF"
           />
           <Text style={styles.statusText}>{invoice.status.toUpperCase()}</Text>
         </View>
@@ -97,7 +83,7 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
             <Ionicons
               name='time-outline'
               size={14}
-              color={theme.colors.error}
+              color="#EF4444"
             />
             <Text style={styles.overdueText}>
               {Math.ceil(
@@ -125,7 +111,7 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
             <Ionicons
               name='mail-outline'
               size={16}
-              color={theme.colors.primary}
+              color="#222222"
             />
             <Text style={styles.reminderButtonText}>Send Reminder</Text>
           </TouchableOpacity>
@@ -139,7 +125,7 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
             <Ionicons
               name='checkmark-circle-outline'
               size={16}
-              color={theme.colors.success}
+              color="#10B981"
             />
             <Text style={styles.paidButtonText}>Mark Paid</Text>
           </TouchableOpacity>
@@ -151,11 +137,21 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   header: {
     flexDirection: 'row',
@@ -168,12 +164,12 @@ const styles = StyleSheet.create({
   },
   invoiceNumber: {
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
   },
   clientName: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginTop: 2,
   },
   statusBadge: {
@@ -181,12 +177,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: 6,
   },
   statusText: {
     fontSize: 11,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textInverse,
+    fontWeight: '600',
+    color: '#FFFFFF',
     marginLeft: 4,
   },
   details: {
@@ -200,12 +196,12 @@ const styles = StyleSheet.create({
   },
   amount: {
     fontSize: 18,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
   },
   dueDate: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   overdueContainer: {
     flexDirection: 'row',
@@ -214,13 +210,13 @@ const styles = StyleSheet.create({
   },
   overdueText: {
     fontSize: 12,
-    color: theme.colors.error,
+    color: '#EF4444',
     marginLeft: 4,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontWeight: '500',
   },
   reminderText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     fontStyle: 'italic',
   },
   actions: {
@@ -233,27 +229,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: theme.borderRadius.sm,
-    borderWidth: 1,
+    borderRadius: 12,
   },
   reminderButton: {
-    borderColor: theme.colors.primary,
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    backgroundColor: '#F7F7F7',
   },
   reminderButtonText: {
     fontSize: 12,
-    color: theme.colors.primary,
+    color: '#222222',
     marginLeft: 4,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontWeight: '500',
   },
   paidButton: {
-    borderColor: theme.colors.success,
-    backgroundColor: 'rgba(52, 199, 89, 0.1)',
+    backgroundColor: '#D1FAE5',
   },
   paidButtonText: {
     fontSize: 12,
-    color: theme.colors.success,
+    color: '#10B981',
     marginLeft: 4,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontWeight: '500',
   },
 });

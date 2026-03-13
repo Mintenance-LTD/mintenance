@@ -13,7 +13,6 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 
 interface CreateServiceAreaModalProps {
   visible: boolean;
@@ -138,7 +137,7 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
           <View style={styles.header}>
             <Text style={styles.title}>Add Service Area</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeBtn} disabled={isLoading}>
-              <Ionicons name="close" size={22} color={theme.colors.textPrimary} />
+              <Ionicons name="close" size={22} color="#222222" />
             </TouchableOpacity>
           </View>
 
@@ -152,7 +151,7 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
             <TextInput
               style={styles.input}
               placeholder="e.g. Cheltenham Central"
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor="#B0B0B0"
               value={areaName}
               onChangeText={setAreaName}
               editable={!isLoading}
@@ -163,7 +162,7 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
             <TextInput
               style={styles.input}
               placeholder="e.g. GL50 1QN or Cheltenham"
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor="#B0B0B0"
               value={postcode}
               onChangeText={setPostcode}
               autoCapitalize="characters"
@@ -203,7 +202,7 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
             >
               <View style={[styles.checkbox, isPrimary && styles.checkboxChecked]}>
                 {isPrimary && (
-                  <Ionicons name="checkmark" size={14} color={theme.colors.textInverse} />
+                  <Ionicons name="checkmark" size={14} color="#FFFFFF" />
                 )}
               </View>
               <View style={styles.checkLabel}>
@@ -222,7 +221,7 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
             disabled={isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator size="small" color={theme.colors.textInverse} />
+              <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <Text style={styles.submitText}>Save Service Area</Text>
             )}
@@ -240,7 +239,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: 32,
@@ -252,13 +251,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   title: {
     fontSize: 18,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
   },
   closeBtn: {
     padding: 4,
@@ -269,24 +268,22 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textSecondary,
+    fontWeight: '500',
+    color: '#717171',
     marginBottom: 6,
     marginTop: 14,
   },
   input: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.base,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: theme.colors.textPrimary,
-    backgroundColor: theme.colors.surface,
+    color: '#222222',
   },
   hint: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
     marginTop: 4,
   },
   radiusRow: {
@@ -299,21 +296,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#F7F7F7',
   },
   radiusChipActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
   },
   radiusChipText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
-    fontWeight: theme.typography.fontWeight.medium,
+    color: '#717171',
+    fontWeight: '500',
   },
   radiusChipTextActive: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
   },
   checkRow: {
     flexDirection: 'row',
@@ -327,33 +321,33 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: theme.colors.border,
+    borderColor: '#EBEBEB',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 1,
   },
   checkboxChecked: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: '#222222',
+    borderColor: '#222222',
   },
   checkLabel: {
     flex: 1,
   },
   checkTitle: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontWeight: '500',
+    color: '#222222',
   },
   checkSub: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
     marginTop: 2,
   },
   submitBtn: {
     marginHorizontal: 20,
     marginTop: 16,
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.base,
+    backgroundColor: '#222222',
+    borderRadius: 28,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
@@ -362,8 +356,8 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   submitText: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
   },
 });

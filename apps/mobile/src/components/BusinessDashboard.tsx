@@ -8,7 +8,6 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../theme';
 import { styles } from './businessDashboardStyles';
 import {
   useBusinessDashboard,
@@ -47,7 +46,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   if (dashboard.isLoading && !dashboard.kpis) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size='large' color={theme.colors.primary} />
+        <ActivityIndicator size='large' color='#222222' />
         <Text style={styles.loadingText}>Loading business dashboard...</Text>
       </View>
     );
@@ -90,10 +89,10 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
             size={16}
             color={
               trend.trend === 'growing'
-                ? theme.colors.success
+                ? '#10B981'
                 : trend.trend === 'declining'
-                  ? theme.colors.error
-                  : theme.colors.textSecondary
+                  ? '#EF4444'
+                  : '#717171'
             }
           />
           <Text
@@ -102,10 +101,10 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
               {
                 color:
                   trend.trend === 'growing'
-                    ? theme.colors.success
+                    ? '#10B981'
                     : trend.trend === 'declining'
-                      ? theme.colors.error
-                      : theme.colors.textSecondary,
+                      ? '#EF4444'
+                      : '#717171',
               },
             ]}
           >
@@ -125,10 +124,10 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
         {
           borderLeftColor:
             insight.type === 'success'
-              ? theme.colors.success
+              ? '#10B981'
               : insight.type === 'warning'
-                ? theme.colors.warning
-                : theme.colors.info,
+                ? '#F59E0B'
+                : '#3B82F6',
         },
       ]}
     >
@@ -147,7 +146,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
         styles.actionItem,
         {
           borderColor:
-            item.type === 'urgent' ? theme.colors.error : theme.colors.warning,
+            item.type === 'urgent' ? '#EF4444' : '#F59E0B',
         },
       ]}
     >
@@ -156,7 +155,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
           name={item.type === 'urgent' ? 'alert-circle' : 'warning'}
           size={20}
           color={
-            item.type === 'urgent' ? theme.colors.error : theme.colors.warning
+            item.type === 'urgent' ? '#EF4444' : '#F59E0B'
           }
         />
         <Text style={styles.actionTitle}>{item.title}</Text>
@@ -177,7 +176,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
           <Ionicons
             name='document-text'
             size={24}
-            color={theme.colors.primary}
+            color='#222222'
           />
           <Text style={styles.quickActionText}>Create Invoice</Text>
         </TouchableOpacity>
@@ -186,7 +185,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
           style={styles.quickActionButton}
           onPress={() => onNavigate?.('RecordExpense')}
         >
-          <Ionicons name='receipt' size={24} color={theme.colors.primary} />
+          <Ionicons name='receipt' size={24} color='#222222' />
           <Text style={styles.quickActionText}>Log Expense</Text>
         </TouchableOpacity>
 
@@ -194,7 +193,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
           style={styles.quickActionButton}
           onPress={() => onNavigate?.('UpdateSchedule')}
         >
-          <Ionicons name='calendar' size={24} color={theme.colors.primary} />
+          <Ionicons name='calendar' size={24} color='#222222' />
           <Text style={styles.quickActionText}>Update Schedule</Text>
         </TouchableOpacity>
 
@@ -202,7 +201,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
           style={styles.quickActionButton}
           onPress={() => onNavigate?.('ViewClients')}
         >
-          <Ionicons name='people' size={24} color={theme.colors.primary} />
+          <Ionicons name='people' size={24} color='#222222' />
           <Text style={styles.quickActionText}>Manage Clients</Text>
         </TouchableOpacity>
       </View>
@@ -213,7 +212,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
     <ScrollView
       style={styles.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor='#222222' colors={['#222222']} />
       }
       showsVerticalScrollIndicator={false}
     >
@@ -236,7 +235,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
               'This month',
               dashboard.kpis.revenue.trend,
               'cash',
-              theme.colors.success,
+              '#10B981',
               () => onNavigate?.('FinancialSummary')
             )}
 
@@ -246,7 +245,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
               `${dashboard.kpis.jobs.total} total jobs`,
               null,
               'hammer',
-              theme.colors.primary,
+              '#222222',
               () => onNavigate?.('JobsAnalytics')
             )}
 
@@ -256,7 +255,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
               'Average rating',
               null,
               'star',
-              theme.colors.warning,
+              '#F59E0B',
               () => onNavigate?.('ClientAnalytics')
             )}
 
@@ -294,7 +293,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
                     <View
                       style={[
                         styles.healthBarFill,
-                        { width: '85%', backgroundColor: theme.colors.success },
+                        { width: '85%', backgroundColor: '#10B981' },
                       ]}
                     />
                   </View>
@@ -305,7 +304,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
                     <View
                       style={[
                         styles.healthBarFill,
-                        { width: '92%', backgroundColor: theme.colors.success },
+                        { width: '92%', backgroundColor: '#10B981' },
                       ]}
                     />
                   </View>
@@ -316,7 +315,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
                     <View
                       style={[
                         styles.healthBarFill,
-                        { width: '78%', backgroundColor: theme.colors.warning },
+                        { width: '78%', backgroundColor: '#F59E0B' },
                       ]}
                     />
                   </View>
@@ -361,7 +360,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
             <Ionicons
               name='document-text'
               size={32}
-              color={theme.colors.primary}
+              color='#222222'
             />
             <Text style={styles.toolTitle}>Invoice Manager</Text>
             <Text style={styles.toolDescription}>
@@ -373,7 +372,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
             style={styles.toolCard}
             onPress={() => onNavigate?.('ExpenseTracker')}
           >
-            <Ionicons name='receipt' size={32} color={theme.colors.primary} />
+            <Ionicons name='receipt' size={32} color='#222222' />
             <Text style={styles.toolTitle}>Expense Tracker</Text>
             <Text style={styles.toolDescription}>
               Log and categorize expenses
@@ -384,7 +383,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
             style={styles.toolCard}
             onPress={() => onNavigate?.('ScheduleManager')}
           >
-            <Ionicons name='calendar' size={32} color={theme.colors.primary} />
+            <Ionicons name='calendar' size={32} color='#222222' />
             <Text style={styles.toolTitle}>Schedule Manager</Text>
             <Text style={styles.toolDescription}>
               Manage availability and bookings
@@ -395,7 +394,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
             style={styles.toolCard}
             onPress={() => onNavigate?.('ClientCRM')}
           >
-            <Ionicons name='people' size={32} color={theme.colors.primary} />
+            <Ionicons name='people' size={32} color='#222222' />
             <Text style={styles.toolTitle}>Client CRM</Text>
             <Text style={styles.toolDescription}>
               Manage client relationships
@@ -406,7 +405,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
             style={styles.toolCard}
             onPress={() => onNavigate?.('MarketingHub')}
           >
-            <Ionicons name='megaphone' size={32} color={theme.colors.primary} />
+            <Ionicons name='megaphone' size={32} color='#222222' />
             <Text style={styles.toolTitle}>Marketing Hub</Text>
             <Text style={styles.toolDescription}>Promote your services</Text>
           </TouchableOpacity>
@@ -415,7 +414,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
             style={styles.toolCard}
             onPress={() => onNavigate?.('BusinessGoals')}
           >
-            <Ionicons name='flag' size={32} color={theme.colors.primary} />
+            <Ionicons name='flag' size={32} color='#222222' />
             <Text style={styles.toolTitle}>Business Goals</Text>
             <Text style={styles.toolDescription}>Set and track objectives</Text>
           </TouchableOpacity>
@@ -428,7 +427,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
           style={styles.reportButton}
           onPress={() => onNavigate?.('BusinessReport')}
         >
-          <Ionicons name='bar-chart' size={20} color={theme.colors.textInverse} />
+          <Ionicons name='bar-chart' size={20} color='#FFFFFF' />
           <Text style={styles.reportButtonText}>Generate Business Report</Text>
         </TouchableOpacity>
       </View>

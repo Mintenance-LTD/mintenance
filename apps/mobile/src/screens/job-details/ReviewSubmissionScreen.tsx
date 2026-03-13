@@ -21,7 +21,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { theme } from '../../theme';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { HapticService } from '../../utils/haptics';
 import { JobsStackParamList } from '../../navigation/types';
@@ -76,7 +75,7 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({ route, navigation }) =
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color="#222222" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Leave a Review</Text>
         <View style={styles.headerSpacer} />
@@ -117,7 +116,7 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({ route, navigation }) =
                   <Ionicons
                     name={star <= rating ? 'star' : 'star-outline'}
                     size={40}
-                    color={star <= rating ? theme.colors.warning : theme.colors.textTertiary}
+                    color={star <= rating ? '#F59E0B' : '#B0B0B0'}
                   />
                 </TouchableOpacity>
               ))}
@@ -139,7 +138,7 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({ route, navigation }) =
             <TextInput
               style={styles.commentInput}
               placeholder="Share your experience with this job..."
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor="#B0B0B0"
               multiline
               numberOfLines={6}
               textAlignVertical="top"
@@ -173,10 +172,10 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({ route, navigation }) =
           accessibilityLabel="Submit review"
         >
           {submitting ? (
-            <ActivityIndicator color={theme.colors.textInverse} />
+            <ActivityIndicator color="#FFFFFF" />
           ) : (
             <>
-              <Ionicons name="send" size={20} color={theme.colors.textInverse} />
+              <Ionicons name="send" size={20} color="#FFFFFF" />
               <Text style={styles.submitButtonText}>Submit Review</Text>
             </>
           )}
@@ -189,7 +188,7 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({ route, navigation }) =
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
   flex: {
     flex: 1,
@@ -197,134 +196,141 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
-    backgroundColor: theme.colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
+    backgroundColor: '#FFFFFF',
   },
   backButton: {
-    width: theme.spacing[10],
-    height: theme.spacing[10],
-    borderRadius: theme.borderRadius.full,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F7F7F7',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     flex: 1,
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    marginLeft: theme.spacing.sm,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222222',
+    marginLeft: 8,
   },
   headerSpacer: {
-    width: theme.spacing[10],
+    width: 44,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: theme.spacing[5],
+    padding: 20,
   },
   jobInfoCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.xl,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   jobTitle: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222222',
   },
   contractorName: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.xs,
+    fontSize: 13,
+    color: '#717171',
+    marginTop: 4,
   },
   ratingSection: {
     alignItems: 'center',
-    marginBottom: theme.spacing.xl,
+    marginBottom: 24,
   },
   sectionLabel: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.md,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222222',
+    marginBottom: 12,
     alignSelf: 'flex-start',
   },
   starsRow: {
     flexDirection: 'row',
-    gap: theme.spacing.sm,
+    gap: 8,
   },
   starButton: {
-    padding: theme.spacing.xs,
+    padding: 4,
   },
   ratingLabel: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
-    marginTop: theme.spacing.sm,
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#222222',
+    marginTop: 8,
   },
   commentSection: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: 20,
   },
   commentInput: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.xl,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
-    padding: theme.spacing.md,
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textPrimary,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    fontSize: 15,
+    color: '#222222',
     minHeight: 140,
     lineHeight: 22,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   charCount: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textTertiary,
-    marginTop: theme.spacing.sm,
+    fontSize: 12,
+    color: '#B0B0B0',
+    marginTop: 8,
     textAlign: 'right',
   },
   charCountWarning: {
-    color: theme.colors.warning,
+    color: '#F59E0B',
   },
   charCountNearLimit: {
-    color: theme.colors.error,
+    color: '#EF4444',
   },
   bottomBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: theme.colors.surface,
-    paddingHorizontal: theme.spacing[5],
-    paddingTop: theme.spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
-    ...theme.shadows.large,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#EBEBEB',
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.08, shadowRadius: 12 },
+      android: { elevation: 8 },
+    }),
   },
   submitButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.xl,
-    paddingVertical: theme.spacing.md,
+    backgroundColor: '#222222',
+    borderRadius: 28,
+    paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: theme.spacing.sm,
-    minHeight: theme.layout.buttonHeightLarge,
+    gap: 8,
+    minHeight: 56,
   },
   submitButtonDisabled: {
     opacity: 0.5,
   },
   submitButtonText: {
-    color: theme.colors.textInverse,
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
 export default ReviewSubmissionScreen;
-

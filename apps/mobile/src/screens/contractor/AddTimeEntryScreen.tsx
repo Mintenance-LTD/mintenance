@@ -13,7 +13,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { theme } from '../../theme';
 import { useToast } from '../../components/ui/Toast';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { ProfileStackParamList } from '../../navigation/types';
@@ -71,7 +70,7 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
     >
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
+          <Ionicons name="close" size={24} color="#222222" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Time Entry</Text>
         <TouchableOpacity
@@ -80,7 +79,7 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
           disabled={loading || !isValid}
         >
           <Text style={[styles.saveButtonText, (!isValid || loading) && styles.saveButtonDisabled]}>
-            {loading ? 'Saving…' : 'Save'}
+            {loading ? 'Saving\u2026' : 'Save'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -91,26 +90,26 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
           <TextInput
             style={styles.input}
             placeholder="e.g. Plumbing inspection at Oak Lane"
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor="#B0B0B0"
             value={taskDescription}
             onChangeText={setTaskDescription}
             multiline
           />
 
-          <Text style={[styles.fieldLabel, { marginTop: theme.spacing.md }]}>Date</Text>
+          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Date</Text>
           <View style={styles.readonlyRow}>
-            <Ionicons name="calendar-outline" size={18} color={theme.colors.textTertiary} />
+            <Ionicons name="calendar-outline" size={18} color="#B0B0B0" />
             <Text style={styles.readonlyValue}>
               {new Date(date).toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
             </Text>
           </View>
 
-          <Text style={[styles.fieldLabel, { marginTop: theme.spacing.md }]}>Hours *</Text>
+          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Hours *</Text>
           <View style={styles.inputRow}>
             <TextInput
               style={[styles.input, styles.inputSmall]}
               placeholder="0.0"
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor="#B0B0B0"
               value={hours}
               onChangeText={setHours}
               keyboardType="decimal-pad"
@@ -118,13 +117,13 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.inputSuffix}>hours</Text>
           </View>
 
-          <Text style={[styles.fieldLabel, { marginTop: theme.spacing.md }]}>Hourly Rate (£)</Text>
+          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Hourly Rate (\u00A3)</Text>
           <View style={styles.inputRow}>
-            <Text style={styles.inputPrefix}>£</Text>
+            <Text style={styles.inputPrefix}>\u00A3</Text>
             <TextInput
               style={[styles.input, styles.inputSmall]}
               placeholder="0.00"
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor="#B0B0B0"
               value={hourlyRate}
               onChangeText={setHourlyRate}
               keyboardType="decimal-pad"
@@ -135,7 +134,7 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Estimated total</Text>
               <Text style={styles.totalValue}>
-                £{(parseFloat(hours || '0') * parseFloat(hourlyRate || '0')).toFixed(2)}
+                \u00A3{(parseFloat(hours || '0') * parseFloat(hourlyRate || '0')).toFixed(2)}
               </Text>
             </View>
           ) : null}
@@ -148,8 +147,8 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
             <Switch
               value={billable}
               onValueChange={setBillable}
-              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-              thumbColor={theme.colors.background}
+              trackColor={{ false: '#EBEBEB', true: '#222222' }}
+              thumbColor="#FFFFFF"
             />
           </View>
         </View>
@@ -159,83 +158,82 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.surfaceSecondary },
+  container: { flex: 1, backgroundColor: '#F7F7F7' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.md,
-    paddingBottom: theme.spacing[3],
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
-  headerButton: { padding: theme.spacing.sm, width: 60 },
-  headerTitle: { fontSize: theme.typography.fontSize.lg, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
+  headerButton: { padding: 8, width: 60 },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#222222' },
   saveButton: { alignItems: 'flex-end' },
-  saveButtonText: { fontSize: theme.typography.fontSize.md, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
+  saveButtonText: { fontSize: 16, fontWeight: '700', color: '#222222' },
   saveButtonDisabled: { opacity: 0.5 },
-  content: { padding: theme.spacing.md },
+  content: { padding: 16 },
   card: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.xl,
-    padding: theme.spacing[5],
-    ...theme.shadows.base,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   fieldLabel: {
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#B0B0B0',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     marginBottom: 6,
   },
   input: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing[3],
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textPrimary,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    color: '#222222',
   },
-  inputRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
+  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   inputSmall: { width: 120 },
-  inputPrefix: { fontSize: theme.typography.fontSize.lg, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textSecondary },
-  inputSuffix: { fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary },
+  inputPrefix: { fontSize: 18, fontWeight: '600', color: '#717171' },
+  inputSuffix: { fontSize: 14, color: '#717171' },
   readonlyRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.sm,
+    gap: 8,
     paddingVertical: 10,
-    paddingHorizontal: theme.spacing[3],
-    backgroundColor: theme.colors.surfaceSecondary,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    paddingHorizontal: 14,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
   },
-  readonlyValue: { fontSize: theme.typography.fontSize.base, color: theme.colors.textPrimary },
+  readonlyValue: { fontSize: 15, color: '#222222' },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: theme.spacing[3],
-    padding: theme.spacing[3],
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: theme.borderRadius.md,
+    marginTop: 14,
+    padding: 14,
+    backgroundColor: '#D1FAE5',
+    borderRadius: 12,
   },
-  totalLabel: { fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary },
-  totalValue: { fontSize: theme.typography.fontSize.md, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
+  totalLabel: { fontSize: 14, color: '#717171' },
+  totalValue: { fontSize: 17, fontWeight: '700', color: '#222222' },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: theme.spacing[5],
-    paddingTop: theme.spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#EBEBEB',
   },
-  switchSubtitle: { fontSize: theme.typography.fontSize.xs, color: theme.colors.textTertiary, marginTop: 2 },
+  switchSubtitle: { fontSize: 12, color: '#B0B0B0', marginTop: 2 },
 });
 
 export default AddTimeEntryScreen;

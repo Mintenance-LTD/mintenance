@@ -10,12 +10,12 @@ import {
   StyleSheet,
   RefreshControl,
   Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { theme } from '../../theme';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -35,7 +35,9 @@ const InfoRow: React.FC<{
   value: string;
 }> = ({ icon, label, value }) => (
   <View style={styles.infoRow}>
-    <Ionicons name={icon} size={18} color={theme.colors.textSecondary} />
+    <View style={styles.infoIconWrap}>
+      <Ionicons name={icon} size={16} color="#717171" />
+    </View>
     <View style={styles.infoContent}>
       <Text style={styles.infoLabel}>{label}</Text>
       <Text style={styles.infoValue}>{value}</Text>
@@ -115,7 +117,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
         onBack={() => navigation.goBack()}
         rightComponent={
           <TouchableOpacity onPress={handleDelete} accessibilityLabel="Delete property">
-            <Ionicons name="trash-outline" size={22} color={theme.colors.error} />
+            <Ionicons name="trash-outline" size={22} color="#EF4444" />
           </TouchableOpacity>
         }
       />
@@ -123,11 +125,13 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#222222" colors={['#222222']} />
         }
       >
         <View style={styles.addressCard}>
-          <Ionicons name="home" size={32} color={theme.colors.textSecondary} />
+          <View style={styles.addressIconWrap}>
+            <Ionicons name="home" size={24} color="#3B82F6" />
+          </View>
           <Text style={styles.addressLine1}>{property.property_name}</Text>
           <Text style={styles.addressCity}>
             {property.address}
@@ -135,7 +139,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Property Information</Text>
+          <Text style={styles.sectionTitle}>PROPERTY INFORMATION</Text>
 
           <InfoRow
             icon="business-outline"
@@ -178,7 +182,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
 
         {property.notes && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Notes</Text>
+            <Text style={styles.sectionTitle}>NOTES</Text>
             <Text style={styles.notesText}>{property.notes}</Text>
           </View>
         )}
@@ -186,15 +190,22 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
         {/* Job History */}
         <View style={styles.section}>
           <View style={styles.jobHistoryHeader}>
-            <Text style={styles.sectionTitle}>Job History</Text>
+            <Text style={styles.sectionTitle}>JOB HISTORY</Text>
             {totalSpent > 0 && (
-              <Text style={styles.totalSpent}>
-                {'\u00A3'}{totalSpent.toLocaleString('en-GB')} spent
-              </Text>
+              <View style={styles.totalSpentBadge}>
+                <Text style={styles.totalSpentText}>
+                  {'\u00A3'}{totalSpent.toLocaleString('en-GB')} spent
+                </Text>
+              </View>
             )}
           </View>
           {propertyJobs.length === 0 ? (
-            <Text style={styles.emptyJobsText}>No jobs for this property yet.</Text>
+            <View style={styles.emptyJobsWrap}>
+              <View style={styles.emptyJobsIcon}>
+                <Ionicons name="briefcase-outline" size={20} color="#B0B0B0" />
+              </View>
+              <Text style={styles.emptyJobsText}>No jobs for this property yet.</Text>
+            </View>
           ) : (
             propertyJobs.map((job) => (
               <TouchableOpacity
@@ -233,115 +244,151 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
   content: {
-    padding: theme.spacing[4],
+    padding: 16,
   },
   addressCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing[5],
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
     alignItems: 'center',
-    marginBottom: theme.spacing[4],
-    ...theme.shadows.sm,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
+  },
+  addressIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#DBEAFE',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addressLine1: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    marginTop: theme.spacing[3],
-    textAlign: 'center',
-  },
-  addressLine2: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing[1],
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#222222',
+    marginTop: 12,
     textAlign: 'center',
   },
   addressCity: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing[1],
+    fontSize: 15,
+    color: '#717171',
+    marginTop: 4,
     textAlign: 'center',
   },
   section: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing[4],
-    marginBottom: theme.spacing[4],
-    ...theme.shadows.sm,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   sectionTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[3],
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#B0B0B0',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 12,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing[2],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
+  },
+  infoIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   infoContent: {
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginLeft: theme.spacing[3],
+    marginLeft: 12,
   },
   infoLabel: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textSecondary,
+    fontSize: 15,
+    color: '#717171',
   },
   infoValue: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222222',
   },
   notesText: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textSecondary,
+    fontSize: 15,
+    color: '#717171',
     lineHeight: 22,
   },
   jobHistoryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing[3],
+    marginBottom: 12,
   },
-  totalSpent: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+  totalSpentBadge: {
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  totalSpentText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  emptyJobsWrap: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  emptyJobsIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
   emptyJobsText: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textTertiary,
+    fontSize: 14,
+    color: '#B0B0B0',
     textAlign: 'center',
-    paddingVertical: theme.spacing[4],
   },
   jobRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   jobRowInfo: {
     flex: 1,
-    marginRight: theme.spacing[3],
+    marginRight: 12,
   },
   jobRowTitle: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222222',
   },
   jobRowDate: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textTertiary,
+    fontSize: 12,
+    color: '#B0B0B0',
     marginTop: 2,
   },
   jobRowRight: {
@@ -349,9 +396,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   jobRowBudget: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#222222',
   },
 });
 

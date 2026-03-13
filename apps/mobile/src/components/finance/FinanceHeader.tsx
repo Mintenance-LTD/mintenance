@@ -4,7 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { theme } from '../../theme';
 
 interface FinanceHeaderProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList>;
@@ -19,7 +18,7 @@ export const FinanceHeader: React.FC<FinanceHeaderProps> = ({ navigation }) => {
         onPress={() => navigation.goBack()}
         testID="back-button"
       >
-        <Ionicons name='arrow-back' size={24} color={theme.colors.textPrimary} />
+        <Ionicons name='arrow-back' size={24} color='#222222' />
       </TouchableOpacity>
       <Text style={styles.headerTitle}>Finance Dashboard</Text>
       <TouchableOpacity
@@ -27,7 +26,7 @@ export const FinanceHeader: React.FC<FinanceHeaderProps> = ({ navigation }) => {
         onPress={() => navigation.navigate('Reporting')}
         testID="export-button"
       >
-        <Ionicons name='document-text' size={24} color={theme.colors.textPrimary} />
+        <Ionicons name='document-text' size={24} color='#222222' />
       </TouchableOpacity>
     </View>
   );
@@ -40,20 +39,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   backButton: {
     padding: 8,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
   },
   exportButton: {
     padding: 8,
   },
 });
-

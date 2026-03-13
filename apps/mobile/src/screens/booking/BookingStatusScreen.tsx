@@ -1,6 +1,6 @@
 /**
  * BookingStatusScreen Container
- * 
+ *
  * Main container component that orchestrates the booking status functionality
  * and manages the overall state and navigation.
  */
@@ -11,7 +11,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
-import { theme } from '../../theme';
 import { BookingTabs } from './BookingTabs';
 import { BookingList } from './BookingList';
 import { BookingLoading } from './BookingLoading';
@@ -111,7 +110,6 @@ export const BookingStatusScreen: React.FC<{
   };
 
   const handleRescheduleBooking = (booking: Booking) => {
-    // Navigation logic would be handled here
     (navigation as { navigate: (screen: string, params?: Record<string, unknown>) => void }).navigate('RescheduleBooking', { bookingId: booking.id });
   };
 
@@ -135,9 +133,9 @@ export const BookingStatusScreen: React.FC<{
   // Error state
   if (error) {
     return (
-      <BookingError 
-        error={error} 
-        onRetry={loadBookings} 
+      <BookingError
+        error={error}
+        onRetry={loadBookings}
       />
     );
   }
@@ -153,7 +151,7 @@ export const BookingStatusScreen: React.FC<{
       )}
       {!loading && !error && bookings.filter(b => b.status === activeTab).length === 0 && (
         <View accessibilityRole="summary" style={{ padding: 24 }}>
-          <Text style={{ color: theme.colors.textSecondary }}>
+          <Text style={{ color: '#717171' }}>
             {activeTab === 'upcoming' && 'No upcoming bookings yet. Browse services to get started.'}
             {activeTab === 'completed' && 'No completed bookings yet.'}
             {activeTab === 'cancelled' && 'No cancelled bookings.'}
@@ -191,9 +189,8 @@ export const BookingStatusScreen: React.FC<{
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
 });
 
 export default BookingStatusScreen;
-

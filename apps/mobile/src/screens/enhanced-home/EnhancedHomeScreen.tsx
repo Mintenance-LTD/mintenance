@@ -1,9 +1,9 @@
 /**
  * EnhancedHomeScreen Container
- * 
+ *
  * Main container for enhanced home screen with special offers and services.
  * Orchestrates components and delegates logic to ViewModel.
- * 
+ *
  * @filesize Target: <100 lines
  * @compliance MVVM - Thin container, delegates to ViewModel
  */
@@ -11,7 +11,6 @@
 import React from 'react';
 import { ScrollView, StyleSheet, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { theme } from '../../theme';
 import { ErrorView } from '../../components/shared';
 import { SkeletonDashboard } from '../../components/ui/LoadingStates';
 import { useEnhancedHomeViewModel } from './viewmodels/EnhancedHomeViewModel';
@@ -26,12 +25,10 @@ import {
 export const EnhancedHomeScreen: React.FC = () => {
   const viewModel = useEnhancedHomeViewModel();
 
-  // Loading state
   if (viewModel.loading) {
     return <SkeletonDashboard />;
   }
 
-  // Error state
   if (viewModel.error) {
     return (
       <ErrorView
@@ -43,7 +40,7 @@ export const EnhancedHomeScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.background} />
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
       <LocationHeader
         location={viewModel.location}
         onLocationPress={() => { }}
@@ -84,7 +81,7 @@ export const EnhancedHomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
   scrollView: {
     flex: 1,

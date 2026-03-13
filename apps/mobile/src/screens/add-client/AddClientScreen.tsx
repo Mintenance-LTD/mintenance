@@ -6,11 +6,11 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { theme } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../components/ui/Toast';
 import { ClientManagementService } from '../../services/client-management';
@@ -79,7 +79,7 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color="#222222" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Client</Text>
         <TouchableOpacity
@@ -87,19 +87,19 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
           onPress={handleSubmit}
           disabled={submitting}
         >
-          <Text style={styles.saveText}>{submitting ? 'Saving…' : 'Save'}</Text>
+          <Text style={styles.saveText}>{submitting ? 'Saving\u2026' : 'Save'}</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Contact Details</Text>
+          <Text style={styles.sectionTitle}>CONTACT DETAILS</Text>
 
           <Text style={styles.fieldLabel}>First Name *</Text>
           <TextInput
             style={styles.input}
             placeholder="First name"
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor="#B0B0B0"
             value={firstName}
             onChangeText={setFirstName}
             autoCapitalize="words"
@@ -109,7 +109,7 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
           <TextInput
             style={styles.input}
             placeholder="Last name"
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor="#B0B0B0"
             value={lastName}
             onChangeText={setLastName}
             autoCapitalize="words"
@@ -119,7 +119,7 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
           <TextInput
             style={styles.input}
             placeholder="email@example.com"
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor="#B0B0B0"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -130,7 +130,7 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
           <TextInput
             style={styles.input}
             placeholder="+44 7700 900000"
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor="#B0B0B0"
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
@@ -138,11 +138,11 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Business (Optional)</Text>
+          <Text style={styles.sectionTitle}>BUSINESS (OPTIONAL)</Text>
           <TextInput
             style={styles.input}
             placeholder="Company name"
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor="#B0B0B0"
             value={companyName}
             onChangeText={setCompanyName}
             autoCapitalize="words"
@@ -150,11 +150,11 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notes</Text>
+          <Text style={styles.sectionTitle}>NOTES</Text>
           <TextInput
             style={[styles.input, styles.notesInput]}
-            placeholder="Additional notes about this client…"
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholder="Additional notes about this client\u2026"
+            placeholderTextColor="#B0B0B0"
             value={notes}
             onChangeText={setNotes}
             multiline
@@ -170,44 +170,45 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.surfaceSecondary },
+  container: { flex: 1, backgroundColor: '#F7F7F7' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   headerButton: { padding: 8, minWidth: 60 },
   headerButtonDisabled: { opacity: 0.5 },
-  headerTitle: { fontSize: 18, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
-  saveText: { fontSize: 16, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary, textAlign: 'right' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#222222' },
+  saveText: { fontSize: 16, fontWeight: '700', color: '#222222', textAlign: 'right' },
   scroll: { flex: 1 },
   section: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     marginTop: 16,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 16,
     padding: 16,
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
-  sectionTitle: { fontSize: 14, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textSecondary, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
-  fieldLabel: { fontSize: 13, color: theme.colors.textSecondary, marginBottom: 6, marginTop: 4 },
+  sectionTitle: { fontSize: 12, fontWeight: '700', color: '#B0B0B0', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.8 },
+  fieldLabel: { fontSize: 13, color: '#717171', marginBottom: 6, marginTop: 4 },
   input: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: theme.colors.textPrimary,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#222222',
     marginBottom: 8,
   },
-  notesInput: { height: 100, paddingTop: 10 },
+  notesInput: { height: 100, paddingTop: 12 },
 });
 
 export default AddClientScreen;

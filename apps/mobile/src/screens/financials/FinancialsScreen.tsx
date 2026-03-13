@@ -6,16 +6,16 @@ import {
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
+  Platform,
+  StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
-import { Card } from '../../components/ui/Card';
-import { Badge } from '../../components/ui/Badge';
-import { theme } from '../../theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { LoadingSpinner, ErrorView } from '../../components/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { ProfileStackParamList } from '../../navigation/types';
 
@@ -26,18 +26,33 @@ interface PaymentRecord {
   created_at: string;
   job_title?: string;
   payment_type?: string;
+  category?: string;
 }
 
-const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  completed: { bg: theme.colors.primaryLight, text: theme.colors.success },
-  held: { bg: theme.colors.backgroundSecondary, text: theme.colors.info },
-  released: { bg: theme.colors.primaryLight, text: theme.colors.success },
-  refunded: { bg: theme.colors.accentLight, text: theme.colors.warning },
-  pending: { bg: theme.colors.backgroundSecondary, text: theme.colors.textSecondary },
+const CATEGORY_CONFIG: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string; label: string }> = {
+  plumbing: { icon: 'water-outline', color: '#3B82F6', label: 'Plumbing' },
+  electrical: { icon: 'flash-outline', color: '#F59E0B', label: 'Electrical' },
+  roofing: { icon: 'home-outline', color: '#EF4444', label: 'Roofing' },
+  painting: { icon: 'color-palette-outline', color: '#8B5CF6', label: 'Painting' },
+  carpentry: { icon: 'hammer-outline', color: '#F97316', label: 'Carpentry' },
+  landscaping: { icon: 'leaf-outline', color: '#10B981', label: 'Landscaping' },
+  cleaning: { icon: 'sparkles-outline', color: '#06B6D4', label: 'Cleaning' },
+  hvac: { icon: 'thermometer-outline', color: '#EC4899', label: 'HVAC' },
+  general: { icon: 'construct-outline', color: '#717171', label: 'General' },
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  completed: '#10B981',
+  held: '#3B82F6',
+  released: '#10B981',
+  release_pending: '#F59E0B',
+  refunded: '#F59E0B',
+  pending: '#B0B0B0',
 };
 
 export const FinancialsScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<ProfileStackParamList>>();
+  const insets = useSafeAreaInsets();
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['homeowner-financials'],
@@ -52,32 +67,48 @@ export const FinancialsScreen: React.FC = () => {
       const payments = paymentsRes.payments || [];
 
       const totalSpent = payments
-        .filter((p) => p.status === 'completed' || p.status === 'released')
+        .filter((p) => ['completed', 'released', 'release_pending'].includes(p.status))
         .reduce((sum, p) => sum + p.amount, 0);
 
       const inEscrow = payments
-        .filter((p) => p.status === 'held')
+        .filter((p) => p.status === 'held' || p.status === 'pending')
         .reduce((sum, p) => sum + p.amount, 0);
 
       const refunded = payments
         .filter((p) => p.status === 'refunded')
         .reduce((sum, p) => sum + p.amount, 0);
 
+      const now = new Date();
       const thisMonth = payments
         .filter((p) => {
           const d = new Date(p.created_at);
-          const now = new Date();
           return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
         })
         .reduce((sum, p) => sum + p.amount, 0);
+
+      // Build category breakdown from payments
+      const categoryTotals: Record<string, number> = {};
+      for (const p of payments.filter((pay) => ['completed', 'released', 'release_pending'].includes(pay.status))) {
+        const cat = p.category || 'general';
+        categoryTotals[cat] = (categoryTotals[cat] || 0) + p.amount;
+      }
+
+      const categoryBreakdown = Object.entries(categoryTotals)
+        .map(([category, amount]) => ({
+          category,
+          amount,
+          percentage: totalSpent > 0 ? Math.round((amount / totalSpent) * 100) : 0,
+        }))
+        .sort((a, b) => b.amount - a.amount);
 
       return {
         totalSpent,
         inEscrow,
         refunded,
         thisMonth,
-        recentPayments: payments.slice(0, 5),
+        recentPayments: payments.slice(0, 8),
         subscription: subscriptionRes.subscription,
+        categoryBreakdown,
       };
     },
   });
@@ -86,210 +117,709 @@ export const FinancialsScreen: React.FC = () => {
   if (error) return <ErrorView message="Failed to load financial data" onRetry={refetch} />;
   if (!data) return <ErrorView message="No financial data available" onRetry={refetch} />;
 
-  const formatAmount = (amount: number) => `\u00A3${amount.toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;
+  const fmt = (amount: number) => `\u00A3${amount.toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;
+
+  // Budget overview values
+  const budgeted = data.totalSpent + data.inEscrow + data.refunded;
+  const spent = data.totalSpent;
+  const left = Math.max(budgeted - spent, 0);
+  const spentPct = budgeted > 0 ? Math.min((spent / budgeted) * 100, 100) : 0;
+
+  // Donut segments
+  const donutSegments = data.categoryBreakdown.length > 0
+    ? data.categoryBreakdown.slice(0, 5)
+    : [{ category: 'general', amount: 0, percentage: 100 }];
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScreenHeader title="Financials" showBack onBack={() => navigation.goBack()} />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor="#FFFFFF" colors={['#10B981']} />}
       >
-        {/* KPI Cards */}
-        <View style={styles.kpiGrid}>
-          <Card variant="elevated" padding="sm" style={styles.kpiCard}>
-            <Text style={styles.kpiLabel}>Total Spent</Text>
-            <Text style={styles.kpiValue}>{formatAmount(data.totalSpent)}</Text>
-          </Card>
-          <Card variant="elevated" padding="sm" style={styles.kpiCard}>
-            <Text style={styles.kpiLabel}>In Escrow</Text>
-            <Text style={styles.kpiValue}>{formatAmount(data.inEscrow)}</Text>
-          </Card>
-          <Card variant="elevated" padding="sm" style={styles.kpiCard}>
-            <Text style={styles.kpiLabel}>Refunded</Text>
-            <Text style={styles.kpiValue}>{formatAmount(data.refunded)}</Text>
-          </Card>
-          <Card variant="elevated" padding="sm" style={styles.kpiCard}>
-            <Text style={styles.kpiLabel}>This Month</Text>
-            <Text style={styles.kpiValue}>{formatAmount(data.thisMonth)}</Text>
-          </Card>
-        </View>
+        {/* Full-Bleed Gradient Hero — extends to very top */}
+        <LinearGradient
+          colors={['#064E3B', '#059669', '#10B981']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.hero, { paddingTop: insets.top + 12 }]}
+        >
+          <View style={styles.heroDecorCircle} />
+          <View style={styles.heroDecorSmall} />
+          <View style={styles.heroDecorDiamond} />
 
-        {/* Subscription Status */}
-        {data.subscription && (
-          <Card variant="elevated" padding="md" style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Subscription</Text>
-              <Badge variant={data.subscription.status === 'active' ? 'success' : 'warning'} size="sm">
-                {data.subscription.status}
-              </Badge>
-            </View>
-            <Text style={styles.subscriptionPlan}>
-              {data.subscription.planType} Plan
-            </Text>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Subscription')}
-              style={styles.manageLink}
-            >
-              <Text style={styles.manageLinkText}>Manage Subscription</Text>
-              <Ionicons name="chevron-forward" size={16} color={theme.colors.textSecondary} />
+          {/* Back button + title row */}
+          <View style={styles.heroNav}>
+            <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
             </TouchableOpacity>
-          </Card>
-        )}
-
-        {/* Recent Transactions */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Transactions</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('PaymentHistory')}>
-              <Text style={styles.viewAllText}>View All</Text>
-            </TouchableOpacity>
+            <Text style={styles.heroNavTitle}>My Finances</Text>
+            <View style={{ width: 24 }} />
           </View>
 
-          {data.recentPayments.length === 0 ? (
-            <Text style={styles.emptyText}>No transactions yet.</Text>
-          ) : (
-            data.recentPayments.map((payment) => {
-              const colors = STATUS_COLORS[payment.status] || STATUS_COLORS.pending;
-              return (
-                <View key={payment.id} style={styles.transactionRow}>
-                  <View style={styles.transactionInfo}>
-                    <Text style={styles.transactionTitle} numberOfLines={1}>
-                      {payment.job_title || 'Payment'}
-                    </Text>
-                    <Text style={styles.transactionDate}>
-                      {new Date(payment.created_at).toLocaleDateString('en-GB')}
-                    </Text>
+          {/* Main amount */}
+          <Text style={styles.heroLabel}>Total Spent</Text>
+          <Text style={styles.heroAmount}>{fmt(data.totalSpent)}</Text>
+
+          {/* Stats row */}
+          <View style={styles.heroStatsRow}>
+            <View style={styles.heroStat}>
+              <Text style={styles.heroStatValue}>{fmt(data.thisMonth)}</Text>
+              <Text style={styles.heroStatLabel}>This Month</Text>
+            </View>
+            <View style={styles.heroStatDivider} />
+            <View style={styles.heroStat}>
+              <Text style={styles.heroStatValue}>{fmt(data.inEscrow)}</Text>
+              <Text style={styles.heroStatLabel}>In Escrow</Text>
+            </View>
+          </View>
+        </LinearGradient>
+
+        {/* Stat Cards — horizontal row, overlapping hero bottom */}
+        <View style={styles.statCardsRow}>
+          <View style={styles.statCard}>
+            <Ionicons name="card-outline" size={16} color="#10B981" />
+            <Text style={styles.statCardValue}>{fmt(data.totalSpent)}</Text>
+            <Text style={styles.statCardLabel}>Spent</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Ionicons name="lock-closed-outline" size={16} color="#3B82F6" />
+            <Text style={styles.statCardValue}>{fmt(data.inEscrow)}</Text>
+            <Text style={styles.statCardLabel}>Escrow</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Ionicons name="arrow-undo-outline" size={16} color="#F59E0B" />
+            <Text style={styles.statCardValue}>{fmt(data.refunded)}</Text>
+            <Text style={styles.statCardLabel}>Refunded</Text>
+          </View>
+        </View>
+
+        {/* Content area with padding */}
+        <View style={styles.contentBody}>
+          {/* Budget Overview */}
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Budget Overview</Text>
+              <Ionicons name="chevron-forward" size={18} color="#B0B0B0" />
+            </View>
+
+            <View style={styles.budgetRow}>
+              <View style={styles.budgetItem}>
+                <Text style={styles.budgetLabel}>Budgeted</Text>
+                <Text style={styles.budgetValue}>{fmt(budgeted)}</Text>
+              </View>
+              <View style={styles.budgetItem}>
+                <Text style={styles.budgetLabel}>Spent</Text>
+                <Text style={[styles.budgetValue, { color: '#EF4444' }]}>{fmt(spent)}</Text>
+              </View>
+              <View style={styles.budgetItem}>
+                <Text style={styles.budgetLabel}>Left</Text>
+                <Text style={[styles.budgetValue, { color: '#10B981' }]}>{fmt(left)}</Text>
+              </View>
+            </View>
+
+            <View style={styles.budgetBarBg}>
+              <View style={[styles.budgetBarFill, { width: `${spentPct}%` }]} />
+            </View>
+            <Text style={styles.budgetHint}>
+              {spentPct < 80 ? 'You are on track!' : spentPct < 100 ? 'Getting close to budget' : 'Over budget'}
+            </Text>
+          </View>
+
+          {/* Spending Breakdown — Donut + Categories */}
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>Spending Breakdown</Text>
+
+            {data.categoryBreakdown.length > 0 && (
+              <View style={styles.donutContainer}>
+                <View style={styles.donutOuter}>
+                  <View style={styles.donutInner}>
+                    <Text style={styles.donutTotal}>{fmt(data.totalSpent)}</Text>
+                    <Text style={styles.donutLabel}>Total</Text>
                   </View>
-                  <View style={styles.transactionRight}>
-                    <Text style={styles.transactionAmount}>{formatAmount(payment.amount)}</Text>
-                    <View style={[styles.statusDot, { backgroundColor: colors.text }]} />
+                </View>
+
+                <View style={styles.donutLegend}>
+                  {donutSegments.map((seg) => {
+                    const config = CATEGORY_CONFIG[seg.category] || CATEGORY_CONFIG.general;
+                    return (
+                      <View key={seg.category} style={styles.legendItem}>
+                        <View style={[styles.legendDot, { backgroundColor: config.color }]} />
+                        <Text style={styles.legendLabel}>{config.label}</Text>
+                        <Text style={styles.legendPercent}>{seg.percentage}%</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+
+            {/* Category Progress Bars */}
+            {data.categoryBreakdown.slice(0, 6).map((cat) => {
+              const config = CATEGORY_CONFIG[cat.category] || CATEGORY_CONFIG.general;
+              const barWidth = Math.max(cat.percentage, 4);
+              return (
+                <View key={cat.category} style={styles.categoryRow}>
+                  <View style={[styles.categoryIconWrap, { backgroundColor: `${config.color}18` }]}>
+                    <Ionicons name={config.icon} size={16} color={config.color} />
+                  </View>
+                  <View style={styles.categoryInfo}>
+                    <View style={styles.categoryTopRow}>
+                      <Text style={styles.categoryName}>{config.label}</Text>
+                      <Text style={styles.categoryAmount}>{fmt(cat.amount)}</Text>
+                    </View>
+                    <View style={styles.progressBarBg}>
+                      <View style={[styles.progressBarFill, { width: `${barWidth}%`, backgroundColor: config.color }]} />
+                    </View>
                   </View>
                 </View>
               );
-            })
+            })}
+
+            {data.categoryBreakdown.length === 0 && (
+              <View style={styles.emptyWrap}>
+                <Text style={styles.emptyText}>No spending data yet</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Subscription Status */}
+          {data.subscription && (
+            <TouchableOpacity
+              style={styles.subscriptionCard}
+              onPress={() => navigation.navigate('Subscription')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.subscriptionLeft}>
+                <View style={[styles.subscriptionIcon, { backgroundColor: data.subscription.status === 'active' ? '#D1FAE5' : '#FEF3C7' }]}>
+                  <Ionicons
+                    name={data.subscription.status === 'active' ? 'shield-checkmark' : 'shield-outline'}
+                    size={20}
+                    color={data.subscription.status === 'active' ? '#10B981' : '#F59E0B'}
+                  />
+                </View>
+                <View>
+                  <Text style={styles.subscriptionTitle}>{data.subscription.planType} Plan</Text>
+                  <Text style={styles.subscriptionStatus}>
+                    {data.subscription.status === 'active' ? 'Active' : data.subscription.status}
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#B0B0B0" />
+            </TouchableOpacity>
           )}
+
+          {/* Recent Transactions */}
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recent Transactions</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('PaymentHistory')}>
+                <Text style={styles.viewAllText}>View All</Text>
+              </TouchableOpacity>
+            </View>
+
+            {data.recentPayments.length === 0 ? (
+              <View style={styles.emptyWrap}>
+                <View style={styles.emptyIcon}>
+                  <Ionicons name="receipt-outline" size={24} color="#B0B0B0" />
+                </View>
+                <Text style={styles.emptyTitle}>No transactions yet</Text>
+                <Text style={styles.emptySubtext}>Your payment history will appear here</Text>
+              </View>
+            ) : (
+              data.recentPayments.map((payment, index) => {
+                const cat = payment.category || 'general';
+                const config = CATEGORY_CONFIG[cat] || CATEGORY_CONFIG.general;
+                const statusColor = STATUS_COLORS[payment.status] || STATUS_COLORS.pending;
+                const isLast = index === data.recentPayments.length - 1;
+
+                return (
+                  <View key={payment.id} style={[styles.transactionRow, isLast && styles.transactionRowLast]}>
+                    <View style={[styles.transactionIcon, { backgroundColor: `${config.color}18` }]}>
+                      <Ionicons name={config.icon} size={18} color={config.color} />
+                    </View>
+                    <View style={styles.transactionInfo}>
+                      <Text style={styles.transactionTitle} numberOfLines={1}>
+                        {payment.job_title || 'Payment'}
+                      </Text>
+                      <Text style={styles.transactionDate}>
+                        {new Date(payment.created_at).toLocaleDateString('en-GB', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </Text>
+                    </View>
+                    <View style={styles.transactionRight}>
+                      <Text style={styles.transactionAmount}>{fmt(payment.amount)}</Text>
+                      <View style={styles.transactionStatusWrap}>
+                        <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+                        <Text style={[styles.transactionStatus, { color: statusColor }]}>
+                          {payment.status.replace(/_/g, ' ')}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </View>
+
+          <View style={styles.bottomSpacer} />
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: '#F7F7F7',
   },
   scrollView: {
     flex: 1,
   },
-  content: {
-    padding: theme.layout.screenPadding,
-    paddingBottom: theme.spacing[10],
+  scrollContent: {
+    paddingBottom: 40,
   },
-  kpiGrid: {
+
+  // Full-bleed Hero
+  hero: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    overflow: 'hidden',
+  },
+  heroDecorCircle: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    top: -50,
+    right: -40,
+  },
+  heroDecorSmall: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    bottom: 10,
+    left: -20,
+  },
+  heroDecorDiamond: {
+    position: 'absolute',
+    width: 50,
+    height: 50,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    top: 80,
+    right: 60,
+    transform: [{ rotate: '45deg' }],
+    borderRadius: 6,
+  },
+  heroNav: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: theme.spacing[3],
-    marginBottom: theme.spacing[6],
-  },
-  kpiCard: {
-    flex: 1,
-    minWidth: '45%',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+    zIndex: 1,
   },
-  kpiLabel: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textTertiary,
-    fontWeight: theme.typography.fontWeight.medium,
-    textTransform: 'uppercase',
+  heroNavTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+  },
+  heroLabel: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '500',
     letterSpacing: 0.5,
-    marginBottom: theme.spacing[1],
+    textTransform: 'uppercase',
+    marginBottom: 4,
+    zIndex: 1,
   },
-  kpiValue: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+  heroAmount: {
+    fontSize: 40,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -1.5,
+    marginBottom: 24,
+    zIndex: 1,
   },
-  section: {
-    marginBottom: theme.spacing[6],
+  heroStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  heroStat: {
+    alignItems: 'flex-start',
+  },
+  heroStatValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+  },
+  heroStatLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  heroStatDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    marginHorizontal: 24,
+  },
+
+  // Stat Cards — overlap hero bottom
+  statCardsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 16,
+    marginTop: -20,
+    marginBottom: 16,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    alignItems: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12 },
+      android: { elevation: 4 },
+    }),
+  },
+  statCardValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#222222',
+    letterSpacing: -0.3,
+    marginTop: 6,
+  },
+  statCardLabel: {
+    fontSize: 11,
+    color: '#717171',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+
+  // Content body
+  contentBody: {
+    paddingHorizontal: 16,
+  },
+
+  // Section Card
+  sectionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 12 },
+      android: { elevation: 2 },
+    }),
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing[3],
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-  },
-  subscriptionPlan: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textSecondary,
-    textTransform: 'capitalize',
-    marginBottom: theme.spacing[2],
-  },
-  manageLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: theme.spacing[2],
-  },
-  manageLinkText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textPrimary,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222222',
+    letterSpacing: -0.3,
   },
   viewAllText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textPrimary,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 14,
+    color: '#222222',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
-  emptyText: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textTertiary,
-    textAlign: 'center',
-    paddingVertical: theme.spacing[6],
-  },
-  transactionRow: {
+
+  // Budget Overview
+  budgetRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: theme.spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    marginBottom: 14,
   },
-  transactionInfo: {
-    flex: 1,
-    marginRight: theme.spacing[3],
+  budgetItem: {},
+  budgetLabel: {
+    fontSize: 12,
+    color: '#717171',
+    fontWeight: '500',
+    marginBottom: 4,
   },
-  transactionTitle: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+  budgetValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222222',
+    letterSpacing: -0.3,
   },
-  transactionDate: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textTertiary,
-    marginTop: 2,
+  budgetBarBg: {
+    height: 8,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 10,
   },
-  transactionRight: {
+  budgetBarFill: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10B981',
+  },
+  budgetHint: {
+    fontSize: 13,
+    color: '#10B981',
+    fontWeight: '600',
+  },
+
+  // Donut
+  donutContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing[2],
+    marginTop: 8,
+    marginBottom: 20,
+    paddingBottom: 20,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
-  transactionAmount: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+  donutOuter: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 12,
+    borderColor: '#EBEBEB',
+    backgroundColor: '#FAFAFA',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  statusDot: {
+  donutInner: {
+    alignItems: 'center',
+  },
+  donutTotal: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#222222',
+    letterSpacing: -0.3,
+  },
+  donutLabel: {
+    fontSize: 10,
+    color: '#717171',
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  donutLegend: {
+    flex: 1,
+    marginLeft: 20,
+    gap: 8,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
+  },
+  legendLabel: {
+    fontSize: 13,
+    color: '#222222',
+    fontWeight: '500',
+    flex: 1,
+  },
+  legendPercent: {
+    fontSize: 13,
+    color: '#717171',
+    fontWeight: '600',
+  },
+
+  // Category Progress Bars
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  categoryIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  categoryInfo: {
+    flex: 1,
+  },
+  categoryTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  categoryName: {
+    fontSize: 14,
+    color: '#222222',
+    fontWeight: '600',
+  },
+  categoryAmount: {
+    fontSize: 14,
+    color: '#222222',
+    fontWeight: '700',
+  },
+  progressBarBg: {
+    height: 6,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: 6,
+    borderRadius: 3,
+  },
+
+  // Subscription
+  subscriptionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 12 },
+      android: { elevation: 2 },
+    }),
+  },
+  subscriptionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  subscriptionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  subscriptionTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222222',
+    textTransform: 'capitalize',
+  },
+  subscriptionStatus: {
+    fontSize: 12,
+    color: '#10B981',
+    fontWeight: '500',
+    marginTop: 2,
+    textTransform: 'capitalize',
+  },
+
+  // Transactions
+  transactionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#F0F0F0',
+  },
+  transactionRowLast: {
+    borderBottomWidth: 0,
+  },
+  transactionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  transactionInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  transactionTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222222',
+  },
+  transactionDate: {
+    fontSize: 12,
+    color: '#B0B0B0',
+    marginTop: 2,
+  },
+  transactionRight: {
+    alignItems: 'flex-end',
+  },
+  transactionAmount: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#222222',
+  },
+  transactionStatusWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  transactionStatus: {
+    fontSize: 11,
+    fontWeight: '500',
+    textTransform: 'capitalize',
+  },
+
+  // Empty
+  emptyWrap: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  emptyIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#222222',
+    marginBottom: 4,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#B0B0B0',
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    fontSize: 13,
+    color: '#B0B0B0',
+    textAlign: 'center',
+  },
+
+  bottomSpacer: {
+    height: 20,
   },
 });
 

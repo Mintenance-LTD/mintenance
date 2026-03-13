@@ -7,7 +7,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 
 interface HomeScreenErrorProps {
   error?: string;
@@ -21,11 +20,13 @@ export const HomeScreenError: React.FC<HomeScreenErrorProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.errorContent}>
-        <Ionicons
-          name="alert-circle-outline"
-          size={64}
-          color={theme.colors.error}
-        />
+        <View style={styles.iconWrap}>
+          <Ionicons
+            name="alert-circle-outline"
+            size={36}
+            color="#EF4444"
+          />
+        </View>
         <Text style={styles.errorTitle}>Oops!</Text>
         <Text style={styles.errorMessage}>{error}</Text>
         
@@ -36,7 +37,7 @@ export const HomeScreenError: React.FC<HomeScreenErrorProps> = ({
             accessibilityRole="button"
             accessibilityLabel="Retry loading"
           >
-            <Ionicons name="refresh" size={20} color={theme.colors.textInverse} />
+            <Ionicons name="refresh" size={20} color="#FFFFFF" />
             <Text style={styles.retryButtonText}>Try Again</Text>
           </TouchableOpacity>
         )}
@@ -48,7 +49,7 @@ export const HomeScreenError: React.FC<HomeScreenErrorProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
@@ -57,32 +58,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     maxWidth: 300,
   },
+  iconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   errorTitle: {
     fontSize: 24,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
     marginTop: 16,
     marginBottom: 8,
   },
   errorMessage: {
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 24,
   },
   retryButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 16,
+    paddingVertical: 14,
+    borderRadius: 28,
     gap: 8,
   },
   retryButtonText: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
   },
 });

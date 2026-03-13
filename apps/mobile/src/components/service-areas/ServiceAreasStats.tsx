@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import type { ServiceArea } from '../../services/ServiceAreasService';
 
 interface ServiceAreasStatsProps {
@@ -19,7 +18,7 @@ export const ServiceAreasStats: React.FC<ServiceAreasStatsProps> = ({ serviceAre
     icon: string
   ) => (
     <View style={styles.statCard}>
-      <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={theme.colors.textSecondary} />
+      <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color="#717171" />
       <View style={styles.statContent}>
         <Text style={styles.statValue}>{value}</Text>
         <Text style={styles.statLabel}>{title}</Text>
@@ -49,24 +48,32 @@ const styles = StyleSheet.create({
     minWidth: 150,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 20,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   statContent: {
     marginLeft: 12,
   },
   statValue: {
     fontSize: 20,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
     marginBottom: 2,
   },
   statLabel: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
 });

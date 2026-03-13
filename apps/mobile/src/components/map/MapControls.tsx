@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Text } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Text, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 
 interface MapControlsProps {
   loading: boolean;
@@ -19,13 +18,13 @@ export const MapControls: React.FC<MapControlsProps> = ({
         style={styles.myLocationButton}
         onPress={onMyLocationPress}
       >
-        <Ionicons name='locate' size={24} color={theme.colors.primary} />
+        <Ionicons name='locate' size={24} color='#222222' />
       </TouchableOpacity>
 
       {/* Loading Indicator */}
       {loading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size='large' color={theme.colors.primary} />
+          <ActivityIndicator size='large' color='#222222' />
           <Text style={styles.loadingText}>Finding nearby contractors...</Text>
         </View>
       )}
@@ -41,10 +40,20 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   loadingContainer: {
     position: 'absolute',
@@ -59,6 +68,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 8,
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
 });

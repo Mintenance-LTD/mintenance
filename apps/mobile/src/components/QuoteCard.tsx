@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../theme';
 import { ContractorQuote } from '../services/QuoteBuilderService';
 
 interface QuoteCardProps {
@@ -13,6 +12,24 @@ interface QuoteCardProps {
   onDelete: () => void;
 }
 
+const STATUS_COLORS: Record<string, string> = {
+  draft: '#717171',
+  sent: '#222222',
+  viewed: '#F59E0B',
+  accepted: '#10B981',
+  rejected: '#EF4444',
+  expired: '#B0B0B0',
+};
+
+const STATUS_ICONS: Record<string, string> = {
+  draft: 'document-outline',
+  sent: 'send',
+  viewed: 'eye',
+  accepted: 'checkmark-circle',
+  rejected: 'close-circle',
+  expired: 'time-outline',
+};
+
 export const QuoteCard: React.FC<QuoteCardProps> = ({
   quote,
   onPress,
@@ -21,44 +38,6 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
   onDuplicate,
   onDelete,
 }) => {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'draft':
-        return theme.colors.textSecondary;
-      case 'sent':
-        return theme.colors.primary;
-      case 'viewed':
-        return theme.colors.warning;
-      case 'accepted':
-        return theme.colors.success;
-      case 'rejected':
-        return theme.colors.error;
-      case 'expired':
-        return theme.colors.textTertiary;
-      default:
-        return theme.colors.textSecondary;
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'draft':
-        return 'document-outline';
-      case 'sent':
-        return 'send';
-      case 'viewed':
-        return 'eye';
-      case 'accepted':
-        return 'checkmark-circle';
-      case 'rejected':
-        return 'close-circle';
-      case 'expired':
-        return 'time-outline';
-      default:
-        return 'document-outline';
-    }
-  };
-
   const formatCurrency = (amount: number) => {
     return `£${amount.toFixed(2)}`;
   };
@@ -74,6 +53,8 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
   const isExpired =
     quote.valid_until && new Date(quote.valid_until) < new Date();
   const actualStatus = isExpired ? 'expired' : quote.status;
+  const statusColor = STATUS_COLORS[actualStatus] || '#717171';
+  const statusIcon = STATUS_ICONS[actualStatus] || 'document-outline';
 
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
@@ -86,13 +67,13 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
             <View
               style={[
                 styles.statusBadge,
-                { backgroundColor: getStatusColor(actualStatus) },
+                { backgroundColor: statusColor },
               ]}
             >
               <Ionicons
-                name={getStatusIcon(actualStatus) as keyof typeof Ionicons.glyphMap}
+                name={statusIcon as keyof typeof Ionicons.glyphMap}
                 size={12}
-                color={theme.colors.textInverse}
+                color="#FFFFFF"
               />
               <Text style={styles.statusText}>
                 {actualStatus.toUpperCase()}
@@ -117,7 +98,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
           <Ionicons
             name='calendar-outline'
             size={14}
-            color={theme.colors.textSecondary}
+            color="#717171"
           />
           <Text style={styles.detailText}>
             Created: {formatDate(quote.created_at)}
@@ -129,14 +110,12 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
             <Ionicons
               name='time-outline'
               size={14}
-              color={
-                isExpired ? theme.colors.error : theme.colors.textSecondary
-              }
+              color={isExpired ? '#EF4444' : '#717171'}
             />
             <Text
               style={[
                 styles.detailText,
-                isExpired && { color: theme.colors.error },
+                isExpired && { color: '#EF4444' },
               ]}
             >
               Valid until: {formatDate(quote.valid_until)}
@@ -164,7 +143,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
           <View style={styles.breakdownItem}>
             <Text style={styles.breakdownLabel}>Discount</Text>
             <Text
-              style={[styles.breakdownValue, { color: theme.colors.success }]}
+              style={[styles.breakdownValue, { color: '#10B981' }]}
             >
               -{formatCurrency(quote.discount_amount)}
             </Text>
@@ -195,7 +174,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
           {quote.discount_percentage && quote.discount_percentage > 0 && (
             <View style={[styles.infoChip, styles.discountChip]}>
               <Text
-                style={[styles.infoChipText, { color: theme.colors.success }]}
+                style={[styles.infoChipText, { color: '#10B981' }]}
               >
                 Discount: {quote.discount_percentage}%
               </Text>
@@ -207,7 +186,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
               <Ionicons
                 name='document-text-outline'
                 size={12}
-                color={theme.colors.textSecondary}
+                color="#717171"
               />
               <Text style={styles.infoChipText}>Has Notes</Text>
             </View>
@@ -224,7 +203,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
             onEdit();
           }}
         >
-          <Ionicons name='pencil' size={16} color={theme.colors.textSecondary} />
+          <Ionicons name='pencil' size={16} color="#717171" />
         </TouchableOpacity>
 
         {quote.status === 'draft' && (
@@ -235,7 +214,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
               onSend();
             }}
           >
-            <Ionicons name='send' size={16} color={theme.colors.success} />
+            <Ionicons name='send' size={16} color="#10B981" />
           </TouchableOpacity>
         )}
 
@@ -246,7 +225,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
             onDuplicate();
           }}
         >
-          <Ionicons name='copy' size={16} color={theme.colors.textSecondary} />
+          <Ionicons name='copy' size={16} color="#717171" />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -256,7 +235,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
             onDelete();
           }}
         >
-          <Ionicons name='trash' size={16} color={theme.colors.error} />
+          <Ionicons name='trash' size={16} color="#EF4444" />
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -265,11 +244,21 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   header: {
     flexDirection: 'row',
@@ -289,44 +278,44 @@ const styles = StyleSheet.create({
   },
   quoteNumber: {
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: 6,
     gap: 4,
   },
   statusText: {
     fontSize: 10,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textInverse,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   projectTitle: {
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontWeight: '500',
+    color: '#222222',
     marginBottom: 4,
   },
   clientName: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   amountContainer: {
     alignItems: 'flex-end',
   },
   amount: {
     fontSize: 20,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
     marginBottom: 2,
   },
   amountLabel: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   detailsRow: {
     marginBottom: 12,
@@ -339,11 +328,11 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   description: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     lineHeight: 18,
     marginBottom: 12,
   },
@@ -359,13 +348,13 @@ const styles = StyleSheet.create({
   },
   breakdownLabel: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginBottom: 2,
   },
   breakdownValue: {
     fontSize: 13,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
   },
   additionalInfo: {
     flexDirection: 'row',
@@ -376,19 +365,19 @@ const styles = StyleSheet.create({
   infoChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: 6,
     gap: 4,
   },
   discountChip: {
-    backgroundColor: 'rgba(52, 199, 89, 0.1)',
+    backgroundColor: '#D1FAE5',
   },
   infoChipText: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
-    fontWeight: theme.typography.fontWeight.medium,
+    color: '#717171',
+    fontWeight: '500',
   },
   actions: {
     flexDirection: 'row',
@@ -399,15 +388,15 @@ const styles = StyleSheet.create({
   actionButton: {
     width: 32,
     height: 32,
-    borderRadius: theme.borderRadius.base,
-    backgroundColor: theme.colors.surfaceSecondary,
+    borderRadius: 12,
+    backgroundColor: '#F7F7F7',
     alignItems: 'center',
     justifyContent: 'center',
   },
   sendButton: {
-    backgroundColor: 'rgba(52, 199, 89, 0.1)',
+    backgroundColor: '#D1FAE5',
   },
   deleteButton: {
-    backgroundColor: 'rgba(255, 59, 48, 0.1)',
+    backgroundColor: '#FEE2E2',
   },
 });

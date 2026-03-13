@@ -3,7 +3,7 @@
  * Constructs system and user prompts for GPT-4 Vision API
  */
 
-import type { AssessmentContext } from './types';
+import type { AssessmentContext, RICSConditionRating } from './types';
 
 /**
  * Sanitise user-provided text before injecting into prompts.
@@ -33,10 +33,46 @@ function sanitisePromptInput(input: string, maxLength = 500): string {
 }
 
 /**
+ * Era-specific risk flags based on UK construction history.
+ * A senior surveyor mentally activates these when told the property age.
+ */
+const ERA_RISK_FLAGS: Array<{ maxAge: number; decade: string; risks: string[] }> = [
+  { maxAge: 200, decade: 'Pre-1900 (Victorian/Georgian)', risks: ['Lime mortar deterioration', 'Solid wall (no cavity) — penetrating damp risk', 'Lead water supply pipes (health hazard)', 'Lath and plaster ceilings', 'Timber rot in floor joists/lintels'] },
+  { maxAge: 130, decade: '1900–1930s (Edwardian/inter-war)', risks: ['Early cavity walls — no wall ties or corroded ties', 'Bitumen DPC may be failing', 'Cast iron drainage — prone to cracking'] },
+  { maxAge: 80, decade: '1940s–1950s (Post-war)', risks: ['Non-traditional construction (pre-cast concrete panels, Airey houses)', 'High alumina cement (HAC) in pre-stressed concrete — risk of structural failure', 'Mundic block (Cornwall/Devon)'] },
+  { maxAge: 70, decade: '1960s–1970s', risks: ['Asbestos-containing materials (insulation boards, pipe lagging, Artex ceilings)', 'High alumina cement (HAC) — critical structural concern', 'Flat roof construction (felt-based, poor detailing)', 'System-built housing (large panel systems) — structural deficiencies', 'Calcium silicate bricks — sulphate attack risk'] },
+  { maxAge: 50, decade: '1980s–1990s', risks: ['Trussed rafter roofs — check for rafter spread and wall plate fixings', 'UPVC windows — seal failure, misting double glazing', 'Cavity wall insulation retro-fit — trapped moisture risk', 'Woodworm treatment chemicals (historic) in roof timbers'] },
+  { maxAge: 25, decade: '2000s+', risks: ['Thin-joint blockwork — check for cracking at window/door openings', 'Mechanical ventilation dependency — check MVHR/extract fans are operational', 'Timber frame behind brick skin — moisture management critical'] },
+];
+
+/**
+ * Get era-specific risk warnings based on approximate property age in years.
+ */
+export function getEraRiskWarnings(ageOfProperty?: number): string {
+  if (!ageOfProperty || ageOfProperty <= 0) return '';
+
+  const matchingEras = ERA_RISK_FLAGS.filter(era => ageOfProperty >= era.maxAge - 30 && ageOfProperty <= era.maxAge + 30);
+  // Also include any era where age falls within the range
+  const allMatching = ERA_RISK_FLAGS.filter(era => ageOfProperty >= (era.maxAge - 30));
+
+  const relevant = matchingEras.length > 0 ? matchingEras : allMatching.slice(-2);
+  if (relevant.length === 0) return '';
+
+  const warnings = relevant.map(era =>
+    `${era.decade}:\n${era.risks.map(r => `  - ${r}`).join('\n')}`
+  ).join('\n');
+
+  return `\n\nERA-SPECIFIC RISK ASSESSMENT (property ~${ageOfProperty} years old):
+Based on the property age, proactively check for these era-typical defects even if not immediately visible:
+${warnings}
+Flag any of these risks in your specialistReferrals if indicators are present.`;
+}
+
+/**
  * Build system prompt for GPT-4 Vision API.
  * When damageTypes are provided (from damage_taxonomy), they are injected so new types appear without code change (Phase 6).
  */
-export function buildSystemPrompt(damageTypes?: string[]): string {
+export function buildSystemPrompt(damageTypes?: string[], ageOfProperty?: number): string {
   // Sanitise damage types from database
   const safeDamageTypes = damageTypes
     ?.map(dt => dt.replace(/[^\w\s\-\/(),.]/g, '').slice(0, 100))
@@ -113,8 +149,31 @@ You must respond with valid JSON matching this exact structure:
       "recommended": number (in GBP)
     },
     "complexity": "low" | "medium" | "high"
-  }
+  },
+  "ricsConditionRating": 1 | 2 | 3,
+  "specialistReferrals": [
+    {
+      "specialistType": "string (e.g., 'structural_engineer', 'asbestos_surveyor', 'arboriculturist', 'drainage_specialist', 'electrical_inspector')",
+      "reason": "string (why this specialist is needed)",
+      "urgency": "routine" | "soon" | "urgent" | "immediate"
+    }
+  ]
 }
+
+RICS Condition Rating guidance:
+- Rating 1 (GREEN): No repair is currently needed. Normal maintenance only.
+- Rating 2 (AMBER): Defects that need repairing or replacing but are not considered urgent. Failure to address could lead to deterioration.
+- Rating 3 (RED): Defects that are serious and/or need urgent repair or replacement. Failure to address could cause further damage or safety risk.
+
+Specialist Referrals guidance (the surveyor's "know what you don't know"):
+- Only include when the defect genuinely exceeds what a general contractor can assess/repair
+- structural_engineer: significant cracking, subsidence signs, wall bulging, foundation concerns
+- asbestos_surveyor: any pre-2000 property with disturbed insulation, textured coatings, pipe lagging
+- arboriculturist: trees within influence zone of foundations on clay soils, root damage to drains
+- drainage_specialist: root ingress, collapsed drains, persistent damp with no visible source
+- electrical_inspector: old wiring (rubber-insulated), missing RCDs, DIY work visible
+- damp_specialist: rising damp vs condensation vs penetrating damp differential diagnosis needed
+- gas_safety_engineer: boiler concerns, flue issues, CO risk
 
 Guidelines:
 - Be thorough and accurate in your analysis
@@ -127,7 +186,9 @@ Guidelines:
 - If damage is severe or structural, classify as "full"
 - Always consider safety implications when determining urgency
 - Be conservative with compliance flags - only flag if you're reasonably certain
-- Provide actionable advice for both homeowners and contractors`;
+- Provide actionable advice for both homeowners and contractors
+- Always provide a ricsConditionRating (1, 2, or 3)
+- Include specialistReferrals when the defect requires expertise beyond general contracting${getEraRiskWarnings(ageOfProperty)}`;
 }
 
 /**

@@ -21,7 +21,6 @@ import {
 } from '@mintenance/types';
 import type { Message } from '../services/messaging/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { theme } from '../theme';
 import { logger } from '../utils/logger';
 
 interface Props {
@@ -211,7 +210,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
       <View style={styles.container}>
         <View style={[styles.header, { paddingTop: insets.top }]}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
+            <Ionicons name="close" size={24} color="#222222" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Meeting Communication</Text>
           <View style={styles.placeholder} />
@@ -226,7 +225,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
             <Ionicons
               name="chatbubbles"
               size={20}
-              color={activeTab === 'chat' ? theme.colors.textInverse : theme.colors.textSecondary}
+              color={activeTab === 'chat' ? '#FFFFFF' : '#717171'}
             />
             <Text
               style={[
@@ -245,7 +244,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
             <Ionicons
               name="calendar"
               size={20}
-              color={activeTab === 'schedule' ? theme.colors.textInverse : theme.colors.textSecondary}
+              color={activeTab === 'schedule' ? '#FFFFFF' : '#717171'}
             />
             <Text
               style={[
@@ -260,7 +259,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
 
         {loading && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.info} />
+            <ActivityIndicator size="large" color="#3B82F6" />
           </View>
         )}
 
@@ -306,7 +305,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
 
               {messages.length === 0 && (
                 <View style={styles.emptyMessages}>
-                  <Ionicons name="chatbubbles-outline" size={50} color={theme.colors.textTertiary} />
+                  <Ionicons name="chatbubbles-outline" size={50} color="#B0B0B0" />
                   <Text style={styles.emptyMessagesText}>No messages yet</Text>
                   <Text style={styles.emptyMessagesSubtext}>
                     Start a conversation about the meeting
@@ -330,7 +329,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                 onPress={sendMessage}
                 disabled={!newMessage.trim()}
               >
-                <Ionicons name="send" size={20} color={theme.colors.textInverse} />
+                <Ionicons name="send" size={20} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           </View>
@@ -358,18 +357,18 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                   <Text style={styles.sectionTitle}>Quick Actions</Text>
                   <View style={styles.statusButtons}>
                     <TouchableOpacity
-                      style={[styles.statusButton, { backgroundColor: theme.colors.success }]}
+                      style={[styles.statusButton, { backgroundColor: '#10B981' }]}
                       onPress={() => handleStatusChange('in_progress')}
                     >
-                      <Ionicons name="checkmark" size={16} color={theme.colors.textInverse} />
+                      <Ionicons name="checkmark" size={16} color="#FFFFFF" />
                       <Text style={styles.statusButtonText}>Confirm</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      style={[styles.statusButton, { backgroundColor: theme.colors.warning }]}
+                      style={[styles.statusButton, { backgroundColor: '#F59E0B' }]}
                       onPress={() => handleStatusChange('rescheduled')}
                     >
-                      <Ionicons name="calendar" size={16} color={theme.colors.textInverse} />
+                      <Ionicons name="calendar" size={16} color="#FFFFFF" />
                       <Text style={styles.statusButtonText}>Needs Reschedule</Text>
                     </TouchableOpacity>
                   </View>
@@ -385,7 +384,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                   style={styles.dateTimeButton}
                   onPress={() => setShowDatePicker(true)}
                 >
-                  <Ionicons name="calendar-outline" size={20} color={theme.colors.info} />
+                  <Ionicons name="calendar-outline" size={20} color="#3B82F6" />
                   <Text style={styles.dateTimeText}>
                     {newDate.toLocaleDateString('en-US', {
                       weekday: 'long',
@@ -401,7 +400,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                   style={styles.dateTimeButton}
                   onPress={() => setShowTimePicker(true)}
                 >
-                  <Ionicons name="time-outline" size={20} color={theme.colors.info} />
+                  <Ionicons name="time-outline" size={20} color="#3B82F6" />
                   <Text style={styles.dateTimeText}>
                     {newTime.toLocaleTimeString('en-US', {
                       hour: '2-digit',
@@ -430,10 +429,10 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                   disabled={rescheduleLoading}
                 >
                   {rescheduleLoading ? (
-                    <ActivityIndicator size="small" color={theme.colors.textInverse} />
+                    <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
                     <>
-                      <Ionicons name="calendar" size={16} color={theme.colors.textInverse} />
+                      <Ionicons name="calendar" size={16} color="#FFFFFF" />
                       <Text style={styles.rescheduleButtonText}>Request Reschedule</Text>
                     </>
                   )}
@@ -456,7 +455,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                               : 'notifications'
                           }
                           size={16}
-                          color={theme.colors.info}
+                          color="#3B82F6"
                         />
                       </View>
                       <View style={styles.updateContent}>

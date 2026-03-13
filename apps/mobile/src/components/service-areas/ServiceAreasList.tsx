@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ServiceAreaCard } from '../ServiceAreaCard';
 import Button from '../ui/Button';
-import { theme } from '../../theme';
 import type { ServiceArea } from '../../services/ServiceAreasService';
 
 interface ServiceAreasListProps {
@@ -71,7 +70,7 @@ export const ServiceAreasList: React.FC<ServiceAreasListProps> = ({
           <Ionicons
             name='map-outline'
             size={64}
-            color={theme.colors.textTertiary}
+            color="#B0B0B0"
           />
           <Text style={styles.emptyTitle}>No service areas yet</Text>
           <Text style={styles.emptyText}>
@@ -95,14 +94,14 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     marginBottom: 16,
   },
   subsectionTitle: {
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontWeight: '500',
+    color: '#222222',
     marginBottom: 12,
     marginTop: 8,
   },
@@ -113,14 +112,14 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     textAlign: 'center',
     marginBottom: 24,
     paddingHorizontal: 32,

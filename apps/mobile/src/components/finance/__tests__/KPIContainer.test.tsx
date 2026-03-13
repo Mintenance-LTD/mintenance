@@ -2,7 +2,7 @@ import React from 'react';
 import { fireEvent } from '@testing-library/react-native';
 import { render, createMockNavigation } from '../../test-utils';
 import { KPIContainer } from '../KPIContainer';
-import { theme } from '../../../theme';
+
 import type { FinancialSummary } from '../../../services/contractor-business';
 
 /**
@@ -139,7 +139,7 @@ describe('KPIContainer', () => {
       expect(changeElement.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: theme.colors.success,
+            color: '#10B981',
           }),
         ])
       );
@@ -445,7 +445,7 @@ describe('KPIContainer', () => {
       expect(changeElement.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: theme.colors.error,
+            color: '#EF4444',
           }),
         ])
       );

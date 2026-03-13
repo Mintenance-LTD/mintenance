@@ -5,9 +5,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import { Message } from '../../services/MessagingService';
 import { VideoCallService } from '../../services/VideoCallService';
 import { useAuth } from '../../contexts/AuthContext';
@@ -60,15 +60,15 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
   const getMessageColor = (): string => {
     switch (message.messageType) {
       case 'video_call_invitation':
-        return theme.colors.primary;
+        return '#222222';
       case 'video_call_started':
-        return theme.colors.success;
+        return '#10B981';
       case 'video_call_ended':
-        return theme.colors.info;
+        return '#3B82F6';
       case 'video_call_missed':
-        return theme.colors.warning;
+        return '#F59E0B';
       default:
-        return theme.colors.textSecondary;
+        return '#717171';
     }
   };
 
@@ -148,7 +148,7 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
           <Ionicons
             name={getMessageIcon() as keyof typeof Ionicons.glyphMap}
             size={16}
-            color={theme.colors.surface}
+            color="#FFFFFF"
           />
         </View>
         <Text style={styles.messageText}>{message.messageText}</Text>
@@ -167,7 +167,7 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
               style={[styles.actionButton, styles.declineButton]}
               onPress={handleDeclineCall}
             >
-              <Ionicons name="close" size={16} color={theme.colors.surface} />
+              <Ionicons name="close" size={16} color="#FFFFFF" />
               <Text style={styles.actionButtonText}>Decline</Text>
             </TouchableOpacity>
 
@@ -175,7 +175,7 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
               style={[styles.actionButton, styles.joinButton]}
               onPress={handleJoinCall}
             >
-              <Ionicons name="videocam" size={16} color={theme.colors.surface} />
+              <Ionicons name="videocam" size={16} color="#FFFFFF" />
               <Text style={styles.actionButtonText}>Join</Text>
             </TouchableOpacity>
           </View>
@@ -188,7 +188,7 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
             <Ionicons
               name="chevron-forward"
               size={14}
-              color={theme.colors.textSecondary}
+              color="#717171"
             />
           </TouchableOpacity>
         )}
@@ -214,18 +214,24 @@ const styles = StyleSheet.create({
   },
   sentMessage: {
     alignSelf: 'flex-end',
-    backgroundColor: theme.colors.primary + '20',
+    backgroundColor: 'rgba(34, 34, 34, 0.12)',
     borderBottomRightRadius: 4,
   },
   receivedMessage: {
     alignSelf: 'flex-start',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     borderBottomLeftRadius: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   messageHeader: {
     flexDirection: 'row',
@@ -243,12 +249,12 @@ const styles = StyleSheet.create({
   messageText: {
     flex: 1,
     fontSize: 14,
-    color: theme.colors.textPrimary,
-    fontWeight: theme.typography.fontWeight.medium,
+    color: '#222222',
+    fontWeight: '500',
   },
   durationText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginBottom: 8,
     fontStyle: 'italic',
   },
@@ -271,15 +277,15 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   joinButton: {
-    backgroundColor: theme.colors.success,
+    backgroundColor: '#10B981',
   },
   declineButton: {
-    backgroundColor: theme.colors.error,
+    backgroundColor: '#EF4444',
   },
   actionButtonText: {
-    color: theme.colors.surface,
+    color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
   },
   detailsButton: {
     flexDirection: 'row',
@@ -289,13 +295,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   detailsButtonText: {
-    color: theme.colors.textSecondary,
+    color: '#717171',
     fontSize: 12,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontWeight: '500',
   },
   timestamp: {
     fontSize: 10,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginTop: 8,
     textAlign: 'right',
   },

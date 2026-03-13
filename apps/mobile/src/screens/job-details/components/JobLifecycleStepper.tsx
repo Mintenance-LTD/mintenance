@@ -7,7 +7,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 
 interface StepConfig {
   label: string;
@@ -34,8 +33,7 @@ function getActiveStepIndex(
     case 'posted':
       return 0;
     case 'assigned':
-      // If contract is accepted, show contract step as active/done
-      if (contractStatus === 'accepted') return 2; // contract done, awaiting payment/photos before start
+      if (contractStatus === 'accepted') return 2;
       if (contractStatus && contractStatus !== 'draft') return 2;
       return 1;
     case 'in_progress':
@@ -44,7 +42,7 @@ function getActiveStepIndex(
       return 4;
     case 'cancelled':
     case 'disputed':
-      return -1; // special state: no step is active
+      return -1;
     default:
       return 0;
   }
@@ -73,10 +71,10 @@ const StepCircle: React.FC<StepCircleProps> = ({ step, state }) => {
   ];
 
   const iconColor = isCompleted
-    ? theme.colors.white
+    ? '#FFFFFF'
     : isActive
-      ? theme.colors.primary
-      : theme.colors.textTertiary;
+      ? '#222222'
+      : '#B0B0B0';
 
   const labelStyle = [
     styles.label,
@@ -87,7 +85,7 @@ const StepCircle: React.FC<StepCircleProps> = ({ step, state }) => {
     <View style={styles.stepContainer}>
       <View style={circleStyle}>
         {isCompleted ? (
-          <Ionicons name="checkmark" size={16} color={theme.colors.textInverse} />
+          <Ionicons name="checkmark" size={16} color="#FFFFFF" />
         ) : (
           <Ionicons name={step.icon} size={14} color={iconColor} />
         )}
@@ -123,7 +121,6 @@ export const JobLifecycleStepper: React.FC<JobLifecycleStepperProps> = ({
 }) => {
   const activeIndex = getActiveStepIndex(jobStatus, contractStatus);
 
-  // Don't show stepper for cancelled/disputed jobs
   if (activeIndex < 0) return null;
 
   return (
@@ -149,7 +146,7 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
   },
   stepsRow: {
     flexDirection: 'row',
@@ -168,25 +165,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   circleCompleted: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
   },
   circleActive: {
-    backgroundColor: `${theme.colors.primary}1A`, // 10% opacity
+    backgroundColor: 'rgba(34,34,34,0.1)',
     borderWidth: 2,
-    borderColor: theme.colors.primary,
+    borderColor: '#222222',
   },
   circleFuture: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: '#F7F7F7',
   },
   label: {
     fontSize: 10,
     textAlign: 'center',
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginTop: 4,
   },
   labelActive: {
-    color: theme.colors.primary,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#222222',
+    fontWeight: '600',
   },
   connector: {
     height: 2,
@@ -195,9 +192,9 @@ const styles = StyleSheet.create({
     marginHorizontal: -2,
   },
   connectorCompleted: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
   },
   connectorFuture: {
-    backgroundColor: theme.colors.borderLight,
+    backgroundColor: '#EBEBEB',
   },
 });

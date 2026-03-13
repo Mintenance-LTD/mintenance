@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../theme';
 import { ServiceArea } from '../services/ServiceAreasService';
 
 interface ServiceAreaCardProps {
@@ -81,8 +80,8 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
               styles.statusIndicator,
               {
                 backgroundColor: serviceArea.is_active
-                  ? theme.colors.success
-                  : theme.colors.textSecondary,
+                  ? '#10B981'
+                  : '#717171',
               },
             ]}
           />
@@ -91,8 +90,8 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
               styles.statusText,
               {
                 color: serviceArea.is_active
-                  ? theme.colors.success
-                  : theme.colors.textSecondary,
+                  ? '#10B981'
+                  : '#717171',
               },
             ]}
           >
@@ -106,7 +105,7 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
           <Ionicons
             name={getAreaTypeIcon(serviceArea.area_type) as keyof typeof Ionicons.glyphMap}
             size={16}
-            color={theme.colors.textSecondary}
+            color="#717171"
           />
           <Text style={styles.areaTypeText}>
             {getAreaTypeLabel(serviceArea.area_type)}
@@ -114,7 +113,7 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
         </View>
 
         <View style={styles.priority}>
-          <Ionicons name='flag' size={14} color={theme.colors.warning} />
+          <Ionicons name='flag' size={14} color="#F59E0B" />
           <Text style={styles.priorityText}>
             Priority {serviceArea.priority_level}
           </Text>
@@ -202,7 +201,7 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
 
       <View style={styles.actions}>
         <TouchableOpacity style={styles.actionButton} onPress={onEdit}>
-          <Ionicons name='pencil' size={16} color={theme.colors.textSecondary} />
+          <Ionicons name='pencil' size={16} color="#717171" />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionButton} onPress={onToggleActive}>
@@ -211,8 +210,8 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
             size={16}
             color={
               serviceArea.is_active
-                ? theme.colors.warning
-                : theme.colors.success
+                ? '#F59E0B'
+                : '#10B981'
             }
           />
         </TouchableOpacity>
@@ -221,7 +220,7 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
           style={[styles.actionButton, styles.deleteButton]}
           onPress={onDelete}
         >
-          <Ionicons name='trash' size={16} color={theme.colors.error} />
+          <Ionicons name='trash' size={16} color="#EF4444" />
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -230,11 +229,21 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   header: {
     flexDirection: 'row',
@@ -253,24 +262,24 @@ const styles = StyleSheet.create({
   },
   areaName: {
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     marginRight: 8,
   },
   primaryBadge: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: 6,
   },
   primaryText: {
     fontSize: 9,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textInverse,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   description: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     lineHeight: 18,
   },
   statusContainer: {
@@ -285,7 +294,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontWeight: '500',
   },
   detailsRow: {
     flexDirection: 'row',
@@ -300,7 +309,7 @@ const styles = StyleSheet.create({
   },
   areaTypeText: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: '#222222',
     marginLeft: 6,
   },
   priority: {
@@ -309,7 +318,7 @@ const styles = StyleSheet.create({
   },
   priorityText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginLeft: 4,
   },
   radiusInfo: {
@@ -317,14 +326,14 @@ const styles = StyleSheet.create({
   },
   radiusText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   listInfo: {
     marginBottom: 12,
   },
   listText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   pricingRow: {
     flexDirection: 'row',
@@ -338,13 +347,13 @@ const styles = StyleSheet.create({
   },
   pricingLabel: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginBottom: 2,
   },
   pricingValue: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
   },
   surchargesRow: {
     flexDirection: 'row',
@@ -353,22 +362,21 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   surchargeChip: {
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: 6,
   },
   emergencyChip: {
-    backgroundColor: 'rgba(255, 59, 48, 0.1)',
-    borderColor: theme.colors.error,
+    backgroundColor: '#FEE2E2',
   },
   surchargeText: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
-    fontWeight: theme.typography.fontWeight.medium,
+    color: '#717171',
+    fontWeight: '500',
   },
   emergencyText: {
-    color: theme.colors.error,
+    color: '#EF4444',
   },
   actions: {
     flexDirection: 'row',
@@ -379,12 +387,12 @@ const styles = StyleSheet.create({
   actionButton: {
     width: 32,
     height: 32,
-    borderRadius: theme.borderRadius.base,
-    backgroundColor: theme.colors.surfaceSecondary,
+    borderRadius: 12,
+    backgroundColor: '#F7F7F7',
     alignItems: 'center',
     justifyContent: 'center',
   },
   deleteButton: {
-    backgroundColor: 'rgba(255, 59, 48, 0.1)',
+    backgroundColor: '#FEE2E2',
   },
 });

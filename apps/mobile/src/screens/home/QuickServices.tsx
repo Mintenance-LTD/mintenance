@@ -8,7 +8,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import { useHaptics } from '../../utils/haptics';
 
 export interface QuickServicesProps {
@@ -97,7 +96,7 @@ export const QuickServices: React.FC<QuickServicesProps> = ({
               <Ionicons
                 name={service.icon}
                 size={24}
-                color={isActive ? theme.colors.textPrimary : theme.colors.textSecondary}
+                color={isActive ? '#222222' : '#717171'}
               />
               <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
                 {service.name}
@@ -129,21 +128,21 @@ const styles = StyleSheet.create({
     minWidth: 68,
   },
   tabActive: {
-    borderBottomColor: theme.colors.textPrimary,
+    borderBottomColor: '#222222',
   },
   tabLabel: {
     fontSize: 13,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textSecondary,
+    fontWeight: '500',
+    color: '#717171',
     marginTop: 5,
     textAlign: 'center',
   },
   tabLabelActive: {
-    color: theme.colors.textPrimary,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#222222',
+    fontWeight: '600',
   },
   divider: {
-    height: 1,
-    backgroundColor: theme.colors.borderLight,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#EBEBEB',
   },
 });

@@ -7,9 +7,8 @@ import {
   TextInputProps,
   ViewStyle,
 } from 'react-native';
-import { theme } from '../../theme';
 
-type InputVariant = keyof typeof theme.components.input;
+type InputVariant = 'default' | 'outline' | 'error';
 
 export interface InputProps extends TextInputProps {
   containerStyle?: ViewStyle | ViewStyle[];
@@ -24,6 +23,12 @@ export interface InputProps extends TextInputProps {
   state?: string;
   errorText?: string;
 }
+
+const VARIANT_STYLES: Record<InputVariant, { borderColor: string; backgroundColor: string; color: string; placeholderTextColor: string }> = {
+  default: { borderColor: '#EBEBEB', backgroundColor: '#F7F7F7', color: '#222222', placeholderTextColor: '#B0B0B0' },
+  outline: { borderColor: '#EBEBEB', backgroundColor: '#FFFFFF', color: '#222222', placeholderTextColor: '#B0B0B0' },
+  error: { borderColor: '#EF4444', backgroundColor: '#FEF2F2', color: '#222222', placeholderTextColor: '#B0B0B0' },
+};
 
 export const Input = forwardRef<TextInput, InputProps>(
   ({
@@ -42,27 +47,23 @@ export const Input = forwardRef<TextInput, InputProps>(
     ...props
   }, ref) => {
     const hasError = !!errorText;
-    const v = hasError
-      ? (theme.components.input.error as Record<string, unknown>)
-      : (theme.components.input[variant] as Record<string, unknown>);
+    const v = hasError ? VARIANT_STYLES.error : VARIANT_STYLES[variant] ?? VARIANT_STYLES.default;
     return (
       <View style={containerStyle}>
         <View
           style={[
             styles.container,
-            { borderColor: v?.borderColor as string, backgroundColor: v?.backgroundColor as string },
+            { borderColor: v.borderColor, backgroundColor: v.backgroundColor },
           ]}
         >
           <TextInput
             ref={ref}
             style={[
               styles.input,
-              { color: (v?.color as string) ?? theme.colors.textPrimary },
+              { color: v.color },
               style,
             ]}
-            placeholderTextColor={
-              (v?.placeholderTextColor as string) ?? theme.colors.placeholder
-            }
+            placeholderTextColor={v.placeholderTextColor}
             {...props}
           />
         </View>
@@ -79,18 +80,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderRadius: theme.borderRadius.xl,
-    paddingHorizontal: theme.spacing[4],
-    height: theme.layout.inputHeightLarge,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 52,
   },
   input: {
     flex: 1,
-    fontSize: theme.typography.fontSize.base,
-    paddingVertical: theme.spacing[3],
+    fontSize: 15,
+    paddingVertical: 12,
   },
   errorText: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.accent || '#EF4444',
+    fontSize: 12,
+    color: '#EF4444',
     marginTop: 4,
     marginLeft: 4,
   },

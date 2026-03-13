@@ -8,7 +8,17 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme, getStatusColor } from '../../theme';
+const STATUS_COLORS: Record<string, string> = {
+  posted: '#3B82F6',
+  assigned: '#8B5CF6',
+  in_progress: '#F59E0B',
+  completed: '#10B981',
+  cancelled: '#EF4444',
+  disputed: '#EF4444',
+};
+function getStatusColor(status: string): string {
+  return STATUS_COLORS[status] || '#717171';
+}
 import { OptimizedImage } from '../../components/optimized/OptimizedImage';
 import { Skeleton } from '../../components/skeletons/Skeleton';
 
@@ -68,7 +78,9 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ isLoading, jobs, onViewA
     );
   }
 
-  const displayJobs = jobs.slice(0, 3);
+  const activeStatuses = ['posted', 'assigned', 'in_progress'];
+  const activeJobs = jobs.filter((j) => activeStatuses.includes(j.status || ''));
+  const displayJobs = activeJobs.slice(0, 3);
 
   return (
     <View style={styles.section}>
@@ -123,20 +135,22 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ isLoading, jobs, onViewA
                   </View>
                 )}
 
-                {/* Heart overlay */}
-                <TouchableOpacity
-                  style={styles.heartOverlay}
-                  onPress={() => onSavePress?.(job.id)}
-                  accessibilityRole="button"
-                  accessibilityLabel={savedJobIds.includes(job.id) ? 'Unsave job' : 'Save job'}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Ionicons
-                    name={savedJobIds.includes(job.id) ? 'heart' : 'heart-outline'}
-                    size={22}
-                    color={savedJobIds.includes(job.id) ? '#EF4444' : '#FFFFFF'}
-                  />
-                </TouchableOpacity>
+                {/* Heart overlay (only shown when save handler is provided) */}
+                {onSavePress && (
+                  <TouchableOpacity
+                    style={styles.heartOverlay}
+                    onPress={() => onSavePress(job.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={savedJobIds.includes(job.id) ? 'Unsave job' : 'Save job'}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons
+                      name={savedJobIds.includes(job.id) ? 'heart' : 'heart-outline'}
+                      size={22}
+                      color={savedJobIds.includes(job.id) ? '#EF4444' : '#FFFFFF'}
+                    />
+                  </TouchableOpacity>
+                )}
 
                 {/* Status badge */}
                 <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>

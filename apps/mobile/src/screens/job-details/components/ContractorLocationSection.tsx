@@ -5,9 +5,8 @@
  * Uses existing useJobTravelTracking hook.
  */
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 import { useJobTravelTracking } from '../../../hooks/useJobTravelTracking';
 
 interface Props {
@@ -62,7 +61,7 @@ export const ContractorLocationSection: React.FC<Props> = ({ jobId }) => {
               accessibilityRole="button"
               accessibilityLabel="Mark as arrived"
             >
-              <Ionicons name="flag" size={16} color={theme.colors.textInverse} />
+              <Ionicons name="flag" size={16} color="#FFFFFF" />
               <Text style={styles.arrivedButtonText}>Arrived</Text>
             </TouchableOpacity>
 
@@ -72,7 +71,7 @@ export const ContractorLocationSection: React.FC<Props> = ({ jobId }) => {
               accessibilityRole="button"
               accessibilityLabel="Stop tracking"
             >
-              <Ionicons name="stop-circle-outline" size={16} color={theme.colors.error} />
+              <Ionicons name="stop-circle-outline" size={16} color="#EF4444" />
               <Text style={styles.stopButtonText}>Stop</Text>
             </TouchableOpacity>
           </View>
@@ -84,7 +83,7 @@ export const ContractorLocationSection: React.FC<Props> = ({ jobId }) => {
           accessibilityRole="button"
           accessibilityLabel="Start location tracking"
         >
-          <Ionicons name="navigate" size={18} color={theme.colors.textInverse} />
+          <Ionicons name="navigate" size={18} color="#FFFFFF" />
           <Text style={styles.startButtonText}>Share My Location</Text>
         </TouchableOpacity>
       )}
@@ -95,23 +94,21 @@ export const ContractorLocationSection: React.FC<Props> = ({ jobId }) => {
 const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 12,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textSecondary,
+    fontWeight: '700',
+    color: '#B0B0B0',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 12,
   },
   errorText: {
     fontSize: 13,
-    color: theme.colors.error,
+    color: '#EF4444',
     marginBottom: 8,
   },
   trackingCard: {
-    backgroundColor: theme.colors.white,
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.primary + '30',
   },
   trackingStatus: {
     flexDirection: 'row',
@@ -123,16 +120,16 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.colors.success,
+    backgroundColor: '#10B981',
   },
   trackingText: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontWeight: '500',
+    color: '#222222',
   },
   etaText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginBottom: 12,
   },
   trackingActions: {
@@ -145,44 +142,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: theme.colors.success,
-    borderRadius: 8,
+    backgroundColor: '#10B981',
+    borderRadius: 28,
     paddingVertical: 10,
   },
   arrivedButtonText: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
   },
   stopButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    borderWidth: 1,
-    borderColor: theme.colors.error,
-    borderRadius: 8,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 28,
     paddingVertical: 10,
     paddingHorizontal: 16,
   },
   stopButtonText: {
-    color: theme.colors.error,
+    color: '#EF4444',
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
   },
   startButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: theme.colors.primary,
-    borderRadius: 12,
+    backgroundColor: '#222222',
+    borderRadius: 28,
     paddingVertical: 14,
   },
   startButtonText: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
   },
 });
 

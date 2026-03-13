@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { theme } from '../theme';
 
 export interface LoadingStateProps {
   title?: string;
@@ -19,7 +18,7 @@ export interface LoadingStateProps {
 
 export interface ProgressLoadingProps {
   title: string;
-  progress: number; // 0-100
+  progress: number;
   message?: string;
   showPercentage?: boolean;
   onCancel?: () => void;
@@ -43,143 +42,56 @@ export interface ErrorStateProps {
   isNetworkError?: boolean;
 }
 
-/**
- * Enhanced loading indicator with semantic messaging
- */
 export const LoadingState: React.FC<LoadingStateProps> = ({
-  title = 'Loading',
-  message,
-  showSpinner = true,
-  size = 'large',
-  color = theme.colors.primary,
+  title = 'Loading', message, showSpinner = true, size = 'large', color = '#222222',
 }) => {
-  // Provide semantic context for different loading states
   const getLoadingMessage = () => {
     if (message) return message;
-
-    // Default messages based on common loading scenarios
     switch (title.toLowerCase()) {
-      case 'loading jobs':
-        return 'Finding available jobs in your area...';
-      case 'loading contractors':
-        return 'Searching for qualified contractors...';
-      case 'submitting bid':
-        return 'Sending your bid to the homeowner...';
-      case 'processing payment':
-        return 'Securely processing your payment...';
-      case 'uploading images':
-        return 'Uploading your photos...';
-      case 'saving changes':
-        return 'Saving your information...';
-      default:
-        return 'Please wait while we load your content...';
+      case 'loading jobs': return 'Finding available jobs in your area...';
+      case 'loading contractors': return 'Searching for qualified contractors...';
+      case 'submitting bid': return 'Sending your bid to the homeowner...';
+      case 'processing payment': return 'Securely processing your payment...';
+      case 'uploading images': return 'Uploading your photos...';
+      case 'saving changes': return 'Saving your information...';
+      default: return 'Please wait while we load your content...';
     }
   };
 
   return (
     <View style={styles.container}>
-      {showSpinner && (
-        <ActivityIndicator
-          size={size}
-          color={color}
-          style={styles.spinner}
-          accessibilityLabel={`Loading ${title.toLowerCase()}`}
-        />
-      )}
-      <Text
-        style={styles.title}
-        accessibilityRole="header"
-      >
-        {title}
-      </Text>
-      <Text
-        style={styles.message}
-        accessibilityLiveRegion="polite"
-      >
-        {getLoadingMessage()}
-      </Text>
+      {showSpinner && <ActivityIndicator size={size} color={color} style={styles.spinner} accessibilityLabel={`Loading ${title.toLowerCase()}`} />}
+      <Text style={styles.title} accessibilityRole="header">{title}</Text>
+      <Text style={styles.message} accessibilityLiveRegion="polite">{getLoadingMessage()}</Text>
     </View>
   );
 };
 
-/**
- * Enhanced empty state with contextual messaging and actions
- */
 export const EmptyState: React.FC<EmptyStateProps> = ({
-  title,
-  message,
-  icon = 'inbox',
-  actionText,
-  onActionPress,
-  showRetry = false,
-  onRetry,
+  title, message, icon = 'inbox', actionText, onActionPress, showRetry = false, onRetry,
 }) => {
-  // Get contextual messages based on common empty states
   const getContextualMessage = () => {
-    const lowerTitle = title.toLowerCase();
-
-    if (lowerTitle.includes('jobs')) {
-      return message || 'No jobs available right now. Check back later or adjust your search filters.';
-    }
-    if (lowerTitle.includes('contractors')) {
-      return message || 'No contractors found in your area. Try expanding your search radius or check different categories.';
-    }
-    if (lowerTitle.includes('messages')) {
-      return message || 'No messages yet. Start a conversation with a contractor about your project.';
-    }
-    if (lowerTitle.includes('notifications')) {
-      return message || 'All caught up! You have no new notifications.';
-    }
+    const lower = title.toLowerCase();
+    if (lower.includes('jobs')) return message || 'No jobs available right now. Check back later or adjust your search filters.';
+    if (lower.includes('contractors')) return message || 'No contractors found in your area. Try expanding your search radius.';
+    if (lower.includes('messages')) return message || 'No messages yet. Start a conversation with a contractor about your project.';
+    if (lower.includes('notifications')) return message || 'All caught up! You have no new notifications.';
     return message;
   };
 
   return (
     <View style={styles.container}>
-      <MaterialIcons
-        name={icon}
-        size={64}
-        color={theme.colors.textSecondary}
-        style={styles.icon}
-        accessibilityLabel={`${title} empty state`}
-      />
-      <Text
-        style={styles.title}
-        accessibilityRole="header"
-      >
-        {title}
-      </Text>
-      <Text
-        style={styles.message}
-        accessibilityHint="Description of empty state"
-      >
-        {getContextualMessage()}
-      </Text>
-
+      <MaterialIcons name={icon} size={64} color="#717171" style={styles.icon} accessibilityLabel={`${title} empty state`} />
+      <Text style={styles.title} accessibilityRole="header">{title}</Text>
+      <Text style={styles.message} accessibilityHint="Description of empty state">{getContextualMessage()}</Text>
       {actionText && onActionPress && (
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={onActionPress}
-          accessibilityRole="button"
-          accessibilityLabel={actionText}
-          accessibilityHint="Primary action for this empty state"
-        >
+        <TouchableOpacity style={styles.primaryButton} onPress={onActionPress} accessibilityRole="button" accessibilityLabel={actionText}>
           <Text style={styles.primaryButtonText}>{actionText}</Text>
         </TouchableOpacity>
       )}
-
       {showRetry && onRetry && (
-        <TouchableOpacity
-          style={styles.retryButton}
-          onPress={onRetry}
-          accessibilityRole="button"
-          accessibilityLabel="Retry loading"
-          accessibilityHint="Tap to reload content"
-        >
-          <MaterialIcons
-            name='refresh'
-            size={20}
-            color={theme.colors.primary}
-          />
+        <TouchableOpacity style={styles.retryButton} onPress={onRetry} accessibilityRole="button" accessibilityLabel="Retry loading">
+          <MaterialIcons name='refresh' size={20} color="#222222" />
           <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
       )}
@@ -187,68 +99,23 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   );
 };
 
-/**
- * Error state with retry functionality and enhanced error messaging
- */
 export const ErrorState: React.FC<ErrorStateProps> = ({
-  title = 'Something went wrong',
-  message,
-  showRetry = true,
-  onRetry,
-  isNetworkError = false,
+  title = 'Something went wrong', message, showRetry = true, onRetry, isNetworkError = false,
 }) => {
   const errorIcon = isNetworkError ? 'wifi-off' : 'error-outline';
-
-  // Enhanced error messages with more specific guidance
-  const getDefaultMessage = () => {
-    if (isNetworkError) {
-      return 'Check your internet connection and try again. If the problem persists, contact support.';
-    }
-    return 'We encountered an unexpected error. If this continues, please restart the app or contact support.';
-  };
-
-  const getErrorTitle = () => {
-    if (isNetworkError) {
-      return 'Connection Problem';
-    }
-    return title;
-  };
+  const getDefaultMessage = () => isNetworkError
+    ? 'Check your internet connection and try again. If the problem persists, contact support.'
+    : 'We encountered an unexpected error. If this continues, please restart the app or contact support.';
+  const getErrorTitle = () => isNetworkError ? 'Connection Problem' : title;
 
   return (
     <View style={styles.container}>
-      <MaterialIcons
-        name={errorIcon}
-        size={64}
-        color={theme.colors.error}
-        style={styles.icon}
-        accessibilityLabel="Error icon"
-      />
-      <Text
-        style={styles.errorTitle}
-        accessibilityRole="header"
-      >
-        {getErrorTitle()}
-      </Text>
-      <Text
-        style={styles.message}
-        accessibilityHint="Error description"
-      >
-        {message || getDefaultMessage()}
-      </Text>
-
+      <MaterialIcons name={errorIcon} size={64} color="#EF4444" style={styles.icon} accessibilityLabel="Error icon" />
+      <Text style={styles.errorTitle} accessibilityRole="header">{getErrorTitle()}</Text>
+      <Text style={styles.message} accessibilityHint="Error description">{message || getDefaultMessage()}</Text>
       {showRetry && onRetry && (
-        <TouchableOpacity
-          style={styles.retryButton}
-          onPress={onRetry}
-          accessibilityRole="button"
-          accessibilityLabel="Try again button"
-          accessibilityHint="Tap to retry the failed operation"
-        >
-          <MaterialIcons
-            name='refresh'
-            size={20}
-            color={theme.colors.primary}
-          />
+        <TouchableOpacity style={styles.retryButton} onPress={onRetry} accessibilityRole="button" accessibilityLabel="Try again button">
+          <MaterialIcons name='refresh' size={20} color="#222222" />
           <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
       )}
@@ -256,87 +123,51 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
   );
 };
 
-/**
- * Skeleton loader for list items
- */
-export const SkeletonLoader: React.FC<{
-  count?: number;
-  height?: number;
-  showAvatar?: boolean;
-}> = ({ count = 3, height = 80, showAvatar = true }) => {
-  return (
-    <View>
-      {Array.from({ length: count }).map((_, index) => (
-        <View key={index} style={[styles.skeletonItem, { height }]}>
-          {showAvatar && <View style={styles.skeletonAvatar} />}
-          <View style={styles.skeletonContent}>
-            <View style={styles.skeletonLine} />
-            <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
-          </View>
+export const SkeletonLoader: React.FC<{ count?: number; height?: number; showAvatar?: boolean }> = ({
+  count = 3, height = 80, showAvatar = true,
+}) => (
+  <View>
+    {Array.from({ length: count }).map((_, index) => (
+      <View key={index} style={[styles.skeletonItem, { height }]}>
+        {showAvatar && <View style={styles.skeletonAvatar} />}
+        <View style={styles.skeletonContent}>
+          <View style={styles.skeletonLine} />
+          <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
         </View>
-      ))}
-    </View>
-  );
-};
+      </View>
+    ))}
+  </View>
+);
 
-/**
- * Inline loading indicator for buttons or small spaces
- */
-export const InlineLoader: React.FC<{
-  size?: number;
-  color?: string;
-  text?: string;
-}> = ({ size = 16, color = theme.colors.primary, text }) => {
-  return (
-    <View style={styles.inlineContainer}>
-      <ActivityIndicator size='small' color={color} />
-      {text && <Text style={[styles.inlineText, { color }]}>{text}</Text>}
-    </View>
-  );
-};
+export const InlineLoader: React.FC<{ size?: number; color?: string; text?: string }> = ({
+  color = '#222222', text,
+}) => (
+  <View style={styles.inlineContainer}>
+    <ActivityIndicator size='small' color={color} />
+    {text && <Text style={[styles.inlineText, { color }]}>{text}</Text>}
+  </View>
+);
 
-/**
- * Pull to refresh indicator
- */
-export const RefreshIndicator: React.FC<{
-  isRefreshing: boolean;
-  message?: string;
-}> = ({ isRefreshing, message = 'Refreshing...' }) => {
+export const RefreshIndicator: React.FC<{ isRefreshing: boolean; message?: string }> = ({
+  isRefreshing, message = 'Refreshing...',
+}) => {
   if (!isRefreshing) return null;
-
   return (
     <View style={styles.refreshContainer}>
-      <ActivityIndicator size='small' color={theme.colors.primary} />
+      <ActivityIndicator size='small' color="#222222" />
       <Text style={styles.refreshText}>{message}</Text>
     </View>
   );
 };
 
-/**
- * Network status indicator
- */
-export const NetworkStatusIndicator: React.FC<{
-  isOnline: boolean;
-  hasError?: boolean;
-  onRetry?: () => void;
-}> = ({ isOnline, hasError, onRetry }) => {
+export const NetworkStatusIndicator: React.FC<{ isOnline: boolean; hasError?: boolean; onRetry?: () => void }> = ({
+  isOnline, hasError, onRetry,
+}) => {
   if (isOnline && !hasError) return null;
-
   return (
-    <View
-      style={[
-        styles.networkIndicator,
-        !isOnline && styles.networkIndicatorOffline,
-      ]}
-    >
-      <MaterialIcons
-        name={!isOnline ? 'wifi-off' : 'warning'}
-        size={16}
-        color={theme.colors.textInverse}
-      />
-      <Text style={styles.networkText}>
-        {!isOnline ? "You're offline" : 'Connection issues'}
-      </Text>
+    <View style={[styles.networkIndicator, !isOnline && styles.networkIndicatorOffline]}>
+      <MaterialIcons name={!isOnline ? 'wifi-off' : 'warning'} size={16} color="#FFFFFF" />
+      <Text style={styles.networkText}>{!isOnline ? "You're offline" : 'Connection issues'}</Text>
       {onRetry && (
         <TouchableOpacity onPress={onRetry} style={styles.networkRetry}>
           <Text style={styles.networkRetryText}>Retry</Text>
@@ -346,67 +177,20 @@ export const NetworkStatusIndicator: React.FC<{
   );
 };
 
-/**
- * Progress loading state for file uploads, downloads, and other progress-based operations
- */
 export const ProgressLoadingState: React.FC<ProgressLoadingProps> = ({
-  title,
-  progress,
-  message,
-  showPercentage = true,
-  onCancel,
+  title, progress, message, showPercentage = true, onCancel,
 }) => {
   const clampedProgress = Math.max(0, Math.min(100, progress));
-
   return (
     <View style={styles.container}>
-      <Text
-        style={styles.title}
-        accessibilityRole="header"
-      >
-        {title}
-      </Text>
-
-      {message && (
-        <Text
-          style={styles.message}
-          accessibilityLiveRegion="polite"
-        >
-          {message}
-        </Text>
-      )}
-
-      {/* Progress Bar */}
-      <View
-        style={styles.progressBarContainer}
-        accessibilityRole="progressbar"
-        accessibilityValue={{
-          min: 0,
-          max: 100,
-          now: clampedProgress,
-        }}
-        accessibilityLabel={`Progress: ${Math.round(clampedProgress)}%`}
-      >
-        <View
-          style={[styles.progressBar, { width: `${clampedProgress}%` }]}
-        />
+      <Text style={styles.title} accessibilityRole="header">{title}</Text>
+      {message && <Text style={styles.message} accessibilityLiveRegion="polite">{message}</Text>}
+      <View style={styles.progressBarContainer} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: clampedProgress }} accessibilityLabel={`Progress: ${Math.round(clampedProgress)}%`}>
+        <View style={[styles.progressBar, { width: `${clampedProgress}%` }]} />
       </View>
-
-      {/* Percentage Display */}
-      {showPercentage && (
-        <Text style={styles.progressText}>
-          {Math.round(clampedProgress)}%
-        </Text>
-      )}
-
-      {/* Cancel Button */}
+      {showPercentage && <Text style={styles.progressText}>{Math.round(clampedProgress)}%</Text>}
       {onCancel && (
-        <TouchableOpacity
-          style={styles.cancelButton}
-          onPress={onCancel}
-          accessibilityRole="button"
-          accessibilityLabel="Cancel operation"
-        >
+        <TouchableOpacity style={styles.cancelButton} onPress={onCancel} accessibilityRole="button" accessibilityLabel="Cancel operation">
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
       )}
@@ -415,171 +199,33 @@ export const ProgressLoadingState: React.FC<ProgressLoadingProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: theme.spacing.xl,
-    backgroundColor: theme.colors.background,
-  },
-  spinner: {
-    marginBottom: theme.spacing.md,
-  },
-  icon: {
-    marginBottom: theme.spacing.md,
-  },
-  title: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: theme.spacing.sm,
-  },
-  errorTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.error,
-    textAlign: 'center',
-    marginBottom: theme.spacing.sm,
-  },
-  message: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: theme.spacing.lg,
-  },
-  primaryButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    marginBottom: theme.spacing.md,
-  },
-  primaryButtonText: {
-    color: theme.colors.textInverse,
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-  },
-  retryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
-  },
-  retryButtonText: {
-    color: theme.colors.primary,
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.medium,
-    marginLeft: theme.spacing.xs,
-  },
-  skeletonItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
-  },
-  skeletonAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: theme.colors.border,
-    marginRight: theme.spacing.md,
-  },
-  skeletonContent: {
-    flex: 1,
-  },
-  skeletonLine: {
-    height: 12,
-    backgroundColor: theme.colors.border,
-    borderRadius: 6,
-    marginBottom: theme.spacing.xs,
-  },
-  skeletonLineShort: {
-    width: '60%',
-  },
-  inlineContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  inlineText: {
-    marginLeft: theme.spacing.xs,
-    fontSize: theme.typography.fontSize.sm,
-  },
-  refreshContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: theme.spacing.sm,
-  },
-  refreshText: {
-    marginLeft: theme.spacing.xs,
-    color: theme.colors.textSecondary,
-    fontSize: theme.typography.fontSize.sm,
-  },
-  networkIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.warning,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
-  },
-  networkIndicatorOffline: {
-    backgroundColor: theme.colors.error,
-  },
-  networkText: {
-    color: theme.colors.textInverse,
-    fontSize: theme.typography.fontSize.sm,
-    marginLeft: theme.spacing.xs,
-    flex: 1,
-  },
-  networkRetry: {
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.xs,
-    borderRadius: theme.borderRadius.sm,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  networkRetryText: {
-    color: theme.colors.textInverse,
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: theme.typography.fontWeight.semibold,
-  },
-  progressBarContainer: {
-    width: '100%',
-    height: 8,
-    backgroundColor: theme.colors.border,
-    borderRadius: 4,
-    marginVertical: theme.spacing.md,
-    overflow: 'hidden',
-  },
-  progressBar: {
-    height: '100%',
-    backgroundColor: theme.colors.primary,
-    borderRadius: 4,
-  },
-  progressText: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.primary,
-    textAlign: 'center',
-    marginBottom: theme.spacing.md,
-  },
-  cancelButton: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.error,
-    backgroundColor: 'transparent',
-  },
-  cancelButtonText: {
-    color: theme.colors.error,
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.medium,
-  },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: '#F7F7F7' },
+  spinner: { marginBottom: 16 },
+  icon: { marginBottom: 16 },
+  title: { fontSize: 18, fontWeight: '700', color: '#222222', textAlign: 'center', marginBottom: 8 },
+  errorTitle: { fontSize: 18, fontWeight: '700', color: '#EF4444', textAlign: 'center', marginBottom: 8 },
+  message: { fontSize: 15, color: '#717171', textAlign: 'center', lineHeight: 24, marginBottom: 20 },
+  primaryButton: { backgroundColor: '#222222', paddingHorizontal: 20, paddingVertical: 16, borderRadius: 12, marginBottom: 16 },
+  primaryButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
+  retryButton: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: '#222222' },
+  retryButtonText: { color: '#222222', fontSize: 15, fontWeight: '500', marginLeft: 6 },
+  skeletonItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, marginBottom: 8 },
+  skeletonAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#EBEBEB', marginRight: 16 },
+  skeletonContent: { flex: 1 },
+  skeletonLine: { height: 12, backgroundColor: '#EBEBEB', borderRadius: 6, marginBottom: 6 },
+  skeletonLineShort: { width: '60%' },
+  inlineContainer: { flexDirection: 'row', alignItems: 'center' },
+  inlineText: { marginLeft: 6, fontSize: 13 },
+  refreshContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8 },
+  refreshText: { marginLeft: 6, color: '#717171', fontSize: 13 },
+  networkIndicator: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F59E0B', paddingHorizontal: 16, paddingVertical: 8, marginBottom: 8 },
+  networkIndicatorOffline: { backgroundColor: '#EF4444' },
+  networkText: { color: '#FFFFFF', fontSize: 13, marginLeft: 6, flex: 1 },
+  networkRetry: { paddingHorizontal: 8, paddingVertical: 6, borderRadius: 6, backgroundColor: 'rgba(255, 255, 255, 0.2)' },
+  networkRetryText: { color: '#FFFFFF', fontSize: 12, fontWeight: '600' },
+  progressBarContainer: { width: '100%', height: 8, backgroundColor: '#EBEBEB', borderRadius: 4, marginVertical: 16, overflow: 'hidden' },
+  progressBar: { height: '100%', backgroundColor: '#222222', borderRadius: 4 },
+  progressText: { fontSize: 15, fontWeight: '600', color: '#222222', textAlign: 'center', marginBottom: 16 },
+  cancelButton: { paddingHorizontal: 20, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: '#EF4444', backgroundColor: 'transparent' },
+  cancelButtonText: { color: '#EF4444', fontSize: 13, fontWeight: '500' },
 });

@@ -105,6 +105,27 @@ export interface ContractorAdvice {
   complexity: 'low' | 'medium' | 'high';
 }
 
+/** RICS Condition Rating (1 = Green/routine, 2 = Amber/repair soon, 3 = Red/urgent) */
+export type RICSConditionRating = 1 | 2 | 3;
+
+export interface SpecialistReferral {
+  /** Type of specialist needed (e.g. 'structural_engineer', 'asbestos_surveyor') */
+  specialistType: string;
+  /** Why this specialist is needed */
+  reason: string;
+  /** How urgent the referral is */
+  urgency: 'routine' | 'soon' | 'urgent' | 'immediate';
+}
+
+export interface PropertyPatternInsight {
+  /** Connected defects from previous assessments on the same property */
+  connectedDefects: string[];
+  /** Root cause hypothesis linking multiple defects */
+  rootCauseHypothesis: string;
+  /** Recommended investigation based on the pattern */
+  recommendedInvestigation: string;
+}
+
 export interface RoboflowDetection {
   id: string;
   className: string;
@@ -150,6 +171,12 @@ export interface Phase1BuildingAssessment {
   urgency: Urgency;
   homeownerExplanation: HomeownerExplanation;
   contractorAdvice: ContractorAdvice;
+  /** RICS Condition Rating aligned with UK building surveying standards */
+  ricsConditionRating?: RICSConditionRating;
+  /** Specialist referrals — "know what you don't know" */
+  specialistReferrals?: SpecialistReferral[];
+  /** Cross-property pattern insights from previous assessments */
+  patternInsights?: PropertyPatternInsight;
   evidence?: {
     roboflowDetections?: RoboflowDetection[];
     visionAnalysis?: VisionAnalysisSummary | null;

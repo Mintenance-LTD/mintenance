@@ -133,9 +133,8 @@ const styles = StyleSheet.create({
   },
   viewAllLink: {
     fontSize: 14,
-    color: '#222222',
+    color: '#10B981',
     fontWeight: '600',
-    textDecorationLine: 'underline',
   },
   emptyState: {
     backgroundColor: '#FFFFFF',
@@ -158,7 +157,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: '#D1FAE5',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,

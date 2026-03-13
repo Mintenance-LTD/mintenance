@@ -8,13 +8,12 @@
  */
 
 import React from 'react';
-import { ScrollView, TouchableOpacity, Text, View, StyleSheet, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import { ScrollView, TouchableOpacity, Text, View, StyleSheet, Alert, ActivityIndicator, RefreshControl, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import { ScreenHeader } from '../../components/shared';
 import { usePaymentMethodsViewModel } from './viewmodels/PaymentMethodsViewModel';
-import { PaymentMethodOption } from './components';
+// PaymentMethodOption removed - only Stripe cards are supported
 import type { NavigationProp } from '@react-navigation/native';
 
 interface PaymentMethodsScreenProps {
@@ -53,7 +52,7 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({ navi
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.surfaceSecondary }]}>
+    <SafeAreaView style={styles.container}>
       <ScreenHeader
         title="Payment Method"
         onBackPress={() => navigation.goBack()}
@@ -63,20 +62,16 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({ navi
         style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={vm.loading} onRefresh={vm.refresh} />
+          <RefreshControl refreshing={vm.loading} onRefresh={vm.refresh} tintColor="#10B981" colors={['#10B981']} />
         }
       >
         {/* Saved Cards */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
-          Your Cards
-        </Text>
+        <Text style={styles.sectionTitle}>Your Cards</Text>
 
         {vm.loading && vm.savedCards.length === 0 ? (
-          <View style={[styles.loadingBox, { backgroundColor: theme.colors.surface }]}>
-            <ActivityIndicator size="small" color={theme.colors.primary} />
-            <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
-              Loading payment methods...
-            </Text>
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="small" color="#10B981" />
+            <Text style={styles.loadingText}>Loading payment methods...</Text>
           </View>
         ) : vm.savedCards.length > 0 ? (
           vm.savedCards.map((card) => (
@@ -84,8 +79,7 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({ navi
               key={card.id}
               style={[
                 styles.cardRow,
-                { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
-                vm.selectedMethod === card.id && { borderColor: theme.colors.primary },
+                vm.selectedMethod === card.id && styles.cardRowSelected,
               ]}
               onPress={() => vm.selectMethod(card.id)}
               onLongPress={() => handleDeleteCard(card.id, card.last4)}
@@ -94,79 +88,55 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({ navi
               accessibilityState={{ selected: vm.selectedMethod === card.id }}
             >
               <View style={styles.cardLeft}>
-                <View style={[styles.cardIconBox, { backgroundColor: theme.colors.surfaceTertiary }]}>
+                <View style={styles.cardIconBox}>
                   <Ionicons
                     name={(BRAND_ICONS[card.brand.toLowerCase()] || 'card') as keyof typeof Ionicons.glyphMap}
                     size={24}
-                    color={theme.colors.textSecondary}
+                    color="#717171"
                   />
                 </View>
                 <View>
-                  <Text style={[styles.cardBrand, { color: theme.colors.textPrimary }]}>
+                  <Text style={styles.cardBrand}>
                     {card.brand.charAt(0).toUpperCase() + card.brand.slice(1)} **** {card.last4}
                   </Text>
-                  <Text style={[styles.cardExpiry, { color: theme.colors.textTertiary }]}>
+                  <Text style={styles.cardExpiry}>
                     Expires {String(card.expiryMonth).padStart(2, '0')}/{card.expiryYear}
                   </Text>
                 </View>
               </View>
               <View style={styles.cardRight}>
                 {card.isDefault && (
-                  <View style={[styles.defaultBadge, { backgroundColor: theme.colors.backgroundSecondary }]}>
-                    <Text style={[styles.defaultText, { color: theme.colors.textPrimary }]}>Default</Text>
+                  <View style={styles.defaultBadge}>
+                    <Text style={styles.defaultText}>Default</Text>
                   </View>
                 )}
                 <View style={[
                   styles.radio,
-                  { borderColor: theme.colors.border },
-                  vm.selectedMethod === card.id && { borderColor: theme.colors.primary, backgroundColor: theme.colors.primary },
+                  vm.selectedMethod === card.id && styles.radioSelected,
                 ]} />
               </View>
             </TouchableOpacity>
           ))
         ) : !vm.loading ? (
-          <View style={[styles.emptyBox, { backgroundColor: theme.colors.surface }]}>
-            <Ionicons name="card-outline" size={32} color={theme.colors.textTertiary} />
-            <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
-              No cards saved yet
-            </Text>
+          <View style={styles.emptyBox}>
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name="card-outline" size={28} color="#10B981" />
+            </View>
+            <Text style={styles.emptyText}>No cards saved yet</Text>
           </View>
         ) : null}
 
         {/* Add Card Button */}
         <TouchableOpacity
-          style={[styles.addCardTrigger, { backgroundColor: theme.colors.surface }]}
+          style={styles.addCardTrigger}
           onPress={() => navigation.navigate('AddPaymentMethod' as never)}
         >
-          <Ionicons name="add-circle-outline" size={20} color={theme.colors.textSecondary} />
-          <Text style={[styles.addCardText, { color: theme.colors.textPrimary }]}>Add New Card</Text>
+          <Ionicons name="add-circle-outline" size={20} color="#10B981" />
+          <Text style={styles.addCardText}>Add New Card</Text>
         </TouchableOpacity>
 
-        {/* Cash */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
-          Pay on Cash
-        </Text>
-        <PaymentMethodOption
-          method={vm.paymentMethods[0]}
-          isSelected={vm.selectedMethod === 'cash'}
-          onSelect={vm.selectMethod}
-        />
-
-        {/* More Options */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
-          More Payment Options
-        </Text>
-        {vm.paymentMethods.slice(1).map((method) => (
-          <PaymentMethodOption
-            key={method.id}
-            method={method}
-            isSelected={vm.selectedMethod === method.id}
-            onSelect={vm.selectMethod}
-          />
-        ))}
-
         {vm.error && (
-          <Text style={[styles.errorText, { color: theme.colors.error }]}>{vm.error}</Text>
+          <Text style={styles.errorText}>{vm.error}</Text>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -174,65 +144,98 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({ navi
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { flex: 1, padding: theme.spacing[5] },
+  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  content: { flex: 1, padding: 20 },
   sectionTitle: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    marginTop: theme.spacing[5],
-    marginBottom: theme.spacing[3],
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222222',
+    marginTop: 20,
+    marginBottom: 12,
   },
   loadingBox: {
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    padding: 20,
     alignItems: 'center',
-    gap: theme.spacing.sm,
-    marginBottom: theme.spacing[3],
+    gap: 8,
+    marginBottom: 12,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
-  loadingText: { fontSize: theme.typography.fontSize.sm },
+  loadingText: { fontSize: 14, color: '#717171' },
   cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    padding: 16,
     marginBottom: 10,
-    borderWidth: 1,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
+  },
+  cardRowSelected: {
+    backgroundColor: '#F7F7F7',
   },
   cardLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   cardIconBox: {
     width: 48,
     height: 48,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: 12,
+    backgroundColor: '#F7F7F7',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: theme.spacing[3],
+    marginRight: 12,
   },
-  cardBrand: { fontSize: theme.typography.fontSize.base, fontWeight: theme.typography.fontWeight.medium },
-  cardExpiry: { fontSize: theme.typography.fontSize.xs, marginTop: 2 },
-  cardRight: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
-  defaultBadge: { paddingHorizontal: theme.spacing.sm, paddingVertical: 3, borderRadius: theme.borderRadius.sm },
-  defaultText: { fontSize: theme.typography.fontSize.xs, fontWeight: theme.typography.fontWeight.semibold },
-  radio: { width: 22, height: 22, borderRadius: theme.borderRadius.full, borderWidth: 2 },
+  cardBrand: { fontSize: 15, fontWeight: '500', color: '#222222' },
+  cardExpiry: { fontSize: 12, color: '#B0B0B0', marginTop: 2 },
+  cardRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  defaultBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: '#F7F7F7' },
+  defaultText: { fontSize: 12, fontWeight: '600', color: '#222222' },
+  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#EBEBEB' },
+  radioSelected: { borderColor: '#10B981', backgroundColor: '#10B981' },
   emptyBox: {
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    padding: 20,
     alignItems: 'center',
-    gap: theme.spacing.sm,
-    marginBottom: theme.spacing[3],
+    gap: 8,
+    marginBottom: 12,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
-  emptyText: { fontSize: theme.typography.fontSize.sm },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#D1FAE5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: { fontSize: 14, color: '#717171' },
   addCardTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: theme.spacing.sm,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
-    marginBottom: theme.spacing.sm,
+    gap: 8,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    marginBottom: 8,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
-  addCardText: { fontSize: theme.typography.fontSize.base, fontWeight: theme.typography.fontWeight.semibold },
-  errorText: { fontSize: theme.typography.fontSize.sm, textAlign: 'center', marginTop: theme.spacing[3] },
+  addCardText: { fontSize: 15, fontWeight: '600', color: '#10B981' },
+  errorText: { fontSize: 14, color: '#EF4444', textAlign: 'center', marginTop: 12 },
 });
 
 export default PaymentMethodsScreen;

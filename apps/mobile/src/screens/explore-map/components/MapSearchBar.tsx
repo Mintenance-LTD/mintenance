@@ -12,7 +12,6 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 
 interface MapSearchBarProps {
   jobCount: number;
@@ -41,12 +40,11 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({
     <View
       style={[
         styles.container,
-        // Offset by the real status-bar height so we sit below it, not behind it
         { top: insets.top + 12 },
         onBackToList && styles.containerWithBack,
       ]}
     >
-      {/* Back-to-list button — only shown when map is embedded in JobsScreen */}
+      {/* Back-to-list button */}
       {onBackToList && (
         <TouchableOpacity
           style={styles.backButton}
@@ -55,7 +53,7 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({
           accessibilityLabel="Back to list"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
+          <Ionicons name="arrow-back" size={20} color="#222222" />
         </TouchableOpacity>
       )}
       <TouchableOpacity
@@ -65,7 +63,7 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({
         accessibilityLabel={`Search jobs. ${subtitle}`}
         activeOpacity={0.9}
       >
-        <Ionicons name="search" size={18} color={theme.colors.textPrimary} />
+        <Ionicons name="search" size={18} color="#222222" />
         <View style={styles.textContainer}>
           <Text style={styles.title}>Near you</Text>
           <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
@@ -77,7 +75,7 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({
           accessibilityLabel="Open filters"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="options-outline" size={16} color={theme.colors.textPrimary} />
+          <Ionicons name="options-outline" size={16} color="#222222" />
         </TouchableOpacity>
       </TouchableOpacity>
     </View>
@@ -87,7 +85,6 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    // top is set dynamically via insets.top + 12 (inline style above)
     left: 16,
     right: 16,
     zIndex: 10,
@@ -101,10 +98,10 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.white,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: theme.colors.black,
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 8,
@@ -115,12 +112,12 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.white,
+    backgroundColor: '#FFFFFF',
     borderRadius: 32,
     paddingLeft: 16,
     paddingRight: 8,
     paddingVertical: 10,
-    shadowColor: theme.colors.black,
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 8,
@@ -132,20 +129,19 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
   },
   subtitle: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginTop: 1,
   },
   filterButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
+    backgroundColor: '#F7F7F7',
     alignItems: 'center',
     justifyContent: 'center',
   },

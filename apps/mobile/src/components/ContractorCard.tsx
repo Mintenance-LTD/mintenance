@@ -10,7 +10,6 @@ import { styles } from './contractorCardStyles';
 import SwipeableCardWrapper from './SwipeableCardWrapper';
 import { Ionicons } from '@expo/vector-icons';
 import { ContractorProfile } from '@mintenance/types';
-import { theme } from '../theme';
 import ConnectButton from './ConnectButton';
 
 interface Props {
@@ -34,7 +33,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
           key={i}
           name='star'
           size={16}
-          color={theme.colors.ratingGold}
+          color="#F59E0B"
         />
       );
     }
@@ -45,7 +44,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
           key='half'
           name='star-half'
           size={16}
-          color={theme.colors.ratingGold}
+          color="#F59E0B"
         />
       );
     }
@@ -57,7 +56,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
           key={`empty-${i}`}
           name='star-outline'
           size={16}
-          color={theme.colors.ratingGold}
+          color="#F59E0B"
         />
       );
     }
@@ -93,7 +92,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
                   <Ionicons
                     name='person'
                     size={50}
-                    color={theme.colors.textSecondary}
+                    color="#717171"
                   />
                 </View>
               )}
@@ -144,21 +143,21 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
           <View style={styles.detailsGrid}>
             {contractor.hourlyRate && (
               <View style={styles.detailItem}>
-                <Ionicons name="cash-outline" size={16} color={theme.colors.textSecondary} />
+                <Ionicons name="cash-outline" size={16} color="#717171" />
                 <Text style={styles.detailText}>${contractor.hourlyRate}/hr</Text>
               </View>
             )}
 
             {contractor.yearsExperience && (
               <View style={styles.detailItem}>
-                <Ionicons name="time-outline" size={16} color={theme.colors.textSecondary} />
+                <Ionicons name="time-outline" size={16} color="#717171" />
                 <Text style={styles.detailText}>{contractor.yearsExperience} years exp</Text>
               </View>
             )}
 
             {contractor.availability && (
               <View style={styles.detailItem}>
-                <Ionicons name="calendar-outline" size={16} color={theme.colors.textSecondary} />
+                <Ionicons name="calendar-outline" size={16} color="#717171" />
                 <Text style={styles.detailText}>
                   {contractor.availability.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                 </Text>
@@ -167,7 +166,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
 
             {contractor.businessAddress && (
               <View style={styles.detailItem}>
-                <Ionicons name="location-outline" size={16} color={theme.colors.textSecondary} />
+                <Ionicons name="location-outline" size={16} color="#717171" />
                 <Text style={styles.detailText} numberOfLines={1}>
                   {contractor.businessAddress}
                 </Text>
@@ -197,7 +196,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
 
           {contractor.address && (
             <View style={styles.locationSection}>
-              <Ionicons name='location-outline' size={16} color={theme.colors.textSecondary} />
+              <Ionicons name='location-outline' size={16} color="#717171" />
               <Text style={styles.locationText}>{contractor.address}</Text>
             </View>
           )}
@@ -214,7 +213,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
             <Ionicons
               name={showDetails ? 'chevron-up' : 'chevron-down'}
               size={16}
-              color={theme.colors.textPrimary}
+              color="#222222"
             />
           </TouchableOpacity>
 
@@ -305,14 +304,14 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
           left: {
             element: (
               <View style={{ flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'flex-start', marginTop: 30, marginLeft: -30 }}>
-                <Text style={{ backgroundColor: theme.colors.error, color: 'white', fontSize: 24, fontWeight: theme.typography.fontWeight.bold, borderRadius: 8, padding: 10, overflow: 'hidden' }}>PASS</Text>
+                <Text style={{ backgroundColor: '#EF4444', color: 'white', fontSize: 24, fontWeight: '700', borderRadius: 8, padding: 10, overflow: 'hidden' }}>PASS</Text>
               </View>
             ),
           },
           right: {
             element: (
               <View style={{ flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', marginTop: 30, marginLeft: 30 }}>
-                <Text style={{ backgroundColor: theme.colors.success, color: 'white', fontSize: 24, fontWeight: theme.typography.fontWeight.bold, borderRadius: 8, padding: 10, overflow: 'hidden' }}>LIKE</Text>
+                <Text style={{ backgroundColor: '#10B981', color: 'white', fontSize: 24, fontWeight: '700', borderRadius: 8, padding: 10, overflow: 'hidden' }}>LIKE</Text>
               </View>
             ),
           },
@@ -322,7 +321,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
 
       <View style={styles.actionButtons}>
         <TouchableOpacity style={styles.passButton} onPress={onPass} accessibilityRole="button" accessibilityLabel="Pass on this contractor">
-          <Ionicons name='close' size={30} color={theme.colors.error} />
+          <Ionicons name='close' size={30} color="#EF4444" />
         </TouchableOpacity>
 
         {currentUserId && (
@@ -337,7 +336,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
         )}
 
         <TouchableOpacity style={styles.likeButton} onPress={onLike} accessibilityRole="button" accessibilityLabel="Like this contractor">
-          <Ionicons name='leaf' size={30} color={theme.colors.success} />
+          <Ionicons name='leaf' size={30} color="#10B981" />
         </TouchableOpacity>
       </View>
     </View>

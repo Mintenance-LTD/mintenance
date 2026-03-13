@@ -9,6 +9,7 @@ import {
   TextInput,
   Alert,
   Animated,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -19,7 +20,6 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
-import { theme } from '../../theme';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 
 interface Expense {
@@ -35,13 +35,13 @@ interface Expense {
 type CategoryFilter = 'all' | 'materials' | 'tools' | 'fuel' | 'software' | 'insurance' | 'marketing' | 'other';
 
 const CATEGORY_COLORS: Record<string, string> = {
-  materials: theme.colors.info,
-  tools: theme.colors.info,
-  fuel: theme.colors.warning,
-  software: theme.colors.info,
-  insurance: theme.colors.primary,
-  marketing: theme.colors.error,
-  other: theme.colors.textSecondary,
+  materials: '#3B82F6',
+  tools: '#8B5CF6',
+  fuel: '#F59E0B',
+  software: '#3B82F6',
+  insurance: '#10B981',
+  marketing: '#EF4444',
+  other: '#717171',
 };
 
 export const ExpensesScreen: React.FC = () => {
@@ -143,18 +143,19 @@ export const ExpensesScreen: React.FC = () => {
 
       {/* Stats */}
       <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Total</Text>
-          <Text style={styles.statValue}>{'\u00A3'}{totalExpenses.toFixed(2)}</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>This Month</Text>
-          <Text style={styles.statValue}>{'\u00A3'}{thisMonth.toFixed(2)}</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Billable</Text>
-          <Text style={styles.statValue}>{'\u00A3'}{billableTotal.toFixed(2)}</Text>
-        </View>
+        {[
+          { label: 'Total', value: `\u00A3${totalExpenses.toFixed(2)}`, icon: 'wallet-outline' as const, color: '#3B82F6', bg: '#DBEAFE' },
+          { label: 'This Month', value: `\u00A3${thisMonth.toFixed(2)}`, icon: 'calendar-outline' as const, color: '#8B5CF6', bg: '#EDE9FE' },
+          { label: 'Billable', value: `\u00A3${billableTotal.toFixed(2)}`, icon: 'checkmark-circle-outline' as const, color: '#10B981', bg: '#D1FAE5' },
+        ].map((stat) => (
+          <View key={stat.label} style={styles.statCard}>
+            <View style={[styles.statIconWrap, { backgroundColor: stat.bg }]}>
+              <Ionicons name={stat.icon} size={16} color={stat.color} />
+            </View>
+            <Text style={styles.statValue}>{stat.value}</Text>
+            <Text style={styles.statLabel}>{stat.label}</Text>
+          </View>
+        ))}
       </View>
 
       {/* Filter Chips */}
@@ -182,8 +183,8 @@ export const ExpensesScreen: React.FC = () => {
       {/* Add Form */}
       {showForm && (
         <Card variant="elevated" padding="md" style={styles.formCard}>
-          <TextInput style={styles.input} placeholder="Description" placeholderTextColor={theme.colors.placeholder} value={formData.description} onChangeText={(t) => setFormData((p) => ({ ...p, description: t }))} />
-          <TextInput style={styles.input} placeholder="Amount" placeholderTextColor={theme.colors.placeholder} keyboardType="decimal-pad" value={formData.amount} onChangeText={(t) => setFormData((p) => ({ ...p, amount: t }))} />
+          <TextInput style={styles.input} placeholder="Description" placeholderTextColor="#B0B0B0" value={formData.description} onChangeText={(t) => setFormData((p) => ({ ...p, description: t }))} />
+          <TextInput style={styles.input} placeholder="Amount" placeholderTextColor="#B0B0B0" keyboardType="decimal-pad" value={formData.amount} onChangeText={(t) => setFormData((p) => ({ ...p, amount: t }))} />
           <View style={styles.formActions}>
             <Button variant="ghost" size="sm" onPress={() => setShowForm(false)}>Cancel</Button>
             <Button variant="primary" size="sm" onPress={() => createMutation.mutate({ ...formData, amount: parseFloat(formData.amount) || 0 })} loading={createMutation.isPending}>Add</Button>
@@ -196,11 +197,11 @@ export const ExpensesScreen: React.FC = () => {
         data={filtered}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor="#222222" colors={['#222222']} />}
         ListEmptyComponent={<EmptyState icon="receipt-outline" title="No Expenses" subtitle="Track your business expenses here." />}
         renderItem={({ item }) => (
           <View style={styles.expenseRow}>
-            <View style={[styles.categoryDot, { backgroundColor: CATEGORY_COLORS[item.category] || theme.colors.textSecondary }]} />
+            <View style={[styles.categoryDot, { backgroundColor: CATEGORY_COLORS[item.category] || '#717171' }]} />
             <View style={styles.expenseInfo}>
               <Text style={styles.expenseDesc} numberOfLines={1}>{item.description}</Text>
               <Text style={styles.expenseDate}>{new Date(item.date).toLocaleDateString('en-GB')}</Text>
@@ -216,7 +217,7 @@ export const ExpensesScreen: React.FC = () => {
               accessibilityLabel={`Delete expense ${item.description}`}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="trash-outline" size={16} color={theme.colors.textTertiary} />
+              <Ionicons name="trash-outline" size={16} color="#B0B0B0" />
             </TouchableOpacity>
           </View>
         )}
@@ -237,7 +238,7 @@ export const ExpensesScreen: React.FC = () => {
       {/* FAB */}
       {!showForm && (
         <TouchableOpacity style={styles.fab} onPress={() => setShowForm(true)} accessibilityRole="button" accessibilityLabel="Add expense">
-          <Ionicons name="add" size={28} color={theme.colors.textInverse} />
+          <Ionicons name="add" size={28} color="#FFFFFF" />
         </TouchableOpacity>
       )}
     </SafeAreaView>
@@ -245,32 +246,63 @@ export const ExpensesScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
-  statsRow: { flexDirection: 'row', gap: theme.spacing.sm, paddingHorizontal: theme.spacing.md, paddingTop: theme.spacing[3] },
-  statCard: { flex: 1, backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.base, padding: theme.spacing[3], alignItems: 'center', ...theme.shadows.sm },
-  statLabel: { fontSize: theme.typography.fontSize.xs, color: theme.colors.textTertiary, fontWeight: theme.typography.fontWeight.medium, textTransform: 'uppercase', marginBottom: theme.spacing.xs },
-  statValue: { fontSize: theme.typography.fontSize.md, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
-  filterRow: { paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing[3], gap: theme.spacing.sm },
-  filterChip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: theme.borderRadius.xl, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.background },
-  filterChipActive: { backgroundColor: theme.colors.textPrimary, borderColor: theme.colors.textPrimary },
-  filterChipText: { fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.medium, color: theme.colors.textSecondary },
-  filterChipTextActive: { color: theme.colors.textInverse },
-  formCard: { marginHorizontal: theme.spacing.md, marginBottom: theme.spacing[3] },
-  input: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.borderRadius.md, padding: theme.spacing[3], fontSize: theme.typography.fontSize.base, color: theme.colors.textPrimary, marginBottom: theme.spacing.sm },
-  formActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: theme.spacing.sm },
-  list: { paddingHorizontal: theme.spacing.md, paddingBottom: 80 },
-  expenseRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.base, padding: 14, marginBottom: theme.spacing.sm, ...theme.shadows.sm },
-  categoryDot: { width: 10, height: 10, borderRadius: theme.borderRadius.full, marginRight: theme.spacing[3] },
+  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  statsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8 },
+  statCard: {
+    flex: 1, backgroundColor: '#FFFFFF', borderRadius: 16, paddingVertical: 14, paddingHorizontal: 10, alignItems: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
+  },
+  statIconWrap: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  statLabel: { fontSize: 11, color: '#B0B0B0', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6 },
+  statValue: { fontSize: 16, fontWeight: '700', color: '#222222', marginBottom: 2 },
+  filterRow: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
+  filterChip: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#FFFFFF',
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 },
+      android: { elevation: 1 },
+    }),
+  },
+  filterChipActive: { backgroundColor: '#222222' },
+  filterChipText: { fontSize: 13, fontWeight: '600', color: '#717171' },
+  filterChipTextActive: { color: '#FFFFFF' },
+  formCard: { marginHorizontal: 16, marginBottom: 12 },
+  input: { backgroundColor: '#F7F7F7', borderRadius: 12, padding: 14, fontSize: 15, color: '#222222', marginBottom: 8 },
+  formActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
+  list: { paddingHorizontal: 16, paddingBottom: 80 },
+  expenseRow: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 14, marginBottom: 8,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
+  },
+  categoryDot: { width: 10, height: 10, borderRadius: 5, marginRight: 12 },
   expenseInfo: { flex: 1 },
-  expenseDesc: { fontSize: theme.typography.fontSize.base, fontWeight: theme.typography.fontWeight.medium, color: theme.colors.textPrimary },
-  expenseDate: { fontSize: theme.typography.fontSize.xs, color: theme.colors.textTertiary, marginTop: 2 },
-  expenseRight: { alignItems: 'flex-end', gap: theme.spacing.xs },
-  expenseAmount: { fontSize: theme.typography.fontSize.base, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary },
-  deleteButton: { marginLeft: theme.spacing.sm, padding: theme.spacing.xs },
-  snackbar: { position: 'absolute', bottom: 90, left: theme.spacing.md, right: theme.spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius.base, paddingHorizontal: theme.spacing.md, paddingVertical: 14, ...theme.shadows.large },
-  snackbarText: { fontSize: theme.typography.fontSize.sm, color: theme.colors.textInverse, flex: 1, marginRight: theme.spacing[3] },
-  snackbarUndo: { fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.info },
-  fab: { position: 'absolute', bottom: theme.spacing.lg, right: theme.spacing.lg, width: 56, height: 56, borderRadius: theme.borderRadius.full, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center', ...theme.shadows.large },
+  expenseDesc: { fontSize: 15, fontWeight: '600', color: '#222222' },
+  expenseDate: { fontSize: 12, color: '#B0B0B0', marginTop: 2 },
+  expenseRight: { alignItems: 'flex-end', gap: 4 },
+  expenseAmount: { fontSize: 15, fontWeight: '700', color: '#222222' },
+  deleteButton: { marginLeft: 8, padding: 4 },
+  snackbar: {
+    position: 'absolute', bottom: 90, left: 16, right: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#222222', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12 },
+      android: { elevation: 8 },
+    }),
+  },
+  snackbarText: { fontSize: 14, color: '#FFFFFF', flex: 1, marginRight: 12 },
+  snackbarUndo: { fontSize: 14, fontWeight: '700', color: '#3B82F6' },
+  fab: {
+    position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: '#222222', justifyContent: 'center', alignItems: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12 },
+      android: { elevation: 8 },
+    }),
+  },
 });
 
 export default ExpensesScreen;

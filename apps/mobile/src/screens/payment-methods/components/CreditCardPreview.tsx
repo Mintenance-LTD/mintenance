@@ -1,8 +1,8 @@
 /**
  * CreditCardPreview Component
- * 
+ *
  * Visual credit card preview showing card details.
- * 
+ *
  * @filesize Target: <80 lines
  * @compliance Single Responsibility - Card display
  */
@@ -10,7 +10,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 
 interface CreditCardPreviewProps {
   holderName: string;
@@ -42,7 +41,7 @@ export const CreditCardPreview: React.FC<CreditCardPreviewProps> = ({
             <Text style={styles.value}>{expiry || '02/30'}</Text>
           </View>
           <View style={styles.chipIcon}>
-            <Ionicons name="card" size={32} color={theme.colors.white} />
+            <Ionicons name="card" size={32} color="#FFFFFF" />
           </View>
         </View>
       </View>
@@ -52,24 +51,24 @@ export const CreditCardPreview: React.FC<CreditCardPreviewProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: theme.spacing['2xl'],
+    marginBottom: 24,
   },
   card: {
-    backgroundColor: theme.colors.textPrimary,
-    borderRadius: theme.borderRadius.xl,
-    padding: theme.spacing.xl,
+    backgroundColor: '#222222',
+    borderRadius: 20,
+    padding: 24,
     height: 200,
   },
   visa: {
     fontSize: 24,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.white,
+    fontWeight: '700',
+    color: '#FFFFFF',
     alignSelf: 'flex-end',
   },
   number: {
     fontSize: 22,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.white,
+    fontWeight: '600',
+    color: '#FFFFFF',
     letterSpacing: 2,
     marginTop: 40,
   },
@@ -77,17 +76,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    marginTop: theme.spacing.lg,
+    marginTop: 20,
   },
   label: {
     fontSize: 10,
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
     marginBottom: 4,
   },
   value: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.white,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   chipIcon: {
     opacity: 0.5,

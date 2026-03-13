@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Alert,
   Linking,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,7 +16,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { ProfileStackParamList, RootTabParamList } from '../navigation/types';
-import { theme } from '../theme';
 import { logger } from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -29,6 +29,13 @@ import SearchBar from '../components/SearchBar';
 interface CRMDashboardScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'CRMDashboard'>;
 }
+
+const ANALYTICS_ITEMS = [
+  { key: 'total_clients', label: 'Total Clients', icon: 'people-outline' as const, iconColor: '#3B82F6', iconBg: '#DBEAFE' },
+  { key: 'new_clients_this_month', label: 'New This Month', icon: 'person-add-outline' as const, iconColor: '#10B981', iconBg: '#D1FAE5' },
+  { key: 'repeat_clients', label: 'Repeat Clients', icon: 'refresh-outline' as const, iconColor: '#8B5CF6', iconBg: '#EDE9FE' },
+  { key: 'client_lifetime_value', label: 'Avg. LTV', icon: 'cash-outline' as const, iconColor: '#F59E0B', iconBg: '#FEF3C7', prefix: '£', round: true },
+];
 
 export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
   navigation,
@@ -78,7 +85,6 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
 
   const filteredAndSortedClients = clients
     .filter((client) => {
-      // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const name = `${client.first_name} ${client.last_name}`.toLowerCase();
@@ -90,7 +96,6 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
         }
       }
 
-      // Status filter
       if (selectedFilter === 'all') return true;
       if (selectedFilter === 'high-risk') return client.churn_risk_score >= 70;
       return client.relationship_status === selectedFilter;
@@ -147,49 +152,6 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
     }
   };
 
-  const renderFilterButton = (
-    filter: typeof selectedFilter,
-    label: string,
-    _color?: string
-  ) => (
-    <TouchableOpacity
-      style={[
-        styles.filterButton,
-        selectedFilter === filter && styles.filterButtonActive,
-      ]}
-      onPress={() => setSelectedFilter(filter)}
-    >
-      <Text
-        style={[
-          styles.filterText,
-          selectedFilter === filter && styles.filterTextActive,
-        ]}
-      >
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-
-  const renderSortButton = (
-    sort: typeof sortBy,
-    label: string,
-    icon: string
-  ) => (
-    <TouchableOpacity
-      style={[styles.sortButton, sortBy === sort && styles.sortButtonActive]}
-      onPress={() => setSortBy(sort)}
-    >
-      <Ionicons
-        name={icon as keyof typeof Ionicons.glyphMap}
-        size={16}
-        color={sortBy === sort ? theme.colors.textPrimary : theme.colors.textSecondary}
-      />
-      <Text style={[styles.sortText, sortBy === sort && styles.sortTextActive]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-
   if (loading) {
     return <LoadingSpinner message='Loading CRM dashboard...' />;
   }
@@ -201,53 +163,49 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
-          <Ionicons name='arrow-back' size={24} color={theme.colors.textPrimary} />
+          <Ionicons name='arrow-back' size={24} color='#222222' />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Client Management</Text>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => navigation.navigate('AddClient')}
+          accessibilityRole="button"
+          accessibilityLabel="Add client"
         >
-          <Ionicons name='person-add' size={24} color={theme.colors.textPrimary} />
+          <View style={styles.addIconWrap}>
+            <Ionicons name='person-add' size={18} color='#FFFFFF' />
+          </View>
         </TouchableOpacity>
       </View>
 
       <ScrollView
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#222222" colors={['#222222']} />
         }
         showsVerticalScrollIndicator={false}
       >
         {/* Analytics Cards */}
-        {analytics && (
-          <View style={styles.analyticsContainer}>
-            <View style={styles.analyticsCard}>
-              <Text style={styles.analyticsValue}>
-                {analytics.total_clients}
-              </Text>
-              <Text style={styles.analyticsLabel}>Total Clients</Text>
-            </View>
-            <View style={styles.analyticsCard}>
-              <Text style={styles.analyticsValue}>
-                {analytics.new_clients_this_month}
-              </Text>
-              <Text style={styles.analyticsLabel}>New This Month</Text>
-            </View>
-            <View style={styles.analyticsCard}>
-              <Text style={styles.analyticsValue}>
-                {analytics.repeat_clients}
-              </Text>
-              <Text style={styles.analyticsLabel}>Repeat Clients</Text>
-            </View>
-            <View style={styles.analyticsCard}>
-              <Text style={styles.analyticsValue}>
-                £{Math.round(analytics.client_lifetime_value ?? 0)}
-              </Text>
-              <Text style={styles.analyticsLabel}>Avg. LTV</Text>
-            </View>
-          </View>
-        )}
+        <View style={styles.analyticsContainer}>
+          {ANALYTICS_ITEMS.map((item) => {
+            const raw = analytics ? (analytics as Record<string, unknown>)[item.key] : 0;
+            const numValue = Number(raw ?? 0) || 0;
+            const displayValue = item.round ? Math.round(numValue) : numValue;
+            return (
+              <View key={item.key} style={styles.analyticsCard}>
+                <View style={[styles.analyticsIconWrap, { backgroundColor: item.iconBg }]}>
+                  <Ionicons name={item.icon} size={16} color={item.iconColor} />
+                </View>
+                <Text style={styles.analyticsValue}>
+                  {item.prefix || ''}{String(displayValue)}
+                </Text>
+                <Text style={styles.analyticsLabel}>{item.label}</Text>
+              </View>
+            );
+          })}
+        </View>
 
         {/* Search Bar */}
         <View style={styles.searchContainer}>
@@ -263,26 +221,64 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
           horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.filtersContainer}
+          contentContainerStyle={styles.filtersContent}
         >
-          {renderFilterButton('all', 'All', theme.colors.textPrimary)}
-          {renderFilterButton('active', 'Active', theme.colors.success)}
-          {renderFilterButton('prospect', 'Prospects', theme.colors.warning)}
-          {renderFilterButton(
-            'inactive',
-            'Inactive',
-            theme.colors.textSecondary
-          )}
-          {renderFilterButton('high-risk', 'High Risk', theme.colors.error)}
+          {([
+            ['all', 'All'],
+            ['active', 'Active'],
+            ['prospect', 'Prospects'],
+            ['inactive', 'Inactive'],
+            ['high-risk', 'High Risk'],
+          ] as const).map(([filter, label]) => (
+            <TouchableOpacity
+              key={filter}
+              style={[
+                styles.filterButton,
+                selectedFilter === filter && styles.filterButtonActive,
+              ]}
+              onPress={() => setSelectedFilter(filter)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: selectedFilter === filter }}
+            >
+              <Text
+                style={[
+                  styles.filterText,
+                  selectedFilter === filter && styles.filterTextActive,
+                ]}
+              >
+                {label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
 
         {/* Sort Options */}
         <View style={styles.sortContainer}>
-          <Text style={styles.sortLabel}>Sort by:</Text>
+          <Text style={styles.sortLabel}>Sort by</Text>
           <View style={styles.sortButtons}>
-            {renderSortButton('name', 'Name', 'text-outline')}
-            {renderSortButton('revenue', 'Revenue', 'cash-outline')}
-            {renderSortButton('jobs', 'Jobs', 'briefcase-outline')}
-            {renderSortButton('recent', 'Recent', 'time-outline')}
+            {([
+              ['name', 'Name', 'text-outline'],
+              ['revenue', 'Revenue', 'cash-outline'],
+              ['jobs', 'Jobs', 'briefcase-outline'],
+              ['recent', 'Recent', 'time-outline'],
+            ] as const).map(([sort, label, icon]) => (
+              <TouchableOpacity
+                key={sort}
+                style={[styles.sortButton, sortBy === sort && styles.sortButtonActive]}
+                onPress={() => setSortBy(sort)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: sortBy === sort }}
+              >
+                <Ionicons
+                  name={icon as keyof typeof Ionicons.glyphMap}
+                  size={14}
+                  color={sortBy === sort ? '#FFFFFF' : '#717171'}
+                />
+                <Text style={[styles.sortText, sortBy === sort && styles.sortTextActive]}>
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
@@ -290,11 +286,9 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
         <View style={styles.clientList}>
           {filteredAndSortedClients.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons
-                name='people-outline'
-                size={64}
-                color={theme.colors.textTertiary}
-              />
+              <View style={styles.emptyIconWrap}>
+                <Ionicons name='people-outline' size={32} color='#B0B0B0' />
+              </View>
               <Text style={styles.emptyTitle}>No clients found</Text>
               <Text style={styles.emptyText}>
                 {searchQuery
@@ -333,7 +327,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
   },
   header: {
     flexDirection: 'row',
@@ -341,44 +335,74 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   backButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222222',
   },
   addButton: {
-    padding: 8,
+    padding: 4,
+  },
+  addIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   analyticsContainer: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 8,
+    paddingVertical: 14,
+    gap: 10,
   },
   analyticsCard: {
     flex: 1,
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
-    padding: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
     alignItems: 'center',
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
+  },
+  analyticsIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
   },
   analyticsValue: {
     fontSize: 18,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
     marginBottom: 2,
   },
   analyticsLabel: {
     fontSize: 10,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     textAlign: 'center',
   },
   searchContainer: {
@@ -386,38 +410,48 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   filtersContainer: {
+    paddingBottom: 8,
+  },
+  filtersContent: {
     paddingHorizontal: 16,
-    marginBottom: 16,
+    gap: 8,
   },
   filterButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: theme.borderRadius.full,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
-    marginRight: 8,
-    backgroundColor: theme.colors.background,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+      },
+      android: { elevation: 1 },
+    }),
   },
   filterButtonActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: '#10B981',
   },
   filterText: {
-    fontSize: 14,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#717171',
   },
   filterTextActive: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
   },
   sortContainer: {
     paddingHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   sortLabel: {
-    fontSize: 14,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#B0B0B0',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
     marginBottom: 8,
   },
   sortButtons: {
@@ -429,23 +463,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: theme.borderRadius.sm,
-    backgroundColor: theme.colors.background,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    gap: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+      },
+      android: { elevation: 1 },
+    }),
   },
   sortButtonActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: '#10B981',
   },
   sortText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginLeft: 4,
+    color: '#717171',
+    fontWeight: '500',
   },
   sortTextActive: {
-    color: theme.colors.textPrimary,
-    fontWeight: theme.typography.fontWeight.medium,
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   clientList: {
     paddingHorizontal: 16,
@@ -453,32 +494,41 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 80,
+    paddingVertical: 60,
+  },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginTop: 16,
-    marginBottom: 8,
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#222222',
+    marginBottom: 6,
   },
   emptyText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     textAlign: 'center',
     marginBottom: 24,
     paddingHorizontal: 32,
+    lineHeight: 20,
   },
   addClientButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: '#10B981',
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 28,
   },
   addClientButtonText: {
-    color: theme.colors.white,
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '700',
   },
 });
 

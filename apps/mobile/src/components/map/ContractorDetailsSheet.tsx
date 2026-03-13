@@ -7,7 +7,6 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 
 interface ContractorLocation {
   id: string;
@@ -55,7 +54,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
               <Ionicons
                 name='checkmark-circle'
                 size={16}
-                color={theme.colors.primary}
+                color='#222222'
               />
             )}
           </View>
@@ -64,7 +63,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
           </Text>
           <View style={styles.contractorMeta}>
             <View style={styles.ratingContainer}>
-              <Ionicons name='star' size={14} color={theme.colors.ratingGold} />
+              <Ionicons name='star' size={14} color='#F59E0B' />
               <Text style={styles.rating}>{contractor.rating}</Text>
             </View>
             <Text style={styles.metaDivider}>•</Text>
@@ -82,7 +81,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
           <Ionicons
             name='close'
             size={20}
-            color={theme.colors.textSecondary}
+            color='#717171'
           />
         </TouchableOpacity>
       </View>
@@ -92,7 +91,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
           <Ionicons
             name='cash-outline'
             size={16}
-            color={theme.colors.primary}
+            color='#222222'
           />
           <Text style={styles.pricingText}>{contractor.pricing}</Text>
         </View>
@@ -100,7 +99,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
           <Ionicons
             name='time-outline'
             size={16}
-            color={theme.colors.primary}
+            color='#222222'
           />
           <Text style={styles.estimateText}>35 km/50min</Text>
         </View>
@@ -114,7 +113,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
           <Ionicons
             name='chatbubble-outline'
             size={18}
-            color={theme.colors.primary}
+            color='#222222'
           />
           <Text style={styles.actionButtonText}>Message</Text>
         </TouchableOpacity>
@@ -126,7 +125,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
           <Ionicons
             name='call-outline'
             size={18}
-            color={theme.colors.primary}
+            color='#222222'
           />
           <Text style={styles.actionButtonText}>Call</Text>
         </TouchableOpacity>
@@ -135,7 +134,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
           style={[styles.actionButton, styles.directionsButton]}
           onPress={() => onGetDirections(contractor)}
         >
-          <Ionicons name='navigate-outline' size={18} color={theme.colors.white} />
+          <Ionicons name='navigate-outline' size={18} color='#FFFFFF' />
           <Text
             style={[styles.actionButtonText, styles.directionsButtonText]}
           >
@@ -153,12 +152,22 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
     paddingBottom: Platform.OS === 'ios' ? 40 : 20,
-    ...theme.shadows.lg,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
   contractorHeader: {
     flexDirection: 'row',
@@ -175,12 +184,12 @@ const styles = StyleSheet.create({
   },
   contractorName: {
     fontSize: 18,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
   },
   contractorSpecialty: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginBottom: 8,
   },
   contractorMeta: {
@@ -196,24 +205,24 @@ const styles = StyleSheet.create({
   },
   rating: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontWeight: '500',
+    color: '#222222',
   },
   metaDivider: {
     fontSize: 14,
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
   },
   distance: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   responseTime: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   contractorAddress: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   closeButton: {
     padding: 4,
@@ -230,8 +239,8 @@ const styles = StyleSheet.create({
   },
   pricingText: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.primary,
+    fontWeight: '600',
+    color: '#222222',
   },
   estimateInfo: {
     flexDirection: 'row',
@@ -240,8 +249,8 @@ const styles = StyleSheet.create({
   },
   estimateText: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.primary,
+    fontWeight: '500',
+    color: '#222222',
   },
   contractorActions: {
     flexDirection: 'row',
@@ -254,18 +263,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
     gap: 8,
   },
   actionButtonText: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.primary,
+    fontWeight: '600',
+    color: '#222222',
   },
   directionsButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
   },
   directionsButtonText: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
   },
 });

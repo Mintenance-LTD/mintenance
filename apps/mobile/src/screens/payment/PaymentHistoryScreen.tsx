@@ -10,17 +10,31 @@ import {
   RefreshControl,
   TouchableOpacity,
   Linking,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../../navigation/types';
-import { theme } from '../../theme';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { useResponsive } from '../../hooks/useResponsive';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { PaymentService } from '../../services/PaymentService';
+import { mobileApiClient } from '../../utils/mobileApiClient';
+
+interface EscrowPayment {
+  id: string;
+  jobId: string;
+  payerId: string;
+  payeeId: string;
+  amount: number;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  job?: { title?: string; description?: string };
+  payer?: { first_name?: string; last_name?: string };
+  payee?: { first_name?: string; last_name?: string };
+}
 
 interface PaymentRecord {
   id: string;
@@ -33,6 +47,15 @@ interface PaymentRecord {
   createdAt: string;
 }
 
+const mapEscrowToPayment = (p: EscrowPayment): PaymentRecord => ({
+  id: p.id,
+  jobId: p.jobId,
+  jobTitle: p.job?.title || 'Payment',
+  amount: Number(p.amount ?? 0),
+  status: p.status,
+  createdAt: p.createdAt,
+});
+
 interface Props {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'PaymentHistory'>;
 }
@@ -43,15 +66,19 @@ const getStatusColor = (status: string) => {
   switch (status) {
     case 'completed':
     case 'succeeded':
-      return theme.colors.primary;
+    case 'released':
+      return '#10B981';
+    case 'held':
+      return '#3B82F6';
     case 'pending':
     case 'processing':
-      return theme.colors.warning;
+    case 'release_pending':
+      return '#F59E0B';
     case 'failed':
     case 'refunded':
-      return theme.colors.error;
+      return '#EF4444';
     default:
-      return theme.colors.textSecondary;
+      return '#717171';
   }
 };
 
@@ -59,9 +86,14 @@ const getStatusLabel = (status: string) => {
   switch (status) {
     case 'completed':
     case 'succeeded':
+    case 'released':
       return 'Paid';
+    case 'held':
+      return 'In Escrow';
     case 'pending':
       return 'Pending';
+    case 'release_pending':
+      return 'Releasing';
     case 'processing':
       return 'Processing';
     case 'failed':
@@ -75,7 +107,7 @@ const getStatusLabel = (status: string) => {
 
 const getRefundExpectedDate = (createdAt: string): string => {
   const refundDate = new Date(createdAt);
-  refundDate.setDate(refundDate.getDate() + 10); // typically 5-10 business days
+  refundDate.setDate(refundDate.getDate() + 10);
   return refundDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 };
 
@@ -107,7 +139,7 @@ const PaymentCard: React.FC<{ payment: PaymentRecord }> = ({ payment }) => (
     </View>
     {payment.status === 'refunded' && (
       <View style={styles.refundTimeline}>
-        <Ionicons name="time-outline" size={14} color={theme.colors.warning} />
+        <Ionicons name="time-outline" size={14} color="#F59E0B" />
         <Text style={styles.refundTimelineText}>
           Expected by {getRefundExpectedDate(payment.createdAt)}
         </Text>
@@ -116,7 +148,7 @@ const PaymentCard: React.FC<{ payment: PaymentRecord }> = ({ payment }) => (
     <View style={styles.cardFooter}>
       {payment.last4 && (
         <View style={styles.methodRow}>
-          <Ionicons name="card-outline" size={14} color={theme.colors.textTertiary} />
+          <Ionicons name="card-outline" size={14} color="#B0B0B0" />
           <Text style={styles.methodText}>
             **** {payment.last4}
           </Text>
@@ -129,7 +161,7 @@ const PaymentCard: React.FC<{ payment: PaymentRecord }> = ({ payment }) => (
           accessibilityRole="button"
           accessibilityLabel="Download receipt"
         >
-          <Ionicons name="download-outline" size={16} color={theme.colors.primary} />
+          <Ionicons name="download-outline" size={16} color="#222222" />
           <Text style={styles.receiptButtonText}>Receipt</Text>
         </TouchableOpacity>
       )}
@@ -155,24 +187,20 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
     isFetchingNextPage,
   } = useInfiniteQuery({
     queryKey: ['payment-history'],
-    queryFn: async ({ pageParam = 0 }) => {
-      const result = await PaymentService.getPaymentHistory(PAGE_SIZE, pageParam) as {
-        payments?: PaymentRecord[];
-        total?: number;
-        error?: string;
-      };
-      if (result.error) throw new Error(result.error);
+    queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
+      const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
+      if (pageParam) params.set('cursor', pageParam);
+      const result = await mobileApiClient.get<{
+        payments?: EscrowPayment[];
+        nextCursor?: string;
+      }>(`/api/payments/history?${params.toString()}`);
       return {
-        payments: result.payments || [],
-        total: result.total || 0,
-        offset: pageParam as number,
+        payments: (result.payments || []).map(mapEscrowToPayment),
+        nextCursor: result.nextCursor,
       };
     },
-    initialPageParam: 0,
-    getNextPageParam: (lastPage) => {
-      const nextOffset = lastPage.offset + PAGE_SIZE;
-      return nextOffset < lastPage.total ? nextOffset : undefined;
-    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
   });
 
   const allPayments = data?.pages.flatMap((page) => page.payments) || [];
@@ -180,17 +208,17 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
   const payments = filter === 'all'
     ? allPayments
     : allPayments.filter((p) => {
-        if (filter === 'completed') return p.status === 'completed' || p.status === 'succeeded';
-        if (filter === 'pending') return p.status === 'pending' || p.status === 'processing';
+        if (filter === 'completed') return ['completed', 'succeeded', 'released', 'release_pending'].includes(p.status);
+        if (filter === 'pending') return ['pending', 'processing', 'held'].includes(p.status);
         if (filter === 'refunded') return p.status === 'refunded';
         return true;
       });
 
   const totalPaid = allPayments
-    .filter((p) => p.status === 'completed' || p.status === 'succeeded')
+    .filter((p) => ['completed', 'succeeded', 'released', 'release_pending'].includes(p.status))
     .reduce((sum, p) => sum + Number(p.amount), 0);
   const totalPending = allPayments
-    .filter((p) => p.status === 'pending' || p.status === 'processing')
+    .filter((p) => ['pending', 'processing', 'held'].includes(p.status))
     .reduce((sum, p) => sum + Number(p.amount), 0);
   const totalRefunded = allPayments
     .filter((p) => p.status === 'refunded')
@@ -212,24 +240,21 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
       {/* Stats Row */}
       {allPayments.length > 0 && (
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Total Paid</Text>
-            <Text style={styles.statValue}>
-              {'\u00A3'}{totalPaid.toFixed(2)}
-            </Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Pending</Text>
-            <Text style={styles.statValue}>
-              {'\u00A3'}{totalPending.toFixed(2)}
-            </Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Refunded</Text>
-            <Text style={styles.statValue}>
-              {'\u00A3'}{totalRefunded.toFixed(2)}
-            </Text>
-          </View>
+          {[
+            { label: 'PAID', value: totalPaid, iconBg: '#D1FAE5', iconColor: '#10B981', icon: 'checkmark-circle-outline' as const },
+            { label: 'PENDING', value: totalPending, iconBg: '#FEF3C7', iconColor: '#F59E0B', icon: 'time-outline' as const },
+            { label: 'REFUNDED', value: totalRefunded, iconBg: '#FEE2E2', iconColor: '#EF4444', icon: 'arrow-undo-outline' as const },
+          ].map((stat) => (
+            <View key={stat.label} style={styles.statCard}>
+              <View style={[styles.statIconWrap, { backgroundColor: stat.iconBg }]}>
+                <Ionicons name={stat.icon} size={14} color={stat.iconColor} />
+              </View>
+              <Text style={styles.statValue}>
+                {'\u00A3'}{stat.value.toFixed(2)}
+              </Text>
+              <Text style={styles.statLabel}>{stat.label}</Text>
+            </View>
+          ))}
         </View>
       )}
 
@@ -270,8 +295,8 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor={theme.colors.primary}
-              colors={[theme.colors.primary]}
+              tintColor="#222222"
+              colors={['#222222']}
             />
           }
           onEndReached={() => {
@@ -297,17 +322,20 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
   listContainer: {
     padding: 16,
   },
   paymentCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   paymentHeader: {
     flexDirection: 'row',
@@ -320,12 +348,12 @@ const styles = StyleSheet.create({
   },
   paymentTitle: {
     fontSize: 15,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
   },
   paymentDate: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
     marginTop: 4,
   },
   paymentRight: {
@@ -333,8 +361,8 @@ const styles = StyleSheet.create({
   },
   paymentAmount: {
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
   },
   statusBadge: {
     paddingHorizontal: 8,
@@ -344,7 +372,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 11,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
   },
   cardFooter: {
     flexDirection: 'row',
@@ -352,8 +380,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
     paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#EBEBEB',
   },
   methodRow: {
     flexDirection: 'row',
@@ -362,7 +390,7 @@ const styles = StyleSheet.create({
   },
   methodText: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
   },
   receiptButton: {
     flexDirection: 'row',
@@ -371,12 +399,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: theme.colors.primary + '10',
+    backgroundColor: '#F7F7F7',
   },
   receiptButtonText: {
     fontSize: 12,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.primary,
+    fontWeight: '600',
+    color: '#222222',
   },
   refundTimeline: {
     flexDirection: 'row',
@@ -386,12 +414,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: theme.colors.accentLight,
+    backgroundColor: '#FEF3C7',
   },
   refundTimelineText: {
     fontSize: 12,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.warning,
+    fontWeight: '500',
+    color: '#F59E0B',
   },
   loadingMore: {
     paddingVertical: 20,
@@ -406,24 +434,35 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 12,
     alignItems: 'center',
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
+  },
+  statIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
   },
   statLabel: {
-    fontSize: 11,
-    color: theme.colors.textTertiary,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 10,
+    color: '#B0B0B0',
+    fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
-    marginBottom: 4,
+    marginTop: 2,
   },
   statValue: {
-    fontSize: 16,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#222222',
   },
   filterRow: {
     flexDirection: 'row',
@@ -433,25 +472,25 @@ const styles = StyleSheet.create({
   },
   filterChip: {
     paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.background,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 },
+      android: { elevation: 1 },
+    }),
   },
   filterChipActive: {
-    backgroundColor: theme.colors.textPrimary,
-    borderColor: theme.colors.textPrimary,
+    backgroundColor: '#222222',
   },
   filterChipText: {
     fontSize: 13,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textSecondary,
+    fontWeight: '600',
+    color: '#717171',
   },
   filterChipTextActive: {
-    color: theme.colors.white,
+    color: '#FFFFFF',
   },
 });
 
 export default PaymentHistoryScreen;
-

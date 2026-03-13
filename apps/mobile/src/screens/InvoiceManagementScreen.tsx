@@ -184,15 +184,7 @@ export const InvoiceManagementScreen: React.FC<
           selectedFilter === filter && styles.filterTabTextActive,
         ]}
       >
-        {label}
-      </Text>
-      <Text
-        style={[
-          styles.filterTabCount,
-          selectedFilter === filter && styles.filterTabCountActive,
-        ]}
-      >
-        {count}
+        {label} ({count})
       </Text>
     </TouchableOpacity>
   );
@@ -422,16 +414,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   filtersContainer: {
-    paddingVertical: 8,
+    maxHeight: 52,
   },
   filtersContent: {
     paddingHorizontal: 16,
+    paddingVertical: 10,
     gap: 8,
+    alignItems: 'center',
   },
   filterTab: {
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: 9,
+    paddingHorizontal: 18,
     borderRadius: 20,
     backgroundColor: '#FFFFFF',
     ...Platform.select({
@@ -454,15 +447,6 @@ const styles = StyleSheet.create({
   },
   filterTabTextActive: {
     color: '#FFFFFF',
-  },
-  filterTabCount: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#B0B0B0',
-    marginTop: 2,
-  },
-  filterTabCountActive: {
-    color: 'rgba(255,255,255,0.8)',
   },
   invoiceList: {
     flex: 1,

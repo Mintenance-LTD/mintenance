@@ -387,6 +387,25 @@ export const POST = withApiHandler({ auth: true, rateLimit: false }, async (requ
 
   deps.logger.info('Building assessment completed', { service: 'building-surveyor-api', userId: user.id, damageType: assessment.damageAssessment.damageType });
 
+  // Cross-property pattern correlation: connect defects from previous assessments on the same property
+  if (bodyPropertyId && assessment.damageAssessment.damageType) {
+    try {
+      const { correlatePropertyPatterns } = await import('@/lib/services/building-surveyor/PropertyPatternCorrelation');
+      const patternInsights = await correlatePropertyPatterns(bodyPropertyId, assessment.damageAssessment.damageType);
+      if (patternInsights) {
+        assessment.patternInsights = patternInsights;
+        deps.logger.info('Property pattern correlation attached', {
+          service: 'building-surveyor-api',
+          propertyId: bodyPropertyId,
+          connectedDefects: patternInsights.connectedDefects,
+        });
+      }
+    } catch (patternError) {
+      // Non-fatal — pattern correlation failure should never block an assessment
+      deps.logger.warn('Property pattern correlation failed', { service: 'building-surveyor-api', error: patternError });
+    }
+  }
+
   assessmentCache.set(cacheKey, assessment);
   return NextResponse.json(assessment);
 });

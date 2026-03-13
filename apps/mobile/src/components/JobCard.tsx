@@ -9,7 +9,14 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Job } from '@mintenance/types';
-import { theme, getPriorityColor } from '../theme';
+const getPriorityColor = (priority: string): string => {
+  switch (priority) {
+    case 'high': return '#EF4444';
+    case 'medium': return '#F59E0B';
+    case 'low': return '#10B981';
+    default: return '#717171';
+  }
+};
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   posted: { bg: '#3B82F6', text: '#FFFFFF' },

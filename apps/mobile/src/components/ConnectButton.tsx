@@ -6,11 +6,11 @@ import {
   Alert,
   ActivityIndicator,
   ViewStyle,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MutualConnectionsService } from '../services/MutualConnectionsService';
 import { ConnectionStatus } from '@mintenance/types';
-import { theme } from '../theme';
 import { logger } from '../utils/logger';
 import { useHaptics } from '../utils/haptics';
 
@@ -123,8 +123,8 @@ const ConnectButton: React.FC<ConnectButtonProps> = ({
       return {
         text: '',
         icon: null,
-        backgroundColor: theme.colors.surfaceSecondary,
-        textColor: theme.colors.textSecondary,
+        backgroundColor: '#F7F7F7',
+        textColor: '#717171',
         onPress: () => {},
         disabled: true,
       };
@@ -135,8 +135,8 @@ const ConnectButton: React.FC<ConnectButtonProps> = ({
         return {
           text: 'Connected',
           icon: 'checkmark-circle' as const,
-          backgroundColor: theme.colors.primary,
-          textColor: theme.colors.textInverse,
+          backgroundColor: '#222222',
+          textColor: '#FFFFFF',
           onPress: () => {
             Alert.alert(
               'Connected',
@@ -150,8 +150,8 @@ const ConnectButton: React.FC<ConnectButtonProps> = ({
         return {
           text: 'Pending',
           icon: 'time' as const,
-          backgroundColor: theme.colors.surfaceSecondary,
-          textColor: theme.colors.textSecondary,
+          backgroundColor: '#F7F7F7',
+          textColor: '#717171',
           onPress: handleCancelRequest,
           disabled: false,
         };
@@ -159,8 +159,8 @@ const ConnectButton: React.FC<ConnectButtonProps> = ({
         return {
           text: 'Blocked',
           icon: 'ban' as const,
-          backgroundColor: theme.colors.surfaceSecondary,
-          textColor: theme.colors.error,
+          backgroundColor: '#F7F7F7',
+          textColor: '#EF4444',
           onPress: () => {},
           disabled: true,
         };
@@ -168,8 +168,8 @@ const ConnectButton: React.FC<ConnectButtonProps> = ({
         return {
           text: 'Connect',
           icon: 'person-add' as const,
-          backgroundColor: theme.colors.primary,
-          textColor: theme.colors.textInverse,
+          backgroundColor: '#222222',
+          textColor: '#FFFFFF',
           onPress: handleSendRequest,
           disabled: false,
         };
@@ -264,13 +264,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
   },
   icon: {
     marginRight: 6,
   },
   text: {
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
   },
 });
 

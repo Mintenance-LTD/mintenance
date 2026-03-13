@@ -14,18 +14,17 @@ import {
   Dimensions,
   Share,
   Modal,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import { LoadingSpinner, ErrorView } from '../../components/shared';
 import { useJobDetailsViewModel } from './viewmodels/JobDetailsViewModel';
 import { ImageCarousel } from '../../components/ui/ImageCarousel';
 import { HostCard } from '../../components/ui/HostCard';
 import { StickyBottomCTA } from '../../components/ui/StickyBottomCTA';
-import { JobStatusTracker } from '../../components/JobStatusTracker';
 import { ContractorAssignment } from '../../components/ContractorAssignment';
 import { AIAnalysisCard, JobLifecycleStepper } from './components';
 import { ContractorLocationSection } from './components/ContractorLocationSection';
@@ -104,7 +103,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: theme.spacing[24] + theme.spacing[6] }}
+        contentContainerStyle={{ paddingBottom: 120 }}
       >
         {/* 1. Hero Image Section (full-bleed) */}
         {hasPhotos ? (
@@ -117,7 +116,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           />
         ) : (
           <View style={styles.placeholderHero}>
-            <Ionicons name={categoryIcon} size={64} color={theme.colors.textTertiary} />
+            <Ionicons name={categoryIcon} size={64} color="#B0B0B0" />
           </View>
         )}
 
@@ -128,7 +127,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color="#222222" />
         </TouchableOpacity>
 
         {/* Share button overlay */}
@@ -142,7 +141,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           accessibilityRole="button"
           accessibilityLabel="Share this job"
         >
-          <Ionicons name="share-outline" size={22} color={theme.colors.textPrimary} />
+          <Ionicons name="share-outline" size={22} color="#222222" />
         </TouchableOpacity>
 
         {/* Lifecycle Stepper */}
@@ -165,8 +164,8 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             )}
             {urgency !== 'low' && urgency !== 'medium' && (
               <View style={[styles.tag, styles.urgentTag]}>
-                <Ionicons name="flame" size={12} color={theme.colors.error} />
-                <Text style={[styles.tagText, { color: theme.colors.error }]}>
+                <Ionicons name="flame" size={12} color="#EF4444" />
+                <Text style={[styles.tagText, { color: '#EF4444' }]}>
                   {urgency === 'emergency' ? 'Emergency' : 'Urgent'}
                 </Text>
               </View>
@@ -175,7 +174,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
           {locationStr ? (
             <View style={styles.locationRow}>
-              <Ionicons name="location-outline" size={16} color={theme.colors.textSecondary} />
+              <Ionicons name="location-outline" size={16} color="#717171" />
               <Text style={styles.locationText}>{locationStr}</Text>
             </View>
           ) : null}
@@ -187,17 +186,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
         <View style={styles.divider} />
 
-        {/* 3. Status Tracker */}
-        <View style={styles.section}>
-          <JobStatusTracker
-            job={job}
-            onStatusUpdate={viewModel.handleJobStatusUpdate}
-          />
-        </View>
-
-        <View style={styles.divider} />
-
-        {/* 4. Host Card (homeowner info) */}
+        {/* 3. Host Card (homeowner info) */}
         {job.homeowner && (
           <View style={styles.sectionPadded}>
             <Text style={styles.sectionLabel}>Posted by</Text>
@@ -225,10 +214,10 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                   <Text style={styles.pricingAmount}>
                     {'\u00A3'}{budget.toLocaleString()}
                   </Text>
-                  <Text style={styles.pricingLabel}>Estimated cost</Text>
+                  <Text style={styles.pricingLabelText}>Estimated cost</Text>
                 </View>
                 <View style={styles.escrowBadge}>
-                  <Ionicons name="shield-checkmark" size={16} color={theme.colors.textSecondary} />
+                  <Ionicons name="shield-checkmark" size={16} color="#717171" />
                   <Text style={styles.escrowText}>Escrow protected</Text>
                   <TouchableOpacity
                     onPress={() => setShowEscrowModal(true)}
@@ -236,7 +225,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                     accessibilityLabel="Learn how escrow protection works"
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <Ionicons name="information-circle-outline" size={18} color={theme.colors.textSecondary} />
+                    <Ionicons name="information-circle-outline" size={18} color="#717171" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -337,8 +326,8 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             <Text style={styles.modalTitle}>How Escrow Protection Works</Text>
 
             <View style={styles.escrowStep}>
-              <View style={styles.escrowStepIcon}>
-                <Ionicons name="shield-checkmark" size={24} color={theme.colors.primary} />
+              <View style={[styles.escrowStepIcon, { backgroundColor: '#D1FAE5' }]}>
+                <Ionicons name="shield-checkmark" size={24} color="#10B981" />
               </View>
               <View style={styles.escrowStepContent}>
                 <Text style={styles.escrowStepTitle}>Payment Held Securely</Text>
@@ -349,8 +338,8 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
 
             <View style={styles.escrowStep}>
-              <View style={styles.escrowStepIcon}>
-                <Ionicons name="checkmark-circle" size={24} color={theme.colors.primary} />
+              <View style={[styles.escrowStepIcon, { backgroundColor: '#D1FAE5' }]}>
+                <Ionicons name="checkmark-circle" size={24} color="#10B981" />
               </View>
               <View style={styles.escrowStepContent}>
                 <Text style={styles.escrowStepTitle}>Approve Completed Work</Text>
@@ -361,8 +350,8 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
 
             <View style={styles.escrowStep}>
-              <View style={styles.escrowStepIcon}>
-                <Ionicons name="cash" size={24} color={theme.colors.primary} />
+              <View style={[styles.escrowStepIcon, { backgroundColor: '#D1FAE5' }]}>
+                <Ionicons name="cash" size={24} color="#10B981" />
               </View>
               <View style={styles.escrowStepContent}>
                 <Text style={styles.escrowStepTitle}>Payment Released</Text>
@@ -392,9 +381,6 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 };
 
 // ── Priority CTA helper — exactly one action shown at a time ──
-//
-// Contractor: submit bid → prepare contract → view contract → upload before photos → upload after photos
-// Homeowner:  view bids → view contract → pay now → review work → leave review
 interface CTAContext {
   job: Job & { bids?: { length: number }[]; completion_confirmed_by_homeowner?: boolean };
   isOwner: boolean;
@@ -410,8 +396,6 @@ interface CTAContext {
 function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation, contractStatus, escrowStatus, hasReviewed }: CTAContext): React.ReactElement | null {
   const isAssignedContractor = isContractor && job.contractor_id === userId;
 
-  // ── Contractor flow ──
-
   if (isContractor && job.status === 'posted') {
     return (
       <StickyBottomCTA
@@ -423,7 +407,6 @@ function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation
     );
   }
 
-  // Contractor: assigned + contract is draft → prepare contract
   if (isAssignedContractor && job.status === 'assigned' && contractStatus === 'draft') {
     return (
       <StickyBottomCTA
@@ -434,7 +417,6 @@ function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation
     );
   }
 
-  // Contractor: assigned + contract pending (not yet accepted) → view contract
   if (isAssignedContractor && job.status === 'assigned' && contractStatus && contractStatus !== 'draft' && contractStatus !== 'accepted') {
     return (
       <StickyBottomCTA
@@ -445,7 +427,6 @@ function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation
     );
   }
 
-  // Contractor: assigned + contract accepted + escrow held → upload before photos
   if (isAssignedContractor && job.status === 'assigned' && contractStatus === 'accepted' && escrowStatus === 'held') {
     return (
       <StickyBottomCTA
@@ -456,7 +437,6 @@ function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation
     );
   }
 
-  // Contractor: in_progress → upload after photos
   if (isAssignedContractor && job.status === 'in_progress') {
     return (
       <StickyBottomCTA
@@ -466,8 +446,6 @@ function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation
       />
     );
   }
-
-  // ── Homeowner flow ──
 
   if (isOwner && job.status === 'posted' && job.bids && job.bids.length > 0) {
     return (
@@ -479,7 +457,6 @@ function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation
     );
   }
 
-  // Homeowner: assigned + contract pending_homeowner → view/sign contract
   if (isOwner && job.status === 'assigned' && contractStatus && contractStatus !== 'accepted') {
     return (
       <StickyBottomCTA
@@ -490,7 +467,6 @@ function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation
     );
   }
 
-  // Homeowner: assigned + contract accepted + escrow not funded → pay now
   if (isOwner && job.status === 'assigned' && contractStatus === 'accepted' && escrowStatus !== 'held' && budget > 0) {
     return (
       <StickyBottomCTA
@@ -507,7 +483,6 @@ function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation
     );
   }
 
-  // Homeowner: completed + not confirmed → review work (before/after photos)
   if (isOwner && job.status === 'completed' && !job.completion_confirmed_by_homeowner) {
     return (
       <StickyBottomCTA
@@ -518,7 +493,6 @@ function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation
     );
   }
 
-  // Homeowner: completed + confirmed + not reviewed → leave a review
   if (isOwner && job.status === 'completed' && job.completion_confirmed_by_homeowner && !hasReviewed) {
     return (
       <StickyBottomCTA
@@ -544,7 +518,7 @@ const DetailRow: React.FC<{
 }> = ({ icon, label, value }) => (
   <View style={styles.detailRow}>
     <View style={styles.detailIconContainer}>
-      <Ionicons name={icon} size={20} color={theme.colors.textSecondary} />
+      <Ionicons name={icon} size={20} color="#717171" />
     </View>
     <View style={styles.detailContent}>
       <Text style={styles.detailLabel}>{label}</Text>
@@ -556,203 +530,208 @@ const DetailRow: React.FC<{
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#FFFFFF',
   },
   scrollView: {
     flex: 1,
   },
   placeholderHero: {
     height: 240,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: '#F7F7F7',
     alignItems: 'center',
     justifyContent: 'center',
   },
   backButton: {
     position: 'absolute',
-    left: theme.spacing.md,
-    width: theme.spacing[10],
-    height: theme.spacing[10],
-    borderRadius: theme.borderRadius.full,
-    backgroundColor: theme.colors.overlayWhite20,
+    left: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.9)',
     alignItems: 'center',
     justifyContent: 'center',
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   shareButton: {
     position: 'absolute',
-    right: theme.spacing.md,
-    width: theme.spacing[10],
-    height: theme.spacing[10],
-    borderRadius: theme.borderRadius.full,
-    backgroundColor: theme.colors.overlayWhite20,
+    right: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.9)',
     alignItems: 'center',
     justifyContent: 'center',
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
 
   // ── Sections ──
   section: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing[5],
+    paddingHorizontal: 20,
+    paddingVertical: 20,
   },
   sectionPadded: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
   },
   sectionLabel: {
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#B0B0B0',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-    marginBottom: theme.spacing[3],
+    marginBottom: 12,
   },
   divider: {
-    height: 1,
-    backgroundColor: theme.colors.borderLight,
-    marginHorizontal: theme.spacing.lg,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#EBEBEB',
+    marginHorizontal: 20,
   },
 
   // ── Title Section ──
   title: {
-    fontSize: theme.typography.fontSize['2xl'],
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.sm,
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#222222',
+    marginBottom: 8,
   },
   tagRow: {
     flexDirection: 'row',
-    gap: theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
+    gap: 8,
+    marginBottom: 8,
   },
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing.xs + 1,
-    borderRadius: theme.borderRadius.sm + 2,
-    gap: theme.spacing.xs,
+    backgroundColor: '#F7F7F7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 4,
   },
   urgentTag: {
-    backgroundColor: theme.colors.error + '15',
+    backgroundColor: '#FEE2E2',
   },
   tagText: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#717171',
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.xs,
-    marginBottom: theme.spacing.xs,
+    gap: 4,
+    marginBottom: 4,
   },
   locationText: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textSecondary,
+    fontSize: 15,
+    color: '#717171',
   },
   metaText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textTertiary,
-    marginTop: theme.spacing.xs,
+    fontSize: 13,
+    color: '#B0B0B0',
+    marginTop: 4,
   },
 
   // ── Pricing ──
   pricingCard: {
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 16,
+    padding: 16,
   },
   pricingMain: {
-    marginBottom: theme.spacing[3],
+    marginBottom: 12,
   },
   pricingAmount: {
-    fontSize: theme.typography.fontSize['3xl'],
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#222222',
   },
-  pricingLabel: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+  pricingLabelText: {
+    fontSize: 13,
+    color: '#717171',
     marginTop: 2,
   },
   escrowBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.sm - 2,
+    gap: 6,
   },
   escrowText: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#717171',
   },
 
   // ── Details ──
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing[3],
-    minHeight: theme.spacing[12],
+    paddingVertical: 12,
+    minHeight: 48,
   },
   detailIconContainer: {
-    width: theme.spacing[10],
+    width: 40,
     alignItems: 'center',
   },
   detailContent: {
     flex: 1,
   },
   detailLabel: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    color: '#717171',
   },
   detailValue: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#222222',
     marginTop: 2,
   },
 
   // ── Description ──
   description: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textSecondary,
+    fontSize: 15,
+    color: '#717171',
     lineHeight: 24,
   },
 
   // ── Escrow Info Modal ──
   modalOverlay: {
     flex: 1,
-    backgroundColor: theme.colors.overlayDark50,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing.lg,
+    padding: 20,
   },
   modalContent: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.xxl,
-    padding: theme.spacing.lg,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
     width: '100%',
     maxWidth: 400,
   },
   modalTitle: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#222222',
     textAlign: 'center',
-    marginBottom: theme.spacing.lg,
+    marginBottom: 20,
   },
   escrowStep: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: theme.spacing[5],
-    gap: theme.spacing[3] + 2,
+    marginBottom: 20,
+    gap: 14,
   },
   escrowStepIcon: {
     width: 44,
     height: 44,
-    borderRadius: theme.borderRadius.full,
-    backgroundColor: theme.colors.primaryLight,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -760,37 +739,36 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   escrowStepTitle: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222222',
     marginBottom: 2,
   },
   escrowStepDescription: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    color: '#717171',
     lineHeight: 20,
   },
   escrowFooterNote: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textTertiary,
+    fontSize: 13,
+    color: '#B0B0B0',
     textAlign: 'center',
-    marginTop: theme.spacing.xs,
-    marginBottom: theme.spacing[5],
+    marginTop: 4,
+    marginBottom: 20,
     lineHeight: 18,
     fontStyle: 'italic',
   },
   escrowModalButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.xl - 2,
-    paddingVertical: theme.spacing[3] + 2,
+    backgroundColor: '#222222',
+    borderRadius: 28,
+    paddingVertical: 14,
     alignItems: 'center',
   },
   escrowModalButtonText: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textInverse,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 
 export default JobDetailsScreen;
-

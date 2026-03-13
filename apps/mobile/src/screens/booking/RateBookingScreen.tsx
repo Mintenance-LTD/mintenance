@@ -13,7 +13,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
-import { theme } from '../../theme';
 import { useToast } from '../../components/ui/Toast';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { RootStackParamList } from '../../navigation/types';
@@ -62,7 +61,7 @@ export const RateBookingScreen: React.FC<Props> = ({ navigation, route }) => {
     >
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color="#222222" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Rate Booking</Text>
         <View style={styles.headerButton} />
@@ -80,7 +79,7 @@ export const RateBookingScreen: React.FC<Props> = ({ navigation, route }) => {
                 <Ionicons
                   name={star <= rating ? 'star' : 'star-outline'}
                   size={40}
-                  color={star <= rating ? theme.colors.ratingGold : theme.colors.border}
+                  color={star <= rating ? '#F59E0B' : '#EBEBEB'}
                 />
               </TouchableOpacity>
             ))}
@@ -91,13 +90,13 @@ export const RateBookingScreen: React.FC<Props> = ({ navigation, route }) => {
           )}
 
           {/* Comment */}
-          <Text style={styles.commentLabel}>Comments (optional)</Text>
+          <Text style={styles.commentLabel}>COMMENTS (OPTIONAL)</Text>
           <TextInput
             style={styles.commentInput}
             multiline
             numberOfLines={4}
             placeholder="Share your experience with this contractor..."
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor="#B0B0B0"
             value={comment}
             onChangeText={setComment}
             maxLength={500}
@@ -112,7 +111,7 @@ export const RateBookingScreen: React.FC<Props> = ({ navigation, route }) => {
           disabled={loading || rating === 0}
         >
           <Text style={styles.submitButtonText}>
-            {loading ? 'Submitting…' : 'Submit Review'}
+            {loading ? 'Submitting\u2026' : 'Submit Review'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -121,75 +120,76 @@ export const RateBookingScreen: React.FC<Props> = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.surfaceSecondary },
+  container: { flex: 1, backgroundColor: '#F7F7F7' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.md,
-    paddingBottom: theme.spacing[3],
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
-  headerButton: { padding: theme.spacing.sm, width: 40 },
-  headerTitle: { fontSize: theme.typography.fontSize.lg, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
-  content: { padding: theme.spacing.md },
+  headerButton: { padding: 8, width: 40 },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#222222' },
+  content: { padding: 16 },
   card: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.xl,
-    padding: theme.spacing[5],
-    marginBottom: theme.spacing[5],
-    ...theme.shadows.base,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
-  cardTitle: { fontSize: theme.typography.fontSize.base, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary, marginBottom: theme.spacing.xs },
-  cardSubtitle: { fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary, marginBottom: theme.spacing.lg },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: '#222222', marginBottom: 4 },
+  cardSubtitle: { fontSize: 14, color: '#717171', marginBottom: 20 },
   starsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: theme.spacing.sm,
-    marginBottom: theme.spacing[3],
+    gap: 8,
+    marginBottom: 12,
   },
-  starButton: { padding: theme.spacing.xs },
+  starButton: { padding: 4 },
   ratingLabel: {
     textAlign: 'center',
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.ratingGold,
-    marginBottom: theme.spacing.lg,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#F59E0B',
+    marginBottom: 20,
   },
   commentLabel: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.sm,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#B0B0B0',
+    marginBottom: 8,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
   commentInput: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing[3],
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textPrimary,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    color: '#222222',
     minHeight: 100,
-    backgroundColor: theme.colors.surfaceSecondary,
   },
   charCount: {
     textAlign: 'right',
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textTertiary,
-    marginTop: theme.spacing.xs,
+    fontSize: 11,
+    color: '#B0B0B0',
+    marginTop: 4,
   },
   submitButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.lg,
-    paddingVertical: theme.spacing.md,
+    backgroundColor: '#222222',
+    borderRadius: 28,
+    paddingVertical: 16,
     alignItems: 'center',
   },
   submitButtonDisabled: { opacity: 0.5 },
-  submitButtonText: { color: theme.colors.textInverse, fontSize: theme.typography.fontSize.base, fontWeight: theme.typography.fontWeight.bold },
+  submitButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
 });
 
 export default RateBookingScreen;

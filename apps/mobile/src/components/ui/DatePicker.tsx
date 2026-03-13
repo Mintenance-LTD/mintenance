@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 
 interface DatePickerProps {
   label: string;
@@ -34,11 +33,11 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${formatted ?? placeholder}. Double tap to change`}
       >
-        <Ionicons name="calendar-outline" size={18} color={theme.colors.primary} />
+        <Ionicons name="calendar-outline" size={18} color="#222222" />
         <Text style={[styles.valueText, !formatted && styles.placeholder]}>
           {formatted ?? placeholder}
         </Text>
-        <Ionicons name="chevron-down" size={16} color={theme.colors.textTertiary} />
+        <Ionicons name="chevron-down" size={16} color="#B0B0B0" />
       </TouchableOpacity>
 
       {show && (
@@ -63,28 +62,26 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     marginBottom: 6,
   },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#F7F7F7',
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
   valueText: {
     flex: 1,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: '#222222',
   },
   placeholder: {
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
   },
 });
 

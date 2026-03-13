@@ -1,8 +1,8 @@
 /**
  * ErrorView Component
- * 
+ *
  * Consistent error display for all screens.
- * 
+ *
  * @filesize Target: <80 lines
  * @compliance Single Responsibility - Error state only
  */
@@ -10,7 +10,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 
 interface ErrorViewProps {
   message: string;
@@ -27,7 +26,7 @@ export const ErrorView: React.FC<ErrorViewProps> = ({
 }) => {
   return (
     <View style={[styles.container, fullScreen && styles.fullScreen]}>
-      <Ionicons name={icon} size={64} color={theme.colors.error} />
+      <Ionicons name={icon} size={64} color="#EF4444" />
       <Text style={styles.message}>{message}</Text>
       {onRetry && (
         <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
@@ -42,29 +41,29 @@ const styles = StyleSheet.create({
   container: {
     justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing.xl,
+    padding: 24,
   },
   fullScreen: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
   message: {
-    marginTop: theme.spacing.lg,
-    fontSize: theme.typography.fontSize.lg,
-    color: theme.colors.textPrimary,
+    marginTop: 20,
+    fontSize: 18,
+    color: '#222222',
     textAlign: 'center',
     maxWidth: 300,
   },
   retryButton: {
-    marginTop: theme.spacing.xl,
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing.xl,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
+    marginTop: 24,
+    backgroundColor: '#222222',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 16,
   },
   retryButtonText: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.white,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });

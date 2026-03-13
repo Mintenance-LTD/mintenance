@@ -141,7 +141,7 @@ export const useI18n = () => {
 
   // Format helpers that respect current locale
   const formatters = {
-    currency: (amount: number, currency = 'USD') =>
+    currency: (amount: number, currency = 'GBP') =>
       formatCurrency(amount, currency, currentLanguage),
     date: (date: Date) => formatDate(date, currentLanguage),
     relativeTime: (date: Date) => formatRelativeTime(date, currentLanguage),

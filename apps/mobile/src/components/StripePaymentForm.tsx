@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { CardField, useConfirmPayment } from '@stripe/stripe-react-native';
-import { theme } from '../theme';
 
 interface StripePaymentFormProps {
   amount: number;
@@ -64,10 +63,10 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
           postalCode: '12345',
         }}
         cardStyle={{
-          backgroundColor: theme.colors.surface,
-          textColor: theme.colors.textPrimary,
-          fontSize: theme.typography.fontSize.base,
-          placeholderColor: theme.colors.placeholder,
+          backgroundColor: '#FFFFFF',
+          textColor: '#222222',
+          fontSize: 15,
+          placeholderColor: '#B0B0B0',
         }}
         style={styles.cardField}
         onCardChange={(cardDetails) => setCardComplete(!!cardDetails?.complete)}
@@ -96,7 +95,7 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
         {loading ? (
           <ActivityIndicator
             testID='activity-indicator'
-            color={theme.colors.textInverse}
+            color='#FFFFFF'
             size='small'
           />
         ) : (
@@ -111,54 +110,55 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
-    padding: theme.layout.cardPadding,
-    borderRadius: theme.borderRadius.lg,
-    marginBottom: theme.spacing.lg,
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
   },
   title: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.md,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#222222',
+    marginBottom: 16,
   },
   cardField: {
     width: '100%',
     height: 50,
-    marginBottom: theme.spacing.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing.md,
+    marginBottom: 20,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
+    paddingHorizontal: 16,
   },
   securityInfo: {
-    backgroundColor: theme.colors.backgroundSecondary,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    marginBottom: theme.spacing.lg,
+    backgroundColor: '#F7F7F7',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
   },
   securityText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.info,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 13,
+    color: '#3B82F6',
+    fontWeight: '500',
   },
   securitySubtext: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.xs,
+    fontSize: 12,
+    color: '#717171',
+    marginTop: 6,
   },
   payButton: {
-    backgroundColor: theme.colors.primary,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: '#222222',
+    paddingVertical: 16,
+    borderRadius: 28,
     alignItems: 'center',
+    minHeight: 56,
+    justifyContent: 'center',
   },
   payButtonDisabled: {
-    backgroundColor: theme.colors.border,
+    backgroundColor: '#EBEBEB',
   },
   payButtonText: {
-    color: theme.colors.textInverse,
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

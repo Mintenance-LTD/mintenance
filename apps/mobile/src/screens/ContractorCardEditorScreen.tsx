@@ -8,8 +8,8 @@ import {
   Alert,
   Image,
   TextInput,
-  Switch,
   Modal,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -19,7 +19,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../contexts/AuthContext';
 import { ContractorService } from '../services/ContractorService';
 import { ContractorProfile } from '@mintenance/types';
-import { theme } from '../theme';
 import { logger } from '../utils/logger';
 import Button from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -160,15 +159,19 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color="#222222" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Edit Discovery Card</Text>
         <TouchableOpacity
           style={styles.previewButton}
           onPress={() => setPreviewVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Preview card"
         >
-          <Ionicons name="eye" size={24} color={theme.colors.textPrimary} />
+          <Ionicons name="eye" size={22} color="#222222" />
         </TouchableOpacity>
       </View>
 
@@ -184,7 +187,9 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
               <Image source={{ uri: profile.companyLogo }} style={styles.logoImage} />
             ) : (
               <View style={styles.logoPlaceholder}>
-                <Ionicons name="camera" size={32} color={theme.colors.textSecondary} />
+                <View style={styles.cameraIconWrap}>
+                  <Ionicons name="camera" size={24} color="#3B82F6" />
+                </View>
                 <Text style={styles.logoPlaceholderText}>Add Company Logo</Text>
               </View>
             )}
@@ -213,7 +218,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
               value={profile.bio}
               onChangeText={(text) => setProfile(prev => ({ ...prev, bio: text }))}
               placeholder="Describe your expertise and what sets you apart..."
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor="#B0B0B0"
               multiline
               numberOfLines={4}
             />
@@ -226,7 +231,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
               value={profile.businessAddress}
               onChangeText={(text) => setProfile(prev => ({ ...prev, businessAddress: text }))}
               placeholder="123 Main St, City, State"
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor="#B0B0B0"
             />
           </View>
 
@@ -241,7 +246,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
                   hourlyRate: parseInt(text) || 0
                 }))}
                 placeholder="75"
-                placeholderTextColor={theme.colors.textTertiary}
+                placeholderTextColor="#B0B0B0"
                 keyboardType="numeric"
               />
             </View>
@@ -255,7 +260,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
                   yearsExperience: parseInt(text) || 0
                 }))}
                 placeholder="10"
-                placeholderTextColor={theme.colors.textTertiary}
+                placeholderTextColor="#B0B0B0"
                 keyboardType="numeric"
               />
             </View>
@@ -295,7 +300,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
             style={styles.addPortfolioButton}
             onPress={() => handleImagePicker('portfolio')}
           >
-            <Ionicons name="add" size={24} color={theme.colors.textSecondary} />
+            <Ionicons name="add" size={22} color="#717171" />
             <Text style={styles.addPortfolioText}>Add Portfolio Images</Text>
           </TouchableOpacity>
 
@@ -329,7 +334,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
                 serviceRadius: parseInt(text) || 25
               }))}
               placeholder="25"
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor="#B0B0B0"
               keyboardType="numeric"
             />
           </View>
@@ -337,13 +342,15 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
 
         {/* Save Button */}
         <View style={styles.saveSection}>
-          <Button
-            variant="primary"
-            title={saving ? "Saving..." : "Save Discovery Card"}
+          <TouchableOpacity
+            style={[styles.saveButton, saving && { opacity: 0.5 }]}
             onPress={saveProfile}
             disabled={saving}
-            style={styles.saveButton}
-          />
+          >
+            <Text style={styles.saveButtonText}>
+              {saving ? 'Saving...' : 'Save Discovery Card'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -357,19 +364,23 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
         <View style={styles.previewContainer}>
           <View style={[styles.previewHeader, { paddingTop: insets.top }]}>
             <Text style={styles.previewTitle}>Discovery Card Preview</Text>
-            <TouchableOpacity onPress={() => setPreviewVisible(false)}>
-              <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
+            <TouchableOpacity
+              style={styles.previewCloseBtn}
+              onPress={() => setPreviewVisible(false)}
+            >
+              <Ionicons name="close" size={22} color="#222222" />
             </TouchableOpacity>
           </View>
           <View style={styles.previewContent}>
-            {/* Simplified contractor card preview */}
             <View style={styles.cardPreview}>
               {profile.companyLogo && (
                 <Image source={{ uri: profile.companyLogo }} style={styles.previewLogo} />
               )}
               <Text style={styles.previewCompanyName}>{profile.companyName || 'Your Company'}</Text>
               <Text style={styles.previewBio}>{profile.bio || 'Your professional bio...'}</Text>
-              <Text style={styles.previewRate}>£{profile.hourlyRate || 0}/hr</Text>
+              <View style={styles.previewRateChip}>
+                <Text style={styles.previewRate}>£{profile.hourlyRate || 0}/hr</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -381,90 +392,118 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingBottom: 16,
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingBottom: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   backButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
   },
   previewButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
   section: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 20,
     marginTop: 16,
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    marginBottom: 8,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#B0B0B0',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 14,
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginBottom: 16,
+    marginTop: -6,
   },
   logoUpload: {
     alignItems: 'center',
     justifyContent: 'center',
     height: 120,
-    borderRadius: theme.borderRadius.lg,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#EBEBEB',
     borderStyle: 'dashed',
   },
   logoImage: {
     width: 100,
     height: 100,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 16,
   },
   logoPlaceholder: {
     alignItems: 'center',
   },
+  cameraIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#DBEAFE',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
   logoPlaceholderText: {
-    marginTop: 8,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     fontSize: 14,
+    fontWeight: '500',
   },
   inputGroup: {
     marginBottom: 16,
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     marginBottom: 8,
   },
   textInput: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    padding: 12,
-    fontSize: 16,
-    color: theme.colors.textPrimary,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    color: '#222222',
   },
   textArea: {
     height: 100,
@@ -481,39 +520,38 @@ const styles = StyleSheet.create({
   },
   availabilityOption: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: theme.borderRadius.full,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.background,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#F7F7F7',
   },
   availabilityOptionActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: '#222222',
   },
   availabilityText: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: '#717171',
+    fontWeight: '500',
   },
   availabilityTextActive: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   addPortfolioButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 16,
-    borderRadius: theme.borderRadius.lg,
-    borderWidth: 2,
-    borderColor: theme.colors.borderLight,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#EBEBEB',
     borderStyle: 'dashed',
     marginBottom: 16,
+    gap: 8,
   },
   addPortfolioText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 15,
+    color: '#222222',
+    fontWeight: '600',
   },
   portfolioGrid: {
     flexDirection: 'row',
@@ -528,13 +566,13 @@ const styles = StyleSheet.create({
   portfolioImage: {
     width: '100%',
     height: '100%',
-    borderRadius: theme.borderRadius.md,
+    borderRadius: 12,
   },
   removePortfolioButton: {
     position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    top: 6,
+    right: 6,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     borderRadius: 12,
     width: 24,
     height: 24,
@@ -545,11 +583,19 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
   },
   saveButton: {
-    width: '100%',
+    backgroundColor: '#222222',
+    borderRadius: 28,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
   previewContainer: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
   previewHeader: {
     flexDirection: 'row',
@@ -557,11 +603,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   previewTitle: {
     fontSize: 18,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
+  },
+  previewCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   previewContent: {
     flex: 1,
@@ -569,34 +626,49 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   cardPreview: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.xl,
-    padding: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 28,
     alignItems: 'center',
-    ...theme.shadows.lg,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 16,
+      },
+      android: { elevation: 6 },
+    }),
   },
   previewLogo: {
     width: 80,
     height: 80,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 16,
     marginBottom: 16,
   },
   previewCompanyName: {
     fontSize: 20,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
     marginBottom: 8,
   },
   previewBio: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     textAlign: 'center',
     marginBottom: 16,
+    lineHeight: 20,
+  },
+  previewRateChip: {
+    backgroundColor: '#D1FAE5',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
   },
   previewRate: {
     fontSize: 18,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#10B981',
   },
 });
 

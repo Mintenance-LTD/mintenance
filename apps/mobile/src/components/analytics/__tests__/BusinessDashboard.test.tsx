@@ -26,7 +26,7 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '../../test-utils';
 import BusinessDashboard from '../BusinessDashboard';
-import { theme } from '../../../theme';
+
 import { PerformanceOptimizer } from '../../../utils/PerformanceOptimizer';
 
 // Mock dependencies
@@ -100,7 +100,7 @@ describe('BusinessDashboard', () => {
       expect(scrollView.props.style).toMatchObject(
         expect.objectContaining({
           flex: 1,
-          backgroundColor: theme.colors.background,
+          backgroundColor: '#F7F7F7',
         })
       );
     });
@@ -139,9 +139,9 @@ describe('BusinessDashboard', () => {
 
       expect(title.props.style).toMatchObject(
         expect.objectContaining({
-          fontSize: theme.typography.fontSize.xl,
-          fontWeight: theme.typography.fontWeight.bold,
-          color: theme.colors.textPrimary,
+          fontSize: 20,
+          fontWeight: '700',
+          color: '#222222',
         })
       );
     });
@@ -218,10 +218,10 @@ describe('BusinessDashboard', () => {
       const button = getByText('Refresh').parent;
       expect(button?.props.style).toMatchObject(
         expect.objectContaining({
-          paddingHorizontal: theme.spacing[3],
-          paddingVertical: theme.spacing[2],
-          backgroundColor: theme.colors.primary,
-          borderRadius: theme.borderRadius.md,
+          paddingHorizontal: 12,
+          paddingVertical: 8,
+          backgroundColor: '#222222',
+          borderRadius: 12,
         })
       );
     });
@@ -290,7 +290,7 @@ describe('BusinessDashboard', () => {
       expect(activeJobsValue.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: theme.colors.success,
+            color: '#10B981',
           }),
         ])
       );
@@ -304,7 +304,7 @@ describe('BusinessDashboard', () => {
       expect(card?.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            borderLeftColor: theme.colors.success,
+            borderLeftColor: '#10B981',
           }),
         ])
       );
@@ -319,9 +319,9 @@ describe('BusinessDashboard', () => {
         expect.arrayContaining([
           expect.objectContaining({
             flex: 1,
-            backgroundColor: theme.colors.surface,
-            borderRadius: theme.borderRadius.lg,
-            padding: theme.spacing[4],
+            backgroundColor: '#FFFFFF',
+            borderRadius: 16,
+            padding: 16,
             borderLeftWidth: 4,
           }),
         ])
@@ -398,7 +398,7 @@ describe('BusinessDashboard', () => {
       expect(value.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: theme.colors.primary,
+            color: '#222222',
           }),
         ])
       );
@@ -468,7 +468,7 @@ describe('BusinessDashboard', () => {
       expect(value.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: theme.colors.warning,
+            color: '#F59E0B',
           }),
         ])
       );
@@ -515,7 +515,7 @@ describe('BusinessDashboard', () => {
       expect(value.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: theme.colors.info,
+            color: '#3B82F6',
           }),
         ])
       );
@@ -556,7 +556,7 @@ describe('BusinessDashboard', () => {
       expect(value.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: theme.colors.secondary,
+            color: '#717171',
           }),
         ])
       );
@@ -608,9 +608,9 @@ describe('BusinessDashboard', () => {
 
       expect(title.props.style).toMatchObject(
         expect.objectContaining({
-          fontSize: theme.typography.fontSize.lg,
-          fontWeight: theme.typography.fontWeight.semibold,
-          color: theme.colors.textPrimary,
+          fontSize: 18,
+          fontWeight: '600',
+          color: '#222222',
         })
       );
     });
@@ -622,11 +622,11 @@ describe('BusinessDashboard', () => {
 
       expect(card?.props.style).toMatchObject(
         expect.objectContaining({
-          backgroundColor: theme.colors.surface,
-          borderRadius: theme.borderRadius.md,
-          padding: theme.spacing[4],
+          backgroundColor: '#FFFFFF',
+          borderRadius: 12,
+          padding: 16,
           borderWidth: 1,
-          borderColor: theme.colors.border,
+          borderColor: '#EBEBEB',
         })
       );
     });
@@ -637,9 +637,9 @@ describe('BusinessDashboard', () => {
 
       expect(insightTitle.props.style).toMatchObject(
         expect.objectContaining({
-          fontSize: theme.typography.fontSize.base,
-          fontWeight: theme.typography.fontWeight.semibold,
-          color: theme.colors.textPrimary,
+          fontSize: 15,
+          fontWeight: '600',
+          color: '#222222',
         })
       );
     });
@@ -650,8 +650,8 @@ describe('BusinessDashboard', () => {
 
       expect(insightText.props.style).toMatchObject(
         expect.objectContaining({
-          fontSize: theme.typography.fontSize.sm,
-          color: theme.colors.textSecondary,
+          fontSize: 13,
+          color: '#717171',
           lineHeight: 20,
         })
       );
@@ -698,9 +698,9 @@ describe('BusinessDashboard', () => {
 
       expect(button?.props.style).toMatchObject(
         expect.objectContaining({
-          backgroundColor: theme.colors.primary,
-          borderRadius: theme.borderRadius.md,
-          padding: theme.spacing[3],
+          backgroundColor: '#222222',
+          borderRadius: 12,
+          padding: 12,
           alignItems: 'center',
           justifyContent: 'center',
           minHeight: 60,
@@ -714,9 +714,9 @@ describe('BusinessDashboard', () => {
 
       expect(actionText.props.style).toMatchObject(
         expect.objectContaining({
-          color: theme.colors.textInverse,
-          fontSize: theme.typography.fontSize.sm,
-          fontWeight: theme.typography.fontWeight.medium,
+          color: '#FFFFFF',
+          fontSize: 13,
+          fontWeight: '500',
           textAlign: 'center',
         })
       );
@@ -982,7 +982,7 @@ describe('BusinessDashboard', () => {
     it('should use theme colors for background', () => {
       const { UNSAFE_root } = render(<BusinessDashboard metrics={defaultMetrics} />);
       const scrollView = UNSAFE_root.findByType('ScrollView');
-      expect(scrollView.props.style.backgroundColor).toBe(theme.colors.background);
+      expect(scrollView.props.style.backgroundColor).toBe('#F7F7F7');
     });
 
     it('should use theme spacing', () => {
@@ -991,7 +991,7 @@ describe('BusinessDashboard', () => {
       expect(card?.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            padding: theme.spacing[4],
+            padding: 16,
           }),
         ])
       );
@@ -1003,7 +1003,7 @@ describe('BusinessDashboard', () => {
       expect(card?.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            borderRadius: theme.borderRadius.lg,
+            borderRadius: 16,
           }),
         ])
       );
@@ -1014,8 +1014,8 @@ describe('BusinessDashboard', () => {
       const title = getByText('Business Analytics');
       expect(title.props.style).toMatchObject(
         expect.objectContaining({
-          fontSize: theme.typography.fontSize.xl,
-          fontWeight: theme.typography.fontWeight.bold,
+          fontSize: 20,
+          fontWeight: '700',
         })
       );
     });

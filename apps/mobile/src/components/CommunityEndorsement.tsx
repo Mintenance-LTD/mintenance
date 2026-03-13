@@ -9,10 +9,10 @@ import {
   Alert,
   ScrollView,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { theme } from '../theme';
 import {
   useAddEndorsement,
   useNeighborhoodFormatters,
@@ -178,7 +178,7 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
         {/* Header */}
         <View style={[styles.header, { paddingTop: insets.top }]}>
           <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-            <Ionicons name='close' size={24} color={theme.colors.textPrimary} />
+            <Ionicons name='close' size={24} color='#222222' />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Endorse {contractorName}</Text>
           <View style={styles.placeholder} />
@@ -188,7 +188,7 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
           {/* Introduction */}
           <View style={styles.introSection}>
             <View style={styles.introIcon}>
-              <Ionicons name='heart' size={32} color={theme.colors.primary} />
+              <Ionicons name='heart' size={32} color='#222222' />
             </View>
             <Text style={styles.introTitle}>Help Your Community</Text>
             <Text style={styles.introText}>
@@ -221,7 +221,7 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
                         : 'chevron-down'
                     }
                     size={20}
-                    color={theme.colors.textSecondary}
+                    color='#717171'
                   />
                 </TouchableOpacity>
 
@@ -248,7 +248,7 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
                           <Ionicons
                             name='checkmark-circle'
                             size={16}
-                            color={theme.colors.textInverse}
+                            color='#FFFFFF'
                           />
                         )}
                       </TouchableOpacity>
@@ -266,6 +266,7 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
               <TextInput
                 style={styles.customSkillInput}
                 placeholder='e.g., Great at emergency repairs'
+                placeholderTextColor='#B0B0B0'
                 value={customSkill}
                 onChangeText={(text) => {
                   setCustomSkill(text);
@@ -288,6 +289,7 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
             <TextInput
               style={styles.messageInput}
               placeholder='e.g., Fixed my sink quickly and explained what was wrong. Very professional!'
+              placeholderTextColor='#B0B0B0'
               value={message}
               onChangeText={setMessage}
               multiline
@@ -309,7 +311,7 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
                   <Ionicons
                     name='heart'
                     size={16}
-                    color={theme.colors.primary}
+                    color='#222222'
                   />
                   <Text style={styles.previewSkill}>
                     {customSkill.trim() || selectedSkill}
@@ -339,10 +341,10 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
             disabled={isPending || (!selectedSkill && !customSkill.trim())}
           >
             {isPending ? (
-              <ActivityIndicator color={theme.colors.textInverse} size='small' />
+              <ActivityIndicator color='#FFFFFF' size='small' />
             ) : (
               <>
-                <Ionicons name='heart' size={20} color={theme.colors.textInverse} />
+                <Ionicons name='heart' size={20} color='#FFFFFF' />
                 <Text style={styles.submitButtonText}>Add Endorsement</Text>
               </>
             )}
@@ -356,216 +358,218 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing[4],
-    paddingBottom: theme.spacing[4],
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   closeButton: {
-    padding: theme.spacing[1],
+    padding: 4,
   },
   headerTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#222222',
   },
   placeholder: {
     width: 32,
   },
   content: {
     flex: 1,
-    paddingHorizontal: theme.spacing[4],
+    paddingHorizontal: 16,
   },
   introSection: {
     alignItems: 'center',
-    paddingVertical: theme.spacing[6],
+    paddingVertical: 24,
   },
   introIcon: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: `${theme.colors.primary}20`,
+    backgroundColor: '#F7F7F7',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: theme.spacing[3],
+    marginBottom: 12,
   },
   introTitle: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[2],
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#222222',
+    marginBottom: 8,
   },
   introText: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textSecondary,
+    fontSize: 15,
+    color: '#717171',
     textAlign: 'center',
     lineHeight: 22,
   },
   section: {
-    marginBottom: theme.spacing[6],
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[1],
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#222222',
+    marginBottom: 4,
   },
   sectionSubtitle: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing[4],
+    fontSize: 13,
+    color: '#717171',
+    marginBottom: 16,
   },
   categoryContainer: {
-    marginBottom: theme.spacing[3],
+    marginBottom: 12,
   },
   categoryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing[3],
-    paddingHorizontal: theme.spacing[3],
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   categoryTitle: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#222222',
   },
   skillsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingTop: theme.spacing[3],
-    gap: theme.spacing[2],
+    paddingTop: 12,
+    gap: 8,
   },
   skillChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[2],
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 },
+      android: { elevation: 1 },
+    }),
   },
   selectedSkill: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: '#222222',
   },
   skillText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textPrimary,
-    marginRight: theme.spacing[1],
+    fontSize: 13,
+    color: '#222222',
+    marginRight: 4,
   },
   selectedSkillText: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
   },
   customSkillContainer: {
-    marginTop: theme.spacing[4],
+    marginTop: 16,
   },
   customSkillLabel: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[2],
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#222222',
+    marginBottom: 8,
   },
   customSkillInput: {
     height: 50,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing[3],
-    backgroundColor: theme.colors.surface,
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textPrimary,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    backgroundColor: '#F7F7F7',
+    fontSize: 15,
+    color: '#222222',
   },
   messageInput: {
     minHeight: 100,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing[3],
-    paddingTop: theme.spacing[3],
-    backgroundColor: theme.colors.surface,
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textPrimary,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    backgroundColor: '#F7F7F7',
+    fontSize: 15,
+    color: '#222222',
   },
   characterCount: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textSecondary,
+    fontSize: 12,
+    color: '#717171',
     textAlign: 'right',
-    marginTop: theme.spacing[1],
+    marginTop: 4,
   },
   previewSection: {
-    marginBottom: theme.spacing[4],
+    marginBottom: 16,
   },
   previewTitle: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[2],
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222222',
+    marginBottom: 8,
   },
   previewCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing[4],
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   previewHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing[2],
+    marginBottom: 8,
   },
   previewSkill: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.primary,
-    marginLeft: theme.spacing[1],
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222222',
+    marginLeft: 4,
   },
   previewMessage: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textPrimary,
+    fontSize: 13,
+    color: '#222222',
     lineHeight: 20,
-    marginBottom: theme.spacing[2],
+    marginBottom: 8,
     fontStyle: 'italic',
   },
   previewAttribution: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textSecondary,
+    fontSize: 12,
+    color: '#717171',
     textAlign: 'right',
   },
   footer: {
-    padding: theme.spacing[4],
-    backgroundColor: theme.colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#EBEBEB',
   },
   submitButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.primary,
-    paddingVertical: theme.spacing[3],
-    borderRadius: theme.borderRadius.md,
-    gap: theme.spacing[2],
+    backgroundColor: '#222222',
+    paddingVertical: 16,
+    borderRadius: 28,
+    minHeight: 56,
+    gap: 8,
   },
   submitButtonDisabled: {
-    backgroundColor: theme.colors.border,
+    backgroundColor: '#EBEBEB',
   },
   submitButtonText: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textInverse,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 

@@ -1,13 +1,12 @@
 /**
  * PreviousContractors Component
- * 
+ *
  * Displays previously used contractors with ability to message or rehire them.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import { UserProfile } from '../../services/UserService';
 
 interface PreviousContractorsProps {
@@ -50,7 +49,7 @@ export const PreviousContractors: React.FC<PreviousContractorsProps> = ({
                   <Ionicons
                     name='checkmark'
                     size={10}
-                    color={theme.colors.textInverse}
+                    color='#FFFFFF'
                   />
                 </View>
               </View>
@@ -67,7 +66,7 @@ export const PreviousContractors: React.FC<PreviousContractorsProps> = ({
                 <Ionicons
                   name='star'
                   size={12}
-                  color={theme.colors.ratingGold}
+                  color='#F59E0B'
                 />
                 <Text style={styles.contractorRatingText}>
                   {contractor.reviews?.[0]?.rating?.toFixed(1) || 'New'}
@@ -97,7 +96,7 @@ export const PreviousContractors: React.FC<PreviousContractorsProps> = ({
                   <Ionicons
                     name='chatbubble'
                     size={12}
-                    color={theme.colors.textSecondary}
+                    color='#717171'
                   />
                   <Text style={styles.messageButtonText}>Message</Text>
                 </TouchableOpacity>
@@ -122,11 +121,13 @@ export const PreviousContractors: React.FC<PreviousContractorsProps> = ({
           // Show placeholder when no previous contractors
           <View style={styles.contractorCard}>
             <View style={styles.emptyContractorState}>
-              <Ionicons
-                name='hammer-outline'
-                size={32}
-                color={theme.colors.textTertiary}
-              />
+              <View style={styles.emptyIconWrap}>
+                <Ionicons
+                  name='hammer-outline'
+                  size={28}
+                  color='#B0B0B0'
+                />
+              </View>
               <Text style={styles.emptyContractorText}>
                 No previous contractors yet
               </Text>
@@ -151,14 +152,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#222222',
     marginBottom: 4,
+    letterSpacing: -0.3,
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginBottom: 16,
   },
   contractorsScrollView: {
@@ -166,18 +168,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   contractorCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 20,
     marginRight: 12,
     width: 260,
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   contractorAvatar: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -185,31 +197,31 @@ const styles = StyleSheet.create({
   },
   contractorAvatarText: {
     fontSize: 18,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textInverse,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   verifiedBadge: {
     position: 'absolute',
     bottom: -2,
     right: -2,
-    backgroundColor: theme.colors.success,
+    backgroundColor: '#10B981',
     borderRadius: 8,
     width: 16,
     height: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: theme.colors.textInverse,
+    borderColor: '#FFFFFF',
   },
   contractorName: {
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     marginBottom: 4,
   },
   contractorSpecialty: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginBottom: 8,
   },
   contractorRating: {
@@ -219,13 +231,13 @@ const styles = StyleSheet.create({
   },
   contractorRatingText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginLeft: 4,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontWeight: '500',
   },
   contractorReview: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     lineHeight: 16,
     marginBottom: 12,
   },
@@ -236,27 +248,27 @@ const styles = StyleSheet.create({
   messageButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
     gap: 4,
   },
   messageButtonText: {
     fontSize: 12,
-    color: theme.colors.textPrimary,
-    fontWeight: theme.typography.fontWeight.medium,
+    color: '#222222',
+    fontWeight: '500',
   },
   rehireButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   rehireButtonText: {
     fontSize: 12,
-    color: theme.colors.textInverse,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   emptyContractorState: {
     alignItems: 'center',
@@ -265,17 +277,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 16,
   },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
   emptyContractorText: {
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textSecondary,
+    fontWeight: '600',
+    color: '#222222',
     marginTop: 12,
     marginBottom: 4,
     textAlign: 'center',
   },
   emptyContractorSubtext: {
     fontSize: 13,
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
     textAlign: 'center',
     lineHeight: 18,
   },

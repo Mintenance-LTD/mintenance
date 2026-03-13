@@ -9,13 +9,13 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import Button from '../components/ui/Button';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { JobsStackParamList } from '../navigation/types';
 import { useAuth } from '../contexts/AuthContext';
 import type { PricingAnalysis } from '../services/AIPricingEngine';
 import type { BuildingAssessment } from '@mintenance/ai-core';
-import { theme } from '../theme';
 import { useCreateJob } from '../hooks/useJobs';
 import { logger } from '../utils/logger';
 import { SecurityManager } from '../utils/SecurityManager';
@@ -232,11 +232,16 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>‹ Back</Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <Ionicons name="arrow-back" size={24} color="#222222" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Post a Job</Text>
-        <View style={styles.placeholder} />
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -276,29 +281,39 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.footer}>
         {submissionSuccess && (
           <View testID="success-message" style={styles.messageContainer}>
+            <View style={styles.successIconWrap}>
+              <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+            </View>
             <Text style={styles.successText}>Job posted successfully!</Text>
           </View>
         )}
         {submissionError && (
           <View testID="error-message" style={styles.messageContainer}>
+            <View style={styles.errorIconWrap}>
+              <Ionicons name="alert-circle" size={16} color="#EF4444" />
+            </View>
             <Text style={styles.errorText}>{submissionError}</Text>
           </View>
         )}
         {isSubmitting && (
           <View testID="loading-spinner" style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color={theme.colors.primary} />
+            <ActivityIndicator size="small" color="#10B981" />
             <Text style={styles.loadingText}>Posting job...</Text>
           </View>
         )}
-        <Button
-          variant='primary'
-          title={isSubmitting ? 'Posting…' : 'Post Job'}
+        <TouchableOpacity
+          style={[styles.submitButton, isSubmitting && { opacity: 0.5 }]}
           onPress={handleSubmit}
           disabled={isSubmitting}
-          loading={isSubmitting}
-          fullWidth
+          accessibilityRole="button"
+          accessibilityLabel={isSubmitting ? 'Posting job' : 'Post job'}
           accessibilityState={{ disabled: isSubmitting }}
-        />
+        >
+          <Ionicons name="add-circle-outline" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+          <Text style={styles.submitButtonText}>
+            {isSubmitting ? 'Posting...' : 'Post Job'}
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -307,67 +322,100 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   backButton: {
-    padding: 5,
-  },
-  backButtonText: {
-    fontSize: 18,
-    color: theme.colors.textPrimary,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-  },
-  placeholder: {
-    width: 50,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222222',
   },
   content: {
     flex: 1,
   },
   footer: {
-    padding: 24,
-    backgroundColor: theme.colors.surface,
+    padding: 16,
+    paddingBottom: 24,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#EBEBEB',
   },
   messageContainer: {
-    padding: theme.spacing[3],
-    borderRadius: theme.borderRadius.md,
-    marginBottom: theme.spacing[3],
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+    gap: 8,
+  },
+  successIconWrap: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#D1FAE5',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   successText: {
-    color: theme.colors.success,
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.medium,
-    textAlign: 'center',
+    color: '#10B981',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  errorIconWrap: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   errorText: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.priorityHigh,
-    textAlign: 'center',
+    fontSize: 14,
+    color: '#EF4444',
+    fontWeight: '500',
+    flex: 1,
   },
   loadingContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing[3],
-    marginBottom: theme.spacing[3],
+    padding: 12,
+    marginBottom: 12,
+    gap: 8,
   },
   loadingText: {
-    marginLeft: theme.spacing[2],
-    color: theme.colors.textSecondary,
-    fontSize: theme.typography.fontSize.sm,
+    color: '#717171',
+    fontSize: 14,
+  },
+  submitButton: {
+    height: 52,
+    backgroundColor: '#10B981',
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  submitButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
 

@@ -10,6 +10,10 @@ import {
   SafeVideoCaptureScreen, SafeVideoProcessingStatusScreen, SafeJobPhotoUploadScreen,
   SafeAddPropertyScreen, SafePaymentHistoryScreen, SafeSubscriptionScreen,
   SafeFinancialsScreen, SafeSettingsHubScreen, SafeBookingStatusScreen,
+  SafeInsuranceScreen, SafeTeamScreen, SafeMarketingScreen, SafeMarketInsightsScreen,
+  SafeSocialScreen, SafeConnectionsScreen, SafeTrainingScreen,
+  SafeFavoritesScreen, SafeDiscoverScreen,
+  SafeMFASecurityScreen, SafeDataExportScreen, SafeDeleteAccountScreen,
 } from "./profile/ProfileAccountNavigator";
 
 // Business-related screen wrappers
@@ -71,6 +75,18 @@ export const ProfileNavigator = () => {
       <ProfileStack.Screen name="Reporting" component={SafeReportingScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="Payouts" component={SafePayoutsScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="BookingStatus" component={SafeBookingStatusScreen as React.ComponentType<object>} options={{ headerShown: false }} />
+      <ProfileStack.Screen name="Insurance" component={SafeInsuranceScreen} options={{ headerShown: false }} />
+      <ProfileStack.Screen name="Team" component={SafeTeamScreen} options={{ headerShown: false }} />
+      <ProfileStack.Screen name="Marketing" component={SafeMarketingScreen} options={{ headerShown: false }} />
+      <ProfileStack.Screen name="MarketInsights" component={SafeMarketInsightsScreen} options={{ headerShown: false }} />
+      <ProfileStack.Screen name="Social" component={SafeSocialScreen} options={{ headerShown: false }} />
+      <ProfileStack.Screen name="Connections" component={SafeConnectionsScreen} options={{ headerShown: false }} />
+      <ProfileStack.Screen name="Training" component={SafeTrainingScreen} options={{ headerShown: false }} />
+      <ProfileStack.Screen name="Favorites" component={SafeFavoritesScreen} options={{ headerShown: false }} />
+      <ProfileStack.Screen name="Discover" component={SafeDiscoverScreen} options={{ headerShown: false }} />
+      <ProfileStack.Screen name="MFASecurity" component={SafeMFASecurityScreen} options={{ headerShown: false }} />
+      <ProfileStack.Screen name="DataExport" component={SafeDataExportScreen} options={{ headerShown: false }} />
+      <ProfileStack.Screen name="DeleteAccount" component={SafeDeleteAccountScreen} options={{ headerShown: false }} />
     </ProfileStack.Navigator>
   );
 };

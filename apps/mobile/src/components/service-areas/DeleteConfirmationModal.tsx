@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal } from 'react-native';
 import Button from '../ui/Button';
-import { theme } from '../../theme';
 import type { ServiceArea } from '../../services/ServiceAreasService';
 
 interface DeleteConfirmationModalProps {
@@ -62,21 +61,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   modalContent: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.xl,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     padding: 24,
     width: '100%',
     maxWidth: 400,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     marginBottom: 12,
   },
   modalText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     lineHeight: 20,
     marginBottom: 24,
   },

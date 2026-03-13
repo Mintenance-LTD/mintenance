@@ -50,7 +50,7 @@ const mapEscrowRow = (row: EscrowRow): EscrowTransaction => ({
   payerId: row.payer_id,
   payeeId: row.payee_id,
   amount: Number(row.amount ?? 0),
-  status: (['pending','held','released','refunded'].includes(row.status)
+  status: (['pending','held','release_pending','released','refunded'].includes(row.status)
     ? (row.status as EscrowTransaction['status'])
     : 'pending'),
   createdAt: row.created_at,

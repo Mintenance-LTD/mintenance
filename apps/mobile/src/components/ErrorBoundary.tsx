@@ -1,13 +1,12 @@
 /**
  * Error Boundary Component
- * 
+ *
  * Catches React errors and displays fallback UI
  * instead of crashing the entire app.
  */
 
 import React, { Component, ReactNode } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { theme } from '../theme';
 import { logger } from '@mintenance/shared';
 
 interface Props {
@@ -104,7 +103,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <Text style={styles.message}>
               We're sorry for the inconvenience. The error has been reported to our team.
             </Text>
-            
+
             {process.env.NODE_ENV === 'development' && this.state.error && (
               <View style={styles.errorDetails}>
                 <Text style={styles.errorTitle}>Error Details (Development Only):</Text>
@@ -128,10 +127,10 @@ export class ErrorBoundary extends Component<Props, State> {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: '#F7F7F7',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing.lg,
+    padding: 20,
   },
   content: {
     maxWidth: 400,
@@ -139,58 +138,58 @@ const styles = StyleSheet.create({
   },
   emoji: {
     fontSize: 64,
-    marginBottom: theme.spacing.md,
+    marginBottom: 16,
   },
   title: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[3],
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#222222',
+    marginBottom: 12,
     textAlign: 'center',
   },
   message: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textSecondary,
+    fontSize: 15,
+    color: '#717171',
     textAlign: 'center',
-    marginBottom: theme.spacing.xl,
+    marginBottom: 24,
     lineHeight: 24,
   },
   button: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing['2xl'],
-    paddingVertical: theme.spacing[3],
-    borderRadius: theme.borderRadius.lg,
-    marginTop: theme.spacing.md,
+    backgroundColor: '#222222',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 28,
+    marginTop: 16,
+    minHeight: 56,
+    justifyContent: 'center',
   },
   buttonText: {
-    color: theme.colors.textInverse,
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
   },
   errorDetails: {
-    marginTop: theme.spacing.lg,
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.errorLight ?? '#FEE2E2',
-    borderRadius: theme.borderRadius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.error,
+    marginTop: 20,
+    padding: 16,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 16,
     width: '100%',
   },
   errorTitle: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.error,
-    marginBottom: theme.spacing.sm,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#EF4444',
+    marginBottom: 8,
   },
   errorMessage: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.error,
-    marginBottom: theme.spacing.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 12,
+    color: '#EF4444',
+    marginBottom: 8,
+    fontWeight: '600',
   },
   errorStack: {
     fontSize: 11,
-    color: theme.colors.error,
+    color: '#EF4444',
     fontFamily: 'monospace',
   },
 });

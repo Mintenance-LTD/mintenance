@@ -1,9 +1,9 @@
 /**
  * ScreenHeader Component
- * 
+ *
  * Reusable header component for all screens.
  * Provides consistent navigation and actions across the app.
- * 
+ *
  * @filesize Target: <100 lines
  * @compliance Single Responsibility - Header UI only
  */
@@ -11,7 +11,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 
 interface ScreenHeaderProps {
   title: string;
@@ -44,7 +43,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   const resolvedRightAction = rightAction ?? rightComponent;
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
+    <View style={styles.container}>
       <View style={styles.leftSection}>
         {shouldShowBack && resolvedOnBack && (
           <TouchableOpacity
@@ -53,22 +52,18 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Ionicons
-              name="arrow-back"
-              size={24}
-              color={theme.colors.textPrimary}
-            />
+            <Ionicons name="arrow-back" size={24} color="#222222" />
           </TouchableOpacity>
         )}
         {leftAction}
       </View>
 
       <View style={styles.centerSection}>
-        <Text style={[styles.title, { color: theme.colors.textPrimary }]} numberOfLines={1} accessibilityRole='header'>
+        <Text style={styles.title} numberOfLines={1} accessibilityRole='header'>
           {title}
         </Text>
         {subtitle && (
-          <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+          <Text style={styles.subtitle} numberOfLines={1}>
             {subtitle}
           </Text>
         )}
@@ -84,22 +79,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.lg,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   leftSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: 40,
+    width: 44,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.colors.surfaceTertiary,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F7F7F7',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -107,21 +102,21 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: theme.spacing.md,
+    paddingHorizontal: 16,
   },
   title: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#222222',
   },
   subtitle: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    color: '#717171',
     marginTop: 2,
   },
   rightSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: 40,
+    width: 44,
   },
 });

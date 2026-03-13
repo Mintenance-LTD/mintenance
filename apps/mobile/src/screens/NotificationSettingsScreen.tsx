@@ -7,16 +7,41 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
-  ActivityIndicator,
+  Platform,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../theme';
 import Button from '../components/ui/Button';
-import { supabase } from '../config/supabase';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import { useAuth } from '../contexts/AuthContext';
+
+interface IconConfig {
+  name: keyof typeof Ionicons.glyphMap;
+  color: string;
+  bg: string;
+}
+
+const SETTING_ICONS: Record<string, IconConfig> = {
+  notifications: { name: 'notifications', color: '#3B82F6', bg: '#DBEAFE' },
+  briefcase: { name: 'briefcase', color: '#10B981', bg: '#D1FAE5' },
+  pricetag: { name: 'pricetag', color: '#F59E0B', bg: '#FEF3C7' },
+  chatbubble: { name: 'chatbubble', color: '#8B5CF6', bg: '#EDE9FE' },
+  refresh: { name: 'refresh', color: '#3B82F6', bg: '#DBEAFE' },
+  card: { name: 'card', color: '#10B981', bg: '#D1FAE5' },
+  mail: { name: 'mail', color: '#EF4444', bg: '#FEE2E2' },
+  calendar: { name: 'calendar', color: '#F59E0B', bg: '#FEF3C7' },
+  'shield-checkmark': { name: 'shield-checkmark', color: '#EF4444', bg: '#FEE2E2' },
+  'volume-high': { name: 'volume-high', color: '#3B82F6', bg: '#DBEAFE' },
+  'phone-portrait': { name: 'phone-portrait', color: '#8B5CF6', bg: '#EDE9FE' },
+  megaphone: { name: 'megaphone', color: '#F59E0B', bg: '#FEF3C7' },
+  'information-circle': { name: 'information-circle', color: '#3B82F6', bg: '#DBEAFE' },
+  'moon-outline': { name: 'moon-outline', color: '#8B5CF6', bg: '#EDE9FE' },
+  'time-outline': { name: 'time-outline', color: '#717171', bg: '#F7F7F7' },
+  'checkmark-circle': { name: 'checkmark-circle', color: '#10B981', bg: '#D1FAE5' },
+  'close-circle': { name: 'close-circle', color: '#EF4444', bg: '#FEE2E2' },
+};
 
 const NotificationSettingsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -76,13 +101,9 @@ const NotificationSettingsScreen: React.FC = () => {
   const loadSettings = async () => {
     if (!user?.id) return;
     try {
-      const { data } = await (supabase
-        .from('profiles')
-        .select('notification_preferences') as unknown as { eq: (col: string, val: string) => { single: () => Promise<{ data: { notification_preferences?: Record<string, unknown> } | null }> } })
-        .eq('id', user.id)
-        .single();
-      if (data?.notification_preferences) {
-        setSettings((prev) => ({ ...prev, ...data.notification_preferences }));
+      const result = await mobileApiClient.get<{ preferences: Record<string, unknown> }>('/api/users/notification-preferences');
+      if (result.preferences) {
+        setSettings((prev) => ({ ...prev, ...result.preferences }));
       }
     } catch {
       // Use defaults if no saved preferences
@@ -175,11 +196,7 @@ const NotificationSettingsScreen: React.FC = () => {
     }
     setSaving(true);
     try {
-      const { error } = await (supabase
-        .from('profiles')
-        .update({ notification_preferences: settings }) as unknown as { eq: (col: string, val: string) => Promise<{ error: Error | null }> })
-        .eq('id', user.id);
-      if (error) throw error;
+      await mobileApiClient.patch<{ success: boolean }>('/api/users/notification-preferences', settings);
       Alert.alert('Success', 'Notification settings updated!');
       navigation.goBack();
     } catch {
@@ -216,37 +233,40 @@ const NotificationSettingsScreen: React.FC = () => {
     value: boolean;
     onToggle: () => void;
     disabled?: boolean;
-  }) => (
-    <View style={[styles.settingRow, disabled && styles.disabledRow]}>
-      <View style={styles.settingLeft}>
-        <View style={styles.iconContainer}>
-          <Ionicons
-            name={icon as keyof typeof Ionicons.glyphMap}
-            size={20}
-            color={disabled ? theme.colors.textTertiary : theme.colors.textSecondary}
-          />
+  }) => {
+    const iconConfig = SETTING_ICONS[icon] || { name: icon as keyof typeof Ionicons.glyphMap, color: '#717171', bg: '#F7F7F7' };
+    return (
+      <View style={[styles.settingRow, disabled && styles.disabledRow]}>
+        <View style={styles.settingLeft}>
+          <View style={[styles.iconContainer, { backgroundColor: iconConfig.bg }]}>
+            <Ionicons
+              name={iconConfig.name}
+              size={18}
+              color={disabled ? '#B0B0B0' : iconConfig.color}
+            />
+          </View>
+          <View style={styles.settingInfo}>
+            <Text style={[styles.settingTitle, disabled && styles.disabledText]}>
+              {title}
+            </Text>
+            {description && (
+              <Text style={styles.settingDescription}>{description}</Text>
+            )}
+          </View>
         </View>
-        <View style={styles.settingInfo}>
-          <Text style={[styles.settingTitle, disabled && styles.disabledText]}>
-            {title}
-          </Text>
-          {description && (
-            <Text style={styles.settingDescription}>{description}</Text>
-          )}
-        </View>
+        <Switch
+          value={value}
+          onValueChange={onToggle}
+          disabled={disabled}
+          trackColor={{
+            false: '#EBEBEB',
+            true: disabled ? '#B0B0B0' : '#10B981',
+          }}
+          thumbColor='#FFFFFF'
+        />
       </View>
-      <Switch
-        value={value}
-        onValueChange={onToggle}
-        disabled={disabled}
-        trackColor={{
-          false: theme.colors.borderLight,
-          true: disabled ? theme.colors.textTertiary : theme.colors.success,
-        }}
-        thumbColor={theme.colors.textInverse}
-      />
-    </View>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -254,20 +274,18 @@ const NotificationSettingsScreen: React.FC = () => {
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
-          <Ionicons
-            name='arrow-back'
-            size={24}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-back' size={24} color='#222222' />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Notifications</Text>
+        <Text style={styles.headerTitle}>Notification Settings</Text>
         <Button
           variant='secondary'
           title={saving ? 'Saving...' : 'Save'}
           onPress={handleSave}
           disabled={saving}
-          style={{ paddingHorizontal: 16, borderRadius: 16 }}
+          style={{ paddingHorizontal: 16, borderRadius: 20 }}
         />
       </View>
 
@@ -411,30 +429,30 @@ const NotificationSettingsScreen: React.FC = () => {
                 onPress={() => setShowStartPicker(true)}
               >
                 <View style={styles.settingLeft}>
-                  <View style={styles.iconContainer}>
-                    <Ionicons name='time-outline' size={20} color={theme.colors.textSecondary} />
+                  <View style={[styles.iconContainer, { backgroundColor: '#F7F7F7' }]}>
+                    <Ionicons name='time-outline' size={18} color='#717171' />
                   </View>
                   <View style={styles.settingInfo}>
                     <Text style={styles.settingTitle}>Start Time</Text>
                     <Text style={styles.settingDescription}>{formatTime(settings.quietHoursStart)}</Text>
                   </View>
                 </View>
-                <Ionicons name='chevron-forward' size={16} color={theme.colors.textTertiary} />
+                <Ionicons name='chevron-forward' size={16} color='#B0B0B0' />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.settingRow}
                 onPress={() => setShowEndPicker(true)}
               >
                 <View style={styles.settingLeft}>
-                  <View style={styles.iconContainer}>
-                    <Ionicons name='time-outline' size={20} color={theme.colors.textSecondary} />
+                  <View style={[styles.iconContainer, { backgroundColor: '#F7F7F7' }]}>
+                    <Ionicons name='time-outline' size={18} color='#717171' />
                   </View>
                   <View style={styles.settingInfo}>
                     <Text style={styles.settingTitle}>End Time</Text>
                     <Text style={styles.settingDescription}>{formatTime(settings.quietHoursEnd)}</Text>
                   </View>
                 </View>
-                <Ionicons name='chevron-forward' size={16} color={theme.colors.textTertiary} />
+                <Ionicons name='chevron-forward' size={16} color='#B0B0B0' />
               </TouchableOpacity>
             </>
           )}
@@ -479,46 +497,32 @@ const NotificationSettingsScreen: React.FC = () => {
 
           <TouchableOpacity style={styles.actionButton} onPress={handleEnableAll}>
             <View style={styles.actionLeft}>
-              <Ionicons
-                name='checkmark-circle'
-                size={20}
-                color={theme.colors.textSecondary}
-              />
+              <View style={[styles.iconContainer, { backgroundColor: '#D1FAE5' }]}>
+                <Ionicons name='checkmark-circle' size={18} color='#10B981' />
+              </View>
               <Text style={styles.actionText}>Enable All Notifications</Text>
             </View>
-            <Ionicons
-              name='chevron-forward'
-              size={16}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name='chevron-forward' size={16} color='#B0B0B0' />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionButton} onPress={handleDisableAll}>
             <View style={styles.actionLeft}>
-              <Ionicons
-                name='close-circle'
-                size={20}
-                color={theme.colors.textSecondary}
-              />
+              <View style={[styles.iconContainer, { backgroundColor: '#FEE2E2' }]}>
+                <Ionicons name='close-circle' size={18} color='#EF4444' />
+              </View>
               <Text style={styles.actionText}>Disable All Notifications</Text>
             </View>
-            <Ionicons
-              name='chevron-forward'
-              size={16}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name='chevron-forward' size={16} color='#B0B0B0' />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionButton} onPress={handleResetToDefaults}>
             <View style={styles.actionLeft}>
-              <Ionicons name='refresh' size={20} color={theme.colors.textSecondary} />
+              <View style={[styles.iconContainer, { backgroundColor: '#DBEAFE' }]}>
+                <Ionicons name='refresh' size={18} color='#3B82F6' />
+              </View>
               <Text style={styles.actionText}>Reset to Defaults</Text>
             </View>
-            <Ionicons
-              name='chevron-forward'
-              size={16}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name='chevron-forward' size={16} color='#B0B0B0' />
           </TouchableOpacity>
         </View>
 
@@ -531,60 +535,72 @@ const NotificationSettingsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
   },
   header: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#FFFFFF',
     paddingBottom: 12,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    backgroundColor: '#F7F7F7',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222222',
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 16,
   },
-  // save button replaced with shared Button
   content: {
     flex: 1,
   },
   section: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 12,
+    marginTop: 16,
+    marginBottom: 0,
+    borderRadius: 16,
     padding: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    marginBottom: 20,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#B0B0B0',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 16,
   },
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   disabledRow: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   settingLeft: {
     flexDirection: 'row',
@@ -593,10 +609,9 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   iconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: theme.colors.surfaceTertiary,
+    width: 36,
+    height: 36,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -605,36 +620,36 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   settingTitle: {
-    fontSize: 16,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222222',
     marginBottom: 2,
   },
   disabledText: {
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
   },
   settingDescription: {
-    fontSize: 14,
-    color: theme.colors.textTertiary,
+    fontSize: 13,
+    color: '#B0B0B0',
     lineHeight: 18,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   actionLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
   },
   actionText: {
-    fontSize: 16,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
-    marginLeft: 12,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222222',
   },
   bottomPadding: {
     height: 32,

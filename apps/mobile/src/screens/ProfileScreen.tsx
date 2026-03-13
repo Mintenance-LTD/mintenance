@@ -6,15 +6,14 @@ import {
   ScrollView,
   Alert,
   Linking,
-  Platform,
+  StatusBar,
 } from 'react-native';
 import { FadeIn, SlideIn } from '../components/animations/primitives';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
-import { theme } from '../theme';
+
 import Button from '../components/ui/Button';
-import { ThemeModeSelector } from '../components/ui/ThemeToggle/ThemeToggle';
 import { TERMS_URL, PRIVACY_URL } from '../config/legal';
 import { ResponsiveContainer } from '../components/responsive';
 import { ProfileHeader } from './profile/components/ProfileHeader';
@@ -26,6 +25,7 @@ import { useProfileStats } from './profile/hooks/useProfileStats';
 import { supabase } from '../config/supabase';
 
 const ProfileScreen: React.FC = () => {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<{ navigate: (screen: string) => void }>();
   const { user, signOut } = useAuth();
   const { userStats } = useProfileStats(user);
@@ -58,6 +58,7 @@ const ProfileScreen: React.FC = () => {
     if (user?.role === 'homeowner') {
       items.push(
         { label: 'My Properties', icon: 'home-outline', iconColor: '#8B5CF6', iconBg: '#EDE9FE', onPress: () => navigation.navigate('Properties') },
+        { label: 'Documents', icon: 'document-outline', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('Documents') },
         { label: 'Subscription', icon: 'ribbon-outline', iconColor: '#EC4899', iconBg: '#FCE7F3', onPress: () => navigation.navigate('Subscription') },
         { label: 'Financials', icon: 'wallet-outline', iconColor: '#10B981', iconBg: '#D1FAE5', onPress: () => navigation.navigate('Financials') },
       );
@@ -131,7 +132,8 @@ const ProfileScreen: React.FC = () => {
   ], [navigation]);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+    <StatusBar barStyle="light-content" />
     <ResponsiveContainer
       maxWidth={{ mobile: undefined, tablet: 768, desktop: 1200 }}
       padding={{ mobile: 0, tablet: 16, desktop: 24 }}
@@ -139,7 +141,7 @@ const ProfileScreen: React.FC = () => {
     >
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <FadeIn duration={400}>
-        <ProfileHeader user={user} joinDate={userStats.joinDate} />
+        <ProfileHeader user={user} joinDate={userStats.joinDate} topInset={insets.top} />
         </FadeIn>
 
         <SlideIn direction="up" distance={15} duration={400} delay={150}>
@@ -167,8 +169,6 @@ const ProfileScreen: React.FC = () => {
         <ProfileMenuSection title="Support" items={supportMenuItems} />
         </FadeIn>
 
-        <ThemeModeSelector style={styles.themeSelector} />
-
         <View style={styles.signOutContainer}>
           <Button
             variant="secondary"
@@ -182,7 +182,7 @@ const ProfileScreen: React.FC = () => {
         </View>
       </ScrollView>
     </ResponsiveContainer>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -193,21 +193,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-  },
-  themeSelector: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
   },
   signOutContainer: {
     paddingHorizontal: 16,

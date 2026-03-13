@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, memo } from 'react';
 import { View, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
-import { theme } from '../../theme';
 
 // ============================================================================
 // TABS COMPOUND COMPONENT
@@ -152,8 +151,8 @@ type TabsCompound = React.NamedExoticComponent<TabsProps> & {
 (Tabs as TabsCompound).Content = TabsContent;
 
 const styles = StyleSheet.create({
-  tabsList: { flexDirection: "row", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
+  tabsList: { flexDirection: "row", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#EBEBEB' },
   tabsTrigger: { flex: 1, paddingVertical: 12, paddingHorizontal: 16, alignItems: "center", justifyContent: "center", borderBottomWidth: 2, borderBottomColor: "transparent" },
-  tabsTriggerActive: { borderBottomColor: theme.colors.primary },
+  tabsTriggerActive: { borderBottomColor: '#222222' },
   tabsContent: { padding: 16 },
 });

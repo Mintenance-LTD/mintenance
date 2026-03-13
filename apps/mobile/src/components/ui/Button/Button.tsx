@@ -10,14 +10,10 @@ import {
   AccessibilityRole,
   Animated,
   StyleProp,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 import { useHaptics } from '../../../utils/haptics';
-
-// ============================================================================
-// TYPES & INTERFACES
-// ============================================================================
 
 export type ButtonVariant =
   | 'primary'
@@ -32,53 +28,32 @@ export type ButtonSize = 'sm' | 'md' | 'lg' | 'xl';
 export type ButtonIconPosition = 'left' | 'right';
 
 export interface ButtonProps {
-  // Content
   children: React.ReactNode;
-
-  // Variants & styling
   variant?: ButtonVariant;
   size?: ButtonSize;
   fullWidth?: boolean;
-
-  // States
   disabled?: boolean;
   loading?: boolean;
-
-  // Icons
   leftIcon?: string;
   rightIcon?: string;
   iconSize?: number;
-
-  // Behavior
   onPress?: () => void;
   onLongPress?: () => void;
   hapticFeedback?: boolean;
-
-  // Accessibility
   accessibilityLabel?: string;
   accessibilityHint?: string;
   accessibilityRole?: AccessibilityRole;
   testID?: string;
-
-  // Style overrides
   style?: StyleProp<ViewStyle>;
   textStyle?: TextStyle;
 }
 
-// ============================================================================
-// BUTTON SIZE PRESETS (replaces old componentSizes.button)
-// ============================================================================
-
 const BUTTON_SIZES = {
-  sm: { height: 36, paddingHorizontal: 16, fontSize: theme.typography.fontSize.sm },
-  md: { height: 48, paddingHorizontal: 20, fontSize: theme.typography.fontSize.base },
-  lg: { height: 52, paddingHorizontal: 28, fontSize: theme.typography.fontSize.lg },
-  xl: { height: 56, paddingHorizontal: 32, fontSize: theme.typography.fontSize.xl },
+  sm: { height: 36, paddingHorizontal: 16, fontSize: 13 },
+  md: { height: 48, paddingHorizontal: 20, fontSize: 15 },
+  lg: { height: 52, paddingHorizontal: 28, fontSize: 18 },
+  xl: { height: 56, paddingHorizontal: 32, fontSize: 20 },
 };
-
-// ============================================================================
-// BUTTON COMPONENT
-// ============================================================================
 
 export const Button = forwardRef<React.ElementRef<typeof TouchableOpacity>, ButtonProps>(
   (
@@ -108,22 +83,13 @@ export const Button = forwardRef<React.ElementRef<typeof TouchableOpacity>, Butt
     const [pressAnimation] = useState(new Animated.Value(1));
     const [isPressed, setIsPressed] = useState(false);
 
-    // ========================================================================
-    // COMPUTED STYLES
-    // ========================================================================
-
     const buttonStyles = getButtonStyles(variant, size, fullWidth, disabled, loading);
     const textStyles = getTextStyles(variant, size, disabled);
     const iconColor = getIconColor(variant, disabled);
     const computedIconSize = iconSize || (size === 'sm' ? 16 : 20);
 
-    // ========================================================================
-    // EVENT HANDLERS
-    // ========================================================================
-
     const handlePressIn = () => {
       if (disabled || loading) return;
-
       setIsPressed(true);
       Animated.spring(pressAnimation, {
         toValue: 0.97,
@@ -145,27 +111,15 @@ export const Button = forwardRef<React.ElementRef<typeof TouchableOpacity>, Butt
 
     const handlePress = () => {
       if (disabled || loading) return;
-
-      if (hapticFeedback) {
-        haptics.light();
-      }
-
+      if (hapticFeedback) haptics.light();
       onPress?.();
     };
 
     const handleLongPress = () => {
       if (disabled || loading) return;
-
-      if (hapticFeedback) {
-        haptics.medium();
-      }
-
+      if (hapticFeedback) haptics.medium();
       onLongPress?.();
     };
-
-    // ========================================================================
-    // RENDER CONTENT
-    // ========================================================================
 
     const renderIcon = (iconName: string, position: ButtonIconPosition) => (
       <Ionicons
@@ -173,8 +127,8 @@ export const Button = forwardRef<React.ElementRef<typeof TouchableOpacity>, Butt
         size={computedIconSize}
         color={iconColor}
         style={[
-          position === 'left' && { marginRight: theme.spacing[2] },
-          position === 'right' && { marginLeft: theme.spacing[2] },
+          position === 'left' && { marginRight: 8 },
+          position === 'right' && { marginLeft: 8 },
         ]}
       />
     );
@@ -186,7 +140,7 @@ export const Button = forwardRef<React.ElementRef<typeof TouchableOpacity>, Butt
             <ActivityIndicator
               size="small"
               color={iconColor}
-              style={{ marginRight: theme.spacing[2] }}
+              style={{ marginRight: 8 }}
             />
             <Text style={[textStyles, textStyle]} numberOfLines={1}>
               {typeof children === 'string' ? children : 'Loading...'}
@@ -205,10 +159,6 @@ export const Button = forwardRef<React.ElementRef<typeof TouchableOpacity>, Butt
         </View>
       );
     };
-
-    // ========================================================================
-    // RENDER COMPONENT
-    // ========================================================================
 
     return (
       <Animated.View
@@ -245,10 +195,6 @@ export const Button = forwardRef<React.ElementRef<typeof TouchableOpacity>, Butt
 
 Button.displayName = 'Button';
 
-// ============================================================================
-// STYLE FUNCTIONS
-// ============================================================================
-
 const getButtonStyles = (
   variant: ButtonVariant,
   size: ButtonSize,
@@ -258,73 +204,35 @@ const getButtonStyles = (
 ): ViewStyle => {
   const baseStyle: ViewStyle = {
     ...BUTTON_SIZES[size],
-    borderRadius: theme.borderRadius.base,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
-    minWidth: theme.layout.minTouchTarget,
-    minHeight: theme.layout.minTouchTarget,
+    minWidth: 44,
+    minHeight: 44,
     overflow: 'hidden',
   };
 
-  if (fullWidth) {
-    baseStyle.width = '100%';
-  }
+  if (fullWidth) baseStyle.width = '100%';
+
+  const shadow = Platform.select({
+    ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+    android: { elevation: 2 },
+  });
 
   switch (variant) {
     case 'primary':
-      return {
-        ...baseStyle,
-        backgroundColor: disabled || loading
-          ? theme.colors.border
-          : theme.colors.primary,
-        ...theme.shadows.sm,
-      };
-
+      return { ...baseStyle, backgroundColor: disabled || loading ? '#EBEBEB' : '#222222', ...shadow };
     case 'secondary':
-      return {
-        ...baseStyle,
-        backgroundColor: 'transparent',
-        borderWidth: 1,
-        borderColor: disabled || loading
-          ? theme.colors.border
-          : theme.colors.border,
-      };
-
+      return { ...baseStyle, backgroundColor: 'transparent', borderWidth: 1, borderColor: '#EBEBEB' };
     case 'outline':
-      return {
-        ...baseStyle,
-        backgroundColor: 'transparent',
-        borderWidth: 1,
-        borderColor: disabled || loading
-          ? theme.colors.border
-          : theme.colors.primary,
-      };
-
+      return { ...baseStyle, backgroundColor: 'transparent', borderWidth: 1, borderColor: disabled || loading ? '#EBEBEB' : '#222222' };
     case 'ghost':
-      return {
-        ...baseStyle,
-        backgroundColor: 'transparent',
-      };
-
+      return { ...baseStyle, backgroundColor: 'transparent' };
     case 'danger':
-      return {
-        ...baseStyle,
-        backgroundColor: disabled || loading
-          ? theme.colors.border
-          : theme.colors.error,
-        ...theme.shadows.sm,
-      };
-
+      return { ...baseStyle, backgroundColor: disabled || loading ? '#EBEBEB' : '#EF4444', ...shadow };
     case 'success':
-      return {
-        ...baseStyle,
-        backgroundColor: disabled || loading
-          ? theme.colors.border
-          : theme.colors.success,
-        ...theme.shadows.sm,
-      };
-
+      return { ...baseStyle, backgroundColor: disabled || loading ? '#EBEBEB' : '#10B981', ...shadow };
     default:
       return baseStyle;
   }
@@ -337,7 +245,7 @@ const getTextStyles = (
 ): TextStyle => {
   const baseStyle: TextStyle = {
     fontSize: BUTTON_SIZES[size].fontSize,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
     textAlign: 'center',
   };
 
@@ -345,65 +253,31 @@ const getTextStyles = (
     case 'primary':
     case 'danger':
     case 'success':
-      return {
-        ...baseStyle,
-        color: disabled
-          ? theme.colors.placeholder
-          : theme.colors.textInverse,
-      };
-
+      return { ...baseStyle, color: disabled ? '#B0B0B0' : '#FFFFFF' };
     case 'secondary':
-      return {
-        ...baseStyle,
-        color: disabled
-          ? theme.colors.placeholder
-          : theme.colors.textPrimary,
-      };
-
+      return { ...baseStyle, color: disabled ? '#B0B0B0' : '#222222' };
     case 'outline':
     case 'ghost':
-      return {
-        ...baseStyle,
-        color: disabled
-          ? theme.colors.placeholder
-          : variant === 'outline'
-          ? theme.colors.primary
-          : theme.colors.textPrimary,
-      };
-
+      return { ...baseStyle, color: disabled ? '#B0B0B0' : '#222222' };
     default:
       return baseStyle;
   }
 };
 
 const getIconColor = (variant: ButtonVariant, disabled: boolean): string => {
-  if (disabled) {
-    return theme.colors.placeholder;
-  }
-
+  if (disabled) return '#B0B0B0';
   switch (variant) {
     case 'primary':
     case 'danger':
     case 'success':
-      return theme.colors.textInverse;
-
-    case 'secondary':
-      return theme.colors.textPrimary;
-
+      return '#FFFFFF';
     case 'outline':
-      return theme.colors.primary;
-
+    case 'secondary':
     case 'ghost':
-      return theme.colors.textPrimary;
-
     default:
-      return theme.colors.textPrimary;
+      return '#222222';
   }
 };
-
-// ============================================================================
-// STYLES
-// ============================================================================
 
 const styles = StyleSheet.create({
   contentContainer: {

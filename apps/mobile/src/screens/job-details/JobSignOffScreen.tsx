@@ -12,10 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { JobsStackParamList } from '../../navigation/types';
-import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { Button } from '../../components/ui/Button';
-import { theme } from '../../theme';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 
 type Props = NativeStackScreenProps<JobsStackParamList, 'JobSignOff'>;
@@ -108,7 +106,7 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor="#222222" />}
       >
         <Text style={styles.jobTitle}>{job.title}</Text>
         {job.contractor_name && (
@@ -156,7 +154,7 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
                   multiline
                   numberOfLines={5}
                   placeholder="Please describe what needs to be fixed or changed..."
-                  placeholderTextColor={theme.colors.placeholder}
+                  placeholderTextColor="#B0B0B0"
                   value={changesText}
                   onChangeText={setChangesText}
                   textAlignVertical="top"
@@ -194,93 +192,89 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: theme.layout.screenPadding,
+    padding: 20,
   },
   jobTitle: {
-    fontSize: theme.typography.fontSize['2xl'],
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[1],
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#222222',
+    marginBottom: 4,
   },
   contractorName: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing[6],
+    fontSize: 15,
+    color: '#717171',
+    marginBottom: 24,
   },
   confirmedBanner: {
-    backgroundColor: theme.colors.primaryLight,
-    borderWidth: 1,
-    borderColor: theme.colors.primaryLight,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing[5],
+    backgroundColor: '#D1FAE5',
+    borderRadius: 16,
+    padding: 20,
     alignItems: 'center',
   },
   confirmedText: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.success,
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#059669',
   },
   confirmedSubtext: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.success,
-    marginTop: theme.spacing[1],
+    fontSize: 14,
+    color: '#059669',
+    marginTop: 4,
   },
   section: {
-    marginBottom: theme.spacing[6],
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[2],
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#222222',
+    marginBottom: 8,
   },
   sectionDescription: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textSecondary,
-    lineHeight: theme.typography.fontSize.base * theme.typography.lineHeight.relaxed,
+    fontSize: 15,
+    color: '#717171',
+    lineHeight: 22,
   },
   actions: {
-    gap: theme.spacing[3],
+    gap: 12,
   },
   secondaryAction: {
-    marginTop: theme.spacing[1],
+    marginTop: 4,
   },
   changesForm: {
-    marginTop: theme.spacing[2],
+    marginTop: 8,
   },
   changesLabel: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[2],
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#222222',
+    marginBottom: 8,
   },
   changesInput: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.base,
-    padding: theme.spacing[3],
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textPrimary,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 15,
+    color: '#222222',
     minHeight: 120,
   },
   charCount: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textTertiary,
+    fontSize: 12,
+    color: '#B0B0B0',
     textAlign: 'right',
-    marginTop: theme.spacing[1],
-    marginBottom: theme.spacing[4],
+    marginTop: 4,
+    marginBottom: 16,
   },
   changesActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: theme.spacing[3],
+    gap: 12,
   },
   cancelButton: {
     minWidth: 100,

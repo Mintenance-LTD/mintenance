@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   Alert,
   TextInput,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -24,7 +25,6 @@ import { ProgressBar } from './components/ProgressBar';
 import { StepCard } from './components/StepCard';
 import { AIInsightsCard } from './components/AIInsightsCard';
 import { QuickActions, TipsCard } from './components/QuickActions';
-import { theme } from '../../theme';
 
 interface Props {
   navigation: { navigate: (screen: string, params?: Record<string, unknown>) => void; goBack: () => void };
@@ -190,7 +190,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Captured Videos</Text>
               <TouchableOpacity onPress={handleStartVideoCapture}>
-                <Icon name="add-circle" size={24} color={theme.colors.textSecondary} />
+                <Icon name="add-circle" size={24} color="#717171" />
               </TouchableOpacity>
             </View>
             {capturedVideos.map(video => (
@@ -226,7 +226,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
               multiline
               numberOfLines={5}
               placeholder="Add your observations, context, or notes about the property..."
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor="#B0B0B0"
               value={manualNotes}
               onChangeText={(text) => {
                 setManualNotes(text);
@@ -280,7 +280,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: '#F7F7F7',
   },
   content: {
     padding: 16,
@@ -290,8 +290,8 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
     marginBottom: 16,
   },
   videosSection: {
@@ -304,56 +304,62 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   notesSection: {
-    backgroundColor: theme.colors.background,
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 16,
     marginBottom: 24,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   notesInput: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 8,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
     padding: 12,
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: '#222222',
     minHeight: 120,
-    backgroundColor: theme.colors.surfaceSecondary,
   },
   reviewSection: {
-    backgroundColor: theme.colors.background,
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 16,
     marginBottom: 24,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   reviewRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   reviewLabel: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   reviewValue: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     maxWidth: '60%',
     textAlign: 'right',
   },
   submitButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: 10,
-    paddingVertical: 14,
+    backgroundColor: '#222222',
+    borderRadius: 28,
+    paddingVertical: 16,
     alignItems: 'center',
     marginTop: 16,
   },
   submitButtonText: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.bold,
+    fontWeight: '700',
   },
 });
 

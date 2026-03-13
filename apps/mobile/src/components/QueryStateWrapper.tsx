@@ -1,6 +1,6 @@
 import React from 'react';
 import { UseQueryResult, UseMutationResult } from '@tanstack/react-query';
-import { View, RefreshControl, ScrollView, ViewStyle } from 'react-native';
+import { View, RefreshControl, ScrollView, ViewStyle, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import {
   LoadingState,
@@ -11,7 +11,6 @@ import {
 } from './LoadingStates';
 import { useNetworkState } from '../hooks/useNetworkState';
 import { useOfflineSyncStatus } from '../hooks/useOfflineQuery';
-import { theme } from '../theme';
 import { logger } from '../utils/logger';
 
 export interface QueryStateWrapperProps<TData = unknown> {
@@ -169,11 +168,11 @@ export const QueryStateWrapper = <TData,>({
       {!isOnline && query.data && (
         <View
           style={{
-            backgroundColor: theme.colors.surfaceSecondary,
-            padding: theme.spacing[3],
+            backgroundColor: '#F7F7F7',
+            padding: 12,
             alignItems: 'center',
-            borderBottomWidth: 1,
-            borderBottomColor: theme.colors.borderLight,
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: '#EBEBEB',
           }}
         >
           <NetworkStatusIndicator
@@ -284,7 +283,7 @@ export const MutationStateWrapper = <TData, TVariables>({
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: theme.colors.overlayDark50,
+            backgroundColor: 'rgba(0,0,0,0.5)',
             justifyContent: 'center',
             alignItems: 'center',
             zIndex: 1000,
@@ -292,9 +291,9 @@ export const MutationStateWrapper = <TData, TVariables>({
         >
           <View
             style={{
-              backgroundColor: theme.colors.surface,
-              padding: theme.spacing.xl,
-              borderRadius: theme.borderRadius.lg,
+              backgroundColor: '#FFFFFF',
+              padding: 24,
+              borderRadius: 16,
               alignItems: 'center',
             }}
           >

@@ -7,22 +7,23 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { FadeIn, SlideIn } from '../components/animations/primitives';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../contexts/AuthContext';
 import { AuthStackParamList } from '../navigation/types';
-import { theme } from '../theme';
+
 import { useAccessibleText } from '../hooks/useAccessibleText';
 import { useHaptics } from '../utils/haptics';
 import { useI18n } from '../hooks/useI18n';
 import Button from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Banner } from '../components/ui/Banner';
-import { TouchableOpacity } from 'react-native';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -37,6 +38,7 @@ const TRUST_ITEMS = [
 ];
 
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -75,10 +77,19 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <View style={styles.safeArea}>
+      <StatusBar style="light" />
       <View style={styles.container} testID="login-screen">
         <FadeIn duration={500}>
-        <View style={styles.header}>
+        <LinearGradient
+          colors={['#064E3B', '#059669', '#10B981']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.header, { paddingTop: insets.top + 24 }]}
+        >
+          {/* Decorative circles */}
+          <View style={styles.decorCircle1} />
+          <View style={styles.decorCircle2} />
           <View style={styles.headerContent}>
             <Image
               source={require('../../assets/icon.png')}
@@ -100,12 +111,12 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.trustRow}>
             {TRUST_ITEMS.map((item) => (
               <View key={item.label} style={styles.trustPill}>
-                <Ionicons name={item.icon} size={13} color="#717171" />
+                <Ionicons name={item.icon} size={13} color="rgba(255,255,255,0.9)" />
                 <Text style={styles.trustText}>{item.label}</Text>
               </View>
             ))}
           </View>
-        </View>
+        </LinearGradient>
         </FadeIn>
 
         <KeyboardAvoidingView
@@ -199,17 +210,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   </Text>
                 </TouchableOpacity>
 
-                {loading && (
-                  <ActivityIndicator
-                    testID="loading-spinner"
-                    size="large"
-                    color="#10B981"
-                    style={{ marginVertical: 24 }}
-                    accessibilityLabel="Signing in"
-                  />
-                )}
-
-                <Button
+                    <Button
                   variant='primary'
                   title={
                     loading ? String(t('auth.loggingIn')) : String(auth.login())
@@ -263,25 +264,44 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           </ScrollView>
         </KeyboardAvoidingView>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#064E3B',
   },
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
   header: {
-    backgroundColor: '#FFFFFF',
-    paddingTop: 20,
-    paddingBottom: 12,
+    paddingBottom: 28,
     paddingHorizontal: 24,
     alignItems: 'center',
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    overflow: 'hidden',
+  },
+  decorCircle1: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    top: -60,
+    right: -40,
+  },
+  decorCircle2: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    bottom: -30,
+    left: -30,
   },
   headerContent: {
     flexDirection: 'row',
@@ -289,18 +309,18 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   headerLogo: {
-    width: 36,
-    height: 36,
-    marginRight: 10,
-    borderRadius: 10,
+    width: 40,
+    height: 40,
+    marginRight: 12,
+    borderRadius: 12,
   },
   headerTitle: {
     fontWeight: '700',
-    color: '#222222',
+    color: '#FFFFFF',
   },
   headerSubtitle: {
     fontSize: 15,
-    color: '#717171',
+    color: 'rgba(255,255,255,0.85)',
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -311,7 +331,7 @@ const styles = StyleSheet.create({
   trustPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
@@ -320,7 +340,7 @@ const styles = StyleSheet.create({
   trustText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#717171',
+    color: 'rgba(255,255,255,0.9)',
   },
   keyboardContainer: {
     flex: 1,
@@ -355,9 +375,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   forgotPasswordText: {
-    color: '#222222',
+    color: '#10B981',
     fontWeight: '600',
-    textDecorationLine: 'underline',
   },
   dividerSection: {
     flexDirection: 'row',

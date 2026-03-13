@@ -3,9 +3,8 @@
  * Airbnb-style rating badge used in job cards and detail screens.
  */
 import React, { memo } from 'react';
-import { View, Text, StyleSheet, ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 
 export interface RatingBadgeProps {
   rating: number;
@@ -34,7 +33,7 @@ export const RatingBadge: React.FC<RatingBadgeProps> = memo(({
       <Ionicons
         name="star"
         size={sizeConfig.starSize}
-        color={theme.colors.ratingGold}
+        color="#F59E0B"
       />
       <Text style={[styles.ratingText, { fontSize: sizeConfig.ratingFontSize }]}>
         {rating.toFixed(2)}
@@ -51,7 +50,7 @@ export const RatingBadge: React.FC<RatingBadgeProps> = memo(({
 
       {showVerified && (
         <View style={styles.verifiedBadge}>
-          <Ionicons name="shield-checkmark" size={sizeConfig.starSize} color={theme.colors.primary} />
+          <Ionicons name="shield-checkmark" size={sizeConfig.starSize} color="#10B981" />
           <Text style={[styles.verifiedText, { fontSize: sizeConfig.reviewFontSize }]}>
             Verified Pro
           </Text>
@@ -86,11 +85,14 @@ const SIZE_CONFIGS = {
 
 const BACKGROUND_STYLES: Record<string, ViewStyle> = {
   white: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   transparent: {
     backgroundColor: 'transparent',
@@ -110,31 +112,31 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   ratingText: {
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
   },
   divider: {
     width: 1,
-    backgroundColor: theme.colors.border,
+    backgroundColor: '#EBEBEB',
     marginHorizontal: 6,
   },
   reviewText: {
-    color: theme.colors.textSecondary,
-    fontWeight: theme.typography.fontWeight.regular,
+    color: '#717171',
+    fontWeight: '400',
   },
   verifiedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     marginLeft: 8,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: '#D1FAE5',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
     gap: 4,
   },
   verifiedText: {
-    color: theme.colors.primary,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#10B981',
+    fontWeight: '600',
   },
 });
 

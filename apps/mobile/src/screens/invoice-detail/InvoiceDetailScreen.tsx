@@ -6,12 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
-import { theme } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../components/ui/Toast';
 import { FinancialManagementService } from '../../services/contractor-business';
@@ -25,11 +25,11 @@ interface InvoiceDetailScreenProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  paid: theme.colors.success,
-  overdue: theme.colors.error,
-  sent: theme.colors.warning,
-  draft: theme.colors.textSecondary,
-  cancelled: theme.colors.textTertiary,
+  paid: '#10B981',
+  overdue: '#EF4444',
+  sent: '#F59E0B',
+  draft: '#717171',
+  cancelled: '#B0B0B0',
 };
 
 export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({ navigation, route }) => {
@@ -96,7 +96,9 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({ naviga
   if (!invoice) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <Ionicons name="document-outline" size={64} color={theme.colors.textTertiary} />
+        <View style={styles.emptyIconWrap}>
+          <Ionicons name="document-outline" size={32} color="#B0B0B0" />
+        </View>
         <Text style={styles.emptyText}>Invoice not found</Text>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backLink}>Go back</Text>
@@ -105,7 +107,7 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({ naviga
     );
   }
 
-  const statusColor = STATUS_COLORS[invoice.status] ?? theme.colors.textSecondary;
+  const statusColor = STATUS_COLORS[invoice.status] ?? '#717171';
   const canSendReminder = invoice.status === 'sent' || invoice.status === 'overdue';
   const canMarkPaid = invoice.status !== 'paid' && invoice.status !== 'cancelled';
 
@@ -113,15 +115,15 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({ naviga
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={22} color="#222222" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Invoice #{invoice.invoice_number}</Text>
         <TouchableOpacity
-          style={styles.headerButton}
+          style={styles.editButton}
           onPress={() => navigation.navigate('CreateInvoice', { invoiceId: invoice.id })}
         >
-          <Ionicons name="pencil" size={22} color={theme.colors.textPrimary} />
+          <Ionicons name="pencil" size={20} color="#222222" />
         </TouchableOpacity>
       </View>
 
@@ -153,14 +155,14 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({ naviga
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Due Date</Text>
-            <Text style={[styles.detailValue, invoice.status === 'overdue' && { color: theme.colors.error }]}>
+            <Text style={[styles.detailValue, invoice.status === 'overdue' && { color: '#EF4444' }]}>
               {formatDate(invoice.due_date)}
             </Text>
           </View>
           {invoice.paid_date && (
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Paid Date</Text>
-              <Text style={[styles.detailValue, { color: theme.colors.success }]}>
+              <Text style={[styles.detailValue, { color: '#10B981' }]}>
                 {formatDate(invoice.paid_date)}
               </Text>
             </View>
@@ -211,13 +213,13 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({ naviga
         <View style={styles.actionsSection}>
           {canSendReminder && (
             <TouchableOpacity style={styles.reminderButton} onPress={handleSendReminder}>
-              <Ionicons name="mail-outline" size={18} color={theme.colors.textSecondary} />
+              <Ionicons name="mail-outline" size={18} color="#717171" />
               <Text style={styles.reminderButtonText}>Send Reminder</Text>
             </TouchableOpacity>
           )}
           {canMarkPaid && (
             <TouchableOpacity style={styles.paidButton} onPress={handleMarkPaid}>
-              <Ionicons name="checkmark-circle-outline" size={18} color={theme.colors.textInverse} />
+              <Ionicons name="checkmark-circle-outline" size={18} color="#FFFFFF" />
               <Text style={styles.paidButtonText}>Mark as Paid</Text>
             </TouchableOpacity>
           )}
@@ -230,7 +232,7 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({ naviga
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.surfaceSecondary },
+  container: { flex: 1, backgroundColor: '#F7F7F7' },
   centered: { justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row',
@@ -238,84 +240,105 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
-  headerButton: { padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editButton: { padding: 8 },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#222222' },
   scroll: { flex: 1 },
   statusCard: {
     margin: 16,
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 20,
     borderLeftWidth: 4,
     alignItems: 'flex-start',
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 12 },
+      android: { elevation: 3 },
+    }),
   },
   statusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: 12,
     marginBottom: 12,
   },
-  statusText: { fontSize: 12, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textInverse },
-  invoiceTotal: { fontSize: 28, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
-  dueDateText: { fontSize: 14, color: theme.colors.textSecondary, marginTop: 4 },
+  statusText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
+  invoiceTotal: { fontSize: 28, fontWeight: '700', color: '#222222' },
+  dueDateText: { fontSize: 14, color: '#717171', marginTop: 4 },
   section: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     marginBottom: 12,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 16,
     padding: 16,
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
-  sectionTitle: { fontSize: 14, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textSecondary, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
-  clientName: { fontSize: 16, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary },
-  detailText: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 4 },
+  sectionTitle: { fontSize: 12, fontWeight: '700', color: '#B0B0B0', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.8 },
+  clientName: { fontSize: 16, fontWeight: '600', color: '#222222' },
+  detailText: { fontSize: 13, color: '#717171', marginTop: 4 },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
-  detailLabel: { fontSize: 14, color: theme.colors.textSecondary },
-  detailValue: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: theme.typography.fontWeight.medium },
-  lineItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  detailLabel: { fontSize: 14, color: '#717171' },
+  detailValue: { fontSize: 14, color: '#222222', fontWeight: '500' },
+  lineItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#EBEBEB' },
   lineItemLeft: { flex: 1, paddingRight: 12 },
-  lineItemDesc: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: theme.typography.fontWeight.medium },
-  lineItemMeta: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
-  lineItemAmount: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: theme.typography.fontWeight.semibold },
+  lineItemDesc: { fontSize: 14, color: '#222222', fontWeight: '500' },
+  lineItemMeta: { fontSize: 12, color: '#717171', marginTop: 2 },
+  lineItemAmount: { fontSize: 14, color: '#222222', fontWeight: '600' },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
-  totalRowFinal: { borderTopWidth: 1, borderTopColor: theme.colors.border, marginTop: 8, paddingTop: 12 },
-  totalLabel: { fontSize: 14, color: theme.colors.textSecondary },
-  totalValue: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: theme.typography.fontWeight.medium },
-  grandTotalLabel: { fontSize: 16, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
-  grandTotalValue: { fontSize: 18, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
-  notesText: { fontSize: 14, color: theme.colors.textSecondary, lineHeight: 20 },
+  totalRowFinal: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#EBEBEB', marginTop: 8, paddingTop: 12 },
+  totalLabel: { fontSize: 14, color: '#717171' },
+  totalValue: { fontSize: 14, color: '#222222', fontWeight: '500' },
+  grandTotalLabel: { fontSize: 16, fontWeight: '700', color: '#222222' },
+  grandTotalValue: { fontSize: 18, fontWeight: '700', color: '#222222' },
+  notesText: { fontSize: 14, color: '#717171', lineHeight: 20 },
   actionsSection: { flexDirection: 'row', gap: 12, marginHorizontal: 16, marginTop: 4 },
   reminderButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.md,
-    paddingVertical: 12,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 28,
+    paddingVertical: 14,
     gap: 6,
-    backgroundColor: theme.colors.background,
   },
-  reminderButtonText: { fontSize: 14, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary },
+  reminderButtonText: { fontSize: 14, fontWeight: '600', color: '#222222' },
   paidButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.success,
-    borderRadius: theme.borderRadius.md,
-    paddingVertical: 12,
+    backgroundColor: '#10B981',
+    borderRadius: 28,
+    paddingVertical: 14,
     gap: 6,
   },
-  paidButtonText: { fontSize: 14, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textInverse },
-  emptyText: { fontSize: 16, color: theme.colors.textSecondary, marginTop: 16 },
-  backLink: { fontSize: 14, color: theme.colors.textPrimary, marginTop: 12 },
+  paidButtonText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  emptyText: { fontSize: 16, color: '#717171', marginTop: 16 },
+  backLink: { fontSize: 14, color: '#222222', marginTop: 12, textDecorationLine: 'underline' },
 });
 
 export default InvoiceDetailScreen;

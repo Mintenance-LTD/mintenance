@@ -7,12 +7,14 @@ import {
   StyleSheet,
   RefreshControl,
   Platform,
+  ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
+import { ScreenHeader } from '../../components/shared';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { mobileApiClient } from '../../utils/mobileApiClient';
@@ -54,14 +56,18 @@ interface SubscriptionStatus {
   role: string;
   subscription: {
     planType: string;
+    planName?: string;
     status: string;
+    amount?: number;
     currentPeriodEnd?: string;
     cancelAtPeriodEnd?: boolean;
   } | null;
   trial?: {
-    active: boolean;
+    isTrialActive?: boolean;
+    active?: boolean;
     daysRemaining: number;
-  };
+  } | null;
+  requiresSubscription?: boolean;
 }
 
 export const SubscriptionScreen: React.FC = () => {
@@ -80,8 +86,23 @@ export const SubscriptionScreen: React.FC = () => {
   const { data: plans, isLoading: plansLoading } = useQuery({
     queryKey: ['subscription-plans'],
     queryFn: async () => {
-      const response = await mobileApiClient.get<{ plans: SubscriptionPlan[] }>('/api/subscriptions/plans');
-      return response.plans || [];
+      const response = await mobileApiClient.get<{
+        plans: Array<{
+          planType: string;
+          name: string;
+          price: number;
+          currency?: string;
+          features: string[] | SubscriptionPlanFeatures;
+        }>;
+      }>('/api/subscriptions/plans');
+      return (response.plans || []).map((p) => ({
+        id: p.planType,
+        name: p.name,
+        price: p.price,
+        billingCycle: 'monthly' as const,
+        features: p.features,
+        recommended: p.planType === 'professional',
+      }));
     },
   });
 
@@ -137,11 +158,10 @@ export const SubscriptionScreen: React.FC = () => {
   };
 
   const isLoading = statusLoading || plansLoading;
-  if (isLoading) return <LoadingSpinner />;
-  if (statusError) return <ErrorView message="Failed to load subscription status" onRetry={refetchStatus} />;
 
   const currentPlan = status?.subscription;
-  const trial = status?.trial;
+  const rawTrial = status?.trial;
+  const trial = rawTrial ? { active: rawTrial.isTrialActive ?? rawTrial.active ?? false, daysRemaining: rawTrial.daysRemaining } : null;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -150,14 +170,29 @@ export const SubscriptionScreen: React.FC = () => {
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetchStatus} tintColor="#222222" colors={['#222222']} />}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetchStatus} tintColor="#10B981" colors={['#10B981']} />}
       >
+        {isLoading ? (
+          <View style={styles.inlineCenter}>
+            <ActivityIndicator size="large" color="#10B981" />
+            <Text style={styles.inlineText}>Loading subscription...</Text>
+          </View>
+        ) : statusError ? (
+          <View style={styles.inlineCenter}>
+            <Ionicons name="alert-circle-outline" size={32} color="#EF4444" />
+            <Text style={styles.inlineText}>Failed to load subscription</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={() => refetchStatus()}>
+              <Text style={styles.retryBtnText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+        <>
         {/* Current Status */}
         <View style={styles.statusCard}>
           <Text style={styles.statusLabel}>Current Plan</Text>
           <View style={styles.statusRow}>
             <Text style={styles.planName}>
-              {currentPlan?.planType || 'No Plan'}
+              {currentPlan?.planName || currentPlan?.planType || 'No Plan'}
             </Text>
             <Badge variant={currentPlan?.status === 'active' ? 'success' : 'warning'}>
               {currentPlan?.status || (trial?.active ? 'Trial' : 'Inactive')}
@@ -252,6 +287,8 @@ export const SubscriptionScreen: React.FC = () => {
             </View>
           );
         })}
+        </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -355,7 +392,7 @@ const styles = StyleSheet.create({
   },
   selectedPlanCard: {
     borderWidth: 2,
-    borderColor: '#222222',
+    borderColor: '#10B981',
   },
   planHeader: {
     flexDirection: 'row',
@@ -430,6 +467,28 @@ const styles = StyleSheet.create({
   subscribeBtn: {
     marginTop: 16,
     borderRadius: 28,
+  },
+  inlineCenter: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    gap: 12,
+  },
+  inlineText: {
+    fontSize: 15,
+    color: '#717171',
+  },
+  retryBtn: {
+    backgroundColor: '#10B981',
+    borderRadius: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    marginTop: 4,
+  },
+  retryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

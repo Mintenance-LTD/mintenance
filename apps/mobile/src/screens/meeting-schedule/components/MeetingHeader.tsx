@@ -1,16 +1,15 @@
 /**
  * MeetingHeader Component
- * 
+ *
  * Header with contractor and job information.
- * 
+ *
  * @filesize Target: <80 lines
  * @compliance Single Responsibility - Header display
  */
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 import type { User, Job } from '@mintenance/types';
 
 interface MeetingHeaderProps {
@@ -22,20 +21,26 @@ export const MeetingHeader: React.FC<MeetingHeaderProps> = ({ contractor, job })
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Ionicons name="calendar-outline" size={24} color={theme.colors.textSecondary} />
+        <View style={styles.iconWrap}>
+          <Ionicons name="calendar-outline" size={20} color="#3B82F6" />
+        </View>
         <Text style={styles.title}>Schedule Meeting</Text>
       </View>
 
       {contractor && (
         <View style={styles.infoRow}>
-          <Ionicons name="person-outline" size={16} color={theme.colors.textSecondary} />
+          <View style={styles.infoIconWrap}>
+            <Ionicons name="person-outline" size={14} color="#717171" />
+          </View>
           <Text style={styles.infoText}>With: {contractor.first_name} {contractor.last_name}</Text>
         </View>
       )}
 
       {job && (
         <View style={styles.infoRow}>
-          <Ionicons name="briefcase-outline" size={16} color={theme.colors.textSecondary} />
+          <View style={styles.infoIconWrap}>
+            <Ionicons name="briefcase-outline" size={14} color="#717171" />
+          </View>
           <Text style={styles.infoText}>Job: {job.title}</Text>
         </View>
       )}
@@ -45,31 +50,51 @@ export const MeetingHeader: React.FC<MeetingHeaderProps> = ({ contractor, job })
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
-    ...theme.shadows.sm,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    marginTop: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
-    gap: theme.spacing.sm,
+    marginBottom: 12,
+    gap: 10,
+  },
+  iconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#DBEAFE',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222222',
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing.xs,
-    gap: theme.spacing.sm,
+    marginBottom: 4,
+    gap: 8,
+  },
+  infoIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   infoText: {
-    fontSize: theme.typography.fontSize.md,
-    color: theme.colors.textSecondary,
+    fontSize: 14,
+    color: '#717171',
   },
 });

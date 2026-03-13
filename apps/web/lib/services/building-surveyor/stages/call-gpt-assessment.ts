@@ -54,8 +54,8 @@ export async function callGptAssessment(
   context?: AssessmentContext,
   damageTypesForPrompt?: string[],
 ): Promise<AiAssessmentPayload> {
-  // Build prompts
-  const systemPrompt = buildSystemPrompt(damageTypesForPrompt);
+  // Build prompts (pass property age for era-specific risk injection)
+  const systemPrompt = buildSystemPrompt(damageTypesForPrompt, context?.ageOfProperty ?? context?.propertyAge);
   const evidenceSummary = buildEvidenceSummary(roboflowDetections, visionAnalysis);
   const hasDetectionEvidence = roboflowDetections.length > 0 || !!visionAnalysis;
   const userPrompt = buildUserPrompt(context, evidenceSummary, hasDetectionEvidence);
@@ -150,7 +150,11 @@ export async function callGptAssessment(
       setTimeout(() => reject(new Error('AI assessment timed out after 90 seconds')), GPT_ASSESSMENT_TIMEOUT_MS),
     );
     genResult = await Promise.race([
-      getGeneratorContent(messages, openaiApiKey),
+      getGeneratorContent(messages, openaiApiKey, {
+        damageCategory: damageTypesForPrompt?.[0],
+        propertyType: context?.propertyType,
+        propertyAge: context?.ageOfProperty ?? context?.propertyAge,
+      }),
       timeoutPromise,
     ]);
     gptCircuitBreaker.recordSuccess();

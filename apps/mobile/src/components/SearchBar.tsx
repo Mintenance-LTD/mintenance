@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../theme';
 import { useI18n } from '../hooks/useI18n';
 import { useHaptics } from '../utils/haptics';
 import { useAccessibleText } from '../hooks/useAccessibleText';
@@ -137,12 +136,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
   const borderColor = focusAnimation.interpolate({
     inputRange: [0, 1],
-    outputRange: [theme.colors.border, theme.colors.textPrimary],
+    outputRange: ['#EBEBEB', '#222222'],
   });
 
   const backgroundColor = focusAnimation.interpolate({
     inputRange: [0, 1],
-    outputRange: [theme.colors.surfaceSecondary, theme.colors.surface],
+    outputRange: ['#F7F7F7', '#FFFFFF'],
   });
 
   return (
@@ -161,7 +160,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         <Ionicons
           name='search'
           size={20}
-          color={isFocused ? theme.colors.textPrimary : theme.colors.textTertiary}
+          color={isFocused ? '#222222' : '#B0B0B0'}
           style={styles.searchIcon}
         />
 
@@ -175,7 +174,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
           onBlur={handleBlur}
           onSubmitEditing={handleSearch}
           placeholder={placeholder || String(t('common.search'))}
-          placeholderTextColor={theme.colors.placeholder}
+          placeholderTextColor="#B0B0B0"
           autoFocus={autoFocus}
           editable={!disabled}
           returnKeyType='search'
@@ -191,7 +190,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         {loading && (
           <ActivityIndicator
             size='small'
-            color={theme.colors.primary}
+            color="#222222"
             style={styles.loadingIndicator}
             testID='activity-indicator'
           />
@@ -211,7 +210,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             <Ionicons
               name='close-circle'
               size={20}
-              color={theme.colors.textTertiary}
+              color="#B0B0B0"
             />
           </TouchableOpacity>
         )}
@@ -232,7 +231,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
               name='options'
               size={20}
               color={
-                isFocused ? theme.colors.textPrimary : theme.colors.textSecondary
+                isFocused ? '#222222' : '#717171'
               }
             />
           </TouchableOpacity>
@@ -253,7 +252,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
               <Ionicons
                 name='search'
                 size={16}
-                color={theme.colors.textTertiary}
+                color="#B0B0B0"
                 style={styles.suggestionIcon}
               />
               <Text style={[styles.suggestionText, searchText.textStyle]}>
@@ -279,7 +278,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 16,
     height: 48,
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
   },
   searchIcon: {
     marginRight: 12,
@@ -287,7 +296,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     paddingVertical: 12,
-    color: theme.colors.textPrimary,
+    color: '#222222',
   },
   loadingIndicator: {
     marginHorizontal: 8,
@@ -299,17 +308,27 @@ const styles = StyleSheet.create({
   filterButton: {
     padding: 8,
     marginLeft: 8,
-    borderRadius: theme.borderRadius.xxl,
+    borderRadius: 20,
   },
   suggestionsContainer: {
     position: 'absolute',
     top: '100%',
     left: 0,
     right: 0,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     marginTop: 4,
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
     zIndex: 1000,
   },
   suggestionItem: {
@@ -318,14 +337,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.borderLight,
+    borderBottomColor: '#EBEBEB',
   },
   suggestionIcon: {
     marginRight: 12,
   },
   suggestionText: {
     flex: 1,
-    color: theme.colors.textPrimary,
+    color: '#222222',
   },
 });
 

@@ -23,7 +23,6 @@ import {
 } from '@mintenance/types';
 
 import type { ContractorLocation } from '../services/meeting/types';
-import { theme } from '../theme';
 import { logger } from '../utils/logger';
 
 // Web-compatible fallback components (react-native-maps removed for web compatibility)
@@ -36,7 +35,7 @@ interface Region {
 
 const MapView = React.forwardRef<View, { children?: React.ReactNode; style?: Record<string, unknown> }>(function MapView({ children }, ref) {
   return (
-    <View ref={ref} style={{ flex: 1, backgroundColor: theme.colors.surfaceSecondary, justifyContent: 'center', alignItems: 'center' }}>
+    <View ref={ref} style={{ flex: 1, backgroundColor: '#F7F7F7', justifyContent: 'center', alignItems: 'center' }}>
       <Text>Map view available on mobile devices</Text>
       {children}
     </View>
@@ -263,18 +262,18 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const getStatusColor = (status: ContractorMeeting['status']): string => {
     switch (status) {
       case 'scheduled':
-        return theme.colors.primary;
+        return '#222222';
       // 'confirmed' is not a formal status; handled by 'scheduled'
       case 'in_progress':
-        return theme.colors.warning;
+        return '#F59E0B';
       case 'completed':
-        return theme.colors.success;
+        return '#10B981';
       case 'cancelled':
-        return theme.colors.error;
+        return '#EF4444';
       case 'rescheduled':
-        return theme.colors.warning;
+        return '#F59E0B';
       default:
-        return theme.colors.textSecondary;
+        return '#717171';
     }
   };
 
@@ -307,7 +306,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   if (loading || !meeting) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={'#222222'} />
         <Text style={styles.loadingText}>Loading meeting details...</Text>
       </View>
     );
@@ -330,7 +329,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={'#222222'} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Meeting Details</Text>
       </View>
@@ -356,7 +355,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
           <View style={styles.participantInfo}>
             <View style={styles.participant}>
-              <Ionicons name="person-circle" size={40} color={theme.colors.textSecondary} />
+              <Ionicons name="person-circle" size={40} color={'#717171'} />
               <View>
                 <Text style={styles.participantName}>
                   {meeting.contractor
@@ -393,7 +392,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                   }}
                   title="Meeting Location"
                   description={(meeting.address ?? '')}
-                  pinColor={theme.colors.primary}
+                  pinColor={'#222222'}
                 />
 
                 {/* Contractor Location Marker */}
@@ -405,10 +404,10 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                     }}
                     title="Contractor Location"
                     description="Live location"
-                    pinColor={theme.colors.success}
+                    pinColor={'#10B981'}
                   >
                     <View style={styles.contractorMarker}>
-                      <Ionicons name="car" size={20} color={theme.colors.textInverse} />
+                      <Ionicons name="car" size={20} color={'#FFFFFF'} />
                     </View>
                   </Marker>
                 )}
@@ -426,7 +425,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                         longitude: (meeting.longitude ?? 0),
                       },
                     ]}
-                    strokeColor={theme.colors.primary}
+                    strokeColor={'#222222'}
                     strokeWidth={3}
                     lineDashPattern={[5, 10]}
                   />
@@ -438,7 +437,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             <View style={styles.locationOverlay}>
               {contractorLocation && distance && (
                 <View style={styles.distanceInfo}>
-                  <Ionicons name="location" size={16} color={theme.colors.textSecondary} />
+                  <Ionicons name="location" size={16} color={'#717171'} />
                   <Text style={styles.distanceText}>
                     {distance.toFixed(1)} km away
                   </Text>
@@ -467,13 +466,13 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                 onPress={travelTracking.startTracking}
                 disabled={travelTracking.error !== null}
               >
-                <Ionicons name="navigate" size={24} color={theme.colors.white} />
+                <Ionicons name="navigate" size={24} color={'#FFFFFF'} />
                 <Text style={styles.travelButtonText}>Start Traveling</Text>
               </TouchableOpacity>
             ) : (
               <View style={styles.trackingActiveContainer}>
                 <View style={styles.etaDisplay}>
-                  <Ionicons name="time" size={20} color={theme.colors.textSecondary} />
+                  <Ionicons name="time" size={20} color={'#717171'} />
                   <Text style={styles.etaText}>
                     ETA: {travelTracking.eta ? `${travelTracking.eta} minutes` : 'Calculating...'}
                   </Text>
@@ -483,14 +482,14 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                     style={[styles.travelButton, styles.arrivedButton]}
                     onPress={travelTracking.markArrived}
                   >
-                    <Ionicons name="checkmark-circle" size={20} color={theme.colors.white} />
+                    <Ionicons name="checkmark-circle" size={20} color={'#FFFFFF'} />
                     <Text style={styles.travelButtonText}>Mark Arrived</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.travelButton, styles.stopTravelButton]}
                     onPress={travelTracking.stopTracking}
                   >
-                    <Ionicons name="stop-circle" size={20} color={theme.colors.white} />
+                    <Ionicons name="stop-circle" size={20} color={'#FFFFFF'} />
                     <Text style={styles.travelButtonText}>Stop</Text>
                   </TouchableOpacity>
                 </View>
@@ -510,7 +509,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
               style={styles.actionButton}
               onPress={handleCallContractor}
             >
-              <Ionicons name="call" size={20} color={theme.colors.success} />
+              <Ionicons name="call" size={20} color={'#10B981'} />
               <Text style={styles.actionButtonText}>Call</Text>
             </TouchableOpacity>
 
@@ -518,7 +517,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
               style={styles.actionButton}
               onPress={handleMessageContractor}
             >
-              <Ionicons name="chatbubble" size={20} color={theme.colors.textSecondary} />
+              <Ionicons name="chatbubble" size={20} color={'#717171'} />
               <Text style={styles.actionButtonText}>Message</Text>
             </TouchableOpacity>
 
@@ -526,7 +525,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
               style={styles.actionButton}
               onPress={handleReschedule}
             >
-              <Ionicons name="calendar" size={20} color={theme.colors.textSecondary} />
+              <Ionicons name="calendar" size={20} color={'#717171'} />
               <Text style={styles.actionButtonText}>Reschedule</Text>
             </TouchableOpacity>
 
@@ -534,7 +533,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
               style={styles.actionButton}
               onPress={handleCancelMeeting}
             >
-              <Ionicons name="close-circle" size={20} color={theme.colors.error} />
+              <Ionicons name="close-circle" size={20} color={'#EF4444'} />
               <Text style={styles.actionButtonText}>Cancel</Text>
             </TouchableOpacity>
           </View>
@@ -558,7 +557,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                         : 'notifications'
                     }
                     size={16}
-                    color={theme.colors.textSecondary}
+                    color={'#717171'}
                   />
                 </View>
                 <View style={styles.updateContent}>

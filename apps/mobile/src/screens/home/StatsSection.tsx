@@ -46,11 +46,11 @@ const STAT_CONFIG: StatConfig[] = [
     label: 'Rating',
   },
   {
-    icon: 'flash',
+    icon: 'trophy',
     iconColor: '#8B5CF6',
     iconBg: '#EDE9FE',
-    getValue: (s) => s?.responseTime || 'N/A',
-    label: 'Response',
+    getValue: (s) => s?.successRate ? `${s.successRate}%` : 'N/A',
+    label: 'Success Rate',
   },
 ];
 
@@ -61,7 +61,7 @@ export const StatsSection: React.FC<StatsSectionProps> = ({ stats }) => {
         <Text style={styles.sectionTitle} accessibilityRole="header">
           Your Stats
         </Text>
-        <Text style={styles.sectionSubtitle}>This month</Text>
+        <Text style={styles.sectionSubtitle}>Overview</Text>
       </View>
 
       <View style={styles.grid}>

@@ -1,56 +1,36 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../../navigation/types';
-import { theme } from '../../theme';
-
-const { width: screenWidth } = Dimensions.get('window');
 
 interface QuickActionsProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList>;
 }
 
-export const QuickActions: React.FC<QuickActionsProps> = ({ navigation }) => {
-  const actions = [
-    {
-      icon: 'receipt-outline',
-      label: 'Invoices',
-      onPress: () => navigation.navigate('InvoiceManagement' as never),
-    },
-    {
-      icon: 'card-outline',
-      label: 'Expenses',
-      onPress: () => navigation.navigate('Expenses' as never),
-    },
-    {
-      icon: 'cash-outline',
-      label: 'Payouts',
-      onPress: () => navigation.navigate('Payouts' as never),
-    },
-    {
-      icon: 'analytics-outline',
-      label: 'Reports',
-      onPress: () => navigation.navigate('Reporting' as never),
-    },
-  ];
+const ACTIONS = [
+  { icon: 'receipt-outline' as const, label: 'Invoices', color: '#10B981', bg: '#D1FAE5', screen: 'InvoiceManagement' },
+  { icon: 'card-outline' as const, label: 'Expenses', color: '#F59E0B', bg: '#FEF3C7', screen: 'Expenses' },
+  { icon: 'cash-outline' as const, label: 'Payouts', color: '#3B82F6', bg: '#DBEAFE', screen: 'Payouts' },
+  { icon: 'analytics-outline' as const, label: 'Reports', color: '#8B5CF6', bg: '#EDE9FE', screen: 'Reporting' },
+];
 
+export const QuickActions: React.FC<QuickActionsProps> = ({ navigation }) => {
   return (
-    <View style={styles.actionsContainer}>
-      <Text style={styles.actionsTitle}>Quick Actions</Text>
-      <View style={styles.actionButtons}>
-        {actions.map((action, index) => (
+    <View style={styles.container}>
+      <Text style={styles.title}>Quick Actions</Text>
+      <View style={styles.row}>
+        {ACTIONS.map((action) => (
           <TouchableOpacity
-            key={index}
-            style={styles.actionButton}
-            onPress={action.onPress}
+            key={action.screen}
+            style={styles.actionBtn}
+            onPress={() => navigation.navigate(action.screen as never)}
+            activeOpacity={0.7}
           >
-            <Ionicons
-              name={action.icon as keyof typeof Ionicons.glyphMap}
-              size={24}
-              color={theme.colors.textSecondary}
-            />
-            <Text style={styles.actionButtonText}>{action.label}</Text>
+            <View style={[styles.iconCircle, { backgroundColor: action.bg }]}>
+              <Ionicons name={action.icon} size={22} color={action.color} />
+            </View>
+            <Text style={styles.label}>{action.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -59,39 +39,43 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  actionsContainer: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
+  container: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     padding: 20,
     marginBottom: 16,
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 12 },
+      android: { elevation: 2 },
+    }),
   },
-  actionsTitle: {
-    fontSize: 16,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+  title: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222222',
+    letterSpacing: -0.3,
     marginBottom: 16,
   },
-  actionButtons: {
+  row: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
+    justifyContent: 'space-between',
   },
-  actionButton: {
-    flex: 1,
-    minWidth: (screenWidth - 72) / 2,
+  actionBtn: {
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: theme.colors.surfaceSecondary,
+    flex: 1,
   },
-  actionButtonText: {
+  iconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  label: {
     fontSize: 12,
-    color: theme.colors.textPrimary,
-    marginTop: 8,
+    color: '#222222',
+    fontWeight: '600',
     textAlign: 'center',
-    fontWeight: theme.typography.fontWeight.medium,
   },
 });
-

@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../theme';
 
 interface PasswordStrengthBarProps {
   password: string;
@@ -13,7 +12,7 @@ interface StrengthLevel {
 }
 
 function getStrength(password: string): StrengthLevel {
-  if (!password) return { label: '', segments: 0, color: theme.colors.border };
+  if (!password) return { label: '', segments: 0, color: '#EBEBEB' };
 
   let score = 0;
   if (password.length >= 8) score++;
@@ -21,10 +20,10 @@ function getStrength(password: string): StrengthLevel {
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
 
-  if (score === 1) return { label: 'Weak', segments: 1, color: theme.colors.error };
-  if (score === 2) return { label: 'Fair', segments: 2, color: theme.colors.warning };
-  if (score === 3) return { label: 'Good', segments: 3, color: theme.colors.accent };
-  return { label: 'Strong', segments: 4, color: theme.colors.success };
+  if (score === 1) return { label: 'Weak', segments: 1, color: '#EF4444' };
+  if (score === 2) return { label: 'Fair', segments: 2, color: '#F59E0B' };
+  if (score === 3) return { label: 'Good', segments: 3, color: '#10B981' };
+  return { label: 'Strong', segments: 4, color: '#059669' };
 }
 
 export const PasswordStrengthBar: React.FC<PasswordStrengthBarProps> = ({ password }) => {
@@ -40,7 +39,7 @@ export const PasswordStrengthBar: React.FC<PasswordStrengthBarProps> = ({ passwo
             key={seg}
             style={[
               styles.segment,
-              { backgroundColor: seg <= strength.segments ? strength.color : theme.colors.border },
+              { backgroundColor: seg <= strength.segments ? strength.color : '#EBEBEB' },
             ]}
           />
         ))}
@@ -67,6 +66,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontWeight: '500',
   },
 });

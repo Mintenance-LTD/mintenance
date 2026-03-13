@@ -10,9 +10,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   Animated,
+  Platform,
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import { theme } from '../../theme';
 
 interface ProfileCompletionItem {
   id: string;
@@ -79,7 +79,7 @@ export function ProfileCompletionCard({
               cx={50}
               cy={50}
               r={radius}
-              stroke={theme.colors.border}
+              stroke="#EBEBEB"
               strokeWidth={8}
               fill="none"
             />
@@ -89,13 +89,9 @@ export function ProfileCompletionCard({
               cy={50}
               r={radius}
               stroke={
-                completion === 100
-                  ? theme.colors.primary
-                  : completion >= 75
-                  ? theme.colors.primary
-                  : completion >= 50
-                  ? theme.colors.accent
-                  : theme.colors.warning
+                completion >= 50
+                  ? '#222222'
+                  : '#F59E0B'
               }
               strokeWidth={8}
               fill="none"
@@ -176,19 +172,29 @@ export function ProfileCompletionCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing[5],
-    ...theme.shadows.md,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing[5],
+    marginBottom: 20,
   },
   circularProgress: {
     position: 'relative',
-    marginRight: theme.spacing.md,
+    marginRight: 16,
   },
   percentageContainer: {
     position: 'absolute',
@@ -200,112 +206,109 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   percentageText: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#222222',
   },
   headerContent: {
     flex: 1,
   },
   headerTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.xs,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222222',
+    marginBottom: 6,
   },
   headerDescription: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    color: '#717171',
   },
   itemsContainer: {
-    gap: theme.spacing.sm,
+    gap: 8,
   },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: theme.spacing[3],
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.lg,
+    padding: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
   },
   itemCompleted: {
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderColor: theme.colors.border,
+    backgroundColor: '#F7F7F7',
   },
   checkbox: {
-    width: theme.spacing[5],
-    height: theme.spacing[5],
-    borderRadius: theme.borderRadius.full,
+    width: 20,
+    height: 20,
+    borderRadius: 9999,
     borderWidth: 2,
-    borderColor: theme.colors.border,
-    marginRight: theme.spacing[3],
+    borderColor: '#EBEBEB',
+    marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxCompleted: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: '#222222',
+    borderColor: '#222222',
   },
   checkmark: {
-    color: theme.colors.textInverse,
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: theme.typography.fontWeight.bold,
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
   itemLabel: {
     flex: 1,
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#222222',
   },
   itemLabelCompleted: {
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
     textDecorationLine: 'line-through',
   },
   arrow: {
-    fontSize: theme.typography.fontSize.xl,
-    color: theme.colors.textTertiary,
+    fontSize: 20,
+    color: '#B0B0B0',
   },
   celebration: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: theme.spacing[5],
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.primaryLight,
-    borderRadius: theme.borderRadius.lg,
+    marginTop: 20,
+    padding: 16,
+    backgroundColor: 'rgba(34, 34, 34, 0.06)',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: theme.colors.primary,
+    borderColor: '#222222',
   },
   celebrationIcon: {
-    fontSize: theme.typography.fontSize['4xl'],
-    marginRight: theme.spacing[3],
+    fontSize: 32,
+    marginRight: 12,
   },
   celebrationContent: {
     flex: 1,
   },
   celebrationTitle: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.primaryDark,
-    marginBottom: theme.spacing.xs,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#222222',
+    marginBottom: 6,
   },
   celebrationText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.primaryDark,
+    fontSize: 13,
+    color: '#222222',
   },
   completeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: theme.spacing[3],
-    backgroundColor: theme.colors.primaryLight,
-    borderRadius: theme.borderRadius.lg,
+    padding: 12,
+    backgroundColor: 'rgba(34, 34, 34, 0.06)',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: theme.colors.primary,
+    borderColor: '#222222',
   },
   completeBadgeText: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.primaryDark,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#222222',
   },
 });
 

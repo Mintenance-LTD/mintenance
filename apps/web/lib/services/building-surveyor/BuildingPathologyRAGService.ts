@@ -127,12 +127,33 @@ export class BuildingPathologyRAGService {
   }
 
   /**
+   * Convert property age (years) to the decade label used in property_age_risk.
+   * e.g. 60 years → "1960s", 120 years → "Victorian"
+   */
+  static propertyAgeToEraLabel(ageOfProperty: number): string {
+    const builtYear = new Date().getFullYear() - ageOfProperty;
+    if (builtYear < 1840) return 'Georgian';
+    if (builtYear < 1900) return 'Victorian';
+    if (builtYear < 1920) return 'Edwardian';
+    if (builtYear < 1940) return '1920s-1930s';
+    if (builtYear < 1950) return '1940s';
+    if (builtYear < 1960) return '1950s';
+    if (builtYear < 1970) return '1960s';
+    if (builtYear < 1980) return '1970s';
+    if (builtYear < 1990) return '1980s';
+    if (builtYear < 2000) return '1990s';
+    return '2000s';
+  }
+
+  /**
    * Retrieve entries by their exact category slugs.
-   * Useful when the AI pipeline already has a detected defect category.
+   * When propertyAge is provided, entries whose property_age_risk matches the era
+   * are boosted to the top (sorted first), giving the AI era-relevant knowledge.
    */
   static async queryByCategory(
     categories: string[],
-    maxEntries = 8
+    maxEntries = 8,
+    propertyAge?: number,
   ): Promise<RAGContext> {
     if (categories.length === 0) {
       return { promptContext: '', entries: [], count: 0 };
@@ -150,7 +171,18 @@ export class BuildingPathologyRAGService {
         return { promptContext: '', entries: [], count: 0 };
       }
 
-      const entries = data as PathologyKnowledgeEntry[];
+      let entries = data as PathologyKnowledgeEntry[];
+
+      // Boost era-relevant entries to the top when property age is known
+      if (propertyAge && propertyAge > 0) {
+        const eraLabel = this.propertyAgeToEraLabel(propertyAge).toLowerCase();
+        entries = entries.sort((a, b) => {
+          const aMatch = a.property_age_risk?.some(r => r.toLowerCase().includes(eraLabel)) ? 1 : 0;
+          const bMatch = b.property_age_risk?.some(r => r.toLowerCase().includes(eraLabel)) ? 1 : 0;
+          return bMatch - aMatch; // era-matching entries first
+        });
+      }
+
       return {
         promptContext: this.formatPromptContext(entries),
         entries,

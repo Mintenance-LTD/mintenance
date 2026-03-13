@@ -10,7 +10,6 @@
 
 import { NavigationProp } from '@react-navigation/native';
 import { useHaptics } from '../../../utils/haptics';
-import { theme } from '../../../theme';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyNavigation = NavigationProp<Record<string, object | undefined>>;
@@ -44,9 +43,6 @@ export class HomeNavigationCoordinator implements HomeNavigationActions {
     this.haptics = haptics;
   }
 
-  /**
-   * Navigate to service request screen
-   */
   openServiceRequest = (params?: Record<string, unknown>) => {
     this.haptics.light();
     this.navigation.getParent?.()?.navigate('Modal', {
@@ -55,25 +51,16 @@ export class HomeNavigationCoordinator implements HomeNavigationActions {
     });
   };
 
-  /**
-   * Navigate to jobs list
-   */
   openJobsList = () => {
     this.haptics.selection();
     this.navigation.navigate('JobsTab', { screen: 'JobsList' });
   };
 
-  /**
-   * Navigate to inbox/messages list
-   */
   openInbox = () => {
     this.haptics.selection();
     this.navigation.navigate('MessagingTab', { screen: 'MessagesList' });
   };
 
-  /**
-   * Navigate to specific conversation
-   */
   openConversation = (params: Record<string, unknown>) => {
     this.haptics.selection();
     this.navigation.navigate('MessagingTab', {
@@ -82,9 +69,6 @@ export class HomeNavigationCoordinator implements HomeNavigationActions {
     });
   };
 
-  /**
-   * Navigate to meeting schedule screen
-   */
   openMeetingSchedule = () => {
     this.haptics.light();
     this.navigation.getParent?.()?.navigate('Modal', {
@@ -92,9 +76,6 @@ export class HomeNavigationCoordinator implements HomeNavigationActions {
     });
   };
 
-  /**
-   * Navigate to job details
-   */
   openJobDetails = (jobId: string) => {
     this.haptics.selection();
     this.navigation.navigate('JobsTab', {
@@ -103,25 +84,16 @@ export class HomeNavigationCoordinator implements HomeNavigationActions {
     });
   };
 
-  /**
-   * Navigate to profile screen
-   */
   openProfileScreen = () => {
     this.haptics.selection();
     this.navigation.navigate('ProfileTab', { screen: 'ProfileMain' });
   };
 
-  /**
-   * Navigate to settings screen
-   */
   openSettingsScreen = () => {
     this.haptics.selection();
     this.navigation.navigate('ProfileTab', { screen: 'NotificationSettings' });
   };
 
-  /**
-   * Navigate to notification settings
-   */
   openNotificationSettings = () => {
     this.haptics.light();
     this.navigation.getParent?.()?.navigate('Modal', {
@@ -129,17 +101,11 @@ export class HomeNavigationCoordinator implements HomeNavigationActions {
     });
   };
 
-  /**
-   * Navigate to payment methods
-   */
   openPaymentMethods = () => {
     this.haptics.selection();
     this.navigation.navigate('ProfileTab', { screen: 'PaymentMethods' });
   };
 
-  /**
-   * Navigate to support/help screen
-   */
   openSupport = () => {
     this.haptics.selection();
     this.navigation.getParent?.()?.navigate('Modal', {
@@ -214,7 +180,7 @@ export const generateQuickActions = (
       title: 'Messages',
       subtitle: 'View conversations',
       icon: 'chatbubbles-outline',
-      color: theme.colors.info,
+      color: '#3B82F6',
       action: navigation.openInbox,
     },
     {
@@ -222,7 +188,7 @@ export const generateQuickActions = (
       title: 'Settings',
       subtitle: 'Account preferences',
       icon: 'settings-outline',
-      color: theme.colors.textTertiary,
+      color: '#B0B0B0',
       action: navigation.openSettingsScreen,
     },
   ];
@@ -234,7 +200,7 @@ export const generateQuickActions = (
         title: 'Post Job',
         subtitle: 'Create service request',
         icon: 'add-circle-outline',
-        color: theme.colors.warning,
+        color: '#F59E0B',
         action: () => navigation.openServiceRequest(),
       },
       {
@@ -242,7 +208,7 @@ export const generateQuickActions = (
         title: 'My Jobs',
         subtitle: 'Active projects',
         icon: 'briefcase-outline',
-        color: theme.colors.info,
+        color: '#3B82F6',
         action: navigation.openJobsList,
       },
       ...commonActions,
@@ -254,7 +220,7 @@ export const generateQuickActions = (
         title: 'Browse Jobs',
         subtitle: 'Find opportunities',
         icon: 'search-outline',
-        color: theme.colors.success,
+        color: '#10B981',
         action: navigation.openJobsList,
       },
       {
@@ -262,7 +228,7 @@ export const generateQuickActions = (
         title: 'Schedule Meeting',
         subtitle: 'Meet with clients',
         icon: 'calendar-outline',
-        color: theme.colors.warning,
+        color: '#F59E0B',
         action: navigation.openMeetingSchedule,
       },
       ...commonActions,

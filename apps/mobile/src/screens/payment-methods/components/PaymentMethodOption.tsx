@@ -1,16 +1,15 @@
 /**
  * PaymentMethodOption Component
- * 
+ *
  * Single payment method option with icon and selection state.
- * 
+ *
  * @filesize Target: <70 lines
  * @compliance Single Responsibility
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 import type { PaymentMethod } from '../viewmodels/PaymentMethodsViewModel';
 
 interface PaymentMethodOptionProps {
@@ -35,7 +34,7 @@ export const PaymentMethodOption: React.FC<PaymentMethodOptionProps> = ({
     >
       <View style={styles.left}>
         <View style={styles.iconContainer}>
-          <Ionicons name={method.icon as keyof typeof Ionicons.glyphMap} size={24} color={theme.colors.textSecondary} />
+          <Ionicons name={method.icon as keyof typeof Ionicons.glyphMap} size={24} color="#717171" />
         </View>
         <Text style={styles.text}>{method.name}</Text>
       </View>
@@ -49,15 +48,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   selected: {
-    borderColor: theme.colors.primary,
+    backgroundColor: '#F7F7F7',
   },
   left: {
     flexDirection: 'row',
@@ -66,25 +67,25 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 48,
     height: 48,
-    borderRadius: theme.borderRadius.base,
-    backgroundColor: theme.colors.surfaceTertiary,
+    borderRadius: 12,
+    backgroundColor: '#F7F7F7',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: theme.spacing.md,
+    marginRight: 14,
   },
   text: {
-    fontSize: theme.typography.fontSize.lg,
-    color: theme.colors.textPrimary,
+    fontSize: 16,
+    color: '#222222',
   },
   radio: {
     width: 24,
     height: 24,
-    borderRadius: theme.borderRadius.full,
+    borderRadius: 12,
     borderWidth: 2,
-    borderColor: theme.colors.border,
+    borderColor: '#EBEBEB',
   },
   radioSelected: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary,
+    borderColor: '#222222',
+    backgroundColor: '#222222',
   },
 });

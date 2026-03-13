@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 
 interface RoleSelectorProps {
   role: 'homeowner' | 'contractor';
@@ -28,7 +27,7 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({ role, onRoleChange }
           <Ionicons
             name="home-outline"
             size={18}
-            color={role === 'homeowner' ? theme.colors.textPrimary : theme.colors.textSecondary}
+            color={role === 'homeowner' ? '#222222' : '#717171'}
           />
           <Text
             style={[
@@ -62,7 +61,7 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({ role, onRoleChange }
           <Ionicons
             name="construct-outline"
             size={18}
-            color={role === 'contractor' ? theme.colors.textPrimary : theme.colors.textSecondary}
+            color={role === 'contractor' ? '#222222' : '#717171'}
           />
           <Text
             style={[
@@ -89,7 +88,7 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({ role, onRoleChange }
 const styles = StyleSheet.create({
   roleSelectionContainer: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: '#F7F7F7',
     borderRadius: 16,
     padding: 6,
     marginBottom: 24,
@@ -99,14 +98,21 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'transparent',
     alignItems: 'center',
   },
   roleToggleActive: {
-    backgroundColor: theme.colors.surface,
-    borderColor: theme.colors.textPrimary,
-    ...theme.shadows.sm,
+    backgroundColor: '#FFFFFF',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   roleRow: {
     flexDirection: 'row',
@@ -115,19 +121,19 @@ const styles = StyleSheet.create({
   },
   roleToggleText: {
     fontSize: 15,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textSecondary,
+    fontWeight: '500',
+    color: '#717171',
   },
   roleToggleTextActive: {
-    color: theme.colors.textPrimary,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#222222',
+    fontWeight: '600',
   },
   roleDescription: {
     fontSize: 11,
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
     marginTop: 2,
   },
   roleDescriptionActive: {
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
 });

@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
-import { theme } from '../theme';
 
 interface LoadingSpinnerProps {
   message?: string;
@@ -11,7 +10,7 @@ interface LoadingSpinnerProps {
 export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   message = 'Loading...',
   size = 'large',
-  color = theme.colors.primary,
+  color = '#222222',
 }) => {
   return (
     <View style={styles.container} testID='loading-spinner'>
@@ -34,7 +33,7 @@ export const FullScreenLoading: React.FC<FullScreenLoadingProps> = ({
 }) => {
   return (
     <View style={styles.fullScreenContainer}>
-      <ActivityIndicator size='large' color={theme.colors.primary} />
+      <ActivityIndicator size='large' color='#222222' />
       <Text style={styles.fullScreenMessage}>{message}</Text>
     </View>
   );
@@ -55,12 +54,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
   },
   fullScreenMessage: {
     marginTop: 20,
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     textAlign: 'center',
   },
 });

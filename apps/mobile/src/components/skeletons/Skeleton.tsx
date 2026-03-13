@@ -24,8 +24,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated, AccessibilityInfo, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { theme } from '../../theme';
-
 export interface SkeletonProps {
   /**
    * Width of the skeleton
@@ -74,8 +72,8 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   height = 20,
   borderRadius = 8,
   animate = true,
-  backgroundColor = theme.colors.border,
-  shimmerColor = theme.colors.backgroundSecondary,
+  backgroundColor = '#EBEBEB',
+  shimmerColor = '#F7F7F7',
   style,
 }) => {
   const animatedValue = useRef(new Animated.Value(0)).current;

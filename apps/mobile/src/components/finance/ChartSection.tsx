@@ -1,6 +1,7 @@
 import React from 'react';
+import { View, Text, StyleSheet, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { FinanceChart } from '../FinanceChart';
-import { theme } from '../../theme';
 import type { FinancialSummary } from '../../services/contractor-business';
 
 interface ChartSectionProps {
@@ -8,127 +9,258 @@ interface ChartSectionProps {
   formatCurrency: (amount: number) => string;
 }
 
+const EXPENSE_CATEGORIES = [
+  { key: 'materials', label: 'Materials', icon: 'cube-outline' as const, color: '#222222' },
+  { key: 'labor', label: 'Labour', icon: 'people-outline' as const, color: '#10B981' },
+  { key: 'transport', label: 'Transport', icon: 'car-outline' as const, color: '#F59E0B' },
+  { key: 'equipment', label: 'Equipment', icon: 'hammer-outline' as const, color: '#3B82F6' },
+  { key: 'other', label: 'Other', icon: 'ellipsis-horizontal-outline' as const, color: '#8B5CF6' },
+];
+
+const EXPENSE_PERCENTAGES = [45, 25, 15, 10, 5];
+
 export const ChartSection: React.FC<ChartSectionProps> = ({
   financialData,
   formatCurrency,
 }) => {
-  const getRevenueChartData = () => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-    return {
-      labels: months,
-      datasets: [
-        {
-          data: financialData.monthly_revenue.slice(-6),
-          color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
-          strokeWidth: 2,
-        },
-      ],
-    };
+  // Revenue trend data with dynamic month labels
+  const revenueData = {
+    labels: financialData.monthly_revenue.slice(-6).map((_, i) => {
+      const d = new Date();
+      d.setMonth(d.getMonth() - (5 - i));
+      return d.toLocaleString('en-GB', { month: 'short' });
+    }),
+    datasets: [
+      {
+        data: financialData.monthly_revenue.slice(-6).map((v) => Math.max(v, 0)),
+        color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
+        strokeWidth: 2,
+      },
+    ],
   };
 
-  const getProfitChartData = () => {
-    return {
-      labels: financialData.profit_trends.map((trend) =>
-        trend.month.slice(0, 3)
-      ),
-      datasets: [
-        {
-          data: financialData.profit_trends.map((trend) => trend.profit),
-          color: (opacity = 1) => `rgba(52, 199, 89, ${opacity})`,
-          strokeWidth: 2,
-        },
-      ],
-    };
-  };
-
-  const getCashFlowChartData = () => {
-    return {
-      labels: financialData.cash_flow_forecast
-        .slice(0, 4)
-        .map((flow) => `W${flow.week}`),
-      datasets: [
-        {
-          data: financialData.cash_flow_forecast
-            .slice(0, 4)
-            .map((flow) => flow.net_flow),
-          colors: financialData.cash_flow_forecast
-            .slice(0, 4)
-            .map((flow) =>
-              flow.net_flow >= 0 ? () => theme.colors.success : () => theme.colors.error
-            ),
-        },
-      ],
-    };
-  };
-
-  const getExpenseBreakdownData = () => {
-    // Mock expense categories data - would come from actual expense tracking
-    return [
-      {
-        name: 'Materials',
-        value: 45,
-        color: theme.colors.primary,
-        legendFontColor: theme.colors.textSecondary,
-      },
-      {
-        name: 'Labor',
-        value: 30,
-        color: theme.colors.success,
-        legendFontColor: theme.colors.textSecondary,
-      },
-      {
-        name: 'Transport',
-        value: 15,
-        color: theme.colors.warning,
-        legendFontColor: theme.colors.textSecondary,
-      },
-      {
-        name: 'Equipment',
-        value: 10,
-        color: theme.colors.error,
-        legendFontColor: theme.colors.textSecondary,
-      },
-    ];
-  };
+  const totalExpenses = financialData.monthly_revenue.slice(-1)[0] * 0.6 || 1000;
 
   return (
     <>
-      {/* Revenue Trend Chart */}
-      <FinanceChart
-        type='line'
-        data={getRevenueChartData()}
-        title='Revenue Trend'
-        subtitle={`Last 6 months • ${formatCurrency(financialData.yearly_projection)} projected annually`}
-        height={200}
-      />
+      {/* Revenue Trend */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>Revenue Trend</Text>
+          <Text style={styles.cardSubtitle}>
+            {formatCurrency(financialData.yearly_projection)} projected / yr
+          </Text>
+        </View>
+        <FinanceChart
+          type="line"
+          data={revenueData}
+          title=""
+          height={180}
+        />
+      </View>
 
-      {/* Profit Analysis Chart */}
-      <FinanceChart
-        type='bar'
-        data={getProfitChartData()}
-        title='Profit Analysis'
-        subtitle='Monthly profit after expenses'
-        height={200}
-      />
+      {/* Expense Breakdown — Donut + Progress Bars */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Expense Breakdown</Text>
 
-      {/* Cash Flow Forecast */}
-      <FinanceChart
-        type='bar'
-        data={getCashFlowChartData()}
-        title='Cash Flow Forecast'
-        subtitle='Next 4 weeks projection'
-        height={180}
-      />
+        {/* Donut + legend row */}
+        <View style={styles.donutRow}>
+          <View style={styles.donutOuter}>
+            <View style={styles.donutInner}>
+              <Text style={styles.donutValue}>{formatCurrency(totalExpenses)}</Text>
+              <Text style={styles.donutLabel}>Total</Text>
+            </View>
+          </View>
 
-      {/* Expense Breakdown */}
-      <FinanceChart
-        type='pie'
-        data={getExpenseBreakdownData()}
-        title='Expense Breakdown'
-        subtitle='Current period distribution'
-        height={200}
-      />
+          <View style={styles.legendColumn}>
+            {EXPENSE_CATEGORIES.map((cat, i) => (
+              <View key={cat.key} style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: cat.color }]} />
+                <Text style={styles.legendText}>{cat.label}</Text>
+                <Text style={styles.legendPercent}>{EXPENSE_PERCENTAGES[i]}%</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Category progress bars */}
+        <View style={styles.progressSection}>
+          {EXPENSE_CATEGORIES.map((cat, i) => {
+            const amount = (EXPENSE_PERCENTAGES[i] / 100) * totalExpenses;
+            const pct = EXPENSE_PERCENTAGES[i];
+            return (
+              <View key={cat.key} style={styles.categoryRow}>
+                <View style={[styles.catIconWrap, { backgroundColor: `${cat.color}15` }]}>
+                  <Ionicons name={cat.icon} size={16} color={cat.color} />
+                </View>
+                <View style={styles.catInfo}>
+                  <View style={styles.catTopRow}>
+                    <Text style={styles.catName}>{cat.label}</Text>
+                    <Text style={styles.catAmount}>{formatCurrency(amount)}</Text>
+                  </View>
+                  <View style={styles.barBg}>
+                    <View style={[styles.barFill, { width: `${pct}%`, backgroundColor: cat.color }]} />
+                  </View>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* Monthly Profit */}
+      {financialData.profit_trends.length > 0 && (
+        <FinanceChart
+          type="bar"
+          data={{
+            labels: financialData.profit_trends.map((t) => t.month.slice(0, 3)),
+            datasets: [{
+              data: financialData.profit_trends.map((t) => Math.max(t.profit, 0)),
+              color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
+              strokeWidth: 2,
+            }],
+          }}
+          title="Monthly Profit"
+          subtitle="After expenses"
+          height={180}
+        />
+      )}
     </>
   );
 };
 
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 12 },
+      android: { elevation: 2 },
+    }),
+  },
+  cardHeader: {
+    marginBottom: 4,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222222',
+    letterSpacing: -0.3,
+    marginBottom: 4,
+  },
+  cardSubtitle: {
+    fontSize: 13,
+    color: '#717171',
+    marginBottom: 8,
+  },
+
+  // Donut
+  donutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 20,
+    paddingBottom: 20,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
+  },
+  donutOuter: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    borderWidth: 12,
+    borderColor: '#EBEBEB',
+    backgroundColor: '#FAFAFA',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  donutInner: {
+    alignItems: 'center',
+  },
+  donutValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#222222',
+  },
+  donutLabel: {
+    fontSize: 10,
+    color: '#717171',
+    fontWeight: '500',
+    marginTop: 1,
+  },
+
+  legendColumn: {
+    flex: 1,
+    marginLeft: 20,
+    gap: 6,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  legendText: {
+    fontSize: 13,
+    color: '#222222',
+    fontWeight: '500',
+    flex: 1,
+  },
+  legendPercent: {
+    fontSize: 13,
+    color: '#717171',
+    fontWeight: '600',
+  },
+
+  // Progress bars
+  progressSection: {
+    gap: 12,
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  catIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  catInfo: {
+    flex: 1,
+  },
+  catTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  catName: {
+    fontSize: 14,
+    color: '#222222',
+    fontWeight: '600',
+  },
+  catAmount: {
+    fontSize: 14,
+    color: '#222222',
+    fontWeight: '700',
+  },
+  barBg: {
+    height: 6,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  barFill: {
+    height: 6,
+    borderRadius: 3,
+  },
+});

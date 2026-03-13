@@ -7,6 +7,7 @@ import {
   Image,
   Alert,
   ViewStyle,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -18,7 +19,6 @@ import { ScreenHeader } from '../../components/shared';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
-import { theme } from '../../theme';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { RootStackParamList } from '../../navigation/types';
 
@@ -31,13 +31,6 @@ interface AnalysisResult {
   category: string;
   confidence: number;
 }
-
-const SEVERITY_COLORS: Record<string, { bg: string; text: string }> = {
-  low: { bg: theme.colors.primaryLight, text: theme.colors.success },
-  medium: { bg: theme.colors.accentLight, text: theme.colors.warning },
-  high: { bg: theme.colors.accentLight, text: theme.colors.warning },
-  critical: { bg: '#FEE2E2', text: theme.colors.error },
-};
 
 export const AIAssessmentScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
@@ -125,7 +118,7 @@ export const AIAssessmentScreen: React.FC = () => {
         {!imageUri ? (
           <View style={styles.uploadSection}>
             <View style={styles.iconCircle}>
-              <Ionicons name="camera-outline" size={48} color={theme.colors.textSecondary} />
+              <Ionicons name="camera-outline" size={48} color="#717171" />
             </View>
             <Text style={styles.uploadTitle}>Analyze Property Damage</Text>
             <Text style={styles.uploadDescription}>
@@ -153,7 +146,7 @@ export const AIAssessmentScreen: React.FC = () => {
 
             {analyzeMutation.isPending && (
               <Card variant="elevated" padding="md" style={styles.loadingCard}>
-                <Ionicons name="sparkles" size={24} color={theme.colors.textSecondary} />
+                <Ionicons name="sparkles" size={24} color="#8B5CF6" />
                 <Text style={styles.loadingText}>Analyzing image...</Text>
               </Card>
             )}
@@ -181,7 +174,7 @@ export const AIAssessmentScreen: React.FC = () => {
                   </View>
                   <View style={styles.resultRow}>
                     <Text style={styles.resultLabel}>Estimated Cost</Text>
-                    <Text style={[styles.resultValue, { color: theme.colors.textPrimary }]}>
+                    <Text style={[styles.resultValue, { color: '#222222' }]}>
                       {formatCost(result.estimatedCostMin)} - {formatCost(result.estimatedCostMax)}
                     </Text>
                   </View>
@@ -196,7 +189,7 @@ export const AIAssessmentScreen: React.FC = () => {
                     <Text style={styles.actionsTitle}>Recommended Actions</Text>
                     {result.recommendedActions.map((action, idx) => (
                       <View key={idx} style={styles.actionItem}>
-                        <Ionicons name="checkmark-circle" size={18} color={theme.colors.textSecondary} />
+                        <Ionicons name="checkmark-circle" size={18} color="#10B981" />
                         <Text style={styles.actionText}>{action}</Text>
                       </View>
                     ))}
@@ -222,123 +215,127 @@ export const AIAssessmentScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: '#F7F7F7',
   },
   scrollView: { flex: 1 },
   content: {
-    padding: theme.layout.screenPadding,
-    paddingBottom: theme.spacing[10],
+    padding: 20,
+    paddingBottom: 40,
   },
   uploadSection: {
     alignItems: 'center',
-    paddingVertical: theme.spacing[10],
+    paddingVertical: 40,
   },
   iconCircle: {
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: theme.spacing[5],
+    marginBottom: 20,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   uploadTitle: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[2],
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#222222',
+    marginBottom: 8,
   },
   uploadDescription: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textSecondary,
+    fontSize: 15,
+    color: '#717171',
     textAlign: 'center',
-    lineHeight: theme.typography.fontSize.base * 1.5,
-    marginBottom: theme.spacing[6],
-    paddingHorizontal: theme.spacing[4],
+    lineHeight: 22,
+    marginBottom: 24,
+    paddingHorizontal: 16,
   },
   buttonRow: {
     flexDirection: 'row',
-    gap: theme.spacing[3],
+    gap: 12,
   },
   actionBtn: {
     minWidth: 140,
   },
   imageCard: {
-    marginBottom: theme.spacing[4],
+    marginBottom: 16,
   },
   previewImage: {
     width: '100%',
     height: 220,
-    borderRadius: theme.borderRadius.base,
+    borderRadius: 12,
   },
   retakeBtn: {
     alignSelf: 'center',
-    marginTop: theme.spacing[2],
+    marginTop: 8,
   },
   loadingCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing[3],
-    marginBottom: theme.spacing[4],
+    gap: 12,
+    marginBottom: 16,
   },
   loadingText: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textSecondary,
+    fontSize: 15,
+    color: '#717171',
   },
   resultCard: {
-    marginBottom: theme.spacing[4],
+    marginBottom: 16,
   },
   resultHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing[4],
+    marginBottom: 16,
   },
   resultTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#222222',
   },
   resultRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing[2],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   resultLabel: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textTertiary,
+    fontSize: 13,
+    color: '#B0B0B0',
   },
   resultValue: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#222222',
   },
   actionsCard: {
-    marginBottom: theme.spacing[6],
+    marginBottom: 24,
   },
   actionsTitle: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[3],
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222222',
+    marginBottom: 12,
   },
   actionItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: theme.spacing[2],
-    marginBottom: theme.spacing[2],
+    gap: 8,
+    marginBottom: 8,
   },
   actionText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    color: '#717171',
     flex: 1,
-    lineHeight: theme.typography.fontSize.sm * 1.5,
+    lineHeight: 20,
   },
   createJobBtn: {
-    marginTop: theme.spacing[2],
+    marginTop: 8,
   },
 });
 

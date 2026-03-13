@@ -11,9 +11,9 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { theme } from '../../theme';
 import { formatDistanceToNow } from 'date-fns';
 
 interface VideoListItemProps {
@@ -39,14 +39,14 @@ export const VideoListItem: React.FC<VideoListItemProps> = ({
   const getStatusIcon = () => {
     switch (video.status) {
       case 'completed':
-        return <Icon name="check-circle" size={20} color={theme.colors.success} />;
+        return <Icon name="check-circle" size={20} color="#10B981" />;
       case 'failed':
-        return <Icon name="error" size={20} color={theme.colors.error} />;
+        return <Icon name="error" size={20} color="#EF4444" />;
       case 'uploading':
       case 'processing':
-        return <ActivityIndicator size="small" color={theme.colors.primary} />;
+        return <ActivityIndicator size="small" color="#222222" />;
       default:
-        return <Icon name="schedule" size={20} color={theme.colors.textTertiary} />;
+        return <Icon name="schedule" size={20} color="#B0B0B0" />;
     }
   };
 
@@ -68,13 +68,13 @@ export const VideoListItem: React.FC<VideoListItemProps> = ({
   const getSeverityColor = () => {
     switch (video.severity) {
       case 'full':
-        return theme.colors.error;
+        return '#EF4444';
       case 'midway':
-        return theme.colors.warning;
+        return '#F59E0B';
       case 'early':
-        return theme.colors.success;
+        return '#10B981';
       default:
-        return theme.colors.textTertiary;
+        return '#B0B0B0';
     }
   };
 
@@ -95,7 +95,7 @@ export const VideoListItem: React.FC<VideoListItemProps> = ({
           <Image source={{ uri: video.thumbnailUrl }} style={styles.thumbnail} />
         ) : (
           <View style={styles.thumbnailPlaceholder}>
-            <Icon name="videocam" size={32} color={theme.colors.textTertiary} />
+            <Icon name="videocam" size={32} color="#B0B0B0" />
           </View>
         )}
         <View style={styles.durationBadge}>
@@ -103,7 +103,7 @@ export const VideoListItem: React.FC<VideoListItemProps> = ({
         </View>
         {video.status === 'processing' && (
           <View style={styles.processingOverlay}>
-            <ActivityIndicator size="large" color={theme.colors.textInverse} />
+            <ActivityIndicator size="large" color="#FFFFFF" />
           </View>
         )}
       </View>
@@ -126,7 +126,7 @@ export const VideoListItem: React.FC<VideoListItemProps> = ({
         {video.status === 'completed' && video.damageCount !== undefined && (
           <View style={styles.resultsRow}>
             <View style={styles.resultItem}>
-              <Icon name="warning" size={16} color={theme.colors.textSecondary} />
+              <Icon name="warning" size={16} color="#717171" />
               <Text style={styles.resultText}>{video.damageCount} damages</Text>
             </View>
             {video.severity && (
@@ -144,7 +144,7 @@ export const VideoListItem: React.FC<VideoListItemProps> = ({
 
         {video.status === 'failed' && onRetry && (
           <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
-            <Icon name="refresh" size={16} color={theme.colors.primary} />
+            <Icon name="refresh" size={16} color="#222222" />
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
         )}
@@ -156,44 +156,54 @@ export const VideoListItem: React.FC<VideoListItemProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    marginHorizontal: theme.spacing.md,
-    marginVertical: theme.spacing.sm,
-    padding: theme.spacing[3],
-    ...theme.shadows.base,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginVertical: 8,
+    padding: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   thumbnailContainer: {
     position: 'relative',
-    marginRight: theme.spacing[3],
+    marginRight: 12,
   },
   thumbnail: {
     width: 120,
     height: 80,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
+    backgroundColor: '#F7F7F7',
   },
   thumbnailPlaceholder: {
     width: 120,
     height: 80,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
+    backgroundColor: '#F7F7F7',
     justifyContent: 'center',
     alignItems: 'center',
   },
   durationBadge: {
     position: 'absolute',
-    bottom: theme.spacing.xs,
-    right: theme.spacing.xs,
-    backgroundColor: theme.colors.overlayDark50,
-    paddingHorizontal: theme.spacing.xs,
+    bottom: 6,
+    right: 6,
+    backgroundColor: '#1a1a1a',
+    paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: 6,
   },
   durationText: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
     fontSize: 11,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
   },
   processingOverlay: {
     position: 'absolute',
@@ -201,10 +211,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: theme.colors.overlayDark50,
+    backgroundColor: '#1a1a1a',
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: theme.borderRadius.md,
+    borderRadius: 12,
   },
   content: {
     flex: 1,
@@ -214,28 +224,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.xs,
+    marginBottom: 6,
   },
   title: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222222',
     flex: 1,
-    marginRight: theme.spacing.sm,
+    marginRight: 8,
   },
   statusRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.sm,
+    marginBottom: 8,
   },
   statusText: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textSecondary,
+    fontSize: 12,
+    color: '#717171',
   },
   timeText: {
     fontSize: 11,
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
   },
   resultsRow: {
     flexDirection: 'row',
@@ -245,33 +255,33 @@ const styles = StyleSheet.create({
   resultItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.xs,
+    gap: 6,
   },
   resultText: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textSecondary,
+    fontSize: 12,
+    color: '#717171',
   },
   severityBadge: {
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.xs,
-    borderRadius: theme.borderRadius.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
   severityText: {
     fontSize: 11,
-    color: theme.colors.textInverse,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#FFFFFF',
+    fontWeight: '600',
     textTransform: 'uppercase',
   },
   retryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.xs,
-    paddingVertical: theme.spacing.xs,
+    gap: 6,
+    paddingVertical: 6,
   },
   retryText: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.primary,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 12,
+    color: '#222222',
+    fontWeight: '600',
   },
 });
 

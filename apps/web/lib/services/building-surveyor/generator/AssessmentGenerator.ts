@@ -180,7 +180,8 @@ async function mintAiStub(
  */
 async function injectRAGContext(
   messages: GeneratorMessage[],
-  damageCategory?: string
+  damageCategory?: string,
+  propertyAge?: number,
 ): Promise<GeneratorMessage[]> {
   try {
     let ragContext;
@@ -196,15 +197,16 @@ async function injectRAGContext(
       if (!ragContext.entries.length) {
         const categories = BuildingPathologyRAGService.damageTypeToCategories(damageCategory);
         ragContext = categories.length > 0
-          ? await BuildingPathologyRAGService.queryByCategory(categories, 4)
+          ? await BuildingPathologyRAGService.queryByCategory(categories, 4, propertyAge)
           : await BuildingPathologyRAGService.queryByCategory(
-              ['damp_moisture', 'structural_movement', 'roofing', 'masonry_walls'], 3
+              ['damp_moisture', 'structural_movement', 'roofing', 'masonry_walls'], 3, propertyAge
             );
       }
     } else {
       ragContext = await BuildingPathologyRAGService.queryByCategory(
         ['damp_moisture', 'structural_movement', 'roofing', 'masonry_walls'],
-        3
+        3,
+        propertyAge
       );
     }
 
@@ -228,10 +230,10 @@ async function injectRAGContext(
 export async function getGeneratorContent(
   messages: GeneratorMessage[],
   apiKey: string,
-  context?: { assessmentId?: string; damageCategory?: string; propertyType?: string }
+  context?: { assessmentId?: string; damageCategory?: string; propertyType?: string; propertyAge?: number }
 ): Promise<GeneratorResult> {
-  // Inject RAG knowledge base context before any AI call
-  const enrichedMessages = await injectRAGContext(messages, context?.damageCategory);
+  // Inject RAG knowledge base context before any AI call (with property age for era-filtered results)
+  const enrichedMessages = await injectRAGContext(messages, context?.damageCategory, context?.propertyAge);
 
   // Phase 4: Confidence-based student routing (only when VLM_ROUTING_MODE=auto)
   if (MINT_AI_VLM_ENDPOINT && process.env.VLM_ROUTING_MODE === 'auto' && context?.damageCategory) {

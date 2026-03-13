@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render } from '../../test-utils';
 import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
-import { theme } from '../../../theme';
+
 import type { ServiceArea } from '../../../services/ServiceAreasService';
 
 /**
@@ -430,7 +430,7 @@ describe('DeleteConfirmationModal', () => {
       const content = getByText('Delete Service Area').parent;
       expect(content?.props.style).toEqual(
         expect.objectContaining({
-          backgroundColor: theme.colors.background,
+          backgroundColor: '#F7F7F7',
         })
       );
     });
@@ -448,7 +448,7 @@ describe('DeleteConfirmationModal', () => {
       const content = getByText('Delete Service Area').parent;
       expect(content?.props.style).toEqual(
         expect.objectContaining({
-          borderRadius: theme.borderRadius.xl,
+          borderRadius: 20,
         })
       );
     });
@@ -558,7 +558,7 @@ describe('DeleteConfirmationModal', () => {
       const title = getByText('Delete Service Area');
       expect(title.props.style).toEqual(
         expect.objectContaining({
-          color: theme.colors.textPrimary,
+          color: '#222222',
         })
       );
     });
@@ -616,7 +616,7 @@ describe('DeleteConfirmationModal', () => {
       const text = getByText(messageText);
       expect(text.props.style).toEqual(
         expect.objectContaining({
-          color: theme.colors.textSecondary,
+          color: '#717171',
         })
       );
     });

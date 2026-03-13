@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
   Linking,
   TextInput,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,7 +23,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import * as WebBrowser from 'expo-web-browser';
 import { HapticService } from '../../utils/haptics';
-import { theme } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { JobsStackParamList } from '../../navigation/types';
@@ -165,40 +165,14 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
       day: 'numeric',
     });
 
-  if (loading) {
-    return (
-      <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>Loading contract...</Text>
-      </View>
-    );
-  }
-
-  if (error || !contract) {
-    return (
-      <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <Ionicons name="document-text-outline" size={64} color={theme.colors.textTertiary} />
-        <Text style={styles.emptyTitle}>{error || 'No Contract Found'}</Text>
-        <Text style={styles.emptySubtitle}>
-          {userRole === 'contractor'
-            ? 'A contract will be created after a bid is accepted.'
-            : 'The contractor will create a contract after accepting the bid.'}
-        </Text>
-        <TouchableOpacity style={styles.retryButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.retryButtonText}>Go Back</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'accepted': return theme.colors.success;
+      case 'accepted': return '#10B981';
       case 'pending_contractor':
-      case 'pending_homeowner': return theme.colors.warning;
+      case 'pending_homeowner': return '#F59E0B';
       case 'rejected':
-      case 'cancelled': return theme.colors.error;
-      default: return theme.colors.textSecondary;
+      case 'cancelled': return '#EF4444';
+      default: return '#717171';
     }
   };
 
@@ -214,6 +188,34 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
+  if (loading) {
+    return (
+      <View style={[styles.centered, { paddingTop: insets.top }]}>
+        <ActivityIndicator size="large" color="#222222" />
+        <Text style={styles.loadingText}>Loading contract...</Text>
+      </View>
+    );
+  }
+
+  if (error || !contract) {
+    return (
+      <View style={[styles.centered, { paddingTop: insets.top }]}>
+        <View style={styles.emptyIconWrap}>
+          <Ionicons name="document-text-outline" size={32} color="#B0B0B0" />
+        </View>
+        <Text style={styles.emptyTitle}>{error || 'No Contract Found'}</Text>
+        <Text style={styles.emptySubtitle}>
+          {userRole === 'contractor'
+            ? 'A contract will be created after a bid is accepted.'
+            : 'The contractor will create a contract after accepting the bid.'}
+        </Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.retryButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
@@ -224,7 +226,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color="#222222" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Contract</Text>
         <TouchableOpacity
@@ -233,7 +235,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           accessibilityRole="button"
           accessibilityLabel="Download PDF"
         >
-          <Ionicons name="download-outline" size={20} color={theme.colors.primary} />
+          <Ionicons name="download-outline" size={20} color="#222222" />
         </TouchableOpacity>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(contract.status) + '20' }]}>
           <Text style={[styles.statusText, { color: getStatusColor(contract.status) }]}>
@@ -247,10 +249,10 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: canSign || (contract.status === 'draft' && userRole === 'contractor') ? 120 : 40 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Draft contract banner — contractor needs to fill in terms */}
+        {/* Draft contract banner */}
         {contract.status === 'draft' && userRole === 'contractor' && (
           <View style={styles.draftBanner}>
-            <Ionicons name="alert-circle-outline" size={22} color={theme.colors.warning} />
+            <Ionicons name="alert-circle-outline" size={22} color="#F59E0B" />
             <View style={styles.draftBannerContent}>
               <Text style={styles.draftBannerTitle}>Contract needs preparation</Text>
               <Text style={styles.draftBannerText}>
@@ -320,7 +322,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             <Ionicons
               name={contract.contractor_signed_at ? 'checkmark-circle' : 'ellipse-outline'}
               size={24}
-              color={contract.contractor_signed_at ? theme.colors.success : theme.colors.textTertiary}
+              color={contract.contractor_signed_at ? '#10B981' : '#B0B0B0'}
             />
             <View style={styles.signatureInfo}>
               <Text style={styles.signatureLabel}>
@@ -338,7 +340,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             <Ionicons
               name={contract.homeowner_signed_at ? 'checkmark-circle' : 'ellipse-outline'}
               size={24}
-              color={contract.homeowner_signed_at ? theme.colors.success : theme.colors.textTertiary}
+              color={contract.homeowner_signed_at ? '#10B981' : '#B0B0B0'}
             />
             <View style={styles.signatureInfo}>
               <Text style={styles.signatureLabel}>
@@ -356,7 +358,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Accepted Banner */}
         {contract.status === 'accepted' && (
           <View style={styles.acceptedBanner}>
-            <Ionicons name="checkmark-circle" size={24} color={theme.colors.success} />
+            <Ionicons name="checkmark-circle" size={24} color="#10B981" />
             <Text style={styles.acceptedText}>Contract accepted! Both parties have signed.</Text>
           </View>
         )}
@@ -370,7 +372,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
               accessibilityRole="button"
               accessibilityLabel="Request contract revision"
             >
-              <Ionicons name="create-outline" size={18} color={theme.colors.warning} />
+              <Ionicons name="create-outline" size={18} color="#F59E0B" />
               <Text style={styles.requestChangesText}>Request Contract Revision</Text>
             </TouchableOpacity>
             <Text style={styles.revisionInfoText}>
@@ -385,7 +387,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             <TextInput
               style={styles.rejectInput}
               placeholder="Describe what needs to be changed (e.g., dates, amounts, terms)..."
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor="#B0B0B0"
               multiline
               numberOfLines={3}
               value={rejectReason}
@@ -410,7 +412,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
                 disabled={rejecting}
               >
                 {rejecting ? (
-                  <ActivityIndicator color={theme.colors.textInverse} size="small" />
+                  <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
                   <Text style={styles.rejectSubmitText}>Send Revision Request</Text>
                 )}
@@ -429,7 +431,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             accessibilityRole="button"
             accessibilityLabel="Prepare contract"
           >
-            <Ionicons name="document-text" size={20} color={theme.colors.textInverse} />
+            <Ionicons name="document-text" size={20} color="#FFFFFF" />
             <Text style={styles.signButtonText}>Prepare Contract</Text>
           </TouchableOpacity>
         </View>
@@ -446,10 +448,10 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             accessibilityLabel="Sign contract"
           >
             {signing ? (
-              <ActivityIndicator color={theme.colors.textInverse} />
+              <ActivityIndicator color="#FFFFFF" />
             ) : (
               <>
-                <Ionicons name="create" size={20} color={theme.colors.textInverse} />
+                <Ionicons name="create" size={20} color="#FFFFFF" />
                 <Text style={styles.signButtonText}>Sign Contract</Text>
               </>
             )}
@@ -463,345 +465,359 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: theme.spacing.lg,
-    backgroundColor: theme.colors.background,
+    padding: 20,
+    backgroundColor: '#F7F7F7',
   },
   loadingText: {
-    marginTop: theme.spacing[3],
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textSecondary,
+    marginTop: 12,
+    fontSize: 15,
+    color: '#717171',
+  },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   emptyTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginTop: theme.spacing.md,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#222222',
+    marginTop: 12,
   },
   emptySubtitle: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: 14,
+    color: '#717171',
     textAlign: 'center',
-    marginTop: theme.spacing.sm,
+    marginTop: 8,
     lineHeight: 20,
   },
   retryButton: {
-    marginTop: theme.spacing[5],
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing[3],
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.base,
+    marginTop: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    backgroundColor: '#222222',
+    borderRadius: 28,
   },
   retryButtonText: {
-    color: theme.colors.textInverse,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
-    backgroundColor: theme.colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
+    backgroundColor: '#FFFFFF',
   },
   backButton: {
-    width: theme.spacing[10],
-    height: theme.spacing[10],
-    borderRadius: theme.borderRadius.full,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F7F7F7',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     flex: 1,
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    marginLeft: theme.spacing.sm,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222222',
+    marginLeft: 8,
   },
   statusBadge: {
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing.xs,
-    borderRadius: theme.borderRadius.lg,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   statusText: {
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 12,
+    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: theme.spacing[5],
+    padding: 20,
   },
   amountCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.xl,
-    padding: theme.spacing[5],
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
     alignItems: 'center',
-    marginBottom: theme.spacing[5],
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
+    marginBottom: 20,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   amountLabel: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
-    fontWeight: theme.typography.fontWeight.medium,
-    marginBottom: theme.spacing.xs,
+    fontSize: 13,
+    color: '#717171',
+    fontWeight: '500',
+    marginBottom: 4,
   },
   amountValue: {
-    fontSize: theme.typography.fontSize['4xl'],
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 36,
+    fontWeight: '700',
+    color: '#222222',
   },
   section: {
-    marginBottom: theme.spacing.md,
+    marginBottom: 16,
   },
   sectionLabel: {
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#B0B0B0',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: theme.spacing.xs,
+    letterSpacing: 0.8,
+    marginBottom: 4,
   },
   sectionValue: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textPrimary,
+    fontSize: 15,
+    color: '#222222',
     lineHeight: 22,
   },
   datesRow: {
     flexDirection: 'row',
-    gap: theme.spacing.md,
-    marginBottom: theme.spacing[5],
+    gap: 16,
+    marginBottom: 20,
   },
   dateItem: {
     flex: 1,
   },
   termsCard: {
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: theme.borderRadius.xl,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing[5],
+    backgroundColor: '#F7F7F7',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
   },
   termsTitle: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[3],
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#222222',
+    marginBottom: 12,
   },
   termRow: {
     flexDirection: 'row',
-    paddingVertical: theme.spacing.sm - 2,
-    gap: theme.spacing.sm,
+    paddingVertical: 6,
+    gap: 8,
   },
   termKey: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#717171',
     textTransform: 'capitalize',
     width: 120,
   },
   termValue: {
     flex: 1,
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textPrimary,
+    fontSize: 13,
+    color: '#222222',
   },
   signaturesCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.xl,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing[5],
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   signaturesTitle: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[3],
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#222222',
+    marginBottom: 12,
   },
   signatureRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing[3],
-    paddingVertical: theme.spacing.sm,
+    gap: 12,
+    paddingVertical: 8,
   },
   signatureInfo: {
     flex: 1,
   },
   signatureLabel: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textPrimary,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 15,
+    color: '#222222',
+    fontWeight: '500',
   },
   signatureDate: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textTertiary,
+    fontSize: 12,
+    color: '#B0B0B0',
     marginTop: 2,
   },
   draftBanner: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.accentLight,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing[3] + 2,
-    gap: theme.spacing[3] - 2,
-    marginBottom: theme.spacing[5],
+    backgroundColor: '#FEF3C7',
+    borderRadius: 16,
+    padding: 14,
+    gap: 10,
+    marginBottom: 20,
     alignItems: 'flex-start',
-    borderWidth: 1,
-    borderColor: theme.colors.warning + '40',
   },
   draftBannerContent: {
     flex: 1,
   },
   draftBannerTitle: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.warning,
-    marginBottom: theme.spacing.xs,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#92400E',
+    marginBottom: 4,
   },
   draftBannerText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.warning,
+    fontSize: 13,
+    color: '#92400E',
     lineHeight: 18,
   },
   acceptedBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing[3] - 2,
-    backgroundColor: theme.colors.successLight,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
+    gap: 10,
+    backgroundColor: '#D1FAE5',
+    borderRadius: 16,
+    padding: 16,
   },
   acceptedText: {
     flex: 1,
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.success,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#059669',
   },
   bottomBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: theme.colors.surface,
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: theme.spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
-    ...theme.shadows.large,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#EBEBEB',
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.08, shadowRadius: 12 },
+      android: { elevation: 8 },
+    }),
   },
   signButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.xl,
-    paddingVertical: theme.spacing.md,
+    backgroundColor: '#222222',
+    borderRadius: 28,
+    paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: theme.spacing.sm,
-    minHeight: theme.layout.buttonHeightLarge,
+    gap: 8,
+    minHeight: 56,
   },
   signButtonDisabled: {
     opacity: 0.5,
   },
   signButtonText: {
-    color: theme.colors.textInverse,
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   pdfButton: {
-    width: theme.spacing[10],
-    height: theme.spacing[10],
-    borderRadius: theme.borderRadius.full,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.primary + '15',
-    marginRight: theme.spacing.sm,
+    backgroundColor: '#F7F7F7',
+    marginRight: 8,
   },
   revisionSection: {
-    marginBottom: theme.spacing[5],
+    marginBottom: 20,
   },
   requestChangesButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: theme.spacing.sm,
-    paddingVertical: theme.spacing[3] + 2,
-    borderRadius: theme.borderRadius.xl,
-    borderWidth: 1,
-    borderColor: theme.colors.warning,
-    backgroundColor: theme.colors.accentLight,
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 28,
+    backgroundColor: '#FEF3C7',
   },
   requestChangesText: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.warning,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#92400E',
   },
   revisionInfoText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    color: '#717171',
     lineHeight: 18,
-    marginTop: theme.spacing.sm,
+    marginTop: 8,
     textAlign: 'center',
-    paddingHorizontal: theme.spacing.sm,
+    paddingHorizontal: 8,
   },
   rejectCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.xl,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing[5],
-    borderWidth: 1,
-    borderColor: theme.colors.warning + '40',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   rejectCardTitle: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[3] - 2,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#222222',
+    marginBottom: 10,
   },
   rejectInput: {
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: theme.borderRadius.base,
-    padding: theme.spacing[3],
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textPrimary,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    color: '#222222',
     minHeight: 80,
-    marginBottom: theme.spacing[3],
+    marginBottom: 12,
   },
   rejectActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: theme.spacing[3] - 2,
+    gap: 10,
   },
   rejectCancelButton: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing[3] - 2,
-    borderRadius: theme.borderRadius.base,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
   },
   rejectCancelText: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#717171',
   },
   rejectSubmitButton: {
-    paddingHorizontal: theme.spacing.md + 2,
-    paddingVertical: theme.spacing[3] - 2,
-    borderRadius: theme.borderRadius.base,
-    backgroundColor: theme.colors.warning,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 28,
+    backgroundColor: '#F59E0B',
     minWidth: 110,
     alignItems: 'center',
   },
   rejectSubmitText: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textInverse,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 
 export default ContractViewScreen;
-

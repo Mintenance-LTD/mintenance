@@ -2,7 +2,7 @@ import React from 'react';
 import { render, fireEvent } from '../../test-utils';
 import { ContractorMarker } from '../ContractorMarker';
 import { View, Text } from 'react-native';
-import { theme } from '../../../theme';
+
 
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
@@ -69,7 +69,7 @@ describe('ContractorMarker', () => {
           onPress={mockOnPress}
         />
       );
-      expect(getByText(`person-20-${theme.colors.primary}`)).toBeTruthy();
+      expect(getByText(`person-20-${'#222222'}`)).toBeTruthy();
     });
 
     it('should have correct component structure', () => {
@@ -166,7 +166,7 @@ describe('ContractorMarker', () => {
           onPress={mockOnPress}
         />
       );
-      expect(getByText(`person-20-${theme.colors.primary}`)).toBeTruthy();
+      expect(getByText(`person-20-${'#222222'}`)).toBeTruthy();
     });
 
     it('should not apply selectedMarker style when not selected', () => {
@@ -211,7 +211,7 @@ describe('ContractorMarker', () => {
           onPress={mockOnPress}
         />
       );
-      expect(getByText(`person-20-${theme.colors.white}`)).toBeTruthy();
+      expect(getByText(`person-20-${'#FFFFFF'}`)).toBeTruthy();
     });
 
     it('should apply selectedMarker style when selected', () => {
@@ -237,7 +237,7 @@ describe('ContractorMarker', () => {
         />
       );
 
-      expect(getByText(`person-20-${theme.colors.primary}`)).toBeTruthy();
+      expect(getByText(`person-20-${'#222222'}`)).toBeTruthy();
 
       rerender(
         <ContractorMarker
@@ -247,8 +247,8 @@ describe('ContractorMarker', () => {
         />
       );
 
-      expect(queryByText(`person-20-${theme.colors.primary}`)).toBeNull();
-      expect(getByText(`person-20-${theme.colors.white}`)).toBeTruthy();
+      expect(queryByText(`person-20-${'#222222'}`)).toBeNull();
+      expect(getByText(`person-20-${'#FFFFFF'}`)).toBeTruthy();
     });
   });
 
@@ -262,7 +262,7 @@ describe('ContractorMarker', () => {
         />
       );
 
-      expect(getByText(`person-20-${theme.colors.primary}`)).toBeTruthy();
+      expect(getByText(`person-20-${'#222222'}`)).toBeTruthy();
 
       rerender(
         <ContractorMarker
@@ -272,8 +272,8 @@ describe('ContractorMarker', () => {
         />
       );
 
-      expect(queryByText(`person-20-${theme.colors.primary}`)).toBeNull();
-      expect(getByText(`person-20-${theme.colors.white}`)).toBeTruthy();
+      expect(queryByText(`person-20-${'#222222'}`)).toBeNull();
+      expect(getByText(`person-20-${'#FFFFFF'}`)).toBeTruthy();
     });
 
     it('should toggle from selected to not selected', () => {
@@ -285,7 +285,7 @@ describe('ContractorMarker', () => {
         />
       );
 
-      expect(getByText(`person-20-${theme.colors.white}`)).toBeTruthy();
+      expect(getByText(`person-20-${'#FFFFFF'}`)).toBeTruthy();
 
       rerender(
         <ContractorMarker
@@ -295,8 +295,8 @@ describe('ContractorMarker', () => {
         />
       );
 
-      expect(queryByText(`person-20-${theme.colors.white}`)).toBeNull();
-      expect(getByText(`person-20-${theme.colors.primary}`)).toBeTruthy();
+      expect(queryByText(`person-20-${'#FFFFFF'}`)).toBeNull();
+      expect(getByText(`person-20-${'#222222'}`)).toBeTruthy();
     });
 
     it('should handle multiple selection toggles', () => {
@@ -315,7 +315,7 @@ describe('ContractorMarker', () => {
           onPress={mockOnPress}
         />
       );
-      expect(getByText(`person-20-${theme.colors.white}`)).toBeTruthy();
+      expect(getByText(`person-20-${'#FFFFFF'}`)).toBeTruthy();
 
       rerender(
         <ContractorMarker
@@ -324,7 +324,7 @@ describe('ContractorMarker', () => {
           onPress={mockOnPress}
         />
       );
-      expect(getByText(`person-20-${theme.colors.primary}`)).toBeTruthy();
+      expect(getByText(`person-20-${'#222222'}`)).toBeTruthy();
 
       rerender(
         <ContractorMarker
@@ -333,7 +333,7 @@ describe('ContractorMarker', () => {
           onPress={mockOnPress}
         />
       );
-      expect(getByText(`person-20-${theme.colors.white}`)).toBeTruthy();
+      expect(getByText(`person-20-${'#FFFFFF'}`)).toBeTruthy();
     });
   });
 
@@ -348,7 +348,7 @@ describe('ContractorMarker', () => {
         />
       );
 
-      expect(queryByText(`checkmark-8-${theme.colors.white}`)).toBeNull();
+      expect(queryByText(`checkmark-8-${'#FFFFFF'}`)).toBeNull();
     });
 
     it('should have correct View count when not verified', () => {
@@ -393,7 +393,7 @@ describe('ContractorMarker', () => {
         />
       );
 
-      expect(getByText(`checkmark-8-${theme.colors.white}`)).toBeTruthy();
+      expect(getByText(`checkmark-8-${'#FFFFFF'}`)).toBeTruthy();
     });
 
     it('should have correct View count when verified', () => {
@@ -420,7 +420,7 @@ describe('ContractorMarker', () => {
         />
       );
 
-      const checkmarkIcon = getByText(`checkmark-8-${theme.colors.white}`);
+      const checkmarkIcon = getByText(`checkmark-8-${'#FFFFFF'}`);
       expect(checkmarkIcon.props.children).toContain('checkmark');
       expect(checkmarkIcon.props.children).toContain(8);
     });
@@ -435,8 +435,8 @@ describe('ContractorMarker', () => {
         />
       );
 
-      const checkmarkIcon = getByText(`checkmark-8-${theme.colors.white}`);
-      expect(checkmarkIcon.props.children).toContain(theme.colors.white);
+      const checkmarkIcon = getByText(`checkmark-8-${'#FFFFFF'}`);
+      expect(checkmarkIcon.props.children).toContain('#FFFFFF');
     });
 
     it('should show verified badge regardless of selection state', () => {
@@ -449,7 +449,7 @@ describe('ContractorMarker', () => {
           onPress={mockOnPress}
         />
       );
-      expect(getWhenNotSelected(`checkmark-8-${theme.colors.white}`)).toBeTruthy();
+      expect(getWhenNotSelected(`checkmark-8-${'#FFFFFF'}`)).toBeTruthy();
 
       const { getByText: getWhenSelected } = render(
         <ContractorMarker
@@ -458,7 +458,7 @@ describe('ContractorMarker', () => {
           onPress={mockOnPress}
         />
       );
-      expect(getWhenSelected(`checkmark-8-${theme.colors.white}`)).toBeTruthy();
+      expect(getWhenSelected(`checkmark-8-${'#FFFFFF'}`)).toBeTruthy();
     });
   });
 
@@ -472,7 +472,7 @@ describe('ContractorMarker', () => {
         />
       );
 
-      expect(queryByText(`checkmark-8-${theme.colors.white}`)).toBeNull();
+      expect(queryByText(`checkmark-8-${'#FFFFFF'}`)).toBeNull();
 
       rerender(
         <ContractorMarker
@@ -482,7 +482,7 @@ describe('ContractorMarker', () => {
         />
       );
 
-      expect(getByText(`checkmark-8-${theme.colors.white}`)).toBeTruthy();
+      expect(getByText(`checkmark-8-${'#FFFFFF'}`)).toBeTruthy();
     });
 
     it('should remove verified badge when verification changes to false', () => {
@@ -494,7 +494,7 @@ describe('ContractorMarker', () => {
         />
       );
 
-      expect(getByText(`checkmark-8-${theme.colors.white}`)).toBeTruthy();
+      expect(getByText(`checkmark-8-${'#FFFFFF'}`)).toBeTruthy();
 
       rerender(
         <ContractorMarker
@@ -504,7 +504,7 @@ describe('ContractorMarker', () => {
         />
       );
 
-      expect(queryByText(`checkmark-8-${theme.colors.white}`)).toBeNull();
+      expect(queryByText(`checkmark-8-${'#FFFFFF'}`)).toBeNull();
     });
   });
 
@@ -627,7 +627,7 @@ describe('ContractorMarker', () => {
         />
       );
 
-      const personIcon = getByText(`person-20-${theme.colors.primary}`);
+      const personIcon = getByText(`person-20-${'#222222'}`);
       expect(personIcon.props.children).toContain('person');
       expect(personIcon.props.children).toContain(20);
     });
@@ -641,7 +641,7 @@ describe('ContractorMarker', () => {
         />
       );
 
-      const personIcon = getByText(`person-20-${theme.colors.primary}`);
+      const personIcon = getByText(`person-20-${'#222222'}`);
       expect(personIcon.props.children).toContain('person');
     });
 
@@ -654,7 +654,7 @@ describe('ContractorMarker', () => {
         />
       );
 
-      const personIcon = getByText(`person-20-${theme.colors.primary}`);
+      const personIcon = getByText(`person-20-${'#222222'}`);
       const childrenStr = Array.isArray(personIcon.props.children)
         ? personIcon.props.children.join('')
         : String(personIcon.props.children);
@@ -669,7 +669,7 @@ describe('ContractorMarker', () => {
           onPress={mockOnPress}
         />
       );
-      expect(getWhenNotSelected(`person-20-${theme.colors.primary}`)).toBeTruthy();
+      expect(getWhenNotSelected(`person-20-${'#222222'}`)).toBeTruthy();
 
       const { getByText: getWhenSelected } = render(
         <ContractorMarker
@@ -678,7 +678,7 @@ describe('ContractorMarker', () => {
           onPress={mockOnPress}
         />
       );
-      expect(getWhenSelected(`person-20-${theme.colors.white}`)).toBeTruthy();
+      expect(getWhenSelected(`person-20-${'#FFFFFF'}`)).toBeTruthy();
     });
   });
 
@@ -850,7 +850,7 @@ describe('ContractorMarker', () => {
         />
       );
 
-      expect(queryByText(`checkmark-8-${theme.colors.white}`)).toBeNull();
+      expect(queryByText(`checkmark-8-${'#FFFFFF'}`)).toBeNull();
 
       rerender(
         <ContractorMarker
@@ -860,7 +860,7 @@ describe('ContractorMarker', () => {
         />
       );
 
-      expect(getByText(`checkmark-8-${theme.colors.white}`)).toBeTruthy();
+      expect(getByText(`checkmark-8-${'#FFFFFF'}`)).toBeTruthy();
     });
 
     it('should maintain structure during multiple state changes', () => {
@@ -872,8 +872,8 @@ describe('ContractorMarker', () => {
         />
       );
 
-      expect(getByText(`person-20-${theme.colors.primary}`)).toBeTruthy();
-      expect(queryByText(`checkmark-8-${theme.colors.white}`)).toBeNull();
+      expect(getByText(`person-20-${'#222222'}`)).toBeTruthy();
+      expect(queryByText(`checkmark-8-${'#FFFFFF'}`)).toBeNull();
 
       rerender(
         <ContractorMarker
@@ -883,8 +883,8 @@ describe('ContractorMarker', () => {
         />
       );
 
-      expect(getByText(`person-20-${theme.colors.white}`)).toBeTruthy();
-      expect(getByText(`checkmark-8-${theme.colors.white}`)).toBeTruthy();
+      expect(getByText(`person-20-${'#FFFFFF'}`)).toBeTruthy();
+      expect(getByText(`checkmark-8-${'#FFFFFF'}`)).toBeTruthy();
 
       rerender(
         <ContractorMarker
@@ -894,8 +894,8 @@ describe('ContractorMarker', () => {
         />
       );
 
-      expect(getByText(`person-20-${theme.colors.primary}`)).toBeTruthy();
-      expect(queryByText(`checkmark-8-${theme.colors.white}`)).toBeNull();
+      expect(getByText(`person-20-${'#222222'}`)).toBeTruthy();
+      expect(queryByText(`checkmark-8-${'#FFFFFF'}`)).toBeNull();
     });
   });
 
@@ -992,8 +992,8 @@ describe('ContractorMarker', () => {
         />
       );
 
-      expect(getWhenNotSelected(`person-20-${theme.colors.primary}`)).toBeTruthy();
-      expect(getWhenSelected(`person-20-${theme.colors.white}`)).toBeTruthy();
+      expect(getWhenNotSelected(`person-20-${'#222222'}`)).toBeTruthy();
+      expect(getWhenSelected(`person-20-${'#FFFFFF'}`)).toBeTruthy();
     });
 
     it('should provide visual indicator for verified contractors', () => {
@@ -1006,7 +1006,7 @@ describe('ContractorMarker', () => {
         />
       );
 
-      expect(getByText(`checkmark-8-${theme.colors.white}`)).toBeTruthy();
+      expect(getByText(`checkmark-8-${'#FFFFFF'}`)).toBeTruthy();
     });
 
     it('should maintain touch target across all states', () => {

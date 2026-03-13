@@ -2,7 +2,6 @@ import React, { ErrorInfo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ErrorBoundary } from './ErrorBoundary';
-import { theme } from '../theme';
 import { logger } from '../utils/logger';
 import { captureException } from '../config/sentry';
 
@@ -42,7 +41,7 @@ export const QueryErrorBoundary: React.FC<QueryErrorBoundaryProps> = ({
       <Ionicons
         name='cloud-offline-outline'
         size={48}
-        color={theme.colors.warning}
+        color='#F59E0B'
       />
 
       <Text style={styles.title}>Data Load Error</Text>
@@ -63,7 +62,7 @@ export const QueryErrorBoundary: React.FC<QueryErrorBoundaryProps> = ({
         <Ionicons
           name='refresh'
           size={16}
-          color={theme.colors.textInverse}
+          color='#FFFFFF'
           style={styles.buttonIcon}
         />
         <Text style={styles.retryButtonText}>Retry</Text>
@@ -94,50 +93,51 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
   },
   title: {
     fontSize: 18,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     marginTop: 16,
     marginBottom: 8,
     textAlign: 'center',
   },
   message: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 20,
     paddingHorizontal: 16,
   },
   retryButton: {
-    backgroundColor: theme.colors.info,
+    backgroundColor: '#222222',
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 28,
     flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 44,
   },
   retryButtonText: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
   },
   buttonIcon: {
     marginRight: 6,
   },
   debugInfo: {
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
     padding: 12,
-    borderRadius: 6,
+    borderRadius: 12,
     marginTop: 16,
     width: '100%',
   },
   debugText: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
     fontFamily: 'monospace',
   },
 });

@@ -1,9 +1,8 @@
 /**
  * HomeownerDashboard Component
  *
- * Airbnb-inspired homeowner dashboard with clean header,
- * floating search pill, horizontal stat cards, icon action bar,
- * bids section, appointments, and listing-style recent jobs.
+ * Full-bleed gradient hero dashboard with nav, greeting, stats,
+ * CTA, bids section, appointments, and listing-style recent jobs.
  */
 
 import React, { useState } from 'react';
@@ -18,7 +17,10 @@ import {
   Modal,
   Pressable,
   Platform,
+  StatusBar,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { FadeIn, SlideIn } from '../../components/animations/primitives';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
@@ -27,13 +29,11 @@ import { JobService } from '../../services/JobService';
 import { BidService } from '../../services/BidService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
-import { theme } from '../../theme';
+
 import { logger } from '../../utils/logger';
 import { RecentJobs } from './RecentJobs';
-import { StatsCards } from './StatsCards';
 import { BidsReceived } from './BidsReceived';
-import { QuickActionsHomeowner } from './QuickActionsHomeowner';
-import { WelcomeBanner } from './WelcomeBanner';
+import { Skeleton } from '../../components/skeletons/Skeleton';
 
 const appIcon = require('../../../assets/icon.png');
 
@@ -41,6 +41,7 @@ export const HomeownerDashboard: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigation = useNavigation<NavigationProp<Record<string, object | undefined>>>();
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   // Jobs query
@@ -140,49 +141,13 @@ export const HomeownerDashboard: React.FC = () => {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
+  const activeCount = homeownerJobs.filter((j) => j?.status === 'in_progress' || j?.status === 'assigned').length;
+  const completedCount = homeownerJobs.filter((j) => j?.status === 'completed').length;
+  const postedCount = homeownerJobs.filter((j) => j?.status === 'posted').length;
+
   return (
     <View style={styles.container}>
-      {/* Clean header */}
-      <View style={styles.topBar}>
-        <TouchableOpacity
-          style={styles.brandButton}
-          onPress={() => navigation.navigate('HomeTab' as never)}
-          accessibilityRole="button"
-          accessibilityLabel="Mintenance home"
-        >
-          <Image source={appIcon} style={styles.brandIcon} />
-          <Text style={styles.brandText}>Mintenance</Text>
-        </TouchableOpacity>
-
-        <View style={styles.rightActions}>
-          <TouchableOpacity
-            style={styles.notificationButton}
-            onPress={() => navigation.navigate('Modal', { screen: 'Notifications' } as never)}
-            accessibilityRole="button"
-            accessibilityLabel="Notifications"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="notifications-outline" size={22} color="#222222" />
-            {unreadCount > 0 && (
-              <View style={styles.notificationBadge}>
-                <Text style={styles.notificationBadgeText}>
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.profileButton}
-            onPress={() => setShowProfileMenu(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Open quick menu"
-          >
-            <View style={styles.profileAvatar}>
-              <Text style={styles.profileAvatarText}>{userInitial}</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <StatusBar barStyle="light-content" />
 
       {/* Profile dropdown menu */}
       <Modal
@@ -191,14 +156,13 @@ export const HomeownerDashboard: React.FC = () => {
         animationType="fade"
         onRequestClose={() => setShowProfileMenu(false)}
       >
-        <Pressable style={styles.dropdownOverlay} onPress={() => setShowProfileMenu(false)}>
+        <Pressable style={[styles.dropdownOverlay, { paddingTop: insets.top + 50 }]} onPress={() => setShowProfileMenu(false)}>
           <Pressable style={styles.dropdownMenu}>
             {([
               { label: 'Properties', icon: 'home-outline' as const, onPress: () => navigation.navigate('ProfileTab', { screen: 'Properties' }) },
-              { label: 'Discover Contractors', icon: 'search-outline' as const, onPress: () => navigation.navigate('Modal', { screen: 'EnhancedHome' } as never) },
               { label: 'Messages', icon: 'chatbubble-outline' as const, onPress: () => navigation.navigate('MessagingTab' as never) },
               { label: 'Payments', icon: 'card-outline' as const, onPress: () => navigation.navigate('ProfileTab', { screen: 'PaymentMethods' }) },
-              { label: 'Settings', icon: 'settings-outline' as const, onPress: () => navigation.navigate('ProfileTab' as never) },
+              { label: 'Settings', icon: 'settings-outline' as const, onPress: () => navigation.navigate('ProfileTab', { screen: 'SettingsHub' }) },
             ]).map((item) => (
               <TouchableOpacity
                 key={item.label}
@@ -222,7 +186,7 @@ export const HomeownerDashboard: React.FC = () => {
               style={styles.dropdownItem}
               onPress={() => {
                 setShowProfileMenu(false);
-                navigation.navigate('ProfileTab' as never);
+                navigation.navigate('ProfileTab', { screen: 'ProfileMain' });
               }}
               accessibilityRole="button"
               accessibilityLabel="View profile"
@@ -256,54 +220,97 @@ export const HomeownerDashboard: React.FC = () => {
         showsVerticalScrollIndicator={false}
         testID="home-scroll-view"
         refreshControl={
-          <RefreshControl refreshing={isFetching} onRefresh={handleRefresh} tintColor="#10B981" colors={['#10B981']} />
+          <RefreshControl refreshing={isFetching} onRefresh={handleRefresh} tintColor="#FFFFFF" colors={['#10B981']} />
         }
       >
-        {/* Greeting */}
-        <FadeIn duration={400}>
-          <View style={styles.welcomeRow}>
-            <Text style={styles.welcomeGreeting}>
+        {/* Full-Bleed Gradient Hero */}
+        <LinearGradient
+          colors={['#064E3B', '#059669', '#10B981']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.hero, { paddingTop: insets.top + 8 }]}
+        >
+          <View style={styles.heroDecorCircle} />
+          <View style={styles.heroDecorSmall} />
+          <View style={styles.heroDecorDiamond} />
+
+          {/* Nav bar */}
+          <View style={styles.heroNav}>
+            <TouchableOpacity
+              style={styles.brandButton}
+              onPress={() => navigation.navigate('HomeTab' as never)}
+              accessibilityRole="button"
+              accessibilityLabel="Mintenance home"
+            >
+              <Image source={appIcon} style={styles.brandIcon} />
+              <Text style={styles.brandText}>Mintenance</Text>
+            </TouchableOpacity>
+
+            <View style={styles.rightActions}>
+              <TouchableOpacity
+                style={styles.notificationButton}
+                onPress={() => navigation.navigate('Modal', { screen: 'Notifications' } as never)}
+                accessibilityRole="button"
+                accessibilityLabel="Notifications"
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
+                {unreadCount > 0 && (
+                  <View style={styles.notificationBadge}>
+                    <Text style={styles.notificationBadgeText}>
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.profileButton}
+                onPress={() => setShowProfileMenu(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Open quick menu"
+              >
+                <View style={styles.profileAvatar}>
+                  <Text style={styles.profileAvatarText}>{userInitial}</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Greeting */}
+          <FadeIn duration={400}>
+            <Text style={styles.heroGreeting}>
               {greeting}, {userName}
             </Text>
-            <Text style={styles.welcomeSubtitle}>
+            <Text style={styles.heroSubtitle}>
               {jobsLoading
                 ? 'Loading your projects...'
                 : homeownerJobs.length > 0
                   ? `You have ${activeJobIds.length} active project${activeJobIds.length !== 1 ? 's' : ''}`
                   : "Ready to get something fixed?"}
             </Text>
-          </View>
-        </FadeIn>
+          </FadeIn>
 
-        {/* Search pill */}
+        </LinearGradient>
+
+        {/* Stats cards below hero */}
         <SlideIn direction="up" distance={20} duration={400} delay={100}>
-          <WelcomeBanner
-            onWherePress={() => navigation.navigate('ProfileTab', { screen: 'Properties' })}
-            onUrgencyPress={() => navigation.navigate('JobsTab', { screen: 'PostJob' })}
-            onServicePress={() => navigation.navigate('Modal', { screen: 'ServiceRequest' } as never)}
-          />
+          <View style={styles.statsCardsRow}>
+            <View style={styles.statCard}>
+              <Text style={styles.statCardValue}>{jobsLoading ? '–' : activeCount}</Text>
+              <Text style={styles.statCardLabel}>Active</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statCardValue}>{jobsLoading ? '–' : completedCount}</Text>
+              <Text style={styles.statCardLabel}>Completed</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statCardValue}>{jobsLoading ? '–' : postedCount}</Text>
+              <Text style={styles.statCardLabel}>Posted</Text>
+            </View>
+          </View>
         </SlideIn>
 
         <View style={styles.mainContent}>
-          {/* Stats */}
-          <SlideIn direction="up" distance={20} duration={400} delay={200}>
-            <StatsCards
-              isLoading={jobsLoading}
-              activeJobs={homeownerJobs.filter((j) => j?.status === 'in_progress' || j?.status === 'assigned').length}
-              completedJobs={homeownerJobs.filter((j) => j?.status === 'completed').length}
-            />
-          </SlideIn>
-
-          {/* Quick Actions */}
-          <SlideIn direction="up" distance={20} duration={400} delay={300}>
-            <QuickActionsHomeowner
-              onPostJobPress={() => navigation.navigate('JobsTab', { screen: 'PostJob' })}
-              onPropertiesPress={() => navigation.navigate('ProfileTab', { screen: 'Properties' })}
-              onFindContractorsPress={() => navigation.navigate('Modal', { screen: 'EnhancedHome' } as never)}
-              onMessagesPress={() => navigation.navigate('MessagingTab' as never)}
-            />
-          </SlideIn>
-
           {/* Bids */}
           <FadeIn duration={400} delay={400}>
             <BidsReceived
@@ -320,7 +327,22 @@ export const HomeownerDashboard: React.FC = () => {
           </FadeIn>
 
           {/* Appointments */}
-          {(appointments && appointments.length > 0) && (
+          {appointments === undefined ? (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Upcoming</Text>
+              </View>
+              {[1, 2].map((key) => (
+                <View key={key} style={styles.appointmentCard}>
+                  <Skeleton width={44} height={44} borderRadius={12} />
+                  <View style={styles.appointmentInfo}>
+                    <Skeleton width={140} height={15} borderRadius={4} />
+                    <Skeleton width={100} height={13} borderRadius={4} style={{ marginTop: 4 }} />
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : appointments.length > 0 ? (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Upcoming</Text>
@@ -335,7 +357,14 @@ export const HomeownerDashboard: React.FC = () => {
                 )}
               </View>
               {appointments.slice(0, 3).map((apt) => (
-                <View key={apt.id} style={styles.appointmentCard}>
+                <TouchableOpacity
+                  key={apt.id}
+                  style={styles.appointmentCard}
+                  onPress={() => navigation.navigate('ProfileTab', { screen: 'Calendar' })}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${apt.title}, ${apt.time || ''}`}
+                  activeOpacity={0.7}
+                >
                   <View style={styles.appointmentDateBlock}>
                     <Text style={styles.appointmentDay}>
                       {new Date(apt.date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric' })}
@@ -352,10 +381,10 @@ export const HomeownerDashboard: React.FC = () => {
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={16} color="#B0B0B0" />
-                </View>
+                </TouchableOpacity>
               ))}
             </View>
-          )}
+          ) : null}
 
           {/* Recent Jobs */}
           <FadeIn duration={400} delay={500}>
@@ -377,16 +406,51 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F7F7F7',
   },
-  topBar: {
+
+  // Full-bleed Hero
+  hero: {
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+    overflow: 'hidden',
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+  },
+  heroDecorCircle: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    top: -60,
+    right: -50,
+  },
+  heroDecorSmall: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    bottom: 20,
+    left: -20,
+  },
+  heroDecorDiamond: {
+    position: 'absolute',
+    width: 50,
+    height: 50,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    top: 100,
+    right: 70,
+    transform: [{ rotate: '45deg' }],
+    borderRadius: 6,
+  },
+
+  // Nav inside hero
+  heroNav: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 10,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    marginBottom: 24,
+    zIndex: 1,
   },
   brandButton: {
     flexDirection: 'row',
@@ -401,7 +465,7 @@ const styles = StyleSheet.create({
   brandText: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: '#FFFFFF',
     letterSpacing: -0.3,
   },
   rightActions: {
@@ -443,7 +507,9 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#222222',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.4)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -452,34 +518,68 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
-  welcomeRow: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 4,
-    backgroundColor: '#FFFFFF',
+
+  // Greeting inside hero
+  heroGreeting: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    lineHeight: 34,
+    letterSpacing: -0.5,
+    zIndex: 1,
   },
-  welcomeGreeting: {
-    fontSize: 26,
+  heroSubtitle: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 4,
+    marginBottom: 20,
+    zIndex: 1,
+  },
+
+  // Stats cards below hero
+  statsCardsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 20,
+    marginTop: -20,
+    marginBottom: 8,
+    zIndex: 2,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 10 },
+      android: { elevation: 3 },
+    }),
+  },
+  statCardValue: {
+    fontSize: 24,
     fontWeight: '700',
     color: '#222222',
-    lineHeight: 34,
-    letterSpacing: -0.3,
+    letterSpacing: -0.5,
   },
-  welcomeSubtitle: {
-    fontSize: 15,
+  statCardLabel: {
+    fontSize: 12,
     color: '#717171',
+    fontWeight: '500',
     marginTop: 2,
   },
+
   mainContent: {
     paddingHorizontal: 20,
     paddingTop: 20,
   },
+
+  // Dropdown
   dropdownOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'flex-start',
     alignItems: 'flex-end',
-    paddingTop: 70,
     paddingRight: 16,
   },
   dropdownMenu: {
@@ -488,15 +588,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     minWidth: 220,
     ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.15,
-        shadowRadius: 24,
-      },
-      android: {
-        elevation: 8,
-      },
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24 },
+      android: { elevation: 8 },
     }),
   },
   dropdownItem: {
@@ -526,6 +619,8 @@ const styles = StyleSheet.create({
     marginVertical: 4,
     marginHorizontal: 16,
   },
+
+  // Error
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -560,6 +655,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
+
+  // Sections
   section: {
     marginBottom: 24,
   },
@@ -578,9 +675,10 @@ const styles = StyleSheet.create({
   viewAllLink: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#222222',
-    textDecorationLine: 'underline',
+    color: '#10B981',
   },
+
+  // Appointments
   appointmentCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -589,15 +687,8 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 8,
     ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 1,
-      },
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6 },
+      android: { elevation: 1 },
     }),
   },
   appointmentDateBlock: {

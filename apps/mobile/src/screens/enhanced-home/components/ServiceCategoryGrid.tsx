@@ -1,8 +1,8 @@
 /**
  * ServiceCategoryGrid Component
- * 
+ *
  * Grid of service category icons.
- * 
+ *
  * @filesize Target: <90 lines
  * @compliance Single Responsibility - Service categories display
  */
@@ -10,7 +10,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 import type { Service } from '../viewmodels/EnhancedHomeViewModel';
 
 interface ServiceCategoryGridProps {
@@ -39,7 +38,7 @@ export const ServiceCategoryGrid: React.FC<ServiceCategoryGridProps> = ({
               <Ionicons
                 name={service.icon as keyof typeof Ionicons.glyphMap}
                 size={28}
-                color={theme.colors.textSecondary}
+                color="#717171"
               />
             </View>
             <Text style={styles.serviceName}>{service.name}</Text>
@@ -52,37 +51,36 @@ export const ServiceCategoryGrid: React.FC<ServiceCategoryGridProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: theme.spacing.xl,
-    marginVertical: theme.spacing.lg,
+    paddingHorizontal: 20,
+    marginVertical: 16,
   },
   sectionTitle: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.lg,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#222222',
+    marginBottom: 16,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
   serviceItem: {
-    // 5 equal columns — stable regardless of item count
     width: '20%',
     alignItems: 'center',
-    marginBottom: theme.spacing.lg,
+    marginBottom: 16,
   },
   serviceIcon: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: theme.colors.surfaceTertiary,
+    backgroundColor: '#F7F7F7',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: theme.spacing.sm,
+    marginBottom: 8,
   },
   serviceName: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textPrimary,
+    fontSize: 12,
+    color: '#222222',
     textAlign: 'center',
   },
 });

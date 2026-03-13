@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { theme } from '../../theme';
 
 type Period = '3m' | '6m' | '12m';
 
@@ -54,22 +53,19 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     paddingHorizontal: 16,
-    borderRadius: theme.borderRadius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.background,
+    borderRadius: 16,
+    backgroundColor: '#F7F7F7',
     alignItems: 'center',
   },
   periodButtonActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
   },
   periodButtonText: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontWeight: '500',
+    color: '#222222',
   },
   periodButtonTextActive: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
   },
 });

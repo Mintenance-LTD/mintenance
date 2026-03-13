@@ -2,7 +2,6 @@ import React from 'react';
 import { Alert } from 'react-native';
 import { render, fireEvent, within } from '../../test-utils';
 import { ServiceAreasActions } from '../ServiceAreasActions';
-import { theme } from '../../../theme';
 
 // Mock dependencies
 jest.mock('@expo/vector-icons', () => ({
@@ -61,7 +60,7 @@ describe('ServiceAreasActions', () => {
       expect(title.props.style).toMatchObject({
         fontSize: 16,
         fontWeight: '600',
-        color: theme.colors.textPrimary,
+        color: '#222222',
         marginBottom: 16,
       });
     });
@@ -89,7 +88,7 @@ describe('ServiceAreasActions', () => {
       expect(button).toBeTruthy();
       expect(button.props.style).toMatchObject({
         fontSize: 14,
-        color: theme.colors.textPrimary,
+        color: '#222222',
         marginLeft: 12,
         fontWeight: '500',
       });
@@ -295,8 +294,8 @@ describe('ServiceAreasActions', () => {
       const container = title.parent;
 
       expect(container?.props.style).toMatchObject({
-        backgroundColor: theme.colors.background,
-        borderRadius: theme.borderRadius.lg,
+        backgroundColor: '#F7F7F7',
+        borderRadius: 16,
         padding: 16,
         marginBottom: 32,
       });
@@ -311,8 +310,8 @@ describe('ServiceAreasActions', () => {
         alignItems: 'center',
         paddingVertical: 12,
         paddingHorizontal: 16,
-        borderRadius: theme.borderRadius.base,
-        backgroundColor: theme.colors.surfaceSecondary,
+        borderRadius: 12,
+        backgroundColor: '#F7F7F7',
         marginBottom: 8,
       });
     });

@@ -3,7 +3,6 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Input } from '../ui/Input';
-import { theme } from '../../theme';
 
 interface MapHeaderProps {
   searchQuery: string;
@@ -25,7 +24,7 @@ export const MapHeader: React.FC<MapHeaderProps> = ({
         <Ionicons
           name='arrow-back'
           size={24}
-          color={theme.colors.textPrimary}
+          color='#222222'
         />
       </TouchableOpacity>
 
@@ -43,7 +42,7 @@ export const MapHeader: React.FC<MapHeaderProps> = ({
         <Ionicons
           name='options-outline'
           size={20}
-          color={theme.colors.textPrimary}
+          color='#222222'
         />
       </TouchableOpacity>
     </View>
@@ -56,14 +55,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 16,
     paddingHorizontal: 20,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
     gap: 16,
   },
   searchContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -72,7 +71,7 @@ const styles = StyleSheet.create({
   filterButton: {
     width: 44,
     height: 44,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',

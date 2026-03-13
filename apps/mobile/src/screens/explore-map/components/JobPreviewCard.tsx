@@ -1,14 +1,13 @@
 /**
- * JobPreviewCard Component
+ * JobPreviewCard — Budget-first bottom card on map marker tap.
  *
- * Airbnb-style bottom sheet card shown when a map marker is tapped.
- * Provides clear labeled actions: Bid Now, View Details, Skip.
+ * Matches the redesigned JobCard style: budget prominent,
+ * category pill + bid count, quick bid CTA.
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 import type { JobMapItem } from '../viewmodels/ExploreMapViewModel';
 
 const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -19,18 +18,20 @@ const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   carpentry: 'hammer',
   cleaning: 'sparkles',
   hvac: 'thermometer',
+  landscaping: 'leaf',
   general: 'construct',
 };
 
 const CATEGORY_COLORS: Record<string, { icon: string; bg: string }> = {
-  plumbing:   { icon: theme.colors.success, bg: theme.colors.primaryLight },
-  electrical: { icon: theme.colors.warning, bg: theme.colors.accentLight },
-  roofing:    { icon: theme.colors.success, bg: theme.colors.primaryLight },
-  painting:   { icon: theme.colors.info, bg: theme.colors.accentLight },
-  carpentry:  { icon: theme.colors.warning, bg: theme.colors.accentLight },
-  cleaning:   { icon: theme.colors.info, bg: theme.colors.accentLight },
-  hvac:       { icon: theme.colors.error, bg: theme.colors.accentLight },
-  general:    { icon: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary },
+  plumbing:   { icon: '#10B981', bg: '#D1FAE5' },
+  electrical: { icon: '#F59E0B', bg: '#FEF3C7' },
+  roofing:    { icon: '#10B981', bg: '#D1FAE5' },
+  painting:   { icon: '#3B82F6', bg: '#DBEAFE' },
+  carpentry:  { icon: '#F59E0B', bg: '#FEF3C7' },
+  cleaning:   { icon: '#3B82F6', bg: '#DBEAFE' },
+  hvac:       { icon: '#EF4444', bg: '#FEE2E2' },
+  landscaping:{ icon: '#10B981', bg: '#D1FAE5' },
+  general:    { icon: '#717171', bg: '#F7F7F7' },
 };
 
 function timeAgo(dateStr: string): string {
@@ -56,9 +57,9 @@ export const JobPreviewCard: React.FC<JobPreviewCardProps> = ({
   onBidNow,
   onDismiss,
 }) => {
-  const categoryKey = job.category.toLowerCase();
-  const iconName = CATEGORY_ICONS[categoryKey] || 'construct';
-  const colors = CATEGORY_COLORS[categoryKey] || CATEGORY_COLORS.general;
+  const catKey = job.category.toLowerCase();
+  const iconName = CATEGORY_ICONS[catKey] || 'construct';
+  const colors = CATEGORY_COLORS[catKey] || CATEGORY_COLORS.general;
   const budget = job.budget_max || job.budget_min;
   const budgetText = budget ? `£${budget.toLocaleString()}` : 'Budget TBD';
   const categoryLabel = job.category.charAt(0).toUpperCase() + job.category.slice(1);
@@ -69,48 +70,51 @@ export const JobPreviewCard: React.FC<JobPreviewCardProps> = ({
       {/* Drag handle */}
       <View style={styles.handle} />
 
-      {/* Main card */}
-      <View style={styles.card}>
-        {/* Top section: icon chip + info + dismiss */}
-        <View style={styles.topRow}>
-          {/* Category icon chip */}
-          <View style={[styles.iconChip, { backgroundColor: colors.bg }]}>
-            <Ionicons name={iconName} size={26} color={colors.icon} />
-            {isUrgent && <View style={styles.urgentDot} />}
-          </View>
+      <TouchableOpacity
+        style={styles.card}
+        onPress={onViewDetails}
+        activeOpacity={0.95}
+        accessibilityRole="button"
+        accessibilityLabel={`${job.title}, ${budgetText}`}
+      >
+        {/* Dismiss button */}
+        <TouchableOpacity
+          style={styles.dismissBtn}
+          onPress={onDismiss}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss"
+        >
+          <Ionicons name="close" size={16} color="#717171" />
+        </TouchableOpacity>
 
-          {/* Job info */}
-          <View style={styles.info}>
-            <Text style={styles.title} numberOfLines={2}>
-              {job.title}
-            </Text>
-            <Text style={styles.meta} numberOfLines={1}>
-              {categoryLabel} · {job.distance} km away · {timeAgo(job.created_at)}
-            </Text>
-            <View style={styles.budgetRow}>
-              <Text style={styles.budget}>{budgetText}</Text>
-              {isUrgent && (
-                <View style={styles.urgentBadge}>
-                  <Text style={styles.urgentText}>Urgent</Text>
-                </View>
-              )}
-            </View>
-          </View>
+        {/* Budget — FIRST, large */}
+        <Text style={styles.budget}>{budgetText}</Text>
 
-          {/* Dismiss button */}
-          <TouchableOpacity
-            style={styles.dismissButton}
-            onPress={onDismiss}
-            accessibilityRole="button"
-            accessibilityLabel="Dismiss job preview"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="close" size={16} color={theme.colors.textSecondary} />
-          </TouchableOpacity>
+        {/* Title */}
+        <Text style={styles.title} numberOfLines={2}>{job.title}</Text>
+
+        {/* Meta: category · distance · time */}
+        <View style={styles.metaRow}>
+          <Ionicons name="location-outline" size={13} color="#717171" />
+          <Text style={styles.metaText}>
+            {job.distance} km · {categoryLabel} · {timeAgo(job.created_at)}
+          </Text>
         </View>
 
-        {/* Divider */}
-        <View style={styles.divider} />
+        {/* Tags row */}
+        <View style={styles.tagsRow}>
+          <View style={[styles.categoryPill, { backgroundColor: colors.bg }]}>
+            <Ionicons name={iconName} size={12} color={colors.icon} />
+            <Text style={[styles.categoryPillText, { color: colors.icon }]}>{categoryLabel}</Text>
+          </View>
+          {isUrgent && (
+            <View style={styles.urgentBadge}>
+              <Ionicons name="flame" size={11} color="#EF4444" />
+              <Text style={styles.urgentText}>Urgent</Text>
+            </View>
+          )}
+        </View>
 
         {/* Action row */}
         <View style={styles.actionRow}>
@@ -121,8 +125,8 @@ export const JobPreviewCard: React.FC<JobPreviewCardProps> = ({
             accessibilityLabel="Bid on this job"
             activeOpacity={0.85}
           >
-            <Ionicons name="cash-outline" size={15} color={theme.colors.white} />
-            <Text style={styles.bidButtonText}>Bid Now</Text>
+            <Ionicons name="flash" size={15} color="#FFFFFF" />
+            <Text style={styles.bidButtonText}>Quick Bid</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -132,21 +136,11 @@ export const JobPreviewCard: React.FC<JobPreviewCardProps> = ({
             accessibilityLabel="View job details"
             activeOpacity={0.7}
           >
-            <Text style={styles.detailsButtonText}>View Details</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.skipButton}
-            onPress={onDismiss}
-            accessibilityRole="button"
-            accessibilityLabel="Skip this job"
-            hitSlop={{ top: 4, bottom: 4, left: 8, right: 8 }}
-            activeOpacity={0.6}
-          >
-            <Text style={styles.skipButtonText}>Skip</Text>
+            <Text style={styles.detailsButtonText}>Details</Text>
+            <Ionicons name="arrow-forward" size={14} color="#222222" />
           </TouchableOpacity>
         </View>
-      </View>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -159,142 +153,124 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: theme.colors.borderLight,
+    backgroundColor: 'rgba(255,255,255,0.6)',
     marginBottom: 8,
   },
   card: {
     width: '100%',
-    backgroundColor: theme.colors.white,
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    paddingTop: 16,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 8,
+    padding: 18,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 16 },
+      android: { elevation: 8 },
+    }),
   },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    marginBottom: 14,
-  },
-  iconChip: {
-    width: 64,
-    height: 64,
-    borderRadius: 14,
+
+  dismissBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#F7F7F7',
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
+    zIndex: 2,
   },
-  urgentDot: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: theme.colors.error,
-    borderWidth: 2,
-    borderColor: theme.colors.white,
-  },
-  info: {
-    flex: 1,
-    gap: 3,
+
+  budget: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#222222',
+    letterSpacing: -0.5,
+    marginBottom: 4,
   },
   title: {
-    fontSize: 15,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    lineHeight: 20,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#222222',
+    lineHeight: 22,
+    marginBottom: 6,
+    paddingRight: 32,
   },
-  meta: {
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 10,
+  },
+  metaText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
-    fontWeight: theme.typography.fontWeight.regular,
+    color: '#717171',
   },
-  budgetRow: {
+
+  tagsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 2,
+    marginBottom: 14,
   },
-  budget: {
-    fontSize: 15,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+  categoryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    gap: 4,
+  },
+  categoryPillText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   urgentBadge: {
-    backgroundColor: theme.colors.accentLight,
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    gap: 3,
   },
   urgentText: {
     fontSize: 11,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.error,
+    fontWeight: '700',
+    color: '#EF4444',
   },
-  dismissButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: theme.colors.backgroundSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    marginTop: -2,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: theme.colors.borderLight,
-    marginBottom: 14,
-  },
+
   actionRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   bidButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
-    backgroundColor: theme.colors.primary,
-    borderRadius: 10,
-    paddingVertical: 11,
+    gap: 6,
+    backgroundColor: '#10B981',
+    borderRadius: 14,
+    paddingVertical: 13,
   },
   bidButtonText: {
-    fontSize: 14,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.white,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   detailsButton: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 10,
-    paddingVertical: 11,
-    borderWidth: 1.5,
-    borderColor: theme.colors.border,
+    gap: 4,
+    borderRadius: 14,
+    paddingVertical: 12,
+    backgroundColor: '#F7F7F7',
   },
   detailsButtonText: {
-    fontSize: 14,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-  },
-  skipButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  skipButtonText: {
-    fontSize: 14,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textSecondary,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222222',
   },
 });

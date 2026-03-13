@@ -8,7 +8,6 @@ import { View, StyleSheet, Text } from 'react-native';
 import { LoadingSpinner } from './LoadingSpinner';
 import { logger } from '../utils/logger';
 import { codeSplittingManager } from '../utils/codeSplitting';
-import { theme } from '../theme';
 
 interface LazyLoadingBoundaryProps {
   children: React.ReactNode;
@@ -269,41 +268,41 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing[5],
-    backgroundColor: theme.colors.backgroundSecondary,
+    padding: 20,
+    backgroundColor: '#F7F7F7',
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing[5],
-    backgroundColor: theme.colors.surface,
+    padding: 20,
+    backgroundColor: '#FFFFFF',
   },
   errorTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.error,
-    marginBottom: theme.spacing[2],
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#EF4444',
+    marginBottom: 8,
     textAlign: 'center',
   },
   errorMessage: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing[2],
+    fontSize: 13,
+    color: '#717171',
+    marginBottom: 8,
     textAlign: 'center',
   },
   errorDetails: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textTertiary,
-    marginBottom: theme.spacing[5],
+    fontSize: 12,
+    color: '#B0B0B0',
+    marginBottom: 20,
     textAlign: 'center',
     fontFamily: 'monospace',
   },
   retryButton: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.info,
-    fontWeight: theme.typography.fontWeight.medium,
-    padding: theme.spacing[2],
+    fontSize: 15,
+    color: '#3B82F6',
+    fontWeight: '500',
+    padding: 8,
     textDecorationLine: 'underline',
   },
 });

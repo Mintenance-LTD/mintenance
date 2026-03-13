@@ -7,7 +7,6 @@ import {
   TextInput,
   Dimensions,
 } from 'react-native';
-import { theme } from '../../theme';
 import { styles } from './bookingInterfaceStyles';
 
 const { width: screenWidth } = Dimensions.get('window');

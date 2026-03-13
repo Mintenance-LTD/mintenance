@@ -1,20 +1,24 @@
 /**
- * ProfileHeader Component
- * 
- * Displays contractor avatar, name, location, and edit button.
- * 
- * @filesize Target: <100 lines
- * @compliance Single Responsibility - Profile header display
+ * ProfileHeader — Full-bleed cover hero with overlapping avatar
+ *
+ * Green gradient hero extending to status bar, floating nav,
+ * overlapping avatar with verified badge, name, trade, location.
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 
 interface ProfileHeaderProps {
   name: string;
   location: string;
+  bio?: string;
+  verified?: boolean;
+  skills?: string[];
+  topInset?: number;
+  onBack?: () => void;
+  onShare?: () => void;
   onEditPress?: () => void;
   showEditButton?: boolean;
 }
@@ -22,89 +26,269 @@ interface ProfileHeaderProps {
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   name,
   location,
-  onEditPress,
-  showEditButton = false,
+  bio,
+  verified,
+  skills,
+  topInset = 0,
+  onBack,
+  onShare,
 }) => {
-  return (
-    <View style={styles.container}>
-      <View style={styles.avatarContainer}>
-        <View style={styles.avatar} accessible={false} />
-        {showEditButton && (
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={onEditPress}
-            accessibilityRole='button'
-            accessibilityLabel='Edit profile photo'
-          >
-            <Ionicons name="pencil" size={14} color={theme.colors.white} />
-            <Text style={styles.editButtonText}>Edit</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+  const primarySkill = skills?.[0];
+  const tradeLabel = primarySkill
+    ? primarySkill.charAt(0).toUpperCase() + primarySkill.slice(1)
+    : 'Contractor';
 
-      <View style={styles.infoSection}>
-        <Text style={styles.name}>{name}</Text>
-        <View style={styles.locationRow}>
-          <Ionicons name="location" size={16} color={theme.colors.textSecondary} />
-          <Text style={styles.locationText}>{location}</Text>
+  return (
+    <View>
+      {/* Full-bleed gradient hero */}
+      <LinearGradient
+        colors={['#064E3B', '#059669', '#10B981']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.hero, { paddingTop: topInset + 12 }]}
+      >
+        {/* Decorative elements */}
+        <View style={styles.decor1} />
+        <View style={styles.decor2} />
+
+        {/* Floating nav row */}
+        <View style={styles.navRow}>
+          {onBack && (
+            <TouchableOpacity
+              style={styles.navBtn}
+              onPress={onBack}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
+              <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
+          <View style={{ flex: 1 }} />
+          {onShare && (
+            <TouchableOpacity
+              style={styles.navBtn}
+              onPress={onShare}
+              accessibilityRole="button"
+              accessibilityLabel="Share profile"
+            >
+              <Ionicons name="share-outline" size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
         </View>
+
+        {/* Spacer for avatar overlap */}
+        <View style={{ height: 50 }} />
+      </LinearGradient>
+
+      {/* Avatar — overlaps hero bottom */}
+      <View style={styles.avatarSection}>
+        <View style={styles.avatarWrapper}>
+          <View style={styles.avatar}>
+            <Ionicons name="person" size={40} color="#B0B0B0" />
+          </View>
+          {verified && (
+            <View style={styles.verifiedBadge}>
+              <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+            </View>
+          )}
+        </View>
+
+        {/* Name + trade + location */}
+        <Text style={styles.name}>{name}</Text>
+        <Text style={styles.tradeText}>{tradeLabel}</Text>
+
+        {location ? (
+          <View style={styles.locationRow}>
+            <Ionicons name="location-outline" size={14} color="#717171" />
+            <Text style={styles.locationText}>{location}</Text>
+          </View>
+        ) : null}
+
+        {/* Bio */}
+        {bio ? (
+          <Text style={styles.bio} numberOfLines={3}>{bio}</Text>
+        ) : null}
+
+        {/* Trust signals */}
+        <View style={styles.trustRow}>
+          {verified && (
+            <View style={styles.trustPill}>
+              <Ionicons name="shield-checkmark" size={14} color="#10B981" />
+              <Text style={styles.trustText}>Verified</Text>
+            </View>
+          )}
+          <View style={styles.trustPill}>
+            <Ionicons name="flash" size={14} color="#F59E0B" />
+            <Text style={styles.trustText}>{'< 1hr Response'}</Text>
+          </View>
+          <View style={styles.trustPill}>
+            <Ionicons name="ribbon" size={14} color="#3B82F6" />
+            <Text style={styles.trustText}>Insured</Text>
+          </View>
+        </View>
+
+        {/* Service pills */}
+        {skills && skills.length > 0 && (
+          <View style={styles.skillsRow}>
+            {skills.slice(0, 6).map((skill) => (
+              <View key={skill} style={styles.skillPill}>
+                <Text style={styles.skillText}>
+                  {skill.charAt(0).toUpperCase() + skill.slice(1)}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing.xl,
-    paddingVertical: theme.spacing['2xl'],
-    backgroundColor: theme.colors.borderLight,
+  hero: {
+    paddingHorizontal: 20,
+    overflow: 'hidden',
   },
-  avatarContainer: {
-    position: 'relative',
+  decor1: {
+    position: 'absolute',
+    top: -30,
+    right: -30,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
-  avatar: {
+  decor2: {
+    position: 'absolute',
+    bottom: -20,
+    left: -20,
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: theme.colors.borderDark,
+    backgroundColor: 'rgba(255,255,255,0.04)',
   },
-  editButton: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
+  navRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.lg,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 4,
-    gap: 4,
+    marginBottom: 8,
   },
-  editButtonText: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.white,
+  navBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  infoSection: {
-    flex: 1,
-    marginLeft: theme.spacing.xl,
+  avatarSection: {
+    alignItems: 'center',
+    marginTop: -48,
+    paddingHorizontal: 24,
+    paddingBottom: 20,
+    backgroundColor: '#F7F7F7',
+  },
+  avatarWrapper: {
+    position: 'relative',
+    marginBottom: 12,
+  },
+  avatar: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#EBEBEB',
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 },
+      android: { elevation: 4 },
+    }),
+  },
+  verifiedBadge: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
   },
   name: {
-    fontSize: theme.typography.fontSize['3xl'],
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.sm,
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#222222',
+    letterSpacing: -0.5,
+    textAlign: 'center',
+  },
+  tradeText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#10B981',
+    marginTop: 2,
+    textAlign: 'center',
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    marginTop: 6,
   },
   locationText: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textSecondary,
+    fontSize: 14,
+    color: '#717171',
+  },
+  bio: {
+    fontSize: 14,
+    color: '#717171',
+    lineHeight: 20,
+    textAlign: 'center',
+    marginTop: 10,
+    maxWidth: 320,
+  },
+  trustRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 16,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  trustPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#EBEBEB',
+  },
+  trustText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#222222',
+  },
+  skillsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  skillPill: {
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  skillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#10B981',
   },
 });

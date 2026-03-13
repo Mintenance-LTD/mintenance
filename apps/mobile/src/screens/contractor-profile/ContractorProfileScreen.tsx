@@ -1,25 +1,29 @@
 /**
- * ContractorProfileScreen Container
+ * ContractorProfileScreen — Full redesign
  *
- * Displays contractor profile with tabs for photos and reviews.
- * Fetches real data from the API.
- *
- * @filesize Target: <120 lines
- * @compliance MVVM - Thin container
+ * Full-bleed cover hero with overlapping avatar, trust signals,
+ * impact stats, primary CTA, portfolio gallery, and review breakdown.
  */
 
 import React from 'react';
-import { ScrollView, View, Text, ActivityIndicator, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  ScrollView,
+  View,
+  Text,
+  ActivityIndicator,
+  TouchableOpacity,
+  StyleSheet,
+  RefreshControl,
+  StatusBar,
+  Platform,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
-import { ScreenHeader } from '../../components/shared';
 import { useContractorProfileViewModel } from './viewmodels/ContractorProfileViewModel';
 import {
   ProfileHeader,
   ProfileStats,
   ProfileActionButtons,
-  ProfileTabs,
   PhotoGallery,
   ReviewsList,
 } from './components';
@@ -38,55 +42,45 @@ export const ContractorProfileScreen: React.FC<ContractorProfileScreenProps> = (
   navigation,
   route,
 }) => {
+  const insets = useSafeAreaInsets();
   const viewModel = useContractorProfileViewModel(route?.params?.contractorId);
 
   if (viewModel.loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <ScreenHeader
-          title={route?.params?.contractorName || 'Contractor Profile'}
-          onBackPress={() => navigation.goBack()}
-        />
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" />
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size="large" color="#10B981" />
           <Text style={styles.loadingText}>Loading profile...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (viewModel.error) {
     return (
-      <SafeAreaView style={styles.container}>
-        <ScreenHeader
-          title="Contractor Profile"
-          onBackPress={() => navigation.goBack()}
-        />
-        <View style={styles.centered}>
-          <Ionicons name="alert-circle-outline" size={48} color={theme.colors.error} />
+      <View style={styles.container}>
+        <StatusBar barStyle="dark-content" />
+        <View style={[styles.centered, { paddingTop: insets.top + 60 }]}>
+          <View style={styles.errorIconWrap}>
+            <Ionicons name="alert-circle-outline" size={28} color="#EF4444" />
+          </View>
           <Text style={styles.errorText}>{viewModel.error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={viewModel.refresh}>
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.backLink} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={16} color="#717171" />
+            <Text style={styles.backLinkText}>Go Back</Text>
+          </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScreenHeader
-        title={route?.params?.contractorName || viewModel.contractor.name}
-        onBackPress={() => navigation.goBack()}
-        rightAction={
-          <ProfileActionButtons
-            onMessage={viewModel.handleMessage}
-            onCall={viewModel.handleCall}
-            onVideo={viewModel.handleVideo}
-            onShare={viewModel.handleShare}
-          />
-        }
-      />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
 
       <ScrollView
         style={styles.scrollView}
@@ -95,44 +89,59 @@ export const ContractorProfileScreen: React.FC<ContractorProfileScreenProps> = (
           <RefreshControl
             refreshing={viewModel.loading}
             onRefresh={viewModel.refresh}
-            tintColor={theme.colors.primary}
-            colors={[theme.colors.primary]}
+            tintColor="#FFFFFF"
+            colors={['#10B981']}
           />
         }
       >
+        {/* Full-bleed hero with avatar */}
         <ProfileHeader
           name={viewModel.contractor.name}
           location={viewModel.contractor.location}
+          bio={viewModel.contractor.bio}
+          verified={viewModel.contractor.verified}
+          skills={viewModel.contractor.skills}
+          topInset={insets.top}
+          onBack={() => navigation.goBack()}
+          onShare={viewModel.handleShare}
         />
 
+        {/* Impact stats */}
         <ProfileStats
           jobsCompleted={viewModel.contractor.jobsCompleted}
           rating={viewModel.contractor.rating}
           reviewCount={viewModel.contractor.reviews}
         />
 
-        <ProfileTabs
-          activeTab={viewModel.activeTab}
-          onTabChange={viewModel.setActiveTab}
+        {/* Primary CTA + secondary actions */}
+        <ProfileActionButtons
+          onMessage={viewModel.handleMessage}
+          onCall={viewModel.handleCall}
+          onVideo={viewModel.handleVideo}
+          onShare={viewModel.handleShare}
         />
 
-        {viewModel.activeTab === 'photos' ? (
-          <PhotoGallery
-            photos={viewModel.photos}
-            onAddPhoto={viewModel.handleAddPhoto}
-          />
-        ) : (
-          <ReviewsList reviews={viewModel.reviews} />
-        )}
+        {/* Portfolio gallery */}
+        <PhotoGallery photos={viewModel.photos} onAddPhoto={viewModel.handleAddPhoto} />
+
+        {/* Reviews with breakdown */}
+        <ReviewsList
+          reviews={viewModel.reviews}
+          totalCount={viewModel.contractor.reviews}
+          averageRating={viewModel.contractor.rating}
+        />
+
+        {/* Bottom spacing */}
+        <View style={{ height: insets.bottom + 24 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
   scrollView: {
     flex: 1,
@@ -146,25 +155,45 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: '#717171',
+  },
+  errorIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   errorText: {
-    marginTop: 12,
+    marginTop: 4,
     fontSize: 16,
-    color: theme.colors.error,
+    color: '#EF4444',
     textAlign: 'center',
   },
   retryButton: {
     marginTop: 16,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#10B981',
     paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingVertical: 14,
+    borderRadius: 14,
   },
   retryText: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '700',
+  },
+  backLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 16,
+  },
+  backLinkText: {
+    fontSize: 14,
+    color: '#717171',
+    fontWeight: '500',
   },
 });
 

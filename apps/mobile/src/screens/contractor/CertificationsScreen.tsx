@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -14,7 +15,6 @@ import { useQuery } from '@tanstack/react-query';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Badge } from '../../components/ui/Badge';
-import { theme } from '../../theme';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 
 interface Certification {
@@ -61,7 +61,7 @@ export const CertificationsScreen: React.FC = () => {
         data={certifications}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor="#222222" colors={['#222222']} />}
         ListEmptyComponent={<EmptyState icon="ribbon-outline" title="No Certifications" subtitle="Add your professional certifications." />}
         renderItem={({ item }) => {
           const status = getExpiryStatus(item.expiry_date);
@@ -75,7 +75,7 @@ export const CertificationsScreen: React.FC = () => {
                 <View style={styles.certBadges}>
                   <Badge variant={status.variant} size="sm">{status.label}</Badge>
                   {item.verified && (
-                    <Ionicons name="checkmark-circle" size={18} color={theme.colors.success} />
+                    <Ionicons name="checkmark-circle" size={18} color="#10B981" />
                   )}
                 </View>
               </View>
@@ -100,25 +100,37 @@ export const CertificationsScreen: React.FC = () => {
         onPress={() => navigation.navigate('AddCertification' as never)}
         accessibilityLabel="Add certification"
       >
-        <Ionicons name="add" size={28} color={theme.colors.textInverse} />
+        <Ionicons name="add" size={28} color="#FFFFFF" />
       </TouchableOpacity>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
-  list: { padding: theme.spacing.md, paddingBottom: 80 },
-  certRow: { backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.lg, padding: theme.spacing.md, marginBottom: theme.spacing[3], ...theme.shadows.sm },
-  certHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: theme.spacing.sm },
-  certInfo: { flex: 1, marginRight: theme.spacing[3] },
-  certName: { fontSize: theme.typography.fontSize.md, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary },
-  certIssuer: { fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary, marginTop: 2 },
+  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  list: { padding: 16, paddingBottom: 80 },
+  certRow: {
+    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 10,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
+  },
+  certHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
+  certInfo: { flex: 1, marginRight: 12 },
+  certName: { fontSize: 16, fontWeight: '700', color: '#222222' },
+  certIssuer: { fontSize: 13, color: '#717171', marginTop: 2 },
   certBadges: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   certMeta: { flexDirection: 'row', justifyContent: 'space-between' },
-  certDate: { fontSize: theme.typography.fontSize.xs, color: theme.colors.textTertiary },
-  credentialId: { fontSize: theme.typography.fontSize.xs, color: theme.colors.textTertiary, marginTop: 6 },
-  fab: { position: 'absolute', bottom: theme.spacing.lg, right: theme.spacing.lg, width: 56, height: 56, borderRadius: theme.borderRadius.full, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center', ...theme.shadows.large },
+  certDate: { fontSize: 12, color: '#B0B0B0' },
+  credentialId: { fontSize: 12, color: '#B0B0B0', marginTop: 6 },
+  fab: {
+    position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: '#10B981', justifyContent: 'center', alignItems: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12 },
+      android: { elevation: 8 },
+    }),
+  },
 });
 
 export default CertificationsScreen;

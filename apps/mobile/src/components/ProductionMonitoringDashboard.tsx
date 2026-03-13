@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import {
   dashboardData,
   systemMonitoring,
@@ -15,7 +15,6 @@ import {
   webPlatform
 } from '../utils/productionSetupGuide';
 import { logger } from '../utils/logger';
-import { theme } from '../theme';
 
 interface DashboardStatus {
   overall: {
@@ -105,10 +104,10 @@ export function ProductionMonitoringDashboard() {
   };
 
   const getStatusColor = (status: string, score?: number) => {
-    if (status === 'healthy' || status === 'ready') return theme.colors.success;
-    if (status === 'warning' || (score && score < 80)) return theme.colors.warning;
-    if (status === 'error' || status === 'not_ready') return theme.colors.error;
-    return theme.colors.textTertiary;
+    if (status === 'healthy' || status === 'ready') return '#10B981';
+    if (status === 'warning' || (score && score < 80)) return '#F59E0B';
+    if (status === 'error' || status === 'not_ready') return '#EF4444';
+    return '#B0B0B0';
   };
 
   const formatTimestamp = (timestamp: number) => {
@@ -216,7 +215,7 @@ export function ProductionMonitoringDashboard() {
         <View style={styles.metricsGrid}>
           <View style={styles.metric}>
             <Text style={styles.metricLabel}>Error Rate</Text>
-            <Text style={[styles.metricValue, { color: (status.errors.errorRate ?? 0) > 0.01 ? theme.colors.error : theme.colors.success }]}>
+            <Text style={[styles.metricValue, { color: (status.errors.errorRate ?? 0) > 0.01 ? '#EF4444' : '#10B981' }]}>
               {((status.errors.errorRate ?? 0) * 100).toFixed(2)}%
             </Text>
           </View>
@@ -230,7 +229,7 @@ export function ProductionMonitoringDashboard() {
           </View>
           <View style={styles.metric}>
             <Text style={styles.metricLabel}>Critical Errors</Text>
-            <Text style={[styles.metricValue, { color: (status.errors.criticalErrors ?? 0) > 0 ? theme.colors.error : theme.colors.success }]}>
+            <Text style={[styles.metricValue, { color: (status.errors.criticalErrors ?? 0) > 0 ? '#EF4444' : '#10B981' }]}>
               {status.errors.criticalErrors ?? 0}
             </Text>
           </View>
@@ -249,13 +248,13 @@ export function ProductionMonitoringDashboard() {
         <View style={styles.vulnerabilitiesGrid}>
           <View style={styles.vulnerability}>
             <Text style={styles.vulnerabilityLabel}>Critical</Text>
-            <Text style={[styles.vulnerabilityValue, { color: (status.security.vulnerabilities?.critical ?? 0) > 0 ? theme.colors.error : theme.colors.success }]}>
+            <Text style={[styles.vulnerabilityValue, { color: (status.security.vulnerabilities?.critical ?? 0) > 0 ? '#EF4444' : '#10B981' }]}>
               {status.security.vulnerabilities?.critical ?? 0}
             </Text>
           </View>
           <View style={styles.vulnerability}>
             <Text style={styles.vulnerabilityLabel}>High</Text>
-            <Text style={[styles.vulnerabilityValue, { color: (status.security.vulnerabilities?.high ?? 0) > 0 ? theme.colors.warning : theme.colors.success }]}>
+            <Text style={[styles.vulnerabilityValue, { color: (status.security.vulnerabilities?.high ?? 0) > 0 ? '#F59E0B' : '#10B981' }]}>
               {status.security.vulnerabilities?.high ?? 0}
             </Text>
           </View>
@@ -276,7 +275,7 @@ export function ProductionMonitoringDashboard() {
           <Text style={styles.cardTitle}>🌐 Web Platform Status</Text>
           <View style={styles.statusRow}>
             <Text style={styles.statusLabel}>Optimizations:</Text>
-            <Text style={[styles.statusValue, { color: webPlatform.isOptimized() ? theme.colors.success : theme.colors.warning }]}>
+            <Text style={[styles.statusValue, { color: webPlatform.isOptimized() ? '#10B981' : '#F59E0B' }]}>
               {webPlatform.isOptimized() ? 'Active' : 'Inactive'}
             </Text>
           </View>
@@ -323,7 +322,7 @@ export function ProductionMonitoringDashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: '#F7F7F7',
     padding: 24,
   },
   header: {
@@ -331,13 +330,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginBottom: 12,
   },
   headerButtons: {
@@ -345,38 +344,48 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   refreshButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   refreshButtonText: {
-    color: theme.colors.white,
-    fontWeight: theme.typography.fontWeight.bold,
+    color: '#FFFFFF',
+    fontWeight: '700',
     fontSize: 14,
   },
   healthButton: {
-    backgroundColor: theme.colors.success,
+    backgroundColor: '#10B981',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   healthButtonText: {
-    color: theme.colors.white,
-    fontWeight: theme.typography.fontWeight.bold,
+    color: '#FFFFFF',
+    fontWeight: '700',
     fontSize: 14,
   },
   card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
     marginBottom: 12,
   },
   statusRow: {
@@ -387,12 +396,12 @@ const styles = StyleSheet.create({
   },
   statusLabel: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   statusValue: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
   },
   metricsGrid: {
     flexDirection: 'row',
@@ -402,19 +411,19 @@ const styles = StyleSheet.create({
   metric: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   metricLabel: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginBottom: 4,
   },
   metricValue: {
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
   },
   vulnerabilitiesGrid: {
     flexDirection: 'row',
@@ -426,13 +435,13 @@ const styles = StyleSheet.create({
   },
   vulnerabilityLabel: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginBottom: 4,
   },
   vulnerabilityValue: {
     fontSize: 18,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
   },
   footer: {
     marginTop: 20,
@@ -440,19 +449,19 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     textAlign: 'center',
     fontStyle: 'italic',
   },
   loadingText: {
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     textAlign: 'center',
     marginTop: 50,
   },
   errorText: {
     fontSize: 16,
-    color: theme.colors.error,
+    color: '#EF4444',
     textAlign: 'center',
     marginTop: 50,
     marginBottom: 20,

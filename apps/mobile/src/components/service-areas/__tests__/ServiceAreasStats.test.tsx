@@ -1,7 +1,7 @@
 import React from 'react';
 import { render } from '../../test-utils';
 import { ServiceAreasStats } from '../ServiceAreasStats';
-import { theme } from '../../../theme';
+
 import type { ServiceArea } from '../../../services/ServiceAreasService';
 
 jest.mock('react-native-safe-area-context', () => ({

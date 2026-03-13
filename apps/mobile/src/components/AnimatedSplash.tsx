@@ -7,7 +7,6 @@ import {
   Dimensions,
   Image,
 } from 'react-native';
-import { theme } from '../theme';
 
 const { width } = Dimensions.get('window');
 
@@ -143,7 +142,7 @@ export const AnimatedSplash: React.FC<AnimatedSplashProps> = ({ onFinish }) => {
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 9999,
@@ -151,22 +150,22 @@ const styles = StyleSheet.create({
   logoContainer: {
     width: width * 0.3,
     height: width * 0.3,
-    marginBottom: theme.spacing[5],
+    marginBottom: 20,
   },
   logo: {
     width: '100%',
     height: '100%',
   },
   name: {
-    fontSize: theme.typography.fontSize['3xl'],
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#222222',
     letterSpacing: -0.5,
   },
   tagline: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.regular,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing[2],
+    fontSize: 15,
+    fontWeight: '400',
+    color: '#717171',
+    marginTop: 8,
   },
 });

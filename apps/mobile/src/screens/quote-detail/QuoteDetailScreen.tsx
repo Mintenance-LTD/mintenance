@@ -6,12 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
-import { theme } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../components/ui/Toast';
 import { QuoteBuilderService, ContractorQuote } from '../../services/QuoteBuilderService';
@@ -24,12 +24,12 @@ interface QuoteDetailScreenProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  accepted: theme.colors.success,
-  rejected: theme.colors.error,
-  sent: theme.colors.textSecondary,
-  viewed: theme.colors.info,
-  expired: theme.colors.textSecondary,
-  draft: theme.colors.textTertiary,
+  accepted: '#10B981',
+  rejected: '#EF4444',
+  sent: '#717171',
+  viewed: '#3B82F6',
+  expired: '#717171',
+  draft: '#B0B0B0',
 };
 
 export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation, route }) => {
@@ -78,14 +78,16 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
   };
 
   const formatDate = (iso?: string) =>
-    iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+    iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '\u2014';
 
-  if (loading) return <LoadingSpinner message="Loading quote…" />;
+  if (loading) return <LoadingSpinner message="Loading quote\u2026" />;
 
   if (!quote) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <Ionicons name="document-outline" size={64} color={theme.colors.textTertiary} />
+        <View style={styles.emptyIconWrap}>
+          <Ionicons name="document-outline" size={32} color="#B0B0B0" />
+        </View>
         <Text style={styles.emptyText}>Quote not found</Text>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backLink}>Go back</Text>
@@ -94,37 +96,37 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
     );
   }
 
-  const statusColor = STATUS_COLORS[quote.status] ?? theme.colors.textSecondary;
+  const statusColor = STATUS_COLORS[quote.status] ?? '#717171';
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color="#222222" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Quote #{quote.quote_number}</Text>
         <TouchableOpacity
           style={styles.headerButton}
           onPress={() => navigation.navigate('CreateQuote', { jobId: quote.job_id })}
         >
-          <Ionicons name="pencil" size={22} color={theme.colors.textPrimary} />
+          <Ionicons name="pencil" size={22} color="#222222" />
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Status Card */}
-        <View style={[styles.statusCard, { borderLeftColor: statusColor }]}>
+        <View style={styles.statusCard}>
           <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
             <Text style={styles.statusText}>{quote.status.toUpperCase()}</Text>
           </View>
-          <Text style={styles.totalAmount}>£{quote.total_amount.toFixed(2)}</Text>
+          <Text style={styles.totalAmount}>{'\u00A3'}{quote.total_amount.toFixed(2)}</Text>
           <Text style={styles.projectTitle}>{quote.project_title}</Text>
         </View>
 
         {/* Client */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Client</Text>
+          <Text style={styles.sectionTitle}>CLIENT</Text>
           <Text style={styles.clientName}>{quote.client_name}</Text>
           {quote.client_email ? <Text style={styles.detailText}>{quote.client_email}</Text> : null}
           {quote.client_phone ? <Text style={styles.detailText}>{quote.client_phone}</Text> : null}
@@ -132,7 +134,7 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
 
         {/* Project */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Project</Text>
+          <Text style={styles.sectionTitle}>PROJECT</Text>
           <Text style={styles.valueText}>{quote.project_title}</Text>
           {quote.project_description ? (
             <Text style={styles.detailText}>{quote.project_description}</Text>
@@ -141,7 +143,7 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
 
         {/* Dates */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Dates</Text>
+          <Text style={styles.sectionTitle}>DATES</Text>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Created</Text>
             <Text style={styles.detailValue}>{formatDate(quote.created_at)}</Text>
@@ -160,33 +162,33 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
 
         {/* Totals */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Financials</Text>
+          <Text style={styles.sectionTitle}>FINANCIALS</Text>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Subtotal</Text>
-            <Text style={styles.detailValue}>£{quote.subtotal.toFixed(2)}</Text>
+            <Text style={styles.detailValue}>{'\u00A3'}{quote.subtotal.toFixed(2)}</Text>
           </View>
           {quote.discount_amount ? (
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Discount</Text>
-              <Text style={[styles.detailValue, { color: theme.colors.success }]}>
-                -£{quote.discount_amount.toFixed(2)}
+              <Text style={[styles.detailValue, { color: '#10B981' }]}>
+                -{'\u00A3'}{quote.discount_amount.toFixed(2)}
               </Text>
             </View>
           ) : null}
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Tax ({quote.tax_rate}%)</Text>
-            <Text style={styles.detailValue}>£{quote.tax_amount.toFixed(2)}</Text>
+            <Text style={styles.detailValue}>{'\u00A3'}{quote.tax_amount.toFixed(2)}</Text>
           </View>
           <View style={[styles.detailRow, styles.totalRowFinal]}>
             <Text style={styles.grandTotalLabel}>Total</Text>
-            <Text style={styles.grandTotalValue}>£{quote.total_amount.toFixed(2)}</Text>
+            <Text style={styles.grandTotalValue}>{'\u00A3'}{quote.total_amount.toFixed(2)}</Text>
           </View>
         </View>
 
         {/* Notes */}
         {quote.notes ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Notes</Text>
+            <Text style={styles.sectionTitle}>NOTES</Text>
             <Text style={styles.notesText}>{quote.notes}</Text>
           </View>
         ) : null}
@@ -198,11 +200,11 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
               style={styles.editButton}
               onPress={() => navigation.navigate('CreateQuote', { jobId: quote.job_id })}
             >
-              <Ionicons name="pencil-outline" size={18} color={theme.colors.textSecondary} />
+              <Ionicons name="pencil-outline" size={18} color="#717171" />
               <Text style={styles.editButtonText}>Edit Quote</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-              <Ionicons name="send-outline" size={18} color={theme.colors.textInverse} />
+              <Ionicons name="send-outline" size={18} color="#FFFFFF" />
               <Text style={styles.sendButtonText}>Send to Client</Text>
             </TouchableOpacity>
           </View>
@@ -215,7 +217,7 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.surfaceSecondary },
+  container: { flex: 1, backgroundColor: '#F7F7F7' },
   centered: { justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row',
@@ -223,71 +225,82 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   headerButton: { padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#222222' },
   scroll: { flex: 1 },
   statusCard: {
     margin: 16,
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 20,
-    borderLeftWidth: 4,
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: theme.borderRadius.sm, marginBottom: 12, alignSelf: 'flex-start' },
-  statusText: { fontSize: 12, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textInverse },
-  totalAmount: { fontSize: 28, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
-  projectTitle: { fontSize: 14, color: theme.colors.textSecondary, marginTop: 4 },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginBottom: 12, alignSelf: 'flex-start' },
+  statusText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
+  totalAmount: { fontSize: 28, fontWeight: '700', color: '#222222' },
+  projectTitle: { fontSize: 14, color: '#717171', marginTop: 4 },
   section: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     marginBottom: 12,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 16,
     padding: 16,
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
-  sectionTitle: { fontSize: 12, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textTertiary, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
-  clientName: { fontSize: 16, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary },
-  detailText: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 4 },
-  valueText: { fontSize: 14, fontWeight: theme.typography.fontWeight.medium, color: theme.colors.textPrimary },
+  sectionTitle: { fontSize: 12, fontWeight: '700', color: '#B0B0B0', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.8 },
+  clientName: { fontSize: 16, fontWeight: '600', color: '#222222' },
+  detailText: { fontSize: 13, color: '#717171', marginTop: 4 },
+  valueText: { fontSize: 14, fontWeight: '600', color: '#222222' },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
-  detailLabel: { fontSize: 14, color: theme.colors.textSecondary },
-  detailValue: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: theme.typography.fontWeight.medium },
-  totalRowFinal: { borderTopWidth: 1, borderTopColor: theme.colors.border, marginTop: 8, paddingTop: 12 },
-  grandTotalLabel: { fontSize: 16, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
-  grandTotalValue: { fontSize: 18, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
-  notesText: { fontSize: 14, color: theme.colors.textSecondary, lineHeight: 20 },
+  detailLabel: { fontSize: 14, color: '#717171' },
+  detailValue: { fontSize: 14, color: '#222222', fontWeight: '600' },
+  totalRowFinal: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#EBEBEB', marginTop: 8, paddingTop: 12 },
+  grandTotalLabel: { fontSize: 16, fontWeight: '700', color: '#222222' },
+  grandTotalValue: { fontSize: 18, fontWeight: '700', color: '#222222' },
+  notesText: { fontSize: 14, color: '#717171', lineHeight: 20 },
   actionsSection: { flexDirection: 'row', gap: 12, marginHorizontal: 16, marginTop: 4 },
   editButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.md,
-    paddingVertical: 12,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 28,
+    paddingVertical: 14,
     gap: 6,
-    backgroundColor: theme.colors.background,
   },
-  editButtonText: { fontSize: 14, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary },
+  editButtonText: { fontSize: 14, fontWeight: '600', color: '#222222' },
   sendButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.md,
-    paddingVertical: 12,
+    backgroundColor: '#222222',
+    borderRadius: 28,
+    paddingVertical: 14,
     gap: 6,
   },
-  sendButtonText: { fontSize: 14, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textInverse },
-  emptyText: { fontSize: 16, color: theme.colors.textSecondary, marginTop: 16 },
-  backLink: { fontSize: 14, color: theme.colors.textPrimary, marginTop: 12 },
+  sendButtonText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: { fontSize: 16, color: '#717171', marginTop: 16 },
+  backLink: { fontSize: 14, color: '#222222', fontWeight: '600', marginTop: 12 },
 });
 
 export default QuoteDetailScreen;

@@ -1,15 +1,12 @@
 /**
- * ProfileStats Component
- * 
- * Displays contractor statistics (jobs, rating, reviews).
- * 
- * @filesize Target: <60 lines
- * @compliance Single Responsibility - Stats display
+ * ProfileStats — Impact stat cards
+ *
+ * Three cards with visual weight: Jobs, Rating (with stars), Reviews.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../../theme';
+import { View, Text, StyleSheet, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 interface ProfileStatsProps {
   jobsCompleted: number;
@@ -22,17 +19,44 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
   rating,
   reviewCount,
 }) => {
+  const displayRating = rating > 0 ? rating.toFixed(1) : '—';
+  const fullStars = Math.floor(rating);
+  const hasHalf = rating - fullStars >= 0.5;
+
   return (
     <View style={styles.container} testID="profile-stats-container">
-      <View style={styles.stat} testID="jobs-stat" accessibilityLabel={`${jobsCompleted} jobs completed`}>
+      {/* Jobs Completed */}
+      <View style={styles.card} testID="jobs-stat" accessibilityLabel={`${jobsCompleted} jobs completed`}>
+        <View style={[styles.iconCircle, { backgroundColor: '#D1FAE5' }]}>
+          <Ionicons name="briefcase" size={18} color="#10B981" />
+        </View>
         <Text style={styles.statValue} testID="jobs-value">{jobsCompleted}</Text>
-        <Text style={styles.statLabel}>Jobs</Text>
+        <Text style={styles.statLabel}>Jobs Done</Text>
       </View>
-      <View style={styles.stat} testID="rating-stat" accessibilityLabel={`Rating: ${rating} out of 5`}>
-        <Text style={styles.statValue} testID="rating-value">{rating}</Text>
-        <Text style={styles.statLabel}>Rating</Text>
+
+      {/* Rating */}
+      <View style={styles.card} testID="rating-stat" accessibilityLabel={`Rating: ${rating} out of 5`}>
+        <View style={[styles.iconCircle, { backgroundColor: '#FEF3C7' }]}>
+          <Ionicons name="star" size={18} color="#F59E0B" />
+        </View>
+        <Text style={styles.statValue} testID="rating-value">{displayRating}</Text>
+        <View style={styles.starsRow}>
+          {Array(5).fill(0).map((_, i) => (
+            <Ionicons
+              key={i}
+              name={i < fullStars ? 'star' : (i === fullStars && hasHalf ? 'star-half' : 'star-outline')}
+              size={10}
+              color="#F59E0B"
+            />
+          ))}
+        </View>
       </View>
-      <View style={styles.stat} testID="reviews-stat" accessibilityLabel={`${reviewCount} reviews`}>
+
+      {/* Reviews */}
+      <View style={styles.card} testID="reviews-stat" accessibilityLabel={`${reviewCount} reviews`}>
+        <View style={[styles.iconCircle, { backgroundColor: '#DBEAFE' }]}>
+          <Ionicons name="chatbubbles" size={18} color="#3B82F6" />
+        </View>
         <Text style={styles.statValue} testID="reviews-value">{reviewCount}</Text>
         <Text style={styles.statLabel}>Reviews</Text>
       </View>
@@ -43,20 +67,46 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: theme.spacing.xl,
+    paddingHorizontal: 16,
+    gap: 10,
+    marginTop: 4,
+    marginBottom: 8,
   },
-  stat: {
+  card: {
+    flex: 1,
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6 },
+      android: { elevation: 1 },
+    }),
+  },
+  iconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
   statValue: {
-    fontSize: theme.typography.fontSize['2xl'],
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#222222',
+    letterSpacing: -0.5,
   },
   statLabel: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textSecondary,
+    fontSize: 12,
+    color: '#717171',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  starsRow: {
+    flexDirection: 'row',
+    gap: 1,
     marginTop: 4,
   },
 });

@@ -18,12 +18,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { theme } from '../../theme';
 import { ScreenHeader } from '../../components/shared';
 import { DatePicker } from '../../components/ui/DatePicker';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
@@ -61,8 +60,24 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
   useUnsavedChanges(hasUnsavedChanges);
 
   const createMutation = useMutation({
-    mutationFn: (data: Record<string, unknown>) =>
-      apiClient.post('/api/properties', data),
+    mutationFn: async (data: Record<string, unknown>) => {
+      if (!user?.id) throw new Error('Not authenticated');
+      const address = [data.address_line1, data.address_line2, data.city, data.county, data.postcode]
+        .filter(Boolean).join(', ');
+      const propertyName = `${data.property_type || 'Property'} at ${data.address_line1}`;
+      const { error } = await supabase.from('properties').insert({
+        owner_id: user.id,
+        property_name: propertyName,
+        address,
+        property_type: 'residential',
+        city: data.city,
+        postcode: data.postcode,
+        bedrooms: data.bedrooms || null,
+        bathrooms: data.bathrooms || null,
+        is_primary: false,
+      });
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['properties'] });
       navigation.goBack();
@@ -83,17 +98,16 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
       const { coords } = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       setLatitude(coords.latitude);
       setLongitude(coords.longitude);
-      interface GeoAddr { house_number?: string; road?: string; city?: string; town?: string; village?: string; postcode?: string }
-      const res = await apiClient.get<{ address?: GeoAddr }>(
-        `/api/geocoding/reverse?lat=${coords.latitude}&lon=${coords.longitude}`
-      );
-      const addr = res.address;
-      if (addr) {
-        const line1 = [addr.house_number, addr.road].filter(Boolean).join(' ');
+      const [result] = await Location.reverseGeocodeAsync({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      });
+      if (result) {
+        const line1 = [result.streetNumber, result.street].filter(Boolean).join(' ');
         if (line1) setAddress1(line1);
-        const cityVal = addr.city || addr.town || addr.village || '';
-        if (cityVal) setCity(cityVal);
-        if (addr.postcode) setPostcode(addr.postcode.toUpperCase());
+        if (result.city) setCity(result.city);
+        if (result.postalCode) setPostcode(result.postalCode.toUpperCase());
+        if (result.region) setCounty(result.region);
       }
     } catch {
       Alert.alert('Error', 'Could not fetch your location. Please enter your address manually.');
@@ -133,10 +147,6 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
       property_type: propertyType,
       bedrooms: bedrooms ? parseInt(bedrooms, 10) : undefined,
       bathrooms: bathrooms ? parseInt(bathrooms, 10) : undefined,
-      purchase_date: purchaseDate ? purchaseDate.toISOString().split('T')[0] : undefined,
-      notes: notes.trim() || undefined,
-      latitude,
-      longitude,
     });
   };
 
@@ -155,7 +165,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Address</Text>
+            <Text style={styles.sectionTitle}>ADDRESS</Text>
 
             {/* Use current location */}
             <TouchableOpacity
@@ -166,8 +176,8 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
               accessibilityLabel="Use current location to fill address"
             >
               {locating
-                ? <ActivityIndicator size="small" color={theme.colors.textInverse} />
-                : <Ionicons name="location" size={18} color={theme.colors.textInverse} />
+                ? <ActivityIndicator size="small" color="#FFFFFF" />
+                : <Ionicons name="location" size={18} color="#FFFFFF" />
               }
               <Text style={styles.locationButtonText}>
                 {locating ? 'Locating...' : 'Use Current Location'}
@@ -181,7 +191,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                 value={address1}
                 onChangeText={setAddress1}
                 placeholder="e.g. 42 High Street"
-                placeholderTextColor={theme.colors.textTertiary}
+                placeholderTextColor="#B0B0B0"
               />
             </View>
 
@@ -192,7 +202,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                 value={address2}
                 onChangeText={setAddress2}
                 placeholder="e.g. Apartment 3B"
-                placeholderTextColor={theme.colors.textTertiary}
+                placeholderTextColor="#B0B0B0"
               />
             </View>
 
@@ -204,7 +214,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                   value={city}
                   onChangeText={setCity}
                   placeholder="e.g. London"
-                  placeholderTextColor={theme.colors.textTertiary}
+                  placeholderTextColor="#B0B0B0"
                 />
               </View>
               <View style={styles.rowSpacer} />
@@ -215,7 +225,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                   value={county}
                   onChangeText={setCounty}
                   placeholder="e.g. Greater London"
-                  placeholderTextColor={theme.colors.textTertiary}
+                  placeholderTextColor="#B0B0B0"
                 />
               </View>
             </View>
@@ -227,14 +237,14 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                 value={postcode}
                 onChangeText={setPostcode}
                 placeholder="e.g. SW1A 1AA"
-                placeholderTextColor={theme.colors.textTertiary}
+                placeholderTextColor="#B0B0B0"
                 autoCapitalize="characters"
               />
             </View>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Property Type</Text>
+            <Text style={styles.sectionTitle}>PROPERTY TYPE</Text>
             <View style={styles.typeGrid}>
               {PROPERTY_TYPES.map(type => (
                 <TouchableOpacity
@@ -248,7 +258,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                   <Ionicons
                     name={type.icon}
                     size={18}
-                    color={propertyType === type.value ? theme.colors.textInverse : theme.colors.textSecondary}
+                    color={propertyType === type.value ? '#FFFFFF' : '#717171'}
                   />
                   <Text
                     style={[
@@ -264,7 +274,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Details</Text>
+            <Text style={styles.sectionTitle}>DETAILS</Text>
             <View style={styles.row}>
               <View style={[styles.inputGroup, styles.flex]}>
                 <Text style={styles.label}>Bedrooms</Text>
@@ -273,7 +283,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                   value={bedrooms}
                   onChangeText={setBedrooms}
                   placeholder="0"
-                  placeholderTextColor={theme.colors.textTertiary}
+                  placeholderTextColor="#B0B0B0"
                   keyboardType="number-pad"
                 />
               </View>
@@ -285,7 +295,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                   value={bathrooms}
                   onChangeText={setBathrooms}
                   placeholder="0"
-                  placeholderTextColor={theme.colors.textTertiary}
+                  placeholderTextColor="#B0B0B0"
                   keyboardType="number-pad"
                 />
               </View>
@@ -299,13 +309,13 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Notes</Text>
+            <Text style={styles.sectionTitle}>NOTES</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               value={notes}
               onChangeText={setNotes}
               placeholder="Any additional notes about the property..."
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor="#B0B0B0"
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -330,118 +340,118 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
   flex: {
     flex: 1,
   },
   content: {
-    padding: theme.spacing[4],
-    paddingBottom: theme.spacing[8],
+    padding: 16,
+    paddingBottom: 32,
   },
   section: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing[4],
-    marginBottom: theme.spacing[4],
-    ...theme.shadows.sm,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   sectionTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[3],
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#B0B0B0',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 12,
   },
   inputGroup: {
-    marginBottom: theme.spacing[3],
+    marginBottom: 12,
   },
   label: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing[1],
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#717171',
+    marginBottom: 4,
   },
   input: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[3],
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textPrimary,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: '#222222',
   },
   postcodeInput: {
     width: 160,
   },
   textArea: {
     minHeight: 100,
-    paddingTop: theme.spacing[3],
+    paddingTop: 14,
   },
   row: {
     flexDirection: 'row',
   },
   rowSpacer: {
-    width: theme.spacing[3],
+    width: 12,
   },
   typeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: theme.spacing[2],
+    gap: 8,
   },
   typeChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing[2],
-    paddingHorizontal: theme.spacing[3],
-    borderRadius: theme.borderRadius.full,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.background,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: '#F7F7F7',
   },
   typeChipSelected: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: '#222222',
   },
   typeChipText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
-    marginLeft: theme.spacing[1],
+    fontSize: 13,
+    color: '#717171',
+    marginLeft: 6,
   },
   typeChipTextSelected: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: '#222222',
+    borderRadius: 28,
     paddingVertical: 12,
     gap: 8,
-    marginBottom: theme.spacing[3],
+    marginBottom: 16,
   },
   locationButtonText: {
-    color: theme.colors.textInverse,
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   submitButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.xl,
-    paddingVertical: theme.spacing[4],
+    backgroundColor: '#222222',
+    borderRadius: 28,
+    paddingVertical: 16,
     alignItems: 'center',
-    marginTop: theme.spacing[2],
+    marginTop: 8,
   },
   submitButtonDisabled: {
     opacity: 0.5,
   },
   submitButtonText: {
-    color: theme.colors.textInverse,
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '600',
   },
 });
 
 export default AddPropertyScreen;
-

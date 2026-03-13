@@ -13,6 +13,7 @@ const listQuerySchema = z.object({
   limit: z.coerce.number().min(1).max(50).default(20),
   cursor: z.string().optional(),
   status: z.array(z.string()).optional(),
+  propertyId: z.string().uuid().optional(),
 });
 
 const VALID_CATEGORIES = [
@@ -60,16 +61,17 @@ export const GET = withApiHandler(
       limit: url.searchParams.get('limit') ?? undefined,
       cursor: url.searchParams.get('cursor') ?? undefined,
       status: url.searchParams.getAll('status') ?? undefined,
+      propertyId: url.searchParams.get('propertyId') ?? undefined,
     });
 
     if (!parsed.success) {
       throw new BadRequestError('Invalid query parameters');
     }
 
-    const { limit, cursor, status } = parsed.data;
+    const { limit, cursor, status, propertyId } = parsed.data;
     const { items, nextCursor } = await JobQueryService.getInstance().listJobs(
       { id: user.id, role: user.role },
-      { limit, cursor, status }
+      { limit, cursor, status, propertyId }
     );
 
     return NextResponse.json({ jobs: items, nextCursor });

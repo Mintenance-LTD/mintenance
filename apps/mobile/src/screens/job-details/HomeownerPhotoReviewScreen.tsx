@@ -15,12 +15,12 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider';
@@ -144,7 +144,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size="large" color="#222222" />
           <Text style={styles.loadingText}>Loading photos...</Text>
         </View>
       </SafeAreaView>
@@ -155,14 +155,16 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} accessibilityRole="button">
-            <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} accessibilityRole="button">
+            <Ionicons name="arrow-back" size={22} color="#222222" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Review Work</Text>
-          <View style={{ width: 24 }} />
+          <View style={{ width: 44 }} />
         </View>
         <View style={styles.centered}>
-          <Ionicons name="images-outline" size={64} color={theme.colors.textSecondary} />
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="images-outline" size={32} color="#B0B0B0" />
+          </View>
           <Text style={styles.emptyTitle}>No Photos Available</Text>
           <Text style={styles.emptySubtitle}>
             Photos will appear here once the contractor uploads before and after photos.
@@ -178,8 +180,8 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} accessibilityRole="button">
+          <Ionicons name="arrow-back" size={22} color="#222222" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Review Work</Text>
@@ -207,7 +209,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
             <View style={styles.timestampRow}>
               {currentPair.before.timestamp && (
                 <View style={styles.timestampBadge}>
-                  <Ionicons name="camera-outline" size={12} color={theme.colors.textTertiary} />
+                  <Ionicons name="camera-outline" size={12} color="#B0B0B0" />
                   <Text style={styles.timestampText}>
                     Before: {new Date(currentPair.before.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                   </Text>
@@ -215,7 +217,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
               )}
               {currentPair.after.timestamp && (
                 <View style={styles.timestampBadge}>
-                  <Ionicons name="checkmark-circle-outline" size={12} color={theme.colors.textTertiary} />
+                  <Ionicons name="checkmark-circle-outline" size={12} color="#B0B0B0" />
                   <Text style={styles.timestampText}>
                     After: {new Date(currentPair.after.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                   </Text>
@@ -252,7 +254,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
 
         {/* Instructions */}
         <View style={styles.instructions}>
-          <Ionicons name="information-circle-outline" size={20} color={theme.colors.textTertiary} />
+          <Ionicons name="information-circle-outline" size={20} color="#B0B0B0" />
           <Text style={styles.instructionsText}>
             Drag the slider to compare before and after photos. Approve if satisfied, or request changes.
           </Text>
@@ -267,7 +269,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
               value={changesComment}
               onChangeText={setChangesComment}
               placeholder="Describe what needs to be fixed or improved..."
-              placeholderTextColor={theme.colors.textSecondary}
+              placeholderTextColor="#B0B0B0"
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -292,7 +294,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
                 accessibilityLabel="Submit change request"
               >
                 {submitting ? (
-                  <ActivityIndicator size="small" color={theme.colors.white} />
+                  <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
                   <Text style={styles.submitButtonText}>Send to Contractor</Text>
                 )}
@@ -312,7 +314,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
             accessibilityRole="button"
             accessibilityLabel="Request changes to the work"
           >
-            <Ionicons name="create-outline" size={20} color={theme.colors.textSecondary} />
+            <Ionicons name="create-outline" size={20} color="#717171" />
             <Text style={styles.requestChangesText}>Request Changes</Text>
           </TouchableOpacity>
 
@@ -324,10 +326,10 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
             accessibilityLabel="Approve the completed work"
           >
             {submitting ? (
-              <ActivityIndicator size="small" color={theme.colors.white} />
+              <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <>
-                <Ionicons name="checkmark-circle" size={20} color={theme.colors.white} />
+                <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
                 <Text style={styles.approveButtonText}>Approve Work</Text>
               </>
             )}
@@ -341,7 +343,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
   centered: {
     flex: 1,
@@ -352,7 +354,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   header: {
     flexDirection: 'row',
@@ -360,6 +362,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerCenter: {
     flex: 1,
@@ -368,18 +380,18 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
   },
   headerSubtitle: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginTop: 2,
   },
   photoCount: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textSecondary,
+    fontWeight: '600',
+    color: '#717171',
   },
   content: {
     flex: 1,
@@ -400,13 +412,13 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
     borderRadius: 6,
   },
   timestampText: {
     fontSize: 11,
-    color: theme.colors.textTertiary,
-    fontWeight: theme.typography.fontWeight.medium,
+    color: '#B0B0B0',
+    fontWeight: '500',
   },
   thumbnailRow: {
     marginTop: 12,
@@ -418,21 +430,21 @@ const styles = StyleSheet.create({
   thumbnail: {
     width: 44,
     height: 44,
-    borderRadius: 10,
-    backgroundColor: theme.colors.surfaceSecondary,
+    borderRadius: 12,
+    backgroundColor: '#F7F7F7',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
   },
   thumbnailActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.backgroundSecondary,
+    borderColor: '#222222',
+    backgroundColor: '#EBEBEB',
   },
   thumbnailText: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
   },
   instructions: {
     flexDirection: 'row',
@@ -441,37 +453,38 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 16,
     padding: 12,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
     borderRadius: 12,
   },
   instructionsText: {
     flex: 1,
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     lineHeight: 20,
   },
   changesForm: {
     margin: 16,
     padding: 16,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    ...theme.shadows.sm,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   changesLabel: {
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     marginBottom: 12,
   },
   changesInput: {
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
+    backgroundColor: '#F7F7F7',
     borderRadius: 12,
     padding: 12,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: '#222222',
     minHeight: 100,
-    backgroundColor: theme.colors.background,
   },
   changesActions: {
     flexDirection: 'row',
@@ -482,23 +495,23 @@ const styles = StyleSheet.create({
   cancelButton: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 12,
   },
   cancelButtonText: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#717171',
+    fontWeight: '600',
   },
   submitButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 28,
   },
   submitButtonText: {
     fontSize: 15,
-    color: theme.colors.white,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   buttonDisabled: {
     opacity: 0.5,
@@ -508,8 +521,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#EBEBEB',
   },
   requestChangesButton: {
     flex: 1,
@@ -518,15 +531,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: theme.colors.borderLight,
-    backgroundColor: theme.colors.surface,
+    borderRadius: 28,
+    backgroundColor: '#F7F7F7',
   },
   requestChangesText: {
     fontSize: 15,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
   },
   approveButton: {
     flex: 1,
@@ -535,23 +546,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: theme.colors.primary,
+    borderRadius: 28,
+    backgroundColor: '#10B981',
   },
   approveButtonText: {
     fontSize: 15,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.white,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   emptyTitle: {
     fontSize: 22,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
     marginTop: 16,
   },
   emptySubtitle: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 22,

@@ -11,7 +11,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNetworkState } from '../hooks/useNetworkState';
 import { OfflineManager, SyncStatus } from '../services/OfflineManager';
-import { theme } from '../theme';
 import { logger } from '../utils/logger';
 
 interface OfflineSyncStatusProps {
@@ -124,13 +123,13 @@ const OfflineSyncStatus: React.FC<OfflineSyncStatusProps> = ({
     if (!isOnline) {
       return {
         icon: 'cloud-offline-outline' as const,
-        color: theme.colors.warning,
+        color: '#F59E0B',
         text: 'Offline',
         description:
           pendingCount > 0
             ? `${pendingCount} changes pending`
             : 'Working offline',
-        backgroundColor: theme.colors.warningLight,
+        backgroundColor: '#FEF3C7',
       };
     }
 
@@ -138,34 +137,34 @@ const OfflineSyncStatus: React.FC<OfflineSyncStatusProps> = ({
       case 'syncing':
         return {
           icon: 'sync-outline' as const,
-          color: theme.colors.primary,
+          color: '#222222',
           text: 'Syncing',
           description: 'Syncing pending changes...',
-          backgroundColor: theme.colors.primaryLight,
+          backgroundColor: 'rgba(34, 34, 34, 0.04)',
         };
       case 'error':
         return {
           icon: 'alert-circle-outline' as const,
-          color: theme.colors.error,
+          color: '#EF4444',
           text: 'Sync Error',
           description: `${pendingCount} changes failed to sync`,
-          backgroundColor: theme.colors.errorLight,
+          backgroundColor: '#FEF2F2',
         };
       case 'pending':
         return {
           icon: 'time-outline' as const,
-          color: theme.colors.warning,
+          color: '#F59E0B',
           text: 'Pending',
           description: `${pendingCount} changes waiting to sync`,
-          backgroundColor: theme.colors.warningLight,
+          backgroundColor: '#FEF3C7',
         };
       default:
         return {
           icon: 'checkmark-circle-outline' as const,
-          color: theme.colors.success,
+          color: '#10B981',
           text: 'Synced',
           description: 'All changes synced',
-          backgroundColor: theme.colors.successLight,
+          backgroundColor: '#ECFDF5',
         };
     }
   };
@@ -258,7 +257,7 @@ const OfflineSyncStatus: React.FC<OfflineSyncStatusProps> = ({
               <Ionicons
                 name='trash-outline'
                 size={16}
-                color={theme.colors.textTertiary}
+                color='#B0B0B0'
               />
             </TouchableOpacity>
           )}
@@ -273,19 +272,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    paddingHorizontal: theme.spacing[4],
-    paddingVertical: theme.spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
     zIndex: 1000,
   },
   topPosition: {
     top: 0,
-    paddingTop: theme.spacing[12], // Account for status bar
+    paddingTop: 48,
   },
   bottomPosition: {
     bottom: 0,
-    paddingBottom: theme.spacing[8], // Account for safe area
+    paddingBottom: 32,
   },
   content: {
     flexDirection: 'row',
@@ -298,61 +297,61 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   textContent: {
-    marginLeft: theme.spacing[3],
+    marginLeft: 12,
     flex: 1,
   },
   statusText: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 13,
+    fontWeight: '600',
   },
   descriptionText: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing[1],
+    fontSize: 12,
+    color: '#717171',
+    marginTop: 4,
   },
   connectionText: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.warning,
+    fontSize: 12,
+    color: '#F59E0B',
     fontStyle: 'italic',
   },
   rightContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing[2],
+    gap: 8,
   },
   actionButton: {
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[2],
-    borderRadius: theme.borderRadius.base,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
     borderWidth: 1,
   },
   actionButtonText: {
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 12,
+    fontWeight: '500',
   },
   clearButton: {
-    padding: theme.spacing[2],
-    borderRadius: theme.borderRadius.base,
+    padding: 8,
+    borderRadius: 12,
   },
   compactContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[2],
-    paddingTop: theme.spacing[12], // Account for status bar
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    paddingTop: 48,
     zIndex: 1000,
   },
   compactContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: theme.spacing[2],
+    gap: 8,
   },
   compactText: {
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 12,
+    fontWeight: '500',
   },
 });
 

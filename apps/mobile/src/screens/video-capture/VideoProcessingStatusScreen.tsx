@@ -27,7 +27,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import VideoService from '../../services/VideoService';
 import { logger } from '@mintenance/shared';
-import { theme } from '../../theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -242,10 +241,10 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
 
   const renderDamageItem = (type: string, data: DamageData) => {
     const severityColors: Record<string, string> = {
-      early: theme.colors.success,
-      midway: theme.colors.warning,
-      full: theme.colors.error,
-      none: theme.colors.textTertiary,
+      early: '#10B981',
+      midway: '#F59E0B',
+      full: '#EF4444',
+      none: '#B0B0B0',
     };
 
     return (
@@ -255,7 +254,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
           <View
             style={[
               styles.severityBadge,
-              { backgroundColor: severityColors[data.severity_estimate] || theme.colors.textTertiary },
+              { backgroundColor: severityColors[data.severity_estimate] || '#B0B0B0' },
             ]}
           >
             <Text style={styles.severityText}>{data.severity_estimate}</Text>
@@ -283,7 +282,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          <Icon name="arrow-back" size={24} color={'#222222'} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Video Processing</Text>
         <View style={styles.placeholder} />
@@ -302,10 +301,10 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
               size={64}
               color={
                 currentStage.stage === 'completed'
-                  ? theme.colors.success
+                  ? '#10B981'
                   : currentStage.stage === 'failed'
-                  ? theme.colors.error
-                  : theme.colors.primary
+                  ? '#EF4444'
+                  : '#222222'
               }
             />
           </Animated.View>
@@ -323,7 +322,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
 
               <ActivityIndicator
                 size="small"
-                color={theme.colors.primary}
+                color={'#222222'}
                 style={styles.loader}
               />
             </>
@@ -368,7 +367,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
             style={styles.resultsCard}
           >
             <View style={styles.resultsHeader}>
-              <Icon name="assessment" size={24} color={theme.colors.textPrimary} />
+              <Icon name="assessment" size={24} color={'#222222'} />
               <Text style={styles.resultsTitle}>Assessment Results</Text>
             </View>
 
@@ -413,13 +412,13 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
                 {processingResults.aggregated_assessment.high_priority_damages.length > 0 && (
                   <View style={styles.prioritySection}>
                     <View style={styles.priorityHeader}>
-                      <Icon name="warning" size={20} color={theme.colors.error} />
+                      <Icon name="warning" size={20} color={'#EF4444'} />
                       <Text style={styles.priorityTitle}>High Priority</Text>
                     </View>
                     {processingResults.aggregated_assessment.high_priority_damages.map(
                       (damage: string) => (
                         <View key={damage} style={styles.priorityItem}>
-                          <Icon name="chevron-right" size={16} color={theme.colors.error} />
+                          <Icon name="chevron-right" size={16} color={'#EF4444'} />
                           <Text style={styles.priorityText}>{damage}</Text>
                         </View>
                       )
@@ -468,7 +467,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
         {/* Tips Section */}
         {!isComplete && !error && (
           <View style={styles.tipsCard}>
-            <Icon name="info-outline" size={20} color={theme.colors.textSecondary} />
+            <Icon name="info-outline" size={20} color={'#717171'} />
             <Text style={styles.tipsText}>
               AI processing typically takes 1-2 minutes for a 60-second video.
               You can leave this screen and come back later to check results.

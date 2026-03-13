@@ -12,7 +12,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { theme } from '../../theme';
 import { useToast } from '../../components/ui/Toast';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { ProfileStackParamList } from '../../navigation/types';
@@ -92,7 +91,7 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
     >
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
+          <Ionicons name="close" size={24} color="#222222" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Certification</Text>
         <TouchableOpacity
@@ -101,7 +100,7 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
           disabled={loading || !isValid}
         >
           <Text style={[styles.saveButtonText, (!isValid || loading) && styles.saveButtonDisabled]}>
-            {loading ? 'Saving…' : 'Save'}
+            {loading ? 'Saving\u2026' : 'Save'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -112,50 +111,50 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
           <TextInput
             style={styles.input}
             placeholder="e.g. CSCS Card, Gas Safe Certificate"
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor="#B0B0B0"
             value={certName}
             onChangeText={setCertName}
           />
 
-          <Text style={[styles.fieldLabel, { marginTop: theme.spacing.md }]}>Issuing Organisation *</Text>
+          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Issuing Organisation *</Text>
           <TextInput
             style={styles.input}
             placeholder="e.g. CITB, Gas Safe Register"
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor="#B0B0B0"
             value={issuer}
             onChangeText={setIssuer}
           />
 
-          <Text style={[styles.fieldLabel, { marginTop: theme.spacing.md }]}>Credential / Licence Number</Text>
+          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Credential / Licence Number</Text>
           <TextInput
             style={styles.input}
             placeholder="Optional"
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor="#B0B0B0"
             value={credentialId}
             onChangeText={setCredentialId}
           />
 
-          <Text style={[styles.fieldLabel, { marginTop: theme.spacing.md }]}>Issue Date</Text>
+          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Issue Date</Text>
           <TextInput
             style={styles.input}
             placeholder="DD/MM/YYYY"
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor="#B0B0B0"
             value={issueDate}
             onChangeText={setIssueDate}
             keyboardType="numbers-and-punctuation"
           />
 
-          <Text style={[styles.fieldLabel, { marginTop: theme.spacing.md }]}>Expiry Date</Text>
+          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Expiry Date</Text>
           <TextInput
             style={styles.input}
             placeholder="DD/MM/YYYY (leave blank if no expiry)"
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor="#B0B0B0"
             value={expiryDate}
             onChangeText={setExpiryDate}
             keyboardType="numbers-and-punctuation"
           />
 
-          <Text style={[styles.fieldLabel, { marginTop: theme.spacing.md }]}>Category</Text>
+          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Category</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
             {CATEGORY_OPTIONS.map((cat) => (
               <TouchableOpacity
@@ -176,62 +175,60 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.surfaceSecondary },
+  container: { flex: 1, backgroundColor: '#F7F7F7' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.md,
-    paddingBottom: theme.spacing[3],
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
-  headerButton: { padding: theme.spacing.sm, width: 60 },
-  headerTitle: { fontSize: theme.typography.fontSize.lg, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
+  headerButton: { padding: 8, width: 60 },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#222222' },
   saveButton: { alignItems: 'flex-end' },
-  saveButtonText: { fontSize: theme.typography.fontSize.md, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary },
+  saveButtonText: { fontSize: 16, fontWeight: '700', color: '#222222' },
   saveButtonDisabled: { opacity: 0.5 },
-  content: { padding: theme.spacing.md },
+  content: { padding: 16 },
   card: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.xl,
-    padding: theme.spacing[5],
-    ...theme.shadows.base,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   fieldLabel: {
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#B0B0B0',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     marginBottom: 6,
   },
   input: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing[3],
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textPrimary,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    color: '#222222',
   },
-  categoryScroll: { marginTop: theme.spacing.xs },
+  categoryScroll: { marginTop: 4 },
   categoryChip: {
     paddingHorizontal: 14,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.full,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    marginRight: theme.spacing.sm,
-    backgroundColor: theme.colors.background,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    backgroundColor: '#F7F7F7',
   },
   categoryChipActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#10B981',
   },
-  categoryText: { fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary },
-  categoryTextActive: { color: theme.colors.textInverse, fontWeight: theme.typography.fontWeight.semibold },
+  categoryText: { fontSize: 13, color: '#717171' },
+  categoryTextActive: { color: '#FFFFFF', fontWeight: '600' },
 });
 
 export default AddCertificationScreen;

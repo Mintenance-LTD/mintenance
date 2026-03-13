@@ -1,8 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { AssessmentStep } from '../types';
-import { theme } from '../../../theme';
 
 interface StepCardProps {
   step: AssessmentStep;
@@ -12,11 +11,11 @@ interface StepCardProps {
 const getStepStatusIcon = (status: AssessmentStep['status']) => {
   switch (status) {
     case 'completed':
-      return <Icon name="check-circle" size={24} color={theme.colors.success} />;
+      return <Icon name="check-circle" size={24} color="#10B981" />;
     case 'in_progress':
-      return <Icon name="pending" size={24} color={theme.colors.warning} />;
+      return <Icon name="pending" size={24} color="#F59E0B" />;
     default:
-      return <Icon name="radio-button-unchecked" size={24} color={theme.colors.textTertiary} />;
+      return <Icon name="radio-button-unchecked" size={24} color="#B0B0B0" />;
   }
 };
 
@@ -34,7 +33,7 @@ export const StepCard: React.FC<StepCardProps> = ({ step, onPress }) => {
         <Icon
           name={step.icon}
           size={24}
-          color={step.status === 'completed' ? theme.colors.success : theme.colors.textSecondary}
+          color={step.status === 'completed' ? '#10B981' : '#717171'}
         />
       </View>
       <View style={styles.stepContent}>
@@ -55,23 +54,26 @@ const styles = StyleSheet.create({
   stepCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing[3],
-    ...theme.shadows.base,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   stepCardCompleted: {
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: '#D1FAE5',
   },
   stepIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: '#F7F7F7',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: theme.spacing.md,
+    marginRight: 14,
   },
   stepContent: {
     flex: 1,
@@ -79,25 +81,25 @@ const styles = StyleSheet.create({
   stepHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing.xs,
-    gap: theme.spacing.sm,
+    marginBottom: 4,
+    gap: 8,
   },
   stepTitle: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222222',
   },
   requiredBadge: {
     fontSize: 11,
-    color: theme.colors.error,
-    fontWeight: theme.typography.fontWeight.semibold,
-    backgroundColor: theme.colors.errorLight ?? '#FEF2F2',
-    paddingHorizontal: theme.spacing.sm,
+    color: '#EF4444',
+    fontWeight: '600',
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: 6,
   },
   stepDescription: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    color: '#717171',
   },
 });

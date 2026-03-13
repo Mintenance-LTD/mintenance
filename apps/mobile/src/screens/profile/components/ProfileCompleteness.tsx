@@ -5,11 +5,11 @@ import {
   StyleSheet,
   Animated,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { User } from '@mintenance/types';
-import { theme } from '../../../theme';
 
 interface ProfileCompletenessProps {
   user: User | null;
@@ -41,7 +41,6 @@ const FIELDS: CompletenessField[] = [
   {
     label: 'Activity',
     weight: 10,
-    // This field is checked via the completedJobs prop instead
     check: () => false,
   },
 ];
@@ -81,7 +80,6 @@ export const ProfileCompleteness: React.FC<ProfileCompletenessProps> = ({
     }).start();
   }, [percentage, animatedWidth]);
 
-  // Auto-hide after 3 seconds when complete
   useEffect(() => {
     if (isComplete) {
       const timer = setTimeout(() => setDismissed(true), 3000);
@@ -106,7 +104,7 @@ export const ProfileCompleteness: React.FC<ProfileCompletenessProps> = ({
             <Ionicons
               name="checkmark-circle"
               size={16}
-              color={theme.colors.success}
+              color="#10B981"
             />
             <Text style={styles.completeText}>Profile complete!</Text>
           </View>
@@ -134,8 +132,8 @@ export const ProfileCompleteness: React.FC<ProfileCompletenessProps> = ({
             {
               width: fillWidth,
               backgroundColor: isComplete
-                ? theme.colors.success
-                : theme.colors.primary,
+                ? '#10B981'
+                : '#222222',
             },
           ]}
         />
@@ -157,8 +155,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     padding: 16,
     borderRadius: 16,
-    backgroundColor: theme.colors.surface,
-    ...theme.shadows.sm,
+    backgroundColor: '#FFFFFF',
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   topRow: {
     flexDirection: 'row',
@@ -168,13 +169,13 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
   },
   cta: {
     fontSize: 13,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.primary,
+    fontWeight: '600',
+    color: '#222222',
   },
   completeRow: {
     flexDirection: 'row',
@@ -183,13 +184,13 @@ const styles = StyleSheet.create({
   },
   completeText: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.success,
+    fontWeight: '600',
+    color: '#10B981',
   },
   track: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: '#F7F7F7',
     overflow: 'hidden',
   },
   fill: {
@@ -198,7 +199,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginTop: 6,
   },
 });

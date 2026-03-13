@@ -27,7 +27,6 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { logger } from '@mintenance/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
-import { theme } from '../../theme';
 
 interface MFAVerificationScreenProps {
   preMfaToken: string;
@@ -184,6 +183,11 @@ export default function MFAVerificationScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
+          <View style={styles.lockIconWrap}>
+            <View style={styles.lockIcon}>
+              <Text style={styles.lockEmoji}>{'\uD83D\uDD12'}</Text>
+            </View>
+          </View>
           <Text style={styles.title} accessibilityRole='header'>Two-Factor Authentication</Text>
           <Text style={styles.subtitle}>
             Enter your verification code to complete login
@@ -236,7 +240,7 @@ export default function MFAVerificationScreen() {
         {/* Code input */}
         <View style={styles.inputContainer}>
           <Text style={styles.label}>
-            {method === 'totp' ? '6-digit code' : 'Backup code'}
+            {method === 'totp' ? '6-DIGIT CODE' : 'BACKUP CODE'}
           </Text>
           <TextInput
             ref={inputRef}
@@ -244,7 +248,7 @@ export default function MFAVerificationScreen() {
             value={code}
             onChangeText={handleCodeChange}
             placeholder={method === 'totp' ? '000000' : 'XXXXXXXX'}
-            placeholderTextColor={theme.colors.placeholder}
+            placeholderTextColor="#B0B0B0"
             maxLength={method === 'totp' ? 6 : 8}
             keyboardType={method === 'totp' ? 'number-pad' : 'default'}
             autoCapitalize="characters"
@@ -271,7 +275,7 @@ export default function MFAVerificationScreen() {
           accessibilityState={{ checked: rememberDevice }}
         >
           <View style={[styles.checkbox, rememberDevice && styles.checkboxChecked]}>
-            {rememberDevice && <Text style={styles.checkmark}>✓</Text>}
+            {rememberDevice && <Text style={styles.checkmark}>{'\u2713'}</Text>}
           </View>
           <Text style={styles.checkboxLabel}>Trust this device for 30 days</Text>
         </TouchableOpacity>
@@ -288,7 +292,7 @@ export default function MFAVerificationScreen() {
           accessibilityLabel={loading ? 'Verifying code' : 'Verify code'}
         >
           {loading ? (
-            <ActivityIndicator color={theme.colors.white} />
+            <ActivityIndicator color="#FFFFFF" />
           ) : (
             <Text style={styles.buttonText}>Verify</Text>
           )}
@@ -325,7 +329,7 @@ export default function MFAVerificationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: '#F7F7F7',
   },
   scrollContent: {
     flexGrow: 1,
@@ -336,65 +340,88 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 32,
   },
+  lockIconWrap: {
+    marginBottom: 16,
+  },
+  lockIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#DBEAFE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lockEmoji: {
+    fontSize: 28,
+  },
   title: {
     fontSize: 24,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     textAlign: 'center',
   },
   methodSelector: {
     flexDirection: 'row',
     marginBottom: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 4,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   methodButton: {
     flex: 1,
     paddingVertical: 12,
     alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    borderRadius: 12,
   },
   methodButtonActive: {
-    borderBottomColor: theme.colors.primary,
+    backgroundColor: '#222222',
   },
   methodButtonText: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textSecondary,
+    fontWeight: '600',
+    color: '#717171',
   },
   methodButtonTextActive: {
-    color: theme.colors.textPrimary,
+    color: '#FFFFFF',
   },
   inputContainer: {
     marginBottom: 24,
   },
   label: {
-    fontSize: 14,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#B0B0B0',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: theme.colors.white,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     fontSize: 20,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     textAlign: 'center',
     letterSpacing: 4,
+    color: '#222222',
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   hint: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#B0B0B0',
     marginTop: 8,
     textAlign: 'center',
   },
@@ -408,62 +435,62 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderWidth: 2,
-    borderColor: theme.colors.borderDark,
-    borderRadius: 4,
-    marginRight: 8,
+    borderColor: '#B0B0B0',
+    borderRadius: 6,
+    marginRight: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: '#222222',
+    borderColor: '#222222',
   },
   checkmark: {
-    color: theme.colors.white,
+    color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.bold,
+    fontWeight: '700',
   },
   checkboxLabel: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: '#222222',
   },
   button: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: 12,
+    backgroundColor: '#222222',
+    borderRadius: 28,
     padding: 16,
     alignItems: 'center',
     marginBottom: 24,
   },
   buttonDisabled: {
-    backgroundColor: theme.colors.gray300,
+    opacity: 0.5,
   },
   buttonText: {
-    color: theme.colors.white,
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
   },
   helpContainer: {
     alignItems: 'center',
     marginBottom: 16,
     paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#EBEBEB',
   },
   helpText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginBottom: 8,
   },
   helpLink: {
     fontSize: 14,
-    color: theme.colors.primary,
-    fontWeight: theme.typography.fontWeight.medium,
+    color: '#222222',
+    fontWeight: '600',
   },
   backButton: {
     alignItems: 'center',
   },
   backButtonText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
 });

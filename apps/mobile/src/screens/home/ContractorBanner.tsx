@@ -60,15 +60,11 @@ export const ContractorBanner: React.FC<ContractorBannerProps> = ({
             <Text style={styles.statValue}>{activeJobs}</Text>
             <Text style={styles.statLabel}>Active Jobs</Text>
           </View>
-          {monthlyEarnings > 0 && (
-            <>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>£{monthlyEarnings.toFixed(0)}</Text>
-                <Text style={styles.statLabel}>This Month</Text>
-              </View>
-            </>
-          )}
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>£{monthlyEarnings.toFixed(0)}</Text>
+            <Text style={styles.statLabel}>This Month</Text>
+          </View>
         </View>
 
         {/* CTA */}
@@ -91,10 +87,9 @@ const styles = StyleSheet.create({
   hero: {
     borderRadius: 24,
     padding: 24,
-    marginTop: 12,
+    marginTop: 16,
     marginBottom: 8,
     overflow: 'hidden',
-    minHeight: 200,
     ...Platform.select({
       ios: {
         shadowColor: '#064E3B',
@@ -162,7 +157,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 30,
     fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: -0.3,

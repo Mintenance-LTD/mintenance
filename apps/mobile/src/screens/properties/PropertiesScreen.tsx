@@ -9,61 +9,82 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../../navigation/types';
-import { theme } from '../../theme';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
 import type { Property } from '@mintenance/types';
 
 interface Props {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'Properties'>;
 }
 
+const PROPERTY_ICON_BG: Record<string, string> = {
+  house: '#D1FAE5',
+  flat: '#DBEAFE',
+  bungalow: '#FEF3C7',
+  maisonette: '#EDE9FE',
+  other: '#F7F7F7',
+};
+
+const PROPERTY_ICON_COLOR: Record<string, string> = {
+  house: '#10B981',
+  flat: '#3B82F6',
+  bungalow: '#F59E0B',
+  maisonette: '#8B5CF6',
+  other: '#717171',
+};
+
 const PropertyCard: React.FC<{
   property: Property;
   onPress: () => void;
-}> = ({ property, onPress }) => (
-  <TouchableOpacity style={styles.propertyCard} onPress={onPress}>
-    <View style={styles.cardHeader}>
-      <Ionicons name="home-outline" size={24} color={theme.colors.textSecondary} />
-      <View style={styles.cardHeaderText}>
-        <Text style={styles.propertyAddress} numberOfLines={1}>
-          {property.property_name}
-        </Text>
-        <Text style={styles.propertyLocation} numberOfLines={2}>
-          {property.address}
-        </Text>
-      </View>
-      <Ionicons name="chevron-forward" size={20} color={theme.colors.textTertiary} />
-    </View>
-    <View style={styles.propertyMeta}>
-      <View style={styles.metaItem}>
-        <Ionicons name="business-outline" size={14} color={theme.colors.textSecondary} />
-        <Text style={styles.metaText}>
-          {(property.property_type ?? '').charAt(0).toUpperCase() + (property.property_type ?? '').slice(1)}
-        </Text>
-      </View>
-      {property.bedrooms != null && (
-        <View style={styles.metaItem}>
-          <Ionicons name="bed-outline" size={14} color={theme.colors.textSecondary} />
-          <Text style={styles.metaText}>{property.bedrooms} bed</Text>
+}> = ({ property, onPress }) => {
+  const pType = property.property_type ?? 'other';
+  return (
+    <TouchableOpacity style={styles.propertyCard} onPress={onPress}>
+      <View style={styles.cardHeader}>
+        <View style={[styles.propertyIconWrap, { backgroundColor: PROPERTY_ICON_BG[pType] || '#F7F7F7' }]}>
+          <Ionicons name="home-outline" size={20} color={PROPERTY_ICON_COLOR[pType] || '#717171'} />
         </View>
-      )}
-      {property.bathrooms != null && (
-        <View style={styles.metaItem}>
-          <Ionicons name="water-outline" size={14} color={theme.colors.textSecondary} />
-          <Text style={styles.metaText}>{property.bathrooms} bath</Text>
+        <View style={styles.cardHeaderText}>
+          <Text style={styles.propertyAddress} numberOfLines={1}>
+            {property.property_name}
+          </Text>
+          <Text style={styles.propertyLocation} numberOfLines={2}>
+            {property.address}
+          </Text>
         </View>
-      )}
-    </View>
-  </TouchableOpacity>
-);
+        <Ionicons name="chevron-forward" size={20} color="#B0B0B0" />
+      </View>
+      <View style={styles.propertyMeta}>
+        <View style={styles.metaItem}>
+          <Ionicons name="business-outline" size={14} color="#717171" />
+          <Text style={styles.metaText}>
+            {(property.property_type ?? '').charAt(0).toUpperCase() + (property.property_type ?? '').slice(1)}
+          </Text>
+        </View>
+        {property.bedrooms != null && (
+          <View style={styles.metaItem}>
+            <Ionicons name="bed-outline" size={14} color="#717171" />
+            <Text style={styles.metaText}>{property.bedrooms} bed</Text>
+          </View>
+        )}
+        {property.bathrooms != null && (
+          <View style={styles.metaItem}>
+            <Ionicons name="water-outline" size={14} color="#717171" />
+            <Text style={styles.metaText}>{property.bathrooms} bath</Text>
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 type SortOption = 'name' | 'date' | 'type';
 
@@ -76,10 +97,17 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
   const { data: properties, isLoading, error, refetch } = useQuery({
     queryKey: ['properties', user?.id],
     queryFn: async () => {
-      const res = await apiClient.get<{ properties: Property[] }>('/api/properties');
-      return res.properties || [];
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('owner_id', user.id)
+        .order('created_at', { ascending: false });
+      if (error) throw new Error(error.message);
+      return (data as Property[]) ?? [];
     },
-    enabled: !!user,
+    enabled: !!user?.id,
+    retry: 2,
   });
 
   const handleRefresh = async () => {
@@ -90,6 +118,10 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
 
   if (isLoading) {
     return <LoadingSpinner message="Loading properties..." />;
+  }
+
+  if (error) {
+    return <ErrorView message="Failed to load properties" onRetry={() => { refetch(); }} />;
   }
 
   const sortedProperties = React.useMemo(() => {
@@ -107,10 +139,6 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [properties, sortBy]);
 
-  if (error) {
-    return <ErrorView message="Failed to load properties" onRetry={refetch} />;
-  }
-
   return (
     <SafeAreaView style={styles.container}>
       <ScreenHeader
@@ -120,7 +148,7 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
             onPress={() => navigation.navigate('AddProperty')}
             accessibilityLabel="Add property"
           >
-            <Ionicons name="add-circle-outline" size={24} color={theme.colors.textPrimary} />
+            <Ionicons name="add-circle-outline" size={24} color="#10B981" />
           </TouchableOpacity>
         }
       />
@@ -151,7 +179,7 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
       {!properties || properties.length === 0 ? (
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconCircle}>
-            <Ionicons name="home-outline" size={48} color={theme.colors.textSecondary} />
+            <Ionicons name="home-outline" size={32} color="#10B981" />
           </View>
           <Text style={styles.emptyTitle}>No Properties</Text>
           <Text style={styles.emptySubtitle}>
@@ -161,7 +189,7 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
             style={styles.addButton}
             onPress={() => navigation.navigate('AddProperty')}
           >
-            <Ionicons name="add" size={20} color={theme.colors.textInverse} />
+            <Ionicons name="add" size={20} color="#FFFFFF" />
             <Text style={styles.addButtonText}>Add Property</Text>
           </TouchableOpacity>
         </View>
@@ -176,7 +204,7 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
             />
           )}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#10B981" colors={['#10B981']} />
           }
           contentContainerStyle={styles.listContainer}
         />
@@ -188,123 +216,133 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
   listContainer: {
-    padding: theme.spacing[4],
+    padding: 16,
   },
   propertyCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing[4],
-    marginBottom: theme.spacing[3],
-    ...theme.shadows.sm,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing[2],
+    marginBottom: 10,
+  },
+  propertyIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardHeaderText: {
     flex: 1,
-    marginLeft: theme.spacing[3],
+    marginLeft: 12,
   },
   propertyAddress: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#222222',
   },
   propertyLocation: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    color: '#717171',
     marginTop: 2,
   },
   propertyMeta: {
     flexDirection: 'row',
-    marginTop: theme.spacing[2],
-    paddingTop: theme.spacing[2],
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    marginTop: 8,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#EBEBEB',
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: theme.spacing[4],
+    marginRight: 16,
   },
   metaText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
-    marginLeft: theme.spacing[1],
+    fontSize: 13,
+    color: '#717171',
+    marginLeft: 4,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing[6],
+    paddingHorizontal: 40,
   },
   emptyIconCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: theme.colors.backgroundSecondary,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#D1FAE5',
     alignItems: 'center',
     justifyContent: 'center',
   },
   emptyTitle: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginTop: theme.spacing[4],
-    marginBottom: theme.spacing[2],
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#222222',
+    marginTop: 16,
+    marginBottom: 8,
   },
   emptySubtitle: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textSecondary,
+    fontSize: 15,
+    color: '#717171',
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: theme.spacing[6],
+    marginBottom: 24,
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary,
-    paddingVertical: theme.spacing[3],
-    paddingHorizontal: theme.spacing[5],
-    borderRadius: theme.borderRadius.xl,
+    backgroundColor: '#10B981',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 28,
+    gap: 8,
   },
   addButtonText: {
-    color: theme.colors.textInverse,
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    marginLeft: theme.spacing[2],
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   sortRow: {
     flexDirection: 'row',
     gap: 8,
-    paddingHorizontal: theme.spacing[4],
+    paddingHorizontal: 16,
     paddingVertical: 10,
   },
   sortChip: {
     paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.background,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 },
+      android: { elevation: 1 },
+    }),
   },
   sortChipActive: {
-    backgroundColor: theme.colors.textPrimary,
-    borderColor: theme.colors.textPrimary,
+    backgroundColor: '#10B981',
   },
   sortChipText: {
     fontSize: 13,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textSecondary,
+    fontWeight: '600',
+    color: '#717171',
   },
   sortChipTextActive: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
   },
 });
 
 export default PropertiesScreen;
-

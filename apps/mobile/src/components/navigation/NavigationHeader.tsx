@@ -45,6 +45,8 @@ export interface NavigationHeaderProps {
   onBackPress?: () => void;
   style?: ViewStyle;
   titleStyle?: TextStyle;
+  /** Override icon/text tint color (default: '#222222') */
+  tintColor?: string;
   subtitle?: string;
   notificationCount?: number;
   onNotificationPress?: () => void;
@@ -62,6 +64,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   onBackPress,
   style,
   titleStyle,
+  tintColor,
   subtitle,
   notificationCount = 0,
   onNotificationPress,
@@ -74,6 +77,8 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const iconColor = tintColor || '#222222';
+  const subtitleColor = tintColor ? `${tintColor}B3` : '#717171';
 
   const handleBackPress = () => {
     if (onBackPress) {
@@ -117,7 +122,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
               accessibilityLabel="Go back"
               testID="back-icon-button"
             >
-              <Ionicons name="arrow-back" size={22} color="#222222" />
+              <Ionicons name="arrow-back" size={22} color={iconColor} />
             </TouchableOpacity>
           ) : (
             <View style={styles.logoContainer} testID="menu-icon-button">
@@ -127,9 +132,9 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
 
           {/* Title */}
           <View style={styles.titleContainer}>
-            <Text style={[styles.title, titleStyle]} numberOfLines={1}>{title}</Text>
+            <Text style={[styles.title, tintColor ? { color: tintColor } : undefined, titleStyle]} numberOfLines={1}>{title}</Text>
             {subtitle && (
-              <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
+              <Text style={[styles.subtitle, tintColor ? { color: subtitleColor } : undefined]} numberOfLines={1}>{subtitle}</Text>
             )}
           </View>
 
@@ -148,7 +153,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
                   }
                   testID="notification-button"
                 >
-                  <Ionicons name="notifications-outline" size={22} color="#222222" />
+                  <Ionicons name="notifications-outline" size={22} color={iconColor} />
                   {notificationCount > 0 && (
                     <View style={styles.badge}>
                       <Text style={styles.badgeText}>
@@ -177,7 +182,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
               accessibilityRole="button"
               testID="right-icon-button"
             >
-              <Ionicons name={rightIcon.name} size={22} color="#222222" />
+              <Ionicons name={rightIcon.name} size={22} color={iconColor} />
             </TouchableOpacity>
           ) : (
             <View style={styles.iconPlaceholder} />

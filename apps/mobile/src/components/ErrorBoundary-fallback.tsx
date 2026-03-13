@@ -1,7 +1,6 @@
 import React, { ReactNode, ErrorInfo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { logger } from '../utils/logger';
-import { theme } from '../theme';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -103,26 +102,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 30,
-    backgroundColor: theme.colors.errorLight ?? '#fff5f5',
+    backgroundColor: '#FEE2E2',
   },
   errorTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: theme.colors.error,
+    color: '#EF4444',
     textAlign: 'center',
     marginBottom: 15,
   },
   errorMessage: {
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 25,
   },
   errorDetails: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: '#F7F7F7',
     padding: 15,
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 25,
     width: '100%',
     maxWidth: 400,
@@ -130,30 +129,32 @@ const styles = StyleSheet.create({
   errorDetailsTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: theme.colors.textPrimary,
+    color: '#222222',
     marginBottom: 8,
   },
   errorDetailsText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     fontFamily: 'monospace',
     lineHeight: 16,
   },
   retryButton: {
-    backgroundColor: theme.colors.info,
+    backgroundColor: '#222222',
     paddingHorizontal: 30,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 28,
     marginBottom: 20,
+    minHeight: 48,
+    justifyContent: 'center',
   },
   retryButtonText: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
   },
   helpText: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
     textAlign: 'center',
     fontStyle: 'italic',
   },

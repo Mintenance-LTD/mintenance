@@ -1,8 +1,8 @@
 /**
  * MeetingScheduleScreen Container
- * 
+ *
  * Main container for meeting scheduling with date/time and location.
- * 
+ *
  * @filesize Target: <100 lines
  * @compliance MVVM - Thin container
  */
@@ -10,7 +10,6 @@
 import React from 'react';
 import { ScrollView, StyleSheet, TextInput, View, Text, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { theme } from '../../theme';
 import { ScreenHeader, LoadingSpinner } from '../../components/shared';
 import { useMeetingScheduleViewModel } from './viewmodels/MeetingScheduleViewModel';
 import {
@@ -86,7 +85,7 @@ export const MeetingScheduleScreen: React.FC<Props> = ({ route, navigation }) =>
             value={viewModel.notes}
             onChangeText={viewModel.setNotes}
             placeholder="Add any additional details about the meeting..."
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor="#B0B0B0"
             multiline
             numberOfLines={4}
             textAlignVertical="top"
@@ -107,33 +106,36 @@ export const MeetingScheduleScreen: React.FC<Props> = ({ route, navigation }) =>
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
   scrollView: {
     flex: 1,
-    paddingHorizontal: theme.spacing.lg,
+    paddingHorizontal: 16,
   },
   notesContainer: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
-    ...theme.shadows.sm,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   notesLabel: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.md,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#B0B0B0',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   notesInput: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    fontSize: theme.typography.fontSize.md,
-    color: theme.colors.textPrimary,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    color: '#222222',
     minHeight: 100,
   },
 });

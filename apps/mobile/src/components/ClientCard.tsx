@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../theme';
 
 export interface ClientData {
   id: string;
@@ -29,6 +28,20 @@ interface ClientCardProps {
   onEmail?: () => void;
 }
 
+const STATUS_COLORS: Record<string, string> = {
+  active: '#10B981',
+  prospect: '#F59E0B',
+  inactive: '#717171',
+  former: '#EF4444',
+};
+
+const CLIENT_TYPE_ICONS: Record<string, string> = {
+  residential: 'home',
+  commercial: 'business',
+  industrial: 'construct',
+  government: 'library',
+};
+
 export const ClientCard: React.FC<ClientCardProps> = ({
   client,
   onPress,
@@ -36,44 +49,16 @@ export const ClientCard: React.FC<ClientCardProps> = ({
   onMessage,
   onEmail,
 }) => {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return theme.colors.success;
-      case 'prospect':
-        return theme.colors.warning;
-      case 'inactive':
-        return theme.colors.textSecondary;
-      case 'former':
-        return theme.colors.error;
-      default:
-        return theme.colors.textSecondary;
-    }
-  };
-
-  const getClientTypeIcon = (type: string) => {
-    switch (type) {
-      case 'residential':
-        return 'home';
-      case 'commercial':
-        return 'business';
-      case 'industrial':
-        return 'construct';
-      case 'government':
-        return 'library';
-      default:
-        return 'person';
-    }
-  };
-
   const getRiskLevel = (score: number) => {
-    if (score >= 70) return { level: 'High', color: theme.colors.error };
-    if (score >= 40) return { level: 'Medium', color: theme.colors.warning };
-    return { level: 'Low', color: theme.colors.success };
+    if (score >= 70) return { level: 'High', color: '#EF4444' };
+    if (score >= 40) return { level: 'Medium', color: '#F59E0B' };
+    return { level: 'Low', color: '#10B981' };
   };
 
   const risk = getRiskLevel(client.churn_risk_score);
   const clientName = `${client.first_name} ${client.last_name}`;
+  const statusColor = STATUS_COLORS[client.relationship_status] || '#717171';
+  const clientTypeIcon = CLIENT_TYPE_ICONS[client.client_type] || 'person';
   const lastJobDays = client.last_job_date
     ? Math.floor(
         (new Date().getTime() - new Date(client.last_job_date).getTime()) /
@@ -87,9 +72,9 @@ export const ClientCard: React.FC<ClientCardProps> = ({
         <View style={styles.clientInfo}>
           <View style={styles.nameRow}>
             <Ionicons
-              name={getClientTypeIcon(client.client_type) as keyof typeof Ionicons.glyphMap}
+              name={clientTypeIcon as keyof typeof Ionicons.glyphMap}
               size={16}
-              color={theme.colors.textSecondary}
+              color="#717171"
             />
             <Text style={styles.clientName}>{clientName}</Text>
           </View>
@@ -103,7 +88,7 @@ export const ClientCard: React.FC<ClientCardProps> = ({
           <View
             style={[
               styles.statusBadge,
-              { backgroundColor: getStatusColor(client.relationship_status) },
+              { backgroundColor: statusColor },
             ]}
           >
             <Text style={styles.statusText}>
@@ -143,7 +128,7 @@ export const ClientCard: React.FC<ClientCardProps> = ({
               <Text style={styles.metricValue}>
                 {client.satisfaction_score.toFixed(1)}
               </Text>
-              <Ionicons name='star' size={12} color={theme.colors.accent} />
+              <Ionicons name='star' size={12} color="#F59E0B" />
             </View>
             <Text style={styles.metricLabel}>Rating</Text>
           </View>
@@ -155,7 +140,7 @@ export const ClientCard: React.FC<ClientCardProps> = ({
           <Ionicons
             name='time-outline'
             size={14}
-            color={theme.colors.textSecondary}
+            color="#717171"
           />
           <Text style={styles.lastActivityText}>
             Last job {lastJobDays === 0 ? 'today' : `${lastJobDays} days ago`}
@@ -166,7 +151,7 @@ export const ClientCard: React.FC<ClientCardProps> = ({
       <View style={styles.actions}>
         {onCall && (
           <TouchableOpacity style={styles.actionButton} onPress={onCall}>
-            <Ionicons name='call' size={16} color={theme.colors.textSecondary} />
+            <Ionicons name='call' size={16} color="#717171" />
           </TouchableOpacity>
         )}
         {onMessage && (
@@ -174,20 +159,20 @@ export const ClientCard: React.FC<ClientCardProps> = ({
             <Ionicons
               name='chatbubble'
               size={16}
-              color={theme.colors.textSecondary}
+              color="#717171"
             />
           </TouchableOpacity>
         )}
         {onEmail && (
           <TouchableOpacity style={styles.actionButton} onPress={onEmail}>
-            <Ionicons name='mail' size={16} color={theme.colors.textSecondary} />
+            <Ionicons name='mail' size={16} color="#717171" />
           </TouchableOpacity>
         )}
-        <TouchableOpacity style={[styles.actionButton, styles.moreButton]}>
+        <TouchableOpacity style={styles.actionButton}>
           <Ionicons
             name='ellipsis-horizontal'
             size={16}
-            color={theme.colors.textSecondary}
+            color="#717171"
           />
         </TouchableOpacity>
       </View>
@@ -197,85 +182,95 @@ export const ClientCard: React.FC<ClientCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing[4],
-    marginBottom: theme.spacing[3],
-    ...theme.shadows.base,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: theme.spacing[3],
+    marginBottom: 12,
   },
   clientInfo: {
     flex: 1,
-    marginRight: theme.spacing[3],
+    marginRight: 12,
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing[1],
+    marginBottom: 4,
   },
   clientName: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginLeft: theme.spacing[1],
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222222',
+    marginLeft: 4,
   },
   clientEmail: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    color: '#717171',
     marginBottom: 2,
   },
   clientPhone: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    color: '#717171',
   },
   statusContainer: {
     alignItems: 'flex-end',
   },
   statusBadge: {
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: theme.spacing[1],
-    borderRadius: theme.borderRadius.sm,
-    marginBottom: theme.spacing[1],
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginBottom: 4,
   },
   statusText: {
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textInverse,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   riskBadge: {
-    paddingHorizontal: theme.spacing[1],
+    paddingHorizontal: 4,
     paddingVertical: 2,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: 6,
     borderWidth: 1,
   },
   riskText: {
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 12,
+    fontWeight: '500',
   },
   metrics: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: theme.spacing[3],
-    paddingVertical: theme.spacing[2],
+    marginBottom: 12,
+    paddingVertical: 8,
   },
   metric: {
     alignItems: 'center',
     flex: 1,
   },
   metricValue: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#222222',
     marginBottom: 2,
   },
   metricLabel: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textSecondary,
+    fontSize: 12,
+    color: '#717171',
   },
   rating: {
     flexDirection: 'row',
@@ -285,28 +280,25 @@ const styles = StyleSheet.create({
   lastActivity: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing[3],
-    paddingTop: theme.spacing[2],
+    marginBottom: 12,
+    paddingTop: 8,
   },
   lastActivityText: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textSecondary,
-    marginLeft: theme.spacing[1],
+    fontSize: 12,
+    color: '#717171',
+    marginLeft: 4,
   },
   actions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: theme.spacing[2],
+    gap: 8,
   },
   actionButton: {
-    width: theme.spacing[8],
-    height: theme.spacing[8],
-    borderRadius: theme.borderRadius.full,
-    backgroundColor: theme.colors.surfaceSecondary,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F7F7F7',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  moreButton: {
-    backgroundColor: theme.colors.surfaceSecondary,
   },
 });

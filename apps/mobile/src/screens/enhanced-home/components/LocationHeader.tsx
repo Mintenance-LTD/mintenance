@@ -1,8 +1,8 @@
 /**
  * LocationHeader Component
- * 
+ *
  * Displays current location and notification button.
- * 
+ *
  * @filesize Target: <60 lines
  * @compliance Single Responsibility - Location display
  */
@@ -10,7 +10,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 
 interface LocationHeaderProps {
   location: string;
@@ -35,9 +34,9 @@ export const LocationHeader: React.FC<LocationHeaderProps> = ({
           accessibilityRole='button'
           accessibilityLabel={`Current location: ${location}. Double tap to change`}
         >
-          <Ionicons name="location" size={16} color={theme.colors.textSecondary} />
+          <Ionicons name="location" size={16} color="#717171" />
           <Text style={styles.locationText}>{location}</Text>
-          <Ionicons name="chevron-down" size={16} color={theme.colors.textSecondary} />
+          <Ionicons name="chevron-down" size={16} color="#717171" />
         </TouchableOpacity>
       </View>
 
@@ -48,7 +47,7 @@ export const LocationHeader: React.FC<LocationHeaderProps> = ({
         accessibilityLabel={hasNotifications ? 'Notifications, you have new notifications' : 'Notifications'}
         accessibilityHint='Double tap to view notifications'
       >
-        <Ionicons name="notifications" size={24} color={theme.colors.textPrimary} />
+        <Ionicons name="notifications" size={24} color="#222222" />
         {hasNotifications && <View style={styles.notificationBadge} accessible={false} />}
       </TouchableOpacity>
     </View>
@@ -60,16 +59,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.xl,
-    paddingVertical: theme.spacing.lg,
-    backgroundColor: theme.colors.background,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
   },
   locationSection: {
     flex: 1,
   },
   locationLabel: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textTertiary,
+    fontSize: 12,
+    color: '#B0B0B0',
     marginBottom: 4,
   },
   locationRow: {
@@ -78,15 +77,15 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   locationText: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222222',
   },
   notificationButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: '#F7F7F7',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
@@ -98,6 +97,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.colors.accent, // Gold accent
+    backgroundColor: '#EF4444',
   },
 });

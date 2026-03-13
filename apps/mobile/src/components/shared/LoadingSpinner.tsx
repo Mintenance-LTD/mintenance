@@ -1,15 +1,14 @@
 /**
  * LoadingSpinner Component
- * 
+ *
  * Consistent loading indicator for all screens.
- * 
+ *
  * @filesize Target: <50 lines
  * @compliance Single Responsibility - Loading state only
  */
 
 import React from 'react';
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
-import { theme } from '../../theme';
 
 interface LoadingSpinnerProps {
   message?: string;
@@ -25,7 +24,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 }) => {
   return (
     <View style={[styles.container, fullScreen && styles.fullScreen]}>
-      <ActivityIndicator size={size} color={theme.colors.primary} />
+      <ActivityIndicator size={size} color="#222222" />
       {message && <Text style={styles.message}>{message}</Text>}
     </View>
   );
@@ -35,15 +34,15 @@ const styles = StyleSheet.create({
   container: {
     justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing.xl,
+    padding: 24,
   },
   fullScreen: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
   message: {
-    marginTop: theme.spacing.md,
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textSecondary,
+    marginTop: 16,
+    fontSize: 15,
+    color: '#717171',
   },
 });

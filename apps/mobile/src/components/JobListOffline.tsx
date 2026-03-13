@@ -7,12 +7,12 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAvailableJobs, useCreateJob } from '../hooks/useJobs';
 import { useNetworkState } from '../hooks/useNetworkState';
 import OfflineSyncStatus from './OfflineSyncStatus';
-import { theme } from '../theme';
 import { Job } from '@mintenance/types';
 import { logger } from '../utils/logger';
 
@@ -123,10 +123,10 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
             size={16}
             color={
               job.priority === 'high'
-                ? theme.colors.error
+                ? '#EF4444'
                 : job.priority === 'medium'
-                  ? theme.colors.warning
-                  : theme.colors.info
+                  ? '#F59E0B'
+                  : '#3B82F6'
             }
           />
         </View>
@@ -141,7 +141,7 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
           <Ionicons
             name='location-outline'
             size={14}
-            color={theme.colors.textSecondary}
+            color="#717171"
           />
           <Text style={styles.jobLocationText}>{typeof job.location === 'string' ? job.location : 'Unknown location'}</Text>
         </View>
@@ -155,7 +155,7 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
       <Ionicons
         name={isOnline ? 'briefcase-outline' : 'cloud-offline-outline'}
         size={64}
-        color={theme.colors.textTertiary}
+        color="#B0B0B0"
       />
       <Text style={styles.emptyStateTitle}>
         {isOnline ? 'No Jobs Available' : 'Showing Cached Jobs'}
@@ -170,7 +170,7 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
           <Ionicons
             name='information-circle-outline'
             size={16}
-            color={theme.colors.warning}
+            color="#F59E0B"
           />
           <Text style={styles.offlineText}>You are currently offline</Text>
         </View>
@@ -183,7 +183,7 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
       <Ionicons
         name='alert-circle-outline'
         size={64}
-        color={theme.colors.error}
+        color="#EF4444"
       />
       <Text style={styles.errorTitle}>Failed to Load Jobs</Text>
       <Text style={styles.errorMessage}>
@@ -211,7 +211,7 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
               <Ionicons
                 name='cellular'
                 size={16}
-                color={theme.colors.warning}
+                color="#F59E0B"
               />
               <Text style={styles.connectionText}>Slow</Text>
             </View>
@@ -225,7 +225,7 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
               <Ionicons
                 name='add-circle-outline'
                 size={24}
-                color={theme.colors.primary}
+                color="#222222"
               />
             </TouchableOpacity>
           )}
@@ -243,8 +243,8 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
             <RefreshControl
               refreshing={isLoading}
               onRefresh={() => { handleRefresh(); }}
-              colors={[theme.colors.primary]}
-              tintColor={theme.colors.primary}
+              colors={['#222222']}
+              tintColor="#222222"
             />
           }
           ListEmptyComponent={renderEmptyState}
@@ -269,69 +269,79 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing[4],
-    paddingVertical: theme.spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   headerTitle: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#222222',
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing[3],
+    gap: 12,
   },
   connectionWarning: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing[1],
+    gap: 4,
   },
   connectionText: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.warning,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 12,
+    color: '#F59E0B',
+    fontWeight: '500',
   },
   createButton: {
-    padding: theme.spacing[1],
+    padding: 4,
   },
   jobItem: {
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing[4],
-    marginHorizontal: theme.spacing[4],
-    marginVertical: theme.spacing[2],
-    borderRadius: theme.borderRadius.lg,
-    ...theme.shadows.sm,
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    marginHorizontal: 16,
+    marginVertical: 8,
+    borderRadius: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
   },
   jobHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: theme.spacing[2],
+    marginBottom: 8,
   },
   jobTitle: {
     flex: 1,
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginRight: theme.spacing[2],
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#222222',
+    marginRight: 8,
   },
   jobPriority: {
-    padding: theme.spacing[1],
+    padding: 4,
   },
   jobDescription: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textSecondary,
+    fontSize: 15,
+    color: '#717171',
     lineHeight: 20,
-    marginBottom: theme.spacing[3],
+    marginBottom: 12,
   },
   jobFooter: {
     flexDirection: 'row',
@@ -341,17 +351,17 @@ const styles = StyleSheet.create({
   jobLocation: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing[1],
+    gap: 4,
     flex: 1,
   },
   jobLocationText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    color: '#717171',
   },
   jobBudget: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.primary,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222222',
   },
   emptyContainer: {
     flexGrow: 1,
@@ -360,81 +370,91 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing[6],
+    paddingHorizontal: 24,
   },
   emptyStateTitle: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginTop: theme.spacing[4],
-    marginBottom: theme.spacing[2],
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#222222',
+    marginTop: 16,
+    marginBottom: 8,
   },
   emptyStateMessage: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textSecondary,
+    fontSize: 15,
+    color: '#717171',
     textAlign: 'center',
     lineHeight: 22,
   },
   offlineIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing[2],
-    marginTop: theme.spacing[4],
-    paddingHorizontal: theme.spacing[4],
-    paddingVertical: theme.spacing[2],
-    backgroundColor: theme.colors.warningLight,
-    borderRadius: theme.borderRadius.base,
+    gap: 8,
+    marginTop: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 12,
   },
   offlineText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.warning,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 13,
+    color: '#F59E0B',
+    fontWeight: '500',
   },
   errorState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing[6],
+    paddingHorizontal: 24,
   },
   errorTitle: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginTop: theme.spacing[4],
-    marginBottom: theme.spacing[2],
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#222222',
+    marginTop: 16,
+    marginBottom: 8,
   },
   errorMessage: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textSecondary,
+    fontSize: 15,
+    color: '#717171',
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: theme.spacing[4],
+    marginBottom: 16,
   },
   retryButton: {
-    paddingHorizontal: theme.spacing[6],
-    paddingVertical: theme.spacing[3],
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.base,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: '#222222',
+    borderRadius: 12,
   },
   retryButtonText: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.surface,
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#FFFFFF',
   },
   creatingOverlay: {
     position: 'absolute',
-    bottom: theme.spacing[4],
-    left: theme.spacing[4],
-    right: theme.spacing[4],
-    backgroundColor: theme.colors.surface,
-    paddingVertical: theme.spacing[3],
-    paddingHorizontal: theme.spacing[4],
-    borderRadius: theme.borderRadius.base,
-    ...theme.shadows.md,
+    bottom: 16,
+    left: 16,
+    right: 16,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   creatingText: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textPrimary,
+    fontSize: 15,
+    color: '#222222',
     textAlign: 'center',
   },
 });

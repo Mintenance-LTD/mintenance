@@ -10,7 +10,6 @@ import {
   Platform,
 } from 'react-native';
 import { useAccessibility } from '../../hooks/useAccessibility';
-import { theme } from '../../theme';
 
 // ============================================================================
 // ACCESSIBLE BUTTON
@@ -118,11 +117,11 @@ export const AccessibleTextInput = memo<AccessibleTextInputProps>(({
   inputStyle,
   testID,
 }) => {
-  const { 
-    getTextInputProps, 
-    getFormFieldProps, 
+  const {
+    getTextInputProps,
+    getFormFieldProps,
     getErrorProps,
-    shouldUseBoldText 
+    shouldUseBoldText
   } = useAccessibility();
 
   const containerStyle = [styles.inputContainer, style];
@@ -152,13 +151,11 @@ export const AccessibleTextInput = memo<AccessibleTextInputProps>(({
 
   return (
     <View style={containerStyle}>
-      {/* Label */}
       <Text style={labelStyle} {...formFieldProps}>
         {label}
         {required && <Text style={styles.required}> *</Text>}
       </Text>
 
-      {/* Text Input */}
       <TextInput
         style={textInputStyle}
         value={value}
@@ -171,14 +168,12 @@ export const AccessibleTextInput = memo<AccessibleTextInputProps>(({
         {...inputProps}
       />
 
-      {/* Error Message */}
       {error && (
         <Text style={styles.errorText} {...getErrorProps(error)}>
           {error}
         </Text>
       )}
 
-      {/* Hint */}
       {hint && !error && (
         <Text style={styles.hintText}>
           {hint}
@@ -445,16 +440,16 @@ const styles = {
     borderRadius: 8,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-    minHeight: 44, // Minimum touch target
+    minHeight: 44,
   },
   button_primary: {
-    backgroundColor: theme.colors.info,
+    backgroundColor: '#3B82F6',
   },
   button_secondary: {
-    backgroundColor: theme.colors.border,
+    backgroundColor: '#EBEBEB',
   },
   button_danger: {
-    backgroundColor: theme.colors.error,
+    backgroundColor: '#EF4444',
   },
   button_small: {
     paddingVertical: 8,
@@ -473,16 +468,16 @@ const styles = {
   },
   buttonText: {
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600' as const,
   },
   buttonText_primary: {
-    color: theme.colors.white,
+    color: '#FFFFFF',
   },
   buttonText_secondary: {
-    color: theme.colors.black,
+    color: '#000000',
   },
   buttonText_danger: {
-    color: theme.colors.white,
+    color: '#FFFFFF',
   },
   buttonText_small: {
     fontSize: 14,
@@ -503,55 +498,54 @@ const styles = {
   },
   inputLabel: {
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600' as const,
     marginBottom: 4,
-    color: theme.colors.black,
+    color: '#000000',
   },
   inputLabel_error: {
-    color: theme.colors.error,
+    color: '#EF4444',
   },
   inputLabel_disabled: {
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
   },
   textInput: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 8,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
     fontSize: 16,
     minHeight: 44,
-    backgroundColor: theme.colors.surface,
   },
   textInput_multiline: {
     minHeight: 100,
     textAlignVertical: 'top' as const,
   },
   textInput_error: {
-    borderColor: theme.colors.error,
+    borderWidth: 1,
+    borderColor: '#EF4444',
   },
   textInput_disabled: {
-    backgroundColor: theme.colors.backgroundSecondary,
-    color: theme.colors.textTertiary,
+    backgroundColor: '#F7F7F7',
+    color: '#B0B0B0',
   },
   required: {
-    color: theme.colors.error,
+    color: '#EF4444',
   },
   errorText: {
-    color: theme.colors.error,
+    color: '#EF4444',
     fontSize: 14,
     marginTop: 4,
   },
   hintText: {
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
     fontSize: 14,
     marginTop: 4,
   },
 
   // Header styles
   header: {
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.black,
+    fontWeight: '700' as const,
+    color: '#000000',
   },
   header_h1: {
     fontSize: 28,
@@ -597,38 +591,38 @@ const styles = {
     width: 24,
     height: 24,
     borderWidth: 2,
-    borderColor: theme.colors.info,
+    borderColor: '#3B82F6',
     borderRadius: 4,
     marginRight: 12,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
   checkbox_checked: {
-    backgroundColor: theme.colors.info,
+    backgroundColor: '#3B82F6',
   },
   checkbox_disabled: {
-    borderColor: theme.colors.textTertiary,
-    backgroundColor: theme.colors.backgroundSecondary,
+    borderColor: '#B0B0B0',
+    backgroundColor: '#F7F7F7',
   },
   checkmark: {
-    color: theme.colors.white,
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.bold,
+    fontWeight: '700' as const,
   },
   checkboxLabel: {
     fontSize: 16,
-    color: theme.colors.black,
+    color: '#000000',
     flex: 1,
   },
   checkboxLabel_disabled: {
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
   },
 
   // Tab styles
   tabBar: {
     flexDirection: 'row' as const,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: '#EBEBEB',
   },
   tab: {
     flex: 1,
@@ -639,7 +633,7 @@ const styles = {
   },
   tab_active: {
     borderBottomWidth: 2,
-    borderBottomColor: theme.colors.info,
+    borderBottomColor: '#3B82F6',
   },
   tabIcon: {
     fontSize: 20,
@@ -647,11 +641,11 @@ const styles = {
   },
   tabText: {
     fontSize: 14,
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
   },
   tabText_active: {
-    color: theme.colors.info,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#3B82F6',
+    fontWeight: '600' as const,
   },
 
   // Loading styles
@@ -662,12 +656,11 @@ const styles = {
   },
   loadingText: {
     fontSize: 16,
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
   },
 
   // Accessibility styles
   boldText: {
-    fontWeight: theme.typography.fontWeight.bold,
+    fontWeight: '700' as const,
   },
 };
-

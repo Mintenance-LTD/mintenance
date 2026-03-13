@@ -6,7 +6,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import UnifiedAIServiceMobile from '../../services/UnifiedAIServiceMobile';
-import { theme } from '../../theme';
 import { logger } from '../../utils/logger';
 import { BuildingAssessment, BuildingAssessmentCardProps } from './building-assessment/types';
 import { RunAssessmentButton, LoadingState } from './building-assessment/AssessmentStates';
@@ -84,5 +83,5 @@ export const BuildingAssessmentCard: React.FC<BuildingAssessmentCardProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: theme.colors.background, borderRadius: 12, marginVertical: 8 },
+  container: { backgroundColor: '#F7F7F7', borderRadius: 12, marginVertical: 8 },
 });

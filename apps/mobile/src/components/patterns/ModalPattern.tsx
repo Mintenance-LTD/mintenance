@@ -1,8 +1,8 @@
-import React, { 
-  createContext, 
-  useContext, 
-  useState, 
-  useCallback, 
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
   useMemo,
   Children,
   cloneElement,
@@ -20,7 +20,6 @@ import {
   LayoutAnimation,
   Platform,
 } from 'react-native';
-import { theme } from '../../theme';
 
 // ============================================================================
 // MODAL COMPOUND COMPONENT
@@ -50,11 +49,11 @@ export interface ModalProps {
   testID?: string;
 }
 
-export const Modal = memo<ModalProps>(({ 
-  children, 
-  defaultOpen = false, 
+export const Modal = memo<ModalProps>(({
+  children,
+  defaultOpen = false,
   onOpenChange,
-  testID 
+  testID
 }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -108,11 +107,11 @@ export interface ModalTriggerProps {
   testID?: string;
 }
 
-export const ModalTrigger = memo<ModalTriggerProps>(({ 
-  children, 
-  asChild = false, 
+export const ModalTrigger = memo<ModalTriggerProps>(({
+  children,
+  asChild = false,
   style,
-  testID 
+  testID
 }) => {
   const { toggle } = useModal();
 
@@ -124,8 +123,8 @@ export const ModalTrigger = memo<ModalTriggerProps>(({
   }
 
   return (
-    <TouchableOpacity 
-      style={[styles.trigger, style]} 
+    <TouchableOpacity
+      style={[styles.trigger, style]}
       onPress={toggle}
       testID={testID}
     >
@@ -145,12 +144,12 @@ export interface ModalContentProps {
   testID?: string;
 }
 
-export const ModalContent = memo<ModalContentProps>(({ 
-  children, 
-  style, 
+export const ModalContent = memo<ModalContentProps>(({
+  children,
+  style,
   overlayStyle,
   showOverlay = true,
-  testID 
+  testID
 }) => {
   const { isOpen, close } = useModal();
 
@@ -159,8 +158,8 @@ export const ModalContent = memo<ModalContentProps>(({
   return (
     <View style={styles.modalContainer} testID={testID}>
       {showOverlay && (
-        <TouchableOpacity 
-          style={[styles.overlay, overlayStyle]} 
+        <TouchableOpacity
+          style={[styles.overlay, overlayStyle]}
           onPress={close}
           activeOpacity={1}
           testID={`${testID}-overlay`}
@@ -213,11 +212,11 @@ export interface ModalCloseProps {
   testID?: string;
 }
 
-export const ModalClose = memo<ModalCloseProps>(({ 
-  children, 
-  asChild = false, 
+export const ModalClose = memo<ModalCloseProps>(({
+  children,
+  asChild = false,
   style,
-  testID 
+  testID
 }) => {
   const { close } = useModal();
 
@@ -229,8 +228,8 @@ export const ModalClose = memo<ModalCloseProps>(({
   }
 
   return (
-    <TouchableOpacity 
-      style={[styles.closeButton, style]} 
+    <TouchableOpacity
+      style={[styles.closeButton, style]}
       onPress={close}
       testID={testID}
     >
@@ -256,11 +255,11 @@ type ModalCompound = React.NamedExoticComponent<ModalProps> & {
 (Modal as ModalCompound).Close = ModalClose;
 
 const styles = StyleSheet.create({
-  trigger: { padding: 12, backgroundColor: theme.colors.primary, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  trigger: { padding: 12, backgroundColor: '#222222', borderRadius: 8, alignItems: "center", justifyContent: "center" },
   modalContainer: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, justifyContent: "center", alignItems: "center", zIndex: 1000 },
   overlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0, 0, 0, 0.5)" },
-  content: { backgroundColor: theme.colors.surface, borderRadius: 12, padding: 20, margin: 20, maxWidth: "90%", maxHeight: "80%", shadowColor: theme.colors.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 8 },
-  header: { marginBottom: 16, paddingBottom: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
-  title: { fontSize: 18, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary },
+  content: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20, margin: 20, maxWidth: "90%", maxHeight: "80%", shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 8 },
+  header: { marginBottom: 16, paddingBottom: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#EBEBEB' },
+  title: { fontSize: 18, fontWeight: '600', color: '#222222' },
   closeButton: { position: "absolute", top: 12, right: 12, padding: 8 },
 });

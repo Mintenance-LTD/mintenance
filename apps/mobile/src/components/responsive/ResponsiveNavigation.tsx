@@ -3,7 +3,6 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useResponsive, useSidebarLayout } from '../../hooks/useResponsive';
-import { theme } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface NavigationItem {
@@ -37,16 +36,14 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
     if (Platform.OS !== 'web') return;
 
     const handleKeyPress = (e: KeyboardEvent) => {
-      // Handle number keys for quick navigation (1-9)
       if (e.key >= '1' && e.key <= '9') {
         const index = parseInt(e.key) - 1;
-        if (items[index] && e.altKey) { // Alt + number for navigation
+        if (items[index] && e.altKey) {
           e.preventDefault();
           onNavigate(items[index].route);
         }
       }
 
-      // Handle arrow keys for sidebar navigation
       if (shouldShowSidebar && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
         const currentIndex = items.findIndex(item => item.route === activeRoute);
         if (currentIndex !== -1) {
@@ -57,16 +54,14 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
             newIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
           }
 
-          if (e.ctrlKey) { // Ctrl + Arrow to navigate
+          if (e.ctrlKey) {
             e.preventDefault();
             onNavigate(items[newIndex].route);
           }
         }
       }
 
-      // Handle Escape key for accessibility
       if (e.key === 'Escape') {
-        // Focus management for accessibility
         const activeElement = document.activeElement as HTMLElement;
         if (activeElement && activeElement.blur) {
           activeElement.blur();
@@ -84,7 +79,6 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
 
     return (
       <View style={[styles.sidebar, { width: sidebarWidth, paddingTop: insets.top }]}>
-        {/* Header */}
         <View style={styles.sidebarHeader}>
           <Text style={styles.appTitle}>Mintenance</Text>
           {user && (
@@ -99,7 +93,6 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
           )}
         </View>
 
-        {/* Navigation Items */}
         <View style={styles.sidebarNav}>
           {items.map((item) => {
             const isActive = activeRoute === item.route;
@@ -119,7 +112,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
                   <Ionicons
                     name={item.icon}
                     size={20}
-                    color={isActive ? theme.colors.primary : theme.colors.textSecondary}
+                    color={isActive ? '#222222' : '#717171'}
                   />
                   <Text
                     style={[
@@ -166,7 +159,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
                 <Ionicons
                   name={item.icon}
                   size={24}
-                  color={isActive ? theme.colors.primary : theme.colors.textSecondary}
+                  color={isActive ? '#222222' : '#717171'}
                 />
                 {item.badge && item.badge > 0 && (
                   <View style={styles.tabBadge}>
@@ -196,13 +189,12 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
     <View style={styles.container}>
       {renderSidebar()}
 
-      {/* Main Content */}
       <View
         style={[
           styles.content,
           {
             marginLeft: shouldShowSidebar ? sidebarWidth : 0,
-            paddingBottom: isDesktop ? 0 : 80, // Space for bottom tabs
+            paddingBottom: isDesktop ? 0 : 80,
           },
         ]}
       >
@@ -217,7 +209,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
   content: {
     flex: 1,
@@ -229,20 +221,20 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     bottom: 0,
-    backgroundColor: theme.colors.surface,
-    borderRightWidth: 1,
-    borderRightColor: theme.colors.border,
+    backgroundColor: '#FFFFFF',
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderRightColor: '#EBEBEB',
     zIndex: 1000,
   },
   sidebarHeader: {
     padding: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   appTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
+    fontWeight: '700',
+    color: '#222222',
     marginBottom: 16,
   },
   userInfo: {
@@ -250,12 +242,12 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
   },
   userRole: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     textTransform: 'capitalize',
   },
   sidebarNav: {
@@ -268,7 +260,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   sidebarItemActive: {
-    backgroundColor: theme.colors.primary + '15',
+    backgroundColor: 'rgba(34, 34, 34, 0.06)',
   },
   sidebarItemContent: {
     flexDirection: 'row',
@@ -279,11 +271,11 @@ const styles = StyleSheet.create({
   sidebarItemText: {
     flex: 1,
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   sidebarItemTextActive: {
-    color: theme.colors.primary,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#222222',
+    fontWeight: '600',
   },
 
   // Bottom tabs styles (Mobile)
@@ -293,9 +285,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#EBEBEB',
     paddingTop: 8,
     paddingHorizontal: 4,
   },
@@ -311,17 +303,17 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     textAlign: 'center',
   },
   tabTextActive: {
-    color: theme.colors.primary,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#222222',
+    fontWeight: '600',
   },
 
   // Badge styles
   badge: {
-    backgroundColor: theme.colors.error,
+    backgroundColor: '#EF4444',
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -330,15 +322,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   badgeText: {
-    color: theme.colors.surface,
+    color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
   },
   tabBadge: {
     position: 'absolute',
     top: -6,
     right: -6,
-    backgroundColor: theme.colors.error,
+    backgroundColor: '#EF4444',
     borderRadius: 8,
     minWidth: 16,
     height: 16,
@@ -347,8 +339,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   tabBadgeText: {
-    color: theme.colors.surface,
+    color: '#FFFFFF',
     fontSize: 10,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
   },
 });

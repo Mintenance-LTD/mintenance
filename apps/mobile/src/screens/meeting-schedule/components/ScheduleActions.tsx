@@ -1,15 +1,14 @@
 /**
  * ScheduleActions Component
- * 
+ *
  * Action buttons for scheduling and canceling.
- * 
+ *
  * @filesize Target: <70 lines
  * @compliance Single Responsibility - Action buttons
  */
 
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { theme } from '../../../theme';
 
 interface ScheduleActionsProps {
   loading: boolean;
@@ -43,7 +42,7 @@ export const ScheduleActions: React.FC<ScheduleActionsProps> = ({
           accessibilityLabel={loading ? 'Scheduling meeting' : 'Schedule meeting'}
         >
           {loading ? (
-            <ActivityIndicator size="small" color={theme.colors.textInverse} />
+            <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <Text style={styles.scheduleButtonText}>Schedule Meeting</Text>
           )}
@@ -55,36 +54,34 @@ export const ScheduleActions: React.FC<ScheduleActionsProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing.xl,
+    paddingHorizontal: 16,
+    paddingBottom: 24,
   },
   buttonRow: {
     flexDirection: 'row',
-    gap: theme.spacing.md,
+    gap: 12,
   },
   button: {
     flex: 1,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
+    paddingVertical: 14,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: theme.colors.surfaceTertiary,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    backgroundColor: '#F7F7F7',
   },
   scheduleButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
   },
   cancelButtonText: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#222222',
   },
   scheduleButtonText: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textInverse,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });

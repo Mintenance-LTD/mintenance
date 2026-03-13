@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { logger } from '../utils/logger';
-import { mobileApiClient } from '../utils/mobileApiClient';
+import { supabase } from '../config/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import type { ServiceArea } from '../services/ServiceAreasService';
 
 interface CreateServiceAreaInput {
@@ -13,6 +14,7 @@ interface CreateServiceAreaInput {
 }
 
 export const useServiceAreas = () => {
+  const { user } = useAuth();
   const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -21,18 +23,23 @@ export const useServiceAreas = () => {
   const [createModalVisible, setCreateModalVisible] = useState(false);
 
   const loadServiceAreas = useCallback(async () => {
+    if (!user?.id) return;
     try {
-      const res = await mobileApiClient.get<{ success: boolean; data: ServiceArea[] }>(
-        '/api/contractor/service-areas'
-      );
-      setServiceAreas(res.data ?? []);
+      const { data, error } = await supabase
+        .from('service_areas')
+        .select('*')
+        .eq('contractor_id', user.id)
+        .order('priority_level', { ascending: true });
+
+      if (error) throw error;
+      setServiceAreas((data as ServiceArea[]) ?? []);
     } catch (error) {
       logger.error('Error loading service areas', error);
       Alert.alert('Error', 'Failed to load service areas');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     loadServiceAreas();
@@ -45,22 +52,30 @@ export const useServiceAreas = () => {
   };
 
   const handleCreateServiceArea = async (input: CreateServiceAreaInput): Promise<void> => {
-    await mobileApiClient.post('/api/contractor/service-areas', {
-      area_name: input.area_name,
-      area_type: 'radius',
-      center_latitude: input.center_latitude,
-      center_longitude: input.center_longitude,
-      radius_km: input.radius_km,
-      is_primary_area: input.is_primary_area,
-    });
+    if (!user?.id) return;
+    const { error } = await supabase
+      .from('service_areas')
+      .insert({
+        contractor_id: user.id,
+        area_name: input.area_name,
+        area_type: 'radius',
+        center_latitude: input.center_latitude,
+        center_longitude: input.center_longitude,
+        radius_km: input.radius_km,
+        is_primary_area: input.is_primary_area,
+        is_active: true,
+      });
+    if (error) throw error;
     await loadServiceAreas();
   };
 
   const handleToggleActive = async (area: ServiceArea) => {
     try {
-      await mobileApiClient.patch(`/api/contractor/service-areas/${area.id}`, {
-        is_active: !area.is_active,
-      });
+      const { error } = await supabase
+        .from('service_areas')
+        .update({ is_active: !area.is_active })
+        .eq('id', area.id);
+      if (error) throw error;
       await loadServiceAreas();
       Alert.alert(
         'Updated',
@@ -80,7 +95,11 @@ export const useServiceAreas = () => {
     if (!selectedArea) return;
 
     try {
-      await mobileApiClient.delete(`/api/contractor/service-areas/${selectedArea.id}`);
+      const { error } = await supabase
+        .from('service_areas')
+        .delete()
+        .eq('id', selectedArea.id);
+      if (error) throw error;
       await loadServiceAreas();
       Alert.alert('Deleted', 'Service area deleted successfully');
     } catch {

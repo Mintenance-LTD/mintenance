@@ -1,15 +1,14 @@
 /**
  * ProfileTabs Component
- * 
+ *
  * Tab selector for Photos and Reviews.
- * 
+ *
  * @filesize Target: <70 lines
  * @compliance Single Responsibility - Tab navigation
  */
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { theme } from '../../../theme';
 
 interface ProfileTabsProps {
   activeTab: 'photos' | 'reviews';
@@ -52,26 +51,26 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   tab: {
     flex: 1,
-    paddingVertical: theme.spacing.lg,
+    paddingVertical: 16,
     alignItems: 'center',
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
   activeTab: {
-    borderBottomColor: theme.colors.primary,
+    borderBottomColor: '#222222',
   },
   tabText: {
-    fontSize: theme.typography.fontSize.lg,
-    color: theme.colors.textTertiary,
+    fontSize: 16,
+    color: '#B0B0B0',
   },
   activeTabText: {
-    color: theme.colors.textPrimary,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#222222',
+    fontWeight: '600',
   },
 });

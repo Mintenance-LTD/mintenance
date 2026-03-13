@@ -8,12 +8,12 @@ import {
   Text,
   ScrollView,
   StyleSheet,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { theme } from '../../theme';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { useJobDetailsViewModel } from './viewmodels/JobDetailsViewModel';
 import type { JobsStackParamList } from '../../navigation/types';
@@ -58,9 +58,9 @@ export const JobTimelineScreen: React.FC<Props> = ({ route, navigation }) => {
   const currentStepIndex = STATUS_TO_STEP_INDEX[viewModel.job.status] ?? 0;
 
   const getStepColor = (index: number) => {
-    if (index < currentStepIndex) return theme.colors.success;
-    if (index === currentStepIndex) return theme.colors.primary;
-    return theme.colors.textTertiary;
+    if (index < currentStepIndex) return '#10B981';
+    if (index === currentStepIndex) return '#222222';
+    return '#B0B0B0';
   };
 
   const getStepOpacity = (index: number) => {
@@ -88,18 +88,18 @@ export const JobTimelineScreen: React.FC<Props> = ({ route, navigation }) => {
               <View style={styles.stepIndicator}>
                 <View style={[
                   styles.stepCircle,
-                  { backgroundColor: index <= currentStepIndex ? getStepColor(index) : theme.colors.border },
+                  { backgroundColor: index <= currentStepIndex ? getStepColor(index) : '#EBEBEB' },
                 ]}>
                   <Ionicons
                     name={index <= currentStepIndex ? 'checkmark' : step.icon}
                     size={16}
-                    color={index <= currentStepIndex ? theme.colors.textInverse : theme.colors.textTertiary}
+                    color={index <= currentStepIndex ? '#FFFFFF' : '#B0B0B0'}
                   />
                 </View>
                 {index < LIFECYCLE_STEPS.length - 1 && (
                   <View style={[
                     styles.stepLine,
-                    { backgroundColor: index < currentStepIndex ? theme.colors.success : theme.colors.border },
+                    { backgroundColor: index < currentStepIndex ? '#10B981' : '#EBEBEB' },
                   ]} />
                 )}
               </View>
@@ -123,80 +123,82 @@ export const JobTimelineScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
   scrollContent: {
-    padding: theme.spacing[4],
+    padding: 16,
   },
   jobInfo: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing[4],
-    marginBottom: theme.spacing[5],
-    ...theme.shadows.sm,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   jobTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[2],
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222222',
+    marginBottom: 8,
   },
   statusBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: theme.colors.backgroundSecondary,
-    paddingVertical: theme.spacing[1],
-    paddingHorizontal: theme.spacing[3],
-    borderRadius: theme.borderRadius.sm,
+    backgroundColor: '#F7F7F7',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 6,
   },
   statusText: {
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#717171',
     letterSpacing: 0.5,
   },
   timeline: {
-    paddingLeft: theme.spacing[2],
+    paddingLeft: 8,
   },
   timelineStep: {
     flexDirection: 'row',
-    minHeight: theme.spacing[16] + theme.spacing.sm,
+    minHeight: 72,
   },
   stepIndicator: {
     alignItems: 'center',
-    width: theme.spacing.xl,
+    width: 32,
   },
   stepCircle: {
-    width: theme.spacing.xl,
-    height: theme.spacing.xl,
-    borderRadius: theme.borderRadius.full,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepLine: {
     width: 2,
     flex: 1,
-    marginVertical: theme.spacing.xs,
+    marginVertical: 4,
   },
   stepContent: {
     flex: 1,
-    marginLeft: theme.spacing[3],
-    paddingBottom: theme.spacing[4],
+    marginLeft: 12,
+    paddingBottom: 16,
   },
   stepLabel: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#222222',
   },
   currentStepLabel: {
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
   },
   stepDescription: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    color: '#717171',
     marginTop: 2,
   },
 });
 
 export default JobTimelineScreen;
-

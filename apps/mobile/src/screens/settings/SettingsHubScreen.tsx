@@ -8,19 +8,19 @@ import {
   Switch,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
+import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../../contexts/AuthContext';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 
 const LEGAL_URLS = {
   privacyPolicy: 'https://mintenance.app/privacy',
   termsAndConditions: 'https://mintenance.app/terms',
 } as const;
-import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ScreenHeader } from '../../components/shared';
-import { useAuth } from '../../contexts/AuthContext';
-import { mobileApiClient } from '../../utils/mobileApiClient';
 
 interface UserSettings {
   notifications: {
@@ -45,24 +45,32 @@ interface SettingsRow {
 }
 
 export const SettingsHubScreen: React.FC = () => {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<{ navigate: (screen: string) => void }>();
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: settings } = useQuery({
-    queryKey: ['user-settings'],
-    queryFn: async () => {
-      const res = await mobileApiClient.get<{ settings: UserSettings }>('/api/users/settings');
-      return res.settings;
+    queryKey: ['user-settings', user?.id],
+    queryFn: async (): Promise<UserSettings> => {
+      if (!user?.id) throw new Error('Not authenticated');
+      const result = await mobileApiClient.get<{ success: boolean; data: UserSettings }>('/api/users/settings');
+      return result.data || {
+        notifications: { email: true, push: true, sms: false },
+        privacy: { profileVisible: true, shareActivityData: false },
+      };
     },
+    enabled: !!user?.id,
   });
 
   const updateSettingMutation = useMutation({
     mutationFn: async (patch: Partial<UserSettings>) => {
-      return mobileApiClient.put('/api/users/settings', patch);
+      if (!user?.id) throw new Error('Not authenticated');
+      const merged = { ...settings, ...patch };
+      await mobileApiClient.patch<{ success: boolean }>('/api/users/settings', merged);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-settings'] });
+      queryClient.invalidateQueries({ queryKey: ['user-settings', user?.id] });
     },
   });
 
@@ -112,19 +120,12 @@ export const SettingsHubScreen: React.FC = () => {
     </View>
   );
 
-  const accountItems: SettingsRow[] = [
-    { label: 'Edit Profile', icon: 'person-outline', iconColor: '#3B82F6', iconBg: '#DBEAFE', onPress: () => navigation.navigate('EditProfile') },
+  const securityItems: SettingsRow[] = [
     { label: 'Notification Preferences', icon: 'notifications-outline', iconColor: '#F59E0B', iconBg: '#FEF3C7', onPress: () => navigation.navigate('NotificationSettings') },
+    { label: 'MFA Security', icon: 'shield-checkmark-outline', iconColor: '#6366F1', iconBg: '#EEF2FF', onPress: () => navigation.navigate('MFASecurity') },
     { label: 'Payment Methods', icon: 'card-outline', iconColor: '#10B981', iconBg: '#D1FAE5', onPress: () => navigation.navigate('PaymentMethods') },
+    { label: 'Payment History', icon: 'receipt-outline', iconColor: '#3B82F6', iconBg: '#DBEAFE', onPress: () => navigation.navigate('PaymentHistory') },
   ];
-
-  if (user?.role === 'homeowner') {
-    accountItems.push(
-      { label: 'My Properties', icon: 'home-outline', iconColor: '#8B5CF6', iconBg: '#EDE9FE', onPress: () => navigation.navigate('Properties') },
-      { label: 'Subscription', icon: 'ribbon-outline', iconColor: '#EC4899', iconBg: '#FCE7F3', onPress: () => navigation.navigate('Subscription') },
-      { label: 'Financials', icon: 'wallet-outline', iconColor: '#10B981', iconBg: '#D1FAE5', onPress: () => navigation.navigate('Financials') },
-    );
-  }
 
   const privacyItems: SettingsRow[] = [
     {
@@ -136,7 +137,7 @@ export const SettingsHubScreen: React.FC = () => {
         <Switch
           value={settings?.privacy?.profileVisible ?? true}
           onValueChange={() => togglePrivacy('profileVisible')}
-          trackColor={{ false: '#EBEBEB', true: '#222222' }}
+          trackColor={{ false: '#EBEBEB', true: '#10B981' }}
           thumbColor="#FFFFFF"
         />
       ),
@@ -150,18 +151,11 @@ export const SettingsHubScreen: React.FC = () => {
         <Switch
           value={settings?.privacy?.shareActivityData ?? false}
           onValueChange={() => togglePrivacy('shareActivityData')}
-          trackColor={{ false: '#EBEBEB', true: '#222222' }}
+          trackColor={{ false: '#EBEBEB', true: '#10B981' }}
           thumbColor="#FFFFFF"
         />
       ),
     },
-  ];
-
-  const supportItems: SettingsRow[] = [
-    { label: 'Help Center', icon: 'help-circle-outline', iconColor: '#3B82F6', iconBg: '#DBEAFE', onPress: () => navigation.navigate('HelpCenter') },
-    { label: 'Payment History', icon: 'receipt-outline', iconColor: '#10B981', iconBg: '#D1FAE5', onPress: () => navigation.navigate('PaymentHistory') },
-    { label: 'Calendar', icon: 'calendar-outline', iconColor: '#F59E0B', iconBg: '#FEF3C7', onPress: () => navigation.navigate('Calendar') },
-    { label: 'Reviews', icon: 'star-outline', iconColor: '#F59E0B', iconBg: '#FEF3C7', onPress: () => navigation.navigate('Reviews') },
   ];
 
   const legalItems: SettingsRow[] = [
@@ -181,90 +175,93 @@ export const SettingsHubScreen: React.FC = () => {
     },
   ];
 
+  const dangerItems: SettingsRow[] = [
+    { label: 'Export My Data', icon: 'download-outline', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('DataExport') },
+    { label: 'Delete Account', icon: 'trash-outline', iconColor: '#EF4444', iconBg: '#FEE2E2', onPress: () => navigation.navigate('DeleteAccount'), destructive: true },
+  ];
+
   return (
-    <SafeAreaView style={styles.container}>
-      <ScreenHeader title="Settings" showBack onBack={() => (navigation as unknown as { goBack: () => void }).goBack()} />
+    <View style={styles.container}>
+      {/* Green gradient hero */}
+      <LinearGradient
+        colors={['#064E3B', '#059669', '#10B981']}
+        style={[styles.hero, { paddingTop: insets.top + 12 }]}
+      >
+        <View style={styles.decorCircle1} />
+        <View style={styles.decorCircle2} />
+
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => (navigation as unknown as { goBack: () => void }).goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
+        </TouchableOpacity>
+
+        <Text style={styles.heroTitle}>Settings</Text>
+        <Text style={styles.heroSubtitle}>Account, security & preferences</Text>
+      </LinearGradient>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-        {renderSection('Account', accountItems)}
+        {renderSection('Account & Security', securityItems)}
         {renderSection('Privacy', privacyItems)}
-        {renderSection('More', supportItems)}
         {renderSection('Legal', legalItems)}
+        {renderSection('Danger Zone', dangerItems)}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F7F7F7',
+  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  hero: {
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    overflow: 'hidden',
   },
-  scrollView: {
-    flex: 1,
+  decorCircle1: {
+    position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
-  content: {
-    padding: 16,
-    paddingBottom: 40,
+  decorCircle2: {
+    position: 'absolute', bottom: -20, left: -20, width: 80, height: 80, borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
-  section: {
-    marginBottom: 24,
+  backButton: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 14,
   },
+  heroTitle: {
+    fontSize: 26, fontWeight: '700', color: '#FFFFFF', letterSpacing: -0.5,
+  },
+  heroSubtitle: {
+    fontSize: 14, color: 'rgba(255,255,255,0.7)', marginTop: 4,
+  },
+  scrollView: { flex: 1 },
+  content: { padding: 16, paddingBottom: 40 },
+  section: { marginBottom: 24 },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#B0B0B0',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 8,
-    paddingHorizontal: 4,
+    fontSize: 12, fontWeight: '700', color: '#B0B0B0', textTransform: 'uppercase',
+    letterSpacing: 0.8, marginBottom: 8, paddingHorizontal: 4,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    overflow: 'hidden',
+    backgroundColor: '#FFFFFF', borderRadius: 16, overflow: 'hidden',
     ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
     }),
   },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 13,
-    paddingHorizontal: 14,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 13, paddingHorizontal: 14,
   },
-  rowBorder: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
-  },
-  rowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-  },
-  iconChip: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowLabel: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#222222',
-  },
-  destructiveText: {
-    color: '#EF4444',
-  },
+  rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#EBEBEB' },
+  rowLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 12 },
+  iconChip: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  rowLabel: { fontSize: 15, fontWeight: '500', color: '#222222' },
+  destructiveText: { color: '#EF4444' },
 });
 
 export default SettingsHubScreen;

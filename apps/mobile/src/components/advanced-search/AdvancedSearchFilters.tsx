@@ -14,7 +14,6 @@ import {
 import { styles } from './advancedSearchFiltersStyles';
 import { Ionicons } from '@expo/vector-icons';
 
-import { theme } from '../../theme';
 import { useI18n } from '../../hooks/useI18n';
 import { useHaptics } from '../../utils/haptics';
 import { SearchFilters, PriceRange, LocationRadius, ProjectType } from '../../types/search';
@@ -32,7 +31,7 @@ interface SliderProps {
 }
 
 const Slider: React.FC<SliderProps> = ({ value, onValueChange, minimumValue, maximumValue, style, ...props }) => (
-  <View style={[{ height: 40, backgroundColor: theme.colors.borderLight, borderRadius: 4 }, style]} {...props}>
+  <View style={[{ height: 40, backgroundColor: '#EBEBEB', borderRadius: 4 }, style]} {...props}>
     <Text style={{ fontSize: 12, textAlign: 'center', paddingTop: 10 }}>
       {value ? Math.round(value) : minimumValue || 0}
     </Text>
@@ -166,7 +165,7 @@ const AdvancedSearchFilters: React.FC<AdvancedSearchFiltersProps> = ({
         <Ionicons
           name={i < rating ? 'star' : 'star-outline'}
           size={24}
-          color={i < rating ? theme.colors.warning : theme.colors.textTertiary}
+          color={i < rating ? '#F59E0B' : '#B0B0B0'}
         />
       </TouchableOpacity>
     ));
@@ -196,7 +195,7 @@ const AdvancedSearchFilters: React.FC<AdvancedSearchFiltersProps> = ({
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
+            <Ionicons name="close" size={24} color="#222222" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Search Filters</Text>
           <TouchableOpacity onPress={resetFilters} style={styles.resetButton}>
@@ -223,9 +222,9 @@ const AdvancedSearchFilters: React.FC<AdvancedSearchFiltersProps> = ({
                     radius: Math.round(value),
                   })
                 }
-                minimumTrackTintColor={theme.colors.primary}
-                maximumTrackTintColor={theme.colors.surfaceSecondary}
-                thumbTintColor={theme.colors.primary}
+                minimumTrackTintColor="#222222"
+                maximumTrackTintColor="#F7F7F7"
+                thumbTintColor="#222222"
               />
               <View style={styles.sliderLabels}>
                 <Text style={styles.sliderLabelText}>5 mi</Text>
@@ -282,10 +281,10 @@ const AdvancedSearchFilters: React.FC<AdvancedSearchFiltersProps> = ({
                   })
                 }
                 trackColor={{
-                  false: theme.colors.surfaceSecondary,
-                  true: theme.colors.primary,
+                  false: '#F7F7F7',
+                  true: '#222222',
                 }}
-                thumbColor={theme.colors.surface}
+                thumbColor="#FFFFFF"
               />
             </View>
           </View>
@@ -413,10 +412,10 @@ const AdvancedSearchFilters: React.FC<AdvancedSearchFiltersProps> = ({
                 value={filters.verified}
                 onValueChange={(value) => updateFilter('verified', value)}
                 trackColor={{
-                  false: theme.colors.surfaceSecondary,
-                  true: theme.colors.primary,
+                  false: '#F7F7F7',
+                  true: '#222222',
                 }}
-                thumbColor={theme.colors.surface}
+                thumbColor="#FFFFFF"
               />
             </View>
 
@@ -426,10 +425,10 @@ const AdvancedSearchFilters: React.FC<AdvancedSearchFiltersProps> = ({
                 value={filters.hasReviews}
                 onValueChange={(value) => updateFilter('hasReviews', value)}
                 trackColor={{
-                  false: theme.colors.surfaceSecondary,
-                  true: theme.colors.primary,
+                  false: '#F7F7F7',
+                  true: '#222222',
                 }}
-                thumbColor={theme.colors.surface}
+                thumbColor="#FFFFFF"
               />
             </View>
           </View>
@@ -448,7 +447,7 @@ const AdvancedSearchFilters: React.FC<AdvancedSearchFiltersProps> = ({
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color={theme.colors.surface} size="small" />
+              <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
               <Text style={styles.applyButtonText}>Apply Filters</Text>
             )}

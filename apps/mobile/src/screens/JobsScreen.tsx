@@ -7,11 +7,12 @@ import {
   TouchableOpacity,
   RefreshControl,
   TextInput,
-  ScrollView,
   Dimensions,
   Platform,
+  StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -20,17 +21,35 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { JobService } from '../services/JobService';
 import { Job } from '@mintenance/types';
-import { getStatusColor as themeGetStatusColor } from '../theme';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { NavigationHeader } from '../components/navigation';
 import { ImageCarousel } from '../components/ui/ImageCarousel';
 import { ResponsiveContainer } from '../components/responsive';
 import { ExploreMapScreen } from './explore-map/ExploreMapScreen';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+type SortMode = 'for_you' | 'nearest' | 'highest_pay' | 'newest' | 'map';
 type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed';
-type ViewMode = 'list' | 'map';
+
+const SORT_TABS: { key: SortMode; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'for_you', label: 'For You', icon: 'sparkles' },
+  { key: 'nearest', label: 'Nearest', icon: 'navigate' },
+  { key: 'highest_pay', label: 'Top Pay', icon: 'trending-up' },
+  { key: 'newest', label: 'Newest', icon: 'time' },
+  { key: 'map', label: 'Map', icon: 'map' },
+];
+
+const HOMEOWNER_TABS: { key: FilterStatus; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'all', label: 'All', icon: 'grid-outline' },
+  { key: 'posted', label: 'Posted', icon: 'megaphone-outline' },
+  { key: 'assigned', label: 'Assigned', icon: 'person-add-outline' },
+  { key: 'in_progress', label: 'Active', icon: 'hammer-outline' },
+  { key: 'completed', label: 'Done', icon: 'checkmark-circle-outline' },
+];
 
 const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   plumbing: 'water-outline',
@@ -56,24 +75,66 @@ const CATEGORY_COLORS: Record<string, { icon: string; bg: string; text: string }
   general:     { icon: '#717171', bg: '#F7F7F7', text: '#717171' },
 };
 
-const FILTER_LABELS: Record<FilterStatus, string> = {
-  all: 'All',
-  posted: 'Posted',
-  assigned: 'Assigned',
-  in_progress: 'In Progress',
-  completed: 'Done',
+const STATUS_STYLES: Record<string, { label: string; bg: string; text: string; icon: keyof typeof Ionicons.glyphMap }> = {
+  posted:      { label: 'Posted', bg: '#FEF3C7', text: '#F59E0B', icon: 'megaphone' },
+  assigned:    { label: 'Assigned', bg: '#DBEAFE', text: '#3B82F6', icon: 'person-add' },
+  in_progress: { label: 'In Progress', bg: '#D1FAE5', text: '#10B981', icon: 'hammer' },
+  completed:   { label: 'Completed', bg: '#F0F0F0', text: '#717171', icon: 'checkmark-circle' },
 };
 
+const EMPTY_MESSAGES: Record<FilterStatus, { title: string; desc: string }> = {
+  all:         { title: 'No Jobs Yet', desc: 'Post your first maintenance job to get started.' },
+  posted:      { title: 'No Posted Jobs', desc: 'When you post a job, it will appear here waiting for bids.' },
+  assigned:    { title: 'No Assigned Jobs', desc: 'Jobs will appear here once you accept a contractor\'s bid.' },
+  in_progress: { title: 'No Active Jobs', desc: 'Jobs currently being worked on will show up here.' },
+  completed:   { title: 'No Completed Jobs', desc: 'Finished jobs and their reviews will appear here.' },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROGRESS DOTS — Shows job lifecycle stage
+// ─────────────────────────────────────────────────────────────────────────────
+
+const LIFECYCLE_STEPS = ['posted', 'assigned', 'in_progress', 'completed'];
+
+const ProgressDots: React.FC<{ status: string }> = ({ status }) => {
+  const currentIndex = LIFECYCLE_STEPS.indexOf(status);
+  return (
+    <View style={styles.progressDots}>
+      {LIFECYCLE_STEPS.map((step, i) => (
+        <React.Fragment key={step}>
+          <View style={[
+            styles.progressDot,
+            i <= currentIndex ? styles.progressDotActive : styles.progressDotInactive,
+          ]} />
+          {i < LIFECYCLE_STEPS.length - 1 && (
+            <View style={[
+              styles.progressLine,
+              i < currentIndex ? styles.progressLineActive : styles.progressLineInactive,
+            ]} />
+          )}
+        </React.Fragment>
+      ))}
+    </View>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN SCREEN
+// ─────────────────────────────────────────────────────────────────────────────
+
 const JobsScreen: React.FC = () => {
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<JobsStackParamList>>();
   const queryClient = useQueryClient();
 
+  const [sortMode, setSortMode] = useState<SortMode>('for_you');
   const [selectedFilter, setSelectedFilter] = useState<FilterStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
+
+  const isContractor = user?.role === 'contractor';
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
@@ -113,33 +174,58 @@ const JobsScreen: React.FC = () => {
     enabled: !!user,
   });
 
-  const filterCounts = useMemo(() => {
-    const counts: Record<FilterStatus, number> = {
-      all: allJobs.length,
-      posted: 0,
-      assigned: 0,
-      in_progress: 0,
-      completed: 0,
-    };
+  // ── Stats ──────────────────────────────────────────────────────────────────
+  const stats = useMemo(() => {
+    const now = Date.now();
+    let newToday = 0;
+    let totalBudget = 0;
+    let budgetCount = 0;
+    let activeCount = 0;
+    let totalBids = 0;
+    let completedCount = 0;
+    let postedCount = 0;
+
     allJobs.forEach((j) => {
-      const s = j.status as FilterStatus;
-      if (s in counts) counts[s]++;
+      const age = (now - new Date(j.created_at || j.createdAt || now).getTime()) / (1000 * 3600 * 24);
+      if (age < 1) newToday++;
+      const b = j.budget || j.budget_min || 0;
+      if (b > 0) { totalBudget += b; budgetCount++; }
+
+      // Homeowner stats
+      if (j.status === 'in_progress') activeCount++;
+      if (j.status === 'completed') completedCount++;
+      if (j.status === 'posted') postedCount++;
+      if (j.bids) totalBids += j.bids.length;
     });
+
+    return {
+      total: allJobs.length,
+      newToday,
+      avgBudget: budgetCount > 0 ? Math.round(totalBudget / budgetCount) : 0,
+      activeCount,
+      totalBids,
+      completedCount,
+      postedCount,
+    };
+  }, [allJobs]);
+
+  // ── Filter counts (homeowner) ─────────────────────────────────────────────
+  const filterCounts = useMemo(() => {
+    const counts: Record<FilterStatus, number> = { all: allJobs.length, posted: 0, assigned: 0, in_progress: 0, completed: 0 };
+    allJobs.forEach((j) => { const s = j.status as FilterStatus; if (s in counts) counts[s]++; });
     return counts;
   }, [allJobs]);
 
-  const newToday = useMemo(() =>
-    allJobs.filter((j) => {
-      const age = (Date.now() - new Date(j.created_at || j.createdAt || Date.now()).getTime()) / (1000 * 3600 * 24);
-      return age < 1;
-    }).length,
-  [allJobs]);
-
+  // ── Sort & filter ─────────────────────────────────────────────────────────
   const filteredJobs = useMemo(() => {
-    let data = allJobs;
-    if (selectedFilter !== 'all') {
+    let data = [...allJobs];
+
+    // Homeowner status filter
+    if (!isContractor && selectedFilter !== 'all') {
       data = data.filter((j) => j.status === selectedFilter);
     }
+
+    // Text search
     if (debouncedQuery.trim()) {
       const q = debouncedQuery.toLowerCase();
       data = data.filter(
@@ -149,146 +235,316 @@ const JobsScreen: React.FC = () => {
           (typeof j.location === 'string' && j.location.toLowerCase().includes(q))
       );
     }
+
+    // Contractor sort modes
+    if (isContractor) {
+      switch (sortMode) {
+        case 'highest_pay':
+          data.sort((a, b) => (b.budget || b.budget_min || 0) - (a.budget || a.budget_min || 0));
+          break;
+        case 'newest':
+          data.sort((a, b) => new Date(b.created_at || b.createdAt || 0).getTime() - new Date(a.created_at || a.createdAt || 0).getTime());
+          break;
+        case 'for_you':
+        case 'nearest':
+        default:
+          data.sort((a, b) => new Date(b.created_at || b.createdAt || 0).getTime() - new Date(a.created_at || a.createdAt || 0).getTime());
+          break;
+      }
+    } else {
+      // Homeowner: sort active first, then newest
+      data.sort((a, b) => {
+        const statusOrder: Record<string, number> = { in_progress: 0, assigned: 1, posted: 2, completed: 3 };
+        const aOrder = statusOrder[a.status] ?? 4;
+        const bOrder = statusOrder[b.status] ?? 4;
+        if (aOrder !== bOrder) return aOrder - bOrder;
+        return new Date(b.created_at || b.createdAt || 0).getTime() - new Date(a.created_at || a.createdAt || 0).getTime();
+      });
+    }
+
     return data;
-  }, [allJobs, selectedFilter, debouncedQuery]);
+  }, [allJobs, selectedFilter, debouncedQuery, sortMode, isContractor]);
 
   const onRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['jobs', user?.id, user?.role] });
   };
 
+  // ── Map view ──────────────────────────────────────────────────────────────
+  if (sortMode === 'map' && isContractor) {
+    return <ExploreMapScreen onBackToList={() => setSortMode('for_you')} />;
+  }
+
+  // ── Render job card ───────────────────────────────────────────────────────
   const renderItem = useCallback(({ item }: { item: Job }) => (
     <JobCard
       item={item}
       saved={savedJobIds.has(item.id)}
       onPress={() => navigation.navigate('JobDetails', { jobId: item.id })}
       onSave={() => toggleSave(item.id)}
+      onBid={() => navigation.navigate('BidSubmission', { jobId: item.id })}
       bidCount={item.bids?.length}
+      isContractor={isContractor}
     />
-  ), [navigation, savedJobIds, toggleSave]);
+  ), [navigation, savedJobIds, toggleSave, isContractor]);
 
-  const isContractor = user?.role === 'contractor';
+  // ── Header component (rendered inside FlatList) ───────────────────────────
+  const ListHeader = useMemo(() => (
+    <View>
+      {/* Full-Bleed Gradient Hero */}
+      <LinearGradient
+        colors={['#064E3B', '#059669', '#10B981']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.hero, { paddingTop: insets.top + 12 }]}
+      >
+        {/* Decorative circles */}
+        <View style={styles.decor1} />
+        <View style={styles.decor2} />
 
-  if (viewMode === 'map' && isContractor) {
-    return <ExploreMapScreen onBackToList={() => setViewMode('list')} />;
-  }
+        {/* Top nav row */}
+        <View style={styles.heroNav}>
+          <View>
+            <Text style={styles.heroTitle}>
+              {isContractor ? 'Job Marketplace' : 'My Jobs'}
+            </Text>
+            <Text style={styles.heroSubtitle}>
+              {isContractor
+                ? `${stats.newToday > 0 ? `${stats.newToday} new today · ` : ''}${stats.total} jobs available`
+                : `${stats.total} ${stats.total === 1 ? 'job' : 'jobs'} · ${stats.activeCount} active`
+              }
+            </Text>
+          </View>
+          {!isContractor && (
+            <TouchableOpacity
+              style={styles.heroAddBtn}
+              onPress={() => navigation.getParent?.()?.navigate('Modal', { screen: 'ServiceRequest' })}
+              accessibilityRole="button"
+              accessibilityLabel="Post a new job"
+            >
+              <Ionicons name="add" size={22} color="#064E3B" />
+            </TouchableOpacity>
+          )}
+        </View>
 
-  const contractorFilters: FilterStatus[] = ['all', 'assigned', 'in_progress', 'completed'];
-  const homeownerFilters: FilterStatus[] = ['all', 'posted', 'assigned', 'in_progress', 'completed'];
-  const visibleFilters = isContractor ? contractorFilters : homeownerFilters;
+        {/* Search bar inside hero */}
+        <View style={styles.heroSearchRow}>
+          <View style={styles.heroSearchContainer}>
+            <Ionicons name="search" size={18} color="rgba(255,255,255,0.6)" />
+            <TextInput
+              style={styles.heroSearchInput}
+              placeholder={isContractor ? 'Search by trade, location...' : 'Search your jobs...'}
+              placeholderTextColor="rgba(255,255,255,0.5)"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              accessibilityLabel="Search jobs"
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.6)" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
 
-  const subtitle = newToday > 0
-    ? `${newToday} new today · ${filteredJobs.length} total`
-    : `${filteredJobs.length} ${user?.role === 'homeowner' ? 'jobs' : 'active jobs'}`;
+        {/* Stat pills */}
+        <View style={styles.statRow}>
+          {isContractor ? (
+            <>
+              <View style={styles.statPill}>
+                <Text style={styles.statValue}>{stats.total}</Text>
+                <Text style={styles.statLabel}>Near You</Text>
+              </View>
+              <View style={styles.statPill}>
+                <Text style={styles.statValue}>
+                  {stats.avgBudget > 0 ? `£${stats.avgBudget >= 1000 ? `${(stats.avgBudget / 1000).toFixed(1)}k` : stats.avgBudget}` : '—'}
+                </Text>
+                <Text style={styles.statLabel}>Avg Budget</Text>
+              </View>
+              <View style={styles.statPill}>
+                <Text style={styles.statValue}>{stats.newToday}</Text>
+                <Text style={styles.statLabel}>New Today</Text>
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={styles.statPill}>
+                <Text style={styles.statValue}>{stats.activeCount}</Text>
+                <Text style={styles.statLabel}>Active</Text>
+              </View>
+              <View style={styles.statPill}>
+                <Text style={styles.statValue}>{stats.totalBids}</Text>
+                <Text style={styles.statLabel}>Bids</Text>
+              </View>
+              <View style={styles.statPill}>
+                <Text style={styles.statValue}>{stats.completedCount}</Text>
+                <Text style={styles.statLabel}>Completed</Text>
+              </View>
+            </>
+          )}
+        </View>
+      </LinearGradient>
+
+      {/* Error banner */}
+      {isError && (
+        <View style={styles.errorBanner}>
+          <Ionicons name="alert-circle" size={18} color="#EF4444" />
+          <Text style={styles.errorText}>
+            {queryError instanceof Error ? queryError.message : 'Failed to load jobs'}
+          </Text>
+          <TouchableOpacity onPress={() => refetch()} accessibilityRole="button">
+            <Text style={styles.retryLinkText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Sort/Filter tabs */}
+      <View style={styles.tabContainer}>
+        {isContractor ? (
+          <View style={styles.tabRow}>
+            {SORT_TABS.map((tab) => {
+              const active = sortMode === tab.key;
+              return (
+                <TouchableOpacity
+                  key={tab.key}
+                  style={[styles.sortTab, active && styles.sortTabActive]}
+                  onPress={() => setSortMode(tab.key)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Ionicons
+                    name={tab.icon}
+                    size={14}
+                    color={active ? '#FFFFFF' : '#717171'}
+                    style={{ marginRight: 4 }}
+                  />
+                  <Text style={[styles.sortTabText, active && styles.sortTabTextActive]}>
+                    {tab.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ) : (
+          <View style={styles.tabRow}>
+            {HOMEOWNER_TABS.map((tab) => {
+              const active = selectedFilter === tab.key;
+              const count = filterCounts[tab.key];
+              return (
+                <TouchableOpacity
+                  key={tab.key}
+                  style={[styles.sortTab, active && styles.sortTabActive]}
+                  onPress={() => setSelectedFilter(tab.key)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Ionicons
+                    name={tab.icon}
+                    size={14}
+                    color={active ? '#FFFFFF' : '#717171'}
+                    style={{ marginRight: 4 }}
+                  />
+                  <Text style={[styles.sortTabText, active && styles.sortTabTextActive]}>
+                    {tab.label}
+                  </Text>
+                  {count > 0 && tab.key !== 'all' && (
+                    <View style={[styles.countBadge, active && styles.countBadgeActive]}>
+                      <Text style={[styles.countBadgeText, active && styles.countBadgeTextActive]}>
+                        {count}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+      </View>
+
+      {/* Results count */}
+      <View style={styles.resultsRow}>
+        <Text style={styles.resultsText}>
+          {filteredJobs.length} {filteredJobs.length === 1 ? 'job' : 'jobs'}
+          {debouncedQuery ? ` for "${debouncedQuery}"` : ''}
+        </Text>
+      </View>
+    </View>
+  ), [insets.top, isContractor, stats, searchQuery, sortMode, selectedFilter, isError, queryError, filteredJobs.length, debouncedQuery, filterCounts, navigation, refetch]);
 
   return (
-    <SafeAreaView style={styles.mainContainer}>
-      <NavigationHeader
-        title={user?.role === 'homeowner' ? 'My Jobs' : 'Job Marketplace'}
-        subtitle={subtitle}
-        rightIcon={
-          user?.role === 'homeowner'
-            ? { name: 'add-circle-outline', onPress: () => navigation.getParent?.()?.navigate('Modal', { screen: 'ServiceRequest' }) }
-            : undefined
-        }
-      />
-
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" />
       <ResponsiveContainer
         maxWidth={{ mobile: undefined, tablet: 768, desktop: 1200 }}
         padding={{ mobile: 0, tablet: 16, desktop: 24 }}
         style={styles.container}
         testID="jobs-screen"
       >
-        <View style={styles.header}>
-          {isError && (
-            <View style={styles.errorBanner}>
-              <Ionicons name="alert-circle" size={18} color="#EF4444" />
-              <Text style={styles.errorText}>
-                {queryError instanceof Error ? queryError.message : 'Failed to load jobs'}
-              </Text>
-              <TouchableOpacity onPress={() => refetch()} accessibilityRole="button">
-                <Text style={styles.retryText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          <View style={styles.searchRow}>
-            <View style={styles.searchContainer}>
-              <Ionicons name="search" size={18} color="#717171" style={styles.searchIcon} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search by trade, location..."
-                placeholderTextColor="#B0B0B0"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                accessibilityLabel="Search jobs"
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Clear search">
-                  <Ionicons name="close-circle" size={18} color="#B0B0B0" />
-                </TouchableOpacity>
-              )}
-            </View>
-            {isContractor && (
-              <TouchableOpacity
-                style={styles.mapToggle}
-                onPress={() => setViewMode('map')}
-                accessibilityRole="button"
-                accessibilityLabel="Switch to map view"
-              >
-                <Ionicons name="map-outline" size={20} color="#222222" />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-            {visibleFilters.map((key) => (
-              <TouchableOpacity
-                key={key}
-                style={[styles.filterChip, selectedFilter === key && styles.filterChipActive]}
-                onPress={() => setSelectedFilter(key)}
-                accessibilityRole="button"
-                accessibilityLabel={`Filter: ${FILTER_LABELS[key]} (${filterCounts[key]})`}
-                accessibilityState={{ selected: selectedFilter === key }}
-              >
-                <Text style={[styles.filterChipText, selectedFilter === key && styles.filterChipTextActive]}>
-                  {FILTER_LABELS[key]}
-                  {filterCounts[key] > 0 && key !== 'all' ? ` ${filterCounts[key]}` : ''}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
         <FlatList
           data={filteredJobs}
           renderItem={renderItem}
           keyExtractor={(it) => it.id}
           contentContainerStyle={styles.listContainer}
-          ListEmptyComponent={() => (
-            <View style={styles.emptyContainer}>
-              <View style={styles.emptyIconWrap}>
-                <Ionicons name="briefcase-outline" size={32} color="#717171" />
+          ListHeaderComponent={ListHeader}
+          ListEmptyComponent={() => {
+            const emptyMsg = !isContractor
+              ? EMPTY_MESSAGES[selectedFilter]
+              : EMPTY_MESSAGES.all;
+            return (
+              <View style={styles.emptyContainer}>
+                <View style={styles.emptyIconWrap}>
+                  <Ionicons
+                    name={
+                      !isContractor && selectedFilter !== 'all'
+                        ? (HOMEOWNER_TABS.find((t) => t.key === selectedFilter)?.icon ?? 'search-outline')
+                        : 'search-outline'
+                    }
+                    size={32}
+                    color="#10B981"
+                  />
+                </View>
+                <Text style={styles.emptyTitle}>{emptyMsg.title}</Text>
+                <Text style={styles.emptyDescription}>{emptyMsg.desc}</Text>
+                {isContractor && (
+                  <View style={styles.emptySuggestions}>
+                    <TouchableOpacity style={styles.emptySuggestionRow} onPress={() => setSearchQuery('')}>
+                      <Ionicons name="refresh-outline" size={16} color="#10B981" />
+                      <Text style={styles.emptySuggestionText}>Clear search filters</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.emptySuggestionRow} onPress={() => setSortMode('newest')}>
+                      <Ionicons name="time-outline" size={16} color="#10B981" />
+                      <Text style={styles.emptySuggestionText}>Browse newest jobs</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.emptySuggestionRow} onPress={() => setSortMode('map')}>
+                      <Ionicons name="map-outline" size={16} color="#10B981" />
+                      <Text style={styles.emptySuggestionText}>Explore jobs on map</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+                {!isContractor && (
+                  <TouchableOpacity
+                    style={styles.emptyCtaBtn}
+                    onPress={() => navigation.getParent?.()?.navigate('Modal', { screen: 'ServiceRequest' })}
+                  >
+                    <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
+                    <Text style={styles.emptyCtaText}>Post a Job</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-              <Text style={styles.emptyTitle}>No Jobs</Text>
-              <Text style={styles.emptyDescription}>
-                {user?.role === 'homeowner'
-                  ? 'Post your first maintenance job'
-                  : 'Check back later for new opportunities'}
-              </Text>
-            </View>
-          )}
+            );
+          }}
           refreshControl={
-            <RefreshControl refreshing={isFetching} onRefresh={onRefresh} tintColor="#10B981" colors={['#10B981']} />
+            <RefreshControl refreshing={isFetching} onRefresh={onRefresh} tintColor="#10B981" colors={['#10B981']} progressViewOffset={120} />
           }
           showsVerticalScrollIndicator={false}
         />
       </ResponsiveContainer>
-    </SafeAreaView>
+    </View>
   );
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// COMPACT JOB CARD
+// BUDGET-FIRST JOB CARD (with homeowner enhancements)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const JobCard: React.FC<{
@@ -296,9 +552,10 @@ const JobCard: React.FC<{
   saved: boolean;
   onPress: () => void;
   onSave: () => void;
+  onBid: () => void;
   bidCount?: number;
-  hasAIAssessment?: boolean;
-}> = ({ item, saved, onPress, onSave, bidCount, hasAIAssessment }) => {
+  isContractor?: boolean;
+}> = ({ item, saved, onPress, onSave, onBid, bidCount, isContractor }) => {
   const daysAgo = Math.floor(
     (Date.now() - new Date(item.created_at || item.createdAt || Date.now()).getTime()) / (1000 * 3600 * 24)
   );
@@ -309,11 +566,21 @@ const JobCard: React.FC<{
   const locationStr = item.city || rawLocation.split(',').slice(-2, -1)[0]?.trim() || rawLocation;
 
   const budget = item.budget || item.budget_min || 0;
+  const budgetMax = item.budget_max || 0;
   const urgency = item.urgency || item.priority || 'medium';
   const isUrgent = urgency === 'high' || urgency === 'emergency';
   const catKey = item.category?.toLowerCase() || 'general';
   const catColor = CATEGORY_COLORS[catKey] || CATEGORY_COLORS.general;
   const categoryIcon = CATEGORY_ICONS[catKey] || 'construct-outline';
+  const timeLabel = daysAgo === 0 ? 'Today' : daysAgo === 1 ? '1d ago' : `${daysAgo}d ago`;
+  const statusStyle = STATUS_STYLES[item.status];
+
+  const contractorName = (item as Record<string, unknown>).contractor_name as string | undefined;
+
+  const formatBudget = (amt: number) => {
+    if (amt >= 1000) return `£${(amt / 1000).toFixed(amt % 1000 === 0 ? 0 : 1)}k`;
+    return `£${amt.toLocaleString()}`;
+  };
 
   return (
     <TouchableOpacity
@@ -321,9 +588,10 @@ const JobCard: React.FC<{
       onPress={onPress}
       activeOpacity={0.9}
       accessibilityRole="button"
-      accessibilityLabel={`${item.title}, £${budget.toLocaleString()}, ${locationStr}`}
+      accessibilityLabel={`${item.title}, ${budget > 0 ? `£${budget.toLocaleString()}` : 'Budget TBD'}, ${locationStr}`}
       accessibilityHint="Double tap to view job details"
     >
+      {/* Photo hero or category placeholder */}
       {hasPhotos ? (
         <View style={styles.heroSection}>
           <ImageCarousel
@@ -340,30 +608,23 @@ const JobCard: React.FC<{
                     <Text style={styles.urgentTagText}>Urgent</Text>
                   </View>
                 )}
-                <View style={[styles.statusTag, { backgroundColor: getStatusColor(item.status) }]}>
-                  <Text style={styles.statusTagText}>{formatStatus(item.status)}</Text>
-                </View>
               </View>
             }
           />
         </View>
       ) : (
         <View style={[styles.placeholderHero, { backgroundColor: catColor.bg }]}>
-          <Ionicons name={categoryIcon} size={36} color={catColor.icon} />
-          <View style={styles.placeholderOverlay}>
-            {isUrgent && (
-              <View style={styles.urgentTag}>
-                <Ionicons name="flame" size={11} color="#FFFFFF" />
-                <Text style={styles.urgentTagText}>Urgent</Text>
-              </View>
-            )}
-            <View style={[styles.statusTag, { backgroundColor: getStatusColor(item.status) }]}>
-              <Text style={styles.statusTagText}>{formatStatus(item.status)}</Text>
+          <Ionicons name={categoryIcon} size={36} color={catColor.icon} style={{ opacity: 0.5 }} />
+          {isUrgent && (
+            <View style={styles.placeholderUrgent}>
+              <Ionicons name="flame" size={11} color="#FFFFFF" />
+              <Text style={styles.urgentTagText}>Urgent</Text>
             </View>
-          </View>
+          )}
         </View>
       )}
 
+      {/* Save button overlay */}
       <TouchableOpacity
         style={styles.saveButton}
         onPress={(e) => { e.stopPropagation?.(); onSave(); }}
@@ -374,64 +635,127 @@ const JobCard: React.FC<{
         <Ionicons name={saved ? 'heart' : 'heart-outline'} size={20} color={saved ? '#EF4444' : '#FFFFFF'} />
       </TouchableOpacity>
 
-      <View style={styles.cardContent}>
-        <View style={styles.cardTopRow}>
-          <Text style={styles.jobTitle} numberOfLines={1}>{item.title}</Text>
+      {/* Status badge — homeowner only */}
+      {!isContractor && statusStyle && (
+        <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
+          <Ionicons name={statusStyle.icon} size={11} color={statusStyle.text} />
+          <Text style={[styles.statusBadgeText, { color: statusStyle.text }]}>{statusStyle.label}</Text>
         </View>
+      )}
 
+      {/* Card content — BUDGET FIRST */}
+      <View style={styles.cardContent}>
+        {/* Budget — large and prominent */}
+        <Text style={styles.budgetText}>
+          {budget > 0
+            ? budgetMax > 0 && budgetMax !== budget
+              ? `${formatBudget(budget)} – ${formatBudget(budgetMax)}`
+              : `£${budget.toLocaleString()}`
+            : 'Budget TBD'}
+        </Text>
+
+        {/* Title */}
+        <Text style={styles.jobTitle} numberOfLines={1}>{item.title}</Text>
+
+        {/* Meta row: location · time */}
         <View style={styles.cardMeta}>
           {locationStr ? (
             <View style={styles.metaItem}>
-              <Ionicons name="location-outline" size={13} color="#B0B0B0" />
+              <Ionicons name="location-outline" size={13} color="#717171" />
               <Text style={styles.metaText}>{locationStr}</Text>
             </View>
           ) : null}
           <View style={styles.metaItem}>
-            <Ionicons name="time-outline" size={13} color="#B0B0B0" />
-            <Text style={styles.metaText}>{daysAgo === 0 ? 'Today' : daysAgo === 1 ? '1d ago' : `${daysAgo}d ago`}</Text>
+            <Ionicons name="time-outline" size={13} color="#717171" />
+            <Text style={styles.metaText}>{timeLabel}</Text>
           </View>
         </View>
 
-        <View style={styles.cardFooter}>
-          <Text style={styles.priceText}>{budget > 0 ? `£${budget.toLocaleString()}` : 'Budget TBD'}</Text>
-          <View style={styles.footerRight}>
-            {item.category && (
-              <View style={[styles.categoryTag, { backgroundColor: catColor.bg }]}>
-                <Text style={[styles.categoryTagText, { color: catColor.text }]}>
-                  {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
-                </Text>
-              </View>
-            )}
-            {!!bidCount && bidCount > 0 && (
-              <View style={styles.bidBadge}>
-                <Ionicons name="people-outline" size={11} color="#F59E0B" />
-                <Text style={styles.bidBadgeText}>{bidCount}</Text>
-              </View>
-            )}
-            {hasAIAssessment && (
-              <View style={styles.aiBadge}><Text style={styles.aiBadgeText}>AI</Text></View>
-            )}
+        {/* Tags row: category + bid pressure */}
+        <View style={styles.tagsRow}>
+          <View style={[styles.categoryTag, { backgroundColor: catColor.bg }]}>
+            <Ionicons name={categoryIcon} size={12} color={catColor.text} />
+            <Text style={[styles.categoryTagText, { color: catColor.text }]}>
+              {item.category ? item.category.charAt(0).toUpperCase() + item.category.slice(1) : 'General'}
+            </Text>
           </View>
+          {!!bidCount && bidCount > 0 && (
+            <View style={styles.bidBadge}>
+              <Ionicons name="people-outline" size={12} color="#F59E0B" />
+              <Text style={styles.bidBadgeText}>
+                {bidCount} {bidCount === 1 ? 'bid' : 'bids'}
+              </Text>
+            </View>
+          )}
+          {item.status === 'posted' && daysAgo === 0 && (
+            <View style={styles.newBadge}>
+              <Text style={styles.newBadgeText}>New</Text>
+            </View>
+          )}
         </View>
 
-        {item.description ? (
-          <Text style={styles.jobDescription} numberOfLines={2}>{item.description}</Text>
-        ) : null}
+        {/* Homeowner: Progress dots for assigned/in-progress jobs */}
+        {!isContractor && (item.status === 'assigned' || item.status === 'in_progress') && (
+          <View style={styles.progressSection}>
+            <ProgressDots status={item.status} />
+            <View style={styles.progressLabels}>
+              <Text style={styles.progressLabelText}>Posted</Text>
+              <Text style={styles.progressLabelText}>Assigned</Text>
+              <Text style={styles.progressLabelText}>Active</Text>
+              <Text style={styles.progressLabelText}>Done</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Homeowner: Assigned contractor info */}
+        {!isContractor && contractorName && (item.status === 'assigned' || item.status === 'in_progress') && (
+          <View style={styles.contractorRow}>
+            <View style={styles.contractorAvatar}>
+              <Text style={styles.contractorInitial}>
+                {contractorName.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.contractorName}>{contractorName}</Text>
+              <Text style={styles.contractorRole}>Assigned Contractor</Text>
+            </View>
+            <Ionicons name="chatbubble-outline" size={18} color="#10B981" />
+          </View>
+        )}
+
+        {/* Homeowner: "View Bids" CTA for posted jobs */}
+        {!isContractor && item.status === 'posted' && !!bidCount && bidCount > 0 && (
+          <TouchableOpacity
+            style={styles.viewBidsBtn}
+            onPress={onPress}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="people" size={16} color="#FFFFFF" />
+            <Text style={styles.viewBidsText}>
+              View {bidCount} {bidCount === 1 ? 'Bid' : 'Bids'}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Contractor: Quick Bid button — posted jobs only */}
+        {isContractor && item.status === 'posted' && (
+          <TouchableOpacity
+            style={styles.quickBidBtn}
+            onPress={(e) => { e.stopPropagation?.(); onBid(); }}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={`Quick bid on ${item.title}`}
+          >
+            <Ionicons name="flash" size={16} color="#FFFFFF" />
+            <Text style={styles.quickBidText}>Quick Bid</Text>
+            {budget > 0 && (
+              <Text style={styles.quickBidAmount}>· £{budget.toLocaleString()}</Text>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
     </TouchableOpacity>
   );
-};
-
-const getStatusColor = (status: string) => themeGetStatusColor(status);
-
-const formatStatus = (status: string) => {
-  switch (status) {
-    case 'posted': return 'Open';
-    case 'assigned': return 'Assigned';
-    case 'in_progress': return 'In Progress';
-    case 'completed': return 'Done';
-    default: return status;
-  }
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -440,90 +764,226 @@ const formatStatus = (status: string) => {
 
 const styles = StyleSheet.create({
   mainContainer: { flex: 1, backgroundColor: '#F7F7F7' },
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
-  header: { backgroundColor: '#FFFFFF', paddingBottom: 8 },
+  container: { flex: 1 },
 
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 10,
-    gap: 10,
+  // ── Hero ───────────────────────────────────────────────────────────────────
+  hero: {
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    overflow: 'hidden',
   },
-  searchContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F7F7F7',
-    borderRadius: 24,
-    paddingHorizontal: 14,
-    height: 44,
+  decor1: {
+    position: 'absolute',
+    top: -40,
+    right: -40,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
-  searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, fontSize: 15, color: '#222222' },
-  mapToggle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#F7F7F7',
+  decor2: {
+    position: 'absolute',
+    bottom: -20,
+    left: -30,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  heroNav: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  heroTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.75)',
+    marginTop: 2,
+  },
+  heroAddBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  filterRow: {
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-    gap: 8,
+  // ── Hero search ────────────────────────────────────────────────────────────
+  heroSearchRow: {
+    marginBottom: 16,
   },
-  filterChip: {
+  heroSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 44,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  heroSearchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#FFFFFF',
+    marginLeft: 8,
+  },
+
+  // ── Stat pills ─────────────────────────────────────────────────────────────
+  statRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  statPill: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+
+  // ── Sort tabs ──────────────────────────────────────────────────────────────
+  tabContainer: {
     backgroundColor: '#FFFFFF',
+    paddingTop: 12,
+    paddingBottom: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
+  },
+  tabRow: {
+    flexDirection: 'row',
     paddingHorizontal: 16,
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  sortTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#EBEBEB',
+    backgroundColor: '#F7F7F7',
   },
-  filterChipActive: {
+  sortTabActive: {
     backgroundColor: '#222222',
-    borderColor: '#222222',
   },
-  filterChipText: { fontSize: 13, color: '#717171', fontWeight: '500' },
-  filterChipTextActive: { color: '#FFFFFF', fontWeight: '600' },
+  sortTabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#717171',
+  },
+  sortTabTextActive: {
+    color: '#FFFFFF',
+  },
+  countBadge: {
+    marginLeft: 5,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 8,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+  },
+  countBadgeActive: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+  },
+  countBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#717171',
+  },
+  countBadgeTextActive: {
+    color: '#FFFFFF',
+  },
 
-  listContainer: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24 },
+  // ── Results row ────────────────────────────────────────────────────────────
+  resultsRow: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  resultsText: {
+    fontSize: 13,
+    color: '#717171',
+    fontWeight: '500',
+  },
 
+  // ── Error ──────────────────────────────────────────────────────────────────
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
+    gap: 8,
+  },
+  errorText: { flex: 1, fontSize: 14, color: '#EF4444' },
+  retryLinkText: { fontSize: 14, fontWeight: '600', color: '#222222' },
+
+  // ── List ───────────────────────────────────────────────────────────────────
+  listContainer: { paddingBottom: 24 },
+
+  // ── Job Card ───────────────────────────────────────────────────────────────
   jobCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    marginBottom: 14,
+    borderRadius: 20,
+    marginHorizontal: 16,
+    marginTop: 12,
     overflow: 'hidden',
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.06,
-        shadowRadius: 10,
+        shadowRadius: 12,
       },
       android: { elevation: 2 },
     }),
   },
-  heroSection: { borderTopLeftRadius: 16, borderTopRightRadius: 16, overflow: 'hidden' },
+  heroSection: { borderTopLeftRadius: 20, borderTopRightRadius: 20, overflow: 'hidden' },
   placeholderHero: {
-    height: 100,
+    height: 90,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  placeholderOverlay: {
+  placeholderUrgent: {
     position: 'absolute',
     bottom: 8,
     left: 10,
     flexDirection: 'row',
-    gap: 6,
+    alignItems: 'center',
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    gap: 3,
   },
   overlayRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  statusTag: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  statusTagText: { fontSize: 11, fontWeight: '600', color: '#FFFFFF' },
   urgentTag: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -539,88 +999,253 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 10,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(0,0,0,0.25)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 5,
   },
 
-  cardContent: { padding: 14 },
-  cardTopRow: { marginBottom: 4 },
+  // Status badge (homeowner)
+  statusBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+    zIndex: 5,
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+
+  cardContent: { padding: 16 },
+
+  // Budget-first
+  budgetText: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#222222',
+    letterSpacing: -0.5,
+    marginBottom: 4,
+  },
   jobTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#222222',
+    marginBottom: 6,
   },
-  cardMeta: { flexDirection: 'row', gap: 12, marginBottom: 8 },
+  cardMeta: { flexDirection: 'row', gap: 14, marginBottom: 10 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  metaText: { fontSize: 12, color: '#B0B0B0' },
+  metaText: { fontSize: 12, color: '#717171' },
 
-  cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  priceText: { fontSize: 17, fontWeight: '700', color: '#222222' },
-  footerRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-
-  categoryTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  // Tags
+  tagsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
+  categoryTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    gap: 4,
+  },
   categoryTagText: { fontSize: 12, fontWeight: '600' },
-
   bidBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: 4,
     backgroundColor: '#FEF3C7',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
     borderRadius: 8,
   },
-  bidBadgeText: { fontSize: 11, fontWeight: '600', color: '#F59E0B' },
-  aiBadge: {
-    backgroundColor: '#DBEAFE',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
+  bidBadgeText: { fontSize: 12, fontWeight: '600', color: '#F59E0B' },
+  newBadge: {
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
     borderRadius: 8,
   },
-  aiBadgeText: { fontSize: 11, fontWeight: '700', color: '#3B82F6' },
+  newBadgeText: { fontSize: 12, fontWeight: '700', color: '#10B981' },
 
-  jobDescription: {
-    fontSize: 13,
-    color: '#717171',
-    lineHeight: 18,
-    marginTop: 6,
+  // ── Progress dots (homeowner) ──────────────────────────────────────────────
+  progressSection: {
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#EBEBEB',
   },
-
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 80,
-    paddingHorizontal: 40,
-    gap: 12,
-  },
-  emptyIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#F7F7F7',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyTitle: { fontSize: 20, fontWeight: '700', color: '#222222', textAlign: 'center' },
-  emptyDescription: { fontSize: 15, color: '#717171', textAlign: 'center', lineHeight: 22, maxWidth: 280 },
-  errorBanner: {
+  progressDots: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEE2E2',
-    marginHorizontal: 16,
-    marginTop: 8,
-    padding: 12,
-    borderRadius: 12,
-    gap: 8,
+    paddingHorizontal: 4,
   },
-  errorText: { flex: 1, fontSize: 14, color: '#EF4444' },
-  retryText: { fontSize: 14, fontWeight: '600', color: '#222222' },
+  progressDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  progressDotActive: {
+    backgroundColor: '#10B981',
+  },
+  progressDotInactive: {
+    backgroundColor: '#E0E0E0',
+  },
+  progressLine: {
+    flex: 1,
+    height: 2,
+  },
+  progressLineActive: {
+    backgroundColor: '#10B981',
+  },
+  progressLineInactive: {
+    backgroundColor: '#E0E0E0',
+  },
+  progressLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  progressLabelText: {
+    fontSize: 10,
+    color: '#B0B0B0',
+    fontWeight: '500',
+  },
+
+  // ── Contractor info row (homeowner) ────────────────────────────────────────
+  contractorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 12,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
+    padding: 12,
+  },
+  contractorAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#D1FAE5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  contractorInitial: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  contractorName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#222222',
+  },
+  contractorRole: {
+    fontSize: 12,
+    color: '#717171',
+    marginTop: 1,
+  },
+
+  // ── View Bids CTA (homeowner) ──────────────────────────────────────────────
+  viewBidsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#10B981',
+    borderRadius: 14,
+    paddingVertical: 12,
+    marginTop: 12,
+  },
+  viewBidsText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+
+  // Quick Bid (contractor)
+  quickBidBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#10B981',
+    borderRadius: 14,
+    paddingVertical: 12,
+    marginTop: 12,
+  },
+  quickBidText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  quickBidAmount: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  // ── Empty state ────────────────────────────────────────────────────────────
+  emptyContainer: {
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingHorizontal: 40,
+  },
+  emptyIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#D1FAE5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  emptyTitle: { fontSize: 20, fontWeight: '700', color: '#222222', textAlign: 'center' },
+  emptyDescription: {
+    fontSize: 15,
+    color: '#717171',
+    textAlign: 'center',
+    lineHeight: 22,
+    maxWidth: 280,
+    marginTop: 8,
+  },
+  emptySuggestions: {
+    marginTop: 24,
+    width: '100%',
+    gap: 12,
+  },
+  emptySuggestionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 },
+      android: { elevation: 1 },
+    }),
+  },
+  emptySuggestionText: { fontSize: 14, fontWeight: '600', color: '#222222' },
+  emptyCtaBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#10B981',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 14,
+    marginTop: 24,
+  },
+  emptyCtaText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
 });
 
 export default JobsScreen;

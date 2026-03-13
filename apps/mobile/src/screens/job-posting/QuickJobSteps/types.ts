@@ -1,5 +1,4 @@
 import type { Property } from '@mintenance/types'
-import { theme } from '../../../theme';
 
 export const JOB_CATEGORIES = [
   { id: 'plumbing', label: 'Plumbing', icon: 'water-outline'  as const },
@@ -13,10 +12,10 @@ export const JOB_CATEGORIES = [
 ] as const;
 
 export const URGENCY_OPTIONS = [
-  { value: 'today', label: 'Today', color: theme.colors.accentLight, textColor: theme.colors.errorDark  },
-  { value: 'tomorrow', label: 'Tomorrow', color: theme.colors.accentLight, textColor: theme.colors.error  },
-  { value: 'this_week', label: 'This Week', color: theme.colors.accentLight, textColor: theme.colors.warning  },
-  { value: 'flexible', label: 'Flexible', color: theme.colors.primaryLight, textColor: theme.colors.success  },
+  { value: 'today', label: 'Today', color: '#FEE2E2', textColor: '#991B1B' },
+  { value: 'tomorrow', label: 'Tomorrow', color: '#FEE2E2', textColor: '#EF4444' },
+  { value: 'this_week', label: 'This Week', color: '#FEF3C7', textColor: '#F59E0B' },
+  { value: 'flexible', label: 'Flexible', color: '#D1FAE5', textColor: '#10B981' },
 ];
 
 export type SearchSegment = 'where' | 'when' | 'what' | null

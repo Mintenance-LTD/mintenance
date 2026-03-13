@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { OptimizedImage } from '../optimized/OptimizedImage';
-import { theme } from '../../theme';
 
 export interface HostCardProps {
   avatar?: string;
@@ -65,7 +64,7 @@ export const HostCard: React.FC<HostCardProps> = memo(({
           <Text style={styles.name} numberOfLines={1}>{name}</Text>
           {rating !== undefined && (
             <View style={styles.ratingInline}>
-              <Ionicons name="star" size={12} color={theme.colors.ratingGold} />
+              <Ionicons name="star" size={12} color="#F59E0B" />
               <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
             </View>
           )}
@@ -87,7 +86,7 @@ export const HostCard: React.FC<HostCardProps> = memo(({
           <Ionicons
             name={actionIcon}
             size={20}
-            color={theme.colors.textSecondary}
+            color="#717171"
           />
         </View>
       )}
@@ -117,10 +116,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#EBEBEB',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
     minHeight: 44,
   },
   avatarContainer: {
@@ -135,14 +134,14 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: '#F7F7F7',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarInitial: {
     fontSize: 20,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
   },
   infoContainer: {
     flex: 1,
@@ -154,8 +153,8 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
   },
   ratingInline: {
     flexDirection: 'row',
@@ -164,17 +163,17 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 13,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
   },
   subtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginTop: 2,
   },
   metadata: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginTop: 2,
   },
   actionContainer: {
@@ -185,8 +184,8 @@ const styles = StyleSheet.create({
   },
   actionLabel: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.primary,
+    fontWeight: '600',
+    color: '#222222',
   },
 });
 

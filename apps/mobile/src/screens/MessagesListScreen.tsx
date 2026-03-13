@@ -53,9 +53,16 @@ const MessagesListScreen: React.FC = () => {
   const conversations = rawConversations as MessageThread[];
 
   const filteredConversations = useMemo(() => {
-    if (!searchQuery.trim()) return conversations;
+    // Sort by most recent message first
+    const sorted = [...conversations].sort((a, b) => {
+      const aTime = a.lastMessage?.createdAt ? new Date(a.lastMessage.createdAt).getTime() : 0;
+      const bTime = b.lastMessage?.createdAt ? new Date(b.lastMessage.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
+
+    if (!searchQuery.trim()) return sorted;
     const q = searchQuery.toLowerCase();
-    return conversations.filter((thread) => {
+    return sorted.filter((thread) => {
       const other = thread.participants.find((p) => p.id !== user?.id) || thread.participants[0];
       return (
         other?.name?.toLowerCase().includes(q) ||

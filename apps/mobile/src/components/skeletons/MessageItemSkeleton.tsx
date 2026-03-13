@@ -11,7 +11,6 @@
 
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { theme } from '../../theme';
 import { Skeleton, SkeletonAvatar, SkeletonGroup } from './Skeleton';
 
 export interface MessageItemSkeletonProps {
@@ -92,10 +91,8 @@ export const MessageItemSkeleton: React.FC<MessageItemSkeletonProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     overflow: 'hidden',
   },
   listHeader: {
@@ -103,9 +100,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
-    backgroundColor: theme.colors.backgroundSecondary,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
+    backgroundColor: '#F7F7F7',
   },
   item: {
     flexDirection: 'row',
@@ -113,7 +110,7 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.backgroundSecondary,
+    borderBottomColor: '#F7F7F7',
   },
   content: {
     flex: 1,

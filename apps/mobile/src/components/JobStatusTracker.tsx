@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../theme';
 import { Job } from '@mintenance/types';
 import { useUpdateJobStatus } from '../hooks/useJobs';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,36 +22,36 @@ interface StatusConfig {
 
 const STATUS_CONFIG: Record<string, StatusConfig> = {
   posted: {
-    color: theme.colors.textPrimary,
-    bgColor: theme.colors.backgroundSecondary,
+    color: '#222222',
+    bgColor: '#F7F7F7',
     icon: 'megaphone-outline',
     label: 'Posted',
     description: 'Waiting for contractor bids',
   },
   assigned: {
-    color: theme.colors.warning,
-    bgColor: theme.colors.accentLight,
+    color: '#F59E0B',
+    bgColor: '#FEF3C7',
     icon: 'person-outline',
     label: 'Assigned',
     description: 'Contractor assigned, waiting to start',
   },
   in_progress: {
-    color: theme.colors.warning,
-    bgColor: theme.colors.accentLight,
+    color: '#8B5CF6',
+    bgColor: '#EDE9FE',
     icon: 'hammer-outline',
     label: 'In Progress',
     description: 'Work is currently underway',
   },
   completed: {
-    color: theme.colors.success,
-    bgColor: theme.colors.primaryLight,
+    color: '#10B981',
+    bgColor: '#D1FAE5',
     icon: 'checkmark-circle-outline',
     label: 'Completed',
     description: 'Job has been finished',
   },
   cancelled: {
-    color: theme.colors.error,
-    bgColor: theme.colors.errorLight ?? '#FEF2F2',
+    color: '#EF4444',
+    bgColor: '#FEE2E2',
     icon: 'close-circle-outline',
     label: 'Cancelled',
     description: 'Job was cancelled',
@@ -237,7 +236,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
                   styles.timelineIcon,
                   {
                     backgroundColor:
-                      isActive || isPassed ? config.color : theme.colors.borderLight,
+                      isActive || isPassed ? config.color : '#EBEBEB',
                     opacity: isCancelled && !isActive ? 0.3 : 1,
                   },
                 ]}
@@ -245,14 +244,14 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
                 <Ionicons
                   name={config.icon}
                   size={16}
-                  color={isActive || isPassed ? theme.colors.textInverse : theme.colors.textTertiary}
+                  color={isActive || isPassed ? '#FFFFFF' : '#B0B0B0'}
                 />
               </View>
               <Text
                 style={[
                   styles.timelineLabel,
                   {
-                    color: isActive ? config.color : theme.colors.textSecondary,
+                    color: isActive ? config.color : '#717171',
                     fontWeight: isActive ? '600' : '400',
                     opacity: isCancelled && !isActive ? 0.3 : 1,
                   },
@@ -265,7 +264,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
                   style={[
                     styles.timelineLine,
                     {
-                      backgroundColor: isPassed ? config.color : theme.colors.borderLight,
+                      backgroundColor: isPassed ? config.color : '#EBEBEB',
                       opacity: isCancelled ? 0.3 : 1,
                     },
                   ]}
@@ -291,7 +290,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
               { backgroundColor: currentConfig.color },
             ]}
           >
-            <Ionicons name={currentConfig.icon} size={24} color={theme.colors.textInverse} />
+            <Ionicons name={currentConfig.icon} size={24} color="#FFFFFF" />
           </View>
           <View style={styles.statusInfo}>
             <Text style={[styles.statusLabel, { color: currentConfig.color }]}>
@@ -340,7 +339,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
                   <Ionicons
                     name={actionConfig.icon}
                     size={18}
-                    color={theme.colors.textInverse}
+                    color="#FFFFFF"
                   />
                   <Text style={styles.actionButtonText}>{action.label}</Text>
                 </TouchableOpacity>
@@ -388,71 +387,71 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    padding: theme.spacing.md,
+    padding: 16,
   },
   statusCard: {
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.lg,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
   },
   statusHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing[3],
+    marginBottom: 12,
   },
   statusIcon: {
     width: 48,
     height: 48,
-    borderRadius: theme.borderRadius.full,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: theme.spacing[3],
+    marginRight: 12,
   },
   statusInfo: {
     flex: 1,
   },
   statusLabel: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.bold,
+    fontSize: 18,
+    fontWeight: '700',
     marginBottom: 2,
   },
   statusDescription: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    color: '#717171',
   },
   progressContainer: {
-    marginTop: theme.spacing.sm,
+    marginTop: 8,
   },
   progressBar: {
     height: 6,
-    backgroundColor: theme.colors.borderLight,
+    backgroundColor: '#EBEBEB',
     borderRadius: 3,
-    marginBottom: theme.spacing.xs,
+    marginBottom: 6,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     borderRadius: 3,
   },
   progressText: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textSecondary,
+    fontSize: 12,
+    color: '#717171',
     textAlign: 'right',
   },
   section: {
-    marginBottom: theme.spacing.xl,
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[3],
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#222222',
+    marginBottom: 12,
   },
   timeline: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.sm,
+    paddingHorizontal: 8,
   },
   timelineItem: {
     flex: 1,
@@ -462,14 +461,14 @@ const styles = StyleSheet.create({
   timelineIcon: {
     width: 32,
     height: 32,
-    borderRadius: theme.borderRadius.full,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: theme.spacing.xs,
+    marginBottom: 6,
     zIndex: 2,
   },
   timelineLabel: {
-    fontSize: theme.typography.fontSize.xs,
+    fontSize: 12,
     textAlign: 'center',
     zIndex: 2,
   },
@@ -484,39 +483,39 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: theme.spacing.sm,
+    gap: 8,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing[3],
-    borderRadius: theme.borderRadius.lg,
-    gap: theme.spacing.xs,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+    gap: 6,
   },
   actionButtonText: {
-    color: theme.colors.textInverse,
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
   },
   infoGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: theme.spacing.md,
+    gap: 16,
   },
   infoItem: {
     flex: 1,
     minWidth: '45%',
   },
   infoLabel: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textSecondary,
+    fontSize: 12,
+    color: '#717171',
     marginBottom: 2,
   },
   infoValue: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#222222',
   },
 });
 

@@ -129,6 +129,21 @@ export type ProfileStackParamList = {
   Reporting: undefined;
   Payouts: undefined;
   BookingStatus: undefined;
+  // Contractor feature parity screens
+  Insurance: undefined;
+  Team: undefined;
+  Marketing: undefined;
+  MarketInsights: undefined;
+  Social: undefined;
+  Connections: undefined;
+  Training: undefined;
+  // Homeowner/shared feature parity screens
+  Favorites: undefined;
+  Discover: undefined;
+  // GDPR/Account management screens
+  MFASecurity: undefined;
+  DataExport: undefined;
+  DeleteAccount: undefined;
 };
 
 // ============================================================================

@@ -1,16 +1,15 @@
 /**
  * MeetingTypeSelector Component
- * 
+ *
  * Meeting type selection with duration options.
- * 
+ *
  * @filesize Target: <100 lines
  * @compliance Single Responsibility - Meeting type selection
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 import type { MeetingType, MeetingTypeOption } from '../viewmodels/MeetingScheduleViewModel';
 
 interface MeetingTypeSelectorProps {
@@ -32,8 +31,8 @@ export const MeetingTypeSelector: React.FC<MeetingTypeSelectorProps> = ({
 
   return (
     <View style={styles.container} testID="meeting-type-container">
-      <Text style={styles.sectionTitle}>Meeting Type</Text>
-      
+      <Text style={styles.sectionTitle}>MEETING TYPE</Text>
+
       <View style={styles.typeGrid}>
         {meetingTypes.map((type) => (
           <TouchableOpacity
@@ -48,11 +47,11 @@ export const MeetingTypeSelector: React.FC<MeetingTypeSelectorProps> = ({
               onDurationChange(type.estimatedDuration);
             }}
           >
-            <View style={styles.typeIcon}>
-              <Ionicons 
+            <View style={[styles.typeIcon, selectedType === type.id && styles.typeIconSelected]}>
+              <Ionicons
                 name={type.icon as keyof typeof Ionicons.glyphMap}
-                size={24} 
-                color={selectedType === type.id ? theme.colors.textInverse : theme.colors.textSecondary}
+                size={24}
+                color={selectedType === type.id ? '#FFFFFF' : '#717171'}
               />
             </View>
             <Text style={[
@@ -100,91 +99,96 @@ export const MeetingTypeSelector: React.FC<MeetingTypeSelectorProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
-    ...theme.shadows.sm,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   sectionTitle: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.lg,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#B0B0B0',
+    marginBottom: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   typeGrid: {
-    gap: theme.spacing.md,
-    marginBottom: theme.spacing.xl,
+    gap: 12,
+    marginBottom: 20,
   },
   typeCard: {
-    backgroundColor: theme.colors.surfaceTertiary,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 16,
+    padding: 14,
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
   },
   typeCardSelected: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: '#222222',
   },
   typeIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: theme.spacing.sm,
+    marginBottom: 8,
+  },
+  typeIconSelected: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   typeName: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.xs,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#222222',
+    marginBottom: 4,
   },
   typeNameSelected: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
   },
   typeDescription: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: 12,
+    color: '#717171',
     textAlign: 'center',
   },
   typeDescriptionSelected: {
-    color: theme.colors.textInverseMuted,
+    color: 'rgba(255,255,255,0.7)',
   },
   durationSection: {
-    marginTop: theme.spacing.lg,
+    marginTop: 16,
   },
   durationLabel: {
-    fontSize: theme.typography.fontSize.md,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.md,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#222222',
+    marginBottom: 12,
   },
   durationGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: theme.spacing.sm,
+    gap: 8,
   },
   durationButton: {
-    backgroundColor: theme.colors.surfaceTertiary,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     minWidth: 60,
     alignItems: 'center',
   },
   durationButtonSelected: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
   },
   durationText: {
-    fontSize: theme.typography.fontSize.md,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#222222',
   },
   durationTextSelected: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
   },
 });

@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, memo } from 'react';
 import { View, TouchableOpacity, StyleSheet, Animated, ViewStyle } from 'react-native';
-import { theme } from '../../theme';
 
 // ============================================================================
 // ACCORDION COMPOUND COMPONENT
@@ -31,19 +30,19 @@ export interface AccordionProps {
   testID?: string;
 }
 
-export const Accordion = memo<AccordionProps>(({ 
-  children, 
-  multiple = false, 
+export const Accordion = memo<AccordionProps>(({
+  children,
+  multiple = false,
   defaultOpen = [],
   onValueChange,
-  testID 
+  testID
 }) => {
   const [openItems, setOpenItems] = useState(new Set(defaultOpen));
 
   const toggleItem = useCallback((id: string) => {
     setOpenItems(prev => {
       const newSet = new Set(prev);
-      
+
       if (newSet.has(id)) {
         newSet.delete(id);
       } else {
@@ -52,7 +51,7 @@ export const Accordion = memo<AccordionProps>(({
         }
         newSet.add(id);
       }
-      
+
       onValueChange?.(Array.from(newSet));
       return newSet;
     });
@@ -103,11 +102,11 @@ export interface AccordionItemProps {
   testID?: string;
 }
 
-export const AccordionItem = memo<AccordionItemProps>(({ 
-  children, 
-  id, 
+export const AccordionItem = memo<AccordionItemProps>(({
+  children,
+  id,
   style,
-  testID 
+  testID
 }) => {
   const { isOpen } = useAccordion();
   const isItemOpen = isOpen(id);
@@ -135,17 +134,17 @@ export interface AccordionTriggerProps {
   testID?: string;
 }
 
-export const AccordionTrigger = memo<AccordionTriggerProps>(({ 
-  children, 
+export const AccordionTrigger = memo<AccordionTriggerProps>(({
+  children,
   style,
-  testID 
+  testID
 }) => {
   const { toggleItem } = useAccordion();
   const { id, isOpen } = useAccordionItem();
 
   return (
-    <TouchableOpacity 
-      style={[styles.accordionTrigger, isOpen && styles.accordionTriggerOpen, style]} 
+    <TouchableOpacity
+      style={[styles.accordionTrigger, isOpen && styles.accordionTriggerOpen, style]}
       onPress={() => toggleItem(id)}
       testID={testID}
     >
@@ -163,10 +162,10 @@ export interface AccordionContentProps {
   testID?: string;
 }
 
-export const AccordionContent = memo<AccordionContentProps>(({ 
-  children, 
+export const AccordionContent = memo<AccordionContentProps>(({
+  children,
   style,
-  testID 
+  testID
 }) => {
   const { isOpen } = useAccordionItem();
   const [height] = useState(new Animated.Value(isOpen ? 1 : 0));
@@ -182,12 +181,12 @@ export const AccordionContent = memo<AccordionContentProps>(({
   if (!isOpen) return null;
 
   return (
-    <Animated.View 
+    <Animated.View
       style={[
-        styles.accordionContent, 
+        styles.accordionContent,
         { opacity: height },
         style
-      ]} 
+      ]}
       testID={testID}
     >
       {children}
@@ -208,8 +207,8 @@ type AccordionCompound = React.NamedExoticComponent<AccordionProps> & {
 (Accordion as AccordionCompound).Content = AccordionContent;
 
 const styles = StyleSheet.create({
-  accordionItem: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
+  accordionItem: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#EBEBEB' },
   accordionTrigger: { padding: 16, flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "transparent" },
-  accordionTriggerOpen: { backgroundColor: theme.colors.backgroundSecondary },
+  accordionTriggerOpen: { backgroundColor: '#F7F7F7' },
   accordionContent: { padding: 16, paddingTop: 0 },
 });

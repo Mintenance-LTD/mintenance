@@ -2,7 +2,6 @@ import React, { ErrorInfo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ErrorBoundary } from './ErrorBoundary';
-import { theme } from '../theme';
 import { logger } from '../utils/logger';
 import { captureException } from '../config/sentry';
 
@@ -62,7 +61,7 @@ export const AsyncErrorBoundary: React.FC<AsyncErrorBoundaryProps> = ({
   const renderAsyncErrorFallback = (error: Error, resetError: () => void) => (
     <View style={styles.container}>
       <View style={styles.iconContainer}>
-        <Ionicons name='alert-circle-outline' size={54} color={theme.colors.error} />
+        <Ionicons name='alert-circle-outline' size={54} color='#EF4444' />
       </View>
 
       <Text style={styles.title}>Operation Failed</Text>
@@ -82,14 +81,14 @@ export const AsyncErrorBoundary: React.FC<AsyncErrorBoundaryProps> = ({
           <Ionicons
             name='hourglass-outline'
             size={16}
-            color={theme.colors.textInverse}
+            color='#FFFFFF'
             style={styles.buttonIcon}
           />
         ) : (
           <Ionicons
             name='refresh'
             size={16}
-            color={theme.colors.textInverse}
+            color='#FFFFFF'
             style={styles.buttonIcon}
           />
         )}
@@ -126,56 +125,57 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
   },
   iconContainer: {
     marginBottom: 16,
   },
   title: {
     fontSize: 20,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     marginBottom: 8,
     textAlign: 'center',
   },
   message: {
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 22,
     paddingHorizontal: 16,
   },
   retryButton: {
-    backgroundColor: theme.colors.info,
+    backgroundColor: '#222222',
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 28,
     flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 48,
   },
   retryButtonDisabled: {
-    backgroundColor: theme.colors.textTertiary,
+    backgroundColor: '#B0B0B0',
   },
   retryButtonText: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
   },
   buttonIcon: {
     marginRight: 8,
   },
   debugInfo: {
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
     padding: 12,
-    borderRadius: 6,
+    borderRadius: 12,
     marginTop: 16,
     width: '100%',
     maxHeight: 150,
   },
   debugText: {
     fontSize: 11,
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
     fontFamily: 'monospace',
     marginBottom: 4,
   },

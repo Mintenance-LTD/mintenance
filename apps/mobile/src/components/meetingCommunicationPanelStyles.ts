@@ -1,37 +1,36 @@
 import { StyleSheet } from 'react-native';
-import { theme } from '../theme';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
   },
   header: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   closeButton: {
     padding: 8,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
   },
   placeholder: {
     width: 40,
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   tab: {
     flex: 1,
@@ -41,16 +40,16 @@ export const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   activeTab: {
-    backgroundColor: theme.colors.info,
+    backgroundColor: '#3B82F6',
   },
   tabText: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textSecondary,
+    fontWeight: '600',
+    color: '#717171',
     marginLeft: 8,
   },
   activeTabText: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,
@@ -80,20 +79,20 @@ export const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   ownMessageBubble: {
-    backgroundColor: theme.colors.info,
+    backgroundColor: '#3B82F6',
   },
   otherMessageBubble: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
   },
   messageText: {
     fontSize: 14,
     lineHeight: 18,
   },
   ownMessageText: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
   },
   otherMessageText: {
-    color: theme.colors.textPrimary,
+    color: '#222222',
   },
   messageTime: {
     fontSize: 11,
@@ -104,7 +103,7 @@ export const styles = StyleSheet.create({
     textAlign: 'right',
   },
   otherMessageTime: {
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
   },
   emptyMessages: {
     flex: 1,
@@ -114,13 +113,13 @@ export const styles = StyleSheet.create({
   },
   emptyMessagesText: {
     fontSize: 18,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textSecondary,
+    fontWeight: '600',
+    color: '#717171',
     marginTop: 16,
   },
   emptyMessagesSubtext: {
     fontSize: 14,
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
     marginTop: 8,
     textAlign: 'center',
   },
@@ -128,22 +127,22 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     padding: 16,
-    backgroundColor: theme.colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#EBEBEB',
   },
   messageInput: {
     flex: 1,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
     maxHeight: 100,
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: '#222222',
   },
   sendButton: {
-    backgroundColor: theme.colors.info,
+    backgroundColor: '#3B82F6',
     borderRadius: 20,
     width: 40,
     height: 40,
@@ -159,15 +158,15 @@ export const styles = StyleSheet.create({
     padding: 16,
   },
   currentMeetingInfo: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     marginBottom: 12,
   },
   meetingDetails: {
@@ -175,13 +174,13 @@ export const styles = StyleSheet.create({
   },
   meetingDateTime: {
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontWeight: '500',
+    color: '#222222',
     marginBottom: 4,
   },
   meetingStatus: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   quickActions: {
     marginBottom: 20,
@@ -201,12 +200,12 @@ export const styles = StyleSheet.create({
   },
   statusButtonText: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textInverse,
+    fontWeight: '600',
+    color: '#FFFFFF',
     marginLeft: 6,
   },
   rescheduleSection: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
@@ -214,24 +213,24 @@ export const styles = StyleSheet.create({
   dateTimeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
     padding: 12,
     borderRadius: 8,
     marginBottom: 12,
   },
   dateTimeText: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: '#222222',
     marginLeft: 8,
     flex: 1,
   },
   reasonInput: {
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
     borderRadius: 8,
     padding: 12,
     minHeight: 80,
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: '#222222',
     textAlignVertical: 'top',
     marginBottom: 16,
   },
@@ -239,7 +238,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.warning,
+    backgroundColor: '#F59E0B',
     paddingVertical: 12,
     borderRadius: 8,
   },
@@ -248,12 +247,12 @@ export const styles = StyleSheet.create({
   },
   rescheduleButtonText: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textInverse,
+    fontWeight: '600',
+    color: '#FFFFFF',
     marginLeft: 6,
   },
   updatesSection: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
   },
@@ -265,7 +264,7 @@ export const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -275,11 +274,11 @@ export const styles = StyleSheet.create({
   },
   updateMessage: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: '#222222',
     marginBottom: 4,
   },
   updateTime: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
 });

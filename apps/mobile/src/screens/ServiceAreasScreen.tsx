@@ -12,7 +12,6 @@ import { DeleteConfirmationModal } from '../components/service-areas/DeleteConfi
 import { CreateServiceAreaModal } from '../components/service-areas/CreateServiceAreaModal';
 import { useServiceAreas } from '../hooks/useServiceAreas';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import { theme } from '../theme';
 
 interface ServiceAreasScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'ServiceAreas'>;
@@ -51,7 +50,7 @@ export const ServiceAreasScreen: React.FC<ServiceAreasScreenProps> = ({
       <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#222222" colors={['#222222']} />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -91,7 +90,7 @@ export const ServiceAreasScreen: React.FC<ServiceAreasScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
   },
   content: {
     flex: 1,

@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 
 export const ServiceAreasActions: React.FC = () => {
   return (
@@ -15,7 +14,7 @@ export const ServiceAreasActions: React.FC = () => {
         <Ionicons
           name='analytics'
           size={24}
-          color={theme.colors.textSecondary}
+          color="#717171"
         />
         <Text style={styles.actionButtonText}>View Analytics</Text>
       </TouchableOpacity>
@@ -24,7 +23,7 @@ export const ServiceAreasActions: React.FC = () => {
         style={styles.actionButton}
         onPress={() => Alert.alert('Coming Soon', 'Route optimisation features will be available in the next update.')}
       >
-        <Ionicons name='map' size={24} color={theme.colors.textSecondary} />
+        <Ionicons name='map' size={24} color="#717171" />
         <Text style={styles.actionButtonText}>Route Planning</Text>
       </TouchableOpacity>
 
@@ -35,7 +34,7 @@ export const ServiceAreasActions: React.FC = () => {
         <Ionicons
           name='location'
           size={24}
-          color={theme.colors.textSecondary}
+          color="#717171"
         />
         <Text style={styles.actionButtonText}>Coverage Map</Text>
       </TouchableOpacity>
@@ -45,16 +44,26 @@ export const ServiceAreasActions: React.FC = () => {
 
 const styles = StyleSheet.create({
   actionsContainer: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 16,
     marginBottom: 32,
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   actionsTitle: {
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     marginBottom: 16,
   },
   actionButton: {
@@ -62,15 +71,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: theme.borderRadius.base,
-    backgroundColor: theme.colors.surfaceSecondary,
+    borderRadius: 12,
+    backgroundColor: '#F7F7F7',
     marginBottom: 8,
   },
   actionButtonText: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: '#222222',
     marginLeft: 12,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontWeight: '500',
   },
 });
-

@@ -1,5 +1,4 @@
 import { StyleSheet, Platform } from 'react-native';
-import { theme } from '../../theme';
 
 export const styles = StyleSheet.create({
   container: {
@@ -8,7 +7,7 @@ export const styles = StyleSheet.create({
   },
   permissionContainer: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -18,29 +17,29 @@ export const styles = StyleSheet.create({
   },
   permissionTitle: {
     fontSize: 20,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     marginTop: 16,
     marginBottom: 8,
     textAlign: 'center',
   },
   permissionMessage: {
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 24,
   },
   permissionButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 28,
   },
   permissionButtonText: {
-    color: theme.colors.surface,
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
   },
   connectingContainer: {
     flex: 1,
@@ -51,7 +50,7 @@ export const styles = StyleSheet.create({
   connectingText: {
     marginTop: 20,
     fontSize: 18,
-    color: theme.colors.surface,
+    color: '#FFFFFF',
   },
   videoContainer: {
     flex: 1,
@@ -59,20 +58,20 @@ export const styles = StyleSheet.create({
   },
   remoteVideoContainer: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: '#F7F7F7',
   },
   remoteVideo: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.overlayDark50 ?? '#1a1a1a',
+    backgroundColor: '#1a1a1a',
   },
   videoPlaceholder: {
-    color: theme.colors.surface,
+    color: '#FFFFFF',
     fontSize: 18,
   },
   videoPlaceholderSmall: {
-    color: theme.colors.surface,
+    color: '#FFFFFF',
     fontSize: 10,
     marginTop: 4,
     textAlign: 'center',
@@ -81,10 +80,10 @@ export const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.overlayDark30 ?? '#2a2a2a',
+    backgroundColor: '#2a2a2a',
   },
   videoDisabledText: {
-    color: theme.colors.surface,
+    color: '#FFFFFF',
     fontSize: 16,
     marginTop: 12,
   },
@@ -98,7 +97,7 @@ export const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: 'black',
     borderWidth: 2,
-    borderColor: theme.colors.surface,
+    borderColor: '#FFFFFF',
   },
   localVideo: {
     flex: 1,
@@ -119,9 +118,9 @@ export const styles = StyleSheet.create({
     borderRadius: 4,
   },
   pipLabelText: {
-    color: theme.colors.surface,
+    color: '#FFFFFF',
     fontSize: 10,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontWeight: '500',
   },
   switchCameraButton: {
     position: 'absolute',
@@ -153,9 +152,9 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   participantName: {
-    color: theme.colors.surface,
+    color: '#FFFFFF',
     fontSize: 18,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
     marginBottom: 4,
   },
   durationContainer: {
@@ -169,9 +168,9 @@ export const styles = StyleSheet.create({
     marginRight: 8,
   },
   durationText: {
-    color: theme.colors.surface,
+    color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontWeight: '500',
     opacity: 0.8,
   },
   recordingIndicator: {
@@ -186,11 +185,11 @@ export const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     marginRight: 6,
   },
   recordingText: {
-    color: theme.colors.surface,
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -230,7 +229,7 @@ export const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: theme.colors.error,
+    backgroundColor: '#EF4444',
     justifyContent: 'center',
     alignItems: 'center',
     transform: [{ rotate: '135deg' }],
@@ -253,11 +252,11 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.3)',
   },
   secondaryButtonText: {
-    color: theme.colors.surface,
+    color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontWeight: '500',
   },
   secondaryButtonTextActive: {
-    color: theme.colors.primary,
+    color: '#222222',
   },
 });

@@ -8,7 +8,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import { Skeleton } from '../../components/skeletons/Skeleton';
 
 const AVATAR_COLORS = ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#EC4899', '#6B7280'];
@@ -93,10 +92,10 @@ export const BidsReceived: React.FC<BidsReceivedProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Bids Received ({bids.length})</Text>
+        <Text style={styles.title}>Bids Received</Text>
         {onViewAllPress && (
           <TouchableOpacity onPress={onViewAllPress} accessibilityRole="button">
-            <Text style={styles.viewAll}>View All</Text>
+            <Text style={styles.viewAll}>View All ({bids.length})</Text>
           </TouchableOpacity>
         )}
       </View>

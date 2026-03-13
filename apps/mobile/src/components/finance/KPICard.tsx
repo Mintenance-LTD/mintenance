@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 
 interface KPICardProps {
   title: string;
@@ -22,30 +21,27 @@ export const KPICard: React.FC<KPICardProps> = ({
 }) => {
   return (
     <TouchableOpacity
-      style={[styles.kpiCard, { borderLeftColor: color }]}
+      style={styles.kpiCard}
       onPress={onPress}
+      activeOpacity={0.7}
     >
-      <View style={styles.kpiHeader}>
-        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={theme.colors.textSecondary} />
-        <Text style={styles.kpiTitle}>{title}</Text>
+      <View style={[styles.kpiIconWrap, { backgroundColor: `${color}18` }]}>
+        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={color} />
       </View>
+      <Text style={styles.kpiTitle}>{title}</Text>
       <Text style={styles.kpiValue}>{value}</Text>
       {change && (
         <View style={styles.changeContainer}>
           <Ionicons
             name={change.isPositive ? 'trending-up' : 'trending-down'}
             size={12}
-            color={
-              change.isPositive ? theme.colors.success : theme.colors.error
-            }
+            color={change.isPositive ? '#10B981' : '#EF4444'}
           />
           <Text
             style={[
               styles.changeText,
               {
-                color: change.isPositive
-                  ? theme.colors.success
-                  : theme.colors.error,
+                color: change.isPositive ? '#10B981' : '#EF4444',
               },
             ]}
           >
@@ -62,28 +58,34 @@ const styles = StyleSheet.create({
   kpiCard: {
     flex: 1,
     minWidth: 150,
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
-    padding: 20,
-    borderLeftWidth: 4,
-    ...theme.shadows.base,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 18,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
-  kpiHeader: {
-    flexDirection: 'row',
+  kpiIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 8,
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   kpiTitle: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginLeft: 8,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 13,
+    color: '#717171',
+    fontWeight: '500',
+    marginBottom: 4,
   },
   kpiValue: {
-    fontSize: 18,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#222222',
     marginBottom: 4,
+    letterSpacing: -0.3,
   },
   changeContainer: {
     flexDirection: 'row',
@@ -91,7 +93,7 @@ const styles = StyleSheet.create({
   },
   changeText: {
     fontSize: 12,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontWeight: '500',
     marginLeft: 4,
   },
 });

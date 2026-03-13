@@ -12,7 +12,6 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { theme } from '../../../theme';
 import type { BookingStatus, TabInfo } from '../viewmodels/BookingViewModel';
 
 interface TabHeaderProps {
@@ -36,21 +35,13 @@ export const TabHeader: React.FC<TabHeaderProps> = ({
       {/* Navigation Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity onPress={onBackPress} style={styles.headerButton}>
-          <Ionicons
-            name="arrow-back"
-            size={24}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name="arrow-back" size={24} color="#222222" />
         </TouchableOpacity>
 
         <Text style={styles.headerTitle}>Bookings</Text>
 
         <TouchableOpacity onPress={onSearchPress} style={styles.headerButton}>
-          <Ionicons
-            name="search"
-            size={24}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name="search" size={24} color="#222222" />
         </TouchableOpacity>
       </View>
 
@@ -89,40 +80,40 @@ export const TabHeader: React.FC<TabHeaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: theme.spacing.md,
-    paddingBottom: theme.spacing[5],
-    paddingHorizontal: theme.spacing[5],
+    paddingTop: 16,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
   },
   headerButton: {
     width: 44,
     height: 44,
-    borderRadius: theme.borderRadius.full,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222222',
   },
   tabsContainer: {
     flexDirection: 'row',
-    paddingHorizontal: theme.spacing[5],
-    marginBottom: theme.spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   tab: {
     flex: 1,
-    paddingVertical: theme.spacing[3],
-    paddingHorizontal: theme.spacing.sm,
-    marginRight: theme.spacing.md,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    marginRight: 16,
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
     flexDirection: 'row',
@@ -130,30 +121,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   activeTab: {
-    borderBottomColor: theme.colors.primary,
+    borderBottomColor: '#222222',
   },
   tabText: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textSecondary,
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#717171',
     marginRight: 6,
   },
   activeTabText: {
-    color: theme.colors.textPrimary,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#222222',
+    fontWeight: '600',
   },
   tabBadge: {
-    backgroundColor: theme.colors.error,
-    borderRadius: theme.borderRadius.full,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
     minWidth: 20,
     height: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.xs,
+    paddingHorizontal: 4,
   },
   tabBadgeText: {
-    color: theme.colors.textInverse,
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '600',
   },
 });

@@ -12,7 +12,6 @@ import { supabase } from '../../../config/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { logger } from '../../../utils/logger';
 import * as Location from 'expo-location';
-import { mobileApiClient } from '../../../utils/mobileApiClient';
 
 export interface JobMapItem {
   id: string;
@@ -100,18 +99,22 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
     (async () => {
       try {
         // Prefer the saved profile lat/lng — home maintenance is done at the user's home address.
-        // This also prevents the Android emulator's default GPS (Mountain View, CA) from overriding.
         try {
-          const res = await mobileApiClient.get<{
-            profile: { latitude?: number; longitude?: number };
-          }>('/api/users/profile');
-          const { latitude: lat, longitude: lng } = res.profile;
-          if (lat && lng && isMounted.current) {
-            const coords = { latitude: lat, longitude: lng };
-            setUserLocation(coords);
-            setRegion((prev) => ({ ...prev, latitude: lat, longitude: lng }));
-            logger.info('Map centered on saved profile coordinates');
-            return;
+          if (user?.id) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('latitude, longitude')
+              .eq('id', user.id)
+              .single();
+            const lat = profile?.latitude;
+            const lng = profile?.longitude;
+            if (lat && lng && isMounted.current) {
+              const coords = { latitude: lat, longitude: lng };
+              setUserLocation(coords);
+              setRegion((prev) => ({ ...prev, latitude: lat, longitude: lng }));
+              logger.info('Map centered on saved profile coordinates');
+              return;
+            }
           }
         } catch {
           // Profile coords unavailable — fall through to GPS

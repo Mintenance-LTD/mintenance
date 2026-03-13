@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { theme } from '../../../theme';
 
 interface AssessmentHeaderProps {
   propertyAddress: string | undefined;
@@ -15,7 +14,7 @@ export const AssessmentHeader: React.FC<AssessmentHeaderProps> = ({
   return (
     <View style={styles.header}>
       <TouchableOpacity style={styles.backButton} onPress={onGoBack}>
-        <Icon name="arrow-back" size={24} color={theme.colors.textPrimary} />
+        <Icon name="arrow-back" size={22} color="#222222" />
       </TouchableOpacity>
       <View style={styles.headerContent}>
         <Text style={styles.headerTitle}>Property Assessment</Text>
@@ -24,7 +23,7 @@ export const AssessmentHeader: React.FC<AssessmentHeaderProps> = ({
         </Text>
       </View>
       <TouchableOpacity style={styles.menuButton}>
-        <Icon name="more-vert" size={24} color={theme.colors.textPrimary} />
+        <Icon name="more-vert" size={24} color="#222222" />
       </TouchableOpacity>
     </View>
   );
@@ -34,30 +33,35 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing[3],
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
   backButton: {
-    padding: theme.spacing.sm,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerContent: {
     flex: 1,
-    marginHorizontal: theme.spacing.md,
+    marginHorizontal: 14,
   },
   headerTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222222',
   },
   headerSubtitle: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    color: '#717171',
     marginTop: 2,
   },
   menuButton: {
-    padding: theme.spacing.sm,
+    padding: 8,
   },
 });

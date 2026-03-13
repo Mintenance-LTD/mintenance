@@ -8,7 +8,6 @@
 import React, { Component, ReactNode, ErrorInfo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../theme';
 import { logger } from '../utils/logger';
 import ErrorRecoveryManager, {
   ErrorContext,
@@ -273,7 +272,7 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
         <View style={styles.actionsContainer}>
           {this.state.isRecovering ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={theme.colors.primary} />
+              <ActivityIndicator size="small" color="#222222" />
               <Text style={styles.loadingText}>Recovering...</Text>
             </View>
           ) : (
@@ -286,7 +285,7 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
                   accessibilityLabel="Try again"
                   accessibilityHint="Attempt to recover from the error"
                 >
-                  <Ionicons name="refresh" size={20} color={theme.colors.textInverse} />
+                  <Ionicons name="refresh" size={20} color="#FFFFFF" />
                   <Text style={styles.primaryButtonText}>
                     {this.state.strategy.type === 'retry' ? 'Try Again' : 'Recover'}
                   </Text>
@@ -301,7 +300,7 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
                   accessibilityLabel="Go to safe area"
                   accessibilityHint="Navigate to a stable part of the app"
                 >
-                  <Ionicons name="home" size={20} color={theme.colors.primary} />
+                  <Ionicons name="home" size={20} color="#222222" />
                   <Text style={styles.secondaryButtonText}>Go to Home</Text>
                 </TouchableOpacity>
               )}
@@ -313,7 +312,7 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
                 accessibilityLabel="Report error"
                 accessibilityHint="Send error report to help improve the app"
               >
-                <Ionicons name="bug" size={16} color={theme.colors.textSecondary} />
+                <Ionicons name="bug" size={16} color="#717171" />
                 <Text style={styles.tertiaryButtonText}>Report Issue</Text>
               </TouchableOpacity>
             </>
@@ -350,10 +349,10 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
 
   private getErrorColor(priority?: string): string {
     switch (priority) {
-      case 'critical': return theme.colors.error;
-      case 'high': return theme.colors.warning;
-      case 'medium': return theme.colors.primary;
-      default: return theme.colors.textSecondary;
+      case 'critical': return '#EF4444';
+      case 'high': return '#F59E0B';
+      case 'medium': return '#222222';
+      default: return '#717171';
     }
   }
 
@@ -383,21 +382,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#FFFFFF',
   },
   iconContainer: {
     marginBottom: 16,
   },
   title: {
     fontSize: 24,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
     textAlign: 'center',
     marginBottom: 8,
   },
   message: {
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 32,
@@ -417,7 +416,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginLeft: 8,
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   button: {
     flexDirection: 'row',
@@ -425,33 +424,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     paddingHorizontal: 24,
-    borderRadius: 8,
-    minHeight: 44,
+    borderRadius: 28,
+    minHeight: 48,
   },
   primaryButton: {
-    backgroundColor: theme.colors.primary,
-    shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: '#222222',
   },
   primaryButtonText: {
     marginLeft: 8,
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textInverse,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   secondaryButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: theme.colors.primary,
+    backgroundColor: '#F7F7F7',
   },
   secondaryButtonText: {
     marginLeft: 8,
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.primary,
+    fontWeight: '500',
+    color: '#222222',
   },
   tertiaryButton: {
     backgroundColor: 'transparent',
@@ -459,25 +451,25 @@ const styles = StyleSheet.create({
   tertiaryButtonText: {
     marginLeft: 6,
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   debugContainer: {
     marginTop: 32,
     padding: 16,
-    backgroundColor: theme.colors.surfaceSecondary,
-    borderRadius: 8,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
     width: '100%',
     maxWidth: 320,
   },
   debugTitle: {
     fontSize: 14,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     marginBottom: 8,
   },
   debugText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     fontFamily: 'monospace',
     marginBottom: 4,
   },

@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import { performanceMonitor, usePerformanceMonitoring } from '../../utils/performance';
 import type { PerformanceReport, PerformanceBudget, ComponentPerformance, PerformanceViolation } from '../../utils/performance/types';
 import { useHaptics } from '../../utils/haptics';
@@ -63,7 +62,7 @@ export const PerformanceDashboard: React.FC = () => {
 
   useEffect(() => {
     loadPerformanceData();
-    const interval = setInterval(loadPerformanceData, 30000); // Update every 30s
+    const interval = setInterval(loadPerformanceData, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -75,7 +74,7 @@ export const PerformanceDashboard: React.FC = () => {
 
       setReportData(report);
       setBudgetStatus(budgets);
-      setComponentMetrics(components.slice(0, 10)); // Top 10 components
+      setComponentMetrics(components.slice(0, 10));
     } catch (error) {
       logger.error('Failed to load performance data', { data: error });
     }
@@ -119,7 +118,6 @@ export const PerformanceDashboard: React.FC = () => {
         componentMetrics,
       };
 
-      // In a real app, you'd export this to a file or send to analytics service
       logger.info('Performance report exported', { data: exportData });
       Alert.alert('Export Complete', 'Performance report has been exported to logs');
     } catch (error) {
@@ -136,27 +134,27 @@ export const PerformanceDashboard: React.FC = () => {
 
   if (!reportData) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={styles.container}>
         <View style={styles.loading}>
-          <Body1 style={{ color: theme.colors.textSecondary }}>Loading performance data...</Body1>
+          <Body1 style={{ color: '#717171' }}>Loading performance data...</Body1>
         </View>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView style={styles.container}>
       <ScrollView
         style={styles.scrollView}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#222222" colors={['#222222']} />
         }
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View style={styles.header}>
-          <H1 style={{ color: theme.colors.textPrimary }}>Performance Dashboard</H1>
-          <Caption style={{ color: theme.colors.textSecondary, marginTop: 4 }}>
+          <H1 style={{ color: '#222222' }}>Performance Dashboard</H1>
+          <Caption style={{ color: '#717171', marginTop: 4 }}>
             Real-time app performance monitoring
           </Caption>
         </View>
@@ -165,15 +163,12 @@ export const PerformanceDashboard: React.FC = () => {
         <Card style={styles.controlsCard}>
           <CardBody>
             <View style={styles.controlRow}>
-              <Body1 style={{ color: theme.colors.textPrimary }}>Real-time Monitoring</Body1>
+              <Body1 style={{ color: '#222222' }}>Real-time Monitoring</Body1>
               <Switch
                 value={monitoringEnabled}
                 onValueChange={toggleMonitoring}
-                trackColor={{
-                  false: theme.colors.surfaceTertiary,
-                  true: theme.colors.textPrimary,
-                }}
-                thumbColor={theme.colors.background}
+                trackColor={{ false: '#EBEBEB', true: '#222222' }}
+                thumbColor="#F7F7F7"
               />
             </View>
           </CardBody>
@@ -181,7 +176,7 @@ export const PerformanceDashboard: React.FC = () => {
 
         {/* Overview Metrics */}
         <View style={styles.section}>
-          <H2 style={{ color: theme.colors.textPrimary, marginBottom: 16 }}>Overview</H2>
+          <H2 style={{ color: '#222222', marginBottom: 16 }}>Overview</H2>
           <View style={styles.metricsGrid}>
             <MetricCard
               title="Total Metrics"
@@ -218,7 +213,7 @@ export const PerformanceDashboard: React.FC = () => {
 
         {/* Budget Status */}
         <View style={styles.section}>
-          <H2 style={{ color: theme.colors.textPrimary, marginBottom: 16 }}>Budget Status</H2>
+          <H2 style={{ color: '#222222', marginBottom: 16 }}>Budget Status</H2>
           <Card>
             <CardBody>
               {budgetStatus.slice(0, 8).map((budget, index) => (
@@ -237,7 +232,7 @@ export const PerformanceDashboard: React.FC = () => {
         {/* Component Performance */}
         {componentMetrics.length > 0 && (
           <View style={styles.section}>
-            <H2 style={{ color: theme.colors.textPrimary, marginBottom: 16 }}>
+            <H2 style={{ color: '#222222', marginBottom: 16 }}>
               Top Components by Render Time
             </H2>
             <Card>
@@ -253,7 +248,7 @@ export const PerformanceDashboard: React.FC = () => {
         {/* Recent Violations */}
         {(reportData.violations?.length ?? 0) > 0 && (
           <View style={styles.section}>
-            <H2 style={{ color: theme.colors.textPrimary, marginBottom: 16 }}>Recent Violations</H2>
+            <H2 style={{ color: '#222222', marginBottom: 16 }}>Recent Violations</H2>
             <Card>
               <CardBody>
                 {reportData.violations?.slice(0, 5).map((violation, index) => (
@@ -288,7 +283,7 @@ export const PerformanceDashboard: React.FC = () => {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Caption style={{ color: theme.colors.textTertiary, textAlign: 'center' }}>
+          <Caption style={{ color: '#B0B0B0', textAlign: 'center' }}>
             Last updated: {new Date(reportData.timestamp ?? Date.now()).toLocaleTimeString()}
           </Caption>
         </View>
@@ -312,14 +307,10 @@ const MetricCard: React.FC<MetricCardProps> = ({
 }) => {
   const getStatusColor = () => {
     switch (status) {
-      case 'good':
-        return theme.colors.successDark;
-      case 'warning':
-        return theme.colors.warningDark;
-      case 'critical':
-        return theme.colors.errorDark;
-      default:
-        return theme.colors.textSecondary;
+      case 'good': return '#059669';
+      case 'warning': return '#D97706';
+      case 'critical': return '#DC2626';
+      default: return '#717171';
     }
   };
 
@@ -332,18 +323,18 @@ const MetricCard: React.FC<MetricCardProps> = ({
             <Ionicons
               name={trend === 'up' ? 'trending-up' : trend === 'down' ? 'trending-down' : 'remove'}
               size={16}
-              color={trend === 'up' ? theme.colors.error : theme.colors.success}
+              color={trend === 'up' ? '#EF4444' : '#10B981'}
               style={styles.trendIcon}
             />
           )}
         </View>
-        <H3 style={{ color: theme.colors.textPrimary, marginTop: 12 }}>
+        <H3 style={{ color: '#222222', marginTop: 12 }}>
           {value}
-          {unit && <Caption style={{ color: theme.colors.textSecondary }}> {unit}</Caption>}
+          {unit && <Caption style={{ color: '#717171' }}> {unit}</Caption>}
         </H3>
-        <Body2 style={{ color: theme.colors.textSecondary, marginTop: 4 }}>{title}</Body2>
+        <Body2 style={{ color: '#717171', marginTop: 4 }}>{title}</Body2>
         {description && (
-          <Caption style={{ color: theme.colors.textTertiary, marginTop: 4 }}>
+          <Caption style={{ color: '#B0B0B0', marginTop: 4 }}>
             {description}
           </Caption>
         )}
@@ -360,22 +351,18 @@ const BudgetStatusRow: React.FC<BudgetStatusProps> = ({ metric, current, budget,
   const percentage = Math.round((current / budget) * 100);
   const getBadgeVariant = () => {
     switch (status) {
-      case 'pass':
-        return 'success';
-      case 'warn':
-        return 'warning';
-      case 'fail':
-        return 'error';
-      default:
-        return 'neutral';
+      case 'pass': return 'success';
+      case 'warn': return 'warning';
+      case 'fail': return 'error';
+      default: return 'neutral';
     }
   };
 
   return (
     <View style={styles.budgetRow}>
       <View style={styles.budgetInfo}>
-        <Body1 style={{ color: theme.colors.textPrimary }}>{metric.replace(/_/g, ' ')}</Body1>
-        <Caption style={{ color: theme.colors.textSecondary }}>
+        <Body1 style={{ color: '#222222' }}>{metric.replace(/_/g, ' ')}</Body1>
+        <Caption style={{ color: '#717171' }}>
           {current.toFixed(0)} / {budget.toFixed(0)} ({percentage}%)
         </Caption>
       </View>
@@ -392,16 +379,16 @@ const ComponentMetricRow: React.FC<{ component: ComponentPerformance; rank: numb
   return (
     <View style={styles.componentRow}>
       <View style={styles.rankBadge}>
-        <Caption style={{ color: theme.colors.white }}>{rank}</Caption>
+        <Caption style={{ color: '#FFFFFF' }}>{rank}</Caption>
       </View>
       <View style={styles.componentInfo}>
-        <Body1 style={{ color: theme.colors.textPrimary }}>{component.componentName}</Body1>
-        <Caption style={{ color: theme.colors.textSecondary }}>
+        <Body1 style={{ color: '#222222' }}>{component.componentName}</Body1>
+        <Caption style={{ color: '#717171' }}>
           Renders: {component.renderCount} • Avg: {component.averageRenderTime.toFixed(1)}ms
         </Caption>
       </View>
       <View style={styles.componentMetrics}>
-        <Body2 style={{ color: theme.colors.textPrimary }}>
+        <Body2 style={{ color: '#222222' }}>
           {component.lastRenderTime.toFixed(1)}ms
         </Body2>
       </View>
@@ -416,14 +403,10 @@ const ComponentMetricRow: React.FC<{ component: ComponentPerformance; rank: numb
 const ViolationRow: React.FC<{ violation: PerformanceViolation }> = ({ violation }) => {
   const getSeverityColor = () => {
     switch (violation.severity) {
-      case 'critical':
-        return theme.colors.errorDark;
-      case 'high':
-        return theme.colors.error;
-      case 'medium':
-        return theme.colors.warning;
-      default:
-        return theme.colors.textSecondary;
+      case 'critical': return '#DC2626';
+      case 'high': return '#EF4444';
+      case 'medium': return '#F59E0B';
+      default: return '#717171';
     }
   };
 
@@ -436,10 +419,10 @@ const ViolationRow: React.FC<{ violation: PerformanceViolation }> = ({ violation
         style={styles.violationIcon}
       />
       <View style={styles.violationInfo}>
-        <Body1 style={{ color: theme.colors.textPrimary }}>
+        <Body1 style={{ color: '#222222' }}>
           {violation.metric.replace(/_/g, ' ')}
         </Body1>
-        <Caption style={{ color: theme.colors.textSecondary }}>
+        <Caption style={{ color: '#717171' }}>
           Expected: {violation.threshold}ms • Actual: {violation.actual.toFixed(0)}ms
         </Caption>
         <Caption style={{ color: getSeverityColor() }}>
@@ -457,128 +440,107 @@ const ViolationRow: React.FC<{ violation: PerformanceViolation }> = ({ violation
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F7F7F7',
   },
-
   scrollView: {
     flex: 1,
   },
-
   loading: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-
   header: {
-    padding: theme.spacing[4],
-    paddingBottom: theme.spacing[3],
+    padding: 16,
+    paddingBottom: 12,
   },
-
   controlsCard: {
-    marginHorizontal: theme.spacing[4],
-    marginBottom: theme.spacing[4],
+    marginHorizontal: 16,
+    marginBottom: 16,
   },
-
   controlRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-
   section: {
-    marginBottom: theme.spacing[6],
-    paddingHorizontal: theme.spacing[4],
+    marginBottom: 24,
+    paddingHorizontal: 16,
   },
-
   metricsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: theme.spacing[3],
+    gap: 12,
     justifyContent: 'space-between',
   },
-
   metricCard: {
     width: '48%',
     minHeight: 120,
   },
-
   metricHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-
   trendIcon: {
     marginLeft: 'auto',
   },
-
   budgetRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
-
   budgetInfo: {
     flex: 1,
   },
-
   componentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
-
   rankBadge: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: theme.spacing[3],
+    marginRight: 12,
   },
-
   componentInfo: {
     flex: 1,
   },
-
   componentMetrics: {
     alignItems: 'flex-end',
   },
-
   violationRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: theme.spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
-
   violationIcon: {
-    marginRight: theme.spacing[3],
+    marginRight: 12,
     marginTop: 2,
   },
-
   violationInfo: {
     flex: 1,
   },
-
   actionButtons: {
     flexDirection: 'row',
-    gap: theme.spacing[3],
+    gap: 12,
   },
-
   actionButton: {
     flex: 1,
   },
-
   footer: {
-    padding: theme.spacing[4],
+    padding: 16,
     paddingTop: 0,
   },
 });

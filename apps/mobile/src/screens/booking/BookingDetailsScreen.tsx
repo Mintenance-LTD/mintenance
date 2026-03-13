@@ -1,11 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
-import { theme } from '../../theme';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { RootStackParamList } from '../../navigation/types';
@@ -32,7 +31,7 @@ export const BookingDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color="#222222" />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {job?.title ?? 'Booking Details'}
@@ -43,23 +42,23 @@ export const BookingDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
           <Text style={styles.label}>Service</Text>
-          <Text style={styles.value}>{job?.title ?? '—'}</Text>
+          <Text style={styles.value}>{job?.title ?? '\u2014'}</Text>
 
-          <Text style={[styles.label, { marginTop: theme.spacing.md }]}>Status</Text>
-          <View style={[styles.statusBadge, { backgroundColor: theme.colors.primary }]}>
+          <Text style={[styles.label, { marginTop: 14 }]}>Status</Text>
+          <View style={styles.statusBadge}>
             <Text style={styles.statusText}>{(job?.status ?? 'unknown').toUpperCase()}</Text>
           </View>
 
           {job?.description ? (
             <>
-              <Text style={[styles.label, { marginTop: theme.spacing.md }]}>Description</Text>
+              <Text style={[styles.label, { marginTop: 14 }]}>Description</Text>
               <Text style={styles.value}>{job.description}</Text>
             </>
           ) : null}
 
           {job?.created_at ? (
             <>
-              <Text style={[styles.label, { marginTop: theme.spacing.md }]}>Booked on</Text>
+              <Text style={[styles.label, { marginTop: 14 }]}>Booked on</Text>
               <Text style={styles.value}>
                 {new Date(job.created_at).toLocaleDateString('en-GB', {
                   day: '2-digit',
@@ -76,48 +75,52 @@ export const BookingDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.surfaceSecondary },
+  container: { flex: 1, backgroundColor: '#F7F7F7' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.md,
-    paddingBottom: theme.spacing[3],
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
   },
-  headerButton: { padding: theme.spacing.sm, width: 40 },
+  headerButton: { padding: 8, width: 40 },
   headerTitle: {
     flex: 1,
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222222',
     textAlign: 'center',
   },
-  content: { padding: theme.spacing.md },
+  content: { padding: 16 },
   card: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.xl,
-    padding: theme.spacing[5],
-    ...theme.shadows.base,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   label: {
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textTertiary,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#B0B0B0',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: theme.spacing.xs,
+    letterSpacing: 0.8,
+    marginBottom: 4,
   },
-  value: { fontSize: theme.typography.fontSize.base, color: theme.colors.textPrimary, lineHeight: 22 },
+  value: { fontSize: 15, color: '#222222', lineHeight: 22 },
   statusBadge: {
     alignSelf: 'flex-start',
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing.xs,
-    borderRadius: theme.borderRadius.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: '#222222',
   },
-  statusText: { fontSize: theme.typography.fontSize.xs, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textInverse },
+  statusText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
 });
 
 export default BookingDetailsScreen;

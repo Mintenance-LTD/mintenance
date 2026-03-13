@@ -1,8 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { PaymentMethod } from '../../../services/PaymentService';
-import { theme } from '../../../theme';
 
 interface PaymentMethodOptionProps {
   method: PaymentMethod;
@@ -49,7 +48,7 @@ export const PaymentMethodOption: React.FC<PaymentMethodOptionProps> = ({
           <Ionicons
             name={getMethodIcon(method.type) as keyof typeof Ionicons.glyphMap}
             size={24}
-            color={theme.colors.textSecondary}
+            color="#717171"
           />
         </View>
         <View style={styles.methodDetails}>
@@ -60,7 +59,7 @@ export const PaymentMethodOption: React.FC<PaymentMethodOptionProps> = ({
         </View>
       </View>
       {isSelected && (
-        <Ionicons name="checkmark-circle" size={24} color={theme.colors.primary} />
+        <Ionicons name="checkmark-circle" size={24} color="#222222" />
       )}
     </TouchableOpacity>
   );
@@ -68,20 +67,20 @@ export const PaymentMethodOption: React.FC<PaymentMethodOptionProps> = ({
 
 const styles = StyleSheet.create({
   paymentMethodOption: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   selectedMethod: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
   },
   methodContent: {
     flexDirection: 'row',
@@ -89,19 +88,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   methodIcon: {
-    marginRight: theme.spacing.md,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
   },
   methodDetails: {
     flex: 1,
   },
   methodType: {
-    fontSize: theme.typography.fontSize.md,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#222222',
   },
   defaultLabel: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.xs,
+    fontSize: 13,
+    color: '#717171',
+    marginTop: 2,
   },
 });

@@ -1,7 +1,6 @@
 import React from 'react';
-import { TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, View, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 
 interface ContractorMarkerProps {
   contractor: {
@@ -34,14 +33,14 @@ export const ContractorMarker: React.FC<ContractorMarkerProps> = ({
           size={20}
           color={
             isSelected
-              ? theme.colors.white
-              : theme.colors.primary
+              ? '#FFFFFF'
+              : '#222222'
           }
         />
       </View>
       {contractor.verified && (
         <View style={styles.verifiedBadge}>
-          <Ionicons name='checkmark' size={8} color={theme.colors.white} />
+          <Ionicons name='checkmark' size={8} color='#FFFFFF' />
         </View>
       )}
     </TouchableOpacity>
@@ -56,16 +55,26 @@ const styles = {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     borderWidth: 2,
-    borderColor: theme.colors.primary,
-    ...theme.shadows.base,
+    borderColor: '#222222',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   selectedMarker: {
     transform: [{ scale: 1.2 }],
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
   },
   verifiedBadge: {
     position: 'absolute' as const,
@@ -74,10 +83,10 @@ const styles = {
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     borderWidth: 2,
-    borderColor: theme.colors.textInverse,
+    borderColor: '#FFFFFF',
   },
 };

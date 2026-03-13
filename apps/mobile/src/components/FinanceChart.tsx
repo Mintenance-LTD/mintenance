@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, Platform } from 'react-native';
 import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
-import { theme } from '../theme';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -35,9 +34,9 @@ export const FinanceChart: React.FC<FinanceChartProps> = ({
   height = 220,
 }) => {
   const chartConfig = {
-    backgroundGradientFrom: theme.colors.surface,
+    backgroundGradientFrom: '#FFFFFF',
     backgroundGradientFromOpacity: 0,
-    backgroundGradientTo: theme.colors.surface,
+    backgroundGradientTo: '#FFFFFF',
     backgroundGradientToOpacity: 0,
     color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
     strokeWidth: 2,
@@ -45,13 +44,13 @@ export const FinanceChart: React.FC<FinanceChartProps> = ({
     decimalPlaces: 0,
     propsForBackgroundLines: {
       strokeDasharray: '',
-      stroke: theme.colors.borderLight,
+      stroke: '#EBEBEB',
       strokeOpacity: 0.3,
     },
     propsForLabels: {
-      fontSize: theme.typography.rawFontSize.xs,
+      fontSize: 12,
       fontFamily: 'System',
-      fill: theme.colors.textSecondary,
+      fill: '#717171',
     },
   };
 
@@ -122,12 +121,16 @@ export const FinanceChart: React.FC<FinanceChartProps> = ({
     }
   };
 
+  const hasHeader = title.length > 0;
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
-      </View>
+    <View style={hasHeader ? styles.container : styles.containerFlat}>
+      {hasHeader && (
+        <View style={styles.header}>
+          <Text style={styles.title}>{title}</Text>
+          {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+        </View>
+      )}
       {renderChart()}
     </View>
   );
@@ -135,28 +138,34 @@ export const FinanceChart: React.FC<FinanceChartProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing[4],
-    marginBottom: theme.spacing[4],
-    ...theme.shadows.base,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 12 },
+      android: { elevation: 2 },
+    }),
+  },
+  containerFlat: {
+    marginTop: 4,
   },
   header: {
-    marginBottom: theme.spacing[4],
+    marginBottom: 16,
   },
   title: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[1],
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#222222',
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    color: '#717171',
   },
   chart: {
-    marginVertical: theme.spacing[2],
-    borderRadius: theme.borderRadius.base,
+    marginVertical: 8,
+    borderRadius: 12,
   },
   pieContainer: {
     alignItems: 'center',

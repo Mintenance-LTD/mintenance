@@ -1,5 +1,4 @@
-import { StyleSheet, Dimensions } from 'react-native';
-import { theme } from '../theme';
+import { StyleSheet, Dimensions, Platform } from 'react-native';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -9,13 +8,19 @@ export const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    elevation: 3,
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   cardStyle: {
     top: 0,
@@ -40,7 +45,7 @@ export const styles = StyleSheet.create({
     borderRadius: 40,
   },
   placeholderImage: {
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -50,8 +55,8 @@ export const styles = StyleSheet.create({
   },
   contractorName: {
     fontSize: 24,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
     marginBottom: 8,
   },
   ratingContainer: {
@@ -64,18 +69,18 @@ export const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   distanceText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   bioSection: {
     marginBottom: 20,
   },
   bioText: {
     fontSize: 16,
-    color: theme.colors.textPrimary,
+    color: '#222222',
     lineHeight: 22,
   },
   skillsSection: {
@@ -83,8 +88,8 @@ export const styles = StyleSheet.create({
   },
   skillsTitle: {
     fontSize: 18,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     marginBottom: 12,
   },
   skillsContainer: {
@@ -92,7 +97,7 @@ export const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   skillTag: {
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -101,8 +106,8 @@ export const styles = StyleSheet.create({
   },
   skillText: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
-    fontWeight: theme.typography.fontWeight.medium,
+    color: '#222222',
+    fontWeight: '500',
   },
   locationSection: {
     flexDirection: 'row',
@@ -111,7 +116,7 @@ export const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginLeft: 5,
     flex: 1,
   },
@@ -120,14 +125,14 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#EBEBEB',
     marginBottom: 10,
   },
   detailsButtonText: {
     fontSize: 16,
-    color: theme.colors.textPrimary,
-    fontWeight: theme.typography.fontWeight.medium,
+    color: '#222222',
+    fontWeight: '500',
     marginRight: 5,
   },
   reviewsSection: {
@@ -135,17 +140,17 @@ export const styles = StyleSheet.create({
   },
   reviewsTitle: {
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     marginBottom: 10,
   },
   reviewsContainer: {
     maxHeight: 200,
   },
   reviewCard: {
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 8,
   },
   reviewHeader: {
@@ -156,11 +161,11 @@ export const styles = StyleSheet.create({
   },
   reviewDate: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   reviewComment: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: '#222222',
     lineHeight: 18,
   },
   actionButtons: {
@@ -168,42 +173,60 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingHorizontal: 60,
     paddingVertical: 20,
-    backgroundColor: theme.colors.surface,
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: '#FFFFFF',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   passButton: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     borderWidth: 2,
-    borderColor: theme.colors.error,
+    borderColor: '#EF4444',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 2,
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   likeButton: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#FFFFFF',
     borderWidth: 2,
-    borderColor: theme.colors.success,
+    borderColor: '#10B981',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 2,
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   // Enhanced profile styles
   companyLogoContainer: {
@@ -215,11 +238,11 @@ export const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     borderWidth: 2,
-    borderColor: theme.colors.border,
+    borderColor: '#EBEBEB',
   },
   personalName: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginTop: 2,
   },
   detailsGrid: {
@@ -237,7 +260,7 @@ export const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginLeft: 6,
     flex: 1,
   },
@@ -248,12 +271,12 @@ export const styles = StyleSheet.create({
   },
   portfolioTitle: {
     fontSize: 22,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    color: '#222222',
   },
   portfolioSubtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginTop: 5,
   },
   portfolioScroll: {
@@ -266,15 +289,15 @@ export const styles = StyleSheet.create({
   portfolioImage: {
     width: '100%',
     height: 250,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 16,
   },
   portfolioSpecialties: {
     marginTop: 10,
   },
   specialtiesTitle: {
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     marginBottom: 10,
   },
   specialtiesContainer: {
@@ -283,15 +306,15 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   specialtyTag: {
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: theme.borderRadius.full,
+    borderRadius: 20,
   },
   specialtyText: {
     fontSize: 12,
-    color: theme.colors.textPrimary,
-    fontWeight: theme.typography.fontWeight.medium,
+    color: '#222222',
+    fontWeight: '500',
   },
   connectButton: {
     marginHorizontal: 10,

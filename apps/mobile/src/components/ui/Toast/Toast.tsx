@@ -11,12 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 import { useHaptics } from '../../../utils/haptics';
-
-// ============================================================================
-// TYPES & INTERFACES
-// ============================================================================
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info' | 'loading';
 export type ToastPosition = 'top' | 'bottom' | 'center';
@@ -46,322 +41,105 @@ export interface ToastProps {
   onHide?: (id: string) => void;
 }
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { height: screenHeight } = Dimensions.get('window');
 const statusBarHeight = StatusBar.currentHeight || 0;
 
-// ============================================================================
-// TOAST COMPONENT
-// ============================================================================
+const TOAST_COLORS: Record<ToastType, { background: string; border: string; icon: string; text: string }> = {
+  success: { background: '#F0FDF4', border: '#BBF7D0', icon: '#065F46', text: '#065F46' },
+  error: { background: '#FEF2F2', border: '#FECACA', icon: '#991B1B', text: '#991B1B' },
+  warning: { background: '#FFFBEB', border: '#FDE68A', icon: '#92400E', text: '#92400E' },
+  info: { background: '#EFF6FF', border: '#BFDBFE', icon: '#1E40AF', text: '#1E40AF' },
+  loading: { background: '#F7F7F7', border: '#EBEBEB', icon: '#222222', text: '#222222' },
+};
 
 export const Toast: React.FC<ToastProps> = ({
-  id,
-  type,
-  title,
-  message,
-  duration = 4000,
-  position = 'top',
-  preset = 'default',
-  icon,
-  action,
-  swipeable = true,
-  hapticFeedback = true,
-  onPress,
-  onDismiss,
-  onShow,
-  onHide,
+  id, type, title, message, duration = 4000, position = 'top', preset = 'default',
+  icon, action, swipeable = true, hapticFeedback = true, onPress, onDismiss, onShow, onHide,
 }) => {
   const haptics = useHaptics();
-
   const translateY = useRef(new Animated.Value(getInitialOffset())).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.9)).current;
   const panY = useRef(new Animated.Value(0)).current;
-
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isVisible = useRef(false);
 
   function getInitialOffset(): number {
-    switch (position) {
-      case 'top':
-        return -200;
-      case 'bottom':
-        return 200;
-      case 'center':
-        return 0;
-      default:
-        return -200;
-    }
+    return position === 'bottom' ? 200 : position === 'center' ? 0 : -200;
   }
 
-  // Get toast icon
   const getIcon = () => {
     if (icon) return icon;
-
     switch (type) {
-      case 'success':
-        return 'checkmark-circle';
-      case 'error':
-        return 'close-circle';
-      case 'warning':
-        return 'warning';
-      case 'info':
-        return 'information-circle';
-      case 'loading':
-        return 'refresh';
-      default:
-        return 'information-circle';
+      case 'success': return 'checkmark-circle';
+      case 'error': return 'close-circle';
+      case 'warning': return 'warning';
+      case 'info': return 'information-circle';
+      case 'loading': return 'refresh';
+      default: return 'information-circle';
     }
   };
 
-  // Get toast colors based on type
-  const getToastColors = () => {
-    switch (type) {
-      case 'success':
-        return {
-          background: theme.colors.successLight ?? '#F0FDF4',
-          border: (theme.colors as Record<string, string>).successBorder ?? '#BBF7D0',
-          icon: theme.colors.successDark,
-          text: theme.colors.successDark ?? '#166534',
-        };
-      case 'error':
-        return {
-          background: theme.colors.errorLight ?? '#FEF2F2',
-          border: (theme.colors as Record<string, string>).errorBorder ?? '#FECACA',
-          icon: theme.colors.errorDark,
-          text: theme.colors.errorDark ?? '#991B1B',
-        };
-      case 'warning':
-        return {
-          background: theme.colors.warningLight ?? '#FFFBEB',
-          border: (theme.colors as Record<string, string>).warningBorder ?? '#FDE68A',
-          icon: theme.colors.warningDark,
-          text: theme.colors.warningDark ?? '#92400E',
-        };
-      case 'info':
-        return {
-          background: theme.colors.infoLight ?? '#EFF6FF',
-          border: (theme.colors as Record<string, string>).infoBorder ?? '#BFDBFE',
-          icon: theme.colors.infoDark,
-          text: theme.colors.infoDark ?? '#1E40AF',
-        };
-      case 'loading':
-        return {
-          background: theme.colors.surfaceSecondary,
-          border: theme.colors.border,
-          icon: theme.colors.primaryLight,
-          text: theme.colors.textPrimary,
-        };
-      default:
-        return {
-          background: theme.colors.surface,
-          border: theme.colors.border,
-          icon: theme.colors.textSecondary,
-          text: theme.colors.textPrimary,
-        };
-    }
-  };
+  const colors = TOAST_COLORS[type] ?? TOAST_COLORS.info;
 
-  const colors = getToastColors();
-
-  // Show animation
   const show = () => {
     if (hapticFeedback) {
       switch (type) {
-        case 'success':
-          haptics.success();
-          break;
-        case 'error':
-          haptics.error();
-          break;
-        case 'warning':
-          haptics.warning();
-          break;
-        default:
-          haptics.light();
+        case 'success': haptics.success(); break;
+        case 'error': haptics.error(); break;
+        case 'warning': haptics.warning(); break;
+        default: haptics.light();
       }
     }
-
     isVisible.current = true;
     onShow?.(id);
-
     Animated.parallel([
-      Animated.spring(translateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 100,
-        friction: 8,
-      }),
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scale, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 100,
-        friction: 8,
-      }),
+      Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 100, friction: 8 }),
+      Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 100, friction: 8 }),
     ]).start();
-
-    // Auto dismiss
     if (duration > 0 && type !== 'loading') {
-      timeoutRef.current = setTimeout(() => {
-        hide();
-      }, duration);
+      timeoutRef.current = setTimeout(() => hide(), duration);
     }
   };
 
-  // Hide animation
   const hide = () => {
     if (!isVisible.current) return;
-
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-
+    if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null; }
     isVisible.current = false;
     onHide?.(id);
-
     Animated.parallel([
-      Animated.timing(translateY, {
-        toValue: getInitialOffset(),
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scale, {
-        toValue: 0.9,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      onDismiss?.(id);
-    });
+      Animated.timing(translateY, { toValue: getInitialOffset(), duration: 200, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 0, duration: 200, useNativeDriver: true }),
+      Animated.timing(scale, { toValue: 0.9, duration: 200, useNativeDriver: true }),
+    ]).start(() => onDismiss?.(id));
   };
 
-  // Pan responder for swipe to dismiss
   const panResponder = PanResponder.create({
-    onMoveShouldSetPanResponder: (_, gestureState) => {
-      return swipeable && Math.abs(gestureState.dy) > 10;
+    onMoveShouldSetPanResponder: (_, gs) => swipeable && Math.abs(gs.dy) > 10,
+    onPanResponderMove: (_, gs) => {
+      if (position === 'top' && gs.dy > 0) return;
+      if (position === 'bottom' && gs.dy < 0) return;
+      panY.setValue(gs.dy);
     },
-
-    onPanResponderMove: (_, gestureState) => {
-      const { dy } = gestureState;
-
-      // Only allow upward swipe for top toasts, downward for bottom
-      if (position === 'top' && dy > 0) return;
-      if (position === 'bottom' && dy < 0) return;
-
-      panY.setValue(dy);
-    },
-
-    onPanResponderRelease: (_, gestureState) => {
-      const { dy, vy } = gestureState;
-      const threshold = 50;
-      const velocity = Math.abs(vy);
-
-      if (Math.abs(dy) > threshold || velocity > 0.5) {
-        // Swipe to dismiss
-        Animated.timing(panY, {
-          toValue: dy > 0 ? 200 : -200,
-          duration: 150,
-          useNativeDriver: true,
-        }).start(() => {
-          hide();
-        });
+    onPanResponderRelease: (_, gs) => {
+      if (Math.abs(gs.dy) > 50 || Math.abs(gs.vy) > 0.5) {
+        Animated.timing(panY, { toValue: gs.dy > 0 ? 200 : -200, duration: 150, useNativeDriver: true }).start(() => hide());
       } else {
-        // Spring back
-        Animated.spring(panY, {
-          toValue: 0,
-          useNativeDriver: true,
-        }).start();
+        Animated.spring(panY, { toValue: 0, useNativeDriver: true }).start();
       }
     },
   });
 
-  useEffect(() => {
-    show();
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Get container style based on position and preset
-  const getContainerStyle = () => {
-    const baseStyle = [
-      styles.container,
-      {
-        backgroundColor: colors.background,
-        borderColor: colors.border,
-        transform: [
-          { translateY: Animated.add(translateY, panY) },
-          { scale },
-        ],
-        opacity,
-      },
-    ];
-
-    switch (preset) {
-      case 'minimal':
-        return [...baseStyle, styles.minimal];
-      case 'banner':
-        return [...baseStyle, styles.banner];
-      default:
-        return baseStyle;
-    }
-  };
+  useEffect(() => { show(); return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); }; }, []);
 
   const getPositionStyle = () => {
     switch (position) {
-      case 'top':
-        return {
-          top: Platform.OS === 'android' ? statusBarHeight + 20 : 60,
-          left: 20,
-          right: 20,
-        };
-      case 'bottom':
-        return {
-          bottom: 40,
-          left: 20,
-          right: 20,
-        };
-      case 'center':
-        return {
-          top: screenHeight / 2 - 50,
-          left: 20,
-          right: 20,
-        };
-      default:
-        return {};
+      case 'top': return { top: Platform.OS === 'android' ? statusBarHeight + 20 : 60, left: 20, right: 20 };
+      case 'bottom': return { bottom: 40, left: 20, right: 20 };
+      case 'center': return { top: screenHeight / 2 - 50, left: 20, right: 20 };
+      default: return {};
     }
-  };
-
-  const handlePress = () => {
-    if (onPress) {
-      haptics.light();
-      onPress();
-    }
-  };
-
-  const handleActionPress = () => {
-    if (action?.onPress) {
-      haptics.medium();
-      action.onPress();
-      hide();
-    }
-  };
-
-  const handleDismiss = () => {
-    haptics.light();
-    hide();
   };
 
   return (
@@ -369,97 +147,32 @@ export const Toast: React.FC<ToastProps> = ({
       style={[
         styles.wrapper,
         getPositionStyle(),
-        getContainerStyle(),
+        styles.container,
+        { backgroundColor: colors.background, borderColor: colors.border, transform: [{ translateY: Animated.add(translateY, panY) }, { scale }], opacity },
+        preset === 'minimal' && styles.minimal,
+        preset === 'banner' && styles.banner,
       ]}
       {...(swipeable ? panResponder.panHandlers : {})}
     >
-      <TouchableOpacity
-        onPress={handlePress}
-        disabled={!onPress}
-        style={styles.content}
-        activeOpacity={onPress ? 0.8 : 1}
-      >
-        {/* Icon */}
+      <TouchableOpacity onPress={onPress ? () => { haptics.light(); onPress(); } : undefined} disabled={!onPress} style={styles.content} activeOpacity={onPress ? 0.8 : 1}>
         <View style={styles.iconContainer}>
-          <Ionicons
-            name={getIcon() as keyof typeof Ionicons.glyphMap}
-            size={preset === 'minimal' ? 20 : 24}
-            color={colors.icon}
-          />
+          <Ionicons name={getIcon() as keyof typeof Ionicons.glyphMap} size={preset === 'minimal' ? 20 : 24} color={colors.icon} />
         </View>
-
-        {/* Text Content */}
         <View style={styles.textContainer}>
-          <Text
-            style={[
-              styles.title,
-              {
-                color: colors.text,
-                fontSize: preset === 'minimal' ? 14 : 16,
-              },
-            ]}
-            numberOfLines={2}
-          >
-            {title}
-          </Text>
-          {message && (
-            <Text
-              style={[
-                styles.message,
-                {
-                  color: colors.text,
-                  fontSize: preset === 'minimal' ? 12 : 14,
-                  opacity: 0.8,
-                },
-              ]}
-              numberOfLines={3}
-            >
-              {message}
-            </Text>
-          )}
+          <Text style={[styles.title, { color: colors.text, fontSize: preset === 'minimal' ? 14 : 16 }]} numberOfLines={2}>{title}</Text>
+          {message && <Text style={[styles.message, { color: colors.text, fontSize: preset === 'minimal' ? 12 : 14, opacity: 0.8 }]} numberOfLines={3}>{message}</Text>}
         </View>
-
-        {/* Action Button */}
         {action && (
           <TouchableOpacity
-            onPress={handleActionPress}
-            style={[
-              styles.actionButton,
-              {
-                backgroundColor: action.style === 'primary' ? theme.colors.primary : 'transparent',
-                borderColor: action.style === 'destructive' ? theme.colors.error : colors.icon,
-              },
-            ]}
+            onPress={() => { haptics.medium(); action.onPress(); hide(); }}
+            style={[styles.actionButton, { backgroundColor: action.style === 'primary' ? '#222222' : 'transparent', borderColor: action.style === 'destructive' ? '#EF4444' : colors.icon }]}
           >
-            <Text
-              style={[
-                styles.actionText,
-                {
-                  color: action.style === 'primary'
-                    ? theme.colors.white
-                    : action.style === 'destructive'
-                    ? theme.colors.errorDark
-                    : colors.text,
-                },
-              ]}
-            >
-              {action.label}
-            </Text>
+            <Text style={[styles.actionText, { color: action.style === 'primary' ? '#FFFFFF' : action.style === 'destructive' ? '#991B1B' : colors.text }]}>{action.label}</Text>
           </TouchableOpacity>
         )}
-
-        {/* Close Button */}
         {!action && preset !== 'minimal' && (
-          <TouchableOpacity
-            onPress={handleDismiss}
-            style={styles.closeButton}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons
-              name="close"
-              size={18}
-              color={colors.icon}
-            />
+          <TouchableOpacity onPress={() => { haptics.light(); hide(); }} style={styles.closeButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Ionicons name="close" size={18} color={colors.icon} />
           </TouchableOpacity>
         )}
       </TouchableOpacity>
@@ -467,78 +180,26 @@ export const Toast: React.FC<ToastProps> = ({
   );
 };
 
-// ============================================================================
-// STYLES
-// ============================================================================
-
 const styles = StyleSheet.create({
-  wrapper: {
-    position: 'absolute',
-    zIndex: 1700,
-  },
-
+  wrapper: { position: 'absolute', zIndex: 1700 },
   container: {
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 16,
     borderWidth: 1,
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 4 },
+    }),
   },
-
-  minimal: {
-    borderRadius: theme.borderRadius.lg,
-    paddingVertical: theme.spacing[2],
-    paddingHorizontal: theme.spacing[3],
-  },
-
-  banner: {
-    borderRadius: 0,
-    borderLeftWidth: 0,
-    borderRightWidth: 0,
-    paddingVertical: theme.spacing[4],
-  },
-
-  content: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: theme.spacing[4],
-  },
-
-  iconContainer: {
-    marginRight: theme.spacing[3],
-    marginTop: 2,
-  },
-
-  textContainer: {
-    flex: 1,
-    marginRight: theme.spacing[2],
-  },
-
-  title: {
-    fontWeight: theme.typography.fontWeight.semibold,
-    lineHeight: 20,
-  },
-
-  message: {
-    marginTop: theme.spacing[1],
-    lineHeight: 18,
-  },
-
-  actionButton: {
-    borderWidth: 1,
-    borderRadius: theme.borderRadius.md,
-    paddingVertical: 6,
-    paddingHorizontal: theme.spacing[3],
-    marginLeft: theme.spacing[2],
-  },
-
-  actionText: {
-    fontSize: 14,
-    fontWeight: theme.typography.fontWeight.medium,
-  },
-
-  closeButton: {
-    padding: theme.spacing[1],
-    marginLeft: theme.spacing[1],
-  },
+  minimal: { borderRadius: 16, paddingVertical: 8, paddingHorizontal: 12 },
+  banner: { borderRadius: 0, borderLeftWidth: 0, borderRightWidth: 0, paddingVertical: 16 },
+  content: { flexDirection: 'row', alignItems: 'flex-start', padding: 16 },
+  iconContainer: { marginRight: 12, marginTop: 2 },
+  textContainer: { flex: 1, marginRight: 8 },
+  title: { fontWeight: '600', lineHeight: 20 },
+  message: { marginTop: 4, lineHeight: 18 },
+  actionButton: { borderWidth: 1, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12, marginLeft: 8 },
+  actionText: { fontSize: 14, fontWeight: '500' },
+  closeButton: { padding: 4, marginLeft: 4 },
 });
 
 export default Toast;

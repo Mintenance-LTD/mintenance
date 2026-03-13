@@ -1,10 +1,9 @@
 import { StyleSheet } from 'react-native';
-import { theme } from '../../theme';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F7F7F7',
   },
   header: {
     flexDirection: 'row',
@@ -12,25 +11,25 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
-    backgroundColor: theme.colors.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EBEBEB',
+    backgroundColor: '#FFFFFF',
   },
   closeButton: {
     padding: 8,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
   },
   resetButton: {
     padding: 8,
   },
   resetText: {
-    color: theme.colors.primary,
+    color: '#222222',
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontWeight: '500',
   },
   content: {
     flex: 1,
@@ -41,8 +40,8 @@ export const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: '#222222',
     marginBottom: 12,
   },
   sliderContainer: {
@@ -51,8 +50,8 @@ export const styles = StyleSheet.create({
   sliderLabel: {
     textAlign: 'center',
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.primary,
+    fontWeight: '500',
+    color: '#222222',
     marginBottom: 8,
   },
   slider: {
@@ -66,7 +65,7 @@ export const styles = StyleSheet.create({
   },
   sliderLabelText: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: '#B0B0B0',
   },
   priceContainer: {
     flexDirection: 'row',
@@ -77,21 +76,21 @@ export const styles = StyleSheet.create({
     flex: 0.45,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surfaceSecondary,
-    borderRadius: 8,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 12,
   },
   priceLabel: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
     marginRight: 8,
   },
   priceInput: {
     flex: 1,
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
+    fontWeight: '500',
+    color: '#222222',
   },
   switchContainer: {
     flexDirection: 'row',
@@ -101,7 +100,7 @@ export const styles = StyleSheet.create({
   },
   switchLabel: {
     fontSize: 16,
-    color: theme.colors.textPrimary,
+    color: '#222222',
   },
   skillsContainer: {
     flexDirection: 'row',
@@ -112,20 +111,17 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
-    backgroundColor: theme.colors.surfaceSecondary,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
+    backgroundColor: '#F7F7F7',
   },
   skillChipSelected: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: '#222222',
   },
   skillChipText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   skillChipTextSelected: {
-    color: theme.colors.surface,
+    color: '#FFFFFF',
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -138,7 +134,7 @@ export const styles = StyleSheet.create({
   ratingText: {
     marginLeft: 12,
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   radioOption: {
     flexDirection: 'row',
@@ -149,14 +145,14 @@ export const styles = StyleSheet.create({
     marginBottom: 8,
   },
   radioOptionSelected: {
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F7F7F7',
   },
   radioCircle: {
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: theme.colors.borderLight,
+    borderColor: '#EBEBEB',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -165,11 +161,11 @@ export const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
   },
   radioText: {
     fontSize: 16,
-    color: theme.colors.textPrimary,
+    color: '#222222',
   },
   footer: {
     flexDirection: 'row',
@@ -177,22 +173,22 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 20,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
-    backgroundColor: theme.colors.surface,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#EBEBEB',
+    backgroundColor: '#FFFFFF',
   },
   footerInfo: {
     flex: 1,
   },
   footerText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: '#717171',
   },
   applyButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 28,
     minWidth: 120,
     alignItems: 'center',
   },
@@ -201,7 +197,7 @@ export const styles = StyleSheet.create({
   },
   applyButtonText: {
     fontSize: 16,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.surface,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });

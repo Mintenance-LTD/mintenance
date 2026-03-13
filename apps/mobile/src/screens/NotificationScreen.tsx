@@ -106,15 +106,17 @@ const CompactNotification: React.FC<CompactNotificationProps> = ({ notification,
       accessibilityLabel={`${notification.read ? '' : 'Unread: '}${notification.title}`}
     >
       <View style={[styles.iconCircle, { backgroundColor: colors.bg }]}>
-        <Ionicons name={getIconName(notification.type)} size={18} color={colors.icon} />
+        <Ionicons name={getIconName(notification.type)} size={20} color={colors.icon} />
       </View>
       <View style={styles.notifContent}>
-        <Text style={[styles.notifTitle, !notification.read && styles.notifTitleUnread]} numberOfLines={1}>
-          {notification.title}
-        </Text>
-        <Text style={styles.notifBody} numberOfLines={1}>{notification.body}</Text>
+        <View style={styles.notifHeader}>
+          <Text style={[styles.notifTitle, !notification.read && styles.notifTitleUnread]} numberOfLines={1}>
+            {notification.title}
+          </Text>
+          <Text style={styles.notifTime}>{formatRelativeTime(notification.createdAt)}</Text>
+        </View>
+        <Text style={styles.notifBody} numberOfLines={2}>{notification.body}</Text>
       </View>
-      <Text style={styles.notifTime}>{formatRelativeTime(notification.createdAt)}</Text>
     </TouchableOpacity>
   );
 };
@@ -367,16 +369,17 @@ const styles = StyleSheet.create({
   },
   tabsRow: {
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingTop: 10,
+    paddingBottom: 12,
     gap: 8,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#EBEBEB',
   },
   tab: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 20,
     backgroundColor: '#F7F7F7',
   },
   tabActive: {
@@ -393,58 +396,64 @@ const styles = StyleSheet.create({
   },
   notifCard: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    alignItems: 'flex-start',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    marginBottom: 6,
+    borderRadius: 16,
+    marginBottom: 8,
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
       },
-      android: { elevation: 1 },
+      android: { elevation: 2 },
     }),
   },
   notifCardUnread: {
-    backgroundColor: '#FAFFFE',
+    backgroundColor: '#F0FDF9',
     borderLeftWidth: 3,
     borderLeftColor: '#10B981',
   },
   iconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+    marginTop: 2,
   },
   notifContent: {
     flex: 1,
-    marginRight: 8,
+  },
+  notifHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 3,
   },
   notifTitle: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '500',
     color: '#222222',
-    marginBottom: 2,
+    flex: 1,
+    marginRight: 8,
   },
   notifTitleUnread: {
     fontWeight: '700',
   },
   notifBody: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#717171',
-    lineHeight: 16,
+    lineHeight: 18,
   },
   notifTime: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#B0B0B0',
-    minWidth: 44,
-    textAlign: 'right',
+    flexShrink: 0,
   },
   emptyContainer: {
     flex: 1,
