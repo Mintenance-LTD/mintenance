@@ -149,17 +149,19 @@ export const DocumentsScreen: React.FC = () => {
       const response = await fetch(file.uri);
       const blob = await response.blob();
       const { error: uploadErr } = await supabase.storage
-        .from('documents')
+        .from('contractor-documents')
         .upload(filePath, blob, { contentType: file.mimeType });
       if (uploadErr) throw new Error(uploadErr.message);
-      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from('contractor-documents').getPublicUrl(filePath);
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'unknown';
       const { error: insertErr } = await supabase.from('contractor_documents').insert({
         contractor_id: user?.id,
-        filename: file.name,
-        file_url: urlData.publicUrl,
-        file_path: filePath,
+        name: file.name,
+        file_type: ext,
+        public_url: urlData.publicUrl,
+        storage_path: filePath,
         category: filter === 'all' ? 'other' : filter,
-        file_size: blob.size,
+        size_bytes: blob.size,
       });
       if (insertErr) throw new Error(insertErr.message);
     },

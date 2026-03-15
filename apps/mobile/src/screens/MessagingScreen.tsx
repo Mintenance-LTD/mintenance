@@ -401,7 +401,7 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
                 params: { jobId },
               });
             }}
-            onSendQuote={() => setShowQuoteModal(true)}
+            onSendQuote={user?.role === 'contractor' ? () => setShowQuoteModal(true) : undefined}
           />
 
           <FlatList
@@ -543,9 +543,7 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
                 style={styles.quoteFullBtn}
                 onPress={() => {
                   setShowQuoteModal(false);
-                  navigation.getParent?.()?.navigate('ProfileTab', {
-                    screen: 'QuoteBuilder',
-                  });
+                  navigation.navigate('CreateQuote' as never, { jobId } as never);
                 }}
               >
                 <Ionicons name="document-text-outline" size={16} color="#222222" />

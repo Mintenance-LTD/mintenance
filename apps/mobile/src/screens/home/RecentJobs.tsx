@@ -54,6 +54,18 @@ const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   general: 'construct-outline',
 };
 
+const CATEGORY_COLORS: Record<string, { bg: string; icon: string; accent: string }> = {
+  plumbing:    { bg: '#E0F7FA', icon: '#00ACC1', accent: '#B2EBF2' },
+  electrical:  { bg: '#FFF8E1', icon: '#F9A825', accent: '#FFECB3' },
+  roofing:     { bg: '#E8F5E9', icon: '#43A047', accent: '#C8E6C9' },
+  painting:    { bg: '#E3F2FD', icon: '#1E88E5', accent: '#BBDEFB' },
+  carpentry:   { bg: '#FBE9E7', icon: '#D84315', accent: '#FFCCBC' },
+  landscaping: { bg: '#E8F5E9', icon: '#2E7D32', accent: '#A5D6A7' },
+  cleaning:    { bg: '#F3E5F5', icon: '#8E24AA', accent: '#E1BEE7' },
+  hvac:        { bg: '#FFF3E0', icon: '#EF6C00', accent: '#FFE0B2' },
+  general:     { bg: '#F5F5F5', icon: '#616161', accent: '#E0E0E0' },
+};
+
 function formatStatus(status: string): string {
   return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -103,6 +115,7 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ isLoading, jobs, onViewA
           const hasPhoto = photos.length > 0;
           const budget = job.budget || job.budget_min || 0;
           const categoryIcon = CATEGORY_ICONS[job.category?.toLowerCase() || ''] || 'construct-outline';
+          const catColors = CATEGORY_COLORS[job.category?.toLowerCase() || ''] || CATEGORY_COLORS.general;
 
           return (
             <TouchableOpacity
@@ -123,12 +136,14 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ isLoading, jobs, onViewA
                     cachePolicy="memory-disk"
                   />
                 ) : (
-                  <View style={styles.placeholderHero}>
-                    <View style={styles.placeholderIconCircle}>
-                      <Ionicons name={categoryIcon} size={32} color="#717171" />
+                  <View style={[styles.placeholderHero, { backgroundColor: catColors.bg }]}>
+                    <View style={[styles.placeholderDecor, { backgroundColor: catColors.accent, opacity: 0.5 }]} />
+                    <View style={[styles.placeholderDecor2, { backgroundColor: catColors.accent, opacity: 0.3 }]} />
+                    <View style={[styles.placeholderIconCircle, { backgroundColor: catColors.accent }]}>
+                      <Ionicons name={categoryIcon} size={36} color={catColors.icon} />
                     </View>
                     {job.category && (
-                      <Text style={styles.placeholderCategory}>
+                      <Text style={[styles.placeholderCategory, { color: catColors.icon }]}>
                         {job.category.charAt(0).toUpperCase() + job.category.slice(1)}
                       </Text>
                     )}
@@ -234,21 +249,36 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F7F7F7',
+    overflow: 'hidden',
+  },
+  placeholderDecor: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    top: -30,
+    right: -20,
+  },
+  placeholderDecor2: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    bottom: -20,
+    left: -10,
   },
   placeholderIconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#EBEBEB',
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     alignItems: 'center',
     justifyContent: 'center',
   },
   placeholderCategory: {
     marginTop: 10,
     fontSize: 14,
-    fontWeight: '600',
-    color: '#717171',
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   heartOverlay: {
     position: 'absolute',

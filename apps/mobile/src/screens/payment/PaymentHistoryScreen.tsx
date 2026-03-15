@@ -194,7 +194,7 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
       if (!user?.id) return { payments: [], nextCursor: undefined };
       const offset = pageParam || 0;
       const { data: rows, error: err } = await supabase
-        .from('escrow_payments')
+        .from('escrow_transactions')
         .select('id, job_id, payer_id, payee_id, amount, status, created_at, updated_at, job:job_id(title, description)')
         .or(`payer_id.eq.${user.id},payee_id.eq.${user.id}`)
         .order('created_at', { ascending: false })

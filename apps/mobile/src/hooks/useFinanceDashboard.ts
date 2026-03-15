@@ -25,7 +25,9 @@ export const useFinanceDashboard = () => {
       setFinancialData(data);
     } catch (err) {
       logger.error('Error loading financial data', err);
-      setError('Failed to load financial data. Pull down to retry.');
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to load financial data: ${message}. Pull down to retry.`);
+      // Keep previous data visible if available
     } finally {
       setLoading(false);
     }

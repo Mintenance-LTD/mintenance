@@ -164,6 +164,10 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
       }));
     },
     enabled: !!user?.id,
+    retry: 2,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    placeholderData: (prev: ScheduleItem[] | undefined) => prev,
   });
 
   const filteredSchedule = useMemo(() => {

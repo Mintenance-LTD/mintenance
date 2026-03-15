@@ -195,6 +195,21 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
       });
 
       mapped.sort((a, b) => a.distance - b.distance);
+
+      // Jitter overlapping pins at the same coordinates
+      const seen = new Map<string, number>();
+      for (const job of mapped) {
+        const key = `${job.latitude.toFixed(5)},${job.longitude.toFixed(5)}`;
+        const count = seen.get(key) || 0;
+        if (count > 0) {
+          const angle = (count * 2 * Math.PI) / 6; // spread in a circle
+          const offset = 0.0002; // ~20m
+          job.latitude += offset * Math.cos(angle);
+          job.longitude += offset * Math.sin(angle);
+        }
+        seen.set(key, count + 1);
+      }
+
       if (isMounted.current) {
         setJobs(mapped);
         initialLoadDone.current = true;

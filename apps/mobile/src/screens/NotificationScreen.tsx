@@ -17,10 +17,11 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import { ScreenHeader, LoadingSpinner, ErrorView } from '../components/shared';
+import { LoadingSpinner, ErrorView } from '../components/shared';
 import { NotificationService, NotificationData } from '../services/NotificationService';
 import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
@@ -124,6 +125,7 @@ const CompactNotification: React.FC<CompactNotificationProps> = ({ notification,
 export const NotificationScreen: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -170,51 +172,85 @@ export const NotificationScreen: React.FC = () => {
     }
 
     const data = notification.data as Record<string, string> | undefined;
+    // Support both camelCase and snake_case keys from notification payload
+    const jobId = data?.jobId || data?.job_id;
+    const conversationId = data?.conversationId || data?.conversation_id;
+    const meetingId = data?.meetingId || data?.meeting_id;
+    const senderId = data?.senderId || data?.sender_id;
+    const senderName = data?.senderName || data?.sender_name;
+    const jobTitle = data?.jobTitle || data?.job_title;
+
     switch (notification.type) {
       case 'job_update':
-      case 'payment_received':
-      case 'quote_sent':
       case 'bid_accepted' as NotificationData['type']:
-        if (data?.jobId) {
-          navigation.navigate('Main', {
+        if (jobId) {
+          (navigation as any).navigate('Main', {
             screen: 'JobsTab',
-            params: { screen: 'JobDetails', params: { jobId: data.jobId } },
+            params: { screen: 'JobDetails', params: { jobId } },
+          });
+        }
+        break;
+      case 'payment_received':
+        if (jobId) {
+          (navigation as any).navigate('Main', {
+            screen: 'ProfileTab',
+            params: { screen: 'PaymentHistory' },
+          });
+        } else {
+          (navigation as any).navigate('Main', {
+            screen: 'ProfileTab',
+            params: { screen: 'PaymentHistory' },
+          });
+        }
+        break;
+      case 'quote_sent':
+        if (jobId) {
+          (navigation as any).navigate('Main', {
+            screen: 'JobsTab',
+            params: { screen: 'JobDetails', params: { jobId } },
           });
         }
         break;
       case 'bid_received':
-        if (data?.jobId) {
-          navigation.navigate('Main', {
+        if (jobId) {
+          (navigation as any).navigate('Main', {
             screen: 'JobsTab',
-            params: { screen: 'BidReview', params: { jobId: data.jobId } },
+            params: { screen: 'BidReview', params: { jobId } },
           });
         }
         break;
       case 'message_received':
-        if (data?.conversationId) {
-          navigation.navigate('Main', {
+        if (conversationId) {
+          (navigation as any).navigate('Main', {
             screen: 'MessagingTab',
             params: {
               screen: 'Messaging',
               params: {
-                conversationId: data.conversationId,
-                jobTitle: data.jobTitle,
-                recipientId: data.senderId,
-                recipientName: data.senderName,
+                conversationId,
+                jobTitle: jobTitle || '',
+                recipientId: senderId || '',
+                recipientName: senderName || '',
               },
             },
           });
         }
         break;
       case 'meeting_scheduled':
-        if (data?.meetingId) {
-          navigation.navigate('Modal', {
+        if (meetingId) {
+          (navigation as any).navigate('Modal', {
             screen: 'MeetingDetails',
-            params: { meetingId: data.meetingId },
+            params: { meetingId },
+          });
+        } else {
+          (navigation as any).navigate('Main', {
+            screen: 'ProfileTab',
+            params: { screen: 'Calendar' },
           });
         }
         break;
       default:
+        // Navigate to home for unhandled notification types
+        (navigation as any).navigate('Main', { screen: 'HomeTab' });
         break;
     }
   };
@@ -251,21 +287,36 @@ export const NotificationScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.headerBar}>
-        <Text style={styles.headerTitle}>Notifications</Text>
-        {unreadCount > 0 && (
-          <TouchableOpacity
-            style={styles.markAllButton}
-            onPress={handleMarkAllAsRead}
-            accessibilityRole="button"
-            accessibilityLabel="Mark all as read"
-          >
-            <Ionicons name="checkmark-done-outline" size={18} color="#10B981" />
-            <Text style={styles.markAllText}>Mark All</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+    <View style={styles.container}>
+      {/* Hero Header */}
+      <LinearGradient
+        colors={['#064E3B', '#059669', '#10B981']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.heroHeader, { paddingTop: insets.top + 12 }]}
+      >
+        <View style={styles.heroDecor1} />
+        <View style={styles.heroDecor2} />
+        <View style={styles.headerBar}>
+          <View>
+            <Text style={styles.headerTitle}>Notifications</Text>
+            <Text style={styles.headerSubtitle}>
+              {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
+            </Text>
+          </View>
+          {unreadCount > 0 && (
+            <TouchableOpacity
+              style={styles.markAllButton}
+              onPress={handleMarkAllAsRead}
+              accessibilityRole="button"
+              accessibilityLabel="Mark all as read"
+            >
+              <Ionicons name="checkmark-done-outline" size={18} color="#10B981" />
+              <Text style={styles.markAllText}>Mark All</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </LinearGradient>
 
       <ScrollView
         horizontal
@@ -324,7 +375,7 @@ export const NotificationScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -333,29 +384,53 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F7F7F7',
   },
+  heroHeader: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    overflow: 'hidden',
+  },
+  heroDecor1: {
+    position: 'absolute',
+    top: -30,
+    right: -30,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  heroDecor2: {
+    position: 'absolute',
+    bottom: -20,
+    left: -20,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
   headerBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 8,
-    backgroundColor: '#FFFFFF',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#222222',
-    letterSpacing: -0.3,
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
   },
   markAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#D1FAE5',
-    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
   },
   markAllText: {
     fontSize: 13,

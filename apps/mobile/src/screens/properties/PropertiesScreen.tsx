@@ -108,6 +108,10 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
     },
     enabled: !!user?.id,
     retry: 2,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    refetchOnMount: false,
+    placeholderData: (prev: Property[] | undefined) => prev,
   });
 
   const handleRefresh = async () => {
