@@ -146,7 +146,6 @@
         "buildConfiguration": "Release"
       },
       "env": {
-        "NODE_ENV": "production",
         "EXPO_USE_FAST_RESOLVER": "1",
         "EXPO_USE_HERMES": "1",
         "EXPO_OPTIMIZE": "1",
