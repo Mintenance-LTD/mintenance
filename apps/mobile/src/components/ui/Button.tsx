@@ -42,7 +42,7 @@ export interface ButtonProps {
 }
 
 const VARIANT_STYLES: Record<ButtonVariant, { backgroundColor: string; color: string; borderColor: string }> = {
-  primary: { backgroundColor: theme.colors.textPrimary, color: theme.colors.textInverse, borderColor: 'transparent' },
+  primary: { backgroundColor: theme.colors.primary, color: theme.colors.textInverse, borderColor: 'transparent' },
   secondary: { backgroundColor: theme.colors.backgroundSecondary, color: theme.colors.textPrimary, borderColor: theme.colors.border },
   outline: { backgroundColor: 'transparent', color: theme.colors.textPrimary, borderColor: theme.colors.border },
   tertiary: { backgroundColor: 'transparent', color: '#3B82F6', borderColor: 'transparent' },
