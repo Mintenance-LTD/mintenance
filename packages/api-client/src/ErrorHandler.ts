@@ -205,12 +205,9 @@ export function parseError(error: unknown): IApiError {
  */
 export function logError(error: IApiError, context?: string): void {
   const logger = require('@mintenance/shared').logger;
-  logger.error({
-    type: error.type,
-    code: error.code,
-    message: error.message,
-    statusCode: error.statusCode,
-    details: error.details,
-    context,
-  }, 'API Error');
+  logger.error(
+    `[${error.type}] ${error.message} (${error.code}, status ${error.statusCode})${context ? ` [${context}]` : ''}`,
+    error.details ? { details: error.details } : undefined,
+    { service: 'api-client' }
+  );
 }

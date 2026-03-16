@@ -70,7 +70,7 @@ export const HomeownerDashboard: React.FC = () => {
     queryFn: async () => {
       const bids = await BidService.getBidsByJobs(activeJobIds.slice(0, 5), 'pending').catch(
         (err: unknown) => {
-          logger.warn('Failed to fetch bids for jobs', { error: err });
+          logger.warn('Failed to fetch bids for jobs', { error: err instanceof Error ? err.message : String(err) });
           return [];
         }
       );

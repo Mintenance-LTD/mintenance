@@ -154,9 +154,15 @@ class Logger {
       for (const [key, value] of Object.entries(context)) {
         if (key === 'contexts' || key === 'logContext') {
           sanitized[key] = '[Omitted to prevent circular reference]';
+        } else if (value instanceof Error) {
+          sanitized[key] = `${value.name}: ${value.message}`;
         } else if (typeof value === 'object' && value !== null) {
-          // Only include simple object properties
-          sanitized[key] = value.toString ? value.toString() : '[Object]';
+          // Safely stringify objects instead of calling toString()
+          try {
+            sanitized[key] = JSON.stringify(value);
+          } catch {
+            sanitized[key] = '[Object]';
+          }
         } else {
           sanitized[key] = value;
         }
