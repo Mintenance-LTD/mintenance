@@ -79,7 +79,7 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
     isLoading: loading,
     error,
   } = useJobMessages(jobId);
-  const messages = (rawMessages ?? []) as Message[];
+  const messages = (Array.isArray(rawMessages) ? rawMessages : []) as Message[];
   const sendMessageMutation = useSendMessage();
   const markAsReadMutation = useMarkMessagesAsRead();
   const queryClient = useQueryClient();

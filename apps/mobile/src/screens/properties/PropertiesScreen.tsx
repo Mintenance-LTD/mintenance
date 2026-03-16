@@ -18,7 +18,7 @@ import type { ProfileStackParamList } from '../../navigation/types';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { Property } from '@mintenance/types';
 import { theme } from '../../theme';
 
@@ -99,13 +99,10 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
     queryKey: ['properties', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data, error } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('owner_id', user.id)
-        .order('created_at', { ascending: false });
-      if (error) throw new Error(error.message);
-      return (data as Property[]) ?? [];
+      const response = await mobileApiClient.get<{ properties: Property[] }>(
+        `/api/properties?owner_id=${user.id}`
+      );
+      return response.properties ?? [];
     },
     enabled: !!user?.id,
     retry: 2,
@@ -121,14 +118,6 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  if (isLoading) {
-    return <LoadingSpinner message="Loading properties..." />;
-  }
-
-  if (error) {
-    return <ErrorView message="Failed to load properties" onRetry={() => { refetch(); }} />;
-  }
-
   const sortedProperties = React.useMemo(() => {
     if (!properties) return [];
     const sorted = [...properties];
@@ -143,6 +132,14 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
         return sorted;
     }
   }, [properties, sortBy]);
+
+  if (isLoading) {
+    return <LoadingSpinner message="Loading properties..." />;
+  }
+
+  if (error) {
+    return <ErrorView message="Failed to load properties" onRetry={() => { refetch(); }} />;
+  }
 
   return (
     <SafeAreaView style={styles.container}>

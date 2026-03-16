@@ -119,19 +119,21 @@ export const DocumentsScreen: React.FC = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       if (isContractor) {
-        const docs = await mobileApiClient.get<Array<{
+        const raw = await mobileApiClient.get<unknown>('/api/contractor/documents');
+        const docs = Array.isArray(raw) ? raw : (raw as Record<string, unknown>)?.documents || [];
+        return (docs as Array<{
           id: string; name: string; category: string; created_at: string; starred: boolean; size_bytes?: number;
-        }>>('/api/contractor/documents');
-        return (docs || []).map((d): Document => ({
+        }>).map((d): Document => ({
           id: d.id, filename: d.name, category: d.category,
           uploaded_at: d.created_at, starred: d.starred, file_size: d.size_bytes,
         }));
       }
       // Homeowner: aggregate contracts as virtual documents
-      const contracts = await mobileApiClient.get<Array<{
+      const rawContracts = await mobileApiClient.get<unknown>('/api/contracts?role=homeowner');
+      const contracts = Array.isArray(rawContracts) ? rawContracts : (rawContracts as Record<string, unknown>)?.contracts || [];
+      return (contracts as Array<{
         id: string; title: string; status: string; created_at: string;
-      }>>('/api/contracts?role=homeowner');
-      return (contracts || []).filter((c) => c.status !== 'draft').map((c): Document => ({
+      }>).filter((c) => c.status !== 'draft').map((c): Document => ({
         id: c.id, filename: c.title || 'Contract', category: 'contract',
         uploaded_at: c.created_at, starred: false,
       }));
