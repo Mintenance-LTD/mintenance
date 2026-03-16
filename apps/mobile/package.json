@@ -43,7 +43,7 @@
     "postinstall": "cd ../.. && npm run build:packages --if-present"
   },
   "dependencies": {
-    "@expo/vector-icons": "^15.0.3",
+    "@expo/vector-icons": "^15.1.1",
     "@mintenance/ai-core": "file:../../packages/ai-core",
     "@mintenance/api-client": "file:../../packages/api-client",
     "@mintenance/design-tokens": "file:../../packages/design-tokens",
