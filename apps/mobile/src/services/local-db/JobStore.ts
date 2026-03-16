@@ -29,7 +29,7 @@ export async function saveJob(
   `;
   const location = typeof job.location === 'string' ? job.location : JSON.stringify(job.location);
   const params: (string | number | null)[] = [
-    job.id, job.title || '', job.description, location, job.homeowner_id,
+    job.id, job.title || '', job.description || '', location, job.homeowner_id,
     job.contractor_id ?? null, job.status, job.budget ?? null, job.category ?? null,
     job.subcategory ?? null, job.priority ?? 'medium',
     job.photos ? JSON.stringify(job.photos) : null,
