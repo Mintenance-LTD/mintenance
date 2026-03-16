@@ -1,5 +1,6 @@
 import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { trackQuoteInteraction } from './QuoteAnalytics';
 import type { ContractorQuote, QuoteLineItem, CreateQuoteData, UpdateQuoteData, QuoteFilters } from './types';
 
@@ -25,74 +26,35 @@ export async function createQuote(
     const taxAmount = taxableAmount * taxRate;
     const totalAmount = taxableAmount + taxAmount;
 
-    const { data: quote, error: quoteError } = await supabase
-      .from('contractor_quotes')
-      .insert({
-        contractor_id: contractorId,
-        job_id: quoteData.job_id,
-        client_name: quoteData.client_name,
-        client_email: quoteData.client_email,
-        client_phone: quoteData.client_phone,
-        project_title: quoteData.project_title,
-        project_description: quoteData.project_description,
+    const response = await mobileApiClient.post<{ quote: ContractorQuote }>(
+      '/api/contractor/quotes',
+      {
+        title: quoteData.project_title,
+        clientName: quoteData.client_name,
+        clientEmail: quoteData.client_email,
+        clientPhone: quoteData.client_phone,
+        lineItems: lineItems,
         subtotal,
-        tax_amount: taxAmount,
-        discount_amount: discountAmount,
-        total_amount: totalAmount,
-        markup_percentage: quoteData.markup_percentage,
-        discount_percentage: quoteData.discount_percentage,
-        tax_rate: taxRate,
-        currency: 'GBP',
-        status: 'draft',
-        valid_until: quoteData.valid_until,
-        terms_and_conditions: quoteData.terms_and_conditions,
+        taxRate,
+        taxAmount,
+        totalAmount,
+        validUntil: quoteData.valid_until,
+        terms: quoteData.terms_and_conditions,
         notes: quoteData.notes,
-        template_id: quoteData.template_id,
-      })
-      .select()
-      .single();
-
-    if (quoteError) throw quoteError;
-
-    const quoteLineItems = lineItems.map((item, index) => ({
-      quote_id: quote.id,
-      item_name: item.item_name,
-      item_description: item.item_description,
-      quantity: item.quantity,
-      unit_price: item.unit_price,
-      unit: item.unit,
-      subtotal: item.subtotal,
-      category: item.category,
-      is_taxable: item.is_taxable,
-      sort_order: index + 1,
-    }));
-
-    const { error: lineItemsError } = await supabase
-      .from('quote_line_items')
-      .insert(quoteLineItems);
-
-    if (lineItemsError) throw lineItemsError;
-
-    if (quoteData.template_id) {
-      try {
-        await supabase.rpc('increment_quote_template_usage', { template_id_param: quoteData.template_id });
-      } catch {
-        // Fallback: template usage tracking is non-critical
-        logger.warn('Failed to increment template usage count', { service: 'quote-builder' });
       }
-    }
+    );
 
-    const { error: analyticsError } = await supabase.from('quote_analytics').insert({
-      contractor_id: contractorId,
-      quote_id: quote.id,
-      view_count: 0,
-      download_count: 0,
-      share_count: 0,
-      client_engagement_score: 0,
-    });
+    const quote = response.quote;
 
-    if (analyticsError)
+    // Initialize analytics via the analytics endpoint
+    try {
+      await mobileApiClient.post(
+        `/api/contractor/quotes/${quote.id}/analytics`,
+        { interaction_type: 'created', metadata: { contractor_id: contractorId } }
+      );
+    } catch (analyticsError) {
       logger.warn('Failed to create quote analytics', { service: 'quote-builder', error: analyticsError });
+    }
 
     return quote;
   } catch (error) {
@@ -185,14 +147,19 @@ export async function updateQuote(
   quoteData: UpdateQuoteData
 ): Promise<ContractorQuote> {
   try {
-    const { data, error } = await supabase
-      .from('contractor_quotes')
-      .update({ ...quoteData, updated_at: new Date().toISOString() })
-      .eq('id', quoteId)
-      .select()
-      .single();
-
-    if (error) throw error;
+    const response = await mobileApiClient.put<{ quote: ContractorQuote }>(
+      `/api/contractor/quotes/${quoteId}`,
+      {
+        title: quoteData.title,
+        client_name: quoteData.client_name,
+        total_amount: quoteData.total_amount,
+        status: quoteData.status,
+        line_items: quoteData.line_items,
+        terms: quoteData.terms,
+        notes: quoteData.notes,
+        valid_until: quoteData.valid_until,
+      }
+    );
 
     if (quoteData.status) {
       await trackQuoteInteraction(quoteId, 'shared', {
@@ -201,7 +168,7 @@ export async function updateQuote(
       });
     }
 
-    return data;
+    return response.quote;
   } catch (error) {
     logger.error('Error updating quote', error, { service: 'quote-builder' });
     throw new Error('Failed to update quote');
@@ -210,19 +177,14 @@ export async function updateQuote(
 
 export async function sendQuote(quoteId: string): Promise<ContractorQuote> {
   try {
-    const { data, error } = await supabase
-      .from('contractor_quotes')
-      .update({ status: 'sent', sent_at: new Date().toISOString(),
-        updated_at: new Date().toISOString() })
-      .eq('id', quoteId)
-      .select()
-      .single();
-
-    if (error) throw error;
+    const response = await mobileApiClient.post<{ quote: ContractorQuote }>(
+      '/api/contractor/send-quote',
+      { quoteId }
+    );
 
     await trackQuoteInteraction(quoteId, 'sent');
 
-    return data;
+    return response.quote;
   } catch (error) {
     logger.error('Error sending quote', error, { service: 'quote-builder' });
     throw new Error('Failed to send quote');

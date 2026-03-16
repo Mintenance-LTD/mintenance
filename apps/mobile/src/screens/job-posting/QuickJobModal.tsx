@@ -108,7 +108,7 @@ export const QuickJobModal: React.FC<QuickJobModalProps> = ({ visible, onClose, 
               </Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.searchButton, canSearch && styles.searchButtonActive]} onPress={handleSearch} disabled={!canSearch} accessibilityRole='button' accessibilityLabel='Search and create job'>
-              <Ionicons name='search' size={20} color={canSearch ? '#FFFFFF' : theme.colors.textTertiary} />
+              <Ionicons name='search' size={20} color={canSearch ? theme.colors.textInverse : theme.colors.textTertiary} />
             </TouchableOpacity>
           </View>
           <ScrollView style={styles.panelContainer} showsVerticalScrollIndicator={false}>

@@ -31,6 +31,8 @@ import { DiscoverScreen } from "../../../screens/discover/DiscoverScreen";
 import { MFASecurityScreen } from "../../../screens/settings/MFASecurityScreen";
 import { DataExportScreen } from "../../../screens/settings/DataExportScreen";
 import { DeleteAccountScreen } from "../../../screens/settings/DeleteAccountScreen";
+import { PortfolioGalleryScreen } from "../../../screens/contractor/PortfolioGalleryScreen";
+import { EscrowDashboardScreen } from "../../../screens/payment/EscrowDashboardScreen";
 import { withScreenErrorBoundary } from "../../../components/ErrorBoundaryProvider";
 
 export const SafeProfileScreen = withScreenErrorBoundary(ProfileScreen, "Profile", { fallbackRoute: "Main" });
@@ -63,3 +65,5 @@ export const SafeDiscoverScreen = withScreenErrorBoundary(DiscoverScreen, "Disco
 export const SafeMFASecurityScreen = withScreenErrorBoundary(MFASecurityScreen, "MFA Security", { fallbackRoute: "SettingsHub" });
 export const SafeDataExportScreen = withScreenErrorBoundary(DataExportScreen, "Data Export", { fallbackRoute: "SettingsHub" });
 export const SafeDeleteAccountScreen = withScreenErrorBoundary(DeleteAccountScreen, "Delete Account", { fallbackRoute: "SettingsHub" });
+export const SafePortfolioGalleryScreen = withScreenErrorBoundary(PortfolioGalleryScreen, "Portfolio Gallery", { fallbackRoute: "ProfileMain" });
+export const SafeEscrowDashboardScreen = withScreenErrorBoundary(EscrowDashboardScreen, "Escrow Dashboard", { fallbackRoute: "ProfileMain" });

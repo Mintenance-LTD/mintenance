@@ -426,7 +426,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                         longitude: (meeting.longitude ?? 0),
                       },
                     ]}
-                    strokeColor={'#222222'}
+                    strokeColor={theme.colors.textPrimary}
                     strokeWidth={3}
                     lineDashPattern={[5, 10]}
                   />

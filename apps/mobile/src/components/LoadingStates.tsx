@@ -44,7 +44,7 @@ export interface ErrorStateProps {
 }
 
 export const LoadingState: React.FC<LoadingStateProps> = ({
-  title = 'Loading', message, showSpinner = true, size = 'large', color = '#222222',
+  title = 'Loading', message, showSpinner = true, size = 'large', color = theme.colors.textPrimary,
 }) => {
   const getLoadingMessage = () => {
     if (message) return message;
@@ -141,7 +141,7 @@ export const SkeletonLoader: React.FC<{ count?: number; height?: number; showAva
 );
 
 export const InlineLoader: React.FC<{ size?: number; color?: string; text?: string }> = ({
-  color = '#222222', text,
+  color = theme.colors.textPrimary, text,
 }) => (
   <View style={styles.inlineContainer}>
     <ActivityIndicator size='small' color={color} />

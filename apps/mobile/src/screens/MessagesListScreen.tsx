@@ -157,7 +157,7 @@ const MessagesListScreen: React.FC = () => {
                 onRefresh={handleRefresh}
                 tintColor={theme.colors.primary}
                 colors={[theme.colors.primary]}
-                progressBackgroundColor="#FFFFFF"
+                progressBackgroundColor={theme.colors.surface}
               />
             }
             ListEmptyComponent={

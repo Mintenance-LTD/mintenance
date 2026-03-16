@@ -69,7 +69,7 @@ export const Button: React.FC<ButtonProps> = ({
   testID,
 }) => {
   const variantStyles = VARIANT_STYLES[variant];
-  const backgroundColor = disabled ? '#B0B0B0' : variantStyles.backgroundColor;
+  const backgroundColor = disabled ? theme.colors.textTertiary : variantStyles.backgroundColor;
   const borderColor = variantStyles.borderColor;
   const color = variantStyles.color;
   const isTertiary = variant === 'tertiary';

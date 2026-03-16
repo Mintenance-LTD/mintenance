@@ -137,12 +137,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
   const borderColor = focusAnimation.interpolate({
     inputRange: [0, 1],
-    outputRange: ['#EBEBEB', '#222222'],
+    outputRange: [theme.colors.border, theme.colors.textPrimary],
   });
 
   const backgroundColor = focusAnimation.interpolate({
     inputRange: [0, 1],
-    outputRange: ['#F7F7F7', '#FFFFFF'],
+    outputRange: [theme.colors.backgroundSecondary, theme.colors.surface],
   });
 
   return (

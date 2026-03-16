@@ -223,17 +223,17 @@ const getButtonStyles = (
 
   switch (variant) {
     case 'primary':
-      return { ...baseStyle, backgroundColor: disabled || loading ? '#EBEBEB' : theme.colors.textPrimary, ...shadow };
+      return { ...baseStyle, backgroundColor: disabled || loading ? theme.colors.border : theme.colors.textPrimary, ...shadow };
     case 'secondary':
       return { ...baseStyle, backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.colors.border };
     case 'outline':
-      return { ...baseStyle, backgroundColor: 'transparent', borderWidth: 1, borderColor: disabled || loading ? '#EBEBEB' : theme.colors.textPrimary };
+      return { ...baseStyle, backgroundColor: 'transparent', borderWidth: 1, borderColor: disabled || loading ? theme.colors.border : theme.colors.textPrimary };
     case 'ghost':
       return { ...baseStyle, backgroundColor: 'transparent' };
     case 'danger':
-      return { ...baseStyle, backgroundColor: disabled || loading ? '#EBEBEB' : theme.colors.error, ...shadow };
+      return { ...baseStyle, backgroundColor: disabled || loading ? theme.colors.border : theme.colors.error, ...shadow };
     case 'success':
-      return { ...baseStyle, backgroundColor: disabled || loading ? '#EBEBEB' : theme.colors.primary, ...shadow };
+      return { ...baseStyle, backgroundColor: disabled || loading ? theme.colors.border : theme.colors.primary, ...shadow };
     default:
       return baseStyle;
   }
@@ -254,12 +254,12 @@ const getTextStyles = (
     case 'primary':
     case 'danger':
     case 'success':
-      return { ...baseStyle, color: disabled ? '#B0B0B0' : theme.colors.textInverse };
+      return { ...baseStyle, color: disabled ? theme.colors.textTertiary : theme.colors.textInverse };
     case 'secondary':
-      return { ...baseStyle, color: disabled ? '#B0B0B0' : theme.colors.textPrimary };
+      return { ...baseStyle, color: disabled ? theme.colors.textTertiary : theme.colors.textPrimary };
     case 'outline':
     case 'ghost':
-      return { ...baseStyle, color: disabled ? '#B0B0B0' : theme.colors.textPrimary };
+      return { ...baseStyle, color: disabled ? theme.colors.textTertiary : theme.colors.textPrimary };
     default:
       return baseStyle;
   }
@@ -271,7 +271,7 @@ const getIconColor = (variant: ButtonVariant, disabled: boolean): string => {
     case 'primary':
     case 'danger':
     case 'success':
-      return '#FFFFFF';
+      return theme.colors.surface;
     case 'outline':
     case 'secondary':
     case 'ghost':

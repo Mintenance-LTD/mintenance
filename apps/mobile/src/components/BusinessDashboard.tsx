@@ -213,7 +213,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
     <ScrollView
       style={styles.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor='#222222' colors={[theme.colors.textPrimary]} />
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />
       }
       showsVerticalScrollIndicator={false}
     >
@@ -236,7 +236,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
               'This month',
               dashboard.kpis.revenue.trend,
               'cash',
-              '#10B981',
+              theme.colors.primary,
               () => onNavigate?.('FinancialSummary')
             )}
 
@@ -246,7 +246,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
               `${dashboard.kpis.jobs.total} total jobs`,
               null,
               'hammer',
-              '#222222',
+              theme.colors.textPrimary,
               () => onNavigate?.('JobsAnalytics')
             )}
 
@@ -256,7 +256,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
               'Average rating',
               null,
               'star',
-              '#F59E0B',
+              theme.colors.accent,
               () => onNavigate?.('ClientAnalytics')
             )}
 

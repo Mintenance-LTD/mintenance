@@ -40,6 +40,7 @@ export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
   ForgotPassword: undefined;
+  ResetPassword: { token?: string } | undefined;
   MFAVerification: { preMfaToken: string; redirectScreen?: string };
 };
 
@@ -48,9 +49,6 @@ export type AuthStackParamList = {
 // ============================================================================
 
 export type JobsStackParamList = {
-  InvoiceManagement: undefined;
-  CreateInvoice: { invoiceId?: string } | undefined;
-  InvoiceDetail: { invoiceId: string };
   JobsList: undefined;
   JobDetails: { jobId: string };
   JobPosting: undefined;
@@ -66,6 +64,7 @@ export type JobsStackParamList = {
   ContractPreparation: { jobId: string; jobTitle?: string };
   ReviewSubmission: { jobId: string; contractorName?: string; jobTitle?: string };
   JobSignOff: { jobId: string };
+  JobEdit: { jobId: string };
 };
 
 // ============================================================================
@@ -137,6 +136,8 @@ export type ProfileStackParamList = {
   Social: undefined;
   Connections: undefined;
   Training: undefined;
+  PortfolioGallery: undefined;
+  EscrowDashboard: undefined;
   // Homeowner/shared feature parity screens
   Favorites: undefined;
   Discover: undefined;

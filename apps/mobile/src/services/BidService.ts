@@ -176,58 +176,40 @@ export class BidService {
 
   static async rejectBid(
     bidId: string,
-    homeownerId: string,
+    _homeownerId: string,
     reason?: string
   ): Promise<Bid> {
-    // Verify authorization
+    // Fetch the bid to get job_id for the API URL
     const { data: bid } = await supabase
       .from('bids')
-      .select(
-        `
-        *,
-        job:job_id (homeowner_id)
-      `
-      )
+      .select('job_id')
       .eq('id', bidId)
       .single();
 
-    if (bid?.job.homeowner_id !== homeownerId) {
-      throw new Error('Not authorized to reject this bid');
-    }
+    if (!bid) throw new Error('Bid not found');
 
-    const { data, error } = await supabase
-      .from('bids')
-      .update({
-        status: 'rejected',
-        rejection_reason: reason,
-      })
-      .eq('id', bidId)
-      .select()
-      .single();
+    // Route through web API for permission checks, notifications, and audit logging
+    const response = await mobileApiClient.post<{ bid: Bid }>(
+      `/api/jobs/${bid.job_id}/bids/${bidId}/reject`,
+      { reason }
+    );
 
-    if (error) throw error;
-    return data;
+    return response.bid;
   }
 
-  static async withdrawBid(bidId: string, contractorId: string): Promise<void> {
-    // Verify authorization
+  static async withdrawBid(bidId: string, _contractorId: string): Promise<void> {
+    // Fetch the bid to get job_id for the API URL
     const { data: bid } = await supabase
       .from('bids')
-      .select('contractor_id, status')
+      .select('job_id')
       .eq('id', bidId)
       .single();
 
-    if (bid?.contractor_id !== contractorId) {
-      throw new Error('Not authorized to withdraw this bid');
-    }
+    if (!bid) throw new Error('Bid not found');
 
-    if (bid.status === 'accepted') {
-      throw new Error('Cannot withdraw an accepted bid');
-    }
-
-    const { error } = await supabase.from('bids').delete().eq('id', bidId);
-
-    if (error) throw error;
+    // Route through web API for permission checks, status validation (sets 'withdrawn' not delete),
+    // notifications, and audit logging
+    await mobileApiClient.post(`/api/jobs/${bid.job_id}/bids/${bidId}/withdraw`);
   }
 
   static async updateBid(

@@ -94,7 +94,7 @@ export const JobTimelineScreen: React.FC<Props> = ({ route, navigation }) => {
                   <Ionicons
                     name={index <= currentStepIndex ? 'checkmark' : step.icon}
                     size={16}
-                    color={index <= currentStepIndex ? '#FFFFFF' : theme.colors.textTertiary}
+                    color={index <= currentStepIndex ? theme.colors.textInverse : theme.colors.textTertiary}
                   />
                 </View>
                 {index < LIFECYCLE_STEPS.length - 1 && (

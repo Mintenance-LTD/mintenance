@@ -148,7 +148,7 @@ export interface LoadingAnimationProps {
 }
 
 export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
-  type = 'pulse', color = '#717171', size = 40, speed = 'normal', style, testID,
+  type = 'pulse', color = theme.colors.textSecondary, size = 40, speed = 'normal', style, testID,
 }) => {
   const animatedValue = useRef(new Animated.Value(0)).current;
   const dur = speed === 'slow' ? 1200 : speed === 'fast' ? 600 : 800;

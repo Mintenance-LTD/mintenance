@@ -39,7 +39,7 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
   onMarkPaid,
 }) => {
   const { formatters } = useI18n();
-  const statusColor = STATUS_COLORS[invoice.status] || '#222222';
+  const statusColor = STATUS_COLORS[invoice.status] || theme.colors.textPrimary;
   const statusIcon = STATUS_ICONS[invoice.status] || 'document';
 
   const isOverdue = invoice.status === 'overdue';

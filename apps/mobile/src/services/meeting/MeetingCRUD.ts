@@ -1,6 +1,7 @@
 import { supabase } from '../../config/supabase';
 import { ContractorMeeting, MeetingUpdate, LocationData } from '@mintenance/types';
 import { logger } from '../../utils/logger';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { ServiceErrorHandler } from '../../utils/serviceErrorHandler';
 import { normalizeSupabaseError, mapDatabaseToMeeting } from './MeetingHelpers';
 import type { DatabaseMeetingUpdateRow } from './types';
@@ -29,26 +30,21 @@ export async function createMeeting(meetingData: {
     ServiceErrorHandler.validateRequired(meetingData.contractorId, 'Contractor ID', context);
     ServiceErrorHandler.validateRequired(meetingData.scheduledDateTime, 'Scheduled date time', context);
 
-    const { data, error } = await supabase.from('contractor_meetings')
-      .insert({
+    const response = await mobileApiClient.post<{ meeting: Record<string, unknown> }>(
+      '/api/contractor/meetings',
+      {
+        title: `${meetingData.meetingType} meeting`,
+        client_name: meetingData.homeownerId,
+        meeting_date: meetingData.scheduledDateTime.split('T')[0],
+        start_time: meetingData.scheduledDateTime,
+        end_time: null,
+        location: meetingData.location.address || null,
+        notes: meetingData.notes || null,
         job_id: meetingData.jobId,
-        homeowner_id: meetingData.homeownerId,
-        contractor_id: meetingData.contractorId,
-        scheduled_datetime: meetingData.scheduledDateTime,
-        meeting_type: meetingData.meetingType,
-        latitude: meetingData.location.latitude,
-        longitude: meetingData.location.longitude,
-        address: meetingData.location.address,
-        duration: meetingData.duration,
-        notes: meetingData.notes,
-        status: 'scheduled',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-    if (error) throw ServiceErrorHandler.handleDatabaseError(error, context);
-    return mapDatabaseToMeeting(data);
+      }
+    );
+
+    return mapDatabaseToMeeting(response.meeting);
   }, context);
   if (!result.success || !result.data) throw new Error('Failed to create meeting');
   return result.data;
@@ -84,13 +80,12 @@ export async function getMeetingsForUser(userId: string, role: 'homeowner' | 'co
 
 export async function updateMeetingStatus(meetingId: string, status: ContractorMeeting['status'], updatedBy: string, notes?: string): Promise<ContractorMeeting> {
   try {
-    const { data, error } = await supabase.from('contractor_meetings')
-      .update({ status, notes: notes || undefined, updated_at: new Date().toISOString() })
-      .eq('id', meetingId).select().single();
-    if (error) throw normalizeSupabaseError(error, 'Failed to update meeting status');
-    if (!data) throw new Error('Failed to update meeting');
-    await createMeetingUpdate({ meetingId, updateType: 'status_change', message: `Meeting status changed to ${status}`, updatedBy, newValue: status });
-    return mapDatabaseToMeeting(data);
+    const response = await mobileApiClient.patch<{ meeting: Record<string, unknown> }>(
+      `/api/contractor/meetings/${meetingId}`,
+      { status, notes: notes || undefined }
+    );
+
+    return mapDatabaseToMeeting(response.meeting);
   } catch (error) {
     logger.error('Error updating meeting status:', error);
     throw error;
@@ -99,14 +94,18 @@ export async function updateMeetingStatus(meetingId: string, status: ContractorM
 
 export async function rescheduleMeeting(meetingId: string, newDateTime: string, updatedBy: string, reason?: string): Promise<ContractorMeeting> {
   try {
-    const currentMeeting = await getMeetingById(meetingId);
-    const { data, error } = await supabase.from('contractor_meetings')
-      .update({ scheduled_datetime: newDateTime, status: 'rescheduled', notes: reason || undefined, updated_at: new Date().toISOString() })
-      .eq('id', meetingId).select().single();
-    if (error) throw normalizeSupabaseError(error, 'Failed to reschedule meeting');
-    if (!data) throw new Error('Failed to reschedule meeting');
-    await createMeetingUpdate({ meetingId, updateType: 'rescheduled', message: reason || 'Meeting rescheduled', updatedBy, oldValue: currentMeeting?.scheduled_datetime, newValue: newDateTime });
-    return mapDatabaseToMeeting(data);
+    const response = await mobileApiClient.patch<{ meeting: Record<string, unknown> }>(
+      `/api/contractor/meetings/${meetingId}`,
+      {
+        meeting_date: newDateTime.split('T')[0],
+        start_time: newDateTime,
+        status: 'rescheduled',
+        reschedule_reason: reason || undefined,
+        notes: reason || undefined,
+      }
+    );
+
+    return mapDatabaseToMeeting(response.meeting);
   } catch (error) {
     logger.error('Error rescheduling meeting:', error);
     throw error;
@@ -122,6 +121,9 @@ export async function createMeetingUpdate(updateData: {
   newValue?: unknown;
 }): Promise<MeetingUpdate> {
   try {
+    // Meeting updates are now created server-side by the PATCH /api/contractor/meetings/[id] route
+    // when status changes or reschedules occur. This function is kept for backward compatibility
+    // and for cases where a standalone update record is needed.
     const { data, error } = await supabase.from('meeting_updates').insert({
       meeting_id: updateData.meetingId,
       update_type: updateData.updateType,

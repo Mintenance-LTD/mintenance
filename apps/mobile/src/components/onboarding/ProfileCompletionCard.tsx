@@ -80,7 +80,7 @@ export function ProfileCompletionCard({
               cx={50}
               cy={50}
               r={radius}
-              stroke="#EBEBEB"
+              stroke={theme.colors.border}
               strokeWidth={8}
               fill="none"
             />

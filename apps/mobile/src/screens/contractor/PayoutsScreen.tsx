@@ -121,7 +121,7 @@ export const PayoutsScreen: React.FC = () => {
       {/* Stripe Connect Card */}
       <View style={styles.connectCard}>
         <View style={styles.connectHeader}>
-          <View style={[styles.connectIconWrap, { backgroundColor: hasConnectedStripe ? '#D1FAE5' : theme.colors.accentLight }]}>
+          <View style={[styles.connectIconWrap, { backgroundColor: hasConnectedStripe ? theme.colors.primaryLight : theme.colors.accentLight }]}>
             <Ionicons
               name={hasConnectedStripe ? 'checkmark-circle' : 'alert-circle'}
               size={20}

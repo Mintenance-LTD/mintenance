@@ -317,7 +317,7 @@ export const FinancialsScreen: React.FC = () => {
               activeOpacity={0.7}
             >
               <View style={styles.subscriptionLeft}>
-                <View style={[styles.subscriptionIcon, { backgroundColor: data.subscription.status === 'active' ? '#D1FAE5' : theme.colors.accentLight }]}>
+                <View style={[styles.subscriptionIcon, { backgroundColor: data.subscription.status === 'active' ? theme.colors.primaryLight : theme.colors.accentLight }]}>
                   <Ionicons
                     name={data.subscription.status === 'active' ? 'shield-checkmark' : 'shield-outline'}
                     size={20}

@@ -1,4 +1,4 @@
-import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { logger } from '../../utils/logger';
 import type { EmailHistory } from './types';
 import { processTemplate } from './TemplateProcessor';
@@ -20,33 +20,14 @@ export async function sendEmail(emailData: {
       processedContent = await processTemplate(emailData.template_id, emailData.variables);
     }
 
-    const { data: emailRecord, error: historyError } = await supabase.from('email_history').insert([{
-      template_id: emailData.template_id, contractor_id: emailData.contractor_id,
-      recipient_email: emailData.recipient_email, recipient_name: emailData.recipient_name,
-      subject_line: processedContent.subject_line, text_content: processedContent.text_content,
-      html_content: processedContent.html_content, job_id: emailData.job_id,
-      invoice_id: emailData.invoice_id, context_type: emailData.context_type || 'manual',
-      context_data: emailData.context_data || {}, status: 'sent', send_attempts: 1,
-      open_count: 0, click_count: 0, device_info: {}, location_info: {},
-    }]).select().single();
+    const response = await mobileApiClient.post<{ data: { id: string } }>('/api/email/history', {
+      template_id: emailData.template_id,
+      recipient_email: emailData.recipient_email,
+      subject: processedContent.subject_line,
+      body: processedContent.text_content,
+    });
 
-    if (historyError) throw historyError;
-
-    if (emailData.template_id) {
-      try {
-        await supabase.rpc('increment_email_template_usage', { template_id_param: emailData.template_id });
-        await supabase.from('email_templates').update({
-          last_used: new Date().toISOString(),
-        }).eq('id', emailData.template_id!);
-      } catch {
-        // Fallback: just update last_used if RPC not available
-        await supabase.from('email_templates').update({
-          last_used: new Date().toISOString(),
-        }).eq('id', emailData.template_id!);
-      }
-    }
-
-    return { success: true, email_id: emailRecord.id };
+    return { success: true, email_id: response.data.id };
   } catch (error) {
     logger.error('Error sending email:', error);
     return { success: false, email_id: '', error: error instanceof Error ? error.message : 'Unknown error' };
@@ -55,7 +36,8 @@ export async function sendEmail(emailData: {
 
 export async function getEmailHistory(contractorId: string, limit: number = 50): Promise<EmailHistory[]> {
   try {
-    const { data, error } = await supabase.from('email_history').select('*')
+    const { data, error } = await (await import('../../config/supabase')).supabase
+      .from('email_history').select('*')
       .eq('contractor_id', contractorId).order('sent_at', { ascending: false }).limit(limit);
     if (error) throw error;
     return data || [];

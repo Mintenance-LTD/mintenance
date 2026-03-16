@@ -489,7 +489,7 @@ const styles = StyleSheet.create({
     }),
   },
   notifCardUnread: {
-    backgroundColor: '#F0FDF9',
+    backgroundColor: theme.colors.primaryLight,
     borderLeftWidth: 3,
     borderLeftColor: theme.colors.primary,
   },

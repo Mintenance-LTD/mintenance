@@ -1,5 +1,6 @@
 import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import type {
   ESGScore,
   GreenCertification,
@@ -104,7 +105,19 @@ export class ESGCalculator {
   }
 
   private async storeESGScore(contractorId: string, esgScore: ESGScore): Promise<void> {
-    const { error } = await supabase.from('contractor_esg_scores').upsert({ contractor_id: contractorId, overall_esg_score: esgScore.overall_score, environmental_score: esgScore.environmental_score, social_score: esgScore.social_score, governance_score: esgScore.governance_score, certification_level: esgScore.certification_level, last_calculated: esgScore.last_calculated, updated_at: new Date().toISOString() });
-    if (error) logger.error('Failed to store ESG score', error);
+    try {
+      await mobileApiClient.post('/api/contractor/esg-score', {
+        environmental_score: esgScore.environmental_score,
+        social_score: esgScore.social_score,
+        governance_score: esgScore.governance_score,
+        total_score: esgScore.overall_score,
+        breakdown: {
+          certification_level: esgScore.certification_level,
+          last_calculated: esgScore.last_calculated,
+        },
+      });
+    } catch (error) {
+      logger.error('Failed to store ESG score', error);
+    }
   }
 }

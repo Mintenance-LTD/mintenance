@@ -900,7 +900,7 @@ const styles = StyleSheet.create({
   },
   countBadge: {
     marginLeft: 5,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: theme.colors.border,
     borderRadius: 8,
     minWidth: 18,
     height: 18,
@@ -1097,7 +1097,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
   },
   progressDotInactive: {
-    backgroundColor: '#E0E0E0',
+    backgroundColor: theme.colors.border,
   },
   progressLine: {
     flex: 1,
@@ -1107,7 +1107,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
   },
   progressLineInactive: {
-    backgroundColor: '#E0E0E0',
+    backgroundColor: theme.colors.border,
   },
   progressLabels: {
     flexDirection: 'row',

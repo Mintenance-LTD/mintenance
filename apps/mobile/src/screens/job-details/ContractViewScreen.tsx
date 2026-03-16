@@ -292,6 +292,18 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.amountValue}>{'\u00A3'}{Number(contract.amount).toLocaleString()}</Text>
         </View>
 
+        {/* Download PDF Button */}
+        <TouchableOpacity
+          style={styles.downloadPdfButton}
+          onPress={handleViewPdf}
+          accessibilityRole="button"
+          accessibilityLabel="Download contract as PDF"
+        >
+          <Ionicons name="document-text-outline" size={20} color={theme.colors.textSecondary} />
+          <Text style={styles.downloadPdfText}>Download Contract PDF</Text>
+          <Ionicons name="download-outline" size={18} color={theme.colors.textSecondary} />
+        </TouchableOpacity>
+
         {/* Title & Description */}
         {contract.title && (
           <View style={styles.section}>
@@ -763,6 +775,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: theme.colors.backgroundSecondary,
     marginRight: 8,
+  },
+  downloadPdfButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    marginBottom: 20,
+  },
+  downloadPdfText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: theme.colors.textSecondary,
   },
   revisionSection: {
     marginBottom: 20,

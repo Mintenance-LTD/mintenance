@@ -6,6 +6,7 @@ import type { AuthStackParamList } from '../types';
 import LoginScreen from '../../screens/LoginScreen';
 import RegisterScreen from '../../screens/RegisterScreen';
 import ForgotPasswordScreen from '../../screens/ForgotPasswordScreen';
+import ResetPasswordScreen from '../../screens/auth/ResetPasswordScreen';
 import MFAVerificationScreen from '../../screens/auth/MFAVerificationScreen';
 
 // Import error boundary wrapper
@@ -30,6 +31,12 @@ const SafeRegisterScreen = withScreenErrorBoundary(
 const SafeForgotPasswordScreen = withScreenErrorBoundary(
   ForgotPasswordScreen,
   'Forgot Password',
+  { fallbackRoute: 'Login' }
+);
+
+const SafeResetPasswordScreen = withScreenErrorBoundary(
+  ResetPasswordScreen,
+  'Reset Password',
   { fallbackRoute: 'Login' }
 );
 
@@ -69,6 +76,11 @@ export const AuthNavigator: React.FC = () => {
         name="ForgotPassword"
         component={SafeForgotPasswordScreen}
         options={{ title: 'Reset Password' }}
+      />
+      <AuthStack.Screen
+        name="ResetPassword"
+        component={SafeResetPasswordScreen}
+        options={{ title: 'New Password' }}
       />
       <AuthStack.Screen
         name="MFAVerification"

@@ -44,7 +44,7 @@ export const ProfileMenuSection: React.FC<ProfileMenuSectionProps> = ({
             <View
               style={[
                 styles.iconChip,
-                { backgroundColor: item.iconBg ?? '#F7F7F7' },
+                { backgroundColor: item.iconBg ?? theme.colors.backgroundSecondary },
               ]}
             >
               <Ionicons

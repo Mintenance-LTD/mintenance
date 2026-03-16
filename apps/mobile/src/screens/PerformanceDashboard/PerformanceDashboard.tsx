@@ -169,7 +169,7 @@ export const PerformanceDashboard: React.FC = () => {
                 value={monitoringEnabled}
                 onValueChange={toggleMonitoring}
                 trackColor={{ false: theme.colors.border, true: theme.colors.textPrimary }}
-                thumbColor="#F7F7F7"
+                thumbColor={theme.colors.backgroundSecondary}
               />
             </View>
           </CardBody>
@@ -308,9 +308,9 @@ const MetricCard: React.FC<MetricCardProps> = ({
 }) => {
   const getStatusColor = () => {
     switch (status) {
-      case 'good': return '#059669';
-      case 'warning': return '#D97706';
-      case 'critical': return '#DC2626';
+      case 'good': return theme.colors.primaryDark;
+      case 'warning': return theme.colors.accent;
+      case 'critical': return theme.colors.error;
       default: return theme.colors.textSecondary;
     }
   };
@@ -404,7 +404,7 @@ const ComponentMetricRow: React.FC<{ component: ComponentPerformance; rank: numb
 const ViolationRow: React.FC<{ violation: PerformanceViolation }> = ({ violation }) => {
   const getSeverityColor = () => {
     switch (violation.severity) {
-      case 'critical': return '#DC2626';
+      case 'critical': return theme.colors.error;
       case 'high': return theme.colors.error;
       case 'medium': return theme.colors.accent;
       default: return theme.colors.textSecondary;

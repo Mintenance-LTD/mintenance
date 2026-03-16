@@ -159,7 +159,7 @@ export const Input = forwardRef<TextInput, InputProps>(
             onChangeText={handleChangeText}
             editable={state !== 'disabled'}
             placeholderTextColor={variant === 'outline' && label ? 'transparent' : theme.colors.textTertiary}
-            selectionColor="#222222"
+            selectionColor={theme.colors.textPrimary}
             {...textInputProps}
           />
           {rightIcon && renderIcon(rightIcon, 'right', onRightIconPress)}
@@ -196,7 +196,7 @@ const getContainerStyles = (
         borderWidth: isFocused ? 2 : 1,
         borderRadius: 12,
         borderColor: getBorderColor(state, isFocused),
-        backgroundColor: state === 'disabled' ? '#F7F7F7' : theme.colors.textInverse,
+        backgroundColor: state === 'disabled' ? theme.colors.backgroundSecondary : theme.colors.textInverse,
       };
     case 'filled':
       return {
@@ -204,7 +204,7 @@ const getContainerStyles = (
         borderRadius: 12,
         borderBottomLeftRadius: 0,
         borderBottomRightRadius: 0,
-        backgroundColor: state === 'disabled' ? '#EBEBEB' : theme.colors.backgroundSecondary,
+        backgroundColor: state === 'disabled' ? theme.colors.border : theme.colors.backgroundSecondary,
         borderBottomWidth: isFocused ? 2 : 1,
         borderBottomColor: getBorderColor(state, isFocused),
       };
@@ -224,14 +224,14 @@ const getContainerStyles = (
 const getTextStyles = (size: InputSize, state: InputState) => ({
   flex: 1,
   fontSize: INPUT_SIZES[size].fontSize,
-  color: state === 'disabled' ? '#B0B0B0' : theme.colors.textPrimary,
+  color: state === 'disabled' ? theme.colors.textTertiary : theme.colors.textPrimary,
 });
 
 const getBorderColor = (state: InputState, isFocused: boolean): string => {
   if (state === 'error') return theme.colors.error;
   if (state === 'success') return theme.colors.primary;
   if (isFocused) return theme.colors.textPrimary;
-  return '#EBEBEB';
+  return theme.colors.border;
 };
 
 const getIconColor = (state: InputState, isFocused: boolean): string => {

@@ -78,7 +78,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const iconColor = tintColor || '#222222';
+  const iconColor = tintColor || theme.colors.textPrimary;
   const subtitleColor = tintColor ? `${tintColor}B3` : theme.colors.textSecondary;
 
   const handleBackPress = () => {

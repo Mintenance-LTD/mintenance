@@ -1,4 +1,4 @@
-import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { logger } from '../../utils/logger';
 import type { DatabaseMessageRow, Message } from './types';
 
@@ -44,16 +44,13 @@ export async function createMessageNotification(
   receiverId: string
 ): Promise<void> {
   try {
-    await supabase.from('notifications').insert([
-      {
-        user_id: receiverId,
-        title: 'New Message',
-        message: `${message.sender?.first_name || 'Someone'} sent you a message`,
-        type: 'message',
-        action_url: `/jobs/${message.job_id}/messages`,
-        created_at: new Date().toISOString(),
-      },
-    ]);
+    await mobileApiClient.post('/api/notifications', {
+      user_id: receiverId,
+      title: 'New Message',
+      message: `${message.sender?.first_name || 'Someone'} sent you a message`,
+      type: 'message',
+      action_url: `/jobs/${message.job_id}/messages`,
+    });
   } catch (error) {
     logger.error('Error creating message notification:', error);
   }

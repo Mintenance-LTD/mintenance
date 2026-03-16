@@ -14,6 +14,7 @@ import {
   SafeSocialScreen, SafeConnectionsScreen, SafeTrainingScreen,
   SafeFavoritesScreen, SafeDiscoverScreen,
   SafeMFASecurityScreen, SafeDataExportScreen, SafeDeleteAccountScreen,
+  SafePortfolioGalleryScreen, SafeEscrowDashboardScreen,
 } from "./profile/ProfileAccountNavigator";
 
 // Business-related screen wrappers
@@ -87,6 +88,8 @@ export const ProfileNavigator = () => {
       <ProfileStack.Screen name="MFASecurity" component={SafeMFASecurityScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="DataExport" component={SafeDataExportScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="DeleteAccount" component={SafeDeleteAccountScreen} options={{ headerShown: false }} />
+      <ProfileStack.Screen name="PortfolioGallery" component={SafePortfolioGalleryScreen} options={{ headerShown: false }} />
+      <ProfileStack.Screen name="EscrowDashboard" component={SafeEscrowDashboardScreen} options={{ headerShown: false }} />
     </ProfileStack.Navigator>
   );
 };

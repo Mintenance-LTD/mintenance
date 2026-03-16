@@ -96,7 +96,7 @@ const BiometricLoginButton: React.FC<BiometricLoginButtonProps> = ({
         <Ionicons
           name='finger-print'
           size={32}
-          color={loading ? '#B0B0B0' : theme.colors.textPrimary}
+          color={loading ? theme.colors.textTertiary : theme.colors.textPrimary}
         />
         <Text style={[styles.buttonText, loading && styles.buttonTextDisabled]}>
           {loading ? 'Authenticating...' : `Use ${biometricType}`}

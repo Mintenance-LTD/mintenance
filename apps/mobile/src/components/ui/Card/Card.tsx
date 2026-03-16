@@ -112,7 +112,7 @@ const getCardStyles = (variant: CardVariant, padding: CardPadding, disabled: boo
     case 'outlined':
       return { ...baseStyle, backgroundColor: theme.colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border, opacity: disabled ? 0.5 : 1 };
     case 'filled':
-      return { ...baseStyle, backgroundColor: isPressed ? '#EBEBEB' : theme.colors.backgroundSecondary, opacity: disabled ? 0.5 : 1 };
+      return { ...baseStyle, backgroundColor: isPressed ? theme.colors.border : theme.colors.backgroundSecondary, opacity: disabled ? 0.5 : 1 };
     default:
       return baseStyle;
   }

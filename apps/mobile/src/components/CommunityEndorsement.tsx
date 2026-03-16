@@ -267,7 +267,7 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
               <TextInput
                 style={styles.customSkillInput}
                 placeholder='e.g., Great at emergency repairs'
-                placeholderTextColor='#B0B0B0'
+                placeholderTextColor={theme.colors.textTertiary}
                 value={customSkill}
                 onChangeText={(text) => {
                   setCustomSkill(text);
@@ -290,7 +290,7 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
             <TextInput
               style={styles.messageInput}
               placeholder='e.g., Fixed my sink quickly and explained what was wrong. Very professional!'
-              placeholderTextColor='#B0B0B0'
+              placeholderTextColor={theme.colors.textTertiary}
               value={message}
               onChangeText={setMessage}
               multiline

@@ -156,47 +156,47 @@ export class JobCRUDService {
       throw new Error('Invalid status');
     }
 
-    const { data, error } = await (supabase
-      .from('jobs')
-      .update({ ...updates, updated_at: new Date().toISOString() } as Record<string, unknown>) as unknown as { eq: (col: string, val: string) => { select: (cols: string) => { single: () => Promise<{ data: DatabaseJobRow | null; error: Error | null }> } } })
-      .eq('id', jobId)
-      .select('*')
-      .single();
+    // Route through web API for server-side validation, ownership checks, and notifications
+    const response = await mobileApiClient.put<{ job: DatabaseJobRow }>(`/api/jobs/${jobId}`, updates);
 
-    if (error) throw error;
-    if (!data) throw new Error('Job not found');
-    return this.formatJob(data as DatabaseJobRow);
+    if (!response.job) {
+      throw new Error('No job returned from API');
+    }
+
+    return this.formatJob(response.job);
   }
 
   static async deleteJob(jobId: string): Promise<void> {
-    const result = await (supabase.from('jobs').delete() as unknown as { eq: (col: string, val: string) => Promise<{ error: { message?: string } | null }> }).eq('id', jobId);
-    if (result.error) throw new Error(result.error.message || 'Delete failed');
+    // Route through web API for ownership validation, status checks, and cascade handling
+    await mobileApiClient.delete(`/api/jobs/${jobId}`);
   }
 
   static async updateJobStatus(
     jobId: string,
     status: Job['status'],
-    contractorId?: string
+    _contractorId?: string
   ): Promise<Job> {
-    const updateData: Partial<DatabaseJobRow> = {
-      status: status as DatabaseJobRow['status'],
-      updated_at: new Date().toISOString(),
-    };
-
-    if (contractorId) {
-      updateData.contractor_id = contractorId;
+    // Route through web API for state machine validation, permission checks,
+    // photo gates, escrow verification, and notification side-effects.
+    // Each status transition has a dedicated API endpoint with full validation.
+    switch (status) {
+      case 'in_progress':
+        await mobileApiClient.post(`/api/jobs/${jobId}/start`);
+        break;
+      case 'completed':
+        await mobileApiClient.post(`/api/jobs/${jobId}/complete`);
+        break;
+      default:
+        // For other transitions (e.g. posted→assigned via bid acceptance),
+        // use the general PUT endpoint which validates via state machine
+        await mobileApiClient.put(`/api/jobs/${jobId}`, { status });
+        break;
     }
 
-    const { data, error } = await (supabase
-      .from('jobs')
-      .update(updateData) as unknown as { eq: (col: string, val: string) => { select: (cols: string) => { single: () => Promise<{ data: DatabaseJobRow | null; error: { message?: string } | null }> } } })
-      .eq('id', jobId)
-      .select('*')
-      .single();
-
-    if (error) throw new Error(error.message || String(error));
-    if (!data) throw new Error('Job not found');
-    return this.formatJob(data as DatabaseJobRow);
+    // Fetch the updated job to return
+    const updatedJob = await this.getJobById(jobId);
+    if (!updatedJob) throw new Error('Job not found after status update');
+    return updatedJob;
   }
 
   static async startJob(jobId: string): Promise<void> {

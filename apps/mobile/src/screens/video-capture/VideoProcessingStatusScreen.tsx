@@ -255,7 +255,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
           <View
             style={[
               styles.severityBadge,
-              { backgroundColor: severityColors[data.severity_estimate] || '#B0B0B0' },
+              { backgroundColor: severityColors[data.severity_estimate] || theme.colors.textTertiary },
             ]}
           >
             <Text style={styles.severityText}>{data.severity_estimate}</Text>

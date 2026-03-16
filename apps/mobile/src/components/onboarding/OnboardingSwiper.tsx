@@ -100,7 +100,7 @@ export function OnboardingSwiper({
             key={slide.id}
             style={[
               styles.slide,
-              { backgroundColor: slide.backgroundColor || '#F7F7F7' },
+              { backgroundColor: slide.backgroundColor || theme.colors.backgroundSecondary },
             ]}
           >
             {/* Icon or Image */}

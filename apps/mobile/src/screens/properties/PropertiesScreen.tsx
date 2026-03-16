@@ -50,7 +50,7 @@ const PropertyCard: React.FC<{
   return (
     <TouchableOpacity style={styles.propertyCard} onPress={onPress}>
       <View style={styles.cardHeader}>
-        <View style={[styles.propertyIconWrap, { backgroundColor: PROPERTY_ICON_BG[pType] || '#F7F7F7' }]}>
+        <View style={[styles.propertyIconWrap, { backgroundColor: PROPERTY_ICON_BG[pType] || theme.colors.backgroundSecondary }]}>
           <Ionicons name="home-outline" size={20} color={PROPERTY_ICON_COLOR[pType] || theme.colors.textSecondary} />
         </View>
         <View style={styles.cardHeaderText}>

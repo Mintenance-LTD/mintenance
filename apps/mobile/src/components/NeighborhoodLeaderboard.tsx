@@ -94,7 +94,7 @@ export const NeighborhoodLeaderboard: React.FC<
             name={index === 0 ? 'trophy' : index === 1 ? 'medal' : 'ribbon'}
             size={16}
             color={
-              index === 0 ? theme.colors.accent : index === 1 ? '#B0B0B0' : theme.colors.accent
+              index === 0 ? theme.colors.accent : index === 1 ? theme.colors.textTertiary : theme.colors.accent
             }
           />
         )}

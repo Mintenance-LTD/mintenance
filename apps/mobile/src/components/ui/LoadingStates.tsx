@@ -36,7 +36,7 @@ export interface SkeletonCardProps {
 }
 
 export const LoadingSpinner: React.FC<LoadingProps> = ({
-  size = 'large', color = '#222222', text, overlay = false,
+  size = 'large', color = theme.colors.textPrimary, text, overlay = false,
 }) => (
   <View style={overlay ? styles.overlayContainer : styles.inlineContainer}>
     <ActivityIndicator size={size} color={color} accessibilityLabel="Loading" accessibilityHint="Content is loading, please wait" />
@@ -45,7 +45,7 @@ export const LoadingSpinner: React.FC<LoadingProps> = ({
 );
 
 export const LoadingOverlay: React.FC<LoadingProps> = ({
-  size = 'large', color = '#222222', text = 'Loading...',
+  size = 'large', color = theme.colors.textPrimary, text = 'Loading...',
 }) => (
   <View style={styles.fullScreenOverlay}>
     <View style={styles.overlayContent}>
@@ -55,7 +55,7 @@ export const LoadingOverlay: React.FC<LoadingProps> = ({
   </View>
 );
 
-export const InlineLoader: React.FC<{ color?: string }> = ({ color = '#FFFFFF' }) => (
+export const InlineLoader: React.FC<{ color?: string }> = ({ color = theme.colors.surface }) => (
   <ActivityIndicator size="small" color={color} style={styles.inlineLoader} />
 );
 

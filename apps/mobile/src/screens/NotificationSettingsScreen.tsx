@@ -104,7 +104,7 @@ const NotificationSettingsScreen: React.FC = () => {
     if (!user?.id) return;
     try {
       const { data: row } = await supabase
-        .from('notification_preferences')
+        .from('user_notification_preferences')
         .select('*')
         .eq('user_id', user.id)
         .single();
@@ -203,7 +203,7 @@ const NotificationSettingsScreen: React.FC = () => {
     setSaving(true);
     try {
       const { error: err } = await supabase
-        .from('notification_preferences')
+        .from('user_notification_preferences')
         .upsert({ user_id: user.id, ...settings }, { onConflict: 'user_id' });
       if (err) throw err;
       Alert.alert('Success', 'Notification settings updated!');
@@ -251,7 +251,7 @@ const NotificationSettingsScreen: React.FC = () => {
             <Ionicons
               name={iconConfig.name}
               size={18}
-              color={disabled ? '#B0B0B0' : iconConfig.color}
+              color={disabled ? theme.colors.textTertiary : iconConfig.color}
             />
           </View>
           <View style={styles.settingInfo}>
@@ -269,9 +269,9 @@ const NotificationSettingsScreen: React.FC = () => {
           disabled={disabled}
           trackColor={{
             false: theme.colors.border,
-            true: disabled ? '#B0B0B0' : theme.colors.primary,
+            true: disabled ? theme.colors.textTertiary : theme.colors.primary,
           }}
-          thumbColor='#FFFFFF'
+          thumbColor={theme.colors.surface}
         />
       </View>
     );

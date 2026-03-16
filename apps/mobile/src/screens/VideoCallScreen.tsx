@@ -169,7 +169,7 @@ export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({
           <Ionicons
             name={isMuted ? 'mic-off' : 'mic'}
             size={24}
-            color={isMuted ? '#FFFFFF' : theme.colors.textInverse}
+            color={theme.colors.textInverse}
           />
         </TouchableOpacity>
 

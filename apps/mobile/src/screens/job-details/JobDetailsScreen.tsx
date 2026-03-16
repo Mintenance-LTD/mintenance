@@ -4,7 +4,7 @@
  * Full-bleed hero image carousel, host card, pricing breakdown,
  * detail sections, and sticky bottom CTA.
  */
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,8 @@ import {
   Share,
   Modal,
   Platform,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -22,6 +24,8 @@ import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LoadingSpinner, ErrorView } from '../../components/shared';
 import { useJobDetailsViewModel } from './viewmodels/JobDetailsViewModel';
+import { useJobBids } from '../../hooks/useJobs';
+import { BidService } from '../../services/BidService';
 import { ImageCarousel } from '../../components/ui/ImageCarousel';
 import { HostCard } from '../../components/ui/HostCard';
 import { StickyBottomCTA } from '../../components/ui/StickyBottomCTA';
@@ -61,6 +65,8 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const viewModel = useJobDetailsViewModel(jobId);
   const insets = useSafeAreaInsets();
   const [showEscrowModal, setShowEscrowModal] = useState(false);
+  const [withdrawingBid, setWithdrawingBid] = useState(false);
+  const { data: bidsData, refetch: refetchBids } = useJobBids(jobId);
 
   if (viewModel.jobLoading) {
     return <LoadingSpinner message="Loading job details..." />;
@@ -93,6 +99,42 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const categoryIcon = CATEGORY_ICONS[job.category?.toLowerCase() || ''] || 'construct-outline';
   const isContractor = user?.role === 'contractor';
   const isOwner = user?.id === job.homeowner_id;
+
+  // Find the logged-in contractor's pending bid on this job
+  const myPendingBid = isContractor && user?.id
+    ? (bidsData || []).find(
+        (b: { contractor_id?: string; status?: string }) =>
+          b.contractor_id === user.id && b.status === 'pending'
+      )
+    : null;
+
+  const handleWithdrawBid = useCallback(() => {
+    if (!myPendingBid || !user?.id) return;
+    Alert.alert(
+      'Withdraw Bid',
+      'Are you sure you want to withdraw your bid?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Withdraw',
+          style: 'destructive',
+          onPress: async () => {
+            setWithdrawingBid(true);
+            try {
+              await BidService.withdrawBid(myPendingBid.id, user.id);
+              Alert.alert('Bid Withdrawn', 'Your bid has been withdrawn successfully.');
+              refetchBids();
+              viewModel.refetchJob();
+            } catch {
+              Alert.alert('Error', 'Failed to withdraw bid. Please try again.');
+            } finally {
+              setWithdrawingBid(false);
+            }
+          },
+        },
+      ]
+    );
+  }, [myPendingBid, user?.id, refetchBids, viewModel]);
 
   const daysAgo = Math.floor(
     (Date.now() - new Date(job.created_at || job.createdAt || Date.now()).getTime()) /
@@ -287,6 +329,31 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                 job={job}
                 onContractorAssigned={viewModel.handleContractorAssigned}
               />
+            </View>
+          </>
+        )}
+
+        {/* 9b. Withdraw Bid (contractor with pending bid) */}
+        {myPendingBid && (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.sectionPadded}>
+              <TouchableOpacity
+                style={[styles.withdrawBidButton, withdrawingBid && { opacity: 0.5 }]}
+                onPress={handleWithdrawBid}
+                disabled={withdrawingBid}
+                accessibilityRole="button"
+                accessibilityLabel="Withdraw your bid"
+              >
+                {withdrawingBid ? (
+                  <ActivityIndicator color={theme.colors.error} size="small" />
+                ) : (
+                  <>
+                    <Ionicons name="close-circle-outline" size={20} color={theme.colors.error} />
+                    <Text style={styles.withdrawBidText}>Withdraw Bid</Text>
+                  </>
+                )}
+              </TouchableOpacity>
             </View>
           </>
         )}
@@ -692,6 +759,24 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: theme.colors.textPrimary,
     marginTop: 2,
+  },
+
+  // ── Withdraw Bid ──
+  withdrawBidButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 28,
+    borderWidth: 1.5,
+    borderColor: theme.colors.error,
+    backgroundColor: 'transparent',
+  },
+  withdrawBidText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.error,
   },
 
   // ── Description ──

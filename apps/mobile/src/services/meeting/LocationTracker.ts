@@ -1,6 +1,7 @@
 import { supabase } from '../../config/supabase';
 import { LocationData, ContractorMeeting } from '@mintenance/types';
 import { logger } from '../../utils/logger';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { JobContextLocationService, ContractorLocationContext } from '../JobContextLocationService';
 import { normalizeSupabaseError } from './MeetingHelpers';
 import { getMeetingById, updateMeetingStatus, createMeetingUpdate } from './MeetingCRUD';
@@ -12,18 +13,27 @@ export async function updateContractorLocation(
   meetingId?: string
 ): Promise<ContractorLocation> {
   try {
-    const { data, error } = await supabase.from('contractor_locations').upsert({
-      contractor_id: contractorId,
-      latitude: location.latitude,
-      longitude: location.longitude,
-      accuracy: 10,
-      timestamp: new Date().toISOString(),
-      is_active: true,
-      meeting_id: meetingId || null,
-    }).select().single();
-    if (error) throw normalizeSupabaseError(error, 'Failed to update contractor location');
-    if (!data) throw new Error('Failed to update contractor location');
-    return { id: data.id, contractorId: data.contractor_id, latitude: data.latitude, longitude: data.longitude, accuracy: data.accuracy, timestamp: data.timestamp, isActive: data.is_active, meetingId: data.meeting_id };
+    const response = await mobileApiClient.patch<{
+      id: string; contractor_id: string; latitude: number; longitude: number;
+      accuracy: number; timestamp: string; is_active: boolean; meeting_id: string | null;
+    }>(
+      '/api/contractor/profile/location',
+      {
+        contractorId,
+        latitude: location.latitude,
+        longitude: location.longitude,
+      }
+    );
+    return {
+      id: response.id || contractorId,
+      contractorId: response.contractor_id || contractorId,
+      latitude: response.latitude || location.latitude,
+      longitude: response.longitude || location.longitude,
+      accuracy: response.accuracy || 10,
+      timestamp: response.timestamp || new Date().toISOString(),
+      isActive: response.is_active ?? true,
+      meetingId: response.meeting_id || meetingId || null,
+    };
   } catch (error) {
     logger.error('Error updating contractor location:', error);
     throw error;
