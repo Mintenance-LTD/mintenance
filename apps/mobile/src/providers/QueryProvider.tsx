@@ -42,8 +42,9 @@ const QueryProvider: React.FC<QueryProviderProps> = ({ children }) => {
         // Check network state before refetching
         NetInfo.fetch().then((state) => {
           if (state.isConnected && state.isInternetReachable) {
-            // Refetch all queries when app becomes active and online
-            queryClient.refetchQueries();
+            // Refetch only active queries (screens currently mounted)
+            // Avoids "Missing queryFn" errors for cached-but-unmounted queries
+            queryClient.refetchQueries({ type: 'active' });
 
             // Try to sync offline queue
             OfflineManager.syncQueue();
@@ -65,9 +66,9 @@ const QueryProvider: React.FC<QueryProviderProps> = ({ children }) => {
       if (state.isConnected && state.isInternetReachable) {
         logger.info('Network connection restored, attempting sync');
 
-        // Retry failed queries
+        // Retry only active (mounted) stale queries
         queryClient.refetchQueries({
-          type: 'all',
+          type: 'active',
           stale: true,
         });
 
