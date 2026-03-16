@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../theme';
 
 export interface ClientData {
   id: string;
@@ -29,10 +30,10 @@ interface ClientCardProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  active: '#10B981',
-  prospect: '#F59E0B',
-  inactive: '#717171',
-  former: '#EF4444',
+  active: theme.colors.primary,
+  prospect: theme.colors.accent,
+  inactive: theme.colors.textSecondary,
+  former: theme.colors.error,
 };
 
 const CLIENT_TYPE_ICONS: Record<string, string> = {
@@ -50,14 +51,14 @@ export const ClientCard: React.FC<ClientCardProps> = ({
   onEmail,
 }) => {
   const getRiskLevel = (score: number) => {
-    if (score >= 70) return { level: 'High', color: '#EF4444' };
-    if (score >= 40) return { level: 'Medium', color: '#F59E0B' };
-    return { level: 'Low', color: '#10B981' };
+    if (score >= 70) return { level: 'High', color: theme.colors.error };
+    if (score >= 40) return { level: 'Medium', color: theme.colors.accent };
+    return { level: 'Low', color: theme.colors.primary };
   };
 
   const risk = getRiskLevel(client.churn_risk_score);
   const clientName = `${client.first_name} ${client.last_name}`;
-  const statusColor = STATUS_COLORS[client.relationship_status] || '#717171';
+  const statusColor = STATUS_COLORS[client.relationship_status] || theme.colors.textSecondary;
   const clientTypeIcon = CLIENT_TYPE_ICONS[client.client_type] || 'person';
   const lastJobDays = client.last_job_date
     ? Math.floor(
@@ -74,7 +75,7 @@ export const ClientCard: React.FC<ClientCardProps> = ({
             <Ionicons
               name={clientTypeIcon as keyof typeof Ionicons.glyphMap}
               size={16}
-              color="#717171"
+              color={theme.colors.textSecondary}
             />
             <Text style={styles.clientName}>{clientName}</Text>
           </View>
@@ -128,7 +129,7 @@ export const ClientCard: React.FC<ClientCardProps> = ({
               <Text style={styles.metricValue}>
                 {client.satisfaction_score.toFixed(1)}
               </Text>
-              <Ionicons name='star' size={12} color="#F59E0B" />
+              <Ionicons name='star' size={12} color={theme.colors.accent} />
             </View>
             <Text style={styles.metricLabel}>Rating</Text>
           </View>
@@ -140,7 +141,7 @@ export const ClientCard: React.FC<ClientCardProps> = ({
           <Ionicons
             name='time-outline'
             size={14}
-            color="#717171"
+            color={theme.colors.textSecondary}
           />
           <Text style={styles.lastActivityText}>
             Last job {lastJobDays === 0 ? 'today' : `${lastJobDays} days ago`}
@@ -151,7 +152,7 @@ export const ClientCard: React.FC<ClientCardProps> = ({
       <View style={styles.actions}>
         {onCall && (
           <TouchableOpacity style={styles.actionButton} onPress={onCall}>
-            <Ionicons name='call' size={16} color="#717171" />
+            <Ionicons name='call' size={16} color={theme.colors.textSecondary} />
           </TouchableOpacity>
         )}
         {onMessage && (
@@ -159,20 +160,20 @@ export const ClientCard: React.FC<ClientCardProps> = ({
             <Ionicons
               name='chatbubble'
               size={16}
-              color="#717171"
+              color={theme.colors.textSecondary}
             />
           </TouchableOpacity>
         )}
         {onEmail && (
           <TouchableOpacity style={styles.actionButton} onPress={onEmail}>
-            <Ionicons name='mail' size={16} color="#717171" />
+            <Ionicons name='mail' size={16} color={theme.colors.textSecondary} />
           </TouchableOpacity>
         )}
         <TouchableOpacity style={styles.actionButton}>
           <Ionicons
             name='ellipsis-horizontal'
             size={16}
-            color="#717171"
+            color={theme.colors.textSecondary}
           />
         </TouchableOpacity>
       </View>
@@ -182,7 +183,7 @@ export const ClientCard: React.FC<ClientCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -216,17 +217,17 @@ const styles = StyleSheet.create({
   clientName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginLeft: 4,
   },
   clientEmail: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 2,
   },
   clientPhone: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   statusContainer: {
     alignItems: 'flex-end',
@@ -240,7 +241,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   riskBadge: {
     paddingHorizontal: 4,
@@ -265,12 +266,12 @@ const styles = StyleSheet.create({
   metricValue: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   metricLabel: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   rating: {
     flexDirection: 'row',
@@ -285,7 +286,7 @@ const styles = StyleSheet.create({
   },
   lastActivityText: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginLeft: 4,
   },
   actions: {
@@ -297,7 +298,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },

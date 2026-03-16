@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, ActivityIndicator, Text, StyleSheet, ViewStyle, TextStyle, DimensionValue, Platform } from 'react-native';
+import { theme } from '../theme';
 
 interface LoadingScreenProps {
   message?: string;
@@ -35,7 +36,7 @@ export const LoadingOverlay: React.FC<{ visible: boolean; message?: string }> = 
   return (
     <View style={styles.overlayContainer}>
       <View style={styles.overlayContent}>
-        <ActivityIndicator size="large" color="#222222" />
+        <ActivityIndicator size="large" color={theme.colors.textPrimary} />
         {message && <Text style={styles.overlayMessage}>{message}</Text>}
       </View>
     </View>
@@ -78,23 +79,23 @@ export const CardSkeleton: React.FC<{ style?: ViewStyle }> = ({ style }) => (
 
 const styles = StyleSheet.create({
   container: { justifyContent: 'center', alignItems: 'center', padding: 20 },
-  fullScreen: { flex: 1, backgroundColor: '#F7F7F7' },
+  fullScreen: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.9)', zIndex: 1000 },
-  message: { marginTop: 16, fontSize: 15, color: '#717171', textAlign: 'center' },
-  button: { backgroundColor: '#222222', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 16, alignItems: 'center', justifyContent: 'center', minHeight: 44 },
-  buttonDisabled: { backgroundColor: '#EBEBEB' },
-  buttonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
+  message: { marginTop: 16, fontSize: 15, color: theme.colors.textSecondary, textAlign: 'center' },
+  button: { backgroundColor: theme.colors.textPrimary, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 16, alignItems: 'center', justifyContent: 'center', minHeight: 44 },
+  buttonDisabled: { backgroundColor: theme.colors.border },
+  buttonText: { color: theme.colors.textInverse, fontSize: 15, fontWeight: '600' },
   overlayContainer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', zIndex: 9999 },
   overlayContent: {
-    backgroundColor: '#FFFFFF', padding: 24, borderRadius: 16, alignItems: 'center', minWidth: 200,
+    backgroundColor: theme.colors.surface, padding: 24, borderRadius: 16, alignItems: 'center', minWidth: 200,
     ...Platform.select({ ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8 }, android: { elevation: 8 } }),
   },
-  overlayMessage: { marginTop: 12, fontSize: 13, color: '#222222' },
-  skeleton: { backgroundColor: '#EBEBEB', overflow: 'hidden' },
-  listItem: { backgroundColor: '#FFFFFF', padding: 16, marginBottom: 8, borderRadius: 16 },
+  overlayMessage: { marginTop: 12, fontSize: 13, color: theme.colors.textPrimary },
+  skeleton: { backgroundColor: theme.colors.border, overflow: 'hidden' },
+  listItem: { backgroundColor: theme.colors.surface, padding: 16, marginBottom: 8, borderRadius: 16 },
   listItemHeader: { flexDirection: 'row', alignItems: 'center' },
   listItemContent: { flex: 1, marginLeft: 12 },
-  card: { backgroundColor: '#FFFFFF', borderRadius: 16, marginBottom: 16, overflow: 'hidden' },
+  card: { backgroundColor: theme.colors.surface, borderRadius: 16, marginBottom: 16, overflow: 'hidden' },
   cardContent: { padding: 16 },
 });
 

@@ -25,6 +25,7 @@ import {
 import { ClientCard, ClientData } from '../components/ClientCard';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import SearchBar from '../components/SearchBar';
+import { theme } from '../theme';
 
 interface CRMDashboardScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'CRMDashboard'>;
@@ -32,9 +33,9 @@ interface CRMDashboardScreenProps {
 
 const ANALYTICS_ITEMS = [
   { key: 'total_clients', label: 'Total Clients', icon: 'people-outline' as const, iconColor: '#3B82F6', iconBg: '#DBEAFE' },
-  { key: 'new_clients_this_month', label: 'New This Month', icon: 'person-add-outline' as const, iconColor: '#10B981', iconBg: '#D1FAE5' },
+  { key: 'new_clients_this_month', label: 'New This Month', icon: 'person-add-outline' as const, iconColor: theme.colors.primary, iconBg: theme.colors.primaryLight },
   { key: 'repeat_clients', label: 'Repeat Clients', icon: 'refresh-outline' as const, iconColor: '#8B5CF6', iconBg: '#EDE9FE' },
-  { key: 'client_lifetime_value', label: 'Avg. LTV', icon: 'cash-outline' as const, iconColor: '#F59E0B', iconBg: '#FEF3C7', prefix: '£', round: true },
+  { key: 'client_lifetime_value', label: 'Avg. LTV', icon: 'cash-outline' as const, iconColor: theme.colors.accent, iconBg: theme.colors.accentLight, prefix: '£', round: true },
 ];
 
 export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
@@ -166,7 +167,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name='arrow-back' size={24} color='#222222' />
+          <Ionicons name='arrow-back' size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Client Management</Text>
         <TouchableOpacity
@@ -176,14 +177,14 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
           accessibilityLabel="Add client"
         >
           <View style={styles.addIconWrap}>
-            <Ionicons name='person-add' size={18} color='#FFFFFF' />
+            <Ionicons name='person-add' size={18} color={theme.colors.textInverse} />
           </View>
         </TouchableOpacity>
       </View>
 
       <ScrollView
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#222222" colors={['#222222']} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -272,7 +273,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
                 <Ionicons
                   name={icon as keyof typeof Ionicons.glyphMap}
                   size={14}
-                  color={sortBy === sort ? '#FFFFFF' : '#717171'}
+                  color={sortBy === sort ? theme.colors.textInverse : theme.colors.textSecondary}
                 />
                 <Text style={[styles.sortText, sortBy === sort && styles.sortTextActive]}>
                   {label}
@@ -287,7 +288,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
           {filteredAndSortedClients.length === 0 ? (
             <View style={styles.emptyState}>
               <View style={styles.emptyIconWrap}>
-                <Ionicons name='people-outline' size={32} color='#B0B0B0' />
+                <Ionicons name='people-outline' size={32} color={theme.colors.textTertiary} />
               </View>
               <Text style={styles.emptyTitle}>No clients found</Text>
               <Text style={styles.emptyText}>
@@ -327,7 +328,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -335,22 +336,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   addButton: {
     padding: 4,
@@ -359,7 +360,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -371,7 +372,7 @@ const styles = StyleSheet.create({
   },
   analyticsCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     paddingVertical: 14,
     paddingHorizontal: 8,
@@ -397,12 +398,12 @@ const styles = StyleSheet.create({
   analyticsValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   analyticsLabel: {
     fontSize: 10,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
   },
   searchContainer: {
@@ -420,7 +421,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
@@ -432,15 +433,15 @@ const styles = StyleSheet.create({
     }),
   },
   filterButtonActive: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
   },
   filterText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   filterTextActive: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   sortContainer: {
     paddingHorizontal: 16,
@@ -449,7 +450,7 @@ const styles = StyleSheet.create({
   sortLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 8,
@@ -464,7 +465,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     gap: 4,
     ...Platform.select({
       ios: {
@@ -477,15 +478,15 @@ const styles = StyleSheet.create({
     }),
   },
   sortButtonActive: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
   },
   sortText: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
   },
   sortTextActive: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontWeight: '600',
   },
   clientList: {
@@ -500,7 +501,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -508,25 +509,25 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 6,
   },
   emptyText: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
     paddingHorizontal: 32,
     lineHeight: 20,
   },
   addClientButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 28,
     paddingVertical: 14,
     borderRadius: 28,
   },
   addClientButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '700',
   },

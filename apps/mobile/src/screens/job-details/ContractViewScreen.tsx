@@ -28,6 +28,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { JobsStackParamList } from '../../navigation/types';
+import { theme } from '../../theme';
 
 type ScreenRouteProp = RouteProp<JobsStackParamList, 'ContractView'>;
 type ScreenNavigationProp = NativeStackNavigationProp<JobsStackParamList, 'ContractView'>;
@@ -189,12 +190,12 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'accepted': return '#10B981';
+      case 'accepted': return theme.colors.primary;
       case 'pending_contractor':
-      case 'pending_homeowner': return '#F59E0B';
+      case 'pending_homeowner': return theme.colors.accent;
       case 'rejected':
-      case 'cancelled': return '#EF4444';
-      default: return '#717171';
+      case 'cancelled': return theme.colors.error;
+      default: return theme.colors.textSecondary;
     }
   };
 
@@ -213,7 +214,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
   if (loading) {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color="#222222" />
+        <ActivityIndicator size="large" color={theme.colors.textPrimary} />
         <Text style={styles.loadingText}>Loading contract...</Text>
       </View>
     );
@@ -223,7 +224,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
         <View style={styles.emptyIconWrap}>
-          <Ionicons name="document-text-outline" size={32} color="#B0B0B0" />
+          <Ionicons name="document-text-outline" size={32} color={theme.colors.textTertiary} />
         </View>
         <Text style={styles.emptyTitle}>{error || 'No Contract Found'}</Text>
         <Text style={styles.emptySubtitle}>
@@ -240,7 +241,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.surface} />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -249,7 +250,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={22} color="#222222" />
+          <Ionicons name="arrow-back" size={22} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Contract</Text>
         <TouchableOpacity
@@ -258,7 +259,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           accessibilityRole="button"
           accessibilityLabel="Download PDF"
         >
-          <Ionicons name="download-outline" size={20} color="#222222" />
+          <Ionicons name="download-outline" size={20} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(contract.status) + '20' }]}>
           <Text style={[styles.statusText, { color: getStatusColor(contract.status) }]}>
@@ -275,7 +276,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Draft contract banner */}
         {contract.status === 'draft' && userRole === 'contractor' && (
           <View style={styles.draftBanner}>
-            <Ionicons name="alert-circle-outline" size={22} color="#F59E0B" />
+            <Ionicons name="alert-circle-outline" size={22} color={theme.colors.accent} />
             <View style={styles.draftBannerContent}>
               <Text style={styles.draftBannerTitle}>Contract needs preparation</Text>
               <Text style={styles.draftBannerText}>
@@ -345,7 +346,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             <Ionicons
               name={contract.contractor_signed_at ? 'checkmark-circle' : 'ellipse-outline'}
               size={24}
-              color={contract.contractor_signed_at ? '#10B981' : '#B0B0B0'}
+              color={contract.contractor_signed_at ? theme.colors.primary : theme.colors.textTertiary}
             />
             <View style={styles.signatureInfo}>
               <Text style={styles.signatureLabel}>
@@ -363,7 +364,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             <Ionicons
               name={contract.homeowner_signed_at ? 'checkmark-circle' : 'ellipse-outline'}
               size={24}
-              color={contract.homeowner_signed_at ? '#10B981' : '#B0B0B0'}
+              color={contract.homeowner_signed_at ? theme.colors.primary : theme.colors.textTertiary}
             />
             <View style={styles.signatureInfo}>
               <Text style={styles.signatureLabel}>
@@ -381,7 +382,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Accepted Banner */}
         {contract.status === 'accepted' && (
           <View style={styles.acceptedBanner}>
-            <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+            <Ionicons name="checkmark-circle" size={24} color={theme.colors.primary} />
             <Text style={styles.acceptedText}>Contract accepted! Both parties have signed.</Text>
           </View>
         )}
@@ -395,7 +396,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
               accessibilityRole="button"
               accessibilityLabel="Request contract revision"
             >
-              <Ionicons name="create-outline" size={18} color="#F59E0B" />
+              <Ionicons name="create-outline" size={18} color={theme.colors.accent} />
               <Text style={styles.requestChangesText}>Request Contract Revision</Text>
             </TouchableOpacity>
             <Text style={styles.revisionInfoText}>
@@ -410,7 +411,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             <TextInput
               style={styles.rejectInput}
               placeholder="Describe what needs to be changed (e.g., dates, amounts, terms)..."
-              placeholderTextColor="#B0B0B0"
+              placeholderTextColor={theme.colors.textTertiary}
               multiline
               numberOfLines={3}
               value={rejectReason}
@@ -435,7 +436,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
                 disabled={rejecting}
               >
                 {rejecting ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <ActivityIndicator color={theme.colors.textInverse} size="small" />
                 ) : (
                   <Text style={styles.rejectSubmitText}>Send Revision Request</Text>
                 )}
@@ -454,7 +455,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             accessibilityRole="button"
             accessibilityLabel="Prepare contract"
           >
-            <Ionicons name="document-text" size={20} color="#FFFFFF" />
+            <Ionicons name="document-text" size={20} color={theme.colors.textInverse} />
             <Text style={styles.signButtonText}>Prepare Contract</Text>
           </TouchableOpacity>
         </View>
@@ -471,10 +472,10 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             accessibilityLabel="Sign contract"
           >
             {signing ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color={theme.colors.textInverse} />
             ) : (
               <>
-                <Ionicons name="create" size={20} color="#FFFFFF" />
+                <Ionicons name="create" size={20} color={theme.colors.textInverse} />
                 <Text style={styles.signButtonText}>Sign Contract</Text>
               </>
             )}
@@ -488,25 +489,25 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   emptyIconWrap: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -514,12 +515,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginTop: 12,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 20,
@@ -528,11 +529,11 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingHorizontal: 24,
     paddingVertical: 14,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 28,
   },
   retryButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontWeight: '600',
   },
   header: {
@@ -541,14 +542,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -556,7 +557,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginLeft: 8,
   },
   statusBadge: {
@@ -575,7 +576,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   amountCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
@@ -587,14 +588,14 @@ const styles = StyleSheet.create({
   },
   amountLabel: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
     marginBottom: 4,
   },
   amountValue: {
     fontSize: 36,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   section: {
     marginBottom: 16,
@@ -602,14 +603,14 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 4,
   },
   sectionValue: {
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     lineHeight: 22,
   },
   datesRow: {
@@ -621,7 +622,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   termsCard: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
@@ -629,7 +630,7 @@ const styles = StyleSheet.create({
   termsTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   termRow: {
@@ -640,17 +641,17 @@ const styles = StyleSheet.create({
   termKey: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textTransform: 'capitalize',
     width: 120,
   },
   termValue: {
     flex: 1,
     fontSize: 13,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   signaturesCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
@@ -662,7 +663,7 @@ const styles = StyleSheet.create({
   signaturesTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   signatureRow: {
@@ -676,17 +677,17 @@ const styles = StyleSheet.create({
   },
   signatureLabel: {
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '500',
   },
   signatureDate: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     marginTop: 2,
   },
   draftBanner: {
     flexDirection: 'row',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.colors.accentLight,
     borderRadius: 16,
     padding: 14,
     gap: 10,
@@ -711,7 +712,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     borderRadius: 16,
     padding: 16,
   },
@@ -719,25 +720,25 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '500',
-    color: '#059669',
+    color: theme.colors.primaryDark,
   },
   bottomBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingHorizontal: 20,
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.08, shadowRadius: 12 },
       android: { elevation: 8 },
     }),
   },
   signButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 28,
     paddingVertical: 16,
     flexDirection: 'row',
@@ -750,7 +751,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   signButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -760,7 +761,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     marginRight: 8,
   },
   revisionSection: {
@@ -773,7 +774,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
     borderRadius: 28,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.colors.accentLight,
   },
   requestChangesText: {
     fontSize: 15,
@@ -782,14 +783,14 @@ const styles = StyleSheet.create({
   },
   revisionInfoText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 18,
     marginTop: 8,
     textAlign: 'center',
     paddingHorizontal: 8,
   },
   rejectCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
@@ -801,15 +802,15 @@ const styles = StyleSheet.create({
   rejectCardTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 10,
   },
   rejectInput: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     padding: 12,
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     minHeight: 80,
     marginBottom: 12,
   },
@@ -826,20 +827,20 @@ const styles = StyleSheet.create({
   rejectCancelText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   rejectSubmitButton: {
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 28,
-    backgroundColor: '#F59E0B',
+    backgroundColor: theme.colors.accent,
     minWidth: 110,
     alignItems: 'center',
   },
   rejectSubmitText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 });
 

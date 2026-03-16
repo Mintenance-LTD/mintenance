@@ -8,6 +8,7 @@
 import React, { Component, ReactNode } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { logger } from '@mintenance/shared';
+import { theme } from '../theme';
 
 interface Props {
   children: ReactNode;
@@ -127,7 +128,7 @@ export class ErrorBoundary extends Component<Props, State> {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -143,19 +144,19 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
     textAlign: 'center',
   },
   message: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 24,
   },
   button: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 32,
     paddingVertical: 12,
     borderRadius: 28,
@@ -164,7 +165,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -178,18 +179,18 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#EF4444',
+    color: theme.colors.error,
     marginBottom: 8,
   },
   errorMessage: {
     fontSize: 12,
-    color: '#EF4444',
+    color: theme.colors.error,
     marginBottom: 8,
     fontWeight: '600',
   },
   errorStack: {
     fontSize: 11,
-    color: '#EF4444',
+    color: theme.colors.error,
     fontFamily: 'monospace',
   },
 });

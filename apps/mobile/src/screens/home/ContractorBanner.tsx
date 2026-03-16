@@ -11,6 +11,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { User } from '@mintenance/types';
+import { theme } from '../../theme';
 
 interface ContractorBannerProps {
   user: User | null;
@@ -76,7 +77,7 @@ export const ContractorBanner: React.FC<ContractorBannerProps> = ({
           accessibilityLabel="Browse available jobs"
         >
           <Text style={styles.ctaText}>Browse Available Jobs</Text>
-          <Ionicons name="arrow-forward" size={16} color="#059669" />
+          <Ionicons name="arrow-forward" size={16} color={theme.colors.primaryDark} />
         </TouchableOpacity>
       </View>
     </LinearGradient>
@@ -144,7 +145,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     marginBottom: 20,
     letterSpacing: -0.5,
   },
@@ -159,7 +160,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 30,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     letterSpacing: -0.3,
   },
   statLabel: {
@@ -178,7 +179,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 14,
     paddingVertical: 13,
     paddingHorizontal: 20,
@@ -198,6 +199,6 @@ const styles = StyleSheet.create({
   ctaText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#059669',
+    color: theme.colors.primaryDark,
   },
 });

@@ -9,6 +9,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../theme';
 
 interface WelcomeBannerProps {
   onWherePress?: () => void;
@@ -35,7 +36,7 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({
           accessibilityRole="button"
           accessibilityLabel="Request a service"
         >
-          <Ionicons name="search" size={18} color="#FFFFFF" />
+          <Ionicons name="search" size={18} color={theme.colors.textInverse} />
         </TouchableOpacity>
         <View style={styles.searchSegments}>
           <TouchableOpacity style={styles.segment} onPress={onWherePress} activeOpacity={0.6}>
@@ -71,7 +72,7 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 40,
     paddingVertical: 12,
     paddingHorizontal: 14,
@@ -91,7 +92,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -108,22 +109,22 @@ const styles = StyleSheet.create({
   segmentLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   segmentValue: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 1,
   },
   segmentValueActive: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '600',
   },
   segmentDivider: {
     width: 1,
     height: 28,
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
   },
 });

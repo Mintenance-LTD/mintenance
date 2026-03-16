@@ -10,6 +10,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 
 interface LocationHeaderProps {
   location: string;
@@ -34,9 +35,9 @@ export const LocationHeader: React.FC<LocationHeaderProps> = ({
           accessibilityRole='button'
           accessibilityLabel={`Current location: ${location}. Double tap to change`}
         >
-          <Ionicons name="location" size={16} color="#717171" />
+          <Ionicons name="location" size={16} color={theme.colors.textSecondary} />
           <Text style={styles.locationText}>{location}</Text>
-          <Ionicons name="chevron-down" size={16} color="#717171" />
+          <Ionicons name="chevron-down" size={16} color={theme.colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
@@ -47,7 +48,7 @@ export const LocationHeader: React.FC<LocationHeaderProps> = ({
         accessibilityLabel={hasNotifications ? 'Notifications, you have new notifications' : 'Notifications'}
         accessibilityHint='Double tap to view notifications'
       >
-        <Ionicons name="notifications" size={24} color="#222222" />
+        <Ionicons name="notifications" size={24} color={theme.colors.textPrimary} />
         {hasNotifications && <View style={styles.notificationBadge} accessible={false} />}
       </TouchableOpacity>
     </View>
@@ -61,14 +62,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   locationSection: {
     flex: 1,
   },
   locationLabel: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     marginBottom: 4,
   },
   locationRow: {
@@ -79,13 +80,13 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   notificationButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
@@ -97,6 +98,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.colors.error,
   },
 });

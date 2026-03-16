@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { OptimizedImage } from '../optimized/OptimizedImage';
+import { theme } from '../../theme';
 
 export interface HostCardProps {
   avatar?: string;
@@ -64,7 +65,7 @@ export const HostCard: React.FC<HostCardProps> = memo(({
           <Text style={styles.name} numberOfLines={1}>{name}</Text>
           {rating !== undefined && (
             <View style={styles.ratingInline}>
-              <Ionicons name="star" size={12} color="#F59E0B" />
+              <Ionicons name="star" size={12} color={theme.colors.accent} />
               <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
             </View>
           )}
@@ -86,7 +87,7 @@ export const HostCard: React.FC<HostCardProps> = memo(({
           <Ionicons
             name={actionIcon}
             size={20}
-            color="#717171"
+            color={theme.colors.textSecondary}
           />
         </View>
       )}
@@ -117,9 +118,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
     minHeight: 44,
   },
   avatarContainer: {
@@ -134,14 +135,14 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarInitial: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   infoContainer: {
     flex: 1,
@@ -154,7 +155,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   ratingInline: {
     flexDirection: 'row',
@@ -164,16 +165,16 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   subtitle: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 2,
   },
   metadata: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 2,
   },
   actionContainer: {
@@ -185,7 +186,7 @@ const styles = StyleSheet.create({
   actionLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
 });
 

@@ -21,6 +21,7 @@ import { Banner } from '../components/ui/Banner';
 import { useMessageThreadsWithRealTime } from '../hooks/useMessaging';
 import type { MessageThread } from '../services/MessagingService';
 import type { MessagingStackParamList } from '../navigation/types';
+import { theme } from '../theme';
 
 const AVATAR_COLORS = ['#222222', '#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444'];
 
@@ -108,7 +109,7 @@ const MessagesListScreen: React.FC = () => {
             <Ionicons
               name={isSearching ? 'close-outline' : 'search-outline'}
               size={22}
-              color="#222222"
+              color={theme.colors.textPrimary}
             />
           </TouchableOpacity>
         </View>
@@ -137,7 +138,7 @@ const MessagesListScreen: React.FC = () => {
               accessibilityRole='button'
               accessibilityLabel='Retry loading messages'
             >
-              <Ionicons name='refresh' size={18} color='#FFFFFF' style={styles.retryIcon} />
+              <Ionicons name='refresh' size={18} color={theme.colors.textInverse} style={styles.retryIcon} />
               <Text style={styles.retryText}>Retry</Text>
             </TouchableOpacity>
           </View>
@@ -154,15 +155,15 @@ const MessagesListScreen: React.FC = () => {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
-                tintColor="#10B981"
-                colors={['#10B981']}
+                tintColor={theme.colors.primary}
+                colors={[theme.colors.primary]}
                 progressBackgroundColor="#FFFFFF"
               />
             }
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <View style={styles.emptyIconWrap}>
-                  <Ionicons name='chatbubbles-outline' size={32} color='#717171' accessible={false} />
+                  <Ionicons name='chatbubbles-outline' size={32} color={theme.colors.textSecondary} accessible={false} />
                 </View>
                 <Text style={styles.emptyText}>No conversations yet</Text>
                 <Text style={styles.emptySubtext}>
@@ -247,7 +248,7 @@ const MessagesListScreen: React.FC = () => {
                     )}
                   </View>
 
-                  <Ionicons name='chevron-forward' size={14} color='#B0B0B0' />
+                  <Ionicons name='chevron-forward' size={14} color={theme.colors.textTertiary} />
                 </TouchableOpacity>
               );
             }}
@@ -261,14 +262,14 @@ const MessagesListScreen: React.FC = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingTop: 12,
     paddingBottom: 12,
     paddingHorizontal: 20,
@@ -276,26 +277,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.3,
   },
   searchButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   searchContainer: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   content: {
     flex: 1,
@@ -306,7 +307,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     paddingHorizontal: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 12,
     marginTop: 8,
     borderRadius: 16,
@@ -334,7 +335,7 @@ const styles = StyleSheet.create({
   avatarInitials: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   unreadDot: {
     position: 'absolute',
@@ -342,10 +343,10 @@ const styles = StyleSheet.create({
     right: 0,
     width: 12,
     height: 12,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: theme.colors.surface,
   },
   conversationContent: {
     flex: 1,
@@ -359,26 +360,26 @@ const styles = StyleSheet.create({
   contractorName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   timestamp: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
   jobType: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
     marginBottom: 2,
   },
   snippet: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 18,
   },
   unreadSnippet: {
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   errorContainer: {
     alignItems: 'center',
@@ -386,7 +387,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   retryButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
@@ -398,7 +399,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   retryText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontWeight: '600',
     fontSize: 14,
   },
@@ -411,7 +412,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -419,12 +420,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 6,
     textAlign: 'center',
     lineHeight: 20,
@@ -433,7 +434,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     top: 8,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -442,7 +443,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   unreadCount: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 11,
     fontWeight: '700',
   },

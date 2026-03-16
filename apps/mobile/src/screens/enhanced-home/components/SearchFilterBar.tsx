@@ -10,6 +10,7 @@
 import React from 'react';
 import { View, TextInput, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 
 interface SearchFilterBarProps {
   value: string;
@@ -27,13 +28,13 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.searchBar}>
-        <Ionicons name="search" size={20} color="#B0B0B0" />
+        <Ionicons name="search" size={20} color={theme.colors.textTertiary} />
         <TextInput
           style={styles.searchInput}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#B0B0B0"
+          placeholderTextColor={theme.colors.textTertiary}
           accessibilityLabel='Search services'
           accessibilityRole='search'
         />
@@ -43,7 +44,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
             accessibilityRole='button'
             accessibilityLabel='Clear search'
           >
-            <Ionicons name="close-circle" size={20} color="#B0B0B0" />
+            <Ionicons name="close-circle" size={20} color={theme.colors.textTertiary} />
           </TouchableOpacity>
         )}
       </View>
@@ -55,7 +56,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
         accessibilityLabel='Open filters'
         accessibilityHint='Double tap to adjust search filters'
       >
-        <Ionicons name="options" size={24} color="#FFFFFF" />
+        <Ionicons name="options" size={24} color={theme.colors.textInverse} />
       </TouchableOpacity>
     </View>
   );
@@ -72,7 +73,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 16,
     paddingHorizontal: 20,
     height: 50,
@@ -85,13 +86,13 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 18,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   filterButton: {
     width: 50,
     height: 50,
     borderRadius: 16,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     justifyContent: 'center',
     alignItems: 'center',
   },

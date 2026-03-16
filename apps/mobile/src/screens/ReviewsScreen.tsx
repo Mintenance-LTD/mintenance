@@ -20,6 +20,7 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { mobileApiClient as apiClient } from '../utils/mobileApiClient';
+import { theme } from '../theme';
 
 interface Review {
   id: string;
@@ -53,7 +54,7 @@ const StarRating: React.FC<{ rating: number; size?: number }> = ({ rating, size 
         key={star}
         name={star <= rating ? 'star' : star - 0.5 <= rating ? 'star-half' : 'star-outline'}
         size={size}
-        color={star <= rating || star - 0.5 <= rating ? '#F59E0B' : '#EBEBEB'}
+        color={star <= rating || star - 0.5 <= rating ? theme.colors.accent : theme.colors.border}
       />
     ))}
   </View>
@@ -83,7 +84,7 @@ const ReviewCard: React.FC<{ review: Review; index: number }> = ({ review, index
     </View>
 
     <View style={styles.jobChip}>
-      <Ionicons name="briefcase-outline" size={12} color="#717171" />
+      <Ionicons name="briefcase-outline" size={12} color={theme.colors.textSecondary} />
       <Text style={styles.jobLabel}>{review.job_title}</Text>
     </View>
     {review.comment && (
@@ -153,7 +154,7 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
               return (
                 <View key={star} style={styles.distRow}>
                   <Text style={styles.distLabel}>{star}</Text>
-                  <Ionicons name="star" size={12} color="#F59E0B" />
+                  <Ionicons name="star" size={12} color={theme.colors.accent} />
                   <View style={styles.distBarBg}>
                     <View style={[styles.distBarFill, { width: `${pct}%` }]} />
                   </View>
@@ -201,7 +202,7 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
           keyExtractor={item => item.id}
           renderItem={({ item, index }) => <ReviewCard review={item} index={index} />}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#222222" colors={['#222222']} />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />
           }
           contentContainerStyle={styles.listContainer}
         />
@@ -213,11 +214,11 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   summaryCard: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 10,
@@ -236,12 +237,12 @@ const styles = StyleSheet.create({
   avgRating: {
     fontSize: 36,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   reviewCount: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 6,
   },
   listContainer: {
@@ -249,7 +250,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   reviewCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     ...Platform.select({
@@ -283,16 +284,16 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   reviewerName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   reviewDate: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
   starRow: {
     flexDirection: 'row',
@@ -302,7 +303,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -311,16 +312,16 @@ const styles = StyleSheet.create({
   },
   jobLabel: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
   },
   reviewComment: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 21,
   },
   distributionCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginBottom: 10,
     padding: 16,
@@ -345,23 +346,23 @@ const styles = StyleSheet.create({
     width: 16,
     fontSize: 13,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   distBarBg: {
     flex: 1,
     height: 8,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 4,
   },
   distBarFill: {
     height: 8,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 4,
   },
   distCount: {
     width: 24,
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textAlign: 'right',
   },
   filterRow: {
@@ -374,7 +375,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
@@ -386,15 +387,15 @@ const styles = StyleSheet.create({
     }),
   },
   filterChipActive: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   filterChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   filterChipTextActive: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 });
 

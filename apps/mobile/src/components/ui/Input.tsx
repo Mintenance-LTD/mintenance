@@ -7,6 +7,7 @@ import {
   TextInputProps,
   ViewStyle,
 } from 'react-native';
+import { theme } from '../../theme';
 
 type InputVariant = 'default' | 'outline' | 'error' | 'filled' | 'underline';
 
@@ -25,11 +26,11 @@ export interface InputProps extends TextInputProps {
 }
 
 const VARIANT_STYLES: Record<InputVariant, { borderColor: string; backgroundColor: string; color: string; placeholderTextColor: string }> = {
-  default: { borderColor: '#EBEBEB', backgroundColor: '#F7F7F7', color: '#222222', placeholderTextColor: '#B0B0B0' },
-  outline: { borderColor: '#EBEBEB', backgroundColor: '#FFFFFF', color: '#222222', placeholderTextColor: '#B0B0B0' },
-  error: { borderColor: '#EF4444', backgroundColor: '#FEF2F2', color: '#222222', placeholderTextColor: '#B0B0B0' },
-  filled: { borderColor: 'transparent', backgroundColor: '#F0F0F0', color: '#222222', placeholderTextColor: '#B0B0B0' },
-  underline: { borderColor: '#EBEBEB', backgroundColor: 'transparent', color: '#222222', placeholderTextColor: '#B0B0B0' },
+  default: { borderColor: theme.colors.border, backgroundColor: theme.colors.backgroundSecondary, color: theme.colors.textPrimary, placeholderTextColor: theme.colors.textTertiary },
+  outline: { borderColor: theme.colors.border, backgroundColor: theme.colors.surface, color: theme.colors.textPrimary, placeholderTextColor: theme.colors.textTertiary },
+  error: { borderColor: theme.colors.error, backgroundColor: '#FEF2F2', color: theme.colors.textPrimary, placeholderTextColor: theme.colors.textTertiary },
+  filled: { borderColor: 'transparent', backgroundColor: theme.colors.backgroundTertiary, color: theme.colors.textPrimary, placeholderTextColor: theme.colors.textTertiary },
+  underline: { borderColor: theme.colors.border, backgroundColor: 'transparent', color: theme.colors.textPrimary, placeholderTextColor: theme.colors.textTertiary },
 };
 
 export const Input = forwardRef<TextInput, InputProps>(
@@ -93,7 +94,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 12,
-    color: '#EF4444',
+    color: theme.colors.error,
     marginTop: 4,
     marginLeft: 4,
   },

@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient } from '../../utils/mobileApiClient';
+import { theme } from '../../theme';
 
 const LEGAL_URLS = {
   privacyPolicy: 'https://mintenance.app/privacy',
@@ -97,7 +98,7 @@ export const SettingsHubScreen: React.FC = () => {
           <Ionicons
             name={item.icon as 'settings'}
             size={17}
-            color={item.destructive ? '#EF4444' : (item.iconColor ?? '#717171')}
+            color={item.destructive ? theme.colors.error : (item.iconColor ?? theme.colors.textSecondary)}
           />
         </View>
         <Text style={[styles.rowLabel, item.destructive && styles.destructiveText]}>
@@ -106,7 +107,7 @@ export const SettingsHubScreen: React.FC = () => {
       </View>
       {item.rightElement || (
         item.onPress && (
-          <Ionicons name="chevron-forward" size={14} color="#B0B0B0" />
+          <Ionicons name="chevron-forward" size={14} color={theme.colors.textTertiary} />
         )
       )}
     </TouchableOpacity>
@@ -122,9 +123,9 @@ export const SettingsHubScreen: React.FC = () => {
   );
 
   const securityItems: SettingsRow[] = [
-    { label: 'Notification Preferences', icon: 'notifications-outline', iconColor: '#F59E0B', iconBg: '#FEF3C7', onPress: () => navigation.navigate('NotificationSettings') },
+    { label: 'Notification Preferences', icon: 'notifications-outline', iconColor: theme.colors.accent, iconBg: theme.colors.accentLight, onPress: () => navigation.navigate('NotificationSettings') },
     { label: 'MFA Security', icon: 'shield-checkmark-outline', iconColor: '#6366F1', iconBg: '#EEF2FF', onPress: () => navigation.navigate('MFASecurity') },
-    { label: 'Payment Methods', icon: 'card-outline', iconColor: '#10B981', iconBg: '#D1FAE5', onPress: () => navigation.navigate('PaymentMethods') },
+    { label: 'Payment Methods', icon: 'card-outline', iconColor: theme.colors.primary, iconBg: theme.colors.primaryLight, onPress: () => navigation.navigate('PaymentMethods') },
     { label: 'Payment History', icon: 'receipt-outline', iconColor: '#3B82F6', iconBg: '#DBEAFE', onPress: () => navigation.navigate('PaymentHistory') },
   ];
 
@@ -138,8 +139,8 @@ export const SettingsHubScreen: React.FC = () => {
         <Switch
           value={settings?.privacy?.profileVisible ?? true}
           onValueChange={() => togglePrivacy('profileVisible')}
-          trackColor={{ false: '#EBEBEB', true: '#10B981' }}
-          thumbColor="#FFFFFF"
+          trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+          thumbColor={theme.colors.surface}
         />
       ),
     },
@@ -152,8 +153,8 @@ export const SettingsHubScreen: React.FC = () => {
         <Switch
           value={settings?.privacy?.shareActivityData ?? false}
           onValueChange={() => togglePrivacy('shareActivityData')}
-          trackColor={{ false: '#EBEBEB', true: '#10B981' }}
-          thumbColor="#FFFFFF"
+          trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+          thumbColor={theme.colors.surface}
         />
       ),
     },
@@ -163,22 +164,22 @@ export const SettingsHubScreen: React.FC = () => {
     {
       label: 'Privacy Policy',
       icon: 'shield-checkmark-outline',
-      iconColor: '#10B981',
-      iconBg: '#D1FAE5',
+      iconColor: theme.colors.primary,
+      iconBg: theme.colors.primaryLight,
       onPress: () => WebBrowser.openBrowserAsync(LEGAL_URLS.privacyPolicy),
     },
     {
       label: 'Terms & Conditions',
       icon: 'document-text-outline',
-      iconColor: '#717171',
-      iconBg: '#F7F7F7',
+      iconColor: theme.colors.textSecondary,
+      iconBg: theme.colors.backgroundSecondary,
       onPress: () => WebBrowser.openBrowserAsync(LEGAL_URLS.termsAndConditions),
     },
   ];
 
   const dangerItems: SettingsRow[] = [
-    { label: 'Export My Data', icon: 'download-outline', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('DataExport') },
-    { label: 'Delete Account', icon: 'trash-outline', iconColor: '#EF4444', iconBg: '#FEE2E2', onPress: () => navigation.navigate('DeleteAccount'), destructive: true },
+    { label: 'Export My Data', icon: 'download-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('DataExport') },
+    { label: 'Delete Account', icon: 'trash-outline', iconColor: theme.colors.error, iconBg: '#FEE2E2', onPress: () => navigation.navigate('DeleteAccount'), destructive: true },
   ];
 
   return (
@@ -201,7 +202,7 @@ export const SettingsHubScreen: React.FC = () => {
           accessibilityLabel="Go back"
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
+          <Ionicons name="chevron-back" size={22} color={theme.colors.textInverse} />
         </TouchableOpacity>
 
         <Text style={styles.heroTitle}>Settings</Text>
@@ -219,7 +220,7 @@ export const SettingsHubScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   hero: {
     paddingBottom: 24,
     paddingHorizontal: 20,
@@ -238,7 +239,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginBottom: 14,
   },
   heroTitle: {
-    fontSize: 26, fontWeight: '700', color: '#FFFFFF', letterSpacing: -0.5,
+    fontSize: 26, fontWeight: '700', color: theme.colors.textInverse, letterSpacing: -0.5,
   },
   heroSubtitle: {
     fontSize: 14, color: 'rgba(255,255,255,0.7)', marginTop: 4,
@@ -247,11 +248,11 @@ const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 40 },
   section: { marginBottom: 24 },
   sectionTitle: {
-    fontSize: 12, fontWeight: '700', color: '#B0B0B0', textTransform: 'uppercase',
+    fontSize: 12, fontWeight: '700', color: theme.colors.textTertiary, textTransform: 'uppercase',
     letterSpacing: 0.8, marginBottom: 8, paddingHorizontal: 4,
   },
   card: {
-    backgroundColor: '#FFFFFF', borderRadius: 16, overflow: 'hidden',
+    backgroundColor: theme.colors.surface, borderRadius: 16, overflow: 'hidden',
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
@@ -261,11 +262,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingVertical: 13, paddingHorizontal: 14,
   },
-  rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#EBEBEB' },
+  rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
   rowLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 12 },
   iconChip: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  rowLabel: { fontSize: 15, fontWeight: '500', color: '#222222' },
-  destructiveText: { color: '#EF4444' },
+  rowLabel: { fontSize: 15, fontWeight: '500', color: theme.colors.textPrimary },
+  destructiveText: { color: theme.colors.error },
 });
 
 export default SettingsHubScreen;

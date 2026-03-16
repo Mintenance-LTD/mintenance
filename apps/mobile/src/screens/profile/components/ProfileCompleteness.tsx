@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { User } from '@mintenance/types';
+import { theme } from '../../../theme';
 
 interface ProfileCompletenessProps {
   user: User | null;
@@ -104,7 +105,7 @@ export const ProfileCompleteness: React.FC<ProfileCompletenessProps> = ({
             <Ionicons
               name="checkmark-circle"
               size={16}
-              color="#10B981"
+              color={theme.colors.primary}
             />
             <Text style={styles.completeText}>Profile complete!</Text>
           </View>
@@ -132,8 +133,8 @@ export const ProfileCompleteness: React.FC<ProfileCompletenessProps> = ({
             {
               width: fillWidth,
               backgroundColor: isComplete
-                ? '#10B981'
-                : '#222222',
+                ? theme.colors.primary
+                : theme.colors.textPrimary,
             },
           ]}
         />
@@ -155,7 +156,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     padding: 16,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
@@ -170,12 +171,12 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   cta: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   completeRow: {
     flexDirection: 'row',
@@ -185,12 +186,12 @@ const styles = StyleSheet.create({
   completeText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#10B981',
+    color: theme.colors.primary,
   },
   track: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     overflow: 'hidden',
   },
   fill: {
@@ -199,7 +200,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 6,
   },
 });

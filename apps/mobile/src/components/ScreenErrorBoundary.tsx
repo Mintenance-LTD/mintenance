@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 interface Props {
   children: ReactNode;
@@ -92,30 +93,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#EF4444',
+    color: theme.colors.error,
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 16,
     textAlign: 'center',
   },
   message: {
     fontSize: 16,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 22,
   },
   debugContainer: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     padding: 16,
     borderRadius: 12,
     marginVertical: 16,
@@ -124,17 +125,17 @@ const styles = StyleSheet.create({
   debugTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   debugText: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontFamily: 'monospace',
     lineHeight: 16,
   },
   button: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 28,
@@ -143,7 +144,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
   },

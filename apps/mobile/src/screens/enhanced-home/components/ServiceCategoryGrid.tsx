@@ -11,6 +11,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Service } from '../viewmodels/EnhancedHomeViewModel';
+import { theme } from '../../../theme';
 
 interface ServiceCategoryGridProps {
   services: Service[];
@@ -38,7 +39,7 @@ export const ServiceCategoryGrid: React.FC<ServiceCategoryGridProps> = ({
               <Ionicons
                 name={service.icon as keyof typeof Ionicons.glyphMap}
                 size={28}
-                color="#717171"
+                color={theme.colors.textSecondary}
               />
             </View>
             <Text style={styles.serviceName}>{service.name}</Text>
@@ -57,7 +58,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 16,
   },
   grid: {
@@ -73,14 +74,14 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
   },
   serviceName: {
     fontSize: 12,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     textAlign: 'center',
   },
 });

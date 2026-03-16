@@ -6,13 +6,14 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { theme } from '../../theme';
 
 export const BookingLoading: React.FC = () => {
   return (
     <View style={styles.container} testID="booking-loading-container">
       <ActivityIndicator
         size="large"
-        color="#222222"
+        color={theme.colors.textPrimary}
         testID="booking-loading-spinner"
       />
       <Text style={styles.loadingText} testID="booking-loading-text">
@@ -27,11 +28,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   loadingText: {
     fontSize: 16,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 16,
   },
 });

@@ -33,6 +33,7 @@ import type { HeaderMenuItem } from '../../components/navigation/NavigationHeade
 import { QuickActions } from './QuickActions';
 import { StatsSection } from './StatsSection';
 import { ScheduleSection } from './ScheduleSection';
+import { theme } from '../../theme';
 
 const appIcon = require('../../../assets/icon.png');
 
@@ -91,13 +92,13 @@ export const ContractorDashboard: React.FC = () => {
       : 'Contractor');
 
   const menuItems: HeaderMenuItem[] = [
-    { label: 'Browse Jobs', subtitle: 'Find new opportunities', icon: 'search', iconColor: '#10B981', iconBg: '#D1FAE5', onPress: openJobsList },
+    { label: 'Browse Jobs', subtitle: 'Find new opportunities', icon: 'search', iconColor: theme.colors.primary, iconBg: theme.colors.primaryLight, onPress: openJobsList },
     { label: 'Inbox', subtitle: 'Messages & updates', icon: 'mail', iconColor: '#3B82F6', iconBg: '#DBEAFE', onPress: () => navigation.navigate('MessagingTab', { screen: 'MessagesList' }) },
     { label: 'Quotes', subtitle: 'Build & send estimates', icon: 'document-text', iconColor: '#8B5CF6', iconBg: '#EDE9FE', onPress: () => navigation.navigate('ProfileTab', { screen: 'QuoteBuilder' }) },
-    { label: 'Invoices', subtitle: 'Manage billing', icon: 'receipt', iconColor: '#F59E0B', iconBg: '#FEF3C7', onPress: () => navigation.navigate('ProfileTab', { screen: 'InvoiceManagement' }) },
-    { label: 'Expenses', subtitle: 'Track costs', icon: 'wallet', iconColor: '#EF4444', iconBg: '#FEE2E2', onPress: () => navigation.navigate('ProfileTab', { screen: 'Expenses' }) },
+    { label: 'Invoices', subtitle: 'Manage billing', icon: 'receipt', iconColor: theme.colors.accent, iconBg: theme.colors.accentLight, onPress: () => navigation.navigate('ProfileTab', { screen: 'InvoiceManagement' }) },
+    { label: 'Expenses', subtitle: 'Track costs', icon: 'wallet', iconColor: theme.colors.error, iconBg: '#FEE2E2', onPress: () => navigation.navigate('ProfileTab', { screen: 'Expenses' }) },
     { label: 'Calendar', subtitle: 'Schedule & plan', icon: 'calendar', iconColor: '#06B6D4', iconBg: '#CFFAFE', onPress: () => navigation.navigate('ProfileTab', { screen: 'Calendar' }) },
-    { label: 'Profile & Settings', subtitle: 'Edit your account', icon: 'person-circle', iconColor: '#717171', iconBg: '#F7F7F7', onPress: () => navigation.navigate('ProfileTab' as never) },
+    { label: 'Profile & Settings', subtitle: 'Edit your account', icon: 'person-circle', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('ProfileTab' as never) },
   ];
 
   const handleItemPress = (item: HeaderMenuItem) => {
@@ -143,8 +144,8 @@ export const ContractorDashboard: React.FC = () => {
           <RefreshControl
             refreshing={isFetching}
             onRefresh={handleRefresh}
-            tintColor="#10B981"
-            colors={['#10B981']}
+            tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
           />
         }
       >
@@ -170,7 +171,7 @@ export const ContractorDashboard: React.FC = () => {
                 accessibilityRole="button"
                 accessibilityLabel="Notifications"
               >
-                <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
+                <Ionicons name="notifications-outline" size={22} color={theme.colors.textInverse} />
               </TouchableOpacity>
               {userInitials && (
                 <TouchableOpacity
@@ -279,7 +280,7 @@ export const ContractorDashboard: React.FC = () => {
                   <Text style={styles.dropdownItemLabel}>{item.label}</Text>
                   {item.subtitle && <Text style={styles.dropdownItemSubtitle}>{item.subtitle}</Text>}
                 </View>
-                <Ionicons name="chevron-forward" size={14} color="#B0B0B0" />
+                <Ionicons name="chevron-forward" size={14} color={theme.colors.textTertiary} />
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -290,7 +291,7 @@ export const ContractorDashboard: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   hero: {
     paddingBottom: 56,
     paddingHorizontal: 20,
@@ -332,35 +333,35 @@ const styles = StyleSheet.create({
     width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.25)',
     justifyContent: 'center', alignItems: 'center',
   },
-  avatarText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  avatarText: { color: theme.colors.textInverse, fontSize: 13, fontWeight: '700' },
   greeting: {
     fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: '500',
     letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4,
   },
   heroName: {
-    fontSize: 28, fontWeight: '700', color: '#FFFFFF', marginBottom: 20, letterSpacing: -0.5,
+    fontSize: 28, fontWeight: '700', color: theme.colors.textInverse, marginBottom: 20, letterSpacing: -0.5,
   },
   heroStatsRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
   heroStat: { alignItems: 'flex-start' },
-  heroStatValue: { fontSize: 30, fontWeight: '700', color: '#FFFFFF', letterSpacing: -0.3 },
+  heroStatValue: { fontSize: 30, fontWeight: '700', color: theme.colors.textInverse, letterSpacing: -0.3 },
   heroStatLabel: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: '500', marginTop: 2 },
   heroStatDivider: { width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.2)', marginHorizontal: 20 },
   content: { paddingHorizontal: 20, paddingTop: 8 },
   errorContainer: {
-    flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F7F7F7', padding: 40,
+    flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.backgroundSecondary, padding: 40,
   },
   errorIconWrap: {
     width: 64, height: 64, borderRadius: 32, backgroundColor: '#FEE2E2',
     alignItems: 'center', justifyContent: 'center', marginBottom: 16,
   },
-  errorEmoji: { fontSize: 28, fontWeight: '700', color: '#EF4444' },
-  errorText: { fontSize: 16, color: '#222222', fontWeight: '600', marginBottom: 16, textAlign: 'center' },
-  retryButton: { backgroundColor: '#10B981', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
-  retryButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
+  errorEmoji: { fontSize: 28, fontWeight: '700', color: theme.colors.error },
+  errorText: { fontSize: 16, color: theme.colors.textPrimary, fontWeight: '600', marginBottom: 16, textAlign: 'center' },
+  retryButton: { backgroundColor: theme.colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
+  retryButtonText: { color: theme.colors.textInverse, fontSize: 15, fontWeight: '600' },
   bottomSpacer: { height: 40 },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)' },
   dropdownCard: {
-    position: 'absolute', right: 12, width: 260, backgroundColor: '#FFFFFF', borderRadius: 16,
+    position: 'absolute', right: 12, width: 260, backgroundColor: theme.colors.surface, borderRadius: 16,
     overflow: 'hidden', maxHeight: 420,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24 },
@@ -369,21 +370,21 @@ const styles = StyleSheet.create({
   },
   dropdownHeader: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 10 },
   dropdownAvatar: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: '#10B981',
+    width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.primary,
     justifyContent: 'center', alignItems: 'center',
   },
-  dropdownAvatarText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  dropdownAvatarText: { color: theme.colors.textInverse, fontSize: 14, fontWeight: '700' },
   dropdownUserInfo: { flex: 1 },
-  dropdownUserName: { fontSize: 14, fontWeight: '700', color: '#222222' },
-  dropdownUserRole: { fontSize: 12, color: '#717171', marginTop: 1 },
-  dropdownDivider: { height: StyleSheet.hairlineWidth, backgroundColor: '#EBEBEB' },
+  dropdownUserName: { fontSize: 14, fontWeight: '700', color: theme.colors.textPrimary },
+  dropdownUserRole: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 1 },
+  dropdownDivider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.colors.border },
   dropdownItem: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14,
-    gap: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#F0F0F0',
+    gap: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.borderLight,
   },
   dropdownItemLast: { borderBottomWidth: 0 },
   dropdownItemIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   dropdownItemText: { flex: 1 },
-  dropdownItemLabel: { fontSize: 14, fontWeight: '600', color: '#222222' },
-  dropdownItemSubtitle: { fontSize: 11, color: '#717171', marginTop: 1 },
+  dropdownItemLabel: { fontSize: 14, fontWeight: '600', color: theme.colors.textPrimary },
+  dropdownItemSubtitle: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 1 },
 });

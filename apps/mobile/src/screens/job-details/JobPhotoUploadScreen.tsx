@@ -23,6 +23,7 @@ import { RouteProp } from '@react-navigation/native';
 import { PhotoUploadService } from '../../services/PhotoUploadService';
 import { JobService } from '../../services/JobService';
 import { JobsStackParamList } from '../../navigation/types';
+import { theme } from '../../theme';
 
 type ScreenRouteProp = RouteProp<JobsStackParamList, 'PhotoUpload'>;
 type ScreenNavigationProp = NativeStackNavigationProp<JobsStackParamList, 'PhotoUpload'>;
@@ -206,7 +207,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={22} color="#222222" />
+          <Ionicons name="arrow-back" size={22} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <View style={styles.headerText}>
           <Text style={styles.headerTitle}>{title}</Text>
@@ -224,7 +225,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
           <Ionicons
             name={isBefore ? 'camera-outline' : 'checkmark-circle-outline'}
             size={24}
-            color={isBefore ? '#222222' : '#10B981'}
+            color={isBefore ? theme.colors.textPrimary : theme.colors.primary}
           />
           <Text style={styles.infoText}>
             {isBefore
@@ -240,7 +241,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
               <Image source={{ uri: photo.uri }} style={styles.photoImage} />
               {photo.uploaded && (
                 <View style={styles.uploadedBadge}>
-                  <Ionicons name="checkmark-circle" size={28} color="#10B981" />
+                  <Ionicons name="checkmark-circle" size={28} color={theme.colors.primary} />
                 </View>
               )}
               {!photo.uploaded && (
@@ -249,7 +250,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
                   onPress={() => removePhoto(index)}
                   accessibilityLabel={`Remove photo ${index + 1}`}
                 >
-                  <Ionicons name="close-circle" size={28} color="#EF4444" />
+                  <Ionicons name="close-circle" size={28} color={theme.colors.error} />
                 </TouchableOpacity>
               )}
             </View>
@@ -261,7 +262,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
             onPress={pickFromCamera}
             accessibilityLabel="Take a photo"
           >
-            <Ionicons name="camera" size={32} color="#222222" />
+            <Ionicons name="camera" size={32} color={theme.colors.textPrimary} />
             <Text style={styles.addPhotoText}>Camera</Text>
           </TouchableOpacity>
 
@@ -270,7 +271,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
             onPress={pickFromGallery}
             accessibilityLabel="Choose from gallery"
           >
-            <Ionicons name="images" size={32} color="#222222" />
+            <Ionicons name="images" size={32} color={theme.colors.textPrimary} />
             <Text style={styles.addPhotoText}>Gallery</Text>
           </TouchableOpacity>
         </View>
@@ -301,7 +302,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
             </View>
           ) : (
             <>
-              <Ionicons name={hasFailedPhotos ? 'refresh' : 'cloud-upload'} size={20} color="#FFFFFF" />
+              <Ionicons name={hasFailedPhotos ? 'refresh' : 'cloud-upload'} size={20} color={theme.colors.textInverse} />
               <Text style={styles.uploadButtonText}>
                 {hasFailedPhotos
                   ? `Retry ${photosToUpload.length} Failed Photo${photosToUpload.length !== 1 ? 's' : ''}`
@@ -318,7 +319,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -326,14 +327,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -344,11 +345,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 2,
   },
   scrollView: {
@@ -360,7 +361,7 @@ const styles = StyleSheet.create({
   },
   infoCard: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     gap: 12,
@@ -374,7 +375,7 @@ const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     fontSize: 13,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     lineHeight: 20,
   },
   photoGrid: {
@@ -413,21 +414,21 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   addPhotoText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   photoCount: {
     marginTop: 16,
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
   },
   bottomBar: {
@@ -435,18 +436,18 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingHorizontal: 20,
     paddingTop: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.08, shadowRadius: 12 },
       android: { elevation: 8 },
     }),
   },
   uploadButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 28,
     paddingVertical: 16,
     flexDirection: 'row',
@@ -459,7 +460,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   uploadButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -477,7 +478,7 @@ const styles = StyleSheet.create({
   },
   progressBarFill: {
     height: 4,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 2,
   },
 });

@@ -17,6 +17,7 @@ import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared
 import { Button } from '../../components/ui/Button';
 import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
+import { theme } from '../../theme';
 
 type Props = NativeStackScreenProps<JobsStackParamList, 'JobSignOff'>;
 
@@ -109,13 +110,13 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <ScreenHeader title="Review Work" showBack onBack={() => navigation.goBack()} />
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor="#222222" />}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor={theme.colors.textPrimary} />}
       >
         <Text style={styles.jobTitle}>{job.title}</Text>
         {job.contractor_name && (
@@ -163,7 +164,7 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
                   multiline
                   numberOfLines={5}
                   placeholder="Please describe what needs to be fixed or changed..."
-                  placeholderTextColor="#B0B0B0"
+                  placeholderTextColor={theme.colors.textTertiary}
                   value={changesText}
                   onChangeText={setChangesText}
                   textAlignVertical="top"
@@ -201,7 +202,7 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   scrollView: {
     flex: 1,
@@ -212,16 +213,16 @@ const styles = StyleSheet.create({
   jobTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   contractorName: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 24,
   },
   confirmedBanner: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
@@ -229,11 +230,11 @@ const styles = StyleSheet.create({
   confirmedText: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#059669',
+    color: theme.colors.primaryDark,
   },
   confirmedSubtext: {
     fontSize: 14,
-    color: '#059669',
+    color: theme.colors.primaryDark,
     marginTop: 4,
   },
   section: {
@@ -242,12 +243,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   sectionDescription: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 22,
   },
   actions: {
@@ -262,20 +263,20 @@ const styles = StyleSheet.create({
   changesLabel: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   changesInput: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     padding: 12,
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     minHeight: 120,
   },
   charCount: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textAlign: 'right',
     marginTop: 4,
     marginBottom: 16,

@@ -17,6 +17,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { useJobDetailsViewModel } from './viewmodels/JobDetailsViewModel';
 import type { JobsStackParamList } from '../../navigation/types';
+import { theme } from '../../theme';
 
 type Props = {
   route: RouteProp<JobsStackParamList, 'JobDetails'>;
@@ -58,9 +59,9 @@ export const JobTimelineScreen: React.FC<Props> = ({ route, navigation }) => {
   const currentStepIndex = STATUS_TO_STEP_INDEX[viewModel.job.status] ?? 0;
 
   const getStepColor = (index: number) => {
-    if (index < currentStepIndex) return '#10B981';
-    if (index === currentStepIndex) return '#222222';
-    return '#B0B0B0';
+    if (index < currentStepIndex) return theme.colors.primary;
+    if (index === currentStepIndex) return theme.colors.textPrimary;
+    return theme.colors.textTertiary;
   };
 
   const getStepOpacity = (index: number) => {
@@ -88,18 +89,18 @@ export const JobTimelineScreen: React.FC<Props> = ({ route, navigation }) => {
               <View style={styles.stepIndicator}>
                 <View style={[
                   styles.stepCircle,
-                  { backgroundColor: index <= currentStepIndex ? getStepColor(index) : '#EBEBEB' },
+                  { backgroundColor: index <= currentStepIndex ? getStepColor(index) : theme.colors.border },
                 ]}>
                   <Ionicons
                     name={index <= currentStepIndex ? 'checkmark' : step.icon}
                     size={16}
-                    color={index <= currentStepIndex ? '#FFFFFF' : '#B0B0B0'}
+                    color={index <= currentStepIndex ? '#FFFFFF' : theme.colors.textTertiary}
                   />
                 </View>
                 {index < LIFECYCLE_STEPS.length - 1 && (
                   <View style={[
                     styles.stepLine,
-                    { backgroundColor: index < currentStepIndex ? '#10B981' : '#EBEBEB' },
+                    { backgroundColor: index < currentStepIndex ? theme.colors.primary : theme.colors.border },
                   ]} />
                 )}
               </View>
@@ -123,13 +124,13 @@ export const JobTimelineScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   scrollContent: {
     padding: 16,
   },
   jobInfo: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
@@ -141,12 +142,12 @@ const styles = StyleSheet.create({
   jobTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   statusBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     paddingVertical: 4,
     paddingHorizontal: 12,
     borderRadius: 6,
@@ -154,7 +155,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#717171',
+    color: theme.colors.textSecondary,
     letterSpacing: 0.5,
   },
   timeline: {
@@ -188,15 +189,15 @@ const styles = StyleSheet.create({
   stepLabel: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   currentStepLabel: {
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   stepDescription: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 2,
   },
 });

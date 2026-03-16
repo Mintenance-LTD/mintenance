@@ -9,6 +9,7 @@
 
 import React from 'react';
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { theme } from '../../theme';
 
 interface LoadingSpinnerProps {
   message?: string;
@@ -24,7 +25,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 }) => {
   return (
     <View style={[styles.container, fullScreen && styles.fullScreen]}>
-      <ActivityIndicator size={size} color="#222222" />
+      <ActivityIndicator size={size} color={theme.colors.textPrimary} />
       {message && <Text style={styles.message}>{message}</Text>}
     </View>
   );
@@ -38,11 +39,11 @@ const styles = StyleSheet.create({
   },
   fullScreen: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   message: {
     marginTop: 16,
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
 });

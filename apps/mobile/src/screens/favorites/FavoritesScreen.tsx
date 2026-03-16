@@ -12,6 +12,7 @@ import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared
 import { EmptyState } from '../../components/ui/EmptyState';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { theme } from '../../theme';
 
 interface FavoriteContractor {
   id: string;
@@ -30,7 +31,7 @@ const StarRating: React.FC<{ rating: number }> = ({ rating }) => (
         key={star}
         name={star <= Math.round(rating) ? 'star' : 'star-outline'}
         size={14}
-        color={star <= Math.round(rating) ? '#F59E0B' : '#D1D5DB'}
+        color={star <= Math.round(rating) ? theme.colors.accent : '#D1D5DB'}
       />
     ))}
     <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
@@ -99,14 +100,14 @@ export const FavoritesScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <ScreenHeader title="Favourites" showBack onBack={() => navigation.goBack()} />
 
       <FlatList
         data={favorites}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor="#222222" colors={['#222222']} />}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />}
         ListEmptyComponent={
           <EmptyState icon="heart-outline" title="No Favourites Yet" subtitle="Save contractors you like to find them quickly later." />
         }
@@ -126,7 +127,7 @@ export const FavoritesScreen: React.FC = () => {
               onPress={() => handleRemove(item)}
               accessibilityLabel={`Remove ${item.name} from favourites`}
             >
-              <Ionicons name="heart-dislike-outline" size={20} color="#EF4444" />
+              <Ionicons name="heart-dislike-outline" size={20} color={theme.colors.error} />
             </TouchableOpacity>
           </View>
         )}
@@ -136,10 +137,10 @@ export const FavoritesScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   list: { padding: 16, paddingBottom: 32 },
   card: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 16,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surface, borderRadius: 16,
     padding: 14, marginBottom: 10,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
@@ -148,11 +149,11 @@ const styles = StyleSheet.create({
   },
   avatarWrap: { marginRight: 12 },
   cardContent: { flex: 1 },
-  name: { fontSize: 16, fontWeight: '700', color: '#222222' },
-  trade: { fontSize: 13, color: '#717171', marginTop: 2 },
+  name: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
+  trade: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 2 },
   stars: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 4 },
-  ratingText: { fontSize: 12, color: '#717171', marginLeft: 4 },
-  reviewCount: { fontSize: 11, color: '#B0B0B0', marginTop: 2 },
+  ratingText: { fontSize: 12, color: theme.colors.textSecondary, marginLeft: 4 },
+  reviewCount: { fontSize: 11, color: theme.colors.textTertiary, marginTop: 2 },
   removeBtn: { padding: 8 },
 });
 

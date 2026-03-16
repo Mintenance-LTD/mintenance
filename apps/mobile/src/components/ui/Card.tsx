@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle, Platform } from 'react-native';
+import { theme } from '../../theme';
 
 type CardVariant = 'default' | 'elevated' | 'outlined';
 
@@ -12,19 +13,19 @@ export interface CardProps {
 
 const VARIANT_STYLES: Record<CardVariant, ViewStyle> = {
   default: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   elevated: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
     }),
   },
   outlined: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.border,
   },
 };
 

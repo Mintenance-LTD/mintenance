@@ -18,6 +18,7 @@ import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared
 import { EmptyState } from '../../components/ui/EmptyState';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { theme } from '../../theme';
 
 interface Connection {
   id: string;
@@ -91,21 +92,21 @@ export const ConnectionsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <ScreenHeader title="Connections" showBack onBack={() => navigation.goBack()} />
 
       <View style={styles.searchWrap}>
-        <Ionicons name="search" size={18} color="#717171" />
+        <Ionicons name="search" size={18} color={theme.colors.textSecondary} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search by name or trade..."
-          placeholderTextColor="#B0B0B0"
+          placeholderTextColor={theme.colors.textTertiary}
           value={search}
           onChangeText={setSearch}
         />
         {search.length > 0 && (
           <TouchableOpacity onPress={() => setSearch('')}>
-            <Ionicons name="close-circle" size={18} color="#B0B0B0" />
+            <Ionicons name="close-circle" size={18} color={theme.colors.textTertiary} />
           </TouchableOpacity>
         )}
       </View>
@@ -114,12 +115,12 @@ export const ConnectionsScreen: React.FC = () => {
         data={filtered}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor="#222222" colors={['#222222']} />}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />}
         ListEmptyComponent={<EmptyState icon="people-outline" title="No Connections" subtitle="Connect with other contractors in your area." />}
         renderItem={({ item }) => (
           <View style={styles.card}>
             <View style={styles.avatar}>
-              <Ionicons name="person" size={24} color="#717171" />
+              <Ionicons name="person" size={24} color={theme.colors.textSecondary} />
             </View>
             <View style={styles.info}>
               <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
@@ -146,34 +147,34 @@ export const ConnectionsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   searchWrap: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', marginHorizontal: 16, marginBottom: 8, borderRadius: 12, paddingHorizontal: 12, height: 44,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surface, marginHorizontal: 16, marginBottom: 8, borderRadius: 12, paddingHorizontal: 12, height: 44,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6 },
       android: { elevation: 1 },
     }),
   },
-  searchInput: { flex: 1, fontSize: 15, color: '#222222', marginLeft: 8, paddingVertical: 0 },
+  searchInput: { flex: 1, fontSize: 15, color: theme.colors.textPrimary, marginLeft: 8, paddingVertical: 0 },
   list: { padding: 16, paddingTop: 8 },
   card: {
-    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 10, flexDirection: 'row', alignItems: 'center',
+    backgroundColor: theme.colors.surface, borderRadius: 16, padding: 16, marginBottom: 10, flexDirection: 'row', alignItems: 'center',
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
     }),
   },
-  avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#F0F0F0', justifyContent: 'center', alignItems: 'center', marginRight: 14 },
+  avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: theme.colors.backgroundTertiary, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
   info: { flex: 1 },
-  name: { fontSize: 16, fontWeight: '700', color: '#222222' },
-  trade: { fontSize: 13, color: '#717171', marginTop: 2 },
+  name: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
+  trade: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 2 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  ratingText: { fontSize: 13, fontWeight: '600', color: '#222222' },
-  reviewCount: { fontSize: 12, color: '#B0B0B0' },
-  followBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#10B981' },
-  followingBtn: { backgroundColor: '#F0F0F0' },
-  followText: { fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
-  followingText: { color: '#717171' },
+  ratingText: { fontSize: 13, fontWeight: '600', color: theme.colors.textPrimary },
+  reviewCount: { fontSize: 12, color: theme.colors.textTertiary },
+  followBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: theme.colors.primary },
+  followingBtn: { backgroundColor: theme.colors.backgroundTertiary },
+  followText: { fontSize: 13, fontWeight: '600', color: theme.colors.textInverse },
+  followingText: { color: theme.colors.textSecondary },
 });
 
 export default ConnectionsScreen;

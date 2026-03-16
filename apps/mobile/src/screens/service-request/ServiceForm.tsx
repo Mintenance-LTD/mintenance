@@ -13,6 +13,7 @@ import { styles } from './styles';
 import { type ServiceCategory, priorityLevels } from './types';
 import { DatePicker } from '../../components/ui/DatePicker';
 import { BudgetRangeSlider } from '../../components/ui/BudgetRangeSlider';
+import { theme } from '../../theme';
 
 interface ServiceFormProps {
   category: ServiceCategory;
@@ -68,7 +69,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
         accessibilityRole="button"
         accessibilityLabel="Go back to category selection"
       >
-        <Ionicons name="arrow-back" size={24} color="#222222" />
+        <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
       </TouchableOpacity>
       <Text style={styles.headerTitle} accessibilityRole="header">
         {category.name} Service
@@ -87,7 +88,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
               style={[
                 styles.subcategoryChip,
                 selectedSubcategory === sub && {
-                  backgroundColor: '#222222',
+                  backgroundColor: theme.colors.textPrimary,
                 },
               ]}
               onPress={() => onSubcategorySelect(sub)}
@@ -130,7 +131,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
                   <Ionicons
                     name="home-outline"
                     size={20}
-                    color={selectedProperty?.id === property.id ? '#222222' : '#717171'}
+                    color={selectedProperty?.id === property.id ? theme.colors.textPrimary : theme.colors.textSecondary}
                   />
                   <View style={styles.propertyOptionText}>
                     <Text style={[
@@ -144,7 +145,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
                     </Text>
                   </View>
                   {selectedProperty?.id === property.id && (
-                    <Ionicons name="checkmark-circle" size={22} color="#222222" />
+                    <Ionicons name="checkmark-circle" size={22} color={theme.colors.textPrimary} />
                   )}
                 </View>
               </TouchableOpacity>
@@ -157,9 +158,9 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
             accessibilityRole="button"
             accessibilityLabel="Add your first property"
           >
-            <Ionicons name="add-circle" size={22} color="#717171" />
+            <Ionicons name="add-circle" size={22} color={theme.colors.textSecondary} />
             <Text style={styles.addPropertyInlineText}>Add Your First Property</Text>
-            <Ionicons name="chevron-forward" size={18} color="#B0B0B0" />
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.textTertiary} />
           </TouchableOpacity>
         )}
       </View>
@@ -172,7 +173,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
           value={title}
           onChangeText={onTitleChange}
           placeholder="e.g., Fix Leaking Kitchen Faucet"
-          placeholderTextColor="#B0B0B0"
+          placeholderTextColor={theme.colors.textTertiary}
         />
         <Text style={styles.label}>Problem Description *</Text>
         <TextInput
@@ -180,7 +181,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
           value={description}
           onChangeText={onDescriptionChange}
           placeholder="Describe the problem in detail..."
-          placeholderTextColor="#B0B0B0"
+          placeholderTextColor={theme.colors.textTertiary}
           multiline
           numberOfLines={4}
           textAlignVertical="top"
@@ -191,7 +192,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
           value={location}
           onChangeText={onLocationChange}
           placeholder="Your address or area"
-          placeholderTextColor="#B0B0B0"
+          placeholderTextColor={theme.colors.textTertiary}
         />
         {onBudgetMinChange && onBudgetMaxChange ? (
           <BudgetRangeSlider
@@ -209,7 +210,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
               value={budget}
               onChangeText={onBudgetChange}
               placeholder="Enter your budget in pounds"
-              placeholderTextColor="#B0B0B0"
+              placeholderTextColor={theme.colors.textTertiary}
               keyboardType="numeric"
             />
           </>
@@ -233,17 +234,17 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
               key={level.id}
               style={[
                 styles.priorityCard,
-                priority === level.id && { backgroundColor: '#222222' },
+                priority === level.id && { backgroundColor: theme.colors.textPrimary },
               ]}
               onPress={() => onPriorityChange(level.id)}
               accessibilityRole="radio"
               accessibilityLabel={`${level.name} priority: ${level.description}`}
               accessibilityState={{ selected: priority === level.id }}
             >
-              <Text style={[styles.priorityName, { color: priority === level.id ? '#FFFFFF' : '#222222' }]}>
+              <Text style={[styles.priorityName, { color: priority === level.id ? theme.colors.textInverse : theme.colors.textPrimary }]}>
                 {level.name}
               </Text>
-              <Text style={[styles.priorityDescription, { color: priority === level.id ? '#FFFFFF' : '#717171' }]}>
+              <Text style={[styles.priorityDescription, { color: priority === level.id ? theme.colors.textInverse : theme.colors.textSecondary }]}>
                 {level.description}
               </Text>
             </TouchableOpacity>
@@ -267,7 +268,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
                 accessibilityRole="button"
                 accessibilityLabel={`Remove photo ${index + 1}`}
               >
-                <Ionicons name="close-circle" size={24} color="#EF4444" />
+                <Ionicons name="close-circle" size={24} color={theme.colors.error} />
               </TouchableOpacity>
             </View>
           ))}
@@ -280,7 +281,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
               accessibilityLabel="Add photo"
               accessibilityHint="Double tap to take or choose a photo of the problem"
             >
-              <Ionicons name="camera-outline" size={28} color="#B0B0B0" />
+              <Ionicons name="camera-outline" size={28} color={theme.colors.textTertiary} />
               <Text style={styles.addPhotoText}>Add Photo</Text>
             </TouchableOpacity>
           ))}

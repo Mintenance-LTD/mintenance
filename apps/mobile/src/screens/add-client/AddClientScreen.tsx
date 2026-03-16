@@ -15,6 +15,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../components/ui/Toast';
 import { ClientManagementService } from '../../services/client-management';
 import type { ProfileStackParamList } from '../../navigation/types';
+import { theme } from '../../theme';
 
 interface AddClientScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'AddClient'>;
@@ -79,7 +80,7 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#222222" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Client</Text>
         <TouchableOpacity
@@ -99,7 +100,7 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
           <TextInput
             style={styles.input}
             placeholder="First name"
-            placeholderTextColor="#B0B0B0"
+            placeholderTextColor={theme.colors.textTertiary}
             value={firstName}
             onChangeText={setFirstName}
             autoCapitalize="words"
@@ -109,7 +110,7 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
           <TextInput
             style={styles.input}
             placeholder="Last name"
-            placeholderTextColor="#B0B0B0"
+            placeholderTextColor={theme.colors.textTertiary}
             value={lastName}
             onChangeText={setLastName}
             autoCapitalize="words"
@@ -119,7 +120,7 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
           <TextInput
             style={styles.input}
             placeholder="email@example.com"
-            placeholderTextColor="#B0B0B0"
+            placeholderTextColor={theme.colors.textTertiary}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -130,7 +131,7 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
           <TextInput
             style={styles.input}
             placeholder="+44 7700 900000"
-            placeholderTextColor="#B0B0B0"
+            placeholderTextColor={theme.colors.textTertiary}
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
@@ -142,7 +143,7 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
           <TextInput
             style={styles.input}
             placeholder="Company name"
-            placeholderTextColor="#B0B0B0"
+            placeholderTextColor={theme.colors.textTertiary}
             value={companyName}
             onChangeText={setCompanyName}
             autoCapitalize="words"
@@ -154,7 +155,7 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
           <TextInput
             style={[styles.input, styles.notesInput]}
             placeholder="Additional notes about this client\u2026"
-            placeholderTextColor="#B0B0B0"
+            placeholderTextColor={theme.colors.textTertiary}
             value={notes}
             onChangeText={setNotes}
             multiline
@@ -170,24 +171,24 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   headerButton: { padding: 8, minWidth: 60 },
   headerButtonDisabled: { opacity: 0.5 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#222222' },
-  saveText: { fontSize: 16, fontWeight: '700', color: '#222222', textAlign: 'right' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
+  saveText: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary, textAlign: 'right' },
   scroll: { flex: 1 },
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 16,
@@ -197,15 +198,15 @@ const styles = StyleSheet.create({
       android: { elevation: 2 },
     }),
   },
-  sectionTitle: { fontSize: 12, fontWeight: '700', color: '#B0B0B0', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.8 },
-  fieldLabel: { fontSize: 13, color: '#717171', marginBottom: 6, marginTop: 4 },
+  sectionTitle: { fontSize: 12, fontWeight: '700', color: theme.colors.textTertiary, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.8 },
+  fieldLabel: { fontSize: 13, color: theme.colors.textSecondary, marginBottom: 6, marginTop: 4 },
   input: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   notesInput: { height: 100, paddingTop: 12 },

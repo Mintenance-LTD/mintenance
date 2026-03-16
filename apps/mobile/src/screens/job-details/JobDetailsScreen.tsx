@@ -31,6 +31,7 @@ import { ContractorLocationSection } from './components/ContractorLocationSectio
 import { useAuth } from '../../contexts/AuthContext';
 import { JobsStackParamList } from '../../navigation/types';
 import type { Job } from '@mintenance/types';
+import { theme } from '../../theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -116,7 +117,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           />
         ) : (
           <View style={styles.placeholderHero}>
-            <Ionicons name={categoryIcon} size={64} color="#B0B0B0" />
+            <Ionicons name={categoryIcon} size={64} color={theme.colors.textTertiary} />
           </View>
         )}
 
@@ -127,7 +128,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={24} color="#222222" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
 
         {/* Share button overlay */}
@@ -141,7 +142,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           accessibilityRole="button"
           accessibilityLabel="Share this job"
         >
-          <Ionicons name="share-outline" size={22} color="#222222" />
+          <Ionicons name="share-outline" size={22} color={theme.colors.textPrimary} />
         </TouchableOpacity>
 
         {/* Lifecycle Stepper */}
@@ -164,8 +165,8 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             )}
             {urgency !== 'low' && urgency !== 'medium' && (
               <View style={[styles.tag, styles.urgentTag]}>
-                <Ionicons name="flame" size={12} color="#EF4444" />
-                <Text style={[styles.tagText, { color: '#EF4444' }]}>
+                <Ionicons name="flame" size={12} color={theme.colors.error} />
+                <Text style={[styles.tagText, { color: theme.colors.error }]}>
                   {urgency === 'emergency' ? 'Emergency' : 'Urgent'}
                 </Text>
               </View>
@@ -174,7 +175,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
           {locationStr ? (
             <View style={styles.locationRow}>
-              <Ionicons name="location-outline" size={16} color="#717171" />
+              <Ionicons name="location-outline" size={16} color={theme.colors.textSecondary} />
               <Text style={styles.locationText}>{locationStr}</Text>
             </View>
           ) : null}
@@ -217,7 +218,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                   <Text style={styles.pricingLabelText}>Estimated cost</Text>
                 </View>
                 <View style={styles.escrowBadge}>
-                  <Ionicons name="shield-checkmark" size={16} color="#717171" />
+                  <Ionicons name="shield-checkmark" size={16} color={theme.colors.textSecondary} />
                   <Text style={styles.escrowText}>Escrow protected</Text>
                   <TouchableOpacity
                     onPress={() => setShowEscrowModal(true)}
@@ -225,7 +226,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                     accessibilityLabel="Learn how escrow protection works"
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <Ionicons name="information-circle-outline" size={18} color="#717171" />
+                    <Ionicons name="information-circle-outline" size={18} color={theme.colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -326,8 +327,8 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             <Text style={styles.modalTitle}>How Escrow Protection Works</Text>
 
             <View style={styles.escrowStep}>
-              <View style={[styles.escrowStepIcon, { backgroundColor: '#D1FAE5' }]}>
-                <Ionicons name="shield-checkmark" size={24} color="#10B981" />
+              <View style={[styles.escrowStepIcon, { backgroundColor: theme.colors.primaryLight }]}>
+                <Ionicons name="shield-checkmark" size={24} color={theme.colors.primary} />
               </View>
               <View style={styles.escrowStepContent}>
                 <Text style={styles.escrowStepTitle}>Payment Held Securely</Text>
@@ -338,8 +339,8 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
 
             <View style={styles.escrowStep}>
-              <View style={[styles.escrowStepIcon, { backgroundColor: '#D1FAE5' }]}>
-                <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+              <View style={[styles.escrowStepIcon, { backgroundColor: theme.colors.primaryLight }]}>
+                <Ionicons name="checkmark-circle" size={24} color={theme.colors.primary} />
               </View>
               <View style={styles.escrowStepContent}>
                 <Text style={styles.escrowStepTitle}>Approve Completed Work</Text>
@@ -350,8 +351,8 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
 
             <View style={styles.escrowStep}>
-              <View style={[styles.escrowStepIcon, { backgroundColor: '#D1FAE5' }]}>
-                <Ionicons name="cash" size={24} color="#10B981" />
+              <View style={[styles.escrowStepIcon, { backgroundColor: theme.colors.primaryLight }]}>
+                <Ionicons name="cash" size={24} color={theme.colors.primary} />
               </View>
               <View style={styles.escrowStepContent}>
                 <Text style={styles.escrowStepTitle}>Payment Released</Text>
@@ -518,7 +519,7 @@ const DetailRow: React.FC<{
 }> = ({ icon, label, value }) => (
   <View style={styles.detailRow}>
     <View style={styles.detailIconContainer}>
-      <Ionicons name={icon} size={20} color="#717171" />
+      <Ionicons name={icon} size={20} color={theme.colors.textSecondary} />
     </View>
     <View style={styles.detailContent}>
       <Text style={styles.detailLabel}>{label}</Text>
@@ -530,14 +531,14 @@ const DetailRow: React.FC<{
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   scrollView: {
     flex: 1,
   },
   placeholderHero: {
     height: 240,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -582,14 +583,14 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 12,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
     marginHorizontal: 20,
   },
 
@@ -597,7 +598,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   tagRow: {
@@ -608,7 +609,7 @@ const styles = StyleSheet.create({
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
@@ -620,7 +621,7 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   locationRow: {
     flexDirection: 'row',
@@ -630,17 +631,17 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   metaText: {
     fontSize: 13,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     marginTop: 4,
   },
 
   // ── Pricing ──
   pricingCard: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 16,
     padding: 16,
   },
@@ -650,11 +651,11 @@ const styles = StyleSheet.create({
   pricingAmount: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   pricingLabelText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 2,
   },
   escrowBadge: {
@@ -665,7 +666,7 @@ const styles = StyleSheet.create({
   escrowText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
 
   // ── Details ──
@@ -684,19 +685,19 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   detailValue: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginTop: 2,
   },
 
   // ── Description ──
   description: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 24,
   },
 
@@ -709,7 +710,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 24,
     padding: 24,
     width: '100%',
@@ -718,7 +719,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     textAlign: 'center',
     marginBottom: 20,
   },
@@ -741,17 +742,17 @@ const styles = StyleSheet.create({
   escrowStepTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   escrowStepDescription: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 20,
   },
   escrowFooterNote: {
     fontSize: 13,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textAlign: 'center',
     marginTop: 4,
     marginBottom: 20,
@@ -759,7 +760,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   escrowModalButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 28,
     paddingVertical: 14,
     alignItems: 'center',
@@ -767,7 +768,7 @@ const styles = StyleSheet.create({
   escrowModalButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 });
 

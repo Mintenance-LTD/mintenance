@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../theme';
 
 interface KPICardProps {
   title: string;
@@ -35,13 +36,13 @@ export const KPICard: React.FC<KPICardProps> = ({
           <Ionicons
             name={change.isPositive ? 'trending-up' : 'trending-down'}
             size={12}
-            color={change.isPositive ? '#10B981' : '#EF4444'}
+            color={change.isPositive ? theme.colors.primary : theme.colors.error}
           />
           <Text
             style={[
               styles.changeText,
               {
-                color: change.isPositive ? '#10B981' : '#EF4444',
+                color: change.isPositive ? theme.colors.primary : theme.colors.error,
               },
             ]}
           >
@@ -58,7 +59,7 @@ const styles = StyleSheet.create({
   kpiCard: {
     flex: 1,
     minWidth: 150,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 18,
     ...Platform.select({
@@ -76,14 +77,14 @@ const styles = StyleSheet.create({
   },
   kpiTitle: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
     marginBottom: 4,
   },
   kpiValue: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
     letterSpacing: -0.3,
   },

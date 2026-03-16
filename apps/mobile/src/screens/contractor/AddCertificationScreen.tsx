@@ -18,6 +18,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import type { ProfileStackParamList } from '../../navigation/types';
+import { theme } from '../../theme';
 
 interface Props {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'AddCertification'>;
@@ -102,10 +103,10 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.surface} />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="close" size={24} color="#222222" />
+          <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Certification</Text>
         <TouchableOpacity
@@ -125,7 +126,7 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
           <TextInput
             style={styles.input}
             placeholder="e.g. CSCS Card, Gas Safe Certificate"
-            placeholderTextColor="#B0B0B0"
+            placeholderTextColor={theme.colors.textTertiary}
             value={certName}
             onChangeText={setCertName}
           />
@@ -134,7 +135,7 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
           <TextInput
             style={styles.input}
             placeholder="e.g. CITB, Gas Safe Register"
-            placeholderTextColor="#B0B0B0"
+            placeholderTextColor={theme.colors.textTertiary}
             value={issuer}
             onChangeText={setIssuer}
           />
@@ -143,7 +144,7 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
           <TextInput
             style={styles.input}
             placeholder="Optional"
-            placeholderTextColor="#B0B0B0"
+            placeholderTextColor={theme.colors.textTertiary}
             value={credentialId}
             onChangeText={setCredentialId}
           />
@@ -152,7 +153,7 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
           <TextInput
             style={styles.input}
             placeholder="DD/MM/YYYY"
-            placeholderTextColor="#B0B0B0"
+            placeholderTextColor={theme.colors.textTertiary}
             value={issueDate}
             onChangeText={setIssueDate}
             keyboardType="numbers-and-punctuation"
@@ -162,7 +163,7 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
           <TextInput
             style={styles.input}
             placeholder="DD/MM/YYYY (leave blank if no expiry)"
-            placeholderTextColor="#B0B0B0"
+            placeholderTextColor={theme.colors.textTertiary}
             value={expiryDate}
             onChangeText={setExpiryDate}
             keyboardType="numbers-and-punctuation"
@@ -189,25 +190,25 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   headerButton: { padding: 8, width: 60 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#222222' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
   saveButton: { alignItems: 'flex-end' },
-  saveButtonText: { fontSize: 16, fontWeight: '700', color: '#222222' },
+  saveButtonText: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
   saveButtonDisabled: { opacity: 0.5 },
   content: { padding: 16 },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     ...Platform.select({
@@ -218,17 +219,17 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 6,
   },
   input: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     padding: 14,
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   categoryScroll: { marginTop: 4 },
   categoryChip: {
@@ -236,13 +237,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     marginRight: 8,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   categoryChipActive: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
   },
-  categoryText: { fontSize: 13, color: '#717171' },
-  categoryTextActive: { color: '#FFFFFF', fontWeight: '600' },
+  categoryText: { fontSize: 13, color: theme.colors.textSecondary },
+  categoryTextActive: { color: theme.colors.textInverse, fontWeight: '600' },
 });
 
 export default AddCertificationScreen;

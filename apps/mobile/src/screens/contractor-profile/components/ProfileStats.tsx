@@ -7,6 +7,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 
 interface ProfileStatsProps {
   jobsCompleted: number;
@@ -27,8 +28,8 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
     <View style={styles.container} testID="profile-stats-container">
       {/* Jobs Completed */}
       <View style={styles.card} testID="jobs-stat" accessibilityLabel={`${jobsCompleted} jobs completed`}>
-        <View style={[styles.iconCircle, { backgroundColor: '#D1FAE5' }]}>
-          <Ionicons name="briefcase" size={18} color="#10B981" />
+        <View style={[styles.iconCircle, { backgroundColor: theme.colors.primaryLight }]}>
+          <Ionicons name="briefcase" size={18} color={theme.colors.primary} />
         </View>
         <Text style={styles.statValue} testID="jobs-value">{jobsCompleted}</Text>
         <Text style={styles.statLabel}>Jobs Done</Text>
@@ -36,8 +37,8 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
 
       {/* Rating */}
       <View style={styles.card} testID="rating-stat" accessibilityLabel={`Rating: ${rating} out of 5`}>
-        <View style={[styles.iconCircle, { backgroundColor: '#FEF3C7' }]}>
-          <Ionicons name="star" size={18} color="#F59E0B" />
+        <View style={[styles.iconCircle, { backgroundColor: theme.colors.accentLight }]}>
+          <Ionicons name="star" size={18} color={theme.colors.accent} />
         </View>
         <Text style={styles.statValue} testID="rating-value">{displayRating}</Text>
         <View style={styles.starsRow}>
@@ -46,7 +47,7 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
               key={i}
               name={i < fullStars ? 'star' : (i === fullStars && hasHalf ? 'star-half' : 'star-outline')}
               size={10}
-              color="#F59E0B"
+              color={theme.colors.accent}
             />
           ))}
         </View>
@@ -75,7 +76,7 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     paddingVertical: 16,
     paddingHorizontal: 8,
@@ -95,12 +96,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.5,
   },
   statLabel: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 2,
     fontWeight: '500',
   },

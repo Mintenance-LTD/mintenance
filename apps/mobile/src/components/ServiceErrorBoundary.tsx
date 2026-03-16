@@ -2,6 +2,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { logger } from '../utils/logger';
 import { handleError } from '../utils/errorHandler';
+import { theme } from '../theme';
 
 interface Props {
   children: ReactNode;
@@ -111,7 +112,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.colors.accentLight,
   },
   icon: {
     fontSize: 48,
@@ -120,7 +121,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#F59E0B',
+    color: theme.colors.accent,
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   button: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: theme.colors.accent,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 28,
@@ -141,19 +142,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 15,
     fontWeight: '600',
   },
   exhaustedText: {
     fontSize: 13,
-    color: '#EF4444',
+    color: theme.colors.error,
     textAlign: 'center',
     fontStyle: 'italic',
     marginBottom: 16,
   },
   debugContainer: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.colors.accentLight,
     padding: 12,
     borderRadius: 12,
     marginTop: 16,

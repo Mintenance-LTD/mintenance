@@ -9,6 +9,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 
 interface ProfileHeaderProps {
   name: string;
@@ -60,7 +61,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               accessibilityRole="button"
               accessibilityLabel="Go back"
             >
-              <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+              <Ionicons name="arrow-back" size={20} color={theme.colors.textInverse} />
             </TouchableOpacity>
           )}
           <View style={{ flex: 1 }} />
@@ -71,7 +72,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               accessibilityRole="button"
               accessibilityLabel="Share profile"
             >
-              <Ionicons name="share-outline" size={20} color="#FFFFFF" />
+              <Ionicons name="share-outline" size={20} color={theme.colors.textInverse} />
             </TouchableOpacity>
           )}
         </View>
@@ -84,11 +85,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       <View style={styles.avatarSection}>
         <View style={styles.avatarWrapper}>
           <View style={styles.avatar}>
-            <Ionicons name="person" size={40} color="#B0B0B0" />
+            <Ionicons name="person" size={40} color={theme.colors.textTertiary} />
           </View>
           {verified && (
             <View style={styles.verifiedBadge}>
-              <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+              <Ionicons name="checkmark" size={14} color={theme.colors.textInverse} />
             </View>
           )}
         </View>
@@ -99,7 +100,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
         {location ? (
           <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={14} color="#717171" />
+            <Ionicons name="location-outline" size={14} color={theme.colors.textSecondary} />
             <Text style={styles.locationText}>{location}</Text>
           </View>
         ) : null}
@@ -113,12 +114,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <View style={styles.trustRow}>
           {verified && (
             <View style={styles.trustPill}>
-              <Ionicons name="shield-checkmark" size={14} color="#10B981" />
+              <Ionicons name="shield-checkmark" size={14} color={theme.colors.primary} />
               <Text style={styles.trustText}>Verified</Text>
             </View>
           )}
           <View style={styles.trustPill}>
-            <Ionicons name="flash" size={14} color="#F59E0B" />
+            <Ionicons name="flash" size={14} color={theme.colors.accent} />
             <Text style={styles.trustText}>{'< 1hr Response'}</Text>
           </View>
           <View style={styles.trustPill}>
@@ -185,7 +186,7 @@ const styles = StyleSheet.create({
     marginTop: -48,
     paddingHorizontal: 24,
     paddingBottom: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   avatarWrapper: {
     position: 'relative',
@@ -195,9 +196,9 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
     borderWidth: 4,
-    borderColor: '#FFFFFF',
+    borderColor: theme.colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
@@ -212,23 +213,23 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: '#FFFFFF',
+    borderColor: theme.colors.surface,
   },
   name: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.5,
     textAlign: 'center',
   },
   tradeText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#10B981',
+    color: theme.colors.primary,
     marginTop: 2,
     textAlign: 'center',
   },
@@ -240,11 +241,11 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   bio: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 20,
     textAlign: 'center',
     marginTop: 10,
@@ -261,17 +262,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.border,
   },
   trustText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   skillsRow: {
     flexDirection: 'row',
@@ -281,7 +282,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   skillPill: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 10,
@@ -289,6 +290,6 @@ const styles = StyleSheet.create({
   skillText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#10B981',
+    color: theme.colors.primary,
   },
 });

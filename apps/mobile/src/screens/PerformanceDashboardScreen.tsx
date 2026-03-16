@@ -13,11 +13,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { performanceMonitor } from '../utils/performance';
 import type { PerformanceBudget, PerformanceReport } from '../utils/performance/types';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 const SUMMARY_ITEMS = [
   { key: 'budgets', icon: 'layers-outline' as const, color: '#3B82F6', bg: '#DBEAFE' },
-  { key: 'violations', icon: 'alert-circle-outline' as const, color: '#EF4444', bg: '#FEE2E2' },
-  { key: 'health', icon: 'heart-outline' as const, color: '#10B981', bg: '#D1FAE5' },
+  { key: 'violations', icon: 'alert-circle-outline' as const, color: theme.colors.error, bg: '#FEE2E2' },
+  { key: 'health', icon: 'heart-outline' as const, color: theme.colors.primary, bg: theme.colors.primaryLight },
 ];
 
 export const PerformanceDashboardScreen: React.FC = () => {
@@ -49,9 +50,9 @@ export const PerformanceDashboardScreen: React.FC = () => {
   };
 
   const getBudgetStatusColor = (budget: PerformanceBudget): string => {
-    if (budget.status === 'pass') return '#10B981';
-    if (budget.status === 'warn') return '#F59E0B';
-    return '#EF4444';
+    if (budget.status === 'pass') return theme.colors.primary;
+    if (budget.status === 'warn') return theme.colors.accent;
+    return theme.colors.error;
   };
 
   const getBudgetStatusIcon = (budget: PerformanceBudget): keyof typeof Ionicons.glyphMap => {
@@ -104,7 +105,7 @@ export const PerformanceDashboardScreen: React.FC = () => {
     <ScrollView
       style={{ flex: 1 }}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#222222" colors={['#222222']} />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />
       }
     >
       {/* Header */}
@@ -124,9 +125,9 @@ export const PerformanceDashboardScreen: React.FC = () => {
             </View>
             <Text style={[
               styles.summaryValue,
-              item.key === 'violations' && violations.length > 0 && { color: '#EF4444' },
+              item.key === 'violations' && violations.length > 0 && { color: theme.colors.error },
               item.key === 'health' && {
-                color: healthScore > 80 ? '#10B981' : healthScore > 60 ? '#F59E0B' : '#EF4444',
+                color: healthScore > 80 ? theme.colors.primary : healthScore > 60 ? theme.colors.accent : theme.colors.error,
               },
             ]}>
               {item.value}
@@ -169,7 +170,7 @@ export const PerformanceDashboardScreen: React.FC = () => {
         {filteredBudgets.length === 0 ? (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconWrap}>
-              <Ionicons name={selectedCategory === 'violations' ? 'checkmark-circle-outline' : 'layers-outline'} size={28} color="#B0B0B0" />
+              <Ionicons name={selectedCategory === 'violations' ? 'checkmark-circle-outline' : 'layers-outline'} size={28} color={theme.colors.textTertiary} />
             </View>
             <Text style={styles.emptyText}>
               {selectedCategory === 'violations'
@@ -191,7 +192,7 @@ export const PerformanceDashboardScreen: React.FC = () => {
                     { backgroundColor: getBudgetStatusColor(budget) },
                   ]}
                 >
-                  <Ionicons name={getBudgetStatusIcon(budget)} size={14} color="#FFFFFF" />
+                  <Ionicons name={getBudgetStatusIcon(budget)} size={14} color={theme.colors.textInverse} />
                 </View>
               </View>
 
@@ -201,7 +202,7 @@ export const PerformanceDashboardScreen: React.FC = () => {
                   <Text
                     style={[
                       styles.budgetValue,
-                      budget.status !== 'pass' && { color: '#EF4444' },
+                      budget.status !== 'pass' && { color: theme.colors.error },
                     ]}
                   >
                     {formatValue(budget.current ?? 0, budget.metric ?? '')}
@@ -220,7 +221,7 @@ export const PerformanceDashboardScreen: React.FC = () => {
                   <Text
                     style={[
                       styles.budgetValue,
-                      (budget.percentage ?? 0) > 100 && { color: '#EF4444' },
+                      (budget.percentage ?? 0) > 100 && { color: theme.colors.error },
                     ]}
                   >
                     {Math.round(budget.percentage ?? 0)}%
@@ -261,12 +262,12 @@ export const PerformanceDashboardScreen: React.FC = () => {
                       backgroundColor:
                         violation.severity === 'critical'
                           ? '#FEE2E2'
-                          : '#FEF3C7',
+                          : theme.colors.accentLight,
                     },
                   ]}
                 >
                   <Text style={[styles.severityText, {
-                    color: violation.severity === 'critical' ? '#EF4444' : '#F59E0B',
+                    color: violation.severity === 'critical' ? theme.colors.error : theme.colors.accent,
                   }]}>
                     {violation.severity.toUpperCase()}
                   </Text>
@@ -307,29 +308,29 @@ export const PerformanceDashboardScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   loadingText: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginTop: 50,
   },
   header: {
     padding: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   summaryContainer: {
     flexDirection: 'row',
@@ -338,7 +339,7 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     paddingVertical: 14,
     paddingHorizontal: 10,
@@ -364,12 +365,12 @@ const styles = StyleSheet.create({
   summaryValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   summaryLabel: {
     fontSize: 11,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
   },
   filterContainer: {
@@ -383,7 +384,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
     ...Platform.select({
       ios: {
@@ -396,15 +397,15 @@ const styles = StyleSheet.create({
     }),
   },
   filterButtonActive: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   filterText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   filterTextActive: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   budgetsContainer: {
     padding: 16,
@@ -412,7 +413,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 12,
@@ -425,17 +426,17 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
   emptyText: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   budgetCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 10,
@@ -461,12 +462,12 @@ const styles = StyleSheet.create({
   budgetName: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   budgetCategory: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textTransform: 'capitalize',
   },
   statusBadge: {
@@ -487,16 +488,16 @@ const styles = StyleSheet.create({
   },
   budgetLabel: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   budgetValue: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   progressBar: {
     height: 6,
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -508,12 +509,12 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   violationCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 10,
     borderLeftWidth: 4,
-    borderLeftColor: '#EF4444',
+    borderLeftColor: theme.colors.error,
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
@@ -533,7 +534,7 @@ const styles = StyleSheet.create({
   violationMetric: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     flex: 1,
   },
   severityBadge: {
@@ -547,7 +548,7 @@ const styles = StyleSheet.create({
   },
   violationTime: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     marginBottom: 8,
   },
   violationDetails: {
@@ -555,14 +556,14 @@ const styles = StyleSheet.create({
   },
   violationLabel: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   summaryTextContainer: {
     padding: 16,
   },
   summaryDescription: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 20,
   },
 });

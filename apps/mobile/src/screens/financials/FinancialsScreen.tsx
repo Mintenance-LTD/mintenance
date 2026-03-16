@@ -19,6 +19,7 @@ import { LoadingSpinner, ErrorView } from '../../components/shared';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import type { ProfileStackParamList } from '../../navigation/types';
+import { theme } from '../../theme';
 
 interface PaymentRecord {
   id: string;
@@ -32,23 +33,23 @@ interface PaymentRecord {
 
 const CATEGORY_CONFIG: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string; label: string }> = {
   plumbing: { icon: 'water-outline', color: '#3B82F6', label: 'Plumbing' },
-  electrical: { icon: 'flash-outline', color: '#F59E0B', label: 'Electrical' },
-  roofing: { icon: 'home-outline', color: '#EF4444', label: 'Roofing' },
+  electrical: { icon: 'flash-outline', color: theme.colors.accent, label: 'Electrical' },
+  roofing: { icon: 'home-outline', color: theme.colors.error, label: 'Roofing' },
   painting: { icon: 'color-palette-outline', color: '#8B5CF6', label: 'Painting' },
   carpentry: { icon: 'hammer-outline', color: '#F97316', label: 'Carpentry' },
-  landscaping: { icon: 'leaf-outline', color: '#10B981', label: 'Landscaping' },
+  landscaping: { icon: 'leaf-outline', color: theme.colors.primary, label: 'Landscaping' },
   cleaning: { icon: 'sparkles-outline', color: '#06B6D4', label: 'Cleaning' },
   hvac: { icon: 'thermometer-outline', color: '#EC4899', label: 'HVAC' },
-  general: { icon: 'construct-outline', color: '#717171', label: 'General' },
+  general: { icon: 'construct-outline', color: theme.colors.textSecondary, label: 'General' },
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  completed: '#10B981',
+  completed: theme.colors.primary,
   held: '#3B82F6',
-  released: '#10B981',
-  release_pending: '#F59E0B',
-  refunded: '#F59E0B',
-  pending: '#B0B0B0',
+  released: theme.colors.primary,
+  release_pending: theme.colors.accent,
+  refunded: theme.colors.accent,
+  pending: theme.colors.textTertiary,
 };
 
 export const FinancialsScreen: React.FC = () => {
@@ -158,7 +159,7 @@ export const FinancialsScreen: React.FC = () => {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor="#FFFFFF" colors={['#10B981']} />}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor="#FFFFFF" colors={[theme.colors.primary]} />}
       >
         {/* Full-Bleed Gradient Hero — extends to very top */}
         <LinearGradient
@@ -176,7 +177,7 @@ export const FinancialsScreen: React.FC = () => {
           {/* Back button + title row */}
           <View style={styles.heroNav}>
             <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+              <Ionicons name="arrow-back" size={24} color={theme.colors.textInverse} />
             </TouchableOpacity>
             <Text style={styles.heroNavTitle}>My Finances</Text>
             <View style={{ width: 24 }} />
@@ -203,7 +204,7 @@ export const FinancialsScreen: React.FC = () => {
         {/* Stat Cards — horizontal row, overlapping hero bottom */}
         <View style={styles.statCardsRow}>
           <View style={styles.statCard}>
-            <Ionicons name="card-outline" size={16} color="#10B981" />
+            <Ionicons name="card-outline" size={16} color={theme.colors.primary} />
             <Text style={styles.statCardValue}>{fmt(data.totalSpent)}</Text>
             <Text style={styles.statCardLabel}>Spent</Text>
           </View>
@@ -213,7 +214,7 @@ export const FinancialsScreen: React.FC = () => {
             <Text style={styles.statCardLabel}>Escrow</Text>
           </View>
           <View style={styles.statCard}>
-            <Ionicons name="arrow-undo-outline" size={16} color="#F59E0B" />
+            <Ionicons name="arrow-undo-outline" size={16} color={theme.colors.accent} />
             <Text style={styles.statCardValue}>{fmt(data.refunded)}</Text>
             <Text style={styles.statCardLabel}>Refunded</Text>
           </View>
@@ -225,7 +226,7 @@ export const FinancialsScreen: React.FC = () => {
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Budget Overview</Text>
-              <Ionicons name="chevron-forward" size={18} color="#B0B0B0" />
+              <Ionicons name="chevron-forward" size={18} color={theme.colors.textTertiary} />
             </View>
 
             <View style={styles.budgetRow}>
@@ -235,11 +236,11 @@ export const FinancialsScreen: React.FC = () => {
               </View>
               <View style={styles.budgetItem}>
                 <Text style={styles.budgetLabel}>Spent</Text>
-                <Text style={[styles.budgetValue, { color: '#EF4444' }]}>{fmt(spent)}</Text>
+                <Text style={[styles.budgetValue, { color: theme.colors.error }]}>{fmt(spent)}</Text>
               </View>
               <View style={styles.budgetItem}>
                 <Text style={styles.budgetLabel}>Left</Text>
-                <Text style={[styles.budgetValue, { color: '#10B981' }]}>{fmt(left)}</Text>
+                <Text style={[styles.budgetValue, { color: theme.colors.primary }]}>{fmt(left)}</Text>
               </View>
             </View>
 
@@ -316,11 +317,11 @@ export const FinancialsScreen: React.FC = () => {
               activeOpacity={0.7}
             >
               <View style={styles.subscriptionLeft}>
-                <View style={[styles.subscriptionIcon, { backgroundColor: data.subscription.status === 'active' ? '#D1FAE5' : '#FEF3C7' }]}>
+                <View style={[styles.subscriptionIcon, { backgroundColor: data.subscription.status === 'active' ? '#D1FAE5' : theme.colors.accentLight }]}>
                   <Ionicons
                     name={data.subscription.status === 'active' ? 'shield-checkmark' : 'shield-outline'}
                     size={20}
-                    color={data.subscription.status === 'active' ? '#10B981' : '#F59E0B'}
+                    color={data.subscription.status === 'active' ? theme.colors.primary : theme.colors.accent}
                   />
                 </View>
                 <View>
@@ -330,7 +331,7 @@ export const FinancialsScreen: React.FC = () => {
                   </Text>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#B0B0B0" />
+              <Ionicons name="chevron-forward" size={18} color={theme.colors.textTertiary} />
             </TouchableOpacity>
           )}
 
@@ -346,7 +347,7 @@ export const FinancialsScreen: React.FC = () => {
             {data.recentPayments.length === 0 ? (
               <View style={styles.emptyWrap}>
                 <View style={styles.emptyIcon}>
-                  <Ionicons name="receipt-outline" size={24} color="#B0B0B0" />
+                  <Ionicons name="receipt-outline" size={24} color={theme.colors.textTertiary} />
                 </View>
                 <Text style={styles.emptyTitle}>No transactions yet</Text>
                 <Text style={styles.emptySubtext}>Your payment history will appear here</Text>
@@ -400,7 +401,7 @@ export const FinancialsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   scrollView: {
     flex: 1,
@@ -453,7 +454,7 @@ const styles = StyleSheet.create({
   heroNavTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     letterSpacing: -0.3,
   },
   heroLabel: {
@@ -468,7 +469,7 @@ const styles = StyleSheet.create({
   heroAmount: {
     fontSize: 40,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     letterSpacing: -1.5,
     marginBottom: 24,
     zIndex: 1,
@@ -484,7 +485,7 @@ const styles = StyleSheet.create({
   heroStatValue: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     letterSpacing: -0.3,
   },
   heroStatLabel: {
@@ -510,7 +511,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 14,
     alignItems: 'center',
@@ -522,13 +523,13 @@ const styles = StyleSheet.create({
   statCardValue: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.3,
     marginTop: 6,
   },
   statCardLabel: {
     fontSize: 11,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
     marginTop: 2,
   },
@@ -540,7 +541,7 @@ const styles = StyleSheet.create({
 
   // Section Card
   sectionCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 20,
     padding: 20,
     marginBottom: 16,
@@ -558,12 +559,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.3,
   },
   viewAllText: {
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '600',
     textDecorationLine: 'underline',
   },
@@ -577,19 +578,19 @@ const styles = StyleSheet.create({
   budgetItem: {},
   budgetLabel: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
     marginBottom: 4,
   },
   budgetValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.3,
   },
   budgetBarBg: {
     height: 8,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: theme.colors.backgroundTertiary,
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 10,
@@ -597,11 +598,11 @@ const styles = StyleSheet.create({
   budgetBarFill: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
   },
   budgetHint: {
     fontSize: 13,
-    color: '#10B981',
+    color: theme.colors.primary,
     fontWeight: '600',
   },
 
@@ -613,14 +614,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingBottom: 20,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   donutOuter: {
     width: 120,
     height: 120,
     borderRadius: 60,
     borderWidth: 12,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.border,
     backgroundColor: '#FAFAFA',
     alignItems: 'center',
     justifyContent: 'center',
@@ -631,12 +632,12 @@ const styles = StyleSheet.create({
   donutTotal: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.3,
   },
   donutLabel: {
     fontSize: 10,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
     marginTop: 1,
   },
@@ -657,13 +658,13 @@ const styles = StyleSheet.create({
   },
   legendLabel: {
     fontSize: 13,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '500',
     flex: 1,
   },
   legendPercent: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '600',
   },
 
@@ -692,17 +693,17 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '600',
   },
   categoryAmount: {
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '700',
   },
   progressBarBg: {
     height: 6,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: theme.colors.backgroundTertiary,
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -716,7 +717,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -740,12 +741,12 @@ const styles = StyleSheet.create({
   subscriptionTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     textTransform: 'capitalize',
   },
   subscriptionStatus: {
     fontSize: 12,
-    color: '#10B981',
+    color: theme.colors.primary,
     fontWeight: '500',
     marginTop: 2,
     textTransform: 'capitalize',
@@ -757,7 +758,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: theme.colors.borderLight,
   },
   transactionRowLast: {
     borderBottomWidth: 0,
@@ -777,11 +778,11 @@ const styles = StyleSheet.create({
   transactionTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   transactionDate: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     marginTop: 2,
   },
   transactionRight: {
@@ -790,7 +791,7 @@ const styles = StyleSheet.create({
   transactionAmount: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   transactionStatusWrap: {
     flexDirection: 'row',
@@ -818,7 +819,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -826,17 +827,17 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   emptyText: {
     fontSize: 14,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 13,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textAlign: 'center',
   },
 

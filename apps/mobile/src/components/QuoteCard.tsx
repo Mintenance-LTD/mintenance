@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ContractorQuote } from '../services/QuoteBuilderService';
+import { theme } from '../theme';
 
 interface QuoteCardProps {
   quote: ContractorQuote;
@@ -13,12 +14,12 @@ interface QuoteCardProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  draft: '#717171',
-  sent: '#222222',
-  viewed: '#F59E0B',
-  accepted: '#10B981',
-  rejected: '#EF4444',
-  expired: '#B0B0B0',
+  draft: theme.colors.textSecondary,
+  sent: theme.colors.textPrimary,
+  viewed: theme.colors.accent,
+  accepted: theme.colors.primary,
+  rejected: theme.colors.error,
+  expired: theme.colors.textTertiary,
 };
 
 const STATUS_ICONS: Record<string, string> = {
@@ -53,7 +54,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
   const isExpired =
     quote.valid_until && new Date(quote.valid_until) < new Date();
   const actualStatus = isExpired ? 'expired' : quote.status;
-  const statusColor = STATUS_COLORS[actualStatus] || '#717171';
+  const statusColor = STATUS_COLORS[actualStatus] || theme.colors.textSecondary;
   const statusIcon = STATUS_ICONS[actualStatus] || 'document-outline';
 
   return (
@@ -73,7 +74,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
               <Ionicons
                 name={statusIcon as keyof typeof Ionicons.glyphMap}
                 size={12}
-                color="#FFFFFF"
+                color={theme.colors.textInverse}
               />
               <Text style={styles.statusText}>
                 {actualStatus.toUpperCase()}
@@ -98,7 +99,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
           <Ionicons
             name='calendar-outline'
             size={14}
-            color="#717171"
+            color={theme.colors.textSecondary}
           />
           <Text style={styles.detailText}>
             Created: {formatDate(quote.created_at)}
@@ -110,12 +111,12 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
             <Ionicons
               name='time-outline'
               size={14}
-              color={isExpired ? '#EF4444' : '#717171'}
+              color={isExpired ? theme.colors.error : theme.colors.textSecondary}
             />
             <Text
               style={[
                 styles.detailText,
-                isExpired && { color: '#EF4444' },
+                isExpired && { color: theme.colors.error },
               ]}
             >
               Valid until: {formatDate(quote.valid_until)}
@@ -143,7 +144,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
           <View style={styles.breakdownItem}>
             <Text style={styles.breakdownLabel}>Discount</Text>
             <Text
-              style={[styles.breakdownValue, { color: '#10B981' }]}
+              style={[styles.breakdownValue, { color: theme.colors.primary }]}
             >
               -{formatCurrency(quote.discount_amount)}
             </Text>
@@ -174,7 +175,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
           {quote.discount_percentage && quote.discount_percentage > 0 && (
             <View style={[styles.infoChip, styles.discountChip]}>
               <Text
-                style={[styles.infoChipText, { color: '#10B981' }]}
+                style={[styles.infoChipText, { color: theme.colors.primary }]}
               >
                 Discount: {quote.discount_percentage}%
               </Text>
@@ -186,7 +187,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
               <Ionicons
                 name='document-text-outline'
                 size={12}
-                color="#717171"
+                color={theme.colors.textSecondary}
               />
               <Text style={styles.infoChipText}>Has Notes</Text>
             </View>
@@ -203,7 +204,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
             onEdit();
           }}
         >
-          <Ionicons name='pencil' size={16} color="#717171" />
+          <Ionicons name='pencil' size={16} color={theme.colors.textSecondary} />
         </TouchableOpacity>
 
         {quote.status === 'draft' && (
@@ -214,7 +215,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
               onSend();
             }}
           >
-            <Ionicons name='send' size={16} color="#10B981" />
+            <Ionicons name='send' size={16} color={theme.colors.primary} />
           </TouchableOpacity>
         )}
 
@@ -225,7 +226,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
             onDuplicate();
           }}
         >
-          <Ionicons name='copy' size={16} color="#717171" />
+          <Ionicons name='copy' size={16} color={theme.colors.textSecondary} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -235,7 +236,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
             onDelete();
           }}
         >
-          <Ionicons name='trash' size={16} color="#EF4444" />
+          <Ionicons name='trash' size={16} color={theme.colors.error} />
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -244,7 +245,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -279,7 +280,7 @@ const styles = StyleSheet.create({
   quoteNumber: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   statusBadge: {
     flexDirection: 'row',
@@ -292,17 +293,17 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   projectTitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   clientName: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   amountContainer: {
     alignItems: 'flex-end',
@@ -310,12 +311,12 @@ const styles = StyleSheet.create({
   amount: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   amountLabel: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   detailsRow: {
     marginBottom: 12,
@@ -328,11 +329,11 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   description: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 18,
     marginBottom: 12,
   },
@@ -348,13 +349,13 @@ const styles = StyleSheet.create({
   },
   breakdownLabel: {
     fontSize: 11,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 2,
   },
   breakdownValue: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   additionalInfo: {
     flexDirection: 'row',
@@ -365,18 +366,18 @@ const styles = StyleSheet.create({
   infoChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
     gap: 4,
   },
   discountChip: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
   },
   infoChipText: {
     fontSize: 11,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
   },
   actions: {
@@ -389,12 +390,12 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 12,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sendButton: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
   },
   deleteButton: {
     backgroundColor: '#FEE2E2',

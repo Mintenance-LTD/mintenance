@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, memo } from 'react';
 import { View, TouchableOpacity, StyleSheet, Animated, ViewStyle } from 'react-native';
+import { theme } from '../../theme';
 
 // ============================================================================
 // ACCORDION COMPOUND COMPONENT
@@ -207,8 +208,8 @@ type AccordionCompound = React.NamedExoticComponent<AccordionProps> & {
 (Accordion as AccordionCompound).Content = AccordionContent;
 
 const styles = StyleSheet.create({
-  accordionItem: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#EBEBEB' },
+  accordionItem: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
   accordionTrigger: { padding: 16, flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "transparent" },
-  accordionTriggerOpen: { backgroundColor: '#F7F7F7' },
+  accordionTriggerOpen: { backgroundColor: theme.colors.backgroundSecondary },
   accordionContent: { padding: 16, paddingTop: 0 },
 });

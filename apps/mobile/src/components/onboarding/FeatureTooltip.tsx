@@ -13,6 +13,7 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
+import { theme } from '../../theme';
 
 const { width } = Dimensions.get('window');
 
@@ -198,7 +199,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: -20,
     right: -20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     ...Platform.select({
@@ -236,12 +237,12 @@ const styles = StyleSheet.create({
   arrowTop: {
     top: -8,
     borderBottomWidth: 8,
-    borderBottomColor: '#FFFFFF',
+    borderBottomColor: theme.colors.textInverse,
   },
   arrowBottom: {
     bottom: -8,
     borderTopWidth: 8,
-    borderTopColor: '#FFFFFF',
+    borderTopColor: theme.colors.textInverse,
   },
   closeButton: {
     position: 'absolute',
@@ -253,7 +254,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   closeButtonText: {
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     fontSize: 15,
   },
   iconContainer: {
@@ -271,12 +272,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   description: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 20,
     marginBottom: 16,
   },
@@ -292,18 +293,18 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
   },
   primaryButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
   },
   primaryButtonText: {
     fontSize: 13,
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontWeight: '600',
   },
   pulse: {
@@ -315,7 +316,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 8,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
 });
 

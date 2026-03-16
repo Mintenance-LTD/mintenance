@@ -8,6 +8,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../../../components/ui/Input';
+import { theme } from '../../../theme';
 
 interface ClientInfoProps {
   clientName: string;
@@ -53,7 +54,7 @@ export const ClientInfo: React.FC<ClientInfoProps> = ({
           style={styles.input}
         />
         <View style={styles.hintRow}>
-          <Ionicons name="mail-outline" size={12} color="#B0B0B0" />
+          <Ionicons name="mail-outline" size={12} color={theme.colors.textTertiary} />
           <Text style={styles.hintText}>The quote will be sent to this email address</Text>
         </View>
 
@@ -72,7 +73,7 @@ export const ClientInfo: React.FC<ClientInfoProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 20,
     padding: 20,
     marginBottom: 12,
@@ -98,7 +99,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.2,
   },
   inputGroup: {
@@ -116,7 +117,7 @@ const styles = StyleSheet.create({
   },
   hintText: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     fontStyle: 'italic',
   },
 });

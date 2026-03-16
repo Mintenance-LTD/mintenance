@@ -18,6 +18,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthService } from '../services/AuthService';
 import { AuthStackParamList } from '../navigation/types';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 type ForgotPasswordScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'ForgotPassword'>;
 
@@ -110,7 +111,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
 
           <View style={styles.successContainer}>
             <View style={styles.successIconWrap}>
-              <Ionicons name='checkmark-circle' size={48} color='#10B981' accessible={false} />
+              <Ionicons name='checkmark-circle' size={48} color={theme.colors.primary} accessible={false} />
             </View>
             <Text style={styles.successTitle} accessibilityRole='header'>Email Sent!</Text>
             <Text style={styles.successMessage}>
@@ -167,7 +168,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
           accessibilityLabel='Go back'
           accessibilityHint='Return to login screen'
         >
-          <Ionicons name='arrow-back' size={24} color='#222222' />
+          <Ionicons name='arrow-back' size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
 
         <View style={styles.headerContent}>
@@ -264,21 +265,21 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingBottom: 20,
     paddingHorizontal: 24,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   backIconButton: {
     position: 'absolute',
@@ -299,7 +300,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 26,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.3,
   },
   keyboardContainer: {
@@ -331,14 +332,14 @@ const styles = StyleSheet.create({
   instructionTitle: {
     fontSize: 26,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
     textAlign: 'center',
     letterSpacing: -0.3,
   },
   instructionText: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     paddingHorizontal: 20,
@@ -348,7 +349,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   backLinkText: {
-    color: '#10B981',
+    color: theme.colors.primary,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -362,7 +363,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -370,7 +371,7 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: 26,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginTop: 16,
     marginBottom: 12,
     textAlign: 'center',
@@ -378,36 +379,36 @@ const styles = StyleSheet.create({
   },
   successMessage: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 32,
   },
   emailHighlight: {
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   resendTimerText: {
     fontSize: 14,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textAlign: 'center',
     marginBottom: 24,
   },
   resendLinkText: {
     fontSize: 14,
-    color: '#10B981',
+    color: theme.colors.primary,
     fontWeight: '600',
     textAlign: 'center',
     marginBottom: 24,
   },
   backButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 28,
     paddingVertical: 16,
     paddingHorizontal: 32,
   },
   backButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '700',
   },

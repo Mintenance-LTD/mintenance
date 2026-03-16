@@ -24,6 +24,7 @@ import { useI18n } from '../hooks/useI18n';
 import Button from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Banner } from '../components/ui/Banner';
+import { theme } from '../theme';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -105,7 +106,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             </Text>
           </View>
           <Text style={styles.headerSubtitle} accessibilityRole='text'>
-            Connect homeowners and contractors easily
+            {String(t('auth.tagline'))}
           </Text>
 
           <View style={styles.trustRow}>
@@ -130,8 +131,8 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           >
             <SlideIn direction="up" distance={20} duration={400} delay={200}>
             <View style={styles.formHeading}>
-              <Text style={styles.formTitle}>Sign in to your account</Text>
-              <Text style={styles.formSubtitle}>Enter your details below</Text>
+              <Text style={styles.formTitle}>{String(t('auth.signInTitle'))}</Text>
+              <Text style={styles.formSubtitle}>{String(t('auth.signInSubtitle'))}</Text>
             </View>
             </SlideIn>
 
@@ -229,14 +230,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
             <View style={styles.dividerSection}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>New to Mintenance?</Text>
+              <Text style={styles.dividerText}>{String(t('auth.newToMintenance'))}</Text>
               <View style={styles.dividerLine} />
             </View>
 
               <View style={{ paddingHorizontal: 24 }}>
                 <Button
                   variant='secondary'
-                  title='Create Account'
+                  title={String(t('auth.createAccount'))}
                   onPress={() => {
                     haptics.buttonPress();
                     navigation.navigate('Register');
@@ -275,7 +276,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   header: {
     paddingBottom: 28,
@@ -316,7 +317,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   headerSubtitle: {
     fontSize: 15,
@@ -347,7 +348,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingTop: 20,
     paddingBottom: 24,
   },
@@ -358,13 +359,13 @@ const styles = StyleSheet.create({
   formTitle: {
     fontSize: 26,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
     letterSpacing: -0.3,
   },
   formSubtitle: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   formContainer: {
     paddingHorizontal: 24,
@@ -375,7 +376,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   forgotPasswordText: {
-    color: '#10B981',
+    color: theme.colors.primary,
     fontWeight: '600',
   },
   dividerSection: {
@@ -388,35 +389,35 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
   },
   dividerText: {
     marginHorizontal: 12,
     fontSize: 13,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     fontWeight: '500',
   },
   devSection: {
     marginTop: 16,
     marginHorizontal: 24,
     padding: 12,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.border,
     borderStyle: 'dashed',
   },
   devTitle: {
     textAlign: 'center',
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     marginBottom: 4,
   },
   devNote: {
     textAlign: 'center',
     fontSize: 11,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
 });
 

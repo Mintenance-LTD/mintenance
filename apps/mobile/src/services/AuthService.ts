@@ -407,7 +407,31 @@ export class AuthService {
     }
 
     try {
-      // Validate tokens before restoring session
+      // Biometric flow: BiometricService stores only the refresh token.
+      // When accessToken is missing/empty, use Supabase's refreshSession
+      // to obtain a fresh session (new access + refresh tokens).
+      if (!accessToken) {
+        const { data, error } = await supabase.auth.refreshSession({
+          refresh_token: refreshToken,
+        });
+
+        if (error) {
+          logger.warn('Biometric refresh-only session restoration failed', {
+            error: error.message,
+            service: 'auth',
+          });
+          throw new Error('Your session has expired. Please sign in again.');
+        }
+
+        if (!data.session) {
+          throw new Error('Failed to restore session from refresh token.');
+        }
+
+        const user = await this.getCurrentUser();
+        return { user, session: data.session };
+      }
+
+      // Full token path: validate accessToken before restoring session
       const tokenValidation = await this.validateToken(accessToken);
 
       if (!tokenValidation.valid) {

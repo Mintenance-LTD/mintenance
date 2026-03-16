@@ -9,6 +9,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { JobMapItem } from '../viewmodels/ExploreMapViewModel';
+import { theme } from '../../../theme';
 
 const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   plumbing: 'water',
@@ -23,15 +24,15 @@ const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 };
 
 const CATEGORY_COLORS: Record<string, { icon: string; bg: string }> = {
-  plumbing:   { icon: '#10B981', bg: '#D1FAE5' },
-  electrical: { icon: '#F59E0B', bg: '#FEF3C7' },
-  roofing:    { icon: '#10B981', bg: '#D1FAE5' },
+  plumbing:   { icon: theme.colors.primary, bg: theme.colors.primaryLight },
+  electrical: { icon: theme.colors.accent, bg: theme.colors.accentLight },
+  roofing:    { icon: theme.colors.primary, bg: theme.colors.primaryLight },
   painting:   { icon: '#3B82F6', bg: '#DBEAFE' },
-  carpentry:  { icon: '#F59E0B', bg: '#FEF3C7' },
+  carpentry:  { icon: theme.colors.accent, bg: theme.colors.accentLight },
   cleaning:   { icon: '#3B82F6', bg: '#DBEAFE' },
-  hvac:       { icon: '#EF4444', bg: '#FEE2E2' },
-  landscaping:{ icon: '#10B981', bg: '#D1FAE5' },
-  general:    { icon: '#717171', bg: '#F7F7F7' },
+  hvac:       { icon: theme.colors.error, bg: '#FEE2E2' },
+  landscaping:{ icon: theme.colors.primary, bg: theme.colors.primaryLight },
+  general:    { icon: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary },
 };
 
 function timeAgo(dateStr: string): string {
@@ -85,7 +86,7 @@ export const JobPreviewCard: React.FC<JobPreviewCardProps> = ({
           accessibilityRole="button"
           accessibilityLabel="Dismiss"
         >
-          <Ionicons name="close" size={16} color="#717171" />
+          <Ionicons name="close" size={16} color={theme.colors.textSecondary} />
         </TouchableOpacity>
 
         {/* Budget — FIRST, large */}
@@ -96,7 +97,7 @@ export const JobPreviewCard: React.FC<JobPreviewCardProps> = ({
 
         {/* Meta: category · distance · time */}
         <View style={styles.metaRow}>
-          <Ionicons name="location-outline" size={13} color="#717171" />
+          <Ionicons name="location-outline" size={13} color={theme.colors.textSecondary} />
           <Text style={styles.metaText}>
             {job.distance} km · {categoryLabel} · {timeAgo(job.created_at)}
           </Text>
@@ -110,7 +111,7 @@ export const JobPreviewCard: React.FC<JobPreviewCardProps> = ({
           </View>
           {isUrgent && (
             <View style={styles.urgentBadge}>
-              <Ionicons name="flame" size={11} color="#EF4444" />
+              <Ionicons name="flame" size={11} color={theme.colors.error} />
               <Text style={styles.urgentText}>Urgent</Text>
             </View>
           )}
@@ -125,7 +126,7 @@ export const JobPreviewCard: React.FC<JobPreviewCardProps> = ({
             accessibilityLabel="Bid on this job"
             activeOpacity={0.85}
           >
-            <Ionicons name="flash" size={15} color="#FFFFFF" />
+            <Ionicons name="flash" size={15} color={theme.colors.textInverse} />
             <Text style={styles.bidButtonText}>Quick Bid</Text>
           </TouchableOpacity>
 
@@ -137,7 +138,7 @@ export const JobPreviewCard: React.FC<JobPreviewCardProps> = ({
             activeOpacity={0.7}
           >
             <Text style={styles.detailsButtonText}>Details</Text>
-            <Ionicons name="arrow-forward" size={14} color="#222222" />
+            <Ionicons name="arrow-forward" size={14} color={theme.colors.textPrimary} />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -158,7 +159,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 20,
     padding: 18,
     ...Platform.select({
@@ -174,7 +175,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,
@@ -183,14 +184,14 @@ const styles = StyleSheet.create({
   budget: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.5,
     marginBottom: 4,
   },
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     lineHeight: 22,
     marginBottom: 6,
     paddingRight: 32,
@@ -203,7 +204,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
 
   tagsRow: {
@@ -236,7 +237,7 @@ const styles = StyleSheet.create({
   urgentText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#EF4444',
+    color: theme.colors.error,
   },
 
   actionRow: {
@@ -249,14 +250,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     borderRadius: 14,
     paddingVertical: 13,
   },
   bidButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   detailsButton: {
     flex: 1,
@@ -266,11 +267,11 @@ const styles = StyleSheet.create({
     gap: 4,
     borderRadius: 14,
     paddingVertical: 12,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   detailsButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
 });

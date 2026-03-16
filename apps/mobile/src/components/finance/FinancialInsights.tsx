@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { FinancialSummary } from '../../services/contractor-business';
+import { theme } from '../../theme';
 
 interface FinancialInsightsProps {
   financialData: FinancialSummary;
@@ -15,8 +16,8 @@ export const FinancialInsights: React.FC<FinancialInsightsProps> = ({
   const insights: { icon: keyof typeof Ionicons.glyphMap; iconColor: string; iconBg: string; text: string; sub: string }[] = [
     {
       icon: 'trending-up',
-      iconColor: '#10B981',
-      iconBg: '#D1FAE5',
+      iconColor: theme.colors.primary,
+      iconBg: theme.colors.primaryLight,
       text: `Revenue grew ${financialData.quarterly_growth.toFixed(1)}% this quarter`,
       sub: 'Keep up the momentum!',
     },
@@ -25,8 +26,8 @@ export const FinancialInsights: React.FC<FinancialInsightsProps> = ({
   if (financialData.overdue_amount > 0) {
     insights.push({
       icon: 'warning',
-      iconColor: '#F59E0B',
-      iconBg: '#FEF3C7',
+      iconColor: theme.colors.accent,
+      iconBg: theme.colors.accentLight,
       text: `${formatCurrency(financialData.overdue_amount)} in overdue invoices`,
       sub: 'Send reminders to improve cash flow',
     });
@@ -64,7 +65,7 @@ export const FinancialInsights: React.FC<FinancialInsightsProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 20,
     padding: 20,
     marginBottom: 32,
@@ -76,7 +77,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.3,
     marginBottom: 16,
   },
@@ -85,7 +86,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: theme.colors.borderLight,
   },
   rowLast: {
     borderBottomWidth: 0,
@@ -104,14 +105,14 @@ const styles = StyleSheet.create({
   },
   insightText: {
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '600',
     lineHeight: 20,
     marginBottom: 2,
   },
   insightSub: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 16,
   },
 });

@@ -19,6 +19,7 @@ import { VideoCallService, VideoCall, CallSession, CallParticipant } from '../..
 import { useAuth } from '../../contexts/AuthContext';
 import { performanceMonitor } from '../../utils/performanceMonitor';
 import { logger } from '../../utils/logger';
+import { theme } from '../../theme';
 
 // Temporary mock for Camera until expo-camera is installed
 const Camera = {
@@ -347,11 +348,11 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
 
   const getQualityColor = (): string => {
     switch (connectionQuality) {
-      case 'excellent': return '#10B981';
-      case 'good': return '#222222';
-      case 'fair': return '#F59E0B';
-      case 'poor': return '#EF4444';
-      default: return '#717171';
+      case 'excellent': return theme.colors.primary;
+      case 'good': return theme.colors.textPrimary;
+      case 'fair': return theme.colors.accent;
+      case 'poor': return theme.colors.error;
+      default: return theme.colors.textSecondary;
     }
   };
 
@@ -384,7 +385,7 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
     return (
       <SafeAreaView style={styles.permissionContainer}>
         <View style={styles.permissionContent}>
-          <Ionicons name="videocam-off" size={64} color="#717171" />
+          <Ionicons name="videocam-off" size={64} color={theme.colors.textSecondary} />
           <Text style={styles.permissionTitle}>Camera and Microphone Access Required</Text>
           <Text style={styles.permissionMessage}>
             Please grant camera and microphone permissions to join the video call.
@@ -401,7 +402,7 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
     return (
       <SafeAreaView style={styles.connectingContainer}>
         <StatusBar barStyle="light-content" backgroundColor="black" />
-        <ActivityIndicator size="large" color="#222222" />
+        <ActivityIndicator size="large" color={theme.colors.textPrimary} />
         <Text style={styles.connectingText}>Connecting to call...</Text>
       </SafeAreaView>
     );
@@ -409,7 +410,7 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#F7F7F7" />
+      <StatusBar barStyle="light-content" backgroundColor={theme.colors.backgroundSecondary} />
 
       {/* Video Views */}
       <TouchableOpacity
@@ -427,7 +428,7 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
             </View>
           ) : (
             <View style={styles.videoDisabled}>
-              <Ionicons name="videocam-off" size={60} color="#FFFFFF" />
+              <Ionicons name="videocam-off" size={60} color={theme.colors.textInverse} />
               <Text style={styles.videoDisabledText}>Video disabled</Text>
             </View>
           )}
@@ -438,20 +439,20 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
           {videoEnabled && hasPermissions ? (
             <View style={styles.localVideo}>
               <View style={styles.localVideoDisabled}>
-                <Ionicons name="videocam" size={30} color="#FFFFFF" />
+                <Ionicons name="videocam" size={30} color={theme.colors.textInverse} />
                 <Text style={styles.videoPlaceholderSmall}>Camera Unavailable</Text>
               </View>
             </View>
           ) : (
             <View style={styles.localVideoDisabled}>
-              <Ionicons name="person" size={30} color="#FFFFFF" />
+              <Ionicons name="person" size={30} color={theme.colors.textInverse} />
             </View>
           )}
           <View style={styles.pipLabel}>
             <Text style={styles.pipLabelText}>You</Text>
           </View>
           <TouchableOpacity style={styles.switchCameraButton} onPress={switchCamera}>
-            <Ionicons name="camera-reverse" size={20} color="#FFFFFF" />
+            <Ionicons name="camera-reverse" size={20} color={theme.colors.textInverse} />
           </TouchableOpacity>
         </View>
 
@@ -496,7 +497,7 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
               <Ionicons
                 name={audioEnabled ? 'mic' : 'mic-off'}
                 size={24}
-                color={audioEnabled ? '#FFFFFF' : '#EF4444'}
+                color={audioEnabled ? '#FFFFFF' : theme.colors.error}
               />
             </TouchableOpacity>
 
@@ -507,12 +508,12 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
               <Ionicons
                 name={videoEnabled ? 'videocam' : 'videocam-off'}
                 size={24}
-                color={videoEnabled ? '#FFFFFF' : '#EF4444'}
+                color={videoEnabled ? '#FFFFFF' : theme.colors.error}
               />
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.endCallButton} onPress={endCall}>
-              <Ionicons name="call" size={28} color="#FFFFFF" />
+              <Ionicons name="call" size={28} color={theme.colors.textInverse} />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -522,12 +523,12 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
               <Ionicons
                 name={speakerOn ? 'volume-high' : 'volume-low'}
                 size={24}
-                color="#FFFFFF"
+                color={theme.colors.textInverse}
               />
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.controlButton} onPress={switchCamera}>
-              <Ionicons name="camera-reverse" size={24} color="#FFFFFF" />
+              <Ionicons name="camera-reverse" size={24} color={theme.colors.textInverse} />
             </TouchableOpacity>
           </View>
 
@@ -540,7 +541,7 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
               <Ionicons
                 name="desktop"
                 size={20}
-                color={screenSharing ? '#222222' : '#FFFFFF'}
+                color={screenSharing ? theme.colors.textPrimary : theme.colors.textInverse}
               />
               <Text style={[
                 styles.secondaryButtonText,
@@ -557,7 +558,7 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
               <Ionicons
                 name="recording"
                 size={20}
-                color={isRecording ? '#EF4444' : '#FFFFFF'}
+                color={isRecording ? theme.colors.error : theme.colors.textInverse}
               />
               <Text style={[
                 styles.secondaryButtonText,

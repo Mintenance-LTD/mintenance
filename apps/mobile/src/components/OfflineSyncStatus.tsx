@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNetworkState } from '../hooks/useNetworkState';
 import { OfflineManager, SyncStatus } from '../services/OfflineManager';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 interface OfflineSyncStatusProps {
   showWhenOnline?: boolean;
@@ -123,13 +124,13 @@ const OfflineSyncStatus: React.FC<OfflineSyncStatusProps> = ({
     if (!isOnline) {
       return {
         icon: 'cloud-offline-outline' as const,
-        color: '#F59E0B',
+        color: theme.colors.accent,
         text: 'Offline',
         description:
           pendingCount > 0
             ? `${pendingCount} changes pending`
             : 'Working offline',
-        backgroundColor: '#FEF3C7',
+        backgroundColor: theme.colors.accentLight,
       };
     }
 
@@ -137,7 +138,7 @@ const OfflineSyncStatus: React.FC<OfflineSyncStatusProps> = ({
       case 'syncing':
         return {
           icon: 'sync-outline' as const,
-          color: '#222222',
+          color: theme.colors.textPrimary,
           text: 'Syncing',
           description: 'Syncing pending changes...',
           backgroundColor: 'rgba(34, 34, 34, 0.04)',
@@ -145,7 +146,7 @@ const OfflineSyncStatus: React.FC<OfflineSyncStatusProps> = ({
       case 'error':
         return {
           icon: 'alert-circle-outline' as const,
-          color: '#EF4444',
+          color: theme.colors.error,
           text: 'Sync Error',
           description: `${pendingCount} changes failed to sync`,
           backgroundColor: '#FEF2F2',
@@ -153,15 +154,15 @@ const OfflineSyncStatus: React.FC<OfflineSyncStatusProps> = ({
       case 'pending':
         return {
           icon: 'time-outline' as const,
-          color: '#F59E0B',
+          color: theme.colors.accent,
           text: 'Pending',
           description: `${pendingCount} changes waiting to sync`,
-          backgroundColor: '#FEF3C7',
+          backgroundColor: theme.colors.accentLight,
         };
       default:
         return {
           icon: 'checkmark-circle-outline' as const,
-          color: '#10B981',
+          color: theme.colors.primary,
           text: 'Synced',
           description: 'All changes synced',
           backgroundColor: '#ECFDF5',
@@ -257,7 +258,7 @@ const OfflineSyncStatus: React.FC<OfflineSyncStatusProps> = ({
               <Ionicons
                 name='trash-outline'
                 size={16}
-                color='#B0B0B0'
+                color={theme.colors.textTertiary}
               />
             </TouchableOpacity>
           )}
@@ -275,7 +276,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
     zIndex: 1000,
   },
   topPosition: {
@@ -306,12 +307,12 @@ const styles = StyleSheet.create({
   },
   descriptionText: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 4,
   },
   connectionText: {
     fontSize: 12,
-    color: '#F59E0B',
+    color: theme.colors.accent,
     fontStyle: 'italic',
   },
   rightContent: {

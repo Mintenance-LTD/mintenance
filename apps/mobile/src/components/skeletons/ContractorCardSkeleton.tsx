@@ -12,6 +12,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Skeleton, SkeletonAvatar, SkeletonGroup } from './Skeleton';
+import { theme } from '../../theme';
 
 export interface ContractorCardSkeletonProps {
   /**
@@ -126,7 +127,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
   },
@@ -169,7 +170,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F7F7F7',
+    borderTopColor: theme.colors.backgroundSecondary,
     marginBottom: 16,
   },
   stat: {

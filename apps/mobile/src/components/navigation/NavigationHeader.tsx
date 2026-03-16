@@ -21,6 +21,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { theme } from '../../theme';
 
 const appIcon = require('../../../assets/icon.png');
 
@@ -45,7 +46,7 @@ export interface NavigationHeaderProps {
   onBackPress?: () => void;
   style?: ViewStyle;
   titleStyle?: TextStyle;
-  /** Override icon/text tint color (default: '#222222') */
+  /** Override icon/text tint color (default: theme.colors.textPrimary) */
   tintColor?: string;
   subtitle?: string;
   notificationCount?: number;
@@ -78,7 +79,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   const insets = useSafeAreaInsets();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const iconColor = tintColor || '#222222';
-  const subtitleColor = tintColor ? `${tintColor}B3` : '#717171';
+  const subtitleColor = tintColor ? `${tintColor}B3` : theme.colors.textSecondary;
 
   const handleBackPress = () => {
     if (onBackPress) {
@@ -243,7 +244,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
                       <Text style={styles.dropdownItemSubtitle}>{item.subtitle}</Text>
                     )}
                   </View>
-                  <Ionicons name="chevron-forward" size={14} color="#B0B0B0" />
+                  <Ionicons name="chevron-forward" size={14} color={theme.colors.textTertiary} />
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -256,9 +257,9 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
     zIndex: 10,
   },
   headerContent: {
@@ -283,12 +284,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.3,
   },
   subtitle: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 1,
   },
   rightActions: { flexDirection: 'row', alignItems: 'center', gap: 2 },
@@ -296,7 +297,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 6,
     right: 6,
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.colors.error,
     borderRadius: 8,
     minWidth: 16,
     height: 16,
@@ -305,7 +306,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
   },
   badgeText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 9,
     fontWeight: '700',
   },
@@ -313,13 +314,13 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 4,
   },
   avatarText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -331,7 +332,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 12,
     width: 260,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     overflow: 'hidden',
     maxHeight: 420,
@@ -357,12 +358,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   dropdownAvatarText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -370,16 +371,16 @@ const styles = StyleSheet.create({
   dropdownUserName: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   dropdownUserRole: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 1,
   },
   dropdownDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
   },
   dropdownItem: {
     flexDirection: 'row',
@@ -388,7 +389,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     gap: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: theme.colors.borderLight,
   },
   dropdownItemLast: { borderBottomWidth: 0 },
   dropdownItemIcon: {
@@ -402,11 +403,11 @@ const styles = StyleSheet.create({
   dropdownItemLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   dropdownItemSubtitle: {
     fontSize: 11,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 1,
   },
 });

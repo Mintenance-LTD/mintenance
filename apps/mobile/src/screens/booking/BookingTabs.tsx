@@ -8,6 +8,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { BookingStatus, Booking } from './BookingStatusScreen';
+import { theme } from '../../theme';
 
 interface BookingTabsProps {
   activeTab: BookingStatus;
@@ -72,7 +73,7 @@ export const BookingTabs: React.FC<BookingTabsProps> = ({
 const styles = StyleSheet.create({
   tabsContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginTop: 12,
     borderRadius: 14,
@@ -98,18 +99,18 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   activeTab: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   tabText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   activeTabText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   badge: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -123,9 +124,9 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   activeBadgeText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 });

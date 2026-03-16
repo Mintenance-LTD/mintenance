@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useCallback, useMemo } from 'react';
-import { User, Job } from '../types/schemas';
+import { Job } from '../types/schemas';
 
 // Define Notification type locally since it's not in schemas
 interface Notification {
@@ -16,12 +16,9 @@ interface Notification {
 // ============================================================================
 
 export interface AppState {
-  // User State
-  user: User | null;
-  isAuthenticated: boolean;
+  // UI State (auth state lives in AuthContext — do not duplicate here)
   isLoading: boolean;
-  
-  // UI State
+
   theme: 'light' | 'dark' | 'system';
   notifications: Notification[];
   isOffline: boolean;
@@ -37,9 +34,7 @@ export interface AppState {
 }
 
 export type AppAction =
-  | { type: 'SET_USER'; payload: User | null }
   | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_AUTHENTICATED'; payload: boolean }
   | { type: 'SET_THEME'; payload: 'light' | 'dark' | 'system' }
   | { type: 'ADD_NOTIFICATION'; payload: Notification }
   | { type: 'REMOVE_NOTIFICATION'; payload: string }
@@ -61,12 +56,9 @@ export type AppAction =
 // ============================================================================
 
 const initialState: AppState = {
-  // User State
-  user: null,
-  isAuthenticated: false,
+  // UI State (auth state lives in AuthContext)
   isLoading: false,
-  
-  // UI State
+
   theme: 'system',
   notifications: [],
   isOffline: false,
@@ -87,23 +79,10 @@ const initialState: AppState = {
 
 const appStateReducer = (state: AppState, action: AppAction): AppState => {
   switch (action.type) {
-    case 'SET_USER':
-      return {
-        ...state,
-        user: action.payload,
-        isAuthenticated: action.payload !== null,
-      };
-    
     case 'SET_LOADING':
       return {
         ...state,
         isLoading: action.payload,
-      };
-    
-    case 'SET_AUTHENTICATED':
-      return {
-        ...state,
-        isAuthenticated: action.payload,
       };
     
     case 'SET_THEME':
@@ -223,7 +202,6 @@ interface AppStateContextType {
   dispatch: React.Dispatch<AppAction>;
   
   // Convenience methods
-  setUser: (user: User | null) => void;
   setLoading: (loading: boolean) => void;
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
   addNotification: (notification: Omit<Notification, 'id'>) => void;
@@ -262,10 +240,6 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // ============================================================================
   // CONVENIENCE METHODS
   // ============================================================================
-
-  const setUser = useCallback((user: User | null) => {
-    dispatch({ type: 'SET_USER', payload: user });
-  }, []);
 
   const setLoading = useCallback((loading: boolean) => {
     dispatch({ type: 'SET_LOADING', payload: loading });
@@ -356,7 +330,6 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     dispatch,
     
     // Methods
-    setUser,
     setLoading,
     setTheme,
     addNotification,
@@ -379,7 +352,6 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     getJobById,
   }), [
     state,
-    setUser,
     setLoading,
     setTheme,
     addNotification,
@@ -429,8 +401,7 @@ export const useAppSelector = <T,>(selector: (state: AppState) => T): T => {
 };
 
 // Common selectors
-export const useUser = () => useAppSelector(state => state.user);
-export const useIsAuthenticated = () => useAppSelector(state => state.isAuthenticated);
+// auth selectors removed — use useAuth from AuthContext
 export const useIsLoading = () => useAppSelector(state => state.isLoading);
 export const useTheme = () => useAppSelector(state => state.theme);
 export const useNotifications = () => useAppSelector(state => state.notifications);

@@ -10,6 +10,7 @@ import {
   Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 
 export type InputSize = 'sm' | 'md' | 'lg';
 export type InputVariant = 'outline' | 'filled' | 'underline';
@@ -97,11 +98,11 @@ export const Input = forwardRef<TextInput, InputProps>(
         const animatedLabelStyle = {
           position: 'absolute' as const,
           left: 16,
-          backgroundColor: '#F7F7F7',
+          backgroundColor: theme.colors.backgroundSecondary,
           paddingHorizontal: 4,
           fontSize: labelAnimation.interpolate({ inputRange: [0, 1], outputRange: [15, 13] }),
           top: labelAnimation.interpolate({ inputRange: [0, 1], outputRange: [12, -8] }),
-          color: isFocused ? '#222222' : '#717171',
+          color: isFocused ? theme.colors.textPrimary : theme.colors.textSecondary,
           zIndex: 1,
         };
         return (
@@ -157,7 +158,7 @@ export const Input = forwardRef<TextInput, InputProps>(
             onBlur={handleBlur}
             onChangeText={handleChangeText}
             editable={state !== 'disabled'}
-            placeholderTextColor={variant === 'outline' && label ? 'transparent' : '#B0B0B0'}
+            placeholderTextColor={variant === 'outline' && label ? 'transparent' : theme.colors.textTertiary}
             selectionColor="#222222"
             {...textInputProps}
           />
@@ -195,7 +196,7 @@ const getContainerStyles = (
         borderWidth: isFocused ? 2 : 1,
         borderRadius: 12,
         borderColor: getBorderColor(state, isFocused),
-        backgroundColor: state === 'disabled' ? '#F7F7F7' : '#FFFFFF',
+        backgroundColor: state === 'disabled' ? '#F7F7F7' : theme.colors.textInverse,
       };
     case 'filled':
       return {
@@ -203,7 +204,7 @@ const getContainerStyles = (
         borderRadius: 12,
         borderBottomLeftRadius: 0,
         borderBottomRightRadius: 0,
-        backgroundColor: state === 'disabled' ? '#EBEBEB' : '#F7F7F7',
+        backgroundColor: state === 'disabled' ? '#EBEBEB' : theme.colors.backgroundSecondary,
         borderBottomWidth: isFocused ? 2 : 1,
         borderBottomColor: getBorderColor(state, isFocused),
       };
@@ -223,22 +224,22 @@ const getContainerStyles = (
 const getTextStyles = (size: InputSize, state: InputState) => ({
   flex: 1,
   fontSize: INPUT_SIZES[size].fontSize,
-  color: state === 'disabled' ? '#B0B0B0' : '#222222',
+  color: state === 'disabled' ? '#B0B0B0' : theme.colors.textPrimary,
 });
 
 const getBorderColor = (state: InputState, isFocused: boolean): string => {
-  if (state === 'error') return '#EF4444';
-  if (state === 'success') return '#10B981';
-  if (isFocused) return '#222222';
+  if (state === 'error') return theme.colors.error;
+  if (state === 'success') return theme.colors.primary;
+  if (isFocused) return theme.colors.textPrimary;
   return '#EBEBEB';
 };
 
 const getIconColor = (state: InputState, isFocused: boolean): string => {
-  if (state === 'error') return '#EF4444';
-  if (state === 'success') return '#10B981';
-  if (state === 'disabled') return '#B0B0B0';
-  if (isFocused) return '#222222';
-  return '#B0B0B0';
+  if (state === 'error') return theme.colors.error;
+  if (state === 'success') return theme.colors.primary;
+  if (state === 'disabled') return theme.colors.textTertiary;
+  if (isFocused) return theme.colors.textPrimary;
+  return theme.colors.textTertiary;
 };
 
 const styles = StyleSheet.create({
@@ -248,11 +249,11 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   required: {
-    color: '#EF4444',
+    color: theme.colors.error,
   },
   iconContainer: {
     justifyContent: 'center',
@@ -270,12 +271,12 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     marginTop: 4,
     lineHeight: 18,
   },
   errorText: {
-    color: '#EF4444',
+    color: theme.colors.error,
   },
 });
 

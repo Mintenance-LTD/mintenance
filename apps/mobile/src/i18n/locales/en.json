@@ -40,6 +40,10 @@
     "loginError": "Login failed. Please check your credentials.",
     "registerSuccess": "Account created successfully!",
     "registerError": "Registration failed. Please try again.",
+    "tagline": "Connect homeowners and contractors easily",
+    "signInTitle": "Sign in to your account",
+    "signInSubtitle": "Enter your details below",
+    "newToMintenance": "New to Mintenance?",
     "termsAndPrivacy": "By signing up, you agree to our Terms & Privacy Policy",
     "alreadyHaveAccount": "Already have an account? Sign In",
     "dontHaveAccount": "Don't have an account? Sign Up",
@@ -85,7 +89,13 @@
     "completedJobs": "Completed Jobs",
     "verifiedContractor": "Verified Contractor",
     "noAppointments": "No appointments today",
-    "loadingDashboard": "Loading dashboard..."
+    "loadingDashboard": "Loading dashboard...",
+    "loadingProjects": "Loading your projects...",
+    "readyToFix": "Ready to get something fixed?",
+    "dashboardError": "Failed to load dashboard",
+    "goodMorningName": "Good morning",
+    "goodAfternoonName": "Good afternoon",
+    "goodEveningName": "Good evening"
   },
   "jobs": {
     "postJob": "Post a Job",
@@ -267,7 +277,9 @@
     "invalidFileType": "Invalid file type",
     "locationPermissionDenied": "Location permission denied",
     "cameraPermissionDenied": "Camera permission denied",
-    "storagePermissionDenied": "Storage permission denied"
+    "storagePermissionDenied": "Storage permission denied",
+    "oops": "Oops!",
+    "tryAgain": "Try Again"
   },
   "success": {
     "profileUpdated": "Profile updated successfully!",

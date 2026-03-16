@@ -15,6 +15,7 @@ import { VideoCallService } from '../../services/VideoCallService';
 import { useAuth } from '../../contexts/AuthContext';
 import { logger } from '../../utils/logger';
 import haptics from '../../utils/haptics';
+import { theme } from '../../theme';
 
 interface VideoCallSchedulerProps {
   jobId: string;
@@ -201,7 +202,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Ionicons name="close" size={24} color="#222222" />
+            <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Schedule Video Call</Text>
           <View style={styles.placeholder} />
@@ -214,7 +215,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
             <View style={styles.participantCard}>
               <View style={styles.participantRow}>
                 <View style={styles.participantAvatar}>
-                  <Ionicons name="person" size={20} color="#222222" />
+                  <Ionicons name="person" size={20} color={theme.colors.textPrimary} />
                 </View>
                 <Text style={styles.participantName}>You</Text>
                 <View style={styles.hostBadge}>
@@ -223,7 +224,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
               </View>
               <View style={styles.participantRow}>
                 <View style={styles.participantAvatar}>
-                  <Ionicons name="person" size={20} color="#717171" />
+                  <Ionicons name="person" size={20} color={theme.colors.textSecondary} />
                 </View>
                 <Text style={styles.participantName}>{otherUserName}</Text>
               </View>
@@ -251,8 +252,8 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
                     size={20}
                     color={
                       callType === option.value
-                        ? '#FFFFFF'
-                        : '#717171'
+                        ? theme.colors.textInverse
+                        : theme.colors.textSecondary
                     }
                   />
                   <Text
@@ -316,11 +317,11 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
                   setShowDatePicker(true);
                 }}
               >
-                <Ionicons name="calendar" size={20} color="#222222" />
+                <Ionicons name="calendar" size={20} color={theme.colors.textPrimary} />
                 <Text style={styles.dateTimeButtonText}>
                   {formatDateTime(selectedTime)}
                 </Text>
-                <Ionicons name="chevron-forward" size={16} color="#717171" />
+                <Ionicons name="chevron-forward" size={16} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             </View>
           </View>
@@ -329,7 +330,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
           <View style={styles.summaryContainer}>
             <View style={styles.summaryCard}>
               <View style={styles.summaryHeader}>
-                <Ionicons name="time" size={20} color="#222222" />
+                <Ionicons name="time" size={20} color={theme.colors.textPrimary} />
                 <Text style={styles.summaryTitle}>Scheduled for</Text>
               </View>
               <Text style={styles.summaryDateTime}>{formatDateTime(selectedTime)}</Text>
@@ -382,7 +383,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -391,8 +392,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
   },
   closeButton: {
     padding: 4,
@@ -400,7 +401,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   placeholder: {
     width: 32,
@@ -415,11 +416,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   participantCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     padding: 16,
     gap: 12,
@@ -433,7 +434,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -441,10 +442,10 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   hostBadge: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -452,7 +453,7 @@ const styles = StyleSheet.create({
   hostBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   callTypeContainer: {
     gap: 8,
@@ -460,50 +461,50 @@ const styles = StyleSheet.create({
   callTypeOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     padding: 16,
     borderRadius: 12,
     gap: 12,
   },
   callTypeOptionSelected: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   callTypeLabel: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   callTypeLabelSelected: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   quickOptionsContainer: {
     gap: 8,
   },
   quickOption: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     padding: 16,
     borderRadius: 12,
   },
   quickOptionSelected: {
     backgroundColor: 'rgba(34, 34, 34, 0.06)',
     borderWidth: 2,
-    borderColor: '#222222',
+    borderColor: theme.colors.textPrimary,
   },
   quickOptionLabel: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   quickOptionLabelSelected: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   quickOptionTime: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   quickOptionTimeSelected: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   customTimeContainer: {
     gap: 8,
@@ -511,7 +512,7 @@ const styles = StyleSheet.create({
   dateTimeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     padding: 16,
     borderRadius: 12,
     gap: 12,
@@ -520,14 +521,14 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   summaryContainer: {
     marginTop: 24,
     marginBottom: 24,
   },
   summaryCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     padding: 20,
     borderRadius: 16,
     ...Platform.select({
@@ -551,26 +552,26 @@ const styles = StyleSheet.create({
   summaryTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   summaryDateTime: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   summaryType: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   bottomActions: {
     flexDirection: 'row',
     paddingHorizontal: 16,
     paddingVertical: 16,
     paddingBottom: Platform.OS === 'ios' ? 34 : 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
     gap: 12,
   },
   actionButton: {
@@ -581,23 +582,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   scheduleButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   scheduleButtonDisabled: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   scheduleButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 });
 

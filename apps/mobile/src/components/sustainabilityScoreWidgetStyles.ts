@@ -1,8 +1,9 @@
 import { StyleSheet, Platform } from 'react-native';
+import { theme } from '../theme';
 
 export const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     marginVertical: 8,
     overflow: 'hidden',
@@ -22,7 +23,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     ...Platform.select({
       ios: {
@@ -43,11 +44,11 @@ export const styles = StyleSheet.create({
   compactScoreText: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#10B981',
+    color: theme.colors.primary,
   },
   compactScoreLabel: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   compactInfo: {
     flex: 1,
@@ -55,7 +56,7 @@ export const styles = StyleSheet.create({
   compactTitle: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   compactMeta: {
@@ -65,12 +66,12 @@ export const styles = StyleSheet.create({
   },
   compactCertification: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   compactGrade: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#10B981',
+    color: theme.colors.primary,
   },
   loadingContainer: {
     alignItems: 'center',
@@ -78,7 +79,7 @@ export const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 8,
   },
   errorContainer: {
@@ -87,7 +88,7 @@ export const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 15,
-    color: '#EF4444',
+    color: theme.colors.error,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -97,7 +98,7 @@ export const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 8,
   },
   header: {
@@ -106,7 +107,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -115,7 +116,7 @@ export const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginLeft: 8,
   },
   headerRight: {
@@ -149,7 +150,7 @@ export const styles = StyleSheet.create({
   },
   scoreGrade: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 4,
   },
   certificationType: {
@@ -162,7 +163,7 @@ export const styles = StyleSheet.create({
   certificationText: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   breakdown: {
     flexDirection: 'row',
@@ -173,7 +174,7 @@ export const styles = StyleSheet.create({
   },
   breakdownLabel: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 4,
   },
   breakdownScore: {
@@ -185,12 +186,12 @@ export const styles = StyleSheet.create({
   },
   breakdownGrade: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   gamificationContainer: {
     padding: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
   },
   levelContainer: {
     alignItems: 'center',
@@ -199,16 +200,16 @@ export const styles = StyleSheet.create({
   currentLevel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   nextMilestone: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   progressBar: {
     height: 8,
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -219,7 +220,7 @@ export const styles = StyleSheet.create({
   insightsContainer: {
     padding: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
   },
   insightItem: {
     flexDirection: 'row',
@@ -235,16 +236,16 @@ export const styles = StyleSheet.create({
   insightText: {
     flex: 1,
     fontSize: 13,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     lineHeight: 18,
   },
   expandedContent: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   tab: {
     flex: 1,
@@ -254,16 +255,16 @@ export const styles = StyleSheet.create({
   },
   activeTab: {
     borderBottomWidth: 2,
-    borderBottomColor: '#222222',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: theme.colors.textPrimary,
+    backgroundColor: theme.colors.surface,
   },
   tabText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   activeTabText: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   tabContent: {
     minHeight: 200,
@@ -275,23 +276,23 @@ export const styles = StyleSheet.create({
   detailTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   detailText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 20,
   },
   detailValue: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   detailSubtext: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   progressContent: {
     alignItems: 'center',
@@ -299,12 +300,12 @@ export const styles = StyleSheet.create({
   },
   comingSoonText: {
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   comingSoonSubtext: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
   },
   tipSection: {
@@ -313,12 +314,12 @@ export const styles = StyleSheet.create({
   tipTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   tipText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 20,
   },
   footer: {
@@ -327,23 +328,23 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
   },
   recalculateButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
   },
   recalculateText: {
     fontSize: 13,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginLeft: 4,
   },
   lastUpdated: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
 });

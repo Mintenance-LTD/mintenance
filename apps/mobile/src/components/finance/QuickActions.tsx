@@ -3,14 +3,15 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../../navigation/types';
+import { theme } from '../../theme';
 
 interface QuickActionsProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList>;
 }
 
 const ACTIONS = [
-  { icon: 'receipt-outline' as const, label: 'Invoices', color: '#10B981', bg: '#D1FAE5', screen: 'InvoiceManagement' },
-  { icon: 'card-outline' as const, label: 'Expenses', color: '#F59E0B', bg: '#FEF3C7', screen: 'Expenses' },
+  { icon: 'receipt-outline' as const, label: 'Invoices', color: theme.colors.primary, bg: theme.colors.primaryLight, screen: 'InvoiceManagement' },
+  { icon: 'card-outline' as const, label: 'Expenses', color: theme.colors.accent, bg: theme.colors.accentLight, screen: 'Expenses' },
   { icon: 'cash-outline' as const, label: 'Payouts', color: '#3B82F6', bg: '#DBEAFE', screen: 'Payouts' },
   { icon: 'analytics-outline' as const, label: 'Reports', color: '#8B5CF6', bg: '#EDE9FE', screen: 'Reporting' },
 ];
@@ -40,7 +41,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 20,
     padding: 20,
     marginBottom: 16,
@@ -52,7 +53,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.3,
     marginBottom: 16,
   },
@@ -74,7 +75,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '600',
     textAlign: 'center',
   },

@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../hooks/useI18n';
 import { useHaptics } from '../utils/haptics';
 import { useAccessibleText } from '../hooks/useAccessibleText';
+import { theme } from '../theme';
 
 interface SearchBarProps {
   placeholder?: string;
@@ -160,7 +161,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         <Ionicons
           name='search'
           size={20}
-          color={isFocused ? '#222222' : '#B0B0B0'}
+          color={isFocused ? theme.colors.textPrimary : theme.colors.textTertiary}
           style={styles.searchIcon}
         />
 
@@ -174,7 +175,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
           onBlur={handleBlur}
           onSubmitEditing={handleSearch}
           placeholder={placeholder || String(t('common.search'))}
-          placeholderTextColor="#B0B0B0"
+          placeholderTextColor={theme.colors.textTertiary}
           autoFocus={autoFocus}
           editable={!disabled}
           returnKeyType='search'
@@ -190,7 +191,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         {loading && (
           <ActivityIndicator
             size='small'
-            color="#222222"
+            color={theme.colors.textPrimary}
             style={styles.loadingIndicator}
             testID='activity-indicator'
           />
@@ -210,7 +211,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             <Ionicons
               name='close-circle'
               size={20}
-              color="#B0B0B0"
+              color={theme.colors.textTertiary}
             />
           </TouchableOpacity>
         )}
@@ -231,7 +232,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
               name='options'
               size={20}
               color={
-                isFocused ? '#222222' : '#717171'
+                isFocused ? theme.colors.textPrimary : theme.colors.textSecondary
               }
             />
           </TouchableOpacity>
@@ -252,7 +253,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
               <Ionicons
                 name='search'
                 size={16}
-                color="#B0B0B0"
+                color={theme.colors.textTertiary}
                 style={styles.suggestionIcon}
               />
               <Text style={[styles.suggestionText, searchText.textStyle]}>
@@ -296,7 +297,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     paddingVertical: 12,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   loadingIndicator: {
     marginHorizontal: 8,
@@ -315,7 +316,7 @@ const styles = StyleSheet.create({
     top: '100%',
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     marginTop: 4,
     ...Platform.select({
@@ -337,14 +338,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   suggestionIcon: {
     marginRight: 12,
   },
   suggestionText: {
     flex: 1,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
 });
 

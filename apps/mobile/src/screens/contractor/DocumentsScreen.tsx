@@ -29,6 +29,7 @@ try {
 }
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../config/supabase';
+import { theme } from '../../theme';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES & CONSTANTS
@@ -56,22 +57,22 @@ const FILTER_CONFIG: { key: DocFilter; label: string; icon: keyof typeof Ionicon
 ];
 
 const CATEGORY_STYLE: Record<string, { color: string; bg: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  contracts:      { color: '#10B981', bg: '#D1FAE5', icon: 'document-text' },
-  contract:       { color: '#10B981', bg: '#D1FAE5', icon: 'document-text' },
+  contracts:      { color: theme.colors.primary, bg: theme.colors.primaryLight, icon: 'document-text' },
+  contract:       { color: theme.colors.primary, bg: theme.colors.primaryLight, icon: 'document-text' },
   photos:         { color: '#3B82F6', bg: '#DBEAFE', icon: 'image' },
   photo:          { color: '#3B82F6', bg: '#DBEAFE', icon: 'image' },
-  certifications: { color: '#F59E0B', bg: '#FEF3C7', icon: 'ribbon' },
-  certification:  { color: '#F59E0B', bg: '#FEF3C7', icon: 'ribbon' },
+  certifications: { color: theme.colors.accent, bg: theme.colors.accentLight, icon: 'ribbon' },
+  certification:  { color: theme.colors.accent, bg: theme.colors.accentLight, icon: 'ribbon' },
   insurance:      { color: '#8B5CF6', bg: '#EDE9FE', icon: 'shield-checkmark' },
-  receipts:       { color: '#717171', bg: '#F0F0F0', icon: 'receipt' },
-  receipt:        { color: '#717171', bg: '#F0F0F0', icon: 'receipt' },
+  receipts:       { color: theme.colors.textSecondary, bg: theme.colors.backgroundTertiary, icon: 'receipt' },
+  receipt:        { color: theme.colors.textSecondary, bg: theme.colors.backgroundTertiary, icon: 'receipt' },
   templates:      { color: '#3B82F6', bg: '#DBEAFE', icon: 'copy' },
   template:       { color: '#3B82F6', bg: '#DBEAFE', icon: 'copy' },
 };
 
 const getDocStyle = (category: string) => {
   const key = category?.toLowerCase() || '';
-  return CATEGORY_STYLE[key] || { color: '#717171', bg: '#F0F0F0', icon: 'document-outline' as const };
+  return CATEGORY_STYLE[key] || { color: theme.colors.textSecondary, bg: theme.colors.backgroundTertiary, icon: 'document-outline' as const };
 };
 
 const EMPTY_MESSAGES: Record<DocFilter, { title: string; desc: string }> = {
@@ -228,7 +229,7 @@ export const DocumentsScreen: React.FC = () => {
             refreshing={isLoading}
             onRefresh={refetch}
             tintColor="#FFFFFF"
-            colors={['#10B981']}
+            colors={[theme.colors.primary]}
             progressViewOffset={140}
           />
         }
@@ -252,7 +253,7 @@ export const DocumentsScreen: React.FC = () => {
                   accessibilityRole="button"
                   accessibilityLabel="Go back"
                 >
-                  <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+                  <Ionicons name="arrow-back" size={20} color={theme.colors.textInverse} />
                 </TouchableOpacity>
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text style={styles.heroTitle}>Documents</Text>
@@ -311,7 +312,7 @@ export const DocumentsScreen: React.FC = () => {
                     <Ionicons
                       name={f.icon}
                       size={14}
-                      color={active ? '#FFFFFF' : '#717171'}
+                      color={active ? theme.colors.textInverse : theme.colors.textSecondary}
                     />
                     <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
                       {f.label}
@@ -342,14 +343,14 @@ export const DocumentsScreen: React.FC = () => {
               <Ionicons
                 name={FILTER_CONFIG.find((f) => f.key === filter)?.icon ?? 'document-outline'}
                 size={32}
-                color="#10B981"
+                color={theme.colors.primary}
               />
             </View>
             <Text style={styles.emptyTitle}>{EMPTY_MESSAGES[filter].title}</Text>
             <Text style={styles.emptyDesc}>{EMPTY_MESSAGES[filter].desc}</Text>
             {isContractor && (
               <TouchableOpacity style={styles.emptyUploadBtn} onPress={handlePickDocument}>
-                <Ionicons name="cloud-upload-outline" size={18} color="#FFFFFF" />
+                <Ionicons name="cloud-upload-outline" size={18} color={theme.colors.textInverse} />
                 <Text style={styles.emptyUploadText}>Upload Document</Text>
               </TouchableOpacity>
             )}
@@ -400,11 +401,11 @@ export const DocumentsScreen: React.FC = () => {
                         <Ionicons
                           name={item.starred ? 'star' : 'star-outline'}
                           size={18}
-                          color={item.starred ? '#F59E0B' : '#B0B0B0'}
+                          color={item.starred ? theme.colors.accent : theme.colors.textTertiary}
                         />
                       </TouchableOpacity>
                     )}
-                    <Ionicons name="chevron-forward" size={16} color="#B0B0B0" />
+                    <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
                   </View>
                 </View>
               </View>
@@ -421,7 +422,7 @@ export const DocumentsScreen: React.FC = () => {
           onPress={handlePickDocument}
           accessibilityLabel="Upload document"
         >
-          <Ionicons name="add" size={28} color="#FFFFFF" />
+          <Ionicons name="add" size={28} color={theme.colors.textInverse} />
         </TouchableOpacity>
       )}
     </View>
@@ -435,7 +436,7 @@ export const DocumentsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
 
   // Hero
@@ -478,7 +479,7 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     letterSpacing: -0.5,
   },
   heroSubtitle: {
@@ -490,7 +491,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -512,7 +513,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     letterSpacing: -0.3,
   },
   statLabel: {
@@ -534,7 +535,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     gap: 5,
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 },
@@ -542,18 +543,18 @@ const styles = StyleSheet.create({
     }),
   },
   filterChipActive: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   filterChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   filterChipTextActive: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   chipBadge: {
-    backgroundColor: '#F0F0F0',
+    backgroundColor: theme.colors.backgroundTertiary,
     borderRadius: 8,
     minWidth: 18,
     height: 18,
@@ -568,10 +569,10 @@ const styles = StyleSheet.create({
   chipBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   chipBadgeTextActive: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 
   // Results
@@ -581,7 +582,7 @@ const styles = StyleSheet.create({
   },
   resultsText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
   },
 
@@ -593,7 +594,7 @@ const styles = StyleSheet.create({
   // Document card
   docCard: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     marginHorizontal: 16,
     marginBottom: 8,
@@ -629,7 +630,7 @@ const styles = StyleSheet.create({
   docName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   docMeta: {
@@ -651,11 +652,11 @@ const styles = StyleSheet.create({
   },
   docDate: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
   docSize: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
   docActions: {
     flexDirection: 'row',
@@ -676,7 +677,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 24,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -684,12 +685,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     textAlign: 'center',
   },
   emptyDesc: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginTop: 6,
@@ -699,7 +700,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 14,
@@ -708,7 +709,7 @@ const styles = StyleSheet.create({
   emptyUploadText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 
   // FAB
@@ -718,12 +719,12 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     ...Platform.select({
       ios: {
-        shadowColor: '#10B981',
+        shadowColor: theme.colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 12,

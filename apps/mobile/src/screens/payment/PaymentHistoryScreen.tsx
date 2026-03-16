@@ -23,6 +23,7 @@ import { useResponsive } from '../../hooks/useResponsive';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { theme } from '../../theme';
 
 interface EscrowPayment {
   id: string;
@@ -69,18 +70,18 @@ const getStatusColor = (status: string) => {
     case 'completed':
     case 'succeeded':
     case 'released':
-      return '#10B981';
+      return theme.colors.primary;
     case 'held':
       return '#3B82F6';
     case 'pending':
     case 'processing':
     case 'release_pending':
-      return '#F59E0B';
+      return theme.colors.accent;
     case 'failed':
     case 'refunded':
-      return '#EF4444';
+      return theme.colors.error;
     default:
-      return '#717171';
+      return theme.colors.textSecondary;
   }
 };
 
@@ -141,7 +142,7 @@ const PaymentCard: React.FC<{ payment: PaymentRecord }> = ({ payment }) => (
     </View>
     {payment.status === 'refunded' && (
       <View style={styles.refundTimeline}>
-        <Ionicons name="time-outline" size={14} color="#F59E0B" />
+        <Ionicons name="time-outline" size={14} color={theme.colors.accent} />
         <Text style={styles.refundTimelineText}>
           Expected by {getRefundExpectedDate(payment.createdAt)}
         </Text>
@@ -150,7 +151,7 @@ const PaymentCard: React.FC<{ payment: PaymentRecord }> = ({ payment }) => (
     <View style={styles.cardFooter}>
       {payment.last4 && (
         <View style={styles.methodRow}>
-          <Ionicons name="card-outline" size={14} color="#B0B0B0" />
+          <Ionicons name="card-outline" size={14} color={theme.colors.textTertiary} />
           <Text style={styles.methodText}>
             **** {payment.last4}
           </Text>
@@ -163,7 +164,7 @@ const PaymentCard: React.FC<{ payment: PaymentRecord }> = ({ payment }) => (
           accessibilityRole="button"
           accessibilityLabel="Download receipt"
         >
-          <Ionicons name="download-outline" size={16} color="#222222" />
+          <Ionicons name="download-outline" size={16} color={theme.colors.textPrimary} />
           <Text style={styles.receiptButtonText}>Receipt</Text>
         </TouchableOpacity>
       )}
@@ -253,16 +254,16 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <ScreenHeader title="Payment History" showBack onBack={() => navigation.goBack()} />
 
       {/* Stats Row */}
       {allPayments.length > 0 && (
         <View style={styles.statsRow}>
           {[
-            { label: 'PAID', value: totalPaid, iconBg: '#D1FAE5', iconColor: '#10B981', icon: 'checkmark-circle-outline' as const },
-            { label: 'PENDING', value: totalPending, iconBg: '#FEF3C7', iconColor: '#F59E0B', icon: 'time-outline' as const },
-            { label: 'REFUNDED', value: totalRefunded, iconBg: '#FEE2E2', iconColor: '#EF4444', icon: 'arrow-undo-outline' as const },
+            { label: 'PAID', value: totalPaid, iconBg: theme.colors.primaryLight, iconColor: theme.colors.primary, icon: 'checkmark-circle-outline' as const },
+            { label: 'PENDING', value: totalPending, iconBg: theme.colors.accentLight, iconColor: theme.colors.accent, icon: 'time-outline' as const },
+            { label: 'REFUNDED', value: totalRefunded, iconBg: '#FEE2E2', iconColor: theme.colors.error, icon: 'arrow-undo-outline' as const },
           ].map((stat) => (
             <View key={stat.label} style={styles.statCard}>
               <View style={[styles.statIconWrap, { backgroundColor: stat.iconBg }]}>
@@ -314,8 +315,8 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor="#222222"
-              colors={['#222222']}
+              tintColor={theme.colors.textPrimary}
+              colors={[theme.colors.textPrimary]}
             />
           }
           onEndReached={() => {
@@ -341,13 +342,13 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   listContainer: {
     padding: 16,
   },
   paymentCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -368,11 +369,11 @@ const styles = StyleSheet.create({
   paymentTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   paymentDate: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     marginTop: 4,
   },
   paymentRight: {
@@ -381,7 +382,7 @@ const styles = StyleSheet.create({
   paymentAmount: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   statusBadge: {
     paddingHorizontal: 8,
@@ -400,7 +401,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
   },
   methodRow: {
     flexDirection: 'row',
@@ -409,7 +410,7 @@ const styles = StyleSheet.create({
   },
   methodText: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
   receiptButton: {
     flexDirection: 'row',
@@ -418,12 +419,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   receiptButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   refundTimeline: {
     flexDirection: 'row',
@@ -433,12 +434,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.colors.accentLight,
   },
   refundTimelineText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#F59E0B',
+    color: theme.colors.accent,
   },
   loadingMore: {
     paddingVertical: 20,
@@ -453,7 +454,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 12,
     alignItems: 'center',
@@ -472,7 +473,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 10,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
@@ -481,7 +482,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   filterRow: {
     flexDirection: 'row',
@@ -493,22 +494,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 },
       android: { elevation: 1 },
     }),
   },
   filterChipActive: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   filterChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   filterChipTextActive: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 });
 

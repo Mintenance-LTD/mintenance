@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 
 interface TermsSectionProps {
   termsAccepted: boolean;
@@ -31,7 +32,7 @@ export const TermsSection: React.FC<TermsSectionProps> = ({
           style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}
         >
           {termsAccepted ? (
-            <Ionicons name='checkmark' size={16} color='#FFFFFF' />
+            <Ionicons name='checkmark' size={16} color={theme.colors.textInverse} />
           ) : null}
         </View>
         <Text style={styles.termsLabel}>I accept the terms and conditions</Text>
@@ -104,26 +105,26 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   termsLabel: {
     marginLeft: 8,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   termsText: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 16,
     paddingHorizontal: 20,
   },
   linkInline: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '500',
     textDecorationLine: 'underline' as const,
   },
@@ -134,7 +135,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   linkText: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
     textDecorationLine: 'underline',
     fontWeight: '600',
   },

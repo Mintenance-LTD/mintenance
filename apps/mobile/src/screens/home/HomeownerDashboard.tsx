@@ -34,6 +34,7 @@ import { logger } from '../../utils/logger';
 import { RecentJobs } from './RecentJobs';
 import { BidsReceived } from './BidsReceived';
 import { Skeleton } from '../../components/skeletons/Skeleton';
+import { theme } from '../../theme';
 
 const appIcon = require('../../../assets/icon.png');
 
@@ -148,7 +149,7 @@ export const HomeownerDashboard: React.FC = () => {
     return (
       <View style={styles.errorContainer}>
         <View style={styles.errorIconWrap}>
-          <Ionicons name="alert-circle-outline" size={32} color="#EF4444" />
+          <Ionicons name="alert-circle-outline" size={32} color={theme.colors.error} />
         </View>
         <Text style={styles.errorText}>Failed to load dashboard</Text>
         <TouchableOpacity style={styles.retryButton} onPress={() => refetchJobs()}>
@@ -197,10 +198,10 @@ export const HomeownerDashboard: React.FC = () => {
                 accessibilityLabel={item.label}
               >
                 <View style={styles.dropdownIconWrap}>
-                  <Ionicons name={item.icon} size={18} color="#717171" />
+                  <Ionicons name={item.icon} size={18} color={theme.colors.textSecondary} />
                 </View>
                 <Text style={styles.dropdownItemText}>{item.label}</Text>
-                <Ionicons name="chevron-forward" size={14} color="#B0B0B0" />
+                <Ionicons name="chevron-forward" size={14} color={theme.colors.textTertiary} />
               </TouchableOpacity>
             ))}
             <View style={styles.dropdownDivider} />
@@ -214,10 +215,10 @@ export const HomeownerDashboard: React.FC = () => {
               accessibilityLabel="View profile"
             >
               <View style={styles.dropdownIconWrap}>
-                <Ionicons name="person-outline" size={18} color="#717171" />
+                <Ionicons name="person-outline" size={18} color={theme.colors.textSecondary} />
               </View>
               <Text style={styles.dropdownItemText}>View Profile</Text>
-              <Ionicons name="chevron-forward" size={14} color="#B0B0B0" />
+              <Ionicons name="chevron-forward" size={14} color={theme.colors.textTertiary} />
             </TouchableOpacity>
             <View style={styles.dropdownDivider} />
             <TouchableOpacity
@@ -230,9 +231,9 @@ export const HomeownerDashboard: React.FC = () => {
               accessibilityLabel="Sign out"
             >
               <View style={[styles.dropdownIconWrap, { backgroundColor: '#FEE2E2' }]}>
-                <Ionicons name="log-out-outline" size={18} color="#EF4444" />
+                <Ionicons name="log-out-outline" size={18} color={theme.colors.error} />
               </View>
-              <Text style={[styles.dropdownItemText, { color: '#EF4444' }]}>Sign Out</Text>
+              <Text style={[styles.dropdownItemText, { color: theme.colors.error }]}>Sign Out</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -242,7 +243,7 @@ export const HomeownerDashboard: React.FC = () => {
         showsVerticalScrollIndicator={false}
         testID="home-scroll-view"
         refreshControl={
-          <RefreshControl refreshing={isFetching} onRefresh={handleRefresh} tintColor="#FFFFFF" colors={['#10B981']} />
+          <RefreshControl refreshing={isFetching} onRefresh={handleRefresh} tintColor="#FFFFFF" colors={[theme.colors.primary]} />
         }
       >
         {/* Full-Bleed Gradient Hero */}
@@ -276,7 +277,7 @@ export const HomeownerDashboard: React.FC = () => {
                 accessibilityLabel="Notifications"
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
+                <Ionicons name="notifications-outline" size={22} color={theme.colors.textInverse} />
                 {unreadCount > 0 && (
                   <View style={styles.notificationBadge}>
                     <Text style={styles.notificationBadgeText}>
@@ -402,7 +403,7 @@ export const HomeownerDashboard: React.FC = () => {
                       {apt.contractor ? ` · ${apt.contractor.name}` : ''}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={16} color="#B0B0B0" />
+                  <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -426,7 +427,7 @@ export const HomeownerDashboard: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
 
   // Full-bleed Hero
@@ -487,7 +488,7 @@ const styles = StyleSheet.create({
   brandText: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     letterSpacing: -0.3,
   },
   rightActions: {
@@ -509,7 +510,7 @@ const styles = StyleSheet.create({
     minWidth: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.colors.error,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 3,
@@ -517,7 +518,7 @@ const styles = StyleSheet.create({
   notificationBadgeText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   profileButton: {
     width: 44,
@@ -538,14 +539,14 @@ const styles = StyleSheet.create({
   profileAvatarText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 
   // Greeting inside hero
   heroGreeting: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     lineHeight: 34,
     letterSpacing: -0.5,
     zIndex: 1,
@@ -569,7 +570,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
@@ -581,12 +582,12 @@ const styles = StyleSheet.create({
   statCardValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.5,
   },
   statCardLabel: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
     marginTop: 2,
   },
@@ -605,7 +606,7 @@ const styles = StyleSheet.create({
     paddingRight: 16,
   },
   dropdownMenu: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     paddingVertical: 8,
     minWidth: 220,
@@ -625,7 +626,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -633,11 +634,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   dropdownDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
     marginVertical: 4,
     marginHorizontal: 16,
   },
@@ -647,7 +648,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     padding: 40,
   },
   errorIconWrap: {
@@ -661,19 +662,19 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '600',
     marginBottom: 16,
     textAlign: 'center',
   },
   retryButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
   },
   retryButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -691,20 +692,20 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.3,
   },
   viewAllLink: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#10B981',
+    color: theme.colors.primary,
   },
 
   // Appointments
   appointmentCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 14,
     padding: 14,
     marginBottom: 8,
@@ -717,7 +718,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -725,13 +726,13 @@ const styles = StyleSheet.create({
   appointmentDay: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     lineHeight: 22,
   },
   appointmentMonth: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textTransform: 'uppercase',
   },
   appointmentInfo: {
@@ -740,11 +741,11 @@ const styles = StyleSheet.create({
   appointmentTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   appointmentMeta: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
 });

@@ -19,6 +19,7 @@ import { CancellationModal } from './CancellationModal';
 import { BookingService } from './BookingService';
 
 import type { ProfileStackParamList } from '../../navigation/types';
+import { theme } from '../../theme';
 
 interface BookingStatusParams {
   jobId?: string;
@@ -151,7 +152,7 @@ export const BookingStatusScreen: React.FC<{
       )}
       {!loading && !error && bookings.filter(b => b.status === activeTab).length === 0 && (
         <View accessibilityRole="summary" style={{ padding: 24 }}>
-          <Text style={{ color: '#717171' }}>
+          <Text style={{ color: theme.colors.textSecondary }}>
             {activeTab === 'upcoming' && 'No upcoming bookings yet. Browse services to get started.'}
             {activeTab === 'completed' && 'No completed bookings yet.'}
             {activeTab === 'cancelled' && 'No cancelled bookings.'}
@@ -189,7 +190,7 @@ export const BookingStatusScreen: React.FC<{
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
 });
 

@@ -1,19 +1,20 @@
 import { StyleSheet } from 'react-native';
+import { theme } from '../theme';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   closeButton: {
     padding: 8,
@@ -21,16 +22,16 @@ export const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   placeholder: {
     width: 40,
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   tab: {
     flex: 1,
@@ -45,11 +46,11 @@ export const styles = StyleSheet.create({
   tabText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginLeft: 8,
   },
   activeTabText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   loadingContainer: {
     flex: 1,
@@ -82,17 +83,17 @@ export const styles = StyleSheet.create({
     backgroundColor: '#3B82F6',
   },
   otherMessageBubble: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   messageText: {
     fontSize: 14,
     lineHeight: 18,
   },
   ownMessageText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   otherMessageText: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   messageTime: {
     fontSize: 11,
@@ -103,7 +104,7 @@ export const styles = StyleSheet.create({
     textAlign: 'right',
   },
   otherMessageTime: {
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
   emptyMessages: {
     flex: 1,
@@ -114,12 +115,12 @@ export const styles = StyleSheet.create({
   emptyMessagesText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 16,
   },
   emptyMessagesSubtext: {
     fontSize: 14,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -127,19 +128,19 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
   },
   messageInput: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
     maxHeight: 100,
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   sendButton: {
     backgroundColor: '#3B82F6',
@@ -158,7 +159,7 @@ export const styles = StyleSheet.create({
     padding: 16,
   },
   currentMeetingInfo: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
@@ -166,7 +167,7 @@ export const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   meetingDetails: {
@@ -175,12 +176,12 @@ export const styles = StyleSheet.create({
   meetingDateTime: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   meetingStatus: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   quickActions: {
     marginBottom: 20,
@@ -201,11 +202,11 @@ export const styles = StyleSheet.create({
   statusButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     marginLeft: 6,
   },
   rescheduleSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
@@ -213,24 +214,24 @@ export const styles = StyleSheet.create({
   dateTimeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     padding: 12,
     borderRadius: 8,
     marginBottom: 12,
   },
   dateTimeText: {
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginLeft: 8,
     flex: 1,
   },
   reasonInput: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 8,
     padding: 12,
     minHeight: 80,
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     textAlignVertical: 'top',
     marginBottom: 16,
   },
@@ -238,7 +239,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F59E0B',
+    backgroundColor: theme.colors.accent,
     paddingVertical: 12,
     borderRadius: 8,
   },
@@ -248,11 +249,11 @@ export const styles = StyleSheet.create({
   rescheduleButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     marginLeft: 6,
   },
   updatesSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     padding: 16,
   },
@@ -264,7 +265,7 @@ export const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -274,11 +275,11 @@ export const styles = StyleSheet.create({
   },
   updateMessage: {
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   updateTime: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
 });

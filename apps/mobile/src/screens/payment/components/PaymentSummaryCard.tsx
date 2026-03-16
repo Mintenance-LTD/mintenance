@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
+import { theme } from '../../../theme';
 
 interface PaymentSummaryCardProps {
   jobTitle: string;
@@ -60,7 +61,7 @@ export const PaymentSummaryCard: React.FC<PaymentSummaryCardProps> = ({
 
 const styles = StyleSheet.create({
   summaryCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     marginTop: 16,
@@ -73,7 +74,7 @@ const styles = StyleSheet.create({
   summaryTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 20,
   },
   jobInfo: {
@@ -82,16 +83,16 @@ const styles = StyleSheet.create({
   jobTitle: {
     fontSize: 18,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 6,
   },
   jobIdText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   amountBreakdown: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
     paddingTop: 20,
   },
   amountRow: {
@@ -102,27 +103,27 @@ const styles = StyleSheet.create({
   },
   amountLabel: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   amountValue: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   totalRow: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
     paddingTop: 16,
     marginTop: 8,
   },
   totalLabel: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   totalValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
 });

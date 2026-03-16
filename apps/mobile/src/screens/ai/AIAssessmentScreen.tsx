@@ -22,6 +22,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { RootStackParamList } from '../../navigation/types';
+import { theme } from '../../theme';
 
 interface AnalysisResult {
   damageType: string;
@@ -113,14 +114,14 @@ export const AIAssessmentScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <ScreenHeader title="AI Assessment" showBack onBack={() => navigation.goBack()} />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {!imageUri ? (
           <View style={styles.uploadSection}>
             <View style={styles.iconCircle}>
-              <Ionicons name="camera-outline" size={48} color="#717171" />
+              <Ionicons name="camera-outline" size={48} color={theme.colors.textSecondary} />
             </View>
             <Text style={styles.uploadTitle}>Analyze Property Damage</Text>
             <Text style={styles.uploadDescription}>
@@ -176,7 +177,7 @@ export const AIAssessmentScreen: React.FC = () => {
                   </View>
                   <View style={styles.resultRow}>
                     <Text style={styles.resultLabel}>Estimated Cost</Text>
-                    <Text style={[styles.resultValue, { color: '#222222' }]}>
+                    <Text style={[styles.resultValue, { color: theme.colors.textPrimary }]}>
                       {formatCost(result.estimatedCostMin)} - {formatCost(result.estimatedCostMax)}
                     </Text>
                   </View>
@@ -191,7 +192,7 @@ export const AIAssessmentScreen: React.FC = () => {
                     <Text style={styles.actionsTitle}>Recommended Actions</Text>
                     {result.recommendedActions.map((action, idx) => (
                       <View key={idx} style={styles.actionItem}>
-                        <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+                        <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
                         <Text style={styles.actionText}>{action}</Text>
                       </View>
                     ))}
@@ -217,7 +218,7 @@ export const AIAssessmentScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   scrollView: { flex: 1 },
   content: {
@@ -232,7 +233,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
@@ -244,12 +245,12 @@ const styles = StyleSheet.create({
   uploadTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   uploadDescription: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 24,
@@ -282,7 +283,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   resultCard: {
     marginBottom: 16,
@@ -296,7 +297,7 @@ const styles = StyleSheet.create({
   resultTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   resultRow: {
     flexDirection: 'row',
@@ -304,16 +305,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   resultLabel: {
     fontSize: 13,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
   resultValue: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   actionsCard: {
     marginBottom: 24,
@@ -321,7 +322,7 @@ const styles = StyleSheet.create({
   actionsTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   actionItem: {
@@ -332,7 +333,7 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     flex: 1,
     lineHeight: 20,
   },

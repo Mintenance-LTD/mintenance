@@ -21,6 +21,7 @@ import { Button } from '../../components/ui/Button';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient } from '../../utils/mobileApiClient';
+import { theme } from '../../theme';
 
 interface Escrow {
   id: string;
@@ -89,9 +90,9 @@ export const PayoutsScreen: React.FC = () => {
   const totalHeld = items.filter((e) => e.status === 'held').reduce((sum, e) => sum + e.amount, 0);
 
   const getAccentColor = (status: string) => {
-    if (status === 'released') return '#10B981';
+    if (status === 'released') return theme.colors.primary;
     if (status === 'held') return '#3B82F6';
-    return '#F59E0B';
+    return theme.colors.accent;
   };
 
   const renderItem = ({ item }: { item: Escrow }) => (
@@ -120,11 +121,11 @@ export const PayoutsScreen: React.FC = () => {
       {/* Stripe Connect Card */}
       <View style={styles.connectCard}>
         <View style={styles.connectHeader}>
-          <View style={[styles.connectIconWrap, { backgroundColor: hasConnectedStripe ? '#D1FAE5' : '#FEF3C7' }]}>
+          <View style={[styles.connectIconWrap, { backgroundColor: hasConnectedStripe ? '#D1FAE5' : theme.colors.accentLight }]}>
             <Ionicons
               name={hasConnectedStripe ? 'checkmark-circle' : 'alert-circle'}
               size={20}
-              color={hasConnectedStripe ? '#10B981' : '#F59E0B'}
+              color={hasConnectedStripe ? theme.colors.primary : theme.colors.accent}
             />
           </View>
           <View style={styles.connectInfo}>
@@ -159,7 +160,7 @@ export const PayoutsScreen: React.FC = () => {
   const renderEmpty = () => (
     <View style={styles.emptyState}>
       <View style={styles.emptyIconWrap}>
-        <Ionicons name="cash-outline" size={28} color="#10B981" />
+        <Ionicons name="cash-outline" size={28} color={theme.colors.primary} />
       </View>
       <Text style={styles.emptyTitle}>No Payouts Yet</Text>
       <Text style={styles.emptySubtitle}>Your payout history will appear here</Text>
@@ -188,7 +189,7 @@ export const PayoutsScreen: React.FC = () => {
           accessibilityLabel="Go back"
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
+          <Ionicons name="chevron-back" size={22} color={theme.colors.textInverse} />
         </TouchableOpacity>
 
         <Text style={styles.heroTitle}>Payouts</Text>
@@ -210,13 +211,13 @@ export const PayoutsScreen: React.FC = () => {
       {/* Content */}
       {isLoading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color="#10B981" />
+          <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text style={styles.loadingText}>Loading payouts...</Text>
         </View>
       ) : error ? (
         <View style={styles.emptyState}>
           <View style={[styles.emptyIconWrap, { backgroundColor: '#FEE2E2' }]}>
-            <Ionicons name="alert-circle-outline" size={28} color="#EF4444" />
+            <Ionicons name="alert-circle-outline" size={28} color={theme.colors.error} />
           </View>
           <Text style={styles.emptyTitle}>Failed to load</Text>
           <TouchableOpacity onPress={() => refetch()}>
@@ -231,7 +232,7 @@ export const PayoutsScreen: React.FC = () => {
           ListHeaderComponent={renderHeader}
           ListEmptyComponent={renderEmpty}
           contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor="#10B981" colors={['#10B981']} />}
+          refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />}
         />
       )}
     </View>
@@ -239,7 +240,7 @@ export const PayoutsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   hero: {
     paddingBottom: 28,
     paddingHorizontal: 20,
@@ -258,18 +259,18 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginBottom: 14,
   },
   heroTitle: {
-    fontSize: 26, fontWeight: '700', color: '#FFFFFF', letterSpacing: -0.5, marginBottom: 18,
+    fontSize: 26, fontWeight: '700', color: theme.colors.textInverse, letterSpacing: -0.5, marginBottom: 18,
   },
   heroStats: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.12)',
     borderRadius: 16, padding: 16,
   },
   heroStat: { flex: 1, alignItems: 'center' },
-  heroStatValue: { fontSize: 24, fontWeight: '700', color: '#FFFFFF', letterSpacing: -0.5 },
+  heroStatValue: { fontSize: 24, fontWeight: '700', color: theme.colors.textInverse, letterSpacing: -0.5 },
   heroStatLabel: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: '500', marginTop: 2 },
   heroDivider: { width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.2)' },
   connectCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20, marginBottom: 16,
+    backgroundColor: theme.colors.surface, borderRadius: 16, padding: 20, marginBottom: 16,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
@@ -278,16 +279,16 @@ const styles = StyleSheet.create({
   connectHeader: { flexDirection: 'row', gap: 14 },
   connectIconWrap: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   connectInfo: { flex: 1 },
-  connectTitle: { fontSize: 16, fontWeight: '700', color: '#222222' },
-  connectDesc: { fontSize: 13, color: '#717171', marginTop: 4, lineHeight: 18 },
+  connectTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
+  connectDesc: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 4, lineHeight: 18 },
   setupBtn: { marginTop: 14, borderRadius: 28 },
   historyLabel: {
-    fontSize: 12, fontWeight: '700', color: '#B0B0B0', textTransform: 'uppercase',
+    fontSize: 12, fontWeight: '700', color: theme.colors.textTertiary, textTransform: 'uppercase',
     letterSpacing: 0.8, marginBottom: 10, marginTop: 8,
   },
   list: { padding: 16, paddingBottom: 40 },
   escrowRow: {
-    flexDirection: 'row', backgroundColor: '#FFFFFF', borderRadius: 16, marginBottom: 8, overflow: 'hidden',
+    flexDirection: 'row', backgroundColor: theme.colors.surface, borderRadius: 16, marginBottom: 8, overflow: 'hidden',
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
@@ -298,20 +299,20 @@ const styles = StyleSheet.create({
     flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14,
   },
   escrowInfo: { flex: 1, marginRight: 12 },
-  escrowTitle: { fontSize: 15, fontWeight: '600', color: '#222222' },
-  escrowDate: { fontSize: 12, color: '#B0B0B0', marginTop: 2 },
+  escrowTitle: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary },
+  escrowDate: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2 },
   escrowRight: { alignItems: 'flex-end', gap: 4 },
-  escrowAmount: { fontSize: 15, fontWeight: '700', color: '#222222' },
+  escrowAmount: { fontSize: 15, fontWeight: '700', color: theme.colors.textPrimary },
   loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
-  loadingText: { fontSize: 14, color: '#717171' },
+  loadingText: { fontSize: 14, color: theme.colors.textSecondary },
   emptyState: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 40 },
   emptyIconWrap: {
-    width: 56, height: 56, borderRadius: 28, backgroundColor: '#D1FAE5',
+    width: 56, height: 56, borderRadius: 28, backgroundColor: theme.colors.primaryLight,
     alignItems: 'center', justifyContent: 'center', marginBottom: 12,
   },
-  emptyTitle: { fontSize: 16, fontWeight: '600', color: '#222222', marginBottom: 4 },
-  emptySubtitle: { fontSize: 14, color: '#717171', textAlign: 'center' },
-  retryText: { fontSize: 14, color: '#10B981', fontWeight: '600', marginTop: 8 },
+  emptyTitle: { fontSize: 16, fontWeight: '600', color: theme.colors.textPrimary, marginBottom: 4 },
+  emptySubtitle: { fontSize: 14, color: theme.colors.textSecondary, textAlign: 'center' },
+  retryText: { fontSize: 14, color: theme.colors.primary, fontWeight: '600', marginTop: 8 },
 });
 
 export default PayoutsScreen;

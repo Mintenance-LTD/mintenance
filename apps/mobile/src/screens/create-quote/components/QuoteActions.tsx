@@ -8,6 +8,7 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 
 interface QuoteActionsProps {
   loading: boolean;
@@ -31,10 +32,10 @@ export const QuoteActions: React.FC<QuoteActionsProps> = ({
         accessibilityLabel={loading ? 'Saving quote' : 'Save as draft'}
       >
         {loading ? (
-          <ActivityIndicator size="small" color="#222222" />
+          <ActivityIndicator size="small" color={theme.colors.textPrimary} />
         ) : (
           <>
-            <Ionicons name="bookmark-outline" size={18} color="#222222" />
+            <Ionicons name="bookmark-outline" size={18} color={theme.colors.textPrimary} />
             <Text style={styles.draftButtonText}>Save Draft</Text>
           </>
         )}
@@ -48,10 +49,10 @@ export const QuoteActions: React.FC<QuoteActionsProps> = ({
         accessibilityLabel={loading ? 'Sending quote' : 'Send quote to client'}
       >
         {loading ? (
-          <ActivityIndicator size="small" color="#FFFFFF" />
+          <ActivityIndicator size="small" color={theme.colors.textInverse} />
         ) : (
           <>
-            <Ionicons name="send" size={16} color="#FFFFFF" />
+            <Ionicons name="send" size={16} color={theme.colors.textInverse} />
             <Text style={styles.sendButtonText}>Send Quote</Text>
           </>
         )}
@@ -73,14 +74,14 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 14,
     borderRadius: 28,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderWidth: 1.5,
-    borderColor: '#222222',
+    borderColor: theme.colors.textPrimary,
   },
   draftButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   sendButton: {
     flex: 1.4,
@@ -90,7 +91,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 14,
     borderRadius: 28,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
@@ -104,6 +105,6 @@ const styles = StyleSheet.create({
   sendButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 });

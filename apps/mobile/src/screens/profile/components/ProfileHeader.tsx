@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { theme } from '../../../theme';
 
 interface ProfileHeaderUser {
   first_name?: string;
@@ -66,7 +67,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate, to
         )}
         {user?.verified && (
           <View style={styles.verifiedDot}>
-            <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+            <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
           </View>
         )}
       </View>
@@ -171,13 +172,13 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 34,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   verifiedDot: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     width: 24,
     height: 24,
@@ -187,7 +188,7 @@ const styles = StyleSheet.create({
   displayName: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     textAlign: 'center',
     marginBottom: 4,
     letterSpacing: -0.3,

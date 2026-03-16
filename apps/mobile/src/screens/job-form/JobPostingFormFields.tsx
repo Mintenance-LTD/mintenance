@@ -17,6 +17,7 @@ import { AIPricingWidget } from '../../components/AIPricingWidget';
 import { BuildingAssessmentCard } from '../../components/ai/BuildingAssessmentCard';
 import type { PricingAnalysis } from '../../services/AIPricingEngine';
 import type { BuildingAssessment } from '@mintenance/ai-core';
+import { theme } from '../../theme';
 
 interface JobCategory {
   label: string;
@@ -105,7 +106,7 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
       numberOfLines={4}
       textAlignVertical='top'
       maxLength={500}
-      placeholderTextColor="#B0B0B0"
+      placeholderTextColor={theme.colors.textTertiary}
     />
     <Text style={styles.characterCount}>{description.length}/500 characters</Text>
     {validationErrors.description && (
@@ -120,7 +121,7 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
       value={location}
       onChangeText={(value) => onFieldChange('location', value)}
       maxLength={100}
-      placeholderTextColor="#B0B0B0"
+      placeholderTextColor={theme.colors.textTertiary}
     />
     {validationErrors.location && (
       <Text style={styles.errorText}>{validationErrors.location}</Text>
@@ -166,7 +167,7 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
         value={budget}
         onChangeText={(value) => onFieldChange('budget', value)}
         keyboardType='numeric'
-        placeholderTextColor="#B0B0B0"
+        placeholderTextColor={theme.colors.textTertiary}
       />
     </View>
     {validationErrors.budget && (
@@ -229,30 +230,30 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
     marginTop: 16,
   },
   input: {
     height: 50,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     paddingHorizontal: 14,
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   textArea: {
     height: 120,
     paddingTop: 14,
   },
   pickerContainer: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     overflow: 'hidden',
   },
   picker: {
     height: 50,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   urgencyContainer: {
     flexDirection: 'row',
@@ -264,52 +265,52 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
   },
   urgencyButtonActive: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
   },
   urgencyButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   urgencyButtonTextActive: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   budgetInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     height: 50,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     paddingHorizontal: 14,
   },
   currencySymbol: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginRight: 4,
   },
   budgetInput: {
     flex: 1,
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   budgetComparisonContainer: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     padding: 12,
     borderRadius: 12,
     marginTop: 8,
   },
   budgetComparisonText: {
     fontSize: 14,
-    color: '#059669',
+    color: theme.colors.primaryDark,
     fontWeight: '600',
   },
   budgetHint: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     padding: 14,
     borderRadius: 12,
     marginTop: 16,
@@ -317,11 +318,11 @@ const styles = StyleSheet.create({
   },
   hintText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 20,
   },
   addPhotoButton: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 14,
@@ -330,7 +331,7 @@ const styles = StyleSheet.create({
   },
   addPhotoButtonText: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
   },
   photosContainer: {
@@ -347,14 +348,14 @@ const styles = StyleSheet.create({
   photoPlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   photoText: {
     fontSize: 11,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   deletePhotoButton: {
     position: 'absolute',
@@ -363,29 +364,29 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.colors.error,
     justifyContent: 'center',
     alignItems: 'center',
   },
   deletePhotoText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '700',
     lineHeight: 16,
   },
   inputError: {
-    borderColor: '#EF4444',
+    borderColor: theme.colors.error,
     borderWidth: 2,
   },
   errorText: {
     fontSize: 12,
-    color: '#EF4444',
+    color: theme.colors.error,
     marginTop: 4,
     marginLeft: 4,
   },
   characterCount: {
     fontSize: 11,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textAlign: 'right',
     marginTop: 4,
   },

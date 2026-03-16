@@ -11,16 +11,17 @@ import { Ionicons } from '@expo/vector-icons';
 const STATUS_COLORS: Record<string, string> = {
   posted: '#3B82F6',
   assigned: '#8B5CF6',
-  in_progress: '#F59E0B',
-  completed: '#10B981',
-  cancelled: '#EF4444',
-  disputed: '#EF4444',
+  in_progress: theme.colors.accent,
+  completed: theme.colors.primary,
+  cancelled: theme.colors.error,
+  disputed: theme.colors.error,
 };
 function getStatusColor(status: string): string {
-  return STATUS_COLORS[status] || '#717171';
+  return STATUS_COLORS[status] || theme.colors.textSecondary;
 }
 import { OptimizedImage } from '../../components/optimized/OptimizedImage';
 import { Skeleton } from '../../components/skeletons/Skeleton';
+import { theme } from '../../theme';
 
 interface RecentJob {
   id: string;
@@ -162,7 +163,7 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ isLoading, jobs, onViewA
                     <Ionicons
                       name={savedJobIds.includes(job.id) ? 'heart' : 'heart-outline'}
                       size={22}
-                      color={savedJobIds.includes(job.id) ? '#EF4444' : '#FFFFFF'}
+                      color={savedJobIds.includes(job.id) ? theme.colors.error : theme.colors.textInverse}
                     />
                   </TouchableOpacity>
                 )}
@@ -180,7 +181,7 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ isLoading, jobs, onViewA
                 <View style={styles.metaRow}>
                   {job.category && (
                     <View style={styles.categoryChip}>
-                      <Ionicons name={categoryIcon} size={12} color="#717171" />
+                      <Ionicons name={categoryIcon} size={12} color={theme.colors.textSecondary} />
                       <Text style={styles.categoryText}>
                         {job.category.charAt(0).toUpperCase() + job.category.slice(1)}
                       </Text>
@@ -198,7 +199,7 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ isLoading, jobs, onViewA
       ) : (
         <View style={styles.emptyState}>
           <View style={styles.emptyIconWrap}>
-            <Ionicons name="briefcase-outline" size={28} color="#B0B0B0" />
+            <Ionicons name="briefcase-outline" size={28} color={theme.colors.textTertiary} />
           </View>
           <Text style={styles.emptyText}>No jobs posted yet</Text>
           <Text style={styles.emptySubtext}>Post your first job to get started!</Text>
@@ -221,12 +222,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.3,
   },
   viewAllLink: {
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '600',
     textDecorationLine: 'underline',
   },
@@ -302,7 +303,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   listingContent: {
     paddingTop: 10,
@@ -310,7 +311,7 @@ const styles = StyleSheet.create({
   jobTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 6,
   },
   metaRow: {
@@ -325,19 +326,19 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
   },
   budgetText: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.3,
   },
   emptyState: {
     padding: 40,
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     ...Platform.select({
       ios: {
@@ -355,7 +356,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -363,12 +364,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 4,
   },
 });

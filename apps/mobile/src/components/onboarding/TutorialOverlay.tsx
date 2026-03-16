@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Rect, Defs, Mask } from 'react-native-svg';
+import { theme } from '../../theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -263,9 +264,9 @@ const styles = StyleSheet.create({
   highlightRing: {
     position: 'absolute',
     borderWidth: 3,
-    borderColor: '#222222',
+    borderColor: theme.colors.textPrimary,
     borderRadius: 12,
-    shadowColor: '#222222',
+    shadowColor: theme.colors.textPrimary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
@@ -273,7 +274,7 @@ const styles = StyleSheet.create({
   },
   tooltip: {
     position: 'absolute',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 24,
     shadowColor: '#000000',
@@ -291,31 +292,31 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
     marginRight: 8,
   },
   progressDotActive: {
     width: 24,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   progressDotCompleted: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   stepCounter: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   description: {
     fontSize: 16,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 24,
     marginBottom: 24,
   },
@@ -326,13 +327,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   primaryButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -341,7 +342,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   secondaryButtonText: {
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontSize: 16,
     fontWeight: '500',
   },

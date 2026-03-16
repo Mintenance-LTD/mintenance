@@ -17,6 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useToast } from '../../components/ui/Toast';
 import type { ProfileStackParamList, RootTabParamList } from '../../navigation/types';
+import { theme } from '../../theme';
 
 interface ClientData {
   client_id: string;
@@ -37,10 +38,10 @@ interface ClientDetailScreenProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  active: '#10B981',
+  active: theme.colors.primary,
   prospect: '#3B82F6',
-  inactive: '#717171',
-  former: '#B0B0B0',
+  inactive: theme.colors.textSecondary,
+  former: theme.colors.textTertiary,
 };
 
 export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({ navigation, route }) => {
@@ -85,14 +86,14 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({ navigati
     } as never);
   };
 
-  const statusColor = STATUS_COLORS[client.relationship_status as string] ?? '#717171';
+  const statusColor = STATUS_COLORS[client.relationship_status as string] ?? theme.colors.textSecondary;
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#222222" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {client.first_name} {client.last_name}
@@ -119,7 +120,7 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({ navigati
         {/* Quick Actions */}
         <View style={styles.actionsRow}>
           {[
-            { icon: 'call' as const, label: 'Call', onPress: handleCall, bg: '#D1FAE5', color: '#10B981' },
+            { icon: 'call' as const, label: 'Call', onPress: handleCall, bg: theme.colors.primaryLight, color: theme.colors.primary },
             { icon: 'mail' as const, label: 'Email', onPress: handleEmail, bg: '#DBEAFE', color: '#3B82F6' },
             { icon: 'chatbubble' as const, label: 'Message', onPress: handleMessage, bg: '#EDE9FE', color: '#8B5CF6' },
           ].map((action) => (
@@ -137,14 +138,14 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({ navigati
           <Text style={styles.sectionTitle}>CONTACT</Text>
           <View style={styles.detailRow}>
             <View style={styles.detailIconWrap}>
-              <Ionicons name="mail-outline" size={14} color="#717171" />
+              <Ionicons name="mail-outline" size={14} color={theme.colors.textSecondary} />
             </View>
             <Text style={styles.detailText}>{client.email}</Text>
           </View>
           {client.phone ? (
             <View style={styles.detailRow}>
               <View style={styles.detailIconWrap}>
-                <Ionicons name="call-outline" size={14} color="#717171" />
+                <Ionicons name="call-outline" size={14} color={theme.colors.textSecondary} />
               </View>
               <Text style={styles.detailText}>{client.phone}</Text>
             </View>
@@ -173,7 +174,7 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({ navigati
           {client.last_job_date ? (
             <View style={[styles.detailRow, { marginTop: 12 }]}>
               <View style={styles.detailIconWrap}>
-                <Ionicons name="time-outline" size={14} color="#717171" />
+                <Ionicons name="time-outline" size={14} color={theme.colors.textSecondary} />
               </View>
               <Text style={styles.detailText}>
                 Last job: {new Date(client.last_job_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -189,23 +190,23 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({ navigati
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   headerButton: { padding: 8, width: 40 },
-  headerTitle: { flex: 1, fontSize: 18, fontWeight: '700', color: '#222222', textAlign: 'center' },
+  headerTitle: { flex: 1, fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary, textAlign: 'center' },
   scroll: { flex: 1 },
   profileCard: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 16,
@@ -219,19 +220,19 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
   },
-  avatarText: { fontSize: 24, fontWeight: '700', color: '#FFFFFF' },
-  clientName: { fontSize: 20, fontWeight: '700', color: '#222222', marginBottom: 8 },
+  avatarText: { fontSize: 24, fontWeight: '700', color: theme.colors.textInverse },
+  clientName: { fontSize: 20, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 8 },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  statusText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
+  statusText: { fontSize: 11, fontWeight: '700', color: theme.colors.textInverse },
   actionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginTop: 12,
     borderRadius: 16,
@@ -249,9 +250,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionBtnText: { fontSize: 12, color: '#222222', fontWeight: '600' },
+  actionBtnText: { fontSize: 12, color: theme.colors.textPrimary, fontWeight: '600' },
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginTop: 12,
     borderRadius: 16,
@@ -261,21 +262,21 @@ const styles = StyleSheet.create({
       android: { elevation: 2 },
     }),
   },
-  sectionTitle: { fontSize: 12, fontWeight: '700', color: '#B0B0B0', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.8 },
+  sectionTitle: { fontSize: 12, fontWeight: '700', color: theme.colors.textTertiary, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.8 },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
   detailIconWrap: {
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  detailText: { fontSize: 14, color: '#222222' },
+  detailText: { fontSize: 14, color: theme.colors.textPrimary },
   statsRow: { flexDirection: 'row', justifyContent: 'space-around' },
   stat: { alignItems: 'center' },
-  statValue: { fontSize: 20, fontWeight: '700', color: '#222222' },
-  statLabel: { fontSize: 12, color: '#717171', marginTop: 2 },
+  statValue: { fontSize: 20, fontWeight: '700', color: theme.colors.textPrimary },
+  statLabel: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
 });
 
 export default ClientDetailScreen;

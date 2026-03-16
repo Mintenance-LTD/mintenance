@@ -13,6 +13,7 @@ import { PhotoSection } from './EditProfileSections/PhotoSection';
 import { PersonalInfoSection } from './EditProfileSections/PersonalInfoSection';
 import { LocationSection } from './EditProfileSections/LocationSection';
 import { AvailabilitySection } from './EditProfileSections/AvailabilitySection';
+import { theme } from '../theme';
 
 interface GeoAddr { house_number?: string; road?: string; city?: string; town?: string; village?: string; postcode?: string }
 interface NominatimResult { lat: string; lon: string }
@@ -191,10 +192,10 @@ const EditProfileScreen: React.FC = () => {
   };
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} accessibilityRole='button' accessibilityLabel='Go back'>
-          <Ionicons name='arrow-back' size={24} color='#222222' />
+          <Ionicons name='arrow-back' size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} accessibilityRole='header'>Edit Profile</Text>
         <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={loading} accessibilityRole='button' accessibilityLabel={loading ? 'Saving profile changes' : 'Save profile changes'}>
@@ -214,10 +215,10 @@ const EditProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingTop: 16,
     paddingBottom: 12,
     paddingHorizontal: 16,
@@ -225,20 +226,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 16,
@@ -246,13 +247,13 @@ const styles = StyleSheet.create({
   saveButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     borderRadius: 20,
   },
   saveButtonText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   content: {
     flex: 1,

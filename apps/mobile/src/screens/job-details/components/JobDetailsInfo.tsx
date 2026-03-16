@@ -8,14 +8,15 @@ import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Job } from '@mintenance/types';
+import { theme } from '../../../theme';
 
 interface JobDetailsInfoProps {
   job: Job;
 }
 
 const INFO_ITEMS = [
-  { key: 'location', label: 'Location', icon: 'location-outline' as const, color: '#EF4444', bg: '#FEE2E2' },
-  { key: 'budget', label: 'Budget Range', icon: 'cash-outline' as const, color: '#10B981', bg: '#D1FAE5' },
+  { key: 'location', label: 'Location', icon: 'location-outline' as const, color: theme.colors.error, bg: '#FEE2E2' },
+  { key: 'budget', label: 'Budget Range', icon: 'cash-outline' as const, color: theme.colors.primary, bg: theme.colors.primaryLight },
   { key: 'timeline', label: 'Timeline', icon: 'calendar-outline' as const, color: '#3B82F6', bg: '#DBEAFE' },
   { key: 'created', label: 'Created', icon: 'time-outline' as const, color: '#8B5CF6', bg: '#EDE9FE' },
 ];
@@ -76,7 +77,7 @@ export const JobDetailsInfo: React.FC<JobDetailsInfoProps> = ({ job }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 12,
@@ -93,7 +94,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 16,
     letterSpacing: -0.3,
   },
@@ -118,12 +119,12 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     marginBottom: 2,
   },
   infoValue: {
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '500',
   },
 });

@@ -20,6 +20,7 @@ import {
   CommunityChampion,
   JobSuccess,
 } from '../services/NeighborhoodService';
+import { theme } from '../theme';
 
 interface NeighborhoodLeaderboardProps {
   neighborhoodId: string;
@@ -93,7 +94,7 @@ export const NeighborhoodLeaderboard: React.FC<
             name={index === 0 ? 'trophy' : index === 1 ? 'medal' : 'ribbon'}
             size={16}
             color={
-              index === 0 ? '#F59E0B' : index === 1 ? '#B0B0B0' : '#F59E0B'
+              index === 0 ? theme.colors.accent : index === 1 ? '#B0B0B0' : theme.colors.accent
             }
           />
         )}
@@ -110,7 +111,7 @@ export const NeighborhoodLeaderboard: React.FC<
             <Ionicons
               name='person'
               size={20}
-              color="#717171"
+              color={theme.colors.textSecondary}
             />
           </View>
         )}
@@ -120,7 +121,7 @@ export const NeighborhoodLeaderboard: React.FC<
         <Text style={styles.contractorName}>{contractor.contractor_name}</Text>
         <View style={styles.contractorMeta}>
           <View style={styles.metaItem}>
-            <Ionicons name='star' size={12} color="#F59E0B" />
+            <Ionicons name='star' size={12} color={theme.colors.accent} />
             <Text style={styles.metaText}>
               {contractor.average_rating.toFixed(1)}
             </Text>
@@ -129,14 +130,14 @@ export const NeighborhoodLeaderboard: React.FC<
             <Ionicons
               name='checkmark-circle'
               size={12}
-              color="#10B981"
+              color={theme.colors.primary}
             />
             <Text style={styles.metaText}>
               {contractor.jobs_completed} jobs
             </Text>
           </View>
           <View style={styles.metaItem}>
-            <Ionicons name='time' size={12} color="#717171" />
+            <Ionicons name='time' size={12} color={theme.colors.textSecondary} />
             <Text style={styles.metaText}>
               {formatResponseTime(contractor.response_time_avg)}
             </Text>
@@ -162,7 +163,7 @@ export const NeighborhoodLeaderboard: React.FC<
       </View>
 
       <View style={styles.endorsementBadge}>
-        <Ionicons name='heart' size={14} color="#222222" />
+        <Ionicons name='heart' size={14} color={theme.colors.textPrimary} />
         <Text style={styles.endorsementCount}>
           {contractor.community_endorsements}
         </Text>
@@ -183,7 +184,7 @@ export const NeighborhoodLeaderboard: React.FC<
             <Ionicons
               name='calendar'
               size={12}
-              color="#717171"
+              color={theme.colors.textSecondary}
             />
             <Text style={styles.successDate}>
               {new Date(jobSuccess.completion_date).toLocaleDateString()}
@@ -210,7 +211,7 @@ export const NeighborhoodLeaderboard: React.FC<
                 key={star}
                 name={star <= jobSuccess.rating ? 'star' : 'star-outline'}
                 size={14}
-                color="#F59E0B"
+                color={theme.colors.accent}
               />
             ))}
             <Text style={styles.ratingText}>({jobSuccess.rating}/5)</Text>
@@ -218,7 +219,7 @@ export const NeighborhoodLeaderboard: React.FC<
 
           {(jobSuccess.before_photo || jobSuccess.after_photo) && (
             <View style={styles.photoIndicator}>
-              <Ionicons name='images' size={14} color="#717171" />
+              <Ionicons name='images' size={14} color={theme.colors.textSecondary} />
               <Text style={styles.photoText}>Photos</Text>
             </View>
           )}
@@ -276,7 +277,7 @@ export const NeighborhoodLeaderboard: React.FC<
   if (isLoading && !leaderboard) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size='large' color="#222222" />
+        <ActivityIndicator size='large' color={theme.colors.textPrimary} />
         <Text style={styles.loadingText}>
           Loading neighborhood leaderboard...
         </Text>
@@ -287,7 +288,7 @@ export const NeighborhoodLeaderboard: React.FC<
   if (error) {
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name='warning' size={48} color="#EF4444" />
+        <Ionicons name='warning' size={48} color={theme.colors.error} />
         <Text style={styles.errorText}>Unable to load neighborhood data</Text>
         <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
           <Text style={styles.retryButtonText}>Try Again</Text>
@@ -302,7 +303,7 @@ export const NeighborhoodLeaderboard: React.FC<
         <Ionicons
           name='location'
           size={48}
-          color="#717171"
+          color={theme.colors.textSecondary}
         />
         <Text style={styles.emptyText}>No neighborhood data available</Text>
       </View>
@@ -317,14 +318,14 @@ export const NeighborhoodLeaderboard: React.FC<
     <ScrollView
       style={styles.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#222222" colors={['#222222']} />
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />
       }
       showsVerticalScrollIndicator={false}
     >
       {/* Neighborhood Header */}
       <View style={styles.header}>
         <View style={styles.neighborhoodTitle}>
-          <Ionicons name='location' size={24} color="#222222" />
+          <Ionicons name='location' size={24} color={theme.colors.textPrimary} />
           <Text style={styles.neighborhoodName}>
             {leaderboard.neighborhood.name}
           </Text>
@@ -365,8 +366,8 @@ export const NeighborhoodLeaderboard: React.FC<
             size={16}
             color={
               activeTab === 'contractors'
-                ? '#222222'
-                : '#717171'
+                ? theme.colors.textPrimary
+                : theme.colors.textSecondary
             }
           />
           <Text
@@ -388,8 +389,8 @@ export const NeighborhoodLeaderboard: React.FC<
             size={16}
             color={
               activeTab === 'successes'
-                ? '#222222'
-                : '#717171'
+                ? theme.colors.textPrimary
+                : theme.colors.textSecondary
             }
           />
           <Text
@@ -411,8 +412,8 @@ export const NeighborhoodLeaderboard: React.FC<
             size={16}
             color={
               activeTab === 'champions'
-                ? '#222222'
-                : '#717171'
+                ? theme.colors.textPrimary
+                : theme.colors.textSecondary
             }
           />
           <Text

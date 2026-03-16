@@ -17,6 +17,7 @@ import { QuickJobModalProps, SearchSegment, URGENCY_OPTIONS, JOB_CATEGORIES, Pro
 import { WherePanel } from './QuickJobSteps/WherePanel';
 import { WhenPanel } from './QuickJobSteps/WhenPanel';
 import { WhatPanel } from './QuickJobSteps/WhatPanel';
+import { theme } from '../../theme';
 
 export const QuickJobModal: React.FC<QuickJobModalProps> = ({ visible, onClose, onSearch }) => {
   const { user } = useAuth();
@@ -75,7 +76,7 @@ export const QuickJobModal: React.FC<QuickJobModalProps> = ({ visible, onClose, 
                 <React.Fragment key={step}>
                   <View style={[styles.stepDot, isCompleted && styles.stepDotCompleted, isActive && styles.stepDotActive]}>
                     {isCompleted ? (
-                      <Ionicons name='checkmark' size={10} color='#FFFFFF' />
+                      <Ionicons name='checkmark' size={10} color={theme.colors.textInverse} />
                     ) : (
                       <Text style={[styles.stepDotText, isActive && styles.stepDotTextActive]}>{index + 1}</Text>
                     )}
@@ -107,7 +108,7 @@ export const QuickJobModal: React.FC<QuickJobModalProps> = ({ visible, onClose, 
               </Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.searchButton, canSearch && styles.searchButtonActive]} onPress={handleSearch} disabled={!canSearch} accessibilityRole='button' accessibilityLabel='Search and create job'>
-              <Ionicons name='search' size={20} color={canSearch ? '#FFFFFF' : '#B0B0B0'} />
+              <Ionicons name='search' size={20} color={canSearch ? '#FFFFFF' : theme.colors.textTertiary} />
             </TouchableOpacity>
           </View>
           <ScrollView style={styles.panelContainer} showsVerticalScrollIndicator={false}>
@@ -126,7 +127,7 @@ export const QuickJobModal: React.FC<QuickJobModalProps> = ({ visible, onClose, 
               <Text style={styles.clearText}>Clear all</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.footerSearchButton, canSearch && styles.footerSearchButtonActive]} onPress={handleSearch} disabled={!canSearch}>
-              <Ionicons name='search' size={18} color='#FFFFFF' />
+              <Ionicons name='search' size={18} color={theme.colors.textInverse} />
               <Text style={styles.footerSearchText}>Search</Text>
             </TouchableOpacity>
           </View>
@@ -138,30 +139,30 @@ export const QuickJobModal: React.FC<QuickJobModalProps> = ({ visible, onClose, 
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '85%', paddingBottom: Platform.OS === 'ios' ? 34 : 20 },
-  handle: { width: 36, height: 4, backgroundColor: '#EBEBEB', borderRadius: 2, alignSelf: 'center', marginTop: 10, marginBottom: 16 },
-  title: { fontSize: 20, fontWeight: '700', color: '#222222', textAlign: 'center', marginBottom: 20, paddingHorizontal: 20 },
+  sheet: { backgroundColor: theme.colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '85%', paddingBottom: Platform.OS === 'ios' ? 34 : 20 },
+  handle: { width: 36, height: 4, backgroundColor: theme.colors.border, borderRadius: 2, alignSelf: 'center', marginTop: 10, marginBottom: 16 },
+  title: { fontSize: 20, fontWeight: '700', color: theme.colors.textPrimary, textAlign: 'center', marginBottom: 20, paddingHorizontal: 20 },
   stepIndicator: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 16, paddingHorizontal: 60 },
-  stepDot: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#EBEBEB', alignItems: 'center', justifyContent: 'center' },
-  stepDotCompleted: { backgroundColor: '#10B981' },
-  stepDotActive: { borderWidth: 2, borderColor: '#10B981', backgroundColor: '#FFFFFF' },
-  stepDotText: { fontSize: 10, fontWeight: '700', color: '#B0B0B0' },
-  stepDotTextActive: { color: '#10B981' },
-  stepLine: { flex: 1, height: 2, backgroundColor: '#EBEBEB', marginHorizontal: 4 },
-  stepLineCompleted: { backgroundColor: '#10B981' },
-  searchBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, backgroundColor: '#F7F7F7', borderRadius: 16, paddingVertical: 10, paddingHorizontal: 12 },
+  stepDot: { width: 22, height: 22, borderRadius: 11, backgroundColor: theme.colors.border, alignItems: 'center', justifyContent: 'center' },
+  stepDotCompleted: { backgroundColor: theme.colors.primary },
+  stepDotActive: { borderWidth: 2, borderColor: theme.colors.primary, backgroundColor: theme.colors.surface },
+  stepDotText: { fontSize: 10, fontWeight: '700', color: theme.colors.textTertiary },
+  stepDotTextActive: { color: theme.colors.primary },
+  stepLine: { flex: 1, height: 2, backgroundColor: theme.colors.border, marginHorizontal: 4 },
+  stepLineCompleted: { backgroundColor: theme.colors.primary },
+  searchBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, backgroundColor: theme.colors.backgroundSecondary, borderRadius: 16, paddingVertical: 10, paddingHorizontal: 12 },
   segment: { flex: 1, alignItems: 'center', paddingVertical: 4, borderRadius: 10 },
   segmentActive: { backgroundColor: 'rgba(16,185,129,0.08)' },
-  segmentLabel: { fontSize: 10, fontWeight: '700', color: '#222222', textTransform: 'uppercase', letterSpacing: 0.5 },
-  segmentValue: { fontSize: 12, color: '#B0B0B0', marginTop: 1 },
-  segmentValueFilled: { color: '#222222', fontWeight: '600' },
-  segmentDivider: { width: 1, height: 28, backgroundColor: '#EBEBEB' },
-  searchButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#EBEBEB', alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
-  searchButtonActive: { backgroundColor: '#10B981' },
+  segmentLabel: { fontSize: 10, fontWeight: '700', color: theme.colors.textPrimary, textTransform: 'uppercase', letterSpacing: 0.5 },
+  segmentValue: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 1 },
+  segmentValueFilled: { color: theme.colors.textPrimary, fontWeight: '600' },
+  segmentDivider: { width: 1, height: 28, backgroundColor: theme.colors.border },
+  searchButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.border, alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
+  searchButtonActive: { backgroundColor: theme.colors.primary },
   panelContainer: { maxHeight: 340, paddingHorizontal: 20 },
-  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#EBEBEB', marginTop: 12 },
-  clearText: { fontSize: 15, fontWeight: '600', color: '#717171', textDecorationLine: 'underline' },
-  footerSearchButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EBEBEB', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 28, gap: 8 },
-  footerSearchButtonActive: { backgroundColor: '#10B981' },
-  footerSearchText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
+  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.border, marginTop: 12 },
+  clearText: { fontSize: 15, fontWeight: '600', color: theme.colors.textSecondary, textDecorationLine: 'underline' },
+  footerSearchButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.border, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 28, gap: 8 },
+  footerSearchButtonActive: { backgroundColor: theme.colors.primary },
+  footerSearchText: { color: theme.colors.textInverse, fontSize: 15, fontWeight: '600' },
 });

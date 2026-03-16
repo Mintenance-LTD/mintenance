@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Dimensions, Platform } from 'react-native';
 import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
+import { theme } from '../theme';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -34,9 +35,9 @@ export const FinanceChart: React.FC<FinanceChartProps> = ({
   height = 220,
 }) => {
   const chartConfig = {
-    backgroundGradientFrom: '#FFFFFF',
+    backgroundGradientFrom: theme.colors.textInverse,
     backgroundGradientFromOpacity: 0,
-    backgroundGradientTo: '#FFFFFF',
+    backgroundGradientTo: theme.colors.textInverse,
     backgroundGradientToOpacity: 0,
     color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
     strokeWidth: 2,
@@ -44,13 +45,13 @@ export const FinanceChart: React.FC<FinanceChartProps> = ({
     decimalPlaces: 0,
     propsForBackgroundLines: {
       strokeDasharray: '',
-      stroke: '#EBEBEB',
+      stroke: theme.colors.border,
       strokeOpacity: 0.3,
     },
     propsForLabels: {
       fontSize: 12,
       fontFamily: 'System',
-      fill: '#717171',
+      fill: theme.colors.textSecondary,
     },
   };
 
@@ -138,7 +139,7 @@ export const FinanceChart: React.FC<FinanceChartProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 20,
     padding: 20,
     marginBottom: 16,
@@ -156,12 +157,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   chart: {
     marginVertical: 8,

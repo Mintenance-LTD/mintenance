@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, Switch, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { theme } from '../../theme';
 
 interface AvailabilitySectionProps {
   emailNotifications: boolean; setEmailNotifications: (v: boolean) => void;
@@ -22,31 +23,31 @@ export const AvailabilitySection: React.FC<AvailabilitySectionProps> = ({
             <Text style={styles.switchLabel}>Email Notifications</Text>
             <Text style={styles.switchDescription}>Receive updates about jobs and messages via email</Text>
           </View>
-          <Switch value={emailNotifications} onValueChange={setEmailNotifications} trackColor={{ false: '#EBEBEB', true: '#10B981' }} thumbColor="#FFFFFF" accessibilityLabel="Email notifications" />
+          <Switch value={emailNotifications} onValueChange={setEmailNotifications} trackColor={{ false: theme.colors.border, true: theme.colors.primary }} thumbColor={theme.colors.surface} accessibilityLabel="Email notifications" />
         </View>
         <View style={styles.switchRow}>
           <View style={styles.switchInfo}>
             <Text style={styles.switchLabel}>Push Notifications</Text>
             <Text style={styles.switchDescription}>Get instant notifications on your device</Text>
           </View>
-          <Switch value={pushNotifications} onValueChange={setPushNotifications} trackColor={{ false: '#EBEBEB', true: '#10B981' }} thumbColor="#FFFFFF" accessibilityLabel="Push notifications" />
+          <Switch value={pushNotifications} onValueChange={setPushNotifications} trackColor={{ false: theme.colors.border, true: theme.colors.primary }} thumbColor={theme.colors.surface} accessibilityLabel="Push notifications" />
         </View>
       </View>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
         <TouchableOpacity style={styles.actionItem} onPress={onChangePassword} accessibilityRole="button" accessibilityLabel="Change password">
           <View style={styles.actionLeft}>
-            <Ionicons name="key-outline" size={20} color="#717171" />
+            <Ionicons name="key-outline" size={20} color={theme.colors.textSecondary} />
             <Text style={styles.actionText}>Change Password</Text>
           </View>
-          <Ionicons name="chevron-forward" size={16} color="#B0B0B0" />
+          <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
         </TouchableOpacity>
         <TouchableOpacity style={[styles.actionItem, styles.dangerAction]} onPress={onDeleteAccount} accessibilityRole="button" accessibilityLabel="Delete account">
           <View style={styles.actionLeft}>
-            <Ionicons name="trash-outline" size={20} color="#EF4444" />
+            <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
             <Text style={[styles.actionText, styles.dangerText]}>Delete Account</Text>
           </View>
-          <Ionicons name="chevron-forward" size={16} color="#EF4444" />
+          <Ionicons name="chevron-forward" size={16} color={theme.colors.error} />
         </TouchableOpacity>
       </View>
     </>
@@ -55,7 +56,7 @@ export const AvailabilitySection: React.FC<AvailabilitySectionProps> = ({
 
 const styles = StyleSheet.create({
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 16,
@@ -65,14 +66,14 @@ const styles = StyleSheet.create({
       android: { elevation: 2 },
     }),
   },
-  sectionTitle: { fontSize: 20, fontWeight: "700", color: '#222222', marginBottom: 20 },
-  switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#EBEBEB' },
+  sectionTitle: { fontSize: 20, fontWeight: "700", color: theme.colors.textPrimary, marginBottom: 20 },
+  switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
   switchInfo: { flex: 1, marginRight: 16 },
-  switchLabel: { fontSize: 16, fontWeight: "500", color: '#222222', marginBottom: 4 },
-  switchDescription: { fontSize: 14, color: '#B0B0B0' },
-  actionItem: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#EBEBEB' },
+  switchLabel: { fontSize: 16, fontWeight: "500", color: theme.colors.textPrimary, marginBottom: 4 },
+  switchDescription: { fontSize: 14, color: theme.colors.textTertiary },
+  actionItem: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
   actionLeft: { flexDirection: "row", alignItems: "center" },
-  actionText: { fontSize: 16, color: '#222222', marginLeft: 12, fontWeight: "500" },
+  actionText: { fontSize: 16, color: theme.colors.textPrimary, marginLeft: 12, fontWeight: "500" },
   dangerAction: { borderBottomWidth: 0 },
-  dangerText: { color: '#EF4444' },
+  dangerText: { color: theme.colors.error },
 });

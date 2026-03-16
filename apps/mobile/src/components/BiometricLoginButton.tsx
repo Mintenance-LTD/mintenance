@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { BiometricService } from '../services/BiometricService';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 interface BiometricLoginButtonProps {
   onSuccess?: () => void;
@@ -95,7 +96,7 @@ const BiometricLoginButton: React.FC<BiometricLoginButtonProps> = ({
         <Ionicons
           name='finger-print'
           size={32}
-          color={loading ? '#B0B0B0' : '#222222'}
+          color={loading ? '#B0B0B0' : theme.colors.textPrimary}
         />
         <Text style={[styles.buttonText, loading && styles.buttonTextDisabled]}>
           {loading ? 'Authenticating...' : `Use ${biometricType}`}
@@ -112,7 +113,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 12,
     fontWeight: '500',
   },
@@ -121,7 +122,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 20,
     ...Platform.select({
       ios: {
@@ -140,12 +141,12 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 18,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '500',
     marginLeft: 8,
   },
   buttonTextDisabled: {
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
 });
 

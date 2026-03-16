@@ -10,6 +10,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 import type { MeetingType, MeetingTypeOption } from '../viewmodels/MeetingScheduleViewModel';
 
 interface MeetingTypeSelectorProps {
@@ -30,8 +31,8 @@ export const MeetingTypeSelector: React.FC<MeetingTypeSelectorProps> = ({
   const durationOptions = [30, 60, 90, 120, 180, 240];
 
   return (
-    <View style={styles.container} testID="meeting-type-container">
-      <Text style={styles.sectionTitle}>MEETING TYPE</Text>
+    <View style={[styles.container, { backgroundColor: theme.colors.surface }]} testID="meeting-type-container">
+      <Text style={[styles.sectionTitle, { color: theme.colors.textTertiary }]}>MEETING TYPE</Text>
 
       <View style={styles.typeGrid}>
         {meetingTypes.map((type) => (
@@ -40,28 +41,31 @@ export const MeetingTypeSelector: React.FC<MeetingTypeSelectorProps> = ({
             testID={`meeting-type-${type.id}`}
             style={[
               styles.typeCard,
-              selectedType === type.id && styles.typeCardSelected,
+              { backgroundColor: theme.colors.backgroundSecondary },
+              selectedType === type.id && { backgroundColor: theme.colors.textPrimary },
             ]}
             onPress={() => {
               onTypeSelect(type.id);
               onDurationChange(type.estimatedDuration);
             }}
           >
-            <View style={[styles.typeIcon, selectedType === type.id && styles.typeIconSelected]}>
+            <View style={[styles.typeIcon, { backgroundColor: theme.colors.surface }, selectedType === type.id && styles.typeIconSelected]}>
               <Ionicons
                 name={type.icon as keyof typeof Ionicons.glyphMap}
                 size={24}
-                color={selectedType === type.id ? '#FFFFFF' : '#717171'}
+                color={selectedType === type.id ? theme.colors.textInverse : theme.colors.textSecondary}
               />
             </View>
             <Text style={[
               styles.typeName,
-              selectedType === type.id && styles.typeNameSelected,
+              { color: theme.colors.textPrimary },
+              selectedType === type.id && { color: theme.colors.textInverse },
             ]}>
               {type.name}
             </Text>
             <Text style={[
               styles.typeDescription,
+              { color: theme.colors.textSecondary },
               selectedType === type.id && styles.typeDescriptionSelected,
             ]}>
               {type.description}
@@ -71,7 +75,7 @@ export const MeetingTypeSelector: React.FC<MeetingTypeSelectorProps> = ({
       </View>
 
       <View style={styles.durationSection}>
-        <Text style={styles.durationLabel}>Duration (minutes)</Text>
+        <Text style={[styles.durationLabel, { color: theme.colors.textPrimary }]}>Duration (minutes)</Text>
         <View style={styles.durationGrid}>
           {durationOptions.map((option) => (
             <TouchableOpacity
@@ -79,13 +83,15 @@ export const MeetingTypeSelector: React.FC<MeetingTypeSelectorProps> = ({
               testID={`duration-${option}`}
               style={[
                 styles.durationButton,
-                duration === option && styles.durationButtonSelected,
+                { backgroundColor: theme.colors.backgroundSecondary },
+                duration === option && { backgroundColor: theme.colors.textPrimary },
               ]}
               onPress={() => onDurationChange(option)}
             >
               <Text style={[
                 styles.durationText,
-                duration === option && styles.durationTextSelected,
+                { color: theme.colors.textPrimary },
+                duration === option && { color: theme.colors.textInverse },
               ]}>
                 {option}
               </Text>
@@ -99,7 +105,6 @@ export const MeetingTypeSelector: React.FC<MeetingTypeSelectorProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -111,7 +116,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
     marginBottom: 16,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -121,19 +125,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   typeCard: {
-    backgroundColor: '#F7F7F7',
     borderRadius: 16,
     padding: 14,
     alignItems: 'center',
-  },
-  typeCardSelected: {
-    backgroundColor: '#222222',
   },
   typeIcon: {
     width: 48,
     height: 48,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
@@ -144,15 +143,10 @@ const styles = StyleSheet.create({
   typeName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222222',
     marginBottom: 4,
-  },
-  typeNameSelected: {
-    color: '#FFFFFF',
   },
   typeDescription: {
     fontSize: 12,
-    color: '#717171',
     textAlign: 'center',
   },
   typeDescriptionSelected: {
@@ -164,7 +158,6 @@ const styles = StyleSheet.create({
   durationLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#222222',
     marginBottom: 12,
   },
   durationGrid: {
@@ -173,22 +166,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   durationButton: {
-    backgroundColor: '#F7F7F7',
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
     minWidth: 60,
     alignItems: 'center',
   },
-  durationButtonSelected: {
-    backgroundColor: '#222222',
-  },
   durationText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#222222',
-  },
-  durationTextSelected: {
-    color: '#FFFFFF',
   },
 });

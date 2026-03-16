@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { logger } from '../../utils/logger';
+import { theme } from '../../theme';
 
 export interface ErrorInfo {
   componentStack: string;
@@ -38,7 +39,7 @@ export interface ErrorFallbackProps {
 const DefaultErrorFallback: React.FC<ErrorFallbackProps> = ({ error, resetError, errorId }) => (
   <View style={styles.container}>
     <View style={styles.errorContent}>
-      <Ionicons name="alert-circle" size={64} color="#EF4444" style={styles.errorIcon} />
+      <Ionicons name="alert-circle" size={64} color={theme.colors.error} style={styles.errorIcon} />
       <Text style={styles.errorTitle}>Something went wrong</Text>
       <Text style={styles.errorMessage}>We're sorry, but an unexpected error occurred. Please try again.</Text>
       {__DEV__ && (
@@ -50,7 +51,7 @@ const DefaultErrorFallback: React.FC<ErrorFallbackProps> = ({ error, resetError,
         </ScrollView>
       )}
       <TouchableOpacity style={styles.retryButton} onPress={resetError} accessibilityRole="button" accessibilityLabel="Try again">
-        <Ionicons name="refresh" size={20} color="#FFFFFF" />
+        <Ionicons name="refresh" size={20} color={theme.colors.textInverse} />
         <Text style={styles.retryButtonText}>Try Again</Text>
       </TouchableOpacity>
     </View>
@@ -117,14 +118,14 @@ export const withErrorBoundary = <P extends object>(
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary, justifyContent: 'center', alignItems: 'center', padding: 20 },
   errorContent: { maxWidth: 400, alignItems: 'center' },
   errorIcon: { marginBottom: 20 },
-  errorTitle: { fontSize: 24, fontWeight: '600', color: '#222222', textAlign: 'center', marginBottom: 16 },
-  errorMessage: { fontSize: 16, color: '#717171', textAlign: 'center', lineHeight: 24, marginBottom: 24 },
-  errorDetails: { maxHeight: 200, width: '100%', backgroundColor: '#F7F7F7', borderRadius: 12, padding: 16, marginBottom: 20 },
-  errorDetailsTitle: { fontSize: 14, fontWeight: '600', color: '#222222', marginTop: 8, marginBottom: 6 },
-  errorDetailsText: { fontSize: 12, color: '#717171', fontFamily: 'monospace', lineHeight: 18 },
-  retryButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#222222', paddingHorizontal: 20, paddingVertical: 16, borderRadius: 12, minHeight: 44 },
-  retryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600', marginLeft: 8 },
+  errorTitle: { fontSize: 24, fontWeight: '600', color: theme.colors.textPrimary, textAlign: 'center', marginBottom: 16 },
+  errorMessage: { fontSize: 16, color: theme.colors.textSecondary, textAlign: 'center', lineHeight: 24, marginBottom: 24 },
+  errorDetails: { maxHeight: 200, width: '100%', backgroundColor: theme.colors.backgroundSecondary, borderRadius: 12, padding: 16, marginBottom: 20 },
+  errorDetailsTitle: { fontSize: 14, fontWeight: '600', color: theme.colors.textPrimary, marginTop: 8, marginBottom: 6 },
+  errorDetailsText: { fontSize: 12, color: theme.colors.textSecondary, fontFamily: 'monospace', lineHeight: 18 },
+  retryButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.textPrimary, paddingHorizontal: 20, paddingVertical: 16, borderRadius: 12, minHeight: 44 },
+  retryButtonText: { color: theme.colors.textInverse, fontSize: 16, fontWeight: '600', marginLeft: 8 },
 });

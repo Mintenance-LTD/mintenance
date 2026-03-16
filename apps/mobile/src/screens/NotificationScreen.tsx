@@ -25,6 +25,7 @@ import { LoadingSpinner, ErrorView } from '../components/shared';
 import { NotificationService, NotificationData } from '../services/NotificationService';
 import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 type FilterTab = 'all' | 'unread' | 'jobs' | 'payments' | 'messages';
 
@@ -51,12 +52,12 @@ function formatRelativeTime(timestamp: string): string {
 
 const ICON_COLORS: Record<string, { icon: string; bg: string }> = {
   job_update:        { icon: '#3B82F6', bg: '#DBEAFE' },
-  bid_received:      { icon: '#10B981', bg: '#D1FAE5' },
+  bid_received:      { icon: theme.colors.primary, bg: theme.colors.primaryLight },
   meeting_scheduled: { icon: '#8B5CF6', bg: '#EDE9FE' },
-  payment_received:  { icon: '#F59E0B', bg: '#FEF3C7' },
+  payment_received:  { icon: theme.colors.accent, bg: theme.colors.accentLight },
   message_received:  { icon: '#06B6D4', bg: '#CFFAFE' },
   quote_sent:        { icon: '#EC4899', bg: '#FCE7F3' },
-  system:            { icon: '#717171', bg: '#F7F7F7' },
+  system:            { icon: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary },
 };
 
 const getIconName = (type: NotificationData['type']): keyof typeof Ionicons.glyphMap => {
@@ -311,7 +312,7 @@ export const NotificationScreen: React.FC = () => {
               accessibilityRole="button"
               accessibilityLabel="Mark all as read"
             >
-              <Ionicons name="checkmark-done-outline" size={18} color="#10B981" />
+              <Ionicons name="checkmark-done-outline" size={18} color={theme.colors.primary} />
               <Text style={styles.markAllText}>Mark All</Text>
             </TouchableOpacity>
           )}
@@ -347,7 +348,7 @@ export const NotificationScreen: React.FC = () => {
       {filteredNotifications.length === 0 ? (
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconWrap}>
-            <Ionicons name="notifications-off-outline" size={32} color="#717171" accessible={false} />
+            <Ionicons name="notifications-off-outline" size={32} color={theme.colors.textSecondary} accessible={false} />
           </View>
           <Text style={styles.emptyTitle}>
             {activeTab === 'unread' ? 'All caught up!' : 'No notifications'}
@@ -369,7 +370,7 @@ export const NotificationScreen: React.FC = () => {
             />
           )}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#10B981" colors={['#10B981']} />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
           }
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
@@ -382,7 +383,7 @@ export const NotificationScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   heroHeader: {
     paddingHorizontal: 20,
@@ -415,7 +416,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     letterSpacing: -0.5,
   },
   headerSubtitle: {
@@ -429,12 +430,12 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 20,
   },
   markAllText: {
     fontSize: 13,
-    color: '#10B981',
+    color: theme.colors.primary,
     fontWeight: '600',
   },
   listContainer: {
@@ -447,26 +448,26 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 12,
     gap: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   tab: {
     paddingHorizontal: 16,
     paddingVertical: 9,
     borderRadius: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   tabActive: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   tabText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   tabTextActive: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontWeight: '600',
   },
   notifCard: {
@@ -474,7 +475,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingVertical: 14,
     paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     marginBottom: 8,
     ...Platform.select({
@@ -490,7 +491,7 @@ const styles = StyleSheet.create({
   notifCardUnread: {
     backgroundColor: '#F0FDF9',
     borderLeftWidth: 3,
-    borderLeftColor: '#10B981',
+    borderLeftColor: theme.colors.primary,
   },
   iconCircle: {
     width: 42,
@@ -513,7 +514,7 @@ const styles = StyleSheet.create({
   notifTitle: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     flex: 1,
     marginRight: 8,
   },
@@ -522,12 +523,12 @@ const styles = StyleSheet.create({
   },
   notifBody: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 18,
   },
   notifTime: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     flexShrink: 0,
   },
   emptyContainer: {
@@ -540,7 +541,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -557,12 +558,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
   },

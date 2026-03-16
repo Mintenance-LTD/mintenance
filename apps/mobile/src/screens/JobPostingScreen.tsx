@@ -22,6 +22,7 @@ import { SecurityManager } from '../utils/SecurityManager';
 import { PerformanceOptimizer } from '../utils/PerformanceOptimizer';
 import { ErrorManager, ErrorCategory, ErrorSeverity } from '../utils/ErrorManager';
 import { JobPostingFormFields } from './job-form/JobPostingFormFields';
+import { theme } from '../theme';
 
 interface Props {
   navigation: NativeStackNavigationProp<JobsStackParamList, 'JobPosting'>;
@@ -238,7 +239,7 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={24} color="#222222" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Post a Job</Text>
         <View style={{ width: 40 }} />
@@ -282,7 +283,7 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
         {submissionSuccess && (
           <View testID="success-message" style={styles.messageContainer}>
             <View style={styles.successIconWrap}>
-              <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+              <Ionicons name="checkmark-circle" size={16} color={theme.colors.primary} />
             </View>
             <Text style={styles.successText}>Job posted successfully!</Text>
           </View>
@@ -290,14 +291,14 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
         {submissionError && (
           <View testID="error-message" style={styles.messageContainer}>
             <View style={styles.errorIconWrap}>
-              <Ionicons name="alert-circle" size={16} color="#EF4444" />
+              <Ionicons name="alert-circle" size={16} color={theme.colors.error} />
             </View>
             <Text style={styles.errorText}>{submissionError}</Text>
           </View>
         )}
         {isSubmitting && (
           <View testID="loading-spinner" style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#10B981" />
+            <ActivityIndicator size="small" color={theme.colors.primary} />
             <Text style={styles.loadingText}>Posting job...</Text>
           </View>
         )}
@@ -309,7 +310,7 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
           accessibilityLabel={isSubmitting ? 'Posting job' : 'Post job'}
           accessibilityState={{ disabled: isSubmitting }}
         >
-          <Ionicons name="add-circle-outline" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+          <Ionicons name="add-circle-outline" size={20} color={theme.colors.textInverse} style={{ marginRight: 8 }} />
           <Text style={styles.submitButtonText}>
             {isSubmitting ? 'Posting...' : 'Post Job'}
           </Text>
@@ -322,7 +323,7 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -330,22 +331,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   content: {
     flex: 1,
@@ -353,9 +354,9 @@ const styles = StyleSheet.create({
   footer: {
     padding: 16,
     paddingBottom: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
   },
   messageContainer: {
     flexDirection: 'row',
@@ -369,12 +370,12 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   successText: {
-    color: '#10B981',
+    color: theme.colors.primary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -388,7 +389,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 14,
-    color: '#EF4444',
+    color: theme.colors.error,
     fontWeight: '500',
     flex: 1,
   },
@@ -401,19 +402,19 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   loadingText: {
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontSize: 14,
   },
   submitButton: {
     height: 52,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
   },
   submitButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '700',
   },

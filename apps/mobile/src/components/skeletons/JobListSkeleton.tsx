@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Animated, Easing, ViewStyle } from 'react-native';
+import { theme } from '../../theme';
 
 interface JobListSkeletonProps {
   count?: number;
@@ -199,13 +200,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   skeleton: {
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -232,7 +233,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   detailContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     padding: 16,
   },
   detailHeader: {
@@ -264,7 +265,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   contractorCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,

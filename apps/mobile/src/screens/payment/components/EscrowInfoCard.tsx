@@ -1,13 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 
 export const EscrowInfoCard: React.FC = () => {
   return (
     <View style={styles.escrowCard}>
       <View style={styles.escrowHeader}>
         <View style={styles.shieldIcon}>
-          <Ionicons name="shield-checkmark-outline" size={20} color="#10B981" />
+          <Ionicons name="shield-checkmark-outline" size={20} color={theme.colors.primary} />
         </View>
         <Text style={styles.escrowTitle}>Escrow Protection</Text>
       </View>
@@ -25,12 +26,12 @@ export const EscrowInfoCard: React.FC = () => {
 
 const styles = StyleSheet.create({
   escrowCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
     borderLeftWidth: 4,
-    borderLeftColor: '#10B981',
+    borderLeftColor: theme.colors.primary,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
@@ -45,7 +46,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -53,11 +54,11 @@ const styles = StyleSheet.create({
   escrowTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   escrowDescription: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 12,
     lineHeight: 20,
   },
@@ -66,7 +67,7 @@ const styles = StyleSheet.create({
   },
   conditionItem: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 4,
   },
 });

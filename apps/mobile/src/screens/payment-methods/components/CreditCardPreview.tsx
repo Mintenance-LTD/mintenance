@@ -10,6 +10,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 
 interface CreditCardPreviewProps {
   holderName: string;
@@ -41,7 +42,7 @@ export const CreditCardPreview: React.FC<CreditCardPreviewProps> = ({
             <Text style={styles.value}>{expiry || '02/30'}</Text>
           </View>
           <View style={styles.chipIcon}>
-            <Ionicons name="card" size={32} color="#FFFFFF" />
+            <Ionicons name="card" size={32} color={theme.colors.textInverse} />
           </View>
         </View>
       </View>
@@ -54,7 +55,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   card: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 20,
     padding: 24,
     height: 200,
@@ -62,13 +63,13 @@ const styles = StyleSheet.create({
   visa: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     alignSelf: 'flex-end',
   },
   number: {
     fontSize: 22,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     letterSpacing: 2,
     marginTop: 40,
   },
@@ -80,13 +81,13 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 10,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     marginBottom: 4,
   },
   value: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   chipIcon: {
     opacity: 0.5,

@@ -1,35 +1,36 @@
 import { StyleSheet, Platform } from 'react-native';
+import { theme } from '../theme';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingBottom: 12,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -37,14 +38,14 @@ export const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   content: {
     flex: 1,
     padding: 16,
   },
   meetingInfo: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 14,
@@ -70,7 +71,7 @@ export const styles = StyleSheet.create({
   meetingTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   statusBadge: {
     paddingHorizontal: 10,
@@ -80,11 +81,11 @@ export const styles = StyleSheet.create({
   statusText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   meetingTime: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   participantInfo: {
     marginBottom: 14,
@@ -97,26 +98,26 @@ export const styles = StyleSheet.create({
   participantName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   participantRole: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   notesSection: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
     paddingTop: 14,
   },
   notesTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 6,
   },
   notesText: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 20,
   },
   mapSection: {
@@ -125,7 +126,7 @@ export const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 10,
@@ -140,7 +141,7 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   contractorMarker: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     borderRadius: 15,
     width: 30,
     height: 30,
@@ -171,12 +172,12 @@ export const styles = StyleSheet.create({
   distanceText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginLeft: 4,
   },
   estimatedTime: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginLeft: 8,
   },
   actionsSection: {
@@ -188,7 +189,7 @@ export const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingVertical: 14,
     paddingHorizontal: 8,
     borderRadius: 16,
@@ -206,11 +207,11 @@ export const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginTop: 6,
   },
   travelTrackingSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 14,
@@ -234,22 +235,22 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   startTravelButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   arrivedButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     flex: 1,
     marginRight: 6,
   },
   stopTravelButton: {
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.colors.error,
     flex: 1,
     marginLeft: 6,
   },
   travelButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   trackingActiveContainer: {
     gap: 12,
@@ -258,7 +259,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     padding: 14,
     borderRadius: 12,
     gap: 8,
@@ -266,7 +267,7 @@ export const styles = StyleSheet.create({
   etaText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   trackingButtons: {
     flexDirection: 'row',
@@ -275,7 +276,7 @@ export const styles = StyleSheet.create({
   errorText: {
     marginTop: 8,
     fontSize: 13,
-    color: '#EF4444',
+    color: theme.colors.error,
     textAlign: 'center',
   },
   updatesSection: {
@@ -283,7 +284,7 @@ export const styles = StyleSheet.create({
   },
   updateItem: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     padding: 14,
     borderRadius: 16,
     marginBottom: 8,
@@ -301,7 +302,7 @@ export const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -311,11 +312,11 @@ export const styles = StyleSheet.create({
   },
   updateMessage: {
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   updateTime: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
 });

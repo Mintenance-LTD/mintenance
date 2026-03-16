@@ -8,6 +8,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 
 interface PricingSummaryProps {
   subtotal: number;
@@ -36,7 +37,7 @@ export const PricingSummary: React.FC<PricingSummaryProps> = ({
     <View style={styles.container}>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionIconWrap}>
-          <Ionicons name="calculator" size={16} color="#10B981" />
+          <Ionicons name="calculator" size={16} color={theme.colors.primary} />
         </View>
         <Text style={styles.sectionTitle}>Pricing Summary</Text>
       </View>
@@ -112,7 +113,7 @@ const PriceRow: React.FC<{
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 20,
     padding: 20,
     marginBottom: 12,
@@ -131,14 +132,14 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.2,
   },
   breakdownSection: {
@@ -150,20 +151,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: theme.colors.borderLight,
   },
   pricingLabel: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   pricingLabelBold: {
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   pricingValue: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   pricingValueBold: {
     fontWeight: '700',
@@ -173,7 +174,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 16,
     padding: 18,
     marginTop: 16,
@@ -192,7 +193,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     letterSpacing: -0.5,
   },
 });

@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { BiometricService } from '../services/BiometricService';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 const BiometricSettings: React.FC = () => {
   const { enableBiometric, disableBiometric, user } = useAuth();
@@ -113,7 +114,7 @@ const BiometricSettings: React.FC = () => {
           <Ionicons
             name='information-circle-outline'
             size={24}
-            color='#B0B0B0'
+            color={theme.colors.textTertiary}
           />
           <Text style={styles.unavailableText}>
             Biometric authentication is not available on this device or no
@@ -127,7 +128,7 @@ const BiometricSettings: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Ionicons name='finger-print' size={24} color='#222222' />
+        <Ionicons name='finger-print' size={24} color={theme.colors.textPrimary} />
         <Text style={styles.title}>Biometric Authentication</Text>
       </View>
 
@@ -147,11 +148,11 @@ const BiometricSettings: React.FC = () => {
           onValueChange={handleToggleBiometric}
           disabled={loading}
           trackColor={{
-            false: '#EBEBEB',
-            true: '#222222',
+            false: theme.colors.border,
+            true: theme.colors.textPrimary,
           }}
           thumbColor={
-            isEnabled ? '#FFFFFF' : '#B0B0B0'
+            isEnabled ? '#FFFFFF' : theme.colors.textTertiary
           }
           accessibilityLabel='Enable biometric sign-in'
           accessibilityRole='switch'
@@ -171,7 +172,7 @@ const BiometricSettings: React.FC = () => {
           <Ionicons
             name='checkmark-circle-outline'
             size={20}
-            color='#222222'
+            color={theme.colors.textPrimary}
           />
           <Text style={styles.testButtonText}>
             Test Biometric Authentication
@@ -196,7 +197,7 @@ const BiometricSettings: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     marginVertical: 12,
@@ -220,12 +221,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginLeft: 8,
   },
   subtitle: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 16,
   },
   settingRow: {
@@ -241,12 +242,12 @@ const styles = StyleSheet.create({
   settingLabel: {
     fontSize: 18,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   settingDescription: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 18,
   },
   testButton: {
@@ -254,20 +255,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     marginBottom: 16,
   },
   testButtonText: {
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '500',
     marginLeft: 8,
   },
   infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     padding: 12,
     borderRadius: 12,
     borderLeftWidth: 3,
@@ -276,7 +277,7 @@ const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 18,
     marginLeft: 8,
   },
@@ -284,13 +285,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
   },
   unavailableText: {
     flex: 1,
     fontSize: 15,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     marginLeft: 12,
     lineHeight: 20,
   },

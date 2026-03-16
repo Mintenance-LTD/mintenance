@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { useI18n } from '../../hooks/useI18n';
 import { PerformanceOptimizer } from '../../utils/PerformanceOptimizer';
+import { theme } from '../../theme';
 
 const { width } = Dimensions.get('window');
 
@@ -49,7 +50,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
   trend = 'neutral',
   color = '#222222',
 }) => {
-  const trendColor = trend === 'up' ? '#10B981' : trend === 'down' ? '#EF4444' : '#717171';
+  const trendColor = trend === 'up' ? theme.colors.primary : trend === 'down' ? theme.colors.error : theme.colors.textSecondary;
 
   return (
     <View style={[styles.metricCard, { borderLeftColor: color }]}>
@@ -109,14 +110,14 @@ const BusinessDashboard: React.FC<DashboardProps> = ({
           value={metrics.activeJobs.toString()}
           change="+12% this week"
           trend="up"
-          color="#10B981"
+          color={theme.colors.primary}
         />
         <MetricCard
           title="Completed Jobs"
           value={metrics.completedJobs.toString()}
           change="+8% this month"
           trend="up"
-          color="#222222"
+          color={theme.colors.textPrimary}
         />
       </View>
 
@@ -126,14 +127,14 @@ const BusinessDashboard: React.FC<DashboardProps> = ({
           value={formatCurrency(metrics.totalRevenue)}
           change="+15% this month"
           trend="up"
-          color="#10B981"
+          color={theme.colors.primary}
         />
         <MetricCard
           title="Avg Job Value"
           value={formatCurrency(metrics.averageJobValue)}
           change="-3% this week"
           trend="down"
-          color="#F59E0B"
+          color={theme.colors.accent}
         />
       </View>
 
@@ -143,14 +144,14 @@ const BusinessDashboard: React.FC<DashboardProps> = ({
           value={formatPercentage(metrics.userGrowth)}
           change="+25% this quarter"
           trend="up"
-          color="#222222"
+          color={theme.colors.textPrimary}
         />
         <MetricCard
           title="Contractor Util."
           value={formatPercentage(metrics.contractorUtilization)}
           change="+5% this month"
           trend="up"
-          color="#222222"
+          color={theme.colors.textPrimary}
         />
       </View>
 
@@ -207,7 +208,7 @@ const BusinessDashboard: React.FC<DashboardProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -219,16 +220,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   refreshButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 12,
   },
   refreshText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 13,
     fontWeight: '500',
   },
@@ -240,7 +241,7 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     borderLeftWidth: 4,
@@ -258,7 +259,7 @@ const styles = StyleSheet.create({
   },
   metricTitle: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
     marginBottom: 4,
   },
@@ -281,11 +282,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   insightCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -304,12 +305,12 @@ const styles = StyleSheet.create({
   insightTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   insightText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 20,
   },
   actionGrid: {
@@ -319,7 +320,7 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     width: (width - 16 * 2 - 12) / 2,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 16,
     padding: 12,
     alignItems: 'center',
@@ -327,7 +328,7 @@ const styles = StyleSheet.create({
     minHeight: 56,
   },
   actionText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 13,
     fontWeight: '500',
     textAlign: 'center',

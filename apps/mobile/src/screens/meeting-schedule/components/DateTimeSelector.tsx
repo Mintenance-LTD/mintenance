@@ -11,6 +11,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 
 interface DateTimeSelectorProps {
   selectedDate: Date;
@@ -51,12 +52,12 @@ export const DateTimeSelector: React.FC<DateTimeSelectorProps> = ({
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.sectionTitle} accessibilityRole='header'>DATE & TIME</Text>
+    <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
+      <Text style={[styles.sectionTitle, { color: theme.colors.textTertiary }]} accessibilityRole='header'>DATE & TIME</Text>
 
       <View style={styles.selectorRow}>
         <TouchableOpacity
-          style={styles.selectorButton}
+          style={[styles.selectorButton, { backgroundColor: theme.colors.backgroundSecondary }]}
           onPress={() => onShowDatePicker(true)}
           accessibilityRole='button'
           accessibilityLabel={`Selected date: ${formatDate(selectedDate)}. Double tap to change`}
@@ -66,15 +67,15 @@ export const DateTimeSelector: React.FC<DateTimeSelectorProps> = ({
               <Ionicons name="calendar-outline" size={16} color="#3B82F6" />
             </View>
             <View style={styles.selectorText}>
-              <Text style={styles.selectorLabel}>Date</Text>
-              <Text style={styles.selectorValue}>{formatDate(selectedDate)}</Text>
+              <Text style={[styles.selectorLabel, { color: theme.colors.textSecondary }]}>Date</Text>
+              <Text style={[styles.selectorValue, { color: theme.colors.textPrimary }]}>{formatDate(selectedDate)}</Text>
             </View>
           </View>
-          <Ionicons name="chevron-down" size={20} color="#B0B0B0" />
+          <Ionicons name="chevron-down" size={20} color={theme.colors.textTertiary} />
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.selectorButton}
+          style={[styles.selectorButton, { backgroundColor: theme.colors.backgroundSecondary }]}
           onPress={() => onShowTimePicker(true)}
           accessibilityRole='button'
           accessibilityLabel={`Selected time: ${formatTime(selectedTime)}. Double tap to change`}
@@ -84,11 +85,11 @@ export const DateTimeSelector: React.FC<DateTimeSelectorProps> = ({
               <Ionicons name="time-outline" size={16} color="#8B5CF6" />
             </View>
             <View style={styles.selectorText}>
-              <Text style={styles.selectorLabel}>Time</Text>
-              <Text style={styles.selectorValue}>{formatTime(selectedTime)}</Text>
+              <Text style={[styles.selectorLabel, { color: theme.colors.textSecondary }]}>Time</Text>
+              <Text style={[styles.selectorValue, { color: theme.colors.textPrimary }]}>{formatTime(selectedTime)}</Text>
             </View>
           </View>
-          <Ionicons name="chevron-down" size={20} color="#B0B0B0" />
+          <Ionicons name="chevron-down" size={20} color={theme.colors.textTertiary} />
         </TouchableOpacity>
       </View>
 
@@ -122,7 +123,6 @@ export const DateTimeSelector: React.FC<DateTimeSelectorProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -134,7 +134,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
     marginBottom: 16,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -146,7 +145,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F7F7F7',
     borderRadius: 12,
     padding: 14,
   },
@@ -169,12 +167,10 @@ const styles = StyleSheet.create({
   },
   selectorLabel: {
     fontSize: 12,
-    color: '#717171',
     marginBottom: 2,
   },
   selectorValue: {
     fontSize: 15,
-    color: '#222222',
     fontWeight: '500',
   },
 });

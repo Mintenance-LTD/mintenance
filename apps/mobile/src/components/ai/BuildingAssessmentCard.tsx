@@ -11,6 +11,7 @@ import { BuildingAssessment, BuildingAssessmentCardProps } from './building-asse
 import { RunAssessmentButton, LoadingState } from './building-assessment/AssessmentStates';
 import { AssessmentHeader } from './building-assessment/AssessmentHeader';
 import { AssessmentBody } from './building-assessment/AssessmentBody';
+import { theme } from '../../theme';
 
 export const BuildingAssessmentCard: React.FC<BuildingAssessmentCardProps> = ({
   images,
@@ -83,5 +84,5 @@ export const BuildingAssessmentCard: React.FC<BuildingAssessmentCardProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: '#F7F7F7', borderRadius: 12, marginVertical: 8 },
+  container: { backgroundColor: theme.colors.backgroundSecondary, borderRadius: 12, marginVertical: 8 },
 });

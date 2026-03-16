@@ -1,9 +1,10 @@
 import { StyleSheet, Platform } from 'react-native';
+import { theme } from '../theme';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   loadingContainer: {
     flex: 1,
@@ -13,7 +14,7 @@ export const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 8,
   },
   errorContainer: {
@@ -24,19 +25,19 @@ export const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 15,
-    color: '#EF4444',
+    color: theme.colors.error,
     marginTop: 8,
     textAlign: 'center',
   },
   retryButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 12,
     marginTop: 12,
   },
   retryButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 13,
     fontWeight: '500',
   },
@@ -48,12 +49,12 @@ export const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 8,
   },
   header: {
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   neighborhoodTitle: {
     flexDirection: 'row',
@@ -63,7 +64,7 @@ export const styles = StyleSheet.create({
   neighborhoodName: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginLeft: 8,
   },
   neighborhoodStats: {
@@ -76,16 +77,16 @@ export const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   statLabel: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 4,
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   tab: {
     flex: 1,
@@ -97,22 +98,22 @@ export const styles = StyleSheet.create({
   },
   activeTab: {
     borderBottomWidth: 2,
-    borderBottomColor: '#222222',
+    borderBottomColor: theme.colors.textPrimary,
   },
   tabText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginLeft: 4,
   },
   activeTabText: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   content: {
     padding: 8,
   },
   listItem: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
@@ -132,7 +133,7 @@ export const styles = StyleSheet.create({
   },
   topThreeItem: {
     borderLeftWidth: 4,
-    borderLeftColor: '#222222',
+    borderLeftColor: theme.colors.textPrimary,
   },
   rankContainer: {
     alignItems: 'center',
@@ -142,10 +143,10 @@ export const styles = StyleSheet.create({
   rankText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   topThreeRank: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   avatarContainer: {
     marginRight: 12,
@@ -156,7 +157,7 @@ export const styles = StyleSheet.create({
     borderRadius: 20,
   },
   avatarPlaceholder: {
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -166,7 +167,7 @@ export const styles = StyleSheet.create({
   contractorName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   contractorMeta: {
@@ -182,7 +183,7 @@ export const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginLeft: 4,
   },
   specialtiesContainer: {
@@ -193,7 +194,7 @@ export const styles = StyleSheet.create({
   specialtyChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -206,25 +207,25 @@ export const styles = StyleSheet.create({
   },
   specialtyText: {
     fontSize: 12,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '500',
   },
   moreSpecialties: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontStyle: 'italic',
   },
   endorsementBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
   endorsementCount: {
     fontSize: 12,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '700',
     marginLeft: 4,
   },
@@ -240,7 +241,7 @@ export const styles = StyleSheet.create({
   jobTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     flex: 1,
     marginRight: 8,
   },
@@ -250,7 +251,7 @@ export const styles = StyleSheet.create({
   },
   successDate: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginLeft: 4,
   },
   successParties: {
@@ -258,11 +259,11 @@ export const styles = StyleSheet.create({
   },
   successText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   homeownerName: {
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   successFooter: {
     flexDirection: 'row',
@@ -275,7 +276,7 @@ export const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginLeft: 4,
   },
   photoIndicator: {
@@ -284,7 +285,7 @@ export const styles = StyleSheet.create({
   },
   photoText: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginLeft: 4,
   },
   championRank: {
@@ -295,7 +296,7 @@ export const styles = StyleSheet.create({
   championPosition: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   championEmoji: {
     fontSize: 20,
@@ -306,17 +307,17 @@ export const styles = StyleSheet.create({
   championName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   championType: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 4,
   },
   championScore: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
   },
   badgeLevelIndicator: {
@@ -326,7 +327,7 @@ export const styles = StyleSheet.create({
   },
   badgeLevelText: {
     fontSize: 12,
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontWeight: '700',
   },
 });

@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Swiper from 'react-native-swiper';
+import { theme } from '../../theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -152,7 +153,7 @@ export function OnboardingSwiper({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   header: {
     flexDirection: 'row',
@@ -167,7 +168,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
   },
   slide: {
@@ -193,13 +194,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     textAlign: 'center',
     marginBottom: 16,
   },
   description: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
   },
@@ -220,14 +221,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
   },
   activeDot: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     width: 20,
   },
   inactiveDot: {
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
   },
   button: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingVertical: 16,
     borderRadius: 28,
     alignItems: 'center',
@@ -245,7 +246,7 @@ const styles = StyleSheet.create({
     }),
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 18,
     fontWeight: '600',
   },
@@ -275,7 +276,7 @@ export const homeownerSlides: OnboardingSlide[] = [
     description:
       'Review multiple quotes side-by-side. Check ratings, reviews, and portfolios.',
     icon: '📊',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.colors.accentLight,
   },
   {
     id: 'secure-payment',
@@ -311,7 +312,7 @@ export const contractorSlides: OnboardingSlide[] = [
     description:
       'Build a stunning portfolio with before/after photos. Stand out from the competition.',
     icon: '📸',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.colors.accentLight,
   },
   {
     id: 'get-paid',

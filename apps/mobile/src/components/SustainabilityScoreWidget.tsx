@@ -16,6 +16,7 @@ import {
   sustainabilityUtils,
 } from '../hooks/useSustainability';
 import { ESGScore } from '../services/SustainabilityEngine';
+import { theme } from '../theme';
 
 interface SustainabilityScoreWidgetProps {
   contractorId?: string;
@@ -61,7 +62,7 @@ export const SustainabilityScoreWidget: React.FC<
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size='large' color="#222222" />
+          <ActivityIndicator size='large' color={theme.colors.textPrimary} />
           <Text style={styles.loadingText}>
             Calculating sustainability score...
           </Text>
@@ -74,7 +75,7 @@ export const SustainabilityScoreWidget: React.FC<
     return (
       <View style={styles.container}>
         <View style={styles.errorContainer}>
-          <Ionicons name='leaf-outline' size={32} color="#EF4444" />
+          <Ionicons name='leaf-outline' size={32} color={theme.colors.error} />
           <Text style={styles.errorText}>
             Unable to load sustainability data
           </Text>
@@ -105,7 +106,7 @@ export const SustainabilityScoreWidget: React.FC<
           <Ionicons
             name='leaf-outline'
             size={32}
-            color="#717171"
+            color={theme.colors.textSecondary}
           />
           <Text style={styles.emptyText}>No sustainability data available</Text>
         </View>
@@ -146,7 +147,7 @@ export const SustainabilityScoreWidget: React.FC<
         onPress={() => setExpanded(!expanded)}
       >
         <View style={styles.headerLeft}>
-          <Ionicons name='leaf' size={24} color="#10B981" />
+          <Ionicons name='leaf' size={24} color={theme.colors.primary} />
           <Text style={styles.headerTitle}>Sustainability Score</Text>
         </View>
         <View style={styles.headerRight}>
@@ -156,7 +157,7 @@ export const SustainabilityScoreWidget: React.FC<
           <Ionicons
             name={expanded ? 'chevron-up' : 'chevron-down'}
             size={20}
-            color="#717171"
+            color={theme.colors.textSecondary}
           />
         </View>
       </TouchableOpacity>
@@ -281,9 +282,9 @@ export const SustainabilityScoreWidget: React.FC<
                   {
                     borderLeftColor:
                       insight.type === 'success'
-                        ? '#10B981'
+                        ? theme.colors.primary
                         : insight.type === 'warning'
-                          ? '#F59E0B'
+                          ? theme.colors.accent
                           : '#3B82F6',
                   },
                 ]}
@@ -450,9 +451,9 @@ export const SustainabilityScoreWidget: React.FC<
             disabled={isRecalculating}
           >
             {isRecalculating ? (
-              <ActivityIndicator color="#222222" size='small' />
+              <ActivityIndicator color={theme.colors.textPrimary} size='small' />
             ) : (
-              <Ionicons name='refresh' size={16} color="#222222" />
+              <Ionicons name='refresh' size={16} color={theme.colors.textPrimary} />
             )}
             <Text style={styles.recalculateText}>
               {isRecalculating ? 'Updating...' : 'Recalculate'}

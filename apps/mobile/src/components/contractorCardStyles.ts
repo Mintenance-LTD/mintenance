@@ -1,4 +1,5 @@
 import { StyleSheet, Dimensions, Platform } from 'react-native';
+import { theme } from '../theme';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -8,7 +9,7 @@ export const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     ...Platform.select({
       ios: {
@@ -45,7 +46,7 @@ export const styles = StyleSheet.create({
     borderRadius: 40,
   },
   placeholderImage: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -56,7 +57,7 @@ export const styles = StyleSheet.create({
   contractorName: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   ratingContainer: {
@@ -69,18 +70,18 @@ export const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   distanceText: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   bioSection: {
     marginBottom: 20,
   },
   bioText: {
     fontSize: 16,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     lineHeight: 22,
   },
   skillsSection: {
@@ -89,7 +90,7 @@ export const styles = StyleSheet.create({
   skillsTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   skillsContainer: {
@@ -97,7 +98,7 @@ export const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   skillTag: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -106,7 +107,7 @@ export const styles = StyleSheet.create({
   },
   skillText: {
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '500',
   },
   locationSection: {
@@ -116,7 +117,7 @@ export const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginLeft: 5,
     flex: 1,
   },
@@ -126,12 +127,12 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
     marginBottom: 10,
   },
   detailsButtonText: {
     fontSize: 16,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '500',
     marginRight: 5,
   },
@@ -141,14 +142,14 @@ export const styles = StyleSheet.create({
   reviewsTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 10,
   },
   reviewsContainer: {
     maxHeight: 200,
   },
   reviewCard: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     padding: 12,
     borderRadius: 12,
     marginBottom: 8,
@@ -161,11 +162,11 @@ export const styles = StyleSheet.create({
   },
   reviewDate: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   reviewComment: {
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     lineHeight: 18,
   },
   actionButtons: {
@@ -173,7 +174,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingHorizontal: 60,
     paddingVertical: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
@@ -190,9 +191,9 @@ export const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderWidth: 2,
-    borderColor: '#EF4444',
+    borderColor: theme.colors.error,
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
@@ -211,9 +212,9 @@ export const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderWidth: 2,
-    borderColor: '#10B981',
+    borderColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
@@ -238,11 +239,11 @@ export const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     borderWidth: 2,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.border,
   },
   personalName: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 2,
   },
   detailsGrid: {
@@ -260,7 +261,7 @@ export const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginLeft: 6,
     flex: 1,
   },
@@ -272,11 +273,11 @@ export const styles = StyleSheet.create({
   portfolioTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   portfolioSubtitle: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 5,
   },
   portfolioScroll: {
@@ -297,7 +298,7 @@ export const styles = StyleSheet.create({
   specialtiesTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 10,
   },
   specialtiesContainer: {
@@ -306,14 +307,14 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   specialtyTag: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
   },
   specialtyText: {
     fontSize: 12,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '500',
   },
   connectButton: {

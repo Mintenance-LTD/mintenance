@@ -391,9 +391,10 @@ class SyncManagerService {
         break;
       }
       case 'jobs':
-        // Would need to implement job update API
-        logger.warn('Job updates not implemented yet');
-        break;
+        // Job uploads are handled by OfflineManager (the canonical mutation queue).
+        // SyncManager only handles download sync for jobs.
+        logger.warn('SyncManager: Job uploads delegated to OfflineManager — skipping');
+        return;
       case 'messages': {
         const messageRow = record as DatabaseMessageRow;
         await MessagingService.sendMessage(

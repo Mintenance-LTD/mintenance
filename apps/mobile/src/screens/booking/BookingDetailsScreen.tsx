@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { supabase } from '../../config/supabase';
 import type { RootStackParamList } from '../../navigation/types';
+import { theme } from '../../theme';
 
 interface Props {
   navigation: NativeStackNavigationProp<RootStackParamList, 'BookingDetails'>;
@@ -37,10 +38,10 @@ export const BookingDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.surface} />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#222222" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {job?.title ?? 'Booking Details'}
@@ -84,28 +85,28 @@ export const BookingDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   headerButton: { padding: 8, width: 40 },
   headerTitle: {
     flex: 1,
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     textAlign: 'center',
   },
   content: { padding: 16 },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     ...Platform.select({
@@ -116,20 +117,20 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 4,
   },
-  value: { fontSize: 15, color: '#222222', lineHeight: 22 },
+  value: { fontSize: 15, color: theme.colors.textPrimary, lineHeight: 22 },
   statusBadge: {
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
-  statusText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
+  statusText: { fontSize: 11, fontWeight: '700', color: theme.colors.textInverse },
 });
 
 export default BookingDetailsScreen;

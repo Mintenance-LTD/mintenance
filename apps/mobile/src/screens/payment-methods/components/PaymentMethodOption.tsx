@@ -11,6 +11,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { PaymentMethod } from '../viewmodels/PaymentMethodsViewModel';
+import { theme } from '../../../theme';
 
 interface PaymentMethodOptionProps {
   method: PaymentMethod;
@@ -34,7 +35,7 @@ export const PaymentMethodOption: React.FC<PaymentMethodOptionProps> = ({
     >
       <View style={styles.left}>
         <View style={styles.iconContainer}>
-          <Ionicons name={method.icon as keyof typeof Ionicons.glyphMap} size={24} color="#717171" />
+          <Ionicons name={method.icon as keyof typeof Ionicons.glyphMap} size={24} color={theme.colors.textSecondary} />
         </View>
         <Text style={styles.text}>{method.name}</Text>
       </View>
@@ -48,7 +49,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -58,7 +59,7 @@ const styles = StyleSheet.create({
     }),
   },
   selected: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   left: {
     flexDirection: 'row',
@@ -68,24 +69,24 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
   },
   text: {
     fontSize: 16,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   radio: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.border,
   },
   radioSelected: {
-    borderColor: '#222222',
-    backgroundColor: '#222222',
+    borderColor: theme.colors.textPrimary,
+    backgroundColor: theme.colors.textPrimary,
   },
 });

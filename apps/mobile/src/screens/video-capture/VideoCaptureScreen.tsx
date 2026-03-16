@@ -31,6 +31,7 @@ import Reanimated, {
   withRepeat,
   withSequence,
 } from 'react-native-reanimated';
+import { theme } from '../../theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -278,7 +279,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.permissionContainer}>
-          <Icon name="videocam-off" size={64} color="#B0B0B0" />
+          <Icon name="videocam-off" size={64} color={theme.colors.textTertiary} />
           <Text style={styles.permissionText}>Camera permission required</Text>
           <TouchableOpacity
             style={styles.permissionButton}
@@ -349,7 +350,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
             <View style={styles.instructionsList}>
               {currentPhase.instructions.map((instruction, index) => (
                 <View key={index} style={styles.instructionItem}>
-                  <Icon name="check-circle" size={16} color="#10B981" />
+                  <Icon name="check-circle" size={16} color={theme.colors.primary} />
                   <Text style={styles.instructionText}>{instruction}</Text>
                 </View>
               ))}
@@ -357,7 +358,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
 
             {currentPhase.tips.length > 0 && (
               <View style={styles.tipsContainer}>
-                <Icon name="lightbulb-outline" size={20} color="#F59E0B" />
+                <Icon name="lightbulb-outline" size={20} color={theme.colors.accent} />
                 <Text style={styles.tipText}>{currentPhase.tips[0]}</Text>
               </View>
             )}
@@ -433,7 +434,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
 
           <View style={styles.videoPreviewContainer}>
             <View style={styles.videoPlaceholder}>
-              <Icon name="play-circle-outline" size={64} color="#B0B0B0" />
+              <Icon name="play-circle-outline" size={64} color={theme.colors.textTertiary} />
               <Text style={styles.videoInfo}>
                 Duration: {formatDuration(recordingDuration)}
               </Text>
@@ -448,7 +449,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
               style={[styles.actionButton, styles.retakeButton]}
               onPress={retakeVideo}
             >
-              <Icon name="refresh" size={24} color="#B0B0B0" />
+              <Icon name="refresh" size={24} color={theme.colors.textTertiary} />
               <Text style={styles.actionButtonText}>Retake</Text>
             </TouchableOpacity>
 

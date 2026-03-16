@@ -8,6 +8,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useJobTravelTracking } from '../../../hooks/useJobTravelTracking';
+import { theme } from '../../../theme';
 
 interface Props {
   jobId: string;
@@ -61,7 +62,7 @@ export const ContractorLocationSection: React.FC<Props> = ({ jobId }) => {
               accessibilityRole="button"
               accessibilityLabel="Mark as arrived"
             >
-              <Ionicons name="flag" size={16} color="#FFFFFF" />
+              <Ionicons name="flag" size={16} color={theme.colors.textInverse} />
               <Text style={styles.arrivedButtonText}>Arrived</Text>
             </TouchableOpacity>
 
@@ -71,7 +72,7 @@ export const ContractorLocationSection: React.FC<Props> = ({ jobId }) => {
               accessibilityRole="button"
               accessibilityLabel="Stop tracking"
             >
-              <Ionicons name="stop-circle-outline" size={16} color="#EF4444" />
+              <Ionicons name="stop-circle-outline" size={16} color={theme.colors.error} />
               <Text style={styles.stopButtonText}>Stop</Text>
             </TouchableOpacity>
           </View>
@@ -83,7 +84,7 @@ export const ContractorLocationSection: React.FC<Props> = ({ jobId }) => {
           accessibilityRole="button"
           accessibilityLabel="Start location tracking"
         >
-          <Ionicons name="navigate" size={18} color="#FFFFFF" />
+          <Ionicons name="navigate" size={18} color={theme.colors.textInverse} />
           <Text style={styles.startButtonText}>Share My Location</Text>
         </TouchableOpacity>
       )}
@@ -95,18 +96,18 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 12,
   },
   errorText: {
     fontSize: 13,
-    color: '#EF4444',
+    color: theme.colors.error,
     marginBottom: 8,
   },
   trackingCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
   },
@@ -120,16 +121,16 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
   },
   trackingText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   etaText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 12,
   },
   trackingActions: {
@@ -142,12 +143,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     borderRadius: 28,
     paddingVertical: 10,
   },
   arrivedButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -162,7 +163,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   stopButtonText: {
-    color: '#EF4444',
+    color: theme.colors.error,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -171,12 +172,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 28,
     paddingVertical: 14,
   },
   startButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 15,
     fontWeight: '600',
   },

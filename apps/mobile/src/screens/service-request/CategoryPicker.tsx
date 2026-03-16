@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { styles } from './styles';
 import { serviceCategories, type ServiceCategory } from './types';
+import { theme } from '../../theme';
 
 interface CategoryPickerProps {
   onBack: () => void;
@@ -23,7 +24,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
         accessibilityRole="button"
         accessibilityLabel="Go back"
       >
-        <Ionicons name="arrow-back" size={24} color="#222222" />
+        <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
       </TouchableOpacity>
       <Text style={styles.headerTitle} accessibilityRole="header">
         Request Service
@@ -52,7 +53,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
                 <Ionicons
                   name={category.icon as keyof typeof Ionicons.glyphMap}
                   size={30}
-                  color="#717171"
+                  color={theme.colors.textSecondary}
                 />
               </View>
               <Text style={styles.categoryName}>{category.name}</Text>

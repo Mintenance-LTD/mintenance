@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { CardField, useConfirmPayment } from '@stripe/stripe-react-native';
+import { theme } from '../theme';
 
 interface StripePaymentFormProps {
   amount: number;
@@ -63,10 +64,10 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
           postalCode: '12345',
         }}
         cardStyle={{
-          backgroundColor: '#FFFFFF',
-          textColor: '#222222',
+          backgroundColor: theme.colors.surface,
+          textColor: theme.colors.textPrimary,
           fontSize: 15,
-          placeholderColor: '#B0B0B0',
+          placeholderColor: theme.colors.textTertiary,
         }}
         style={styles.cardField}
         onCardChange={(cardDetails) => setCardComplete(!!cardDetails?.complete)}
@@ -95,7 +96,7 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
         {loading ? (
           <ActivityIndicator
             testID='activity-indicator'
-            color='#FFFFFF'
+            color={theme.colors.textInverse}
             size='small'
           />
         ) : (
@@ -110,7 +111,7 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     padding: 16,
     borderRadius: 16,
     marginBottom: 20,
@@ -118,19 +119,19 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 16,
   },
   cardField: {
     width: '100%',
     height: 50,
     marginBottom: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     paddingHorizontal: 16,
   },
   securityInfo: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     padding: 16,
     borderRadius: 12,
     marginBottom: 20,
@@ -142,11 +143,11 @@ const styles = StyleSheet.create({
   },
   securitySubtext: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 6,
   },
   payButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingVertical: 16,
     borderRadius: 28,
     alignItems: 'center',
@@ -154,10 +155,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   payButtonDisabled: {
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
   },
   payButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 15,
     fontWeight: '600',
   },

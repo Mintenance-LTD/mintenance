@@ -23,6 +23,7 @@ import { RoleSelector } from './register/components/RoleSelector';
 import { TermsSection, TermsModal } from './register/components/TermsSection';
 import { useRegistrationForm } from './register/hooks/useRegistrationForm';
 import { PasswordStrengthBar } from '../components/ui/PasswordStrengthBar';
+import { theme } from '../theme';
 
 const STEPS = [
   { number: 1, label: 'Personal' },
@@ -51,8 +52,8 @@ const FormProgress: React.FC<FormProgressProps> = ({ currentStep }) => {
                     progressStyles.line,
                     {
                       backgroundColor: isCompleted || isActive
-                        ? '#10B981'
-                        : '#EBEBEB',
+                        ? theme.colors.primary
+                        : theme.colors.border,
                     },
                   ]}
                 />
@@ -62,19 +63,19 @@ const FormProgress: React.FC<FormProgressProps> = ({ currentStep }) => {
                   style={[
                     progressStyles.circle,
                     isCompleted || isActive
-                      ? { backgroundColor: '#10B981' }
-                      : { backgroundColor: '#F7F7F7' },
+                      ? { backgroundColor: theme.colors.primary }
+                      : { backgroundColor: theme.colors.backgroundSecondary },
                   ]}
                 >
                   {isCompleted ? (
-                    <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                    <Ionicons name="checkmark" size={16} color={theme.colors.textInverse} />
                   ) : (
                     <Text
                       style={[
                         progressStyles.circleText,
                         isActive
-                          ? { color: '#FFFFFF' }
-                          : { color: '#B0B0B0' },
+                          ? { color: theme.colors.textInverse }
+                          : { color: theme.colors.textTertiary },
                       ]}
                     >
                       {step.number}
@@ -85,10 +86,10 @@ const FormProgress: React.FC<FormProgressProps> = ({ currentStep }) => {
                   style={[
                     progressStyles.label,
                     isActive
-                      ? { color: '#10B981', fontWeight: '600' }
+                      ? { color: theme.colors.primary, fontWeight: '600' }
                       : isFuture
-                        ? { color: '#B0B0B0' }
-                        : { color: '#717171' },
+                        ? { color: theme.colors.textTertiary }
+                        : { color: theme.colors.textSecondary },
                   ]}
                 >
                   {step.label}
@@ -398,14 +399,14 @@ const RegisterScreen: React.FC<Props> = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingTop: 20,
     paddingBottom: 12,
     paddingHorizontal: 24,
@@ -425,11 +426,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   headerSubtitle: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
   },
   keyboardContainer: {
@@ -437,7 +438,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingTop: 20,
     paddingBottom: 32,
   },
@@ -448,13 +449,13 @@ const styles = StyleSheet.create({
   formTitle: {
     fontSize: 26,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
     letterSpacing: -0.3,
   },
   formSubtitle: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   formContainer: {
     paddingHorizontal: 24,
@@ -462,7 +463,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginTop: 20,
@@ -473,7 +474,7 @@ const styles = StyleSheet.create({
   },
   loginDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
     marginBottom: 16,
   },
   loginLinkContainer: {
@@ -483,11 +484,11 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   loginPromptText: {
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontSize: 15,
   },
   loginLinkText: {
-    color: '#10B981',
+    color: theme.colors.primary,
     fontSize: 15,
     fontWeight: '600',
   },

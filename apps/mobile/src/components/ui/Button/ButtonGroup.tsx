@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ViewStyle, TouchableOpacity, Text } from 'react-native';
 import { ButtonProps } from './Button';
+import { theme } from '../../../theme';
 
 export interface ButtonGroupButton {
   id: string;
@@ -140,32 +141,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 44,
   },
   selectedButton: {
-    backgroundColor: '#222222',
-    borderColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
+    borderColor: theme.colors.textPrimary,
   },
   disabledButton: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#EBEBEB',
+    backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.border,
     opacity: 0.5,
   },
   buttonText: {
     fontSize: 15,
     fontWeight: '400',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   selectedButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   disabledButtonText: {
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
 });
 

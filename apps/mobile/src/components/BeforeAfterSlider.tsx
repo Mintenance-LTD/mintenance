@@ -10,6 +10,7 @@ import React from 'react';
 import { View, Image, StyleSheet, Dimensions, Text, Platform } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { theme } from '../theme';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SLIDER_PADDING = 32;
@@ -98,7 +99,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     alignSelf: 'center',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   image: {
     width: IMAGE_WIDTH,
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
   labelLeft: { left: 12 },
   labelRight: { right: 12 },
   labelText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 3,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     marginLeft: -1.5,
     justifyContent: 'center',
     alignItems: 'center',
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     ...Platform.select({
@@ -152,7 +153,7 @@ const styles = StyleSheet.create({
   sliderArrows: { flexDirection: 'row' },
   arrowText: {
     fontSize: 12,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '700',
   },
 });

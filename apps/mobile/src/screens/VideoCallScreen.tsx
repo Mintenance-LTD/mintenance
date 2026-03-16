@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { VideoCallService, CallSession, CallParticipant } from '../services/VideoCallService';
 import { useAuth } from '../contexts/AuthContext';
+import { theme } from '../theme';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -116,7 +117,7 @@ export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({
         <View style={styles.connectingContainer}>
           <View style={styles.connectingContent}>
             <View style={styles.connectingIconWrap}>
-              <Ionicons name="videocam-outline" size={40} color="#FFFFFF" />
+              <Ionicons name="videocam-outline" size={40} color={theme.colors.textInverse} />
             </View>
             <Text style={styles.connectingTitle}>Connecting...</Text>
             <Text style={styles.connectingSubtitle}>
@@ -134,14 +135,14 @@ export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({
       <View style={styles.videoContainer}>
         <View style={styles.localVideoContainer}>
           <View style={styles.localVideoPlaceholder}>
-            <Ionicons name="person" size={40} color="#FFFFFF" />
+            <Ionicons name="person" size={40} color={theme.colors.textInverse} />
             <Text style={styles.localVideoLabel}>You</Text>
           </View>
         </View>
 
         <View style={styles.remoteVideoContainer}>
           <View style={styles.remoteVideoPlaceholder}>
-            <Ionicons name="person" size={60} color="#FFFFFF" />
+            <Ionicons name="person" size={60} color={theme.colors.textInverse} />
             <Text style={styles.remoteVideoLabel}>Contractor</Text>
           </View>
         </View>
@@ -168,7 +169,7 @@ export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({
           <Ionicons
             name={isMuted ? 'mic-off' : 'mic'}
             size={24}
-            color={isMuted ? '#FFFFFF' : '#FFFFFF'}
+            color={isMuted ? '#FFFFFF' : theme.colors.textInverse}
           />
         </TouchableOpacity>
 
@@ -182,7 +183,7 @@ export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({
           <Ionicons
             name={isVideoEnabled ? 'videocam' : 'videocam-off'}
             size={24}
-            color='#FFFFFF'
+            color={theme.colors.textInverse}
           />
         </TouchableOpacity>
 
@@ -196,7 +197,7 @@ export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({
           <Ionicons
             name={isSpeakerEnabled ? 'volume-high' : 'volume-low'}
             size={24}
-            color='#FFFFFF'
+            color={theme.colors.textInverse}
           />
         </TouchableOpacity>
 
@@ -206,7 +207,7 @@ export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({
           accessibilityRole='button'
           accessibilityLabel='End call'
         >
-          <Ionicons name="call" size={24} color="#FFFFFF" />
+          <Ionicons name="call" size={24} color={theme.colors.textInverse} />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -238,7 +239,7 @@ const styles = StyleSheet.create({
   connectingTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     marginBottom: 8,
   },
   connectingSubtitle: {
@@ -305,7 +306,7 @@ const styles = StyleSheet.create({
   callDuration: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     marginBottom: 6,
   },
   connectedChip: {
@@ -321,11 +322,11 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
   },
   callStatus: {
     fontSize: 13,
-    color: '#10B981',
+    color: theme.colors.primary,
     fontWeight: '600',
   },
   controlsContainer: {
@@ -345,13 +346,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   controlButtonActive: {
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.colors.error,
   },
   controlButtonSpeaker: {
     backgroundColor: '#3B82F6',
   },
   endCallButton: {
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.colors.error,
     width: 64,
     height: 64,
     borderRadius: 32,

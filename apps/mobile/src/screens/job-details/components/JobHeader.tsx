@@ -8,22 +8,23 @@ import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Job } from '@mintenance/types';
+import { theme } from '../../../theme';
 
 interface JobHeaderProps {
   job: Job;
 }
 
 const STATUS_STYLES: Record<string, { color: string; bg: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  completed:   { color: '#10B981', bg: '#D1FAE5', icon: 'checkmark-circle' },
-  in_progress: { color: '#F59E0B', bg: '#FEF3C7', icon: 'time' },
+  completed:   { color: theme.colors.primary, bg: theme.colors.primaryLight, icon: 'checkmark-circle' },
+  in_progress: { color: theme.colors.accent, bg: theme.colors.accentLight, icon: 'time' },
   pending:     { color: '#3B82F6', bg: '#DBEAFE', icon: 'hourglass' },
   posted:      { color: '#3B82F6', bg: '#DBEAFE', icon: 'hourglass' },
   assigned:    { color: '#8B5CF6', bg: '#EDE9FE', icon: 'person' },
-  cancelled:   { color: '#EF4444', bg: '#FEE2E2', icon: 'close-circle' },
+  cancelled:   { color: theme.colors.error, bg: '#FEE2E2', icon: 'close-circle' },
 };
 
 export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
-  const status = STATUS_STYLES[job.status] || { color: '#717171', bg: '#F7F7F7', icon: 'help-circle' as keyof typeof Ionicons.glyphMap };
+  const status = STATUS_STYLES[job.status] || { color: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary, icon: 'help-circle' as keyof typeof Ionicons.glyphMap };
 
   return (
     <View style={styles.container}>
@@ -38,7 +39,7 @@ export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
         </View>
 
         <View style={styles.dateRow}>
-          <Ionicons name="calendar-outline" size={14} color="#B0B0B0" />
+          <Ionicons name="calendar-outline" size={14} color={theme.colors.textTertiary} />
           <Text style={styles.dateText}>
             {new Date(job.created_at).toLocaleDateString()}
           </Text>
@@ -54,7 +55,7 @@ export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 12,
@@ -71,7 +72,7 @@ const styles = StyleSheet.create({
   jobTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
     letterSpacing: -0.3,
   },
@@ -100,11 +101,11 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   description: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 22,
   },
 });

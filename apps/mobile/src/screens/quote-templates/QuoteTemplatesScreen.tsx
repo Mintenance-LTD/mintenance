@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../../navigation/types';
+import { theme } from '../../theme';
 
 interface QuoteTemplatesScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'QuoteTemplates'>;
@@ -45,8 +46,8 @@ const TEMPLATES: QuoteTemplate[] = [
     description: 'Comprehensive electrical inspection covering consumer unit, sockets, lighting circuits, and safety checks.',
     category: 'Electrical',
     basePrice: 200,
-    iconBg: '#FEF3C7',
-    iconColor: '#F59E0B',
+    iconBg: theme.colors.accentLight,
+    iconColor: theme.colors.accent,
   },
   {
     id: 'boiler-service',
@@ -56,7 +57,7 @@ const TEMPLATES: QuoteTemplate[] = [
     category: 'Heating',
     basePrice: 90,
     iconBg: '#FEE2E2',
-    iconColor: '#EF4444',
+    iconColor: theme.colors.error,
   },
   {
     id: 'roof-repair',
@@ -65,8 +66,8 @@ const TEMPLATES: QuoteTemplate[] = [
     description: 'Roof inspection and repair of missing/broken tiles, flashing, and guttering.',
     category: 'Roofing',
     basePrice: 300,
-    iconBg: '#D1FAE5',
-    iconColor: '#10B981',
+    iconBg: theme.colors.primaryLight,
+    iconColor: theme.colors.primary,
   },
   {
     id: 'garden-landscaping',
@@ -75,8 +76,8 @@ const TEMPLATES: QuoteTemplate[] = [
     description: 'Full garden design and landscaping including lawn, planting, and paving.',
     category: 'Garden',
     basePrice: 500,
-    iconBg: '#D1FAE5',
-    iconColor: '#10B981',
+    iconBg: theme.colors.primaryLight,
+    iconColor: theme.colors.primary,
   },
   {
     id: 'bathroom-renovation',
@@ -105,8 +106,8 @@ const TEMPLATES: QuoteTemplate[] = [
     description: 'Full interior painting including preparation, priming, and two coats finish.',
     category: 'Decorating',
     basePrice: 400,
-    iconBg: '#FEF3C7',
-    iconColor: '#F59E0B',
+    iconBg: theme.colors.accentLight,
+    iconColor: theme.colors.accent,
   },
 ];
 
@@ -140,7 +141,7 @@ export const QuoteTemplatesScreen: React.FC<QuoteTemplatesScreenProps> = ({ navi
         </Text>
         <Text style={styles.templatePrice}>From {'\u00A3'}{item.basePrice.toLocaleString()}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={20} color="#B0B0B0" />
+      <Ionicons name="chevron-forward" size={20} color={theme.colors.textTertiary} />
     </TouchableOpacity>
   );
 
@@ -149,7 +150,7 @@ export const QuoteTemplatesScreen: React.FC<QuoteTemplatesScreenProps> = ({ navi
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#222222" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Quote Templates</Text>
         <View style={styles.headerButton} />
@@ -172,23 +173,23 @@ export const QuoteTemplatesScreen: React.FC<QuoteTemplatesScreenProps> = ({ navi
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   headerButton: { padding: 8, width: 40 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#222222' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
   listContent: { padding: 16 },
-  subtitle: { fontSize: 14, color: '#717171', marginBottom: 16, lineHeight: 20 },
+  subtitle: { fontSize: 14, color: theme.colors.textSecondary, marginBottom: 16, lineHeight: 20 },
   templateCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -209,11 +210,11 @@ const styles = StyleSheet.create({
   },
   templateInfo: { flex: 1, marginRight: 8 },
   templateHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  templateTitle: { fontSize: 15, fontWeight: '600', color: '#222222', flex: 1 },
-  categoryBadge: { backgroundColor: '#F7F7F7', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, marginLeft: 6 },
-  templateCategory: { fontSize: 11, color: '#717171', fontWeight: '600' },
-  templateDescription: { fontSize: 13, color: '#717171', lineHeight: 18, marginBottom: 6 },
-  templatePrice: { fontSize: 13, fontWeight: '700', color: '#222222' },
+  templateTitle: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary, flex: 1 },
+  categoryBadge: { backgroundColor: theme.colors.backgroundSecondary, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, marginLeft: 6 },
+  templateCategory: { fontSize: 11, color: theme.colors.textSecondary, fontWeight: '600' },
+  templateDescription: { fontSize: 13, color: theme.colors.textSecondary, lineHeight: 18, marginBottom: 6 },
+  templatePrice: { fontSize: 13, fontWeight: '700', color: theme.colors.textPrimary },
 });
 
 export default QuoteTemplatesScreen;

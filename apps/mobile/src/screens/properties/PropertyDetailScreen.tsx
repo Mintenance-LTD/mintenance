@@ -24,6 +24,7 @@ import { supabase } from '../../config/supabase';
 import type { Property } from '@mintenance/types';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { Badge } from '../../components/ui/Badge';
+import { theme } from '../../theme';
 
 interface Props {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'PropertyDetail'>;
@@ -37,7 +38,7 @@ const InfoRow: React.FC<{
 }> = ({ icon, label, value }) => (
   <View style={styles.infoRow}>
     <View style={styles.infoIconWrap}>
-      <Ionicons name={icon} size={16} color="#717171" />
+      <Ionicons name={icon} size={16} color={theme.colors.textSecondary} />
     </View>
     <View style={styles.infoContent}>
       <Text style={styles.infoLabel}>{label}</Text>
@@ -126,14 +127,14 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <ScreenHeader
         title="Property Details"
         showBack
         onBack={() => navigation.goBack()}
         rightComponent={
           <TouchableOpacity onPress={handleDelete} accessibilityLabel="Delete property">
-            <Ionicons name="trash-outline" size={22} color="#EF4444" />
+            <Ionicons name="trash-outline" size={22} color={theme.colors.error} />
           </TouchableOpacity>
         }
       />
@@ -141,7 +142,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#222222" colors={['#222222']} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />
         }
       >
         <View style={styles.addressCard}>
@@ -218,7 +219,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
           {propertyJobs.length === 0 ? (
             <View style={styles.emptyJobsWrap}>
               <View style={styles.emptyJobsIcon}>
-                <Ionicons name="briefcase-outline" size={20} color="#B0B0B0" />
+                <Ionicons name="briefcase-outline" size={20} color={theme.colors.textTertiary} />
               </View>
               <Text style={styles.emptyJobsText}>No jobs for this property yet.</Text>
             </View>
@@ -260,13 +261,13 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   content: {
     padding: 16,
   },
   addressCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
@@ -287,18 +288,18 @@ const styles = StyleSheet.create({
   addressLine1: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginTop: 12,
     textAlign: 'center',
   },
   addressCity: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 4,
     textAlign: 'center',
   },
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -310,7 +311,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 12,
@@ -320,13 +321,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   infoIconWrap: {
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -338,16 +339,16 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   infoValue: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   notesText: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 22,
   },
   jobHistoryHeader: {
@@ -357,7 +358,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   totalSpentBadge: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -365,7 +366,7 @@ const styles = StyleSheet.create({
   totalSpentText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#10B981',
+    color: theme.colors.primary,
   },
   emptyJobsWrap: {
     alignItems: 'center',
@@ -375,14 +376,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
   },
   emptyJobsText: {
     fontSize: 14,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textAlign: 'center',
   },
   jobRow: {
@@ -391,7 +392,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   jobRowInfo: {
     flex: 1,
@@ -400,11 +401,11 @@ const styles = StyleSheet.create({
   jobRowTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   jobRowDate: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     marginTop: 2,
   },
   jobRowRight: {
@@ -414,7 +415,7 @@ const styles = StyleSheet.create({
   jobRowBudget: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
 });
 

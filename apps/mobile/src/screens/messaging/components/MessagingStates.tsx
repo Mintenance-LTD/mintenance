@@ -7,10 +7,11 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 
 export const MessagingLoading: React.FC = () => (
   <View style={styles.loadingContainer}>
-    <ActivityIndicator size="large" color="#10B981" />
+    <ActivityIndicator size="large" color={theme.colors.primary} />
     <Text style={styles.loadingText}>Loading messages...</Text>
   </View>
 );
@@ -22,7 +23,7 @@ interface MessagingErrorProps {
 export const MessagingError: React.FC<MessagingErrorProps> = ({ onRetry }) => (
   <View style={styles.loadingContainer}>
     <View style={styles.errorIconWrap}>
-      <Ionicons name="warning-outline" size={28} color="#EF4444" />
+      <Ionicons name="warning-outline" size={28} color={theme.colors.error} />
     </View>
     <Text style={styles.errorTitle}>Failed to load messages</Text>
     <Text style={styles.errorDesc}>Check your connection and try again.</Text>
@@ -49,7 +50,7 @@ export const MessagingEmpty: React.FC<MessagingEmptyProps> = ({
 }) => (
   <View style={styles.emptyContainer}>
     <View style={styles.emptyIconWrap}>
-      <Ionicons name="chatbubbles-outline" size={32} color="#10B981" />
+      <Ionicons name="chatbubbles-outline" size={32} color={theme.colors.primary} />
     </View>
     <Text style={styles.emptyTitle}>No Messages Yet</Text>
     <Text style={styles.emptySubtext}>
@@ -68,7 +69,7 @@ export const MessagingEmpty: React.FC<MessagingEmptyProps> = ({
             accessibilityRole="button"
             accessibilityLabel={`Send: ${starter.text}`}
           >
-            <Ionicons name={starter.icon} size={14} color="#10B981" />
+            <Ionicons name={starter.icon} size={14} color={theme.colors.primary} />
             <Text style={styles.quickPillText}>{starter.text}</Text>
           </TouchableOpacity>
         ))}
@@ -82,12 +83,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   errorIconWrap: {
     width: 64,
@@ -101,22 +102,22 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   errorDesc: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 4,
   },
   retryButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 28,
     paddingVertical: 14,
     borderRadius: 14,
     marginTop: 20,
   },
   retryText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontWeight: '700',
     fontSize: 15,
   },
@@ -129,7 +130,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 24,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -137,12 +138,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.3,
   },
   emptySubtext: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginTop: 6,
     lineHeight: 22,
@@ -158,9 +159,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: '#D1FAE5',
+    borderColor: theme.colors.primaryLight,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 20,
@@ -168,6 +169,6 @@ const styles = StyleSheet.create({
   quickPillText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#10B981',
+    color: theme.colors.primary,
   },
 });

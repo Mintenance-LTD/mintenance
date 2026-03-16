@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ErrorBoundary } from './ErrorBoundary';
 import { logger } from '../utils/logger';
 import { captureException } from '../config/sentry';
+import { theme } from '../theme';
 
 interface QueryErrorBoundaryProps {
   children: React.ReactNode;
@@ -41,7 +42,7 @@ export const QueryErrorBoundary: React.FC<QueryErrorBoundaryProps> = ({
       <Ionicons
         name='cloud-offline-outline'
         size={48}
-        color='#F59E0B'
+        color={theme.colors.accent}
       />
 
       <Text style={styles.title}>Data Load Error</Text>
@@ -62,7 +63,7 @@ export const QueryErrorBoundary: React.FC<QueryErrorBoundaryProps> = ({
         <Ionicons
           name='refresh'
           size={16}
-          color='#FFFFFF'
+          color={theme.colors.textInverse}
           style={styles.buttonIcon}
         />
         <Text style={styles.retryButtonText}>Retry</Text>
@@ -93,26 +94,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginTop: 16,
     marginBottom: 8,
     textAlign: 'center',
   },
   message: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 20,
     paddingHorizontal: 16,
   },
   retryButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 28,
@@ -121,7 +122,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   retryButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -129,7 +130,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   debugInfo: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     padding: 12,
     borderRadius: 12,
     marginTop: 16,
@@ -137,7 +138,7 @@ const styles = StyleSheet.create({
   },
   debugText: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     fontFamily: 'monospace',
   },
 });

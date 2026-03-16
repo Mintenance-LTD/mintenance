@@ -1,4 +1,5 @@
 import { StyleSheet, Platform } from 'react-native';
+import { theme } from '../../theme';
 
 export const styles = StyleSheet.create({
   container: {
@@ -7,7 +8,7 @@ export const styles = StyleSheet.create({
   },
   permissionContainer: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -18,26 +19,26 @@ export const styles = StyleSheet.create({
   permissionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginTop: 16,
     marginBottom: 8,
     textAlign: 'center',
   },
   permissionMessage: {
     fontSize: 16,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 24,
   },
   permissionButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 28,
   },
   permissionButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -50,7 +51,7 @@ export const styles = StyleSheet.create({
   connectingText: {
     marginTop: 20,
     fontSize: 18,
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   videoContainer: {
     flex: 1,
@@ -58,7 +59,7 @@ export const styles = StyleSheet.create({
   },
   remoteVideoContainer: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   remoteVideo: {
     flex: 1,
@@ -67,11 +68,11 @@ export const styles = StyleSheet.create({
     backgroundColor: '#1a1a1a',
   },
   videoPlaceholder: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 18,
   },
   videoPlaceholderSmall: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 10,
     marginTop: 4,
     textAlign: 'center',
@@ -83,7 +84,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#2a2a2a',
   },
   videoDisabledText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     marginTop: 12,
   },
@@ -97,7 +98,7 @@ export const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: 'black',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: theme.colors.surface,
   },
   localVideo: {
     flex: 1,
@@ -118,7 +119,7 @@ export const styles = StyleSheet.create({
     borderRadius: 4,
   },
   pipLabelText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 10,
     fontWeight: '500',
   },
@@ -152,7 +153,7 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   participantName: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 4,
@@ -168,7 +169,7 @@ export const styles = StyleSheet.create({
     marginRight: 8,
   },
   durationText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 14,
     fontWeight: '500',
     opacity: 0.8,
@@ -185,11 +186,11 @@ export const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     marginRight: 6,
   },
   recordingText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -229,7 +230,7 @@ export const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.colors.error,
     justifyContent: 'center',
     alignItems: 'center',
     transform: [{ rotate: '135deg' }],
@@ -252,11 +253,11 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.3)',
   },
   secondaryButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 12,
     fontWeight: '500',
   },
   secondaryButtonTextActive: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
 });

@@ -9,6 +9,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Pressable, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { VideoCallService } from '../../../services/VideoCallService';
+import { theme } from '../../../theme';
 
 interface ChatHeaderProps {
   otherUserName: string;
@@ -62,7 +63,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         accessibilityRole="button"
         accessibilityLabel="Go back"
       >
-        <Ionicons name="arrow-back" size={20} color="#222222" />
+        <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
       </TouchableOpacity>
 
       {/* Avatar with presence dot */}
@@ -83,9 +84,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             accessibilityRole="button"
             accessibilityLabel={`View job: ${jobTitle}`}
           >
-            <Ionicons name="briefcase" size={10} color="#10B981" />
+            <Ionicons name="briefcase" size={10} color={theme.colors.primary} />
             <Text style={styles.jobPillText} numberOfLines={1}>{jobTitle}</Text>
-            <Ionicons name="chevron-forward" size={10} color="#10B981" />
+            <Ionicons name="chevron-forward" size={10} color={theme.colors.primary} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -102,7 +103,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           <Ionicons
             name="calendar-outline"
             size={18}
-            color={isInCall ? '#B0B0B0' : '#717171'}
+            color={isInCall ? '#B0B0B0' : theme.colors.textSecondary}
           />
         </TouchableOpacity>
         <TouchableOpacity
@@ -115,7 +116,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           <Ionicons
             name="videocam"
             size={18}
-            color={isInCall ? '#B0B0B0' : '#10B981'}
+            color={isInCall ? '#B0B0B0' : theme.colors.primary}
           />
         </TouchableOpacity>
         <TouchableOpacity
@@ -124,7 +125,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           accessibilityRole="button"
           accessibilityLabel="More options"
         >
-          <Ionicons name="ellipsis-horizontal" size={18} color="#717171" />
+          <Ionicons name="ellipsis-horizontal" size={18} color={theme.colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
@@ -149,7 +150,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                   accessibilityLabel={item.label}
                 >
                   <View style={styles.menuIconWrap}>
-                    <Ionicons name={item.icon} size={18} color="#717171" />
+                    <Ionicons name={item.icon} size={18} color={theme.colors.textSecondary} />
                   </View>
                   <Text style={styles.menuItemText}>{item.label}</Text>
                 </TouchableOpacity>
@@ -169,15 +170,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -190,14 +191,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#10B981',
+    color: theme.colors.primary,
   },
   presenceDot: {
     position: 'absolute',
@@ -206,9 +207,9 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: theme.colors.surface,
   },
   headerInfo: {
     flex: 1,
@@ -217,14 +218,14 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.3,
   },
   jobPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -234,7 +235,7 @@ const styles = StyleSheet.create({
   jobPillText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#10B981',
+    color: theme.colors.primary,
     maxWidth: 140,
   },
   headerActions: {
@@ -246,12 +247,12 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   videoActionCircle: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
   },
   menuOverlay: {
     flex: 1,
@@ -262,7 +263,7 @@ const styles = StyleSheet.create({
     paddingRight: 16,
   },
   menuCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     paddingVertical: 8,
     minWidth: 220,
@@ -287,7 +288,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -295,11 +296,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   menuDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
     marginHorizontal: 16,
   },
 });

@@ -17,6 +17,7 @@ import { useToast } from '../../components/ui/Toast';
 import { QuoteBuilderService, ContractorQuote } from '../../services/QuoteBuilderService';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import type { ProfileStackParamList } from '../../navigation/types';
+import { theme } from '../../theme';
 
 interface QuoteDetailScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'QuoteDetail'>;
@@ -24,12 +25,12 @@ interface QuoteDetailScreenProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  accepted: '#10B981',
-  rejected: '#EF4444',
-  sent: '#717171',
+  accepted: theme.colors.primary,
+  rejected: theme.colors.error,
+  sent: theme.colors.textSecondary,
   viewed: '#3B82F6',
-  expired: '#717171',
-  draft: '#B0B0B0',
+  expired: theme.colors.textSecondary,
+  draft: theme.colors.textTertiary,
 };
 
 export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation, route }) => {
@@ -86,7 +87,7 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
     return (
       <View style={[styles.container, styles.centered]}>
         <View style={styles.emptyIconWrap}>
-          <Ionicons name="document-outline" size={32} color="#B0B0B0" />
+          <Ionicons name="document-outline" size={32} color={theme.colors.textTertiary} />
         </View>
         <Text style={styles.emptyText}>Quote not found</Text>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -96,21 +97,21 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
     );
   }
 
-  const statusColor = STATUS_COLORS[quote.status] ?? '#717171';
+  const statusColor = STATUS_COLORS[quote.status] ?? theme.colors.textSecondary;
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#222222" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Quote #{quote.quote_number}</Text>
         <TouchableOpacity
           style={styles.headerButton}
           onPress={() => navigation.navigate('CreateQuote', { jobId: quote.job_id })}
         >
-          <Ionicons name="pencil" size={22} color="#222222" />
+          <Ionicons name="pencil" size={22} color={theme.colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -170,7 +171,7 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
           {quote.discount_amount ? (
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Discount</Text>
-              <Text style={[styles.detailValue, { color: '#10B981' }]}>
+              <Text style={[styles.detailValue, { color: theme.colors.primary }]}>
                 -{'\u00A3'}{quote.discount_amount.toFixed(2)}
               </Text>
             </View>
@@ -200,11 +201,11 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
               style={styles.editButton}
               onPress={() => navigation.navigate('CreateQuote', { jobId: quote.job_id })}
             >
-              <Ionicons name="pencil-outline" size={18} color="#717171" />
+              <Ionicons name="pencil-outline" size={18} color={theme.colors.textSecondary} />
               <Text style={styles.editButtonText}>Edit Quote</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-              <Ionicons name="send-outline" size={18} color="#FFFFFF" />
+              <Ionicons name="send-outline" size={18} color={theme.colors.textInverse} />
               <Text style={styles.sendButtonText}>Send to Client</Text>
             </TouchableOpacity>
           </View>
@@ -217,7 +218,7 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   centered: { justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row',
@@ -225,16 +226,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   headerButton: { padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#222222' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
   scroll: { flex: 1 },
   statusCard: {
     margin: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     ...Platform.select({
@@ -243,11 +244,11 @@ const styles = StyleSheet.create({
     }),
   },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginBottom: 12, alignSelf: 'flex-start' },
-  statusText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
-  totalAmount: { fontSize: 28, fontWeight: '700', color: '#222222' },
-  projectTitle: { fontSize: 14, color: '#717171', marginTop: 4 },
+  statusText: { fontSize: 12, fontWeight: '700', color: theme.colors.textInverse },
+  totalAmount: { fontSize: 28, fontWeight: '700', color: theme.colors.textPrimary },
+  projectTitle: { fontSize: 14, color: theme.colors.textSecondary, marginTop: 4 },
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginBottom: 12,
     borderRadius: 16,
@@ -257,50 +258,50 @@ const styles = StyleSheet.create({
       android: { elevation: 2 },
     }),
   },
-  sectionTitle: { fontSize: 12, fontWeight: '700', color: '#B0B0B0', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.8 },
-  clientName: { fontSize: 16, fontWeight: '600', color: '#222222' },
-  detailText: { fontSize: 13, color: '#717171', marginTop: 4 },
-  valueText: { fontSize: 14, fontWeight: '600', color: '#222222' },
+  sectionTitle: { fontSize: 12, fontWeight: '700', color: theme.colors.textTertiary, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.8 },
+  clientName: { fontSize: 16, fontWeight: '600', color: theme.colors.textPrimary },
+  detailText: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 4 },
+  valueText: { fontSize: 14, fontWeight: '600', color: theme.colors.textPrimary },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
-  detailLabel: { fontSize: 14, color: '#717171' },
-  detailValue: { fontSize: 14, color: '#222222', fontWeight: '600' },
-  totalRowFinal: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#EBEBEB', marginTop: 8, paddingTop: 12 },
-  grandTotalLabel: { fontSize: 16, fontWeight: '700', color: '#222222' },
-  grandTotalValue: { fontSize: 18, fontWeight: '700', color: '#222222' },
-  notesText: { fontSize: 14, color: '#717171', lineHeight: 20 },
+  detailLabel: { fontSize: 14, color: theme.colors.textSecondary },
+  detailValue: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: '600' },
+  totalRowFinal: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.border, marginTop: 8, paddingTop: 12 },
+  grandTotalLabel: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
+  grandTotalValue: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
+  notesText: { fontSize: 14, color: theme.colors.textSecondary, lineHeight: 20 },
   actionsSection: { flexDirection: 'row', gap: 12, marginHorizontal: 16, marginTop: 4 },
   editButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 28,
     paddingVertical: 14,
     gap: 6,
   },
-  editButtonText: { fontSize: 14, fontWeight: '600', color: '#222222' },
+  editButtonText: { fontSize: 14, fontWeight: '600', color: theme.colors.textPrimary },
   sendButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 28,
     paddingVertical: 14,
     gap: 6,
   },
-  sendButtonText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
+  sendButtonText: { fontSize: 14, fontWeight: '600', color: theme.colors.textInverse },
   emptyIconWrap: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyText: { fontSize: 16, color: '#717171', marginTop: 16 },
-  backLink: { fontSize: 14, color: '#222222', fontWeight: '600', marginTop: 12 },
+  emptyText: { fontSize: 16, color: theme.colors.textSecondary, marginTop: 16 },
+  backLink: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: '600', marginTop: 12 },
 });
 
 export default QuoteDetailScreen;

@@ -26,6 +26,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { sanitize } from '@mintenance/security';
+import { theme } from '../../theme';
 
 interface VerificationScreenProps {
   navigation: { goBack: () => void };
@@ -131,7 +132,7 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -139,7 +140,7 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >
-          <Ionicons name="arrow-back" size={24} color="#222222" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} accessibilityRole='header'>Business Verification</Text>
         <View style={{ width: 44 }} />
@@ -148,7 +149,7 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.infoBanner}>
           <View style={styles.infoBannerIconWrap}>
-            <Ionicons name="shield-checkmark" size={24} color="#10B981" />
+            <Ionicons name="shield-checkmark" size={24} color={theme.colors.primary} />
           </View>
           <View style={styles.infoBannerContent}>
             <Text style={styles.infoBannerTitle}>Why Verify?</Text>
@@ -168,7 +169,7 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
               value={formData.companyName}
               onChangeText={(text) => setFormData({ ...formData, companyName: text })}
               placeholder="e.g., ABC Plumbing Ltd"
-              placeholderTextColor="#B0B0B0"
+              placeholderTextColor={theme.colors.textTertiary}
             />
           </View>
 
@@ -181,7 +182,7 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
               value={formData.businessAddress}
               onChangeText={(text) => setFormData({ ...formData, businessAddress: text })}
               placeholder="123 Main Street, London, UK"
-              placeholderTextColor="#B0B0B0"
+              placeholderTextColor={theme.colors.textTertiary}
               multiline
               numberOfLines={3}
             />
@@ -199,7 +200,7 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
               value={formData.licenseNumber}
               onChangeText={(text) => setFormData({ ...formData, licenseNumber: text })}
               placeholder="e.g., LIC-12345-UK"
-              placeholderTextColor="#B0B0B0"
+              placeholderTextColor={theme.colors.textTertiary}
             />
           </View>
 
@@ -236,7 +237,7 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
               value={formData.licenseExpiry}
               onChangeText={(text) => setFormData({ ...formData, licenseExpiry: text })}
               placeholder="DD/MM/YYYY"
-              placeholderTextColor="#B0B0B0"
+              placeholderTextColor={theme.colors.textTertiary}
             />
           </View>
         </View>
@@ -251,7 +252,7 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
             'Build trust with potential clients',
           ].map((benefit, index) => (
             <View key={index} style={styles.benefitRow}>
-              <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+              <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
               <Text style={styles.benefitItem}>{benefit}</Text>
             </View>
           ))}
@@ -266,7 +267,7 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
           accessibilityState={{ disabled: loading }}
         >
           {loading ? (
-            <ActivityIndicator color="#FFFFFF" />
+            <ActivityIndicator color={theme.colors.textInverse} />
           ) : (
             <Text style={styles.submitButtonText}>Submit for Verification</Text>
           )}
@@ -283,7 +284,7 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -291,29 +292,29 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   scrollView: {
     flex: 1,
   },
   infoBanner: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     margin: 16,
     padding: 16,
     borderRadius: 16,
@@ -326,7 +327,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 16,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -337,16 +338,16 @@ const styles = StyleSheet.create({
   infoBannerTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   infoBannerText: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 20,
   },
   form: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     margin: 16,
     marginTop: 0,
     padding: 16,
@@ -362,19 +363,19 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 6,
   },
   required: {
-    color: '#EF4444',
+    color: theme.colors.error,
   },
   input: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 14,
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   textArea: {
     minHeight: 80,
@@ -382,7 +383,7 @@ const styles = StyleSheet.create({
   },
   helpText: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 4,
   },
   radioGroup: {
@@ -398,26 +399,26 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.border,
     marginRight: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
   radioActive: {
-    borderColor: '#222222',
+    borderColor: theme.colors.textPrimary,
   },
   radioSelected: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   radioLabel: {
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   benefitsSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     margin: 16,
     marginTop: 0,
     padding: 16,
@@ -430,7 +431,7 @@ const styles = StyleSheet.create({
   benefitsTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 12,
@@ -443,10 +444,10 @@ const styles = StyleSheet.create({
   },
   benefitItem: {
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   submitButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     marginHorizontal: 16,
     paddingVertical: 16,
     borderRadius: 28,
@@ -458,11 +459,11 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   privacyNote: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textAlign: 'center',
     marginHorizontal: 16,
     marginTop: 12,

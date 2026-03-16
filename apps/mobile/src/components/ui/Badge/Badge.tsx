@@ -9,6 +9,7 @@ import {
   Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 
 export type BadgeVariant =
   | 'primary'
@@ -36,11 +37,11 @@ export interface BadgeProps {
 const VARIANT_BG: Record<BadgeVariant, string> = {
   primary: '#E0E7FF',
   secondary: '#F3F4F6',
-  success: '#D1FAE5',
+  success: theme.colors.primaryLight,
   error: '#FEE2E2',
-  warning: '#FEF3C7',
+  warning: theme.colors.accentLight,
   info: '#DBEAFE',
-  neutral: '#F7F7F7',
+  neutral: theme.colors.backgroundSecondary,
 };
 
 const VARIANT_TEXT: Record<BadgeVariant, string> = {
@@ -50,7 +51,7 @@ const VARIANT_TEXT: Record<BadgeVariant, string> = {
   error: '#991B1B',
   warning: '#92400E',
   info: '#1E40AF',
-  neutral: '#222222',
+  neutral: theme.colors.textPrimary,
 };
 
 export const Badge: React.FC<BadgeProps> = ({
@@ -212,7 +213,7 @@ const getBadgeStyles = (variant: BadgeVariant, size: BadgeSize, rounded: boolean
 const getChipStyles = (variant: BadgeVariant, size: BadgeSize, selected: boolean): ViewStyle => ({
   ...getBadgeStyles(variant, size, true),
   borderWidth: selected ? 0 : 1,
-  borderColor: selected ? 'transparent' : '#EBEBEB',
+  borderColor: selected ? 'transparent' : theme.colors.border,
 });
 
 const getSizeStyles = (size: BadgeSize): ViewStyle => {
@@ -233,7 +234,7 @@ const getBadgeTextStyles = (variant: BadgeVariant, size: BadgeSize): TextStyle =
 
 const getChipTextStyles = (variant: BadgeVariant, size: BadgeSize, selected: boolean): TextStyle => {
   const base = getBadgeTextStyles(variant, size);
-  if (!selected && variant === 'neutral') return { ...base, color: '#222222' };
+  if (!selected && variant === 'neutral') return { ...base, color: theme.colors.textPrimary };
   return base;
 };
 

@@ -11,6 +11,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { supabase } from '../../config/supabase';
+import { theme } from '../../theme';
 
 interface HelpArticle {
   id: string;
@@ -62,28 +63,28 @@ export const HelpCenterScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <ScreenHeader title="Help Centre" showBack onBack={() => navigation.goBack()} />
 
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor="#222222" colors={['#222222']} />}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />}
         ListHeaderComponent={
           <>
             <View style={styles.searchWrap}>
-              <Ionicons name="search-outline" size={18} color="#B0B0B0" style={styles.searchIcon} />
+              <Ionicons name="search-outline" size={18} color={theme.colors.textTertiary} style={styles.searchIcon} />
               <TextInput
                 style={styles.searchInput}
                 placeholder="Search articles..."
-                placeholderTextColor="#B0B0B0"
+                placeholderTextColor={theme.colors.textTertiary}
                 value={search}
                 onChangeText={setSearch}
               />
               {search.length > 0 && (
                 <TouchableOpacity onPress={() => setSearch('')}>
-                  <Ionicons name="close-circle" size={18} color="#B0B0B0" />
+                  <Ionicons name="close-circle" size={18} color={theme.colors.textTertiary} />
                 </TouchableOpacity>
               )}
             </View>
@@ -94,7 +95,7 @@ export const HelpCenterScreen: React.FC = () => {
                 <View style={styles.categoryGrid}>
                   {FAQ_CATEGORIES.map((cat) => (
                     <TouchableOpacity key={cat.key} style={styles.categoryCard} activeOpacity={0.7}>
-                      <Ionicons name={cat.icon} size={24} color="#222222" />
+                      <Ionicons name={cat.icon} size={24} color={theme.colors.textPrimary} />
                       <Text style={styles.categoryLabel}>{cat.label}</Text>
                     </TouchableOpacity>
                   ))}
@@ -111,7 +112,7 @@ export const HelpCenterScreen: React.FC = () => {
             <TouchableOpacity style={styles.articleCard} activeOpacity={0.7} onPress={() => setExpandedId(isExpanded ? null : item.id)}>
               <View style={styles.articleHeader}>
                 <Text style={styles.articleTitle} numberOfLines={isExpanded ? undefined : 1}>{item.title}</Text>
-                <Ionicons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={18} color="#B0B0B0" />
+                <Ionicons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={18} color={theme.colors.textTertiary} />
               </View>
               <Text style={styles.articlePreview} numberOfLines={isExpanded ? undefined : 2}>
                 {isExpanded && item.content ? item.content : item.preview}
@@ -128,10 +129,10 @@ export const HelpCenterScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   list: { padding: 16, paddingBottom: 32 },
   searchWrap: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 12,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surface, borderRadius: 12,
     paddingHorizontal: 12, marginBottom: 20, height: 44,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6 },
@@ -139,29 +140,29 @@ const styles = StyleSheet.create({
     }),
   },
   searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, fontSize: 15, color: '#222222', height: 44 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#222222', marginBottom: 12 },
+  searchInput: { flex: 1, fontSize: 15, color: theme.colors.textPrimary, height: 44 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 12 },
   categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
   categoryCard: {
-    width: '48%', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, alignItems: 'center', gap: 8,
+    width: '48%', backgroundColor: theme.colors.surface, borderRadius: 16, padding: 16, alignItems: 'center', gap: 8,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
     }),
   },
-  categoryLabel: { fontSize: 13, fontWeight: '600', color: '#222222' },
+  categoryLabel: { fontSize: 13, fontWeight: '600', color: theme.colors.textPrimary },
   articleCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 10,
+    backgroundColor: theme.colors.surface, borderRadius: 16, padding: 16, marginBottom: 10,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
     }),
   },
   articleHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  articleTitle: { fontSize: 15, fontWeight: '600', color: '#222222', flex: 1, marginRight: 8 },
-  articlePreview: { fontSize: 13, color: '#717171', lineHeight: 18, marginBottom: 8 },
+  articleTitle: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary, flex: 1, marginRight: 8 },
+  articlePreview: { fontSize: 13, color: theme.colors.textSecondary, lineHeight: 18, marginBottom: 8 },
   articleMeta: { flexDirection: 'row' },
-  articleCategory: { fontSize: 11, color: '#B0B0B0', textTransform: 'capitalize' },
+  articleCategory: { fontSize: 11, color: theme.colors.textTertiary, textTransform: 'capitalize' },
 });
 
 export default HelpCenterScreen;

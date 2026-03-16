@@ -10,6 +10,7 @@
 
 import { NavigationProp } from '@react-navigation/native';
 import { useHaptics } from '../../../utils/haptics';
+import { theme } from '../../../theme';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyNavigation = NavigationProp<Record<string, object | undefined>>;
@@ -188,7 +189,7 @@ export const generateQuickActions = (
       title: 'Settings',
       subtitle: 'Account preferences',
       icon: 'settings-outline',
-      color: '#B0B0B0',
+      color: theme.colors.textTertiary,
       action: navigation.openSettingsScreen,
     },
   ];
@@ -200,7 +201,7 @@ export const generateQuickActions = (
         title: 'Post Job',
         subtitle: 'Create service request',
         icon: 'add-circle-outline',
-        color: '#F59E0B',
+        color: theme.colors.accent,
         action: () => navigation.openServiceRequest(),
       },
       {
@@ -220,7 +221,7 @@ export const generateQuickActions = (
         title: 'Browse Jobs',
         subtitle: 'Find opportunities',
         icon: 'search-outline',
-        color: '#10B981',
+        color: theme.colors.primary,
         action: navigation.openJobsList,
       },
       {
@@ -228,7 +229,7 @@ export const generateQuickActions = (
         title: 'Schedule Meeting',
         subtitle: 'Meet with clients',
         icon: 'calendar-outline',
-        color: '#F59E0B',
+        color: theme.colors.accent,
         action: navigation.openMeetingSchedule,
       },
       ...commonActions,

@@ -24,6 +24,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { theme } from '../../theme';
 
 interface Expense {
   id: string;
@@ -40,11 +41,11 @@ type CategoryFilter = 'all' | 'materials' | 'tools' | 'fuel' | 'software' | 'ins
 const CATEGORY_COLORS: Record<string, string> = {
   materials: '#3B82F6',
   tools: '#8B5CF6',
-  fuel: '#F59E0B',
+  fuel: theme.colors.accent,
   software: '#3B82F6',
-  insurance: '#10B981',
-  marketing: '#EF4444',
-  other: '#717171',
+  insurance: theme.colors.primary,
+  marketing: theme.colors.error,
+  other: theme.colors.textSecondary,
 };
 
 export const ExpensesScreen: React.FC = () => {
@@ -165,7 +166,7 @@ export const ExpensesScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <ScreenHeader title="Expenses" showBack onBack={() => navigation.goBack()} />
 
       {/* Stats */}
@@ -173,7 +174,7 @@ export const ExpensesScreen: React.FC = () => {
         {[
           { label: 'Total', value: `\u00A3${totalExpenses.toFixed(2)}`, icon: 'wallet-outline' as const, color: '#3B82F6', bg: '#DBEAFE' },
           { label: 'This Month', value: `\u00A3${thisMonth.toFixed(2)}`, icon: 'calendar-outline' as const, color: '#8B5CF6', bg: '#EDE9FE' },
-          { label: 'Billable', value: `\u00A3${billableTotal.toFixed(2)}`, icon: 'checkmark-circle-outline' as const, color: '#10B981', bg: '#D1FAE5' },
+          { label: 'Billable', value: `\u00A3${billableTotal.toFixed(2)}`, icon: 'checkmark-circle-outline' as const, color: theme.colors.primary, bg: theme.colors.primaryLight },
         ].map((stat) => (
           <View key={stat.label} style={styles.statCard}>
             <View style={[styles.statIconWrap, { backgroundColor: stat.bg }]}>
@@ -211,8 +212,8 @@ export const ExpensesScreen: React.FC = () => {
       {/* Add Form */}
       {showForm && (
         <Card variant="elevated" padding="md" style={styles.formCard}>
-          <TextInput style={styles.input} placeholder="Description" placeholderTextColor="#B0B0B0" value={formData.description} onChangeText={(t) => setFormData((p) => ({ ...p, description: t }))} />
-          <TextInput style={styles.input} placeholder="Amount" placeholderTextColor="#B0B0B0" keyboardType="decimal-pad" value={formData.amount} onChangeText={(t) => setFormData((p) => ({ ...p, amount: t }))} />
+          <TextInput style={styles.input} placeholder="Description" placeholderTextColor={theme.colors.textTertiary} value={formData.description} onChangeText={(t) => setFormData((p) => ({ ...p, description: t }))} />
+          <TextInput style={styles.input} placeholder="Amount" placeholderTextColor={theme.colors.textTertiary} keyboardType="decimal-pad" value={formData.amount} onChangeText={(t) => setFormData((p) => ({ ...p, amount: t }))} />
           <View style={styles.formActions}>
             <Button variant="ghost" size="sm" onPress={() => setShowForm(false)}>Cancel</Button>
             <Button variant="primary" size="sm" onPress={() => createMutation.mutate({ ...formData, amount: parseFloat(formData.amount) || 0 })} loading={createMutation.isPending}>Add</Button>
@@ -225,11 +226,11 @@ export const ExpensesScreen: React.FC = () => {
         data={filtered}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor="#222222" colors={['#222222']} />}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />}
         ListEmptyComponent={<EmptyState icon="receipt-outline" title="No Expenses" subtitle="Track your business expenses here." />}
         renderItem={({ item }) => (
           <View style={styles.expenseRow}>
-            <View style={[styles.categoryDot, { backgroundColor: CATEGORY_COLORS[item.category] || '#717171' }]} />
+            <View style={[styles.categoryDot, { backgroundColor: CATEGORY_COLORS[item.category] || theme.colors.textSecondary }]} />
             <View style={styles.expenseInfo}>
               <Text style={styles.expenseDesc} numberOfLines={1}>{item.description}</Text>
               <Text style={styles.expenseDate}>{new Date(item.date).toLocaleDateString('en-GB')}</Text>
@@ -245,7 +246,7 @@ export const ExpensesScreen: React.FC = () => {
               accessibilityLabel={`Delete expense ${item.description}`}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="trash-outline" size={16} color="#B0B0B0" />
+              <Ionicons name="trash-outline" size={16} color={theme.colors.textTertiary} />
             </TouchableOpacity>
           </View>
         )}
@@ -266,7 +267,7 @@ export const ExpensesScreen: React.FC = () => {
       {/* FAB */}
       {!showForm && (
         <TouchableOpacity style={styles.fab} onPress={() => setShowForm(true)} accessibilityRole="button" accessibilityLabel="Add expense">
-          <Ionicons name="add" size={28} color="#FFFFFF" />
+          <Ionicons name="add" size={28} color={theme.colors.textInverse} />
         </TouchableOpacity>
       )}
     </SafeAreaView>
@@ -274,36 +275,36 @@ export const ExpensesScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   statsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8 },
   statCard: {
-    flex: 1, backgroundColor: '#FFFFFF', borderRadius: 16, paddingVertical: 14, paddingHorizontal: 10, alignItems: 'center',
+    flex: 1, backgroundColor: theme.colors.surface, borderRadius: 16, paddingVertical: 14, paddingHorizontal: 10, alignItems: 'center',
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
     }),
   },
   statIconWrap: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
-  statLabel: { fontSize: 11, color: '#B0B0B0', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6 },
-  statValue: { fontSize: 16, fontWeight: '700', color: '#222222', marginBottom: 2 },
+  statLabel: { fontSize: 11, color: theme.colors.textTertiary, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6 },
+  statValue: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 2 },
   filterScrollView: { flexGrow: 0 },
   filterRow: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
   filterChip: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: theme.colors.surface,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 },
       android: { elevation: 1 },
     }),
   },
-  filterChipActive: { backgroundColor: '#222222' },
-  filterChipText: { fontSize: 13, fontWeight: '600', color: '#717171' },
-  filterChipTextActive: { color: '#FFFFFF' },
+  filterChipActive: { backgroundColor: theme.colors.textPrimary },
+  filterChipText: { fontSize: 13, fontWeight: '600', color: theme.colors.textSecondary },
+  filterChipTextActive: { color: theme.colors.textInverse },
   formCard: { marginHorizontal: 16, marginBottom: 12 },
-  input: { backgroundColor: '#F7F7F7', borderRadius: 12, padding: 14, fontSize: 15, color: '#222222', marginBottom: 8 },
+  input: { backgroundColor: theme.colors.backgroundSecondary, borderRadius: 12, padding: 14, fontSize: 15, color: theme.colors.textPrimary, marginBottom: 8 },
   formActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
   list: { paddingHorizontal: 16, paddingBottom: 80 },
   expenseRow: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 14, marginBottom: 8,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surface, borderRadius: 16, padding: 14, marginBottom: 8,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
@@ -311,22 +312,22 @@ const styles = StyleSheet.create({
   },
   categoryDot: { width: 10, height: 10, borderRadius: 5, marginRight: 12 },
   expenseInfo: { flex: 1 },
-  expenseDesc: { fontSize: 15, fontWeight: '600', color: '#222222' },
-  expenseDate: { fontSize: 12, color: '#B0B0B0', marginTop: 2 },
+  expenseDesc: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary },
+  expenseDate: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2 },
   expenseRight: { alignItems: 'flex-end', gap: 4 },
-  expenseAmount: { fontSize: 15, fontWeight: '700', color: '#222222' },
+  expenseAmount: { fontSize: 15, fontWeight: '700', color: theme.colors.textPrimary },
   deleteButton: { marginLeft: 8, padding: 4 },
   snackbar: {
-    position: 'absolute', bottom: 90, left: 16, right: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#222222', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14,
+    position: 'absolute', bottom: 90, left: 16, right: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: theme.colors.textPrimary, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12 },
       android: { elevation: 8 },
     }),
   },
-  snackbarText: { fontSize: 14, color: '#FFFFFF', flex: 1, marginRight: 12 },
+  snackbarText: { fontSize: 14, color: theme.colors.textInverse, flex: 1, marginRight: 12 },
   snackbarUndo: { fontSize: 14, fontWeight: '700', color: '#3B82F6' },
   fab: {
-    position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: '#222222', justifyContent: 'center', alignItems: 'center',
+    position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: theme.colors.textPrimary, justifyContent: 'center', alignItems: 'center',
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12 },
       android: { elevation: 8 },

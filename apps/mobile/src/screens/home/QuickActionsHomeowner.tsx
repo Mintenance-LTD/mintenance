@@ -9,6 +9,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../theme';
 
 interface QuickActionsHomeownerProps {
   onPostJobPress: () => void;
@@ -35,8 +36,8 @@ export const QuickActionsHomeowner: React.FC<QuickActionsHomeownerProps> = ({
     {
       label: 'Post Job',
       icon: 'add-circle',
-      iconColor: '#10B981',
-      bgColor: '#D1FAE5',
+      iconColor: theme.colors.primary,
+      bgColor: theme.colors.primaryLight,
       onPress: onPostJobPress,
     },
     {
@@ -56,8 +57,8 @@ export const QuickActionsHomeowner: React.FC<QuickActionsHomeownerProps> = ({
     {
       label: 'Messages',
       icon: 'chatbubble',
-      iconColor: '#F59E0B',
-      bgColor: '#FEF3C7',
+      iconColor: theme.colors.accent,
+      bgColor: theme.colors.accentLight,
       onPress: onMessagesPress,
     },
   ];
@@ -114,7 +115,7 @@ const styles = StyleSheet.create({
   actionLabel: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     textAlign: 'center',
   },
 });

@@ -10,6 +10,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../theme';
 
 interface ErrorViewProps {
   message: string;
@@ -26,7 +27,7 @@ export const ErrorView: React.FC<ErrorViewProps> = ({
 }) => {
   return (
     <View style={[styles.container, fullScreen && styles.fullScreen]}>
-      <Ionicons name={icon} size={64} color="#EF4444" />
+      <Ionicons name={icon} size={64} color={theme.colors.error} />
       <Text style={styles.message}>{message}</Text>
       {onRetry && (
         <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
@@ -45,18 +46,18 @@ const styles = StyleSheet.create({
   },
   fullScreen: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   message: {
     marginTop: 20,
     fontSize: 18,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     textAlign: 'center',
     maxWidth: 300,
   },
   retryButton: {
     marginTop: 24,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 24,
     paddingVertical: 16,
     borderRadius: 16,
@@ -64,6 +65,6 @@ const styles = StyleSheet.create({
   retryButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 });

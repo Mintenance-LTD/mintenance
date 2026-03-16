@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ServiceArea } from '../services/ServiceAreasService';
+import { theme } from '../theme';
 
 interface ServiceAreaCardProps {
   serviceArea: ServiceArea;
@@ -80,8 +81,8 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
               styles.statusIndicator,
               {
                 backgroundColor: serviceArea.is_active
-                  ? '#10B981'
-                  : '#717171',
+                  ? theme.colors.primary
+                  : theme.colors.textSecondary,
               },
             ]}
           />
@@ -90,8 +91,8 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
               styles.statusText,
               {
                 color: serviceArea.is_active
-                  ? '#10B981'
-                  : '#717171',
+                  ? theme.colors.primary
+                  : theme.colors.textSecondary,
               },
             ]}
           >
@@ -105,7 +106,7 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
           <Ionicons
             name={getAreaTypeIcon(serviceArea.area_type) as keyof typeof Ionicons.glyphMap}
             size={16}
-            color="#717171"
+            color={theme.colors.textSecondary}
           />
           <Text style={styles.areaTypeText}>
             {getAreaTypeLabel(serviceArea.area_type)}
@@ -113,7 +114,7 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
         </View>
 
         <View style={styles.priority}>
-          <Ionicons name='flag' size={14} color="#F59E0B" />
+          <Ionicons name='flag' size={14} color={theme.colors.accent} />
           <Text style={styles.priorityText}>
             Priority {serviceArea.priority_level}
           </Text>
@@ -201,7 +202,7 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
 
       <View style={styles.actions}>
         <TouchableOpacity style={styles.actionButton} onPress={onEdit}>
-          <Ionicons name='pencil' size={16} color="#717171" />
+          <Ionicons name='pencil' size={16} color={theme.colors.textSecondary} />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionButton} onPress={onToggleActive}>
@@ -210,8 +211,8 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
             size={16}
             color={
               serviceArea.is_active
-                ? '#F59E0B'
-                : '#10B981'
+                ? theme.colors.accent
+                : theme.colors.primary
             }
           />
         </TouchableOpacity>
@@ -220,7 +221,7 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
           style={[styles.actionButton, styles.deleteButton]}
           onPress={onDelete}
         >
-          <Ionicons name='trash' size={16} color="#EF4444" />
+          <Ionicons name='trash' size={16} color={theme.colors.error} />
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -229,7 +230,7 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -263,11 +264,11 @@ const styles = StyleSheet.create({
   areaName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginRight: 8,
   },
   primaryBadge: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
@@ -275,11 +276,11 @@ const styles = StyleSheet.create({
   primaryText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   description: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 18,
   },
   statusContainer: {
@@ -309,7 +310,7 @@ const styles = StyleSheet.create({
   },
   areaTypeText: {
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginLeft: 6,
   },
   priority: {
@@ -318,7 +319,7 @@ const styles = StyleSheet.create({
   },
   priorityText: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginLeft: 4,
   },
   radiusInfo: {
@@ -326,14 +327,14 @@ const styles = StyleSheet.create({
   },
   radiusText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   listInfo: {
     marginBottom: 12,
   },
   listText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   pricingRow: {
     flexDirection: 'row',
@@ -347,13 +348,13 @@ const styles = StyleSheet.create({
   },
   pricingLabel: {
     fontSize: 11,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 2,
   },
   pricingValue: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   surchargesRow: {
     flexDirection: 'row',
@@ -362,7 +363,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   surchargeChip: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -372,11 +373,11 @@ const styles = StyleSheet.create({
   },
   surchargeText: {
     fontSize: 11,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
   },
   emergencyText: {
-    color: '#EF4444',
+    color: theme.colors.error,
   },
   actions: {
     flexDirection: 'row',
@@ -388,7 +389,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 12,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },

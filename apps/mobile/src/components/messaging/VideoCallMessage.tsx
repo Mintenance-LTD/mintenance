@@ -12,6 +12,7 @@ import { Message } from '../../services/MessagingService';
 import { VideoCallService } from '../../services/VideoCallService';
 import { useAuth } from '../../contexts/AuthContext';
 import { logger } from '../../utils/logger';
+import { theme } from '../../theme';
 
 interface VideoCallMessageProps {
   message: Message;
@@ -60,15 +61,15 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
   const getMessageColor = (): string => {
     switch (message.messageType) {
       case 'video_call_invitation':
-        return '#222222';
+        return theme.colors.textPrimary;
       case 'video_call_started':
-        return '#10B981';
+        return theme.colors.primary;
       case 'video_call_ended':
         return '#3B82F6';
       case 'video_call_missed':
-        return '#F59E0B';
+        return theme.colors.accent;
       default:
-        return '#717171';
+        return theme.colors.textSecondary;
     }
   };
 
@@ -148,7 +149,7 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
           <Ionicons
             name={getMessageIcon() as keyof typeof Ionicons.glyphMap}
             size={16}
-            color="#FFFFFF"
+            color={theme.colors.textInverse}
           />
         </View>
         <Text style={styles.messageText}>{message.messageText}</Text>
@@ -167,7 +168,7 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
               style={[styles.actionButton, styles.declineButton]}
               onPress={handleDeclineCall}
             >
-              <Ionicons name="close" size={16} color="#FFFFFF" />
+              <Ionicons name="close" size={16} color={theme.colors.textInverse} />
               <Text style={styles.actionButtonText}>Decline</Text>
             </TouchableOpacity>
 
@@ -175,7 +176,7 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
               style={[styles.actionButton, styles.joinButton]}
               onPress={handleJoinCall}
             >
-              <Ionicons name="videocam" size={16} color="#FFFFFF" />
+              <Ionicons name="videocam" size={16} color={theme.colors.textInverse} />
               <Text style={styles.actionButtonText}>Join</Text>
             </TouchableOpacity>
           </View>
@@ -188,7 +189,7 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
             <Ionicons
               name="chevron-forward"
               size={14}
-              color="#717171"
+              color={theme.colors.textSecondary}
             />
           </TouchableOpacity>
         )}
@@ -219,7 +220,7 @@ const styles = StyleSheet.create({
   },
   receivedMessage: {
     alignSelf: 'flex-start',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomLeftRadius: 4,
     ...Platform.select({
       ios: {
@@ -249,12 +250,12 @@ const styles = StyleSheet.create({
   messageText: {
     flex: 1,
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '500',
   },
   durationText: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 8,
     fontStyle: 'italic',
   },
@@ -277,13 +278,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   joinButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
   },
   declineButton: {
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.colors.error,
   },
   actionButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -295,13 +296,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   detailsButtonText: {
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontSize: 12,
     fontWeight: '500',
   },
   timestamp: {
     fontSize: 10,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 8,
     textAlign: 'right',
   },

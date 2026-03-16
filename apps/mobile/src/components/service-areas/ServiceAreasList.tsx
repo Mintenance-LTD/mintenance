@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ServiceAreaCard } from '../ServiceAreaCard';
 import Button from '../ui/Button';
 import type { ServiceArea } from '../../services/ServiceAreasService';
+import { theme } from '../../theme';
 
 interface ServiceAreasListProps {
   serviceAreas: ServiceArea[];
@@ -70,7 +71,7 @@ export const ServiceAreasList: React.FC<ServiceAreasListProps> = ({
           <Ionicons
             name='map-outline'
             size={64}
-            color="#B0B0B0"
+            color={theme.colors.textTertiary}
           />
           <Text style={styles.emptyTitle}>No service areas yet</Text>
           <Text style={styles.emptyText}>
@@ -95,13 +96,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 16,
   },
   subsectionTitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
     marginTop: 8,
   },
@@ -113,13 +114,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
     paddingHorizontal: 32,

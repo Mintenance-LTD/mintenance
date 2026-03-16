@@ -19,6 +19,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ScreenHeader } from '../../components/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { useAuth } from '../../contexts/AuthContext';
+import { theme } from '../../theme';
 
 interface ExportStatus {
   id: string;
@@ -30,18 +31,18 @@ interface ExportStatus {
 
 const DATA_CATEGORIES = [
   { icon: 'person-outline', label: 'Profile information', color: '#3B82F6', bg: '#DBEAFE' },
-  { icon: 'briefcase-outline', label: 'Job history & bids', color: '#10B981', bg: '#D1FAE5' },
+  { icon: 'briefcase-outline', label: 'Job history & bids', color: theme.colors.primary, bg: theme.colors.primaryLight },
   { icon: 'chatbubble-outline', label: 'Messages & communications', color: '#8B5CF6', bg: '#EDE9FE' },
-  { icon: 'card-outline', label: 'Payment & invoice records', color: '#F59E0B', bg: '#FEF3C7' },
+  { icon: 'card-outline', label: 'Payment & invoice records', color: theme.colors.accent, bg: theme.colors.accentLight },
   { icon: 'star-outline', label: 'Reviews & ratings', color: '#EC4899', bg: '#FCE7F3' },
   { icon: 'location-outline', label: 'Location & property data', color: '#6366F1', bg: '#EEF2FF' },
 ] as const;
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  pending: { label: 'Queued', color: '#F59E0B', icon: 'time-outline' },
+  pending: { label: 'Queued', color: theme.colors.accent, icon: 'time-outline' },
   processing: { label: 'Processing', color: '#3B82F6', icon: 'sync-outline' },
-  ready: { label: 'Ready to Download', color: '#10B981', icon: 'checkmark-circle-outline' },
-  expired: { label: 'Expired', color: '#717171', icon: 'alert-circle-outline' },
+  ready: { label: 'Ready to Download', color: theme.colors.primary, icon: 'checkmark-circle-outline' },
+  expired: { label: 'Expired', color: theme.colors.textSecondary, icon: 'alert-circle-outline' },
 };
 
 export const DataExportScreen: React.FC = () => {
@@ -79,7 +80,7 @@ export const DataExportScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <ScreenHeader title="Export My Data" showBack onBack={() => navigation.goBack()} />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         <View style={styles.card}>
@@ -107,7 +108,7 @@ export const DataExportScreen: React.FC = () => {
         </View>
 
         {isLoading ? (
-          <ActivityIndicator size="small" color="#222222" style={{ marginTop: 16 }} />
+          <ActivityIndicator size="small" color={theme.colors.textPrimary} style={{ marginTop: 16 }} />
         ) : exports && exports.length > 0 ? (
           <>
             <Text style={styles.sectionLabel}>Previous Exports</Text>
@@ -124,7 +125,7 @@ export const DataExportScreen: React.FC = () => {
                       </View>
                     </View>
                     {exp.status === 'ready' && (
-                      <Ionicons name="cloud-download-outline" size={20} color="#10B981" />
+                      <Ionicons name="cloud-download-outline" size={20} color={theme.colors.primary} />
                     )}
                   </View>
                 );
@@ -140,10 +141,10 @@ export const DataExportScreen: React.FC = () => {
           activeOpacity={0.8}
         >
           {requestMutation.isPending ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={theme.colors.textInverse} />
           ) : (
             <>
-              <Ionicons name="download-outline" size={18} color="#FFFFFF" />
+              <Ionicons name="download-outline" size={18} color={theme.colors.textInverse} />
               <Text style={styles.buttonText}>
                 {hasPendingExport ? 'Export In Progress' : 'Request Data Export'}
               </Text>
@@ -160,11 +161,11 @@ export const DataExportScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   scrollView: { flex: 1 },
   content: { padding: 16, paddingBottom: 40 },
   card: {
-    backgroundColor: '#FFFFFF', borderRadius: 16, marginBottom: 16, overflow: 'hidden',
+    backgroundColor: theme.colors.surface, borderRadius: 16, marginBottom: 16, overflow: 'hidden',
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
@@ -172,23 +173,23 @@ const styles = StyleSheet.create({
   },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, paddingBottom: 8 },
   iconChip: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 16, fontWeight: '600', color: '#222222' },
-  bodyText: { fontSize: 13, color: '#717171', lineHeight: 20, paddingHorizontal: 14, paddingBottom: 14 },
-  sectionLabel: { fontSize: 12, fontWeight: '700', color: '#B0B0B0', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8, paddingHorizontal: 4 },
+  title: { fontSize: 16, fontWeight: '600', color: theme.colors.textPrimary },
+  bodyText: { fontSize: 13, color: theme.colors.textSecondary, lineHeight: 20, paddingHorizontal: 14, paddingBottom: 14 },
+  sectionLabel: { fontSize: 12, fontWeight: '700', color: theme.colors.textTertiary, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8, paddingHorizontal: 4 },
   catRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11, paddingHorizontal: 14 },
-  catBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#EBEBEB' },
-  catLabel: { fontSize: 14, color: '#222222', fontWeight: '400' },
+  catBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
+  catLabel: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: '400' },
   exportRow: { flexDirection: 'row', alignItems: 'center', padding: 14 },
-  exportDate: { fontSize: 14, fontWeight: '500', color: '#222222' },
+  exportDate: { fontSize: 14, fontWeight: '500', color: theme.colors.textPrimary },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
   statusText: { fontSize: 12, fontWeight: '500' },
   button: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: '#222222', borderRadius: 12, paddingVertical: 15, marginTop: 8, marginBottom: 12,
+    backgroundColor: theme.colors.textPrimary, borderRadius: 12, paddingVertical: 15, marginTop: 8, marginBottom: 12,
   },
-  buttonDisabled: { backgroundColor: '#B0B0B0' },
-  buttonText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
-  footnote: { fontSize: 12, color: '#B0B0B0', lineHeight: 18, paddingHorizontal: 4, textAlign: 'center' },
+  buttonDisabled: { backgroundColor: theme.colors.textTertiary },
+  buttonText: { fontSize: 15, fontWeight: '600', color: theme.colors.textInverse },
+  footnote: { fontSize: 12, color: theme.colors.textTertiary, lineHeight: 18, paddingHorizontal: 4, textAlign: 'center' },
 });
 
 export default DataExportScreen;

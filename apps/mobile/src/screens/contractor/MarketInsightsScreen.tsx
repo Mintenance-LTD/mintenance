@@ -17,6 +17,7 @@ import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared
 import { EmptyState } from '../../components/ui/EmptyState';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { theme } from '../../theme';
 
 interface DemandCategory {
   id: string;
@@ -27,7 +28,7 @@ interface DemandCategory {
   competition_count: number;
 }
 
-const DEMAND_COLORS = { high: '#059669', medium: '#D97706', low: '#B0B0B0' };
+const DEMAND_COLORS = { high: theme.colors.primaryDark, medium: '#D97706', low: theme.colors.textTertiary };
 const DEMAND_LABELS = { high: 'High Demand', medium: 'Medium', low: 'Low' };
 
 export const MarketInsightsScreen: React.FC = () => {
@@ -65,14 +66,14 @@ export const MarketInsightsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <ScreenHeader title="Market Insights" showBack onBack={() => navigation.goBack()} />
 
       <FlatList
         data={categories}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor="#222222" colors={['#222222']} />}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />}
         ListEmptyComponent={<EmptyState icon="analytics-outline" title="No Insights Yet" subtitle="Market data will appear as activity grows in your area." />}
         ListHeaderComponent={
           <View style={styles.summaryRow}>
@@ -103,17 +104,17 @@ export const MarketInsightsScreen: React.FC = () => {
             </View>
             <View style={styles.metricsRow}>
               <View style={styles.metric}>
-                <Ionicons name="cash-outline" size={16} color="#717171" />
+                <Ionicons name="cash-outline" size={16} color={theme.colors.textSecondary} />
                 <Text style={styles.metricLabel}>Avg Price</Text>
                 <Text style={styles.metricValue}>{'\u00A3'}{item.avg_price.toLocaleString('en-GB')}</Text>
               </View>
               <View style={styles.metric}>
-                <Ionicons name="briefcase-outline" size={16} color="#717171" />
+                <Ionicons name="briefcase-outline" size={16} color={theme.colors.textSecondary} />
                 <Text style={styles.metricLabel}>Jobs</Text>
                 <Text style={styles.metricValue}>{item.job_count}</Text>
               </View>
               <View style={styles.metric}>
-                <Ionicons name="people-outline" size={16} color="#717171" />
+                <Ionicons name="people-outline" size={16} color={theme.colors.textSecondary} />
                 <Text style={styles.metricLabel}>Competitors</Text>
                 <Text style={styles.metricValue}>{item.competition_count}</Text>
               </View>
@@ -126,34 +127,34 @@ export const MarketInsightsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   list: { padding: 16 },
   summaryRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
   summaryCard: {
-    flex: 1, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 14, alignItems: 'center',
+    flex: 1, backgroundColor: theme.colors.surface, borderRadius: 16, padding: 14, alignItems: 'center',
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
     }),
   },
-  summaryValue: { fontSize: 22, fontWeight: '700', color: '#222222' },
-  summaryLabel: { fontSize: 11, color: '#717171', marginTop: 2 },
+  summaryValue: { fontSize: 22, fontWeight: '700', color: theme.colors.textPrimary },
+  summaryLabel: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 2 },
   card: {
-    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 10,
+    backgroundColor: theme.colors.surface, borderRadius: 16, padding: 16, marginBottom: 10,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
     }),
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  categoryName: { fontSize: 16, fontWeight: '700', color: '#222222', flex: 1 },
+  categoryName: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary, flex: 1 },
   demandBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, gap: 6 },
   demandDot: { width: 8, height: 8, borderRadius: 4 },
   demandText: { fontSize: 12, fontWeight: '600' },
   metricsRow: { flexDirection: 'row', justifyContent: 'space-between' },
   metric: { alignItems: 'center', flex: 1 },
-  metricLabel: { fontSize: 11, color: '#717171', marginTop: 4 },
-  metricValue: { fontSize: 15, fontWeight: '600', color: '#222222', marginTop: 2 },
+  metricLabel: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 4 },
+  metricValue: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary, marginTop: 2 },
 });
 
 export default MarketInsightsScreen;

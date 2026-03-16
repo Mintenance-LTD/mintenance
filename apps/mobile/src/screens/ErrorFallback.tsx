@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Updates from 'expo-updates';
 import { logger } from '@mintenance/shared';
+import { theme } from '../theme';
 
 interface ErrorFallbackProps {
   error: Error;
@@ -79,7 +80,7 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
         {/* Error Icon */}
         <View style={styles.iconContainer}>
           <View style={styles.iconBackground}>
-            <Ionicons name="warning" size={36} color="#EF4444" />
+            <Ionicons name="warning" size={36} color={theme.colors.error} />
           </View>
         </View>
 
@@ -119,7 +120,7 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
             accessibilityLabel='Try again'
             accessibilityHint='Double tap to restart the application'
           >
-            <Ionicons name="refresh" size={20} color="#FFFFFF" />
+            <Ionicons name="refresh" size={20} color={theme.colors.textInverse} />
             <Text style={styles.primaryButtonText}>Try Again</Text>
           </TouchableOpacity>
 
@@ -145,7 +146,7 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
             accessibilityLabel='Contact support'
             accessibilityHint='Double tap to send an email to our support team'
           >
-            <Ionicons name="mail-outline" size={20} color="#717171" />
+            <Ionicons name="mail-outline" size={20} color={theme.colors.textSecondary} />
             <Text style={styles.outlineButtonText}>Contact Support</Text>
           </TouchableOpacity>
         </View>
@@ -199,7 +200,7 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   scrollContent: {
     flexGrow: 1,
@@ -221,13 +222,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
     textAlign: 'center',
   },
   message: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 22,
@@ -239,17 +240,17 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
   },
   errorIdLabel: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginRight: 8,
   },
   errorId: {
     fontSize: 12,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   infoBox: {
@@ -287,12 +288,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   primaryButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   primaryButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   secondaryButton: {
     backgroundColor: '#DBEAFE',
@@ -303,7 +304,7 @@ const styles = StyleSheet.create({
     color: '#3B82F6',
   },
   outlineButton: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 },
       android: { elevation: 1 },
@@ -312,12 +313,12 @@ const styles = StyleSheet.create({
   outlineButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   tipsContainer: {
     width: '100%',
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     marginBottom: 24,
     ...Platform.select({
@@ -328,14 +329,14 @@ const styles = StyleSheet.create({
   tipsTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 12,
   },
   tipItem: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginVertical: 3,
     lineHeight: 20,
   },
@@ -348,37 +349,37 @@ const styles = StyleSheet.create({
   debugTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#EF4444',
+    color: theme.colors.error,
     marginBottom: 12,
   },
   debugContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     padding: 12,
     borderRadius: 12,
   },
   debugLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#EF4444',
+    color: theme.colors.error,
     marginTop: 8,
     marginBottom: 2,
   },
   debugText: {
     fontSize: 11,
-    color: '#EF4444',
+    color: theme.colors.error,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     marginBottom: 6,
   },
   stackTrace: {
     maxHeight: 120,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     padding: 8,
     borderRadius: 8,
     marginBottom: 6,
   },
   stackTraceText: {
     fontSize: 10,
-    color: '#EF4444',
+    color: theme.colors.error,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
 });

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { Invoice } from '../services/contractor-business';
 import { useI18n } from '../hooks/useI18n';
+import { theme } from '../theme';
 
 interface InvoiceWithExtras extends Invoice {
   client_name?: string;
@@ -18,10 +19,10 @@ interface InvoiceCardProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  paid: '#10B981',
-  overdue: '#EF4444',
-  sent: '#F59E0B',
-  draft: '#717171',
+  paid: theme.colors.primary,
+  overdue: theme.colors.error,
+  sent: theme.colors.accent,
+  draft: theme.colors.textSecondary,
 };
 
 const STATUS_ICONS: Record<string, string> = {
@@ -64,7 +65,7 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
           <Ionicons
             name={statusIcon as keyof typeof Ionicons.glyphMap}
             size={14}
-            color="#FFFFFF"
+            color={theme.colors.textInverse}
           />
           <Text style={styles.statusText}>{invoice.status.toUpperCase()}</Text>
         </View>
@@ -83,7 +84,7 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
             <Ionicons
               name='time-outline'
               size={14}
-              color="#EF4444"
+              color={theme.colors.error}
             />
             <Text style={styles.overdueText}>
               {Math.ceil(
@@ -111,7 +112,7 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
             <Ionicons
               name='mail-outline'
               size={16}
-              color="#222222"
+              color={theme.colors.textPrimary}
             />
             <Text style={styles.reminderButtonText}>Send Reminder</Text>
           </TouchableOpacity>
@@ -125,7 +126,7 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
             <Ionicons
               name='checkmark-circle-outline'
               size={16}
-              color="#10B981"
+              color={theme.colors.primary}
             />
             <Text style={styles.paidButtonText}>Mark Paid</Text>
           </TouchableOpacity>
@@ -137,7 +138,7 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -165,11 +166,11 @@ const styles = StyleSheet.create({
   invoiceNumber: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   clientName: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 2,
   },
   statusBadge: {
@@ -182,7 +183,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     marginLeft: 4,
   },
   details: {
@@ -197,11 +198,11 @@ const styles = StyleSheet.create({
   amount: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   dueDate: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   overdueContainer: {
     flexDirection: 'row',
@@ -210,13 +211,13 @@ const styles = StyleSheet.create({
   },
   overdueText: {
     fontSize: 12,
-    color: '#EF4444',
+    color: theme.colors.error,
     marginLeft: 4,
     fontWeight: '500',
   },
   reminderText: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontStyle: 'italic',
   },
   actions: {
@@ -232,20 +233,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   reminderButton: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   reminderButtonText: {
     fontSize: 12,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginLeft: 4,
     fontWeight: '500',
   },
   paidButton: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
   },
   paidButtonText: {
     fontSize: 12,
-    color: '#10B981',
+    color: theme.colors.primary,
     marginLeft: 4,
     fontWeight: '500',
   },

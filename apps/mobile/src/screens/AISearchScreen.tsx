@@ -20,12 +20,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader, ErrorView } from '../components/shared';
 import { AISearchService, SearchResult, SearchFilters, SearchSuggestion } from '../services/AISearchService';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 const RESULT_TYPE_CONFIG: Record<string, { icon: string; color: string; bg: string }> = {
   job: { icon: 'briefcase-outline', color: '#3B82F6', bg: '#DBEAFE' },
-  contractor: { icon: 'person-outline', color: '#10B981', bg: '#D1FAE5' },
+  contractor: { icon: 'person-outline', color: theme.colors.primary, bg: theme.colors.primaryLight },
   service: { icon: 'construct-outline', color: '#8B5CF6', bg: '#EDE9FE' },
-  default: { icon: 'search-outline', color: '#717171', bg: '#F7F7F7' },
+  default: { icon: 'search-outline', color: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary },
 };
 
 export const AISearchScreen: React.FC = () => {
@@ -137,19 +138,19 @@ export const AISearchScreen: React.FC = () => {
           <View style={styles.resultMetadata}>
             {item.metadata.location && (
               <View style={styles.metadataItem}>
-                <Ionicons name="location-outline" size={13} color="#B0B0B0" />
+                <Ionicons name="location-outline" size={13} color={theme.colors.textTertiary} />
                 <Text style={styles.metadataText}>{item.metadata.location}</Text>
               </View>
             )}
             {item.metadata.price && (
               <View style={styles.metadataItem}>
-                <Ionicons name="cash-outline" size={13} color="#B0B0B0" />
+                <Ionicons name="cash-outline" size={13} color={theme.colors.textTertiary} />
                 <Text style={styles.metadataText}>${item.metadata.price}</Text>
               </View>
             )}
             {item.metadata.rating && (
               <View style={styles.metadataItem}>
-                <Ionicons name="star" size={13} color="#F59E0B" />
+                <Ionicons name="star" size={13} color={theme.colors.accent} />
                 <Text style={styles.metadataText}>{item.metadata.rating.toFixed(1)}</Text>
               </View>
             )}
@@ -175,11 +176,11 @@ export const AISearchScreen: React.FC = () => {
         <Ionicons
           name={item.type === 'query' ? 'search-outline' : item.type === 'category' ? 'grid-outline' : 'location-outline'}
           size={16}
-          color="#717171"
+          color={theme.colors.textSecondary}
         />
       </View>
       <Text style={styles.suggestionText}>{item.text}</Text>
-      <Ionicons name="arrow-forward" size={16} color="#B0B0B0" />
+      <Ionicons name="arrow-forward" size={16} color={theme.colors.textTertiary} />
     </TouchableOpacity>
   );
 
@@ -190,7 +191,7 @@ export const AISearchScreen: React.FC = () => {
       accessibilityRole='button'
       accessibilityLabel={`Trending search: ${item.text}`}
     >
-      <Ionicons name="trending-up" size={14} color="#F59E0B" style={{ marginRight: 6 }} />
+      <Ionicons name="trending-up" size={14} color={theme.colors.accent} style={{ marginRight: 6 }} />
       <Text style={styles.trendingText}>{item.text}</Text>
     </TouchableOpacity>
   );
@@ -202,11 +203,11 @@ export const AISearchScreen: React.FC = () => {
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
-          <Ionicons name="search-outline" size={20} color="#B0B0B0" />
+          <Ionicons name="search-outline" size={20} color={theme.colors.textTertiary} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search jobs, contractors, services..."
-            placeholderTextColor="#B0B0B0"
+            placeholderTextColor={theme.colors.textTertiary}
             value={query}
             onChangeText={(text) => {
               setQuery(text);
@@ -223,7 +224,7 @@ export const AISearchScreen: React.FC = () => {
               accessibilityRole='button'
               accessibilityLabel='Clear search'
             >
-              <Ionicons name="close-circle" size={20} color="#B0B0B0" />
+              <Ionicons name="close-circle" size={20} color={theme.colors.textTertiary} />
             </TouchableOpacity>
           )}
         </View>
@@ -234,7 +235,7 @@ export const AISearchScreen: React.FC = () => {
           accessibilityLabel={showFilters ? 'Hide search filters' : 'Show search filters'}
           accessibilityState={{ expanded: showFilters }}
         >
-          <Ionicons name="options-outline" size={20} color={showFilters ? '#FFFFFF' : '#717171'} />
+          <Ionicons name="options-outline" size={20} color={showFilters ? theme.colors.textInverse : theme.colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
@@ -247,7 +248,7 @@ export const AISearchScreen: React.FC = () => {
               <Text style={styles.filterValueText}>
                 {filters.category || 'All Categories'}
               </Text>
-              <Ionicons name="chevron-down" size={16} color="#B0B0B0" />
+              <Ionicons name="chevron-down" size={16} color={theme.colors.textTertiary} />
             </TouchableOpacity>
           </View>
 
@@ -257,7 +258,7 @@ export const AISearchScreen: React.FC = () => {
               <Text style={styles.filterValueText}>
                 {filters.location || 'Any Location'}
               </Text>
-              <Ionicons name="chevron-down" size={16} color="#B0B0B0" />
+              <Ionicons name="chevron-down" size={16} color={theme.colors.textTertiary} />
             </TouchableOpacity>
           </View>
 
@@ -275,7 +276,7 @@ export const AISearchScreen: React.FC = () => {
       {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#10B981" />
+          <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text style={styles.loadingText}>Searching with AI...</Text>
         </View>
       ) : error ? (
@@ -313,7 +314,7 @@ export const AISearchScreen: React.FC = () => {
       ) : (
         <View style={styles.noResultsContainer}>
           <View style={styles.noResultsIconWrap}>
-            <Ionicons name="search-outline" size={32} color="#B0B0B0" accessible={false} />
+            <Ionicons name="search-outline" size={32} color={theme.colors.textTertiary} accessible={false} />
           </View>
           <Text style={styles.noResultsTitle}>No Results Found</Text>
           <Text style={styles.noResultsSubtitle}>
@@ -328,23 +329,23 @@ export const AISearchScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
     gap: 10,
   },
   searchBar: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -352,26 +353,26 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginLeft: 8,
   },
   filterButton: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   filterButtonActive: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
   },
   filtersContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   filterRow: {
     flexDirection: 'row',
@@ -382,12 +383,12 @@ const styles = StyleSheet.create({
   filterLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   filterValue: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
@@ -395,7 +396,7 @@ const styles = StyleSheet.create({
   },
   filterValueText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   clearFiltersButton: {
     alignSelf: 'flex-end',
@@ -403,7 +404,7 @@ const styles = StyleSheet.create({
   },
   clearFiltersText: {
     fontSize: 13,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '600',
   },
   loadingContainer: {
@@ -413,7 +414,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 12,
   },
   suggestionsContainer: {
@@ -424,7 +425,7 @@ const styles = StyleSheet.create({
   suggestionsTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 12,
@@ -434,27 +435,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
     gap: 12,
   },
   suggestionIconWrap: {
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   suggestionText: {
     flex: 1,
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   resultsContainer: {
     padding: 16,
   },
   resultItem: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 10,
@@ -484,12 +485,12 @@ const styles = StyleSheet.create({
   resultTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   resultDescription: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 8,
     lineHeight: 18,
   },
@@ -505,7 +506,7 @@ const styles = StyleSheet.create({
   },
   metadataText: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
   relevanceScore: {
     alignItems: 'center',
@@ -528,7 +529,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 14,
   },
   trendingContainer: {
@@ -537,7 +538,7 @@ const styles = StyleSheet.create({
   },
   trendingItem: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     paddingVertical: 14,
     paddingHorizontal: 12,
@@ -558,7 +559,7 @@ const styles = StyleSheet.create({
   trendingText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     textAlign: 'center',
   },
   noResultsContainer: {
@@ -571,7 +572,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -588,12 +589,12 @@ const styles = StyleSheet.create({
   noResultsTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 6,
   },
   noResultsSubtitle: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
   },

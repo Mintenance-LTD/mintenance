@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { OptimizedImage } from '../optimized/OptimizedImage';
+import { theme } from '../../theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -90,7 +91,7 @@ const styles = StyleSheet.create({
   overlayContainer: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', padding: 16 },
   dotsContainer: { position: 'absolute', bottom: 12, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 },
   dot: { borderRadius: 4 },
-  dotActive: { width: 8, height: 8, backgroundColor: '#222222' },
+  dotActive: { width: 8, height: 8, backgroundColor: theme.colors.textPrimary },
   dotInactive: { width: 6, height: 6, backgroundColor: 'rgba(255, 255, 255, 0.5)' },
 });
 

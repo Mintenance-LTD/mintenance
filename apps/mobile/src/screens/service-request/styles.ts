@@ -1,9 +1,10 @@
 import { StyleSheet } from 'react-native';
+import { theme } from '../../theme';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   header: {
     flexDirection: 'row',
@@ -11,22 +12,22 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   placeholder: {
     width: 40,
@@ -40,17 +41,17 @@ export const styles = StyleSheet.create({
   section: {
     padding: 20,
     borderBottomWidth: 8,
-    borderBottomColor: '#F7F7F7',
+    borderBottomColor: theme.colors.backgroundSecondary,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   sectionSubtitle: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 16,
   },
   categoriesGrid: {
@@ -64,7 +65,7 @@ export const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center',
     marginBottom: 12,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   categoryIcon: {
     width: 60,
@@ -73,12 +74,12 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
   },
   categoryName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     textAlign: 'center',
   },
   subcategoriesContainer: {
@@ -89,32 +90,32 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     marginRight: 8,
     marginBottom: 8,
   },
   subcategoryText: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   subcategoryTextSelected: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontWeight: '600',
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
     marginTop: 16,
   },
   input: {
     height: 50,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     paddingHorizontal: 14,
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   textArea: {
     height: 120,
@@ -126,7 +127,7 @@ export const styles = StyleSheet.create({
   priorityCard: {
     padding: 16,
     borderRadius: 16,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     marginBottom: 8,
   },
   priorityName: {
@@ -158,7 +159,7 @@ export const styles = StyleSheet.create({
     width: '47%',
     aspectRatio: 4 / 3,
     borderRadius: 16,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -166,32 +167,32 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     top: 4,
     right: 4,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
   },
   addPhotoText: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     marginTop: 4,
   },
   footer: {
     padding: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
   },
   submitButton: {
     height: 52,
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   submitButtonDisabled: {
     opacity: 0.5,
   },
   submitButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -199,7 +200,7 @@ export const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 8,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   propertyOptionSelected: {
     backgroundColor: '#DBEAFE',
@@ -215,21 +216,21 @@ export const styles = StyleSheet.create({
   propertyAddress: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   propertyAddressSelected: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   propertyLocation: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 2,
   },
   addPropertyInline: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 16,
     gap: 8,
   },
@@ -237,6 +238,6 @@ export const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
 });

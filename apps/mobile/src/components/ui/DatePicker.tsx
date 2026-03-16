@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../theme';
 
 interface DatePickerProps {
   label: string;
@@ -33,11 +34,11 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${formatted ?? placeholder}. Double tap to change`}
       >
-        <Ionicons name="calendar-outline" size={18} color="#222222" />
+        <Ionicons name="calendar-outline" size={18} color={theme.colors.textPrimary} />
         <Text style={[styles.valueText, !formatted && styles.placeholder]}>
           {formatted ?? placeholder}
         </Text>
-        <Ionicons name="chevron-down" size={16} color="#B0B0B0" />
+        <Ionicons name="chevron-down" size={16} color={theme.colors.textTertiary} />
       </TouchableOpacity>
 
       {show && (
@@ -63,14 +64,14 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 6,
   },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -78,10 +79,10 @@ const styles = StyleSheet.create({
   valueText: {
     flex: 1,
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   placeholder: {
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
 });
 

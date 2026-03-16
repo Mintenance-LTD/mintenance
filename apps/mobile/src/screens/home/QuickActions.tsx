@@ -9,6 +9,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useHaptics } from '../../utils/haptics';
+import { theme } from '../../theme';
 
 interface QuickActionsProps {
   onBrowseJobsPress: () => void;
@@ -41,8 +42,8 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
     {
       label: 'Browse',
       icon: 'search',
-      iconColor: '#10B981',
-      bgColor: '#D1FAE5',
+      iconColor: theme.colors.primary,
+      bgColor: theme.colors.primaryLight,
       onPress: onBrowseJobsPress,
     },
     {
@@ -65,8 +66,8 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
       ? [{
           label: 'Invoices',
           icon: 'receipt' as keyof typeof Ionicons.glyphMap,
-          iconColor: '#F59E0B',
-          bgColor: '#FEF3C7',
+          iconColor: theme.colors.accent,
+          bgColor: theme.colors.accentLight,
           onPress: onInvoicesPress,
         }]
       : []),
@@ -74,7 +75,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
       ? [{
           label: 'Expenses',
           icon: 'wallet' as keyof typeof Ionicons.glyphMap,
-          iconColor: '#EF4444',
+          iconColor: theme.colors.error,
           bgColor: '#FEE2E2',
           onPress: onExpensesPress,
         }]
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 14,
     letterSpacing: -0.3,
   },
@@ -151,7 +152,7 @@ const styles = StyleSheet.create({
   actionLabel: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     textAlign: 'center',
   },
 });

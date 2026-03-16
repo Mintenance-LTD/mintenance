@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { useAccessibility } from '../../hooks/useAccessibility';
+import { theme } from '../../theme';
 
 // ============================================================================
 // ACCESSIBLE BUTTON
@@ -446,10 +447,10 @@ const styles = {
     backgroundColor: '#3B82F6',
   },
   button_secondary: {
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
   },
   button_danger: {
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.colors.error,
   },
   button_small: {
     paddingVertical: 8,
@@ -471,13 +472,13 @@ const styles = {
     fontWeight: '600' as const,
   },
   buttonText_primary: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   buttonText_secondary: {
     color: '#000000',
   },
   buttonText_danger: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   buttonText_small: {
     fontSize: 14,
@@ -503,13 +504,13 @@ const styles = {
     color: '#000000',
   },
   inputLabel_error: {
-    color: '#EF4444',
+    color: theme.colors.error,
   },
   inputLabel_disabled: {
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
   textInput: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -522,22 +523,22 @@ const styles = {
   },
   textInput_error: {
     borderWidth: 1,
-    borderColor: '#EF4444',
+    borderColor: theme.colors.error,
   },
   textInput_disabled: {
-    backgroundColor: '#F7F7F7',
-    color: '#B0B0B0',
+    backgroundColor: theme.colors.backgroundSecondary,
+    color: theme.colors.textTertiary,
   },
   required: {
-    color: '#EF4444',
+    color: theme.colors.error,
   },
   errorText: {
-    color: '#EF4444',
+    color: theme.colors.error,
     fontSize: 14,
     marginTop: 4,
   },
   hintText: {
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     fontSize: 14,
     marginTop: 4,
   },
@@ -601,11 +602,11 @@ const styles = {
     backgroundColor: '#3B82F6',
   },
   checkbox_disabled: {
-    borderColor: '#B0B0B0',
-    backgroundColor: '#F7F7F7',
+    borderColor: theme.colors.textTertiary,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   checkmark: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '700' as const,
   },
@@ -615,14 +616,14 @@ const styles = {
     flex: 1,
   },
   checkboxLabel_disabled: {
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
 
   // Tab styles
   tabBar: {
     flexDirection: 'row' as const,
     borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   tab: {
     flex: 1,
@@ -641,7 +642,7 @@ const styles = {
   },
   tabText: {
     fontSize: 14,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
   tabText_active: {
     color: '#3B82F6',
@@ -656,7 +657,7 @@ const styles = {
   },
   loadingText: {
     fontSize: 16,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
 
   // Accessibility styles

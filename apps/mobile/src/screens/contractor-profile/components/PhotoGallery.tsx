@@ -8,6 +8,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 
 const CARD_WIDTH = Dimensions.get('window').width * 0.6;
 
@@ -42,7 +43,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
           accessibilityLabel="See all photos"
         >
           <Text style={styles.seeAllText}>See All</Text>
-          <Ionicons name="arrow-forward" size={14} color="#10B981" />
+          <Ionicons name="arrow-forward" size={14} color={theme.colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -55,7 +56,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
           <TouchableOpacity key={index} style={styles.projectCard} activeOpacity={0.9}>
             {/* Cover image placeholder */}
             <View style={styles.coverImage}>
-              <Ionicons name="image-outline" size={32} color="#B0B0B0" />
+              <Ionicons name="image-outline" size={32} color={theme.colors.textTertiary} />
               {index === 0 && project.length > 0 && (
                 <View style={styles.beforeAfterBadge}>
                   <Text style={styles.beforeAfterText}>Before/After</Text>
@@ -69,7 +70,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                 {index === 0 ? 'Bathroom Renovation' : index === 1 ? 'Kitchen Remodel' : `Project ${index + 1}`}
               </Text>
               <View style={styles.photoCountRow}>
-                <Ionicons name="camera-outline" size={12} color="#717171" />
+                <Ionicons name="camera-outline" size={12} color={theme.colors.textSecondary} />
                 <Text style={styles.photoCountText}>
                   {project.length || (3 + index)} photos
                 </Text>
@@ -97,7 +98,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.3,
   },
   seeAllBtn: {
@@ -108,7 +109,7 @@ const styles = StyleSheet.create({
   seeAllText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#10B981',
+    color: theme.colors.primary,
   },
   scrollContent: {
     paddingHorizontal: 16,
@@ -116,7 +117,7 @@ const styles = StyleSheet.create({
   },
   projectCard: {
     width: CARD_WIDTH,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     overflow: 'hidden',
     ...Platform.select({
@@ -127,7 +128,7 @@ const styles = StyleSheet.create({
   coverImage: {
     width: '100%',
     height: 140,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: theme.colors.backgroundTertiary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -135,7 +136,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     left: 8,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -143,7 +144,7 @@ const styles = StyleSheet.create({
   beforeAfterText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   projectInfo: {
     padding: 12,
@@ -151,7 +152,7 @@ const styles = StyleSheet.create({
   projectName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   photoCountRow: {
@@ -161,6 +162,6 @@ const styles = StyleSheet.create({
   },
   photoCountText: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
 });

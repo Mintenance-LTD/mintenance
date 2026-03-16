@@ -10,6 +10,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ContractorStats } from '../../services/UserService';
+import { theme } from '../../theme';
 
 interface StatsSectionProps {
   stats: ContractorStats | null;
@@ -26,8 +27,8 @@ interface StatConfig {
 const STAT_CONFIG: StatConfig[] = [
   {
     icon: 'cash',
-    iconColor: '#10B981',
-    iconBg: '#D1FAE5',
+    iconColor: theme.colors.primary,
+    iconBg: theme.colors.primaryLight,
     getValue: (s) => `\u00A3${s?.monthlyEarnings?.toFixed(0) || '0'}`,
     label: 'Earnings',
   },
@@ -40,8 +41,8 @@ const STAT_CONFIG: StatConfig[] = [
   },
   {
     icon: 'star',
-    iconColor: '#F59E0B',
-    iconBg: '#FEF3C7',
+    iconColor: theme.colors.accent,
+    iconBg: theme.colors.accentLight,
     getValue: (s) => s?.rating?.toFixed(1) || 'New',
     label: 'Rating',
   },
@@ -83,7 +84,7 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     padding: 18,
     borderRadius: 16,
     alignItems: 'flex-start',
@@ -110,13 +111,13 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 2,
     letterSpacing: -0.5,
   },
   label: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '400',
   },
 });

@@ -24,6 +24,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated, AccessibilityInfo, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { theme } from '../../theme';
 export interface SkeletonProps {
   /**
    * Width of the skeleton

@@ -1,6 +1,7 @@
 import React, { ReactNode, ErrorInfo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -107,19 +108,19 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#EF4444',
+    color: theme.colors.error,
     textAlign: 'center',
     marginBottom: 15,
   },
   errorMessage: {
     fontSize: 16,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 25,
   },
   errorDetails: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     padding: 15,
     borderRadius: 12,
     marginBottom: 25,
@@ -129,17 +130,17 @@ const styles = StyleSheet.create({
   errorDetailsTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   errorDetailsText: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontFamily: 'monospace',
     lineHeight: 16,
   },
   retryButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 30,
     paddingVertical: 12,
     borderRadius: 28,
@@ -148,13 +149,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   retryButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
   },
   helpText: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textAlign: 'center',
     fontStyle: 'italic',
   },

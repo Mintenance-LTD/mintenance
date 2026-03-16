@@ -21,6 +21,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
 import { mobileApiClient } from '../utils/mobileApiClient';
 import { useToast } from '../components/ui/Toast';
+import { theme } from '../theme';
 
 const PAYMENT_TYPES = [
   { key: 'card' as const, label: 'Credit/Debit Card', icon: 'card' as const, enabled: true },
@@ -132,12 +133,12 @@ const AddPaymentMethodScreen: React.FC = () => {
         postalCodeEnabled={true}
         placeholders={{ number: '4242 4242 4242 4242' }}
         cardStyle={{
-          backgroundColor: '#FFFFFF',
-          textColor: '#222222',
+          backgroundColor: theme.colors.surface,
+          textColor: theme.colors.textPrimary,
           borderWidth: 0,
           borderRadius: 12,
           fontSize: 16,
-          placeholderColor: '#B0B0B0',
+          placeholderColor: theme.colors.textTertiary,
         }}
         style={styles.cardField}
         onCardChange={(details) => {
@@ -170,8 +171,8 @@ const AddPaymentMethodScreen: React.FC = () => {
         }}
         disabled={notifyMePayPal}
       >
-        <Ionicons name={notifyMePayPal ? 'checkmark-circle' : 'notifications-outline'} size={18} color={notifyMePayPal ? '#10B981' : '#717171'} />
-        <Text style={[styles.notifyButtonText, notifyMePayPal && { color: '#10B981' }]}>
+        <Ionicons name={notifyMePayPal ? 'checkmark-circle' : 'notifications-outline'} size={18} color={notifyMePayPal ? theme.colors.primary : theme.colors.textSecondary} />
+        <Text style={[styles.notifyButtonText, notifyMePayPal && { color: theme.colors.primary }]}>
           {notifyMePayPal ? 'Notifications enabled' : 'Notify me when available'}
         </Text>
       </TouchableOpacity>
@@ -185,7 +186,7 @@ const AddPaymentMethodScreen: React.FC = () => {
         <TextInput
           style={styles.input}
           placeholder="Full name on account"
-          placeholderTextColor="#B0B0B0"
+          placeholderTextColor={theme.colors.textTertiary}
           value={bankName}
           onChangeText={setBankName}
           autoCapitalize="words"
@@ -196,7 +197,7 @@ const AddPaymentMethodScreen: React.FC = () => {
         <TextInput
           style={styles.input}
           placeholder="00-00-00"
-          placeholderTextColor="#B0B0B0"
+          placeholderTextColor={theme.colors.textTertiary}
           value={sortCode}
           onChangeText={setSortCode}
           keyboardType="numbers-and-punctuation"
@@ -208,7 +209,7 @@ const AddPaymentMethodScreen: React.FC = () => {
         <TextInput
           style={styles.input}
           placeholder="00000000"
-          placeholderTextColor="#B0B0B0"
+          placeholderTextColor={theme.colors.textTertiary}
           value={accountNumber}
           onChangeText={setAccountNumber}
           keyboardType="number-pad"
@@ -219,8 +220,8 @@ const AddPaymentMethodScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-    <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.backgroundSecondary }]}>
+    <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -232,7 +233,7 @@ const AddPaymentMethodScreen: React.FC = () => {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={24} color="#222222" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.title}>Add Payment Method</Text>
         <View style={styles.placeholder} />
@@ -259,11 +260,11 @@ const AddPaymentMethodScreen: React.FC = () => {
                 accessibilityLabel={`${pt.label}${!pt.enabled ? ' (coming soon)' : ''}`}
                 accessibilityState={{ selected: isActive }}
               >
-                <View style={[styles.paymentIconWrap, { backgroundColor: isActive ? 'rgba(255,255,255,0.2)' : '#F7F7F7' }]}>
+                <View style={[styles.paymentIconWrap, { backgroundColor: isActive ? 'rgba(255,255,255,0.2)' : theme.colors.backgroundSecondary }]}>
                   <Ionicons
                     name={pt.icon}
                     size={20}
-                    color={isActive ? '#FFFFFF' : '#717171'}
+                    color={isActive ? theme.colors.textInverse : theme.colors.textSecondary}
                   />
                 </View>
                 <Text style={[
@@ -293,7 +294,7 @@ const AddPaymentMethodScreen: React.FC = () => {
         <View style={styles.securityInfo}>
           <View style={styles.securityHeader}>
             <View style={styles.securityIconWrap}>
-              <Ionicons name="shield-checkmark" size={16} color="#10B981" />
+              <Ionicons name="shield-checkmark" size={16} color={theme.colors.primary} />
             </View>
             <Text style={styles.securityTitle}>Your information is secure</Text>
           </View>
@@ -310,7 +311,7 @@ const AddPaymentMethodScreen: React.FC = () => {
           accessibilityLabel={paymentType === 'card' ? 'Add Card' : paymentType === 'paypal' ? 'Connect PayPal' : 'Link Bank Account'}
           accessibilityState={{ disabled: loading || paymentType === 'paypal' }}
         >
-          <Ionicons name={paymentType === 'card' ? 'card-outline' : 'business-outline'} size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+          <Ionicons name={paymentType === 'card' ? 'card-outline' : 'business-outline'} size={18} color={theme.colors.textInverse} style={{ marginRight: 8 }} />
           <Text style={styles.submitButtonText}>
             {loading ? 'Processing...' : paymentType === 'card' ? 'Add Card' : paymentType === 'paypal' ? 'Connect PayPal' : 'Link Bank Account'}
           </Text>
@@ -324,7 +325,7 @@ const AddPaymentMethodScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -332,22 +333,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   placeholder: {
     width: 40,
@@ -358,7 +359,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 20,
     marginBottom: 20,
     textAlign: 'center',
@@ -370,7 +371,7 @@ const styles = StyleSheet.create({
   },
   paymentTypeButton: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 14,
     alignItems: 'center',
@@ -385,7 +386,7 @@ const styles = StyleSheet.create({
     }),
   },
   paymentTypeButtonActive: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
   },
   paymentIconWrap: {
     width: 40,
@@ -398,17 +399,17 @@ const styles = StyleSheet.create({
   paymentTypeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     textAlign: 'center',
   },
   paymentTypeTextActive: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   paymentTypeDisabled: {
     opacity: 0.5,
   },
   comingSoonBadge: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.colors.accentLight,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
@@ -417,10 +418,10 @@ const styles = StyleSheet.create({
   comingSoonText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#F59E0B',
+    color: theme.colors.accent,
   },
   formContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
@@ -444,7 +445,7 @@ const styles = StyleSheet.create({
   },
   cardBrandText: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 6,
   },
   inputGroup: {
@@ -453,15 +454,15 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   paypalContainer: {
     alignItems: 'center',
@@ -479,18 +480,18 @@ const styles = StyleSheet.create({
   paypalText: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     textAlign: 'center',
     marginBottom: 8,
   },
   paypalSubtext: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
   },
   securityInfo: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     padding: 16,
     borderRadius: 16,
     marginBottom: 24,
@@ -512,16 +513,16 @@ const styles = StyleSheet.create({
   securityTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   securityText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 18,
   },
   submitButton: {
     height: 52,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
@@ -532,7 +533,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   submitButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -544,13 +545,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 28,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignSelf: 'center',
   },
   notifyButtonActive: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
   },
-  notifyButtonText: { fontSize: 14, fontWeight: '600', color: '#717171' },
+  notifyButtonText: { fontSize: 14, fontWeight: '600', color: theme.colors.textSecondary },
 });
 
 export default AddPaymentMethodScreen;

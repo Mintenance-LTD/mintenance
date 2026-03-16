@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { theme } from '../theme';
 
 export interface LoadingStateProps {
   title?: string;
@@ -81,7 +82,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 
   return (
     <View style={styles.container}>
-      <MaterialIcons name={icon} size={64} color="#717171" style={styles.icon} accessibilityLabel={`${title} empty state`} />
+      <MaterialIcons name={icon} size={64} color={theme.colors.textSecondary} style={styles.icon} accessibilityLabel={`${title} empty state`} />
       <Text style={styles.title} accessibilityRole="header">{title}</Text>
       <Text style={styles.message} accessibilityHint="Description of empty state">{getContextualMessage()}</Text>
       {actionText && onActionPress && (
@@ -91,7 +92,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       )}
       {showRetry && onRetry && (
         <TouchableOpacity style={styles.retryButton} onPress={onRetry} accessibilityRole="button" accessibilityLabel="Retry loading">
-          <MaterialIcons name='refresh' size={20} color="#222222" />
+          <MaterialIcons name='refresh' size={20} color={theme.colors.textPrimary} />
           <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
       )}
@@ -110,12 +111,12 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
 
   return (
     <View style={styles.container}>
-      <MaterialIcons name={errorIcon} size={64} color="#EF4444" style={styles.icon} accessibilityLabel="Error icon" />
+      <MaterialIcons name={errorIcon} size={64} color={theme.colors.error} style={styles.icon} accessibilityLabel="Error icon" />
       <Text style={styles.errorTitle} accessibilityRole="header">{getErrorTitle()}</Text>
       <Text style={styles.message} accessibilityHint="Error description">{message || getDefaultMessage()}</Text>
       {showRetry && onRetry && (
         <TouchableOpacity style={styles.retryButton} onPress={onRetry} accessibilityRole="button" accessibilityLabel="Try again button">
-          <MaterialIcons name='refresh' size={20} color="#222222" />
+          <MaterialIcons name='refresh' size={20} color={theme.colors.textPrimary} />
           <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
       )}
@@ -154,7 +155,7 @@ export const RefreshIndicator: React.FC<{ isRefreshing: boolean; message?: strin
   if (!isRefreshing) return null;
   return (
     <View style={styles.refreshContainer}>
-      <ActivityIndicator size='small' color="#222222" />
+      <ActivityIndicator size='small' color={theme.colors.textPrimary} />
       <Text style={styles.refreshText}>{message}</Text>
     </View>
   );
@@ -166,7 +167,7 @@ export const NetworkStatusIndicator: React.FC<{ isOnline: boolean; hasError?: bo
   if (isOnline && !hasError) return null;
   return (
     <View style={[styles.networkIndicator, !isOnline && styles.networkIndicatorOffline]}>
-      <MaterialIcons name={!isOnline ? 'wifi-off' : 'warning'} size={16} color="#FFFFFF" />
+      <MaterialIcons name={!isOnline ? 'wifi-off' : 'warning'} size={16} color={theme.colors.textInverse} />
       <Text style={styles.networkText}>{!isOnline ? "You're offline" : 'Connection issues'}</Text>
       {onRetry && (
         <TouchableOpacity onPress={onRetry} style={styles.networkRetry}>
@@ -199,33 +200,33 @@ export const ProgressLoadingState: React.FC<ProgressLoadingProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: theme.colors.backgroundSecondary },
   spinner: { marginBottom: 16 },
   icon: { marginBottom: 16 },
-  title: { fontSize: 18, fontWeight: '700', color: '#222222', textAlign: 'center', marginBottom: 8 },
-  errorTitle: { fontSize: 18, fontWeight: '700', color: '#EF4444', textAlign: 'center', marginBottom: 8 },
-  message: { fontSize: 15, color: '#717171', textAlign: 'center', lineHeight: 24, marginBottom: 20 },
-  primaryButton: { backgroundColor: '#222222', paddingHorizontal: 20, paddingVertical: 16, borderRadius: 12, marginBottom: 16 },
-  primaryButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
-  retryButton: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: '#222222' },
-  retryButtonText: { color: '#222222', fontSize: 15, fontWeight: '500', marginLeft: 6 },
+  title: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary, textAlign: 'center', marginBottom: 8 },
+  errorTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.error, textAlign: 'center', marginBottom: 8 },
+  message: { fontSize: 15, color: theme.colors.textSecondary, textAlign: 'center', lineHeight: 24, marginBottom: 20 },
+  primaryButton: { backgroundColor: theme.colors.textPrimary, paddingHorizontal: 20, paddingVertical: 16, borderRadius: 12, marginBottom: 16 },
+  primaryButtonText: { color: theme.colors.textInverse, fontSize: 15, fontWeight: '600' },
+  retryButton: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.textPrimary },
+  retryButtonText: { color: theme.colors.textPrimary, fontSize: 15, fontWeight: '500', marginLeft: 6 },
   skeletonItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, marginBottom: 8 },
-  skeletonAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#EBEBEB', marginRight: 16 },
+  skeletonAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: theme.colors.border, marginRight: 16 },
   skeletonContent: { flex: 1 },
-  skeletonLine: { height: 12, backgroundColor: '#EBEBEB', borderRadius: 6, marginBottom: 6 },
+  skeletonLine: { height: 12, backgroundColor: theme.colors.border, borderRadius: 6, marginBottom: 6 },
   skeletonLineShort: { width: '60%' },
   inlineContainer: { flexDirection: 'row', alignItems: 'center' },
   inlineText: { marginLeft: 6, fontSize: 13 },
   refreshContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8 },
-  refreshText: { marginLeft: 6, color: '#717171', fontSize: 13 },
-  networkIndicator: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F59E0B', paddingHorizontal: 16, paddingVertical: 8, marginBottom: 8 },
-  networkIndicatorOffline: { backgroundColor: '#EF4444' },
-  networkText: { color: '#FFFFFF', fontSize: 13, marginLeft: 6, flex: 1 },
+  refreshText: { marginLeft: 6, color: theme.colors.textSecondary, fontSize: 13 },
+  networkIndicator: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.accent, paddingHorizontal: 16, paddingVertical: 8, marginBottom: 8 },
+  networkIndicatorOffline: { backgroundColor: theme.colors.error },
+  networkText: { color: theme.colors.textInverse, fontSize: 13, marginLeft: 6, flex: 1 },
   networkRetry: { paddingHorizontal: 8, paddingVertical: 6, borderRadius: 6, backgroundColor: 'rgba(255, 255, 255, 0.2)' },
-  networkRetryText: { color: '#FFFFFF', fontSize: 12, fontWeight: '600' },
-  progressBarContainer: { width: '100%', height: 8, backgroundColor: '#EBEBEB', borderRadius: 4, marginVertical: 16, overflow: 'hidden' },
-  progressBar: { height: '100%', backgroundColor: '#222222', borderRadius: 4 },
-  progressText: { fontSize: 15, fontWeight: '600', color: '#222222', textAlign: 'center', marginBottom: 16 },
-  cancelButton: { paddingHorizontal: 20, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: '#EF4444', backgroundColor: 'transparent' },
-  cancelButtonText: { color: '#EF4444', fontSize: 13, fontWeight: '500' },
+  networkRetryText: { color: theme.colors.textInverse, fontSize: 12, fontWeight: '600' },
+  progressBarContainer: { width: '100%', height: 8, backgroundColor: theme.colors.border, borderRadius: 4, marginVertical: 16, overflow: 'hidden' },
+  progressBar: { height: '100%', backgroundColor: theme.colors.textPrimary, borderRadius: 4 },
+  progressText: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary, textAlign: 'center', marginBottom: 16 },
+  cancelButton: { paddingHorizontal: 20, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.error, backgroundColor: 'transparent' },
+  cancelButtonText: { color: theme.colors.error, fontSize: 13, fontWeight: '500' },
 });

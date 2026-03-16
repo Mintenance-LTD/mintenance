@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 
 interface ContractorPerformanceProps {
   rating: number;
@@ -25,16 +26,16 @@ export const ContractorPerformance: React.FC<ContractorPerformanceProps> = ({
   const metrics: MetricCard[] = [
     {
       icon: 'star',
-      iconColor: '#F59E0B',
-      iconBg: '#FEF3C7',
+      iconColor: theme.colors.accent,
+      iconBg: theme.colors.accentLight,
       value: rating > 0 ? rating.toFixed(1) : '—',
       label: 'Rating',
       sublabel: 'Customer score',
     },
     {
       icon: 'checkmark-circle',
-      iconColor: '#10B981',
-      iconBg: '#D1FAE5',
+      iconColor: theme.colors.primary,
+      iconBg: theme.colors.primaryLight,
       value: completedJobs > 0 ? `${Math.min(99, 88 + Math.round(completedJobs / 10))}%` : '—',
       label: 'Success Rate',
       sublabel: 'Jobs completed',
@@ -95,12 +96,12 @@ interface VerificationItemProps {
 
 const VerificationItem: React.FC<VerificationItemProps> = ({ label, icon, verified }) => (
   <View style={styles.verificationRow} accessibilityLabel={`${label}: ${verified ? 'verified' : 'not verified'}`}>
-    <View style={[styles.verifyIcon, { backgroundColor: verified ? '#D1FAE5' : '#F7F7F7' }]}>
-      <Ionicons name={icon} size={15} color={verified ? '#10B981' : '#B0B0B0'} />
+    <View style={[styles.verifyIcon, { backgroundColor: verified ? '#D1FAE5' : theme.colors.backgroundSecondary }]}>
+      <Ionicons name={icon} size={15} color={verified ? theme.colors.primary : theme.colors.textTertiary} />
     </View>
     <Text style={styles.verificationText}>{label}</Text>
-    <View style={[styles.verifyBadge, { backgroundColor: verified ? '#D1FAE5' : '#F7F7F7' }]}>
-      <Text style={[styles.verifyBadgeText, { color: verified ? '#10B981' : '#B0B0B0' }]}>
+    <View style={[styles.verifyBadge, { backgroundColor: verified ? '#D1FAE5' : theme.colors.backgroundSecondary }]}>
+      <Text style={[styles.verifyBadgeText, { color: verified ? theme.colors.primary : theme.colors.textTertiary }]}>
         {verified ? 'Verified' : 'Pending'}
       </Text>
     </View>
@@ -116,7 +117,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   grid: {
     flexDirection: 'row',
@@ -125,7 +126,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '47.5%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 14,
     ...Platform.select({
@@ -149,21 +150,21 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   sublabel: {
     fontSize: 11,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   verificationCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     ...Platform.select({
@@ -179,7 +180,7 @@ const styles = StyleSheet.create({
   verificationTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   verificationRow: {
@@ -188,7 +189,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   verifyIcon: {
     width: 30,
@@ -200,7 +201,7 @@ const styles = StyleSheet.create({
   verificationText: {
     flex: 1,
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '500',
   },
   verifyBadge: {

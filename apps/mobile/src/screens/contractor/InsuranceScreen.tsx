@@ -17,6 +17,7 @@ import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared
 import { EmptyState } from '../../components/ui/EmptyState';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { theme } from '../../theme';
 
 interface InsurancePolicy {
   id: string;
@@ -37,9 +38,9 @@ const getStatusConfig = (status: string, expiryDate: string) => {
     return { label: 'Expired', bg: '#FEE2E2', color: '#DC2626' };
   }
   if (status === 'pending') {
-    return { label: 'Pending', bg: '#FEF3C7', color: '#D97706' };
+    return { label: 'Pending', bg: theme.colors.accentLight, color: '#D97706' };
   }
-  return { label: 'Active', bg: '#D1FAE5', color: '#059669' };
+  return { label: 'Active', bg: theme.colors.primaryLight, color: theme.colors.primaryDark };
 };
 
 const formatCurrency = (amount: number) =>
@@ -82,14 +83,14 @@ export const InsuranceScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <ScreenHeader title="Insurance" showBack onBack={() => navigation.goBack()} />
 
       <FlatList
         data={policies}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor="#222222" colors={['#222222']} />}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />}
         ListEmptyComponent={<EmptyState icon="shield-outline" title="No Insurance" subtitle="Add your insurance policies to build trust with clients." />}
         renderItem={({ item }) => {
           const status = getStatusConfig(item.status, item.expiry_date);
@@ -97,7 +98,7 @@ export const InsuranceScreen: React.FC = () => {
             <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <View style={styles.iconWrap}>
-                  <Ionicons name="shield-checkmark" size={22} color="#222222" />
+                  <Ionicons name="shield-checkmark" size={22} color={theme.colors.textPrimary} />
                 </View>
                 <View style={styles.headerInfo}>
                   <Text style={styles.policyType}>{item.type}</Text>
@@ -133,37 +134,37 @@ export const InsuranceScreen: React.FC = () => {
         onPress={() => navigation.navigate('AddInsurance' as never)}
         accessibilityLabel="Upload insurance document"
       >
-        <Ionicons name="cloud-upload" size={24} color="#FFFFFF" />
+        <Ionicons name="cloud-upload" size={24} color={theme.colors.textInverse} />
       </TouchableOpacity>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   list: { padding: 16, paddingBottom: 80 },
   card: {
-    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12,
+    backgroundColor: theme.colors.surface, borderRadius: 16, padding: 16, marginBottom: 12,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
     }),
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
-  iconWrap: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#F0F0F0', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  iconWrap: { width: 40, height: 40, borderRadius: 12, backgroundColor: theme.colors.backgroundTertiary, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   headerInfo: { flex: 1 },
-  policyType: { fontSize: 16, fontWeight: '700', color: '#222222' },
-  provider: { fontSize: 13, color: '#717171', marginTop: 2 },
+  policyType: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
+  provider: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 2 },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   badgeText: { fontSize: 12, fontWeight: '600' },
-  coverageRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F0F0F0' },
+  coverageRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: theme.colors.borderLight },
   coverageItem: { flex: 1 },
-  coverageLabel: { fontSize: 12, color: '#717171', marginBottom: 2 },
-  coverageValue: { fontSize: 15, fontWeight: '600', color: '#222222' },
+  coverageLabel: { fontSize: 12, color: theme.colors.textSecondary, marginBottom: 2 },
+  coverageValue: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary },
   metaRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  metaText: { fontSize: 12, color: '#B0B0B0' },
+  metaText: { fontSize: 12, color: theme.colors.textTertiary },
   fab: {
-    position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: '#222222', justifyContent: 'center', alignItems: 'center',
+    position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: theme.colors.textPrimary, justifyContent: 'center', alignItems: 'center',
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12 },
       android: { elevation: 8 },

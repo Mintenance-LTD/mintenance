@@ -18,6 +18,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { Badge } from '../../components/ui/Badge';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { theme } from '../../theme';
 
 interface Certification {
   id: string;
@@ -74,14 +75,14 @@ export const CertificationsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <ScreenHeader title="Certifications" showBack onBack={() => navigation.goBack()} />
 
       <FlatList
         data={certifications}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor="#222222" colors={['#222222']} />}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />}
         ListEmptyComponent={<EmptyState icon="ribbon-outline" title="No Certifications" subtitle="Add your professional certifications." />}
         renderItem={({ item }) => {
           const status = getExpiryStatus(item.expiry_date);
@@ -95,7 +96,7 @@ export const CertificationsScreen: React.FC = () => {
                 <View style={styles.certBadges}>
                   <Badge variant={status.variant} size="sm">{status.label}</Badge>
                   {item.verified && (
-                    <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+                    <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
                   )}
                 </View>
               </View>
@@ -120,17 +121,17 @@ export const CertificationsScreen: React.FC = () => {
         onPress={() => navigation.navigate('AddCertification' as never)}
         accessibilityLabel="Add certification"
       >
-        <Ionicons name="add" size={28} color="#FFFFFF" />
+        <Ionicons name="add" size={28} color={theme.colors.textInverse} />
       </TouchableOpacity>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   list: { padding: 16, paddingBottom: 80 },
   certRow: {
-    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 10,
+    backgroundColor: theme.colors.surface, borderRadius: 16, padding: 16, marginBottom: 10,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
@@ -138,14 +139,14 @@ const styles = StyleSheet.create({
   },
   certHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
   certInfo: { flex: 1, marginRight: 12 },
-  certName: { fontSize: 16, fontWeight: '700', color: '#222222' },
-  certIssuer: { fontSize: 13, color: '#717171', marginTop: 2 },
+  certName: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
+  certIssuer: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 2 },
   certBadges: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   certMeta: { flexDirection: 'row', justifyContent: 'space-between' },
-  certDate: { fontSize: 12, color: '#B0B0B0' },
-  credentialId: { fontSize: 12, color: '#B0B0B0', marginTop: 6 },
+  certDate: { fontSize: 12, color: theme.colors.textTertiary },
+  credentialId: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 6 },
   fab: {
-    position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: '#10B981', justifyContent: 'center', alignItems: 'center',
+    position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center',
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12 },
       android: { elevation: 8 },

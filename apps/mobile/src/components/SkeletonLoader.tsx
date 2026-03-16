@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, StyleSheet, ViewStyle, Platform } from 'react-native';
+import { theme } from '../theme';
 
 interface SkeletonProps {
   width?: number | `${number}%` | number;
@@ -186,10 +187,10 @@ export const SkeletonDashboard: React.FC = () => (
 
 const styles = StyleSheet.create({
   skeleton: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   cardContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
@@ -221,7 +222,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   postCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginVertical: 8,
     borderRadius: 16,
@@ -260,7 +261,7 @@ const styles = StyleSheet.create({
   messageCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     padding: 16,
     borderRadius: 16,
     marginBottom: 12,
@@ -287,7 +288,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   statCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
@@ -315,7 +316,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   scheduleCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     ...Platform.select({

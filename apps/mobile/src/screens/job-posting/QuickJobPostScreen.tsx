@@ -29,6 +29,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { JobService } from '../../services/JobService';
 import { sanitize } from '@mintenance/security';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
+import { theme } from '../../theme';
 
 // ============================================================================
 // DATA
@@ -43,8 +44,8 @@ const REPAIR_TEMPLATES = [
     description: 'Fix dripping tap, leaking pipe, or water issue',
     budgetRange: '\u00A350-150',
     budget: '100',
-    iconColor: '#10B981',
-    iconBg: '#D1FAE5',
+    iconColor: theme.colors.primary,
+    iconBg: theme.colors.primaryLight,
   },
   {
     id: 'electrical-issue',
@@ -55,7 +56,7 @@ const REPAIR_TEMPLATES = [
     budgetRange: '\u00A375-200',
     budget: '150',
     iconColor: '#92400E',
-    iconBg: '#FEF3C7',
+    iconBg: theme.colors.accentLight,
   },
   {
     id: 'paint-touchup',
@@ -76,8 +77,8 @@ const REPAIR_TEMPLATES = [
     description: 'Fix door, window, furniture, or general maintenance',
     budgetRange: '\u00A350-200',
     budget: '100',
-    iconColor: '#717171',
-    iconBg: '#F7F7F7',
+    iconColor: theme.colors.textSecondary,
+    iconBg: theme.colors.backgroundSecondary,
   },
   {
     id: 'blocked-drain',
@@ -112,9 +113,9 @@ const BUDGET_RANGES = [
 
 const URGENCY_OPTIONS = [
   { label: 'Today', value: 'today', color: '#FEE2E2', textColor: '#991B1B' },
-  { label: 'Tomorrow', value: 'tomorrow', color: '#FEE2E2', textColor: '#EF4444' },
-  { label: 'This Week', value: 'this_week', color: '#FEF3C7', textColor: '#F59E0B' },
-  { label: 'Not Urgent', value: 'not_urgent', color: '#F7F7F7', textColor: '#717171' },
+  { label: 'Tomorrow', value: 'tomorrow', color: '#FEE2E2', textColor: theme.colors.error },
+  { label: 'This Week', value: 'this_week', color: theme.colors.accentLight, textColor: theme.colors.accent },
+  { label: 'Not Urgent', value: 'not_urgent', color: theme.colors.backgroundSecondary, textColor: theme.colors.textSecondary },
 ];
 
 interface RouteParams {
@@ -204,7 +205,7 @@ export const QuickJobPostScreen: React.FC = () => {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={22} color="#222222" />
+          <Ionicons name="arrow-back" size={22} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Post a Quick Job</Text>
         <View style={styles.headerSpacer} />
@@ -223,7 +224,7 @@ export const QuickJobPostScreen: React.FC = () => {
         <View style={styles.propertyBanner}>
           <Text style={styles.propertyLabel}>Property</Text>
           <View style={styles.propertyRow}>
-            <Ionicons name="home" size={20} color="#717171" />
+            <Ionicons name="home" size={20} color={theme.colors.textSecondary} />
             <View style={styles.propertyText}>
               <Text style={styles.propertyNameText}>{params?.propertyName || 'My Property'}</Text>
               <Text style={styles.propertyAddressText} numberOfLines={1}>
@@ -273,7 +274,7 @@ export const QuickJobPostScreen: React.FC = () => {
             value={title}
             onChangeText={setTitle}
             placeholder="e.g., Leaking kitchen tap"
-            placeholderTextColor="#B0B0B0"
+            placeholderTextColor={theme.colors.textTertiary}
           />
           <Text style={styles.inputLabel}>Brief description (optional)</Text>
           <TextInput
@@ -281,7 +282,7 @@ export const QuickJobPostScreen: React.FC = () => {
             value={description}
             onChangeText={setDescription}
             placeholder="Add any helpful details..."
-            placeholderTextColor="#B0B0B0"
+            placeholderTextColor={theme.colors.textTertiary}
             multiline
             numberOfLines={3}
             textAlignVertical="top"
@@ -345,7 +346,7 @@ export const QuickJobPostScreen: React.FC = () => {
           }}
         >
           <Text style={styles.moreOptionsText}>Need more options? Use the full form</Text>
-          <Ionicons name="arrow-forward" size={16} color="#B0B0B0" />
+          <Ionicons name="arrow-forward" size={16} color={theme.colors.textTertiary} />
         </TouchableOpacity>
 
         <View style={{ height: 100 }} />
@@ -361,10 +362,10 @@ export const QuickJobPostScreen: React.FC = () => {
           accessibilityLabel={submitting ? 'Posting job' : 'Post job'}
         >
           {submitting ? (
-            <ActivityIndicator color="#FFFFFF" />
+            <ActivityIndicator color={theme.colors.textInverse} />
           ) : (
             <>
-              <Ionicons name="paper-plane" size={18} color="#FFFFFF" />
+              <Ionicons name="paper-plane" size={18} color={theme.colors.textInverse} />
               <Text style={styles.submitText}>Post Job</Text>
             </>
           )}
@@ -381,7 +382,7 @@ export const QuickJobPostScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -389,22 +390,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   headerSpacer: {
     width: 44,
@@ -415,14 +416,14 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 16,
     marginBottom: 20,
   },
 
   // Property banner
   propertyBanner: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 24,
@@ -434,7 +435,7 @@ const styles = StyleSheet.create({
   propertyLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 8,
@@ -450,11 +451,11 @@ const styles = StyleSheet.create({
   propertyNameText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   propertyAddressText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 1,
   },
 
@@ -465,7 +466,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 14,
   },
 
@@ -477,7 +478,7 @@ const styles = StyleSheet.create({
   },
   templateCard: {
     width: '31%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 14,
     alignItems: 'flex-start',
@@ -488,7 +489,7 @@ const styles = StyleSheet.create({
     }),
   },
   templateCardActive: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   templateIconCircle: {
     width: 36,
@@ -500,15 +501,15 @@ const styles = StyleSheet.create({
   templateTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginTop: 8,
   },
   templateTitleActive: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   templateBudget: {
     fontSize: 11,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     marginTop: 4,
   },
 
@@ -516,17 +517,17 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 8,
     marginTop: 4,
   },
   input: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   textArea: {
@@ -543,7 +544,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6 },
@@ -551,15 +552,15 @@ const styles = StyleSheet.create({
     }),
   },
   budgetChipActive: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   budgetText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   budgetTextActive: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontWeight: '700',
   },
 
@@ -598,7 +599,7 @@ const styles = StyleSheet.create({
   },
   moreOptionsText: {
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '500',
   },
 
@@ -608,9 +609,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
     paddingHorizontal: 20,
     paddingTop: 12,
     ...Platform.select({
@@ -622,7 +623,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 28,
     paddingVertical: 16,
     gap: 8,
@@ -632,7 +633,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   submitText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '700',
   },

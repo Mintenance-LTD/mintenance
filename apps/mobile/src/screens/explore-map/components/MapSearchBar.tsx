@@ -12,6 +12,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 
 interface MapSearchBarProps {
   jobCount: number;
@@ -53,7 +54,7 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({
           accessibilityLabel="Back to list"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="arrow-back" size={20} color="#222222" />
+          <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
         </TouchableOpacity>
       )}
       <TouchableOpacity
@@ -63,7 +64,7 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({
         accessibilityLabel={`Search jobs. ${subtitle}`}
         activeOpacity={0.9}
       >
-        <Ionicons name="search" size={18} color="#222222" />
+        <Ionicons name="search" size={18} color={theme.colors.textPrimary} />
         <View style={styles.textContainer}>
           <Text style={styles.title}>Near you</Text>
           <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
@@ -75,7 +76,7 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({
           accessibilityLabel="Open filters"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="options-outline" size={16} color="#222222" />
+          <Ionicons name="options-outline" size={16} color={theme.colors.textPrimary} />
         </TouchableOpacity>
       </TouchableOpacity>
     </View>
@@ -98,7 +99,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000000',
@@ -112,7 +113,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 32,
     paddingLeft: 16,
     paddingRight: 8,
@@ -130,18 +131,18 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   subtitle: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 1,
   },
   filterButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },

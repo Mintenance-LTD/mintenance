@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { theme } from '../../../theme';
 import { AssessmentResults } from '../types';
 
 interface AIInsightsCardProps {
@@ -22,13 +23,13 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
       </View>
       <View style={styles.insightsList}>
         <View style={styles.insightItem}>
-          <Icon name="warning" size={16} color="#F59E0B" />
+          <Icon name="warning" size={16} color={theme.colors.accent} />
           <Text style={styles.insightText}>
             {results.total_damages} potential issues detected
           </Text>
         </View>
         <View style={styles.insightItem}>
-          <Icon name="trending-up" size={16} color="#10B981" />
+          <Icon name="trending-up" size={16} color={theme.colors.primary} />
           <Text style={styles.insightText}>
             Confidence: {results.confidence_level}
           </Text>
@@ -47,7 +48,7 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
 
 const styles = StyleSheet.create({
   insightsCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
@@ -86,7 +87,7 @@ const styles = StyleSheet.create({
   },
   insightText: {
     fontSize: 13,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   viewInsightsButton: {
     flexDirection: 'row',

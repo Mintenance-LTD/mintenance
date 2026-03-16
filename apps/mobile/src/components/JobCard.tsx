@@ -9,21 +9,22 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Job } from '@mintenance/types';
+import { theme } from '../theme';
 const getPriorityColor = (priority: string): string => {
   switch (priority) {
-    case 'high': return '#EF4444';
-    case 'medium': return '#F59E0B';
-    case 'low': return '#10B981';
-    default: return '#717171';
+    case 'high': return theme.colors.error;
+    case 'medium': return theme.colors.accent;
+    case 'low': return theme.colors.primary;
+    default: return theme.colors.textSecondary;
   }
 };
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  posted: { bg: '#3B82F6', text: '#FFFFFF' },
-  assigned: { bg: '#F59E0B', text: '#FFFFFF' },
-  in_progress: { bg: '#10B981', text: '#FFFFFF' },
-  completed: { bg: '#6B7280', text: '#FFFFFF' },
-  cancelled: { bg: '#EF4444', text: '#FFFFFF' },
+  posted: { bg: '#3B82F6', text: theme.colors.textInverse },
+  assigned: { bg: theme.colors.accent, text: theme.colors.textInverse },
+  in_progress: { bg: theme.colors.primary, text: theme.colors.textInverse },
+  completed: { bg: '#6B7280', text: theme.colors.textInverse },
+  cancelled: { bg: theme.colors.error, text: theme.colors.textInverse },
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -62,7 +63,7 @@ export const JobCard: React.FC<JobCardProps> = ({
   const formatBudget = (amount: number) => `\u00A3${Math.round(amount).toLocaleString()}`;
   const statusColors = STATUS_COLORS[job.status] || STATUS_COLORS.cancelled;
   const statusLabel = STATUS_LABELS[job.status] || job.status;
-  const priorityColor = job.priority ? getPriorityColor(job.priority) : '#717171';
+  const priorityColor = job.priority ? getPriorityColor(job.priority) : theme.colors.textSecondary;
   const categoryIcon = CATEGORY_ICONS[job.category?.toLowerCase() || ''] || 'construct';
 
   return (
@@ -77,7 +78,7 @@ export const JobCard: React.FC<JobCardProps> = ({
       {/* Top row: category icon + title + budget */}
       <View style={styles.topRow}>
         <View style={styles.categoryCircle}>
-          <Ionicons name={categoryIcon} size={18} color="#717171" />
+          <Ionicons name={categoryIcon} size={18} color={theme.colors.textSecondary} />
         </View>
         <View style={styles.titleBlock}>
           <Text style={styles.title} numberOfLines={2}>{job.title}</Text>
@@ -110,14 +111,14 @@ export const JobCard: React.FC<JobCardProps> = ({
 
         {job.photos && job.photos.length > 0 && (
           <View style={styles.photoChip} testID="photo-indicator">
-            <Ionicons name="image-outline" size={14} color="#717171" />
+            <Ionicons name="image-outline" size={14} color={theme.colors.textSecondary} />
             <Text style={styles.photoCount}>{job.photos.length}</Text>
           </View>
         )}
 
         <View style={styles.spacer} />
 
-        <Ionicons name="chevron-forward" size={16} color="#B0B0B0" />
+        <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
       </View>
 
       {/* Bid button */}
@@ -129,7 +130,7 @@ export const JobCard: React.FC<JobCardProps> = ({
           accessibilityLabel={`Place bid on ${job.title}`}
         >
           <Text style={styles.bidButtonText}>Place Bid</Text>
-          <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
+          <Ionicons name="arrow-forward" size={14} color={theme.colors.textInverse} />
         </TouchableOpacity>
       )}
     </TouchableOpacity>
@@ -138,7 +139,7 @@ export const JobCard: React.FC<JobCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 18,
     marginHorizontal: 4,
@@ -164,7 +165,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -176,23 +177,23 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     lineHeight: 22,
   },
   categoryText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 2,
   },
   budget: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.3,
   },
   description: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 20,
     marginBottom: 14,
   },
@@ -231,7 +232,7 @@ const styles = StyleSheet.create({
   },
   photoCount: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
   },
   spacer: {
@@ -242,13 +243,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     borderRadius: 12,
     paddingVertical: 12,
     marginTop: 14,
   },
   bidButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 15,
     fontWeight: '600',
   },

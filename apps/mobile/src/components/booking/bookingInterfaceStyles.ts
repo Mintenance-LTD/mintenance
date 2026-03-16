@@ -1,11 +1,12 @@
 import { StyleSheet, Dimensions, Platform } from 'react-native';
+import { theme } from '../../theme';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -14,14 +15,14 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
     padding: 8,
   },
   backText: {
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '500',
   },
   contractorInfo: {
@@ -30,16 +31,16 @@ export const styles = StyleSheet.create({
   contractorName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   contractorRating: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   progressContainer: {
     paddingHorizontal: 20,
     paddingVertical: 24,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   stepContainer: {
     marginBottom: 20,
@@ -52,24 +53,24 @@ export const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
   },
   completedCircle: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   activeCircle: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   stepNumber: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   activeStepNumber: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   stepText: {
     flex: 1,
@@ -77,21 +78,21 @@ export const styles = StyleSheet.create({
   stepTitle: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 6,
   },
   activeStepTitle: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '600',
   },
   stepSubtitle: {
     fontSize: 13,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
   stepConnector: {
     width: 2,
     height: 16,
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
     marginLeft: 15,
     marginTop: 8,
   },
@@ -104,19 +105,19 @@ export const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   sectionSubtitle: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 24,
   },
   servicesGrid: {
     gap: 16,
   },
   serviceCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     position: 'relative',
@@ -134,13 +135,13 @@ export const styles = StyleSheet.create({
   },
   selectedServiceCard: {
     borderWidth: 2,
-    borderColor: '#222222',
+    borderColor: theme.colors.textPrimary,
   },
   popularBadge: {
     position: 'absolute',
     top: 16,
     right: 16,
-    backgroundColor: '#F59E0B',
+    backgroundColor: theme.colors.accent,
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 6,
@@ -148,17 +149,17 @@ export const styles = StyleSheet.create({
   popularText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   serviceName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   serviceDescription: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 16,
     lineHeight: 22,
   },
@@ -169,12 +170,12 @@ export const styles = StyleSheet.create({
   },
   serviceDuration: {
     fontSize: 13,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
   servicePrice: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   formContainer: {
     gap: 20,
@@ -185,15 +186,15 @@ export const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   textInput: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     paddingHorizontal: 20,
     paddingVertical: 16,
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   textArea: {
     height: 100,
@@ -207,19 +208,19 @@ export const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 16,
     borderRadius: 16,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
   },
   selectedUrgencyButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   urgencyText: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   selectedUrgencyText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   timeSlotsContainer: {
     flexDirection: 'row',
@@ -230,35 +231,35 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderRadius: 16,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     minWidth: (screenWidth - 64) / 3,
     alignItems: 'center',
   },
   selectedTimeSlot: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   unavailableTimeSlot: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     opacity: 0.5,
   },
   timeSlotText: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   selectedTimeSlotText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   unavailableTimeSlotText: {
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
   timeSlotPrice: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 6,
   },
   confirmationCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     ...Platform.select({
@@ -279,51 +280,51 @@ export const styles = StyleSheet.create({
   confirmationLabel: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 6,
   },
   confirmationValue: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 6,
   },
   confirmationSubtext: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   confirmationDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
     marginVertical: 20,
   },
   confirmationPrice: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   bottomAction: {
     padding: 20,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
-    backgroundColor: '#FFFFFF',
+    borderTopColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
   },
   nextButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingVertical: 20,
     borderRadius: 28,
     alignItems: 'center',
   },
   disabledButton: {
-    backgroundColor: '#B0B0B0',
+    backgroundColor: theme.colors.textTertiary,
   },
   nextButtonText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   bookButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingVertical: 20,
     borderRadius: 28,
     alignItems: 'center',
@@ -331,6 +332,6 @@ export const styles = StyleSheet.create({
   bookButtonText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 });

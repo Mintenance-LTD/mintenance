@@ -27,6 +27,7 @@ import {
   PhotoGallery,
   ReviewsList,
 } from './components';
+import { theme } from '../../theme';
 
 interface ContractorProfileScreenProps {
   navigation: { goBack: () => void };
@@ -50,7 +51,7 @@ export const ContractorProfileScreen: React.FC<ContractorProfileScreenProps> = (
       <View style={styles.container}>
         <StatusBar barStyle="light-content" />
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#10B981" />
+          <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text style={styles.loadingText}>Loading profile...</Text>
         </View>
       </View>
@@ -63,14 +64,14 @@ export const ContractorProfileScreen: React.FC<ContractorProfileScreenProps> = (
         <StatusBar barStyle="dark-content" />
         <View style={[styles.centered, { paddingTop: insets.top + 60 }]}>
           <View style={styles.errorIconWrap}>
-            <Ionicons name="alert-circle-outline" size={28} color="#EF4444" />
+            <Ionicons name="alert-circle-outline" size={28} color={theme.colors.error} />
           </View>
           <Text style={styles.errorText}>{viewModel.error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={viewModel.refresh}>
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.backLink} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={16} color="#717171" />
+            <Ionicons name="arrow-back" size={16} color={theme.colors.textSecondary} />
             <Text style={styles.backLinkText}>Go Back</Text>
           </TouchableOpacity>
         </View>
@@ -90,7 +91,7 @@ export const ContractorProfileScreen: React.FC<ContractorProfileScreenProps> = (
             refreshing={viewModel.loading}
             onRefresh={viewModel.refresh}
             tintColor="#FFFFFF"
-            colors={['#10B981']}
+            colors={[theme.colors.primary]}
           />
         }
       >
@@ -141,7 +142,7 @@ export const ContractorProfileScreen: React.FC<ContractorProfileScreenProps> = (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   scrollView: {
     flex: 1,
@@ -155,7 +156,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   errorIconWrap: {
     width: 64,
@@ -169,18 +170,18 @@ const styles = StyleSheet.create({
   errorText: {
     marginTop: 4,
     fontSize: 16,
-    color: '#EF4444',
+    color: theme.colors.error,
     textAlign: 'center',
   },
   retryButton: {
     marginTop: 16,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 14,
   },
   retryText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 15,
     fontWeight: '700',
   },
@@ -192,7 +193,7 @@ const styles = StyleSheet.create({
   },
   backLinkText: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
   },
 });

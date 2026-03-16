@@ -1,12 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
+import { theme } from '../theme';
 
 type Status = 'upcoming' | 'completed' | 'cancelled';
 
 const STATUS_CONFIG: Record<Status, { bg: string; fg: string; label: string }> = {
-  upcoming: { bg: '#D1FAE5', fg: '#065F46', label: 'Upcoming' },
-  completed: { bg: '#F7F7F7', fg: '#222222', label: 'Completed' },
-  cancelled: { bg: '#FEE2E2', fg: '#EF4444', label: 'Cancelled' },
+  upcoming: { bg: theme.colors.primaryLight, fg: '#065F46', label: 'Upcoming' },
+  completed: { bg: theme.colors.backgroundSecondary, fg: theme.colors.textPrimary, label: 'Completed' },
+  cancelled: { bg: '#FEE2E2', fg: theme.colors.error, label: 'Cancelled' },
 };
 
 export const StatusPill: React.FC<{ status: Status; style?: ViewStyle }> = ({ status, style }) => {

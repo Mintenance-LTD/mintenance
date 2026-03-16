@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { theme } from '../../../theme';
 import { AssessmentStep } from '../types';
 
 interface StepCardProps {
@@ -11,11 +12,11 @@ interface StepCardProps {
 const getStepStatusIcon = (status: AssessmentStep['status']) => {
   switch (status) {
     case 'completed':
-      return <Icon name="check-circle" size={24} color="#10B981" />;
+      return <Icon name="check-circle" size={24} color={theme.colors.primary} />;
     case 'in_progress':
-      return <Icon name="pending" size={24} color="#F59E0B" />;
+      return <Icon name="pending" size={24} color={theme.colors.accent} />;
     default:
-      return <Icon name="radio-button-unchecked" size={24} color="#B0B0B0" />;
+      return <Icon name="radio-button-unchecked" size={24} color={theme.colors.textTertiary} />;
   }
 };
 
@@ -33,7 +34,7 @@ export const StepCard: React.FC<StepCardProps> = ({ step, onPress }) => {
         <Icon
           name={step.icon}
           size={24}
-          color={step.status === 'completed' ? '#10B981' : '#717171'}
+          color={step.status === 'completed' ? theme.colors.primary : theme.colors.textSecondary}
         />
       </View>
       <View style={styles.stepContent}>
@@ -54,7 +55,7 @@ const styles = StyleSheet.create({
   stepCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -64,13 +65,13 @@ const styles = StyleSheet.create({
     }),
   },
   stepCardCompleted: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
   },
   stepIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
@@ -87,11 +88,11 @@ const styles = StyleSheet.create({
   stepTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   requiredBadge: {
     fontSize: 11,
-    color: '#EF4444',
+    color: theme.colors.error,
     fontWeight: '600',
     backgroundColor: '#FEE2E2',
     paddingHorizontal: 8,
@@ -100,6 +101,6 @@ const styles = StyleSheet.create({
   },
   stepDescription: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
 });

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useHaptics } from '../../../utils/haptics';
+import { theme } from '../../../theme';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info' | 'loading';
 export type ToastPosition = 'top' | 'bottom' | 'center';
@@ -49,7 +50,7 @@ const TOAST_COLORS: Record<ToastType, { background: string; border: string; icon
   error: { background: '#FEF2F2', border: '#FECACA', icon: '#991B1B', text: '#991B1B' },
   warning: { background: '#FFFBEB', border: '#FDE68A', icon: '#92400E', text: '#92400E' },
   info: { background: '#EFF6FF', border: '#BFDBFE', icon: '#1E40AF', text: '#1E40AF' },
-  loading: { background: '#F7F7F7', border: '#EBEBEB', icon: '#222222', text: '#222222' },
+  loading: { background: theme.colors.backgroundSecondary, border: theme.colors.border, icon: theme.colors.textPrimary, text: theme.colors.textPrimary },
 };
 
 export const Toast: React.FC<ToastProps> = ({
@@ -165,7 +166,7 @@ export const Toast: React.FC<ToastProps> = ({
         {action && (
           <TouchableOpacity
             onPress={() => { haptics.medium(); action.onPress(); hide(); }}
-            style={[styles.actionButton, { backgroundColor: action.style === 'primary' ? '#222222' : 'transparent', borderColor: action.style === 'destructive' ? '#EF4444' : colors.icon }]}
+            style={[styles.actionButton, { backgroundColor: action.style === 'primary' ? theme.colors.textPrimary : 'transparent', borderColor: action.style === 'destructive' ? theme.colors.error : colors.icon }]}
           >
             <Text style={[styles.actionText, { color: action.style === 'primary' ? '#FFFFFF' : action.style === 'destructive' ? '#991B1B' : colors.text }]}>{action.label}</Text>
           </TouchableOpacity>

@@ -10,6 +10,7 @@
 import React from 'react';
 import { ScrollView, StyleSheet, TextInput, View, Text, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { theme } from '../../theme';
 import { ScreenHeader, LoadingSpinner } from '../../components/shared';
 import { useMeetingScheduleViewModel } from './viewmodels/MeetingScheduleViewModel';
 import {
@@ -43,7 +44,7 @@ export const MeetingScheduleScreen: React.FC<Props> = ({ route, navigation }) =>
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.backgroundSecondary }]}>
       <ScreenHeader
         title="Schedule Meeting"
         onBackPress={() => navigation.goBack()}
@@ -78,14 +79,14 @@ export const MeetingScheduleScreen: React.FC<Props> = ({ route, navigation }) =>
           onRetry={viewModel.initializeLocation}
         />
 
-        <View style={styles.notesContainer}>
-          <Text style={styles.notesLabel}>Additional Notes (Optional)</Text>
+        <View style={[styles.notesContainer, { backgroundColor: theme.colors.surface }]}>
+          <Text style={[styles.notesLabel, { color: theme.colors.textTertiary }]}>Additional Notes (Optional)</Text>
           <TextInput
-            style={styles.notesInput}
+            style={[styles.notesInput, { backgroundColor: theme.colors.backgroundSecondary, color: theme.colors.textPrimary }]}
             value={viewModel.notes}
             onChangeText={viewModel.setNotes}
             placeholder="Add any additional details about the meeting..."
-            placeholderTextColor="#B0B0B0"
+            placeholderTextColor={theme.colors.textTertiary}
             multiline
             numberOfLines={4}
             textAlignVertical="top"
@@ -106,14 +107,12 @@ export const MeetingScheduleScreen: React.FC<Props> = ({ route, navigation }) =>
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
   },
   scrollView: {
     flex: 1,
     paddingHorizontal: 16,
   },
   notesContainer: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -125,17 +124,14 @@ const styles = StyleSheet.create({
   notesLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
     marginBottom: 12,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
   notesInput: {
-    backgroundColor: '#F7F7F7',
     borderRadius: 12,
     padding: 14,
     fontSize: 15,
-    color: '#222222',
     minHeight: 100,
   },
 });

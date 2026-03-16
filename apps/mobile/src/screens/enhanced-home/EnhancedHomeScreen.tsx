@@ -21,6 +21,7 @@ import {
   ServiceCategoryGrid,
   TopContractorsList,
 } from './components';
+import { theme } from '../../theme';
 
 export const EnhancedHomeScreen: React.FC = () => {
   const viewModel = useEnhancedHomeViewModel();
@@ -40,7 +41,7 @@ export const EnhancedHomeScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <LocationHeader
         location={viewModel.location}
         onLocationPress={() => { }}
@@ -81,7 +82,7 @@ export const EnhancedHomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   scrollView: {
     flex: 1,

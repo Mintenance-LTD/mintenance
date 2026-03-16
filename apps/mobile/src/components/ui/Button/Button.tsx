@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useHaptics } from '../../../utils/haptics';
+import { theme } from '../../../theme';
 
 export type ButtonVariant =
   | 'primary'
@@ -222,17 +223,17 @@ const getButtonStyles = (
 
   switch (variant) {
     case 'primary':
-      return { ...baseStyle, backgroundColor: disabled || loading ? '#EBEBEB' : '#222222', ...shadow };
+      return { ...baseStyle, backgroundColor: disabled || loading ? '#EBEBEB' : theme.colors.textPrimary, ...shadow };
     case 'secondary':
-      return { ...baseStyle, backgroundColor: 'transparent', borderWidth: 1, borderColor: '#EBEBEB' };
+      return { ...baseStyle, backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.colors.border };
     case 'outline':
-      return { ...baseStyle, backgroundColor: 'transparent', borderWidth: 1, borderColor: disabled || loading ? '#EBEBEB' : '#222222' };
+      return { ...baseStyle, backgroundColor: 'transparent', borderWidth: 1, borderColor: disabled || loading ? '#EBEBEB' : theme.colors.textPrimary };
     case 'ghost':
       return { ...baseStyle, backgroundColor: 'transparent' };
     case 'danger':
-      return { ...baseStyle, backgroundColor: disabled || loading ? '#EBEBEB' : '#EF4444', ...shadow };
+      return { ...baseStyle, backgroundColor: disabled || loading ? '#EBEBEB' : theme.colors.error, ...shadow };
     case 'success':
-      return { ...baseStyle, backgroundColor: disabled || loading ? '#EBEBEB' : '#10B981', ...shadow };
+      return { ...baseStyle, backgroundColor: disabled || loading ? '#EBEBEB' : theme.colors.primary, ...shadow };
     default:
       return baseStyle;
   }
@@ -253,19 +254,19 @@ const getTextStyles = (
     case 'primary':
     case 'danger':
     case 'success':
-      return { ...baseStyle, color: disabled ? '#B0B0B0' : '#FFFFFF' };
+      return { ...baseStyle, color: disabled ? '#B0B0B0' : theme.colors.textInverse };
     case 'secondary':
-      return { ...baseStyle, color: disabled ? '#B0B0B0' : '#222222' };
+      return { ...baseStyle, color: disabled ? '#B0B0B0' : theme.colors.textPrimary };
     case 'outline':
     case 'ghost':
-      return { ...baseStyle, color: disabled ? '#B0B0B0' : '#222222' };
+      return { ...baseStyle, color: disabled ? '#B0B0B0' : theme.colors.textPrimary };
     default:
       return baseStyle;
   }
 };
 
 const getIconColor = (variant: ButtonVariant, disabled: boolean): string => {
-  if (disabled) return '#B0B0B0';
+  if (disabled) return theme.colors.textTertiary;
   switch (variant) {
     case 'primary':
     case 'danger':
@@ -275,7 +276,7 @@ const getIconColor = (variant: ButtonVariant, disabled: boolean): string => {
     case 'secondary':
     case 'ghost':
     default:
-      return '#222222';
+      return theme.colors.textPrimary;
   }
 };
 

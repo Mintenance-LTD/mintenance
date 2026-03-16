@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 
 interface HomeownerStatsProps {
   totalJobs: number;
@@ -31,15 +32,15 @@ export const HomeownerStats: React.FC<HomeownerStatsProps> = ({
     },
     {
       icon: 'checkmark-circle',
-      iconColor: '#10B981',
-      iconBg: '#D1FAE5',
+      iconColor: theme.colors.primary,
+      iconBg: theme.colors.primaryLight,
       value: completedJobs,
       label: 'Completed',
     },
     {
       icon: 'time',
-      iconColor: '#F59E0B',
-      iconBg: '#FEF3C7',
+      iconColor: theme.colors.accent,
+      iconBg: theme.colors.accentLight,
       value: activeJobs,
       label: 'Active',
     },
@@ -74,7 +75,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   row: {
     flexDirection: 'row',
@@ -82,7 +83,7 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 14,
     alignItems: 'flex-start',
@@ -107,12 +108,12 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 26,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   label: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
 });

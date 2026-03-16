@@ -18,6 +18,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Badge } from '../../components/ui/Badge';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { theme } from '../../theme';
 
 interface TimeEntry {
   id: string;
@@ -98,7 +99,7 @@ export const TimeTrackingScreen: React.FC = () => {
           accessibilityLabel="Go back"
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
+          <Ionicons name="chevron-back" size={22} color={theme.colors.textInverse} />
         </TouchableOpacity>
 
         <Text style={styles.heroTitle}>Time Tracking</Text>
@@ -124,13 +125,13 @@ export const TimeTrackingScreen: React.FC = () => {
       {/* Content */}
       {isLoading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color="#10B981" />
+          <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text style={styles.loadingText}>Loading entries...</Text>
         </View>
       ) : error ? (
         <View style={styles.emptyState}>
           <View style={[styles.emptyIconWrap, { backgroundColor: '#FEE2E2' }]}>
-            <Ionicons name="alert-circle-outline" size={28} color="#EF4444" />
+            <Ionicons name="alert-circle-outline" size={28} color={theme.colors.error} />
           </View>
           <Text style={styles.emptyTitle}>Failed to load</Text>
           <TouchableOpacity onPress={() => refetch()}>
@@ -142,11 +143,11 @@ export const TimeTrackingScreen: React.FC = () => {
           sections={sections}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor="#10B981" colors={['#10B981']} />}
+          refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />}
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <View style={styles.emptyIconWrap}>
-                <Ionicons name="time-outline" size={28} color="#10B981" />
+                <Ionicons name="time-outline" size={28} color={theme.colors.primary} />
               </View>
               <Text style={styles.emptyTitle}>No Time Entries</Text>
               <Text style={styles.emptySubtitle}>Track your working hours here</Text>
@@ -178,14 +179,14 @@ export const TimeTrackingScreen: React.FC = () => {
         accessibilityRole="button"
         accessibilityLabel="Add time entry"
       >
-        <Ionicons name="add" size={28} color="#FFFFFF" />
+        <Ionicons name="add" size={28} color={theme.colors.textInverse} />
       </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   hero: {
     paddingBottom: 28,
     paddingHorizontal: 20,
@@ -204,50 +205,50 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginBottom: 14,
   },
   heroTitle: {
-    fontSize: 26, fontWeight: '700', color: '#FFFFFF', letterSpacing: -0.5, marginBottom: 18,
+    fontSize: 26, fontWeight: '700', color: theme.colors.textInverse, letterSpacing: -0.5, marginBottom: 18,
   },
   heroStats: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.12)',
     borderRadius: 16, padding: 16,
   },
   heroStat: { flex: 1, alignItems: 'center' },
-  heroStatValue: { fontSize: 22, fontWeight: '700', color: '#FFFFFF', letterSpacing: -0.5 },
+  heroStatValue: { fontSize: 22, fontWeight: '700', color: theme.colors.textInverse, letterSpacing: -0.5 },
   heroStatLabel: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: '500', marginTop: 2 },
   heroDivider: { width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.2)' },
   loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
-  loadingText: { fontSize: 14, color: '#717171' },
+  loadingText: { fontSize: 14, color: theme.colors.textSecondary },
   emptyState: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 40 },
   emptyIconWrap: {
-    width: 56, height: 56, borderRadius: 28, backgroundColor: '#D1FAE5',
+    width: 56, height: 56, borderRadius: 28, backgroundColor: theme.colors.primaryLight,
     alignItems: 'center', justifyContent: 'center', marginBottom: 12,
   },
-  emptyTitle: { fontSize: 16, fontWeight: '600', color: '#222222', marginBottom: 4 },
-  emptySubtitle: { fontSize: 14, color: '#717171', textAlign: 'center' },
-  retryText: { fontSize: 14, color: '#10B981', fontWeight: '600', marginTop: 8 },
+  emptyTitle: { fontSize: 16, fontWeight: '600', color: theme.colors.textPrimary, marginBottom: 4 },
+  emptySubtitle: { fontSize: 14, color: theme.colors.textSecondary, textAlign: 'center' },
+  retryText: { fontSize: 14, color: theme.colors.primary, fontWeight: '600', marginTop: 8 },
   list: { padding: 16, paddingBottom: 80 },
   sectionHeader: {
-    fontSize: 12, fontWeight: '700', color: '#B0B0B0', textTransform: 'uppercase',
+    fontSize: 12, fontWeight: '700', color: theme.colors.textTertiary, textTransform: 'uppercase',
     letterSpacing: 0.8, marginTop: 8, marginBottom: 8,
   },
   entryRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 14, marginBottom: 8,
+    backgroundColor: theme.colors.surface, borderRadius: 16, padding: 14, marginBottom: 8,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
     }),
   },
   entryInfo: { flex: 1, marginRight: 12 },
-  entryTask: { fontSize: 15, fontWeight: '600', color: '#222222' },
-  entryJob: { fontSize: 12, color: '#B0B0B0', marginTop: 2 },
+  entryTask: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary },
+  entryJob: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2 },
   entryRight: { alignItems: 'flex-end', gap: 2 },
-  entryHours: { fontSize: 17, fontWeight: '700', color: '#222222' },
-  entryRate: { fontSize: 12, color: '#B0B0B0' },
+  entryHours: { fontSize: 17, fontWeight: '700', color: theme.colors.textPrimary },
+  entryRate: { fontSize: 12, color: theme.colors.textTertiary },
   fab: {
     position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28,
-    backgroundColor: '#10B981', justifyContent: 'center', alignItems: 'center',
+    backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center',
     ...Platform.select({
-      ios: { shadowColor: '#10B981', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12 },
+      ios: { shadowColor: theme.colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12 },
       android: { elevation: 8 },
     }),
   },

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FinanceChart } from '../FinanceChart';
 import type { FinancialSummary } from '../../services/contractor-business';
+import { theme } from '../../theme';
 
 interface ChartSectionProps {
   financialData: FinancialSummary;
@@ -10,9 +11,9 @@ interface ChartSectionProps {
 }
 
 const EXPENSE_CATEGORIES = [
-  { key: 'materials', label: 'Materials', icon: 'cube-outline' as const, color: '#222222' },
-  { key: 'labor', label: 'Labour', icon: 'people-outline' as const, color: '#10B981' },
-  { key: 'transport', label: 'Transport', icon: 'car-outline' as const, color: '#F59E0B' },
+  { key: 'materials', label: 'Materials', icon: 'cube-outline' as const, color: theme.colors.textPrimary },
+  { key: 'labor', label: 'Labour', icon: 'people-outline' as const, color: theme.colors.primary },
+  { key: 'transport', label: 'Transport', icon: 'car-outline' as const, color: theme.colors.accent },
   { key: 'equipment', label: 'Equipment', icon: 'hammer-outline' as const, color: '#3B82F6' },
   { key: 'other', label: 'Other', icon: 'ellipsis-horizontal-outline' as const, color: '#8B5CF6' },
 ];
@@ -131,7 +132,7 @@ export const ChartSection: React.FC<ChartSectionProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 20,
     padding: 20,
     marginBottom: 16,
@@ -146,13 +147,13 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.3,
     marginBottom: 4,
   },
   cardSubtitle: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 8,
   },
 
@@ -164,14 +165,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingBottom: 20,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   donutOuter: {
     width: 110,
     height: 110,
     borderRadius: 55,
     borderWidth: 12,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.border,
     backgroundColor: '#FAFAFA',
     alignItems: 'center',
     justifyContent: 'center',
@@ -182,11 +183,11 @@ const styles = StyleSheet.create({
   donutValue: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   donutLabel: {
     fontSize: 10,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
     marginTop: 1,
   },
@@ -208,13 +209,13 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 13,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '500',
     flex: 1,
   },
   legendPercent: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '600',
   },
 
@@ -245,17 +246,17 @@ const styles = StyleSheet.create({
   },
   catName: {
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '600',
   },
   catAmount: {
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '700',
   },
   barBg: {
     height: 6,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: theme.colors.backgroundTertiary,
     borderRadius: 3,
     overflow: 'hidden',
   },

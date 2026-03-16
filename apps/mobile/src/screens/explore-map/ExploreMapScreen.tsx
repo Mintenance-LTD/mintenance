@@ -25,19 +25,20 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useExploreMapViewModel } from './viewmodels/ExploreMapViewModel';
 import { JobPreviewCard } from './components';
+import { theme } from '../../theme';
 
 // Category marker config — icon + color per trade
 const CATEGORY_MARKERS: Record<string, { icon: keyof typeof Ionicons.glyphMap; bg: string }> = {
-  plumbing:    { icon: 'water',           bg: '#10B981' },
-  electrical:  { icon: 'flash',           bg: '#F59E0B' },
-  roofing:     { icon: 'home',            bg: '#10B981' },
+  plumbing:    { icon: 'water',           bg: theme.colors.primary },
+  electrical:  { icon: 'flash',           bg: theme.colors.accent },
+  roofing:     { icon: 'home',            bg: theme.colors.primary },
   painting:    { icon: 'color-palette',   bg: '#3B82F6' },
-  carpentry:   { icon: 'hammer',          bg: '#F59E0B' },
+  carpentry:   { icon: 'hammer',          bg: theme.colors.accent },
   cleaning:    { icon: 'sparkles',        bg: '#3B82F6' },
-  hvac:        { icon: 'thermometer',     bg: '#EF4444' },
-  landscaping: { icon: 'leaf',            bg: '#10B981' },
-  appliance:   { icon: 'settings',        bg: '#F59E0B' },
-  general:     { icon: 'construct',       bg: '#717171' },
+  hvac:        { icon: 'thermometer',     bg: theme.colors.error },
+  landscaping: { icon: 'leaf',            bg: theme.colors.primary },
+  appliance:   { icon: 'settings',        bg: theme.colors.accent },
+  general:     { icon: 'construct',       bg: theme.colors.textSecondary },
 };
 
 // Category tabs
@@ -141,7 +142,7 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({ onBackToList
                   <Ionicons
                     name={cat.icon}
                     size={isSelected ? 18 : 16}
-                    color={isSelected ? cat.bg : '#FFFFFF'}
+                    color={isSelected ? cat.bg : theme.colors.textInverse}
                   />
                 </View>
                 {/* Arrow */}
@@ -168,11 +169,11 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({ onBackToList
               accessibilityRole="button"
               accessibilityLabel="Back to list"
             >
-              <Ionicons name="arrow-back" size={20} color="#222222" />
+              <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
             </TouchableOpacity>
           )}
           <View style={styles.searchPill}>
-            <Ionicons name="search" size={18} color="#222222" />
+            <Ionicons name="search" size={18} color={theme.colors.textPrimary} />
             <View style={styles.searchTextWrap}>
               <Text style={styles.searchTitle}>Near you</Text>
               <Text style={styles.searchSubtitle} numberOfLines={1}>
@@ -185,7 +186,7 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({ onBackToList
               accessibilityRole="button"
               accessibilityLabel="Open filters"
             >
-              <Ionicons name="options-outline" size={16} color="#222222" />
+              <Ionicons name="options-outline" size={16} color={theme.colors.textPrimary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -210,7 +211,7 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({ onBackToList
                 <Ionicons
                   name={cat.icon}
                   size={14}
-                  color={isActive ? '#FFFFFF' : '#717171'}
+                  color={isActive ? theme.colors.textInverse : theme.colors.textSecondary}
                 />
                 <Text style={[styles.categoryPillText, isActive && styles.categoryPillTextActive]}>
                   {cat.name}
@@ -231,7 +232,7 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({ onBackToList
           accessibilityRole="button"
           accessibilityLabel="Search jobs in this area"
         >
-          <Ionicons name="refresh" size={14} color="#FFFFFF" />
+          <Ionicons name="refresh" size={14} color={theme.colors.textInverse} />
           <Text style={styles.searchAreaText}>Search this area</Text>
         </TouchableOpacity>
       )}
@@ -257,7 +258,7 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({ onBackToList
         accessibilityLabel="Center on my location"
         onPress={viewModel.centerOnUser}
       >
-        <Ionicons name="navigate" size={20} color="#10B981" />
+        <Ionicons name="navigate" size={20} color={theme.colors.primary} />
       </TouchableOpacity>
 
       {/* Job preview card */}
@@ -278,7 +279,7 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({ onBackToList
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
 
   // ── Floating top bar ───────────────────────────────────────────────────────
@@ -306,7 +307,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -315,7 +316,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 14,
     paddingLeft: 14,
     paddingRight: 6,
@@ -328,22 +329,22 @@ const styles = StyleSheet.create({
   searchTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   searchSubtitle: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 1,
   },
   filterBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.border,
   },
 
   // ── Category pills ─────────────────────────────────────────────────────────
@@ -360,22 +361,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     gap: 4,
     borderWidth: 1,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.border,
   },
   categoryPillActive: {
-    backgroundColor: '#10B981',
-    borderColor: '#10B981',
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
   },
   categoryPillText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   categoryPillTextActive: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 
   // ── Category icon pin markers ─────────────────────────────────────────────
@@ -410,9 +411,9 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.colors.error,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: theme.colors.surface,
   },
 
   // ── Search this area ───────────────────────────────────────────────────────
@@ -422,7 +423,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     borderRadius: 22,
     paddingHorizontal: 18,
     paddingVertical: 10,
@@ -436,7 +437,7 @@ const styles = StyleSheet.create({
   searchAreaText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 
   // ── Loading dots ───────────────────────────────────────────────────────────
@@ -448,7 +449,7 @@ const styles = StyleSheet.create({
   },
   loadingDots: {
     flexDirection: 'row',
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -458,14 +459,14 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
 
   // ── Job count pill ─────────────────────────────────────────────────────────
   jobCountPill: {
     position: 'absolute',
     left: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -478,7 +479,7 @@ const styles = StyleSheet.create({
   jobCountText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
 
   // ── My location button ─────────────────────────────────────────────────────
@@ -488,7 +489,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 5,

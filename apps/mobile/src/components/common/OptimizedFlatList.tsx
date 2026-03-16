@@ -9,6 +9,7 @@ import {
   ListRenderItem,
   ViewToken,
 } from 'react-native';
+import { theme } from '../../theme';
 
 /**
  * OptimizedFlatList - Performance-optimized FlatList for mintenance mobile app
@@ -239,7 +240,7 @@ export function useItemSeparator(
 const styles = StyleSheet.create({
   separator: {
     height: 1,
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
   },
 });
 

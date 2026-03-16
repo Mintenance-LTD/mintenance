@@ -17,6 +17,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { useToast } from '../../components/ui/Toast';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { RootStackParamList } from '../../navigation/types';
+import { theme } from '../../theme';
 
 interface Props {
   navigation: NativeStackNavigationProp<RootStackParamList, 'RateBooking'>;
@@ -60,10 +61,10 @@ export const RateBookingScreen: React.FC<Props> = ({ navigation, route }) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.surface} />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#222222" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Rate Booking</Text>
         <View style={styles.headerButton} />
@@ -81,7 +82,7 @@ export const RateBookingScreen: React.FC<Props> = ({ navigation, route }) => {
                 <Ionicons
                   name={star <= rating ? 'star' : 'star-outline'}
                   size={40}
-                  color={star <= rating ? '#F59E0B' : '#EBEBEB'}
+                  color={star <= rating ? theme.colors.accent : theme.colors.border}
                 />
               </TouchableOpacity>
             ))}
@@ -98,7 +99,7 @@ export const RateBookingScreen: React.FC<Props> = ({ navigation, route }) => {
             multiline
             numberOfLines={4}
             placeholder="Share your experience with this contractor..."
-            placeholderTextColor="#B0B0B0"
+            placeholderTextColor={theme.colors.textTertiary}
             value={comment}
             onChangeText={setComment}
             maxLength={500}
@@ -122,22 +123,22 @@ export const RateBookingScreen: React.FC<Props> = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   headerButton: { padding: 8, width: 40 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#222222' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
   content: { padding: 16 },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
@@ -146,8 +147,8 @@ const styles = StyleSheet.create({
       android: { elevation: 2 },
     }),
   },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#222222', marginBottom: 4 },
-  cardSubtitle: { fontSize: 14, color: '#717171', marginBottom: 20 },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 4 },
+  cardSubtitle: { fontSize: 14, color: theme.colors.textSecondary, marginBottom: 20 },
   starsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -159,39 +160,39 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 15,
     fontWeight: '600',
-    color: '#F59E0B',
+    color: theme.colors.accent,
     marginBottom: 20,
   },
   commentLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
   commentInput: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     padding: 14,
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     minHeight: 100,
   },
   charCount: {
     textAlign: 'right',
     fontSize: 11,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     marginTop: 4,
   },
   submitButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 28,
     paddingVertical: 16,
     alignItems: 'center',
   },
   submitButtonDisabled: { opacity: 0.5 },
-  submitButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  submitButtonText: { color: theme.colors.textInverse, fontSize: 16, fontWeight: '700' },
 });
 
 export default RateBookingScreen;

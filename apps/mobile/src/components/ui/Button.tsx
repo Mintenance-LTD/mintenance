@@ -9,6 +9,7 @@ import {
   View,
   Platform,
 } from 'react-native';
+import { theme } from '../../theme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'tertiary' | 'ghost' | 'danger' | 'success';
 
@@ -41,13 +42,13 @@ export interface ButtonProps {
 }
 
 const VARIANT_STYLES: Record<ButtonVariant, { backgroundColor: string; color: string; borderColor: string }> = {
-  primary: { backgroundColor: '#222222', color: '#FFFFFF', borderColor: 'transparent' },
-  secondary: { backgroundColor: '#F7F7F7', color: '#222222', borderColor: '#EBEBEB' },
-  outline: { backgroundColor: 'transparent', color: '#222222', borderColor: '#EBEBEB' },
+  primary: { backgroundColor: theme.colors.textPrimary, color: theme.colors.textInverse, borderColor: 'transparent' },
+  secondary: { backgroundColor: theme.colors.backgroundSecondary, color: theme.colors.textPrimary, borderColor: theme.colors.border },
+  outline: { backgroundColor: 'transparent', color: theme.colors.textPrimary, borderColor: theme.colors.border },
   tertiary: { backgroundColor: 'transparent', color: '#3B82F6', borderColor: 'transparent' },
-  ghost: { backgroundColor: 'transparent', color: '#717171', borderColor: 'transparent' },
-  danger: { backgroundColor: '#EF4444', color: '#FFFFFF', borderColor: 'transparent' },
-  success: { backgroundColor: '#10B981', color: '#FFFFFF', borderColor: 'transparent' },
+  ghost: { backgroundColor: 'transparent', color: theme.colors.textSecondary, borderColor: 'transparent' },
+  danger: { backgroundColor: theme.colors.error, color: theme.colors.textInverse, borderColor: 'transparent' },
+  success: { backgroundColor: theme.colors.primary, color: theme.colors.textInverse, borderColor: 'transparent' },
 };
 
 export const Button: React.FC<ButtonProps> = ({
@@ -100,7 +101,7 @@ export const Button: React.FC<ButtonProps> = ({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color="#FFFFFF" size='small' />
+        <ActivityIndicator color={theme.colors.textInverse} size='small' />
       ) : iconOnly ? (
         <View>{icon}</View>
       ) : (

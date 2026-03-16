@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Banner } from '../../../components/ui/Banner';
+import { theme } from '../../../theme';
 
 interface MessageComposerProps {
   value: string;
@@ -65,7 +66,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
               disabled={isSending}
               accessibilityLabel="Attach image from gallery"
             >
-              <Ionicons name="image-outline" size={22} color="#717171" />
+              <Ionicons name="image-outline" size={22} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           )}
           {onCamera && (
@@ -75,7 +76,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
               disabled={isSending}
               accessibilityLabel="Take a photo"
             >
-              <Ionicons name="camera-outline" size={22} color="#717171" />
+              <Ionicons name="camera-outline" size={22} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
@@ -87,7 +88,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
             value={value}
             onChangeText={onChangeText}
             placeholder="Type a message..."
-            placeholderTextColor="#B0B0B0"
+            placeholderTextColor={theme.colors.textTertiary}
             multiline
             maxLength={500}
             editable={!isSending}
@@ -106,12 +107,12 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
           accessibilityLabel="Send message"
         >
           {isSending ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={theme.colors.textInverse} />
           ) : (
             <Ionicons
               name="send"
               size={18}
-              color="#FFFFFF"
+              color={theme.colors.textInverse}
               style={{ marginLeft: 2 }}
             />
           )}
@@ -123,11 +124,11 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingHorizontal: 12,
     paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
     gap: 6,
   },
   inputRow: {
@@ -150,7 +151,7 @@ const styles = StyleSheet.create({
   },
   inputWrapper: {
     flex: 1,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: theme.colors.backgroundTertiary,
     borderRadius: 24,
     paddingHorizontal: 16,
     paddingVertical: Platform.OS === 'ios' ? 10 : 4,
@@ -159,7 +160,7 @@ const styles = StyleSheet.create({
   },
   textInput: {
     fontSize: 16,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     maxHeight: 100,
     lineHeight: 22,
     paddingVertical: 0,
@@ -173,10 +174,10 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   sendButtonActive: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     ...Platform.select({
       ios: {
-        shadowColor: '#10B981',
+        shadowColor: theme.colors.primary,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.3,
         shadowRadius: 4,

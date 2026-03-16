@@ -10,6 +10,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 import type { LocationData } from '@mintenance/types';
 
 interface LocationPickerProps {
@@ -24,36 +25,36 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
   onRetry,
 }) => {
   return (
-    <View style={styles.container}>
-      <Text style={styles.sectionTitle}>LOCATION</Text>
+    <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
+      <Text style={[styles.sectionTitle, { color: theme.colors.textTertiary }]}>LOCATION</Text>
 
       {locationStatus === 'loading' && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#222222" />
-          <Text style={styles.loadingText}>Getting your location...</Text>
+          <ActivityIndicator size="small" color={theme.colors.textPrimary} />
+          <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>Getting your location...</Text>
         </View>
       )}
 
       {locationStatus === 'error' && (
         <View style={styles.errorContainer}>
           <View style={styles.errorIconWrap}>
-            <Ionicons name="location-outline" size={24} color="#EF4444" />
+            <Ionicons name="location-outline" size={24} color={theme.colors.error} />
           </View>
-          <Text style={styles.errorText}>Failed to get location</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+          <Text style={[styles.errorText, { color: theme.colors.error }]}>Failed to get location</Text>
+          <TouchableOpacity style={[styles.retryButton, { backgroundColor: theme.colors.textPrimary }]} onPress={onRetry}>
+            <Text style={[styles.retryButtonText, { color: theme.colors.textInverse }]}>Retry</Text>
           </TouchableOpacity>
         </View>
       )}
 
       {locationStatus === 'success' && location && (
-        <View style={styles.locationContainer}>
-          <View style={styles.locationIcon}>
-            <Ionicons name="location" size={20} color="#10B981" />
+        <View style={[styles.locationContainer, { backgroundColor: theme.colors.backgroundSecondary }]}>
+          <View style={[styles.locationIcon, { backgroundColor: theme.colors.primaryLight }]}>
+            <Ionicons name="location" size={20} color={theme.colors.primary} />
           </View>
           <View style={styles.locationText}>
-            <Text style={styles.locationLabel}>Meeting Location</Text>
-            <Text style={styles.locationAddress}>{(location as LocationData & { address?: string }).address ?? ''}</Text>
+            <Text style={[styles.locationLabel, { color: theme.colors.textSecondary }]}>Meeting Location</Text>
+            <Text style={[styles.locationAddress, { color: theme.colors.textPrimary }]}>{(location as LocationData & { address?: string }).address ?? ''}</Text>
           </View>
         </View>
       )}
@@ -63,7 +64,6 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -75,7 +75,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
     marginBottom: 16,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -89,7 +88,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: '#717171',
   },
   errorContainer: {
     alignItems: 'center',
@@ -106,10 +104,8 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 14,
-    color: '#EF4444',
   },
   retryButton: {
-    backgroundColor: '#222222',
     borderRadius: 28,
     paddingHorizontal: 24,
     paddingVertical: 10,
@@ -117,12 +113,10 @@ const styles = StyleSheet.create({
   retryButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7F7F7',
     borderRadius: 12,
     padding: 14,
     gap: 12,
@@ -131,7 +125,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#D1FAE5',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -141,12 +134,10 @@ const styles = StyleSheet.create({
   locationLabel: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#717171',
     marginBottom: 2,
   },
   locationAddress: {
     fontSize: 15,
-    color: '#222222',
     fontWeight: '500',
   },
 });

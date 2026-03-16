@@ -1,3 +1,4 @@
+import { theme } from '../../theme';
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -19,21 +20,21 @@ export const serviceCategories: ServiceCategory[] = [
     id: 'plumbing',
     name: 'Plumbing',
     icon: 'water-outline',
-    color: '#10B981',
+    color: theme.colors.primary,
     subcategories: ['Leaking', 'Blocked Drain', 'Installation', 'Repair', 'Emergency'],
   },
   {
     id: 'electrical',
     name: 'Electrical',
     icon: 'flash-outline',
-    color: '#F59E0B',
+    color: theme.colors.accent,
     subcategories: ['Wiring', 'Outlet Installation', 'Lighting', 'Panel Upgrade', 'Emergency'],
   },
   {
     id: 'hvac',
     name: 'HVAC',
     icon: 'thermometer-outline',
-    color: '#10B981',
+    color: theme.colors.primary,
     subcategories: ['AC Repair', 'Heating', 'Installation', 'Maintenance', 'Duct Cleaning'],
   },
   {
@@ -47,20 +48,20 @@ export const serviceCategories: ServiceCategory[] = [
     id: 'appliance',
     name: 'Appliance Repair',
     icon: 'home-outline',
-    color: '#EF4444',
+    color: theme.colors.error,
     subcategories: ['Washing Machine', 'Refrigerator', 'Dishwasher', 'Oven', 'Other'],
   },
   {
     id: 'landscaping',
     name: 'Landscaping',
     icon: 'leaf-outline',
-    color: '#10B981',
+    color: theme.colors.primary,
     subcategories: ['Lawn Care', 'Tree Service', 'Garden Design', 'Irrigation', 'Cleanup'],
   },
 ];
 
 export const priorityLevels = [
-  { id: 'low' as const, name: 'Low', color: '#10B981', description: 'Can wait a few days' },
-  { id: 'medium' as const, name: 'Medium', color: '#F59E0B', description: 'Should be done this week' },
-  { id: 'high' as const, name: 'High', color: '#EF4444', description: 'Urgent - needs attention ASAP' },
+  { id: 'low' as const, name: 'Low', color: theme.colors.primary, description: 'Can wait a few days' },
+  { id: 'medium' as const, name: 'Medium', color: theme.colors.accent, description: 'Should be done this week' },
+  { id: 'high' as const, name: 'High', color: theme.colors.error, description: 'Urgent - needs attention ASAP' },
 ];

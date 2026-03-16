@@ -19,6 +19,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ScreenHeader } from '../../components/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { useAuth } from '../../contexts/AuthContext';
+import { theme } from '../../theme';
 
 interface MFAStatus {
   enabled: boolean;
@@ -80,11 +81,11 @@ export const MFASecurityScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <ScreenHeader title="MFA Security" showBack onBack={() => navigation.goBack()} />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {isLoading ? (
-          <ActivityIndicator size="large" color="#222222" style={{ marginTop: 40 }} />
+          <ActivityIndicator size="large" color={theme.colors.textPrimary} style={{ marginTop: 40 }} />
         ) : (
           <>
             <View style={styles.card}>
@@ -105,8 +106,8 @@ export const MFASecurityScreen: React.FC = () => {
                   value={mfaStatus?.enabled ?? false}
                   onValueChange={handleToggle}
                   disabled={isMutating}
-                  trackColor={{ false: '#EBEBEB', true: '#222222' }}
-                  thumbColor="#FFFFFF"
+                  trackColor={{ false: theme.colors.border, true: theme.colors.textPrimary }}
+                  thumbColor={theme.colors.surface}
                 />
               </View>
             </View>
@@ -133,12 +134,12 @@ export const MFASecurityScreen: React.FC = () => {
                   activeOpacity={0.7}
                 >
                   <View style={styles.rowLeft}>
-                    <View style={[styles.iconChip, { backgroundColor: '#FEF3C7' }]}>
-                      <Ionicons name="key-outline" size={18} color="#F59E0B" />
+                    <View style={[styles.iconChip, { backgroundColor: theme.colors.accentLight }]}>
+                      <Ionicons name="key-outline" size={18} color={theme.colors.accent} />
                     </View>
                     <Text style={styles.label}>Recovery Codes</Text>
                   </View>
-                  <Ionicons name={showRecoveryCodes ? 'chevron-up' : 'chevron-down'} size={16} color="#B0B0B0" />
+                  <Ionicons name={showRecoveryCodes ? 'chevron-up' : 'chevron-down'} size={16} color={theme.colors.textTertiary} />
                 </TouchableOpacity>
                 {showRecoveryCodes && enrollData?.recoveryCodes && (
                   <View style={styles.codesContainer}>
@@ -162,11 +163,11 @@ export const MFASecurityScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   scrollView: { flex: 1 },
   content: { padding: 16, paddingBottom: 40 },
   card: {
-    backgroundColor: '#FFFFFF', borderRadius: 16, marginBottom: 16, overflow: 'hidden',
+    backgroundColor: theme.colors.surface, borderRadius: 16, marginBottom: 16, overflow: 'hidden',
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
@@ -175,16 +176,16 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 },
   rowLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 12 },
   iconChip: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  label: { fontSize: 15, fontWeight: '500', color: '#222222' },
-  sublabel: { fontSize: 12, color: '#717171', marginTop: 2 },
-  sectionTitle: { fontSize: 14, fontWeight: '600', color: '#222222', paddingHorizontal: 14, paddingTop: 14, paddingBottom: 8 },
-  bodyText: { fontSize: 13, color: '#717171', lineHeight: 20, paddingHorizontal: 14, marginBottom: 6 },
-  secretBox: { backgroundColor: '#F7F7F7', borderRadius: 8, marginHorizontal: 14, marginVertical: 8, padding: 12 },
-  secretText: { fontSize: 14, fontWeight: '600', color: '#222222', textAlign: 'center', letterSpacing: 1 },
-  codesContainer: { paddingHorizontal: 14, paddingBottom: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#EBEBEB' },
-  warningText: { fontSize: 12, color: '#F59E0B', marginVertical: 8 },
-  codeText: { fontSize: 13, fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }), color: '#222222', paddingVertical: 3 },
-  footnote: { fontSize: 12, color: '#B0B0B0', lineHeight: 18, paddingHorizontal: 4, marginTop: 8 },
+  label: { fontSize: 15, fontWeight: '500', color: theme.colors.textPrimary },
+  sublabel: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
+  sectionTitle: { fontSize: 14, fontWeight: '600', color: theme.colors.textPrimary, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 8 },
+  bodyText: { fontSize: 13, color: theme.colors.textSecondary, lineHeight: 20, paddingHorizontal: 14, marginBottom: 6 },
+  secretBox: { backgroundColor: theme.colors.backgroundSecondary, borderRadius: 8, marginHorizontal: 14, marginVertical: 8, padding: 12 },
+  secretText: { fontSize: 14, fontWeight: '600', color: theme.colors.textPrimary, textAlign: 'center', letterSpacing: 1 },
+  codesContainer: { paddingHorizontal: 14, paddingBottom: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.border },
+  warningText: { fontSize: 12, color: theme.colors.accent, marginVertical: 8 },
+  codeText: { fontSize: 13, fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }), color: theme.colors.textPrimary, paddingVertical: 3 },
+  footnote: { fontSize: 12, color: theme.colors.textTertiary, lineHeight: 18, paddingHorizontal: 4, marginTop: 8 },
 });
 
 export default MFASecurityScreen;

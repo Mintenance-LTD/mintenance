@@ -26,6 +26,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { BidService, Bid } from '../services/BidService';
 import SwipeableCardWrapper, { SwipeableCardRef } from '../components/SwipeableCardWrapper';
 import type { JobsStackParamList } from '../navigation/types';
+import { theme } from '../theme';
 
 type BidReviewRouteProp = RouteProp<JobsStackParamList, 'BidReview'>;
 
@@ -33,14 +34,14 @@ function renderStars(rating: number) {
   const stars = [];
   const full = Math.floor(rating);
   for (let i = 0; i < full; i++) {
-    stars.push(<Ionicons key={i} name="star" size={14} color="#F59E0B" />);
+    stars.push(<Ionicons key={i} name="star" size={14} color={theme.colors.accent} />);
   }
   if (rating % 1 !== 0) {
-    stars.push(<Ionicons key="half" name="star-half" size={14} color="#F59E0B" />);
+    stars.push(<Ionicons key="half" name="star-half" size={14} color={theme.colors.accent} />);
   }
   const empty = 5 - Math.ceil(rating);
   for (let i = 0; i < empty; i++) {
-    stars.push(<Ionicons key={`e${i}`} name="star-outline" size={14} color="#B0B0B0" />);
+    stars.push(<Ionicons key={`e${i}`} name="star-outline" size={14} color={theme.colors.textTertiary} />);
   }
   return stars;
 }
@@ -154,7 +155,7 @@ export const BidReviewScreen: React.FC = () => {
               <Image source={{ uri: contractor.profile_picture }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Ionicons name="person" size={32} color="#717171" />
+                <Ionicons name="person" size={32} color={theme.colors.textSecondary} />
               </View>
             )}
             <View style={styles.contractorInfo}>
@@ -191,8 +192,8 @@ export const BidReviewScreen: React.FC = () => {
           {/* Availability */}
           {bid.availability && (
             <View style={styles.detailRow}>
-              <View style={[styles.detailIconWrap, { backgroundColor: '#D1FAE5' }]}>
-                <Ionicons name="calendar-outline" size={16} color="#10B981" />
+              <View style={[styles.detailIconWrap, { backgroundColor: theme.colors.primaryLight }]}>
+                <Ionicons name="calendar-outline" size={16} color={theme.colors.primary} />
               </View>
               <Text style={styles.detailText}>Available: {bid.availability}</Text>
             </View>
@@ -212,7 +213,7 @@ export const BidReviewScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#222222" />
+          <ActivityIndicator size="large" color={theme.colors.textPrimary} />
           <Text style={styles.loadingText}>Loading bids...</Text>
         </View>
       </SafeAreaView>
@@ -229,14 +230,14 @@ export const BidReviewScreen: React.FC = () => {
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Ionicons name="arrow-back" size={24} color="#222222" />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Review Bids</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.centered}>
           <View style={styles.emptyIconWrap}>
-            <Ionicons name="checkmark-circle" size={36} color="#10B981" />
+            <Ionicons name="checkmark-circle" size={36} color={theme.colors.primary} />
           </View>
           <Text style={styles.emptyTitle}>All Bids Reviewed</Text>
           <Text style={styles.emptySubtitle}>You've reviewed all pending bids for this job.</Text>
@@ -262,7 +263,7 @@ export const BidReviewScreen: React.FC = () => {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={24} color="#222222" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Review Bids</Text>
@@ -277,10 +278,10 @@ export const BidReviewScreen: React.FC = () => {
       {bids.length > 1 && (
         <View style={styles.summaryRow}>
           {[
-            { label: 'Low', value: `£${Math.min(...bids.map(b => b.amount)).toLocaleString()}`, iconColor: '#10B981', iconBg: '#D1FAE5', icon: 'trending-down-outline' as const },
+            { label: 'Low', value: `£${Math.min(...bids.map(b => b.amount)).toLocaleString()}`, iconColor: theme.colors.primary, iconBg: theme.colors.primaryLight, icon: 'trending-down-outline' as const },
             { label: 'Avg', value: `£${Math.round(bids.reduce((s, b) => s + b.amount, 0) / bids.length).toLocaleString()}`, iconColor: '#3B82F6', iconBg: '#DBEAFE', icon: 'analytics-outline' as const },
-            { label: 'High', value: `£${Math.max(...bids.map(b => b.amount)).toLocaleString()}`, iconColor: '#EF4444', iconBg: '#FEE2E2', icon: 'trending-up-outline' as const },
-            { label: 'Top Rating', value: `${Math.max(...bids.map(b => b.contractor?.rating ?? 0)).toFixed(1)}★`, iconColor: '#F59E0B', iconBg: '#FEF3C7', icon: 'star-outline' as const },
+            { label: 'High', value: `£${Math.max(...bids.map(b => b.amount)).toLocaleString()}`, iconColor: theme.colors.error, iconBg: '#FEE2E2', icon: 'trending-up-outline' as const },
+            { label: 'Top Rating', value: `${Math.max(...bids.map(b => b.contractor?.rating ?? 0)).toFixed(1)}★`, iconColor: theme.colors.accent, iconBg: theme.colors.accentLight, icon: 'star-outline' as const },
           ].map((item) => (
             <View key={item.label} style={styles.summaryItem}>
               <View style={[styles.summaryIconWrap, { backgroundColor: item.iconBg }]}>
@@ -322,7 +323,7 @@ export const BidReviewScreen: React.FC = () => {
             left: {
               element: (
                 <View style={styles.overlayPass}>
-                  <Ionicons name="close" size={48} color="#EF4444" />
+                  <Ionicons name="close" size={48} color={theme.colors.error} />
                   <Text style={styles.overlayPassText}>PASS</Text>
                 </View>
               ),
@@ -330,7 +331,7 @@ export const BidReviewScreen: React.FC = () => {
             right: {
               element: (
                 <View style={styles.overlayAccept}>
-                  <Ionicons name="checkmark" size={48} color="#10B981" />
+                  <Ionicons name="checkmark" size={48} color={theme.colors.primary} />
                   <Text style={styles.overlayAcceptText}>ACCEPT</Text>
                 </View>
               ),
@@ -348,7 +349,7 @@ export const BidReviewScreen: React.FC = () => {
           accessibilityRole="button"
           accessibilityLabel="Reject this bid"
         >
-          <Ionicons name="close" size={30} color="#EF4444" />
+          <Ionicons name="close" size={30} color={theme.colors.error} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -358,13 +359,13 @@ export const BidReviewScreen: React.FC = () => {
           accessibilityRole="button"
           accessibilityLabel="Accept this bid"
         >
-          <Ionicons name="checkmark" size={30} color="#10B981" />
+          <Ionicons name="checkmark" size={30} color={theme.colors.primary} />
         </TouchableOpacity>
       </View>
 
       {processing && (
         <View style={styles.processingOverlay}>
-          <ActivityIndicator size="small" color="#FFFFFF" />
+          <ActivityIndicator size="small" color={theme.colors.textInverse} />
         </View>
       )}
     </SafeAreaView>
@@ -374,7 +375,7 @@ export const BidReviewScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   centered: {
     flex: 1,
@@ -385,7 +386,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -393,15 +394,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   backBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -413,15 +414,15 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 2,
   },
   bidCountChip: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -429,7 +430,7 @@ const styles = StyleSheet.create({
   bidCountText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   swiperContainer: {
     flex: 1,
@@ -439,7 +440,7 @@ const styles = StyleSheet.create({
   },
   bidCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     ...Platform.select({
@@ -467,7 +468,7 @@ const styles = StyleSheet.create({
     marginRight: 14,
   },
   avatarPlaceholder: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -477,7 +478,7 @@ const styles = StyleSheet.create({
   contractorName: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   ratingRow: {
@@ -490,10 +491,10 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   amountSection: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
@@ -501,13 +502,13 @@ const styles = StyleSheet.create({
   },
   amountLabel: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 4,
   },
   amountValue: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   detailRow: {
     flexDirection: 'row',
@@ -525,23 +526,23 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   proposalSection: {
     marginTop: 12,
     paddingTop: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
   },
   proposalLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   proposalText: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 22,
   },
   actionButtons: {
@@ -551,8 +552,8 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingBottom: 24,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
-    backgroundColor: '#FFFFFF',
+    borderTopColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
   },
   rejectButton: {
     width: 64,
@@ -575,7 +576,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
     ...Platform.select({
@@ -594,7 +595,7 @@ const styles = StyleSheet.create({
   overlayPassText: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#EF4444',
+    color: theme.colors.error,
   },
   overlayAccept: {
     alignItems: 'center',
@@ -602,13 +603,13 @@ const styles = StyleSheet.create({
   overlayAcceptText: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#10B981',
+    color: theme.colors.primary,
   },
   emptyIconWrap: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -616,11 +617,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   emptySubtitle: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginTop: 8,
   },
@@ -629,10 +630,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingVertical: 14,
     borderRadius: 28,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   goBackButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -651,7 +652,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginTop: 10,
     borderRadius: 16,
@@ -674,8 +675,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 4,
   },
-  summaryLabel: { fontSize: 11, color: '#B0B0B0', textTransform: 'uppercase', letterSpacing: 0.4 },
-  summaryValue: { fontSize: 14, fontWeight: '700', color: '#222222', marginBottom: 2 },
+  summaryLabel: { fontSize: 11, color: theme.colors.textTertiary, textTransform: 'uppercase', letterSpacing: 0.4 },
+  summaryValue: { fontSize: 14, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 2 },
   sortRow: {
     flexDirection: 'row',
     gap: 8,
@@ -686,7 +687,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
@@ -697,9 +698,9 @@ const styles = StyleSheet.create({
       android: { elevation: 1 },
     }),
   },
-  sortChipActive: { backgroundColor: '#10B981' },
-  sortChipText: { fontSize: 13, fontWeight: '600', color: '#717171' },
-  sortChipTextActive: { color: '#FFFFFF' },
+  sortChipActive: { backgroundColor: theme.colors.primary },
+  sortChipText: { fontSize: 13, fontWeight: '600', color: theme.colors.textSecondary },
+  sortChipTextActive: { color: theme.colors.textInverse },
 });
 
 export default BidReviewScreen;

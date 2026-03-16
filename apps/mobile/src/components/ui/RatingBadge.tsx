@@ -5,6 +5,7 @@
 import React, { memo } from 'react';
 import { View, Text, StyleSheet, ViewStyle, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../theme';
 
 export interface RatingBadgeProps {
   rating: number;
@@ -33,7 +34,7 @@ export const RatingBadge: React.FC<RatingBadgeProps> = memo(({
       <Ionicons
         name="star"
         size={sizeConfig.starSize}
-        color="#F59E0B"
+        color={theme.colors.accent}
       />
       <Text style={[styles.ratingText, { fontSize: sizeConfig.ratingFontSize }]}>
         {rating.toFixed(2)}
@@ -50,7 +51,7 @@ export const RatingBadge: React.FC<RatingBadgeProps> = memo(({
 
       {showVerified && (
         <View style={styles.verifiedBadge}>
-          <Ionicons name="shield-checkmark" size={sizeConfig.starSize} color="#10B981" />
+          <Ionicons name="shield-checkmark" size={sizeConfig.starSize} color={theme.colors.primary} />
           <Text style={[styles.verifiedText, { fontSize: sizeConfig.reviewFontSize }]}>
             Verified Pro
           </Text>
@@ -85,7 +86,7 @@ const SIZE_CONFIGS = {
 
 const BACKGROUND_STYLES: Record<string, ViewStyle> = {
   white: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
@@ -113,29 +114,29 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   divider: {
     width: 1,
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
     marginHorizontal: 6,
   },
   reviewText: {
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '400',
   },
   verifiedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     marginLeft: 8,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
     gap: 4,
   },
   verifiedText: {
-    color: '#10B981',
+    color: theme.colors.primary,
     fontWeight: '600',
   },
 });

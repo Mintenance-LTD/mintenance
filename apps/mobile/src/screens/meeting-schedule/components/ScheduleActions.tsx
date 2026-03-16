@@ -9,6 +9,7 @@
 
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { theme } from '../../../theme';
 
 interface ScheduleActionsProps {
   loading: boolean;
@@ -25,26 +26,26 @@ export const ScheduleActions: React.FC<ScheduleActionsProps> = ({
     <View style={styles.container}>
       <View style={styles.buttonRow}>
         <TouchableOpacity
-          style={[styles.button, styles.cancelButton]}
+          style={[styles.button, styles.cancelButton, { backgroundColor: theme.colors.backgroundSecondary }]}
           onPress={onCancel}
           disabled={loading}
           accessibilityRole='button'
           accessibilityLabel='Cancel scheduling'
         >
-          <Text style={styles.cancelButtonText}>Cancel</Text>
+          <Text style={[styles.cancelButtonText, { color: theme.colors.textPrimary }]}>Cancel</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.button, styles.scheduleButton]}
+          style={[styles.button, styles.scheduleButton, { backgroundColor: theme.colors.textPrimary }]}
           onPress={onSchedule}
           disabled={loading}
           accessibilityRole='button'
           accessibilityLabel={loading ? 'Scheduling meeting' : 'Schedule meeting'}
         >
           {loading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={theme.colors.textInverse} />
           ) : (
-            <Text style={styles.scheduleButtonText}>Schedule Meeting</Text>
+            <Text style={[styles.scheduleButtonText, { color: theme.colors.textInverse }]}>Schedule Meeting</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -69,19 +70,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: '#F7F7F7',
   },
   scheduleButton: {
-    backgroundColor: '#222222',
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222222',
   },
   scheduleButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
 });

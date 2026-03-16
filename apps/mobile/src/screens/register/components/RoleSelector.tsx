@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 
 interface RoleSelectorProps {
   role: 'homeowner' | 'contractor';
@@ -27,7 +28,7 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({ role, onRoleChange }
           <Ionicons
             name="home-outline"
             size={18}
-            color={role === 'homeowner' ? '#222222' : '#717171'}
+            color={role === 'homeowner' ? theme.colors.textPrimary : theme.colors.textSecondary}
           />
           <Text
             style={[
@@ -61,7 +62,7 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({ role, onRoleChange }
           <Ionicons
             name="construct-outline"
             size={18}
-            color={role === 'contractor' ? '#222222' : '#717171'}
+            color={role === 'contractor' ? theme.colors.textPrimary : theme.colors.textSecondary}
           />
           <Text
             style={[
@@ -88,7 +89,7 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({ role, onRoleChange }
 const styles = StyleSheet.create({
   roleSelectionContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 16,
     padding: 6,
     marginBottom: 24,
@@ -101,7 +102,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   roleToggleActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
@@ -122,18 +123,18 @@ const styles = StyleSheet.create({
   roleToggleText: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   roleToggleTextActive: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '600',
   },
   roleDescription: {
     fontSize: 11,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     marginTop: 2,
   },
   roleDescriptionActive: {
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
 });

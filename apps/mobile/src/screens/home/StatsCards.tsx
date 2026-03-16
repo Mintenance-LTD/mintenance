@@ -10,6 +10,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Skeleton } from '../../components/skeletons/Skeleton';
+import { theme } from '../../theme';
 
 interface StatsCardsProps {
   isLoading?: boolean;
@@ -30,7 +31,7 @@ const STATS: StatConfig[] = [
   {
     label: 'Active',
     icon: 'briefcase',
-    accentColor: '#10B981',
+    accentColor: theme.colors.primary,
     getValue: (p) => `${p.activeJobs ?? 0}`,
   },
   {
@@ -42,7 +43,7 @@ const STATS: StatConfig[] = [
   {
     label: 'Spent',
     icon: 'card',
-    accentColor: '#F59E0B',
+    accentColor: theme.colors.accent,
     getValue: (p) => {
       const v = p.totalSpent ?? 0;
       return v > 0 ? `\u00A3${v.toLocaleString()}` : '\u00A30';
@@ -51,7 +52,7 @@ const STATS: StatConfig[] = [
   {
     label: 'Saved Pros',
     icon: 'star',
-    accentColor: '#EF4444',
+    accentColor: theme.colors.error,
     getValue: (p) => `${p.savedPros ?? 0}`,
   },
 ];
@@ -111,7 +112,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: 130,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     paddingLeft: 20,
@@ -147,13 +148,13 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 26,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.5,
     marginBottom: 2,
   },
   label: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
   },
 });

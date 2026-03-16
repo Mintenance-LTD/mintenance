@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { useListOptimization, useThrottled } from '../../hooks/usePerformance';
+import { theme } from '../../theme';
 
 // ============================================================================
 // TYPES
@@ -230,7 +231,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
   },
   emptyContentContainer: {

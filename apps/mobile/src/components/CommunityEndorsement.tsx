@@ -18,6 +18,7 @@ import {
   useNeighborhoodFormatters,
 } from '../hooks/useNeighborhood';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 interface CommunityEndorsementProps {
   contractorId: string;
@@ -178,7 +179,7 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
         {/* Header */}
         <View style={[styles.header, { paddingTop: insets.top }]}>
           <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-            <Ionicons name='close' size={24} color='#222222' />
+            <Ionicons name='close' size={24} color={theme.colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Endorse {contractorName}</Text>
           <View style={styles.placeholder} />
@@ -188,7 +189,7 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
           {/* Introduction */}
           <View style={styles.introSection}>
             <View style={styles.introIcon}>
-              <Ionicons name='heart' size={32} color='#222222' />
+              <Ionicons name='heart' size={32} color={theme.colors.textPrimary} />
             </View>
             <Text style={styles.introTitle}>Help Your Community</Text>
             <Text style={styles.introText}>
@@ -221,7 +222,7 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
                         : 'chevron-down'
                     }
                     size={20}
-                    color='#717171'
+                    color={theme.colors.textSecondary}
                   />
                 </TouchableOpacity>
 
@@ -248,7 +249,7 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
                           <Ionicons
                             name='checkmark-circle'
                             size={16}
-                            color='#FFFFFF'
+                            color={theme.colors.textInverse}
                           />
                         )}
                       </TouchableOpacity>
@@ -311,7 +312,7 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
                   <Ionicons
                     name='heart'
                     size={16}
-                    color='#222222'
+                    color={theme.colors.textPrimary}
                   />
                   <Text style={styles.previewSkill}>
                     {customSkill.trim() || selectedSkill}
@@ -341,10 +342,10 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
             disabled={isPending || (!selectedSkill && !customSkill.trim())}
           >
             {isPending ? (
-              <ActivityIndicator color='#FFFFFF' size='small' />
+              <ActivityIndicator color={theme.colors.textInverse} size='small' />
             ) : (
               <>
-                <Ionicons name='heart' size={20} color='#FFFFFF' />
+                <Ionicons name='heart' size={20} color={theme.colors.textInverse} />
                 <Text style={styles.submitButtonText}>Add Endorsement</Text>
               </>
             )}
@@ -358,7 +359,7 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -366,9 +367,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   closeButton: {
     padding: 4,
@@ -376,7 +377,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   placeholder: {
     width: 32,
@@ -393,7 +394,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
@@ -401,12 +402,12 @@ const styles = StyleSheet.create({
   introTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   introText: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -416,12 +417,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 16,
   },
   categoryContainer: {
@@ -433,7 +434,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
@@ -443,7 +444,7 @@ const styles = StyleSheet.create({
   categoryTitle: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   skillsGrid: {
     flexDirection: 'row',
@@ -456,7 +457,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 },
@@ -464,15 +465,15 @@ const styles = StyleSheet.create({
     }),
   },
   selectedSkill: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   skillText: {
     fontSize: 13,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginRight: 4,
   },
   selectedSkillText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   customSkillContainer: {
     marginTop: 16,
@@ -480,29 +481,29 @@ const styles = StyleSheet.create({
   customSkillLabel: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   customSkillInput: {
     height: 50,
     borderRadius: 12,
     paddingHorizontal: 12,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   messageInput: {
     minHeight: 100,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingTop: 12,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   characterCount: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'right',
     marginTop: 4,
   },
@@ -512,11 +513,11 @@ const styles = StyleSheet.create({
   previewTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   previewCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     ...Platform.select({
@@ -532,44 +533,44 @@ const styles = StyleSheet.create({
   previewSkill: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginLeft: 4,
   },
   previewMessage: {
     fontSize: 13,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     lineHeight: 20,
     marginBottom: 8,
     fontStyle: 'italic',
   },
   previewAttribution: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'right',
   },
   footer: {
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
   },
   submitButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingVertical: 16,
     borderRadius: 28,
     minHeight: 56,
     gap: 8,
   },
   submitButtonDisabled: {
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
   },
   submitButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 });
 

@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Button from '../components/ui/Button';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { theme } from '../theme';
 
 interface IconConfig {
   name: keyof typeof Ionicons.glyphMap;
@@ -26,22 +27,22 @@ interface IconConfig {
 
 const SETTING_ICONS: Record<string, IconConfig> = {
   notifications: { name: 'notifications', color: '#3B82F6', bg: '#DBEAFE' },
-  briefcase: { name: 'briefcase', color: '#10B981', bg: '#D1FAE5' },
-  pricetag: { name: 'pricetag', color: '#F59E0B', bg: '#FEF3C7' },
+  briefcase: { name: 'briefcase', color: theme.colors.primary, bg: theme.colors.primaryLight },
+  pricetag: { name: 'pricetag', color: theme.colors.accent, bg: theme.colors.accentLight },
   chatbubble: { name: 'chatbubble', color: '#8B5CF6', bg: '#EDE9FE' },
   refresh: { name: 'refresh', color: '#3B82F6', bg: '#DBEAFE' },
-  card: { name: 'card', color: '#10B981', bg: '#D1FAE5' },
-  mail: { name: 'mail', color: '#EF4444', bg: '#FEE2E2' },
-  calendar: { name: 'calendar', color: '#F59E0B', bg: '#FEF3C7' },
-  'shield-checkmark': { name: 'shield-checkmark', color: '#EF4444', bg: '#FEE2E2' },
+  card: { name: 'card', color: theme.colors.primary, bg: theme.colors.primaryLight },
+  mail: { name: 'mail', color: theme.colors.error, bg: '#FEE2E2' },
+  calendar: { name: 'calendar', color: theme.colors.accent, bg: theme.colors.accentLight },
+  'shield-checkmark': { name: 'shield-checkmark', color: theme.colors.error, bg: '#FEE2E2' },
   'volume-high': { name: 'volume-high', color: '#3B82F6', bg: '#DBEAFE' },
   'phone-portrait': { name: 'phone-portrait', color: '#8B5CF6', bg: '#EDE9FE' },
-  megaphone: { name: 'megaphone', color: '#F59E0B', bg: '#FEF3C7' },
+  megaphone: { name: 'megaphone', color: theme.colors.accent, bg: theme.colors.accentLight },
   'information-circle': { name: 'information-circle', color: '#3B82F6', bg: '#DBEAFE' },
   'moon-outline': { name: 'moon-outline', color: '#8B5CF6', bg: '#EDE9FE' },
-  'time-outline': { name: 'time-outline', color: '#717171', bg: '#F7F7F7' },
-  'checkmark-circle': { name: 'checkmark-circle', color: '#10B981', bg: '#D1FAE5' },
-  'close-circle': { name: 'close-circle', color: '#EF4444', bg: '#FEE2E2' },
+  'time-outline': { name: 'time-outline', color: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary },
+  'checkmark-circle': { name: 'checkmark-circle', color: theme.colors.primary, bg: theme.colors.primaryLight },
+  'close-circle': { name: 'close-circle', color: theme.colors.error, bg: '#FEE2E2' },
 };
 
 const NotificationSettingsScreen: React.FC = () => {
@@ -242,7 +243,7 @@ const NotificationSettingsScreen: React.FC = () => {
     onToggle: () => void;
     disabled?: boolean;
   }) => {
-    const iconConfig = SETTING_ICONS[icon] || { name: icon as keyof typeof Ionicons.glyphMap, color: '#717171', bg: '#F7F7F7' };
+    const iconConfig = SETTING_ICONS[icon] || { name: icon as keyof typeof Ionicons.glyphMap, color: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary };
     return (
       <View style={[styles.settingRow, disabled && styles.disabledRow]}>
         <View style={styles.settingLeft}>
@@ -267,8 +268,8 @@ const NotificationSettingsScreen: React.FC = () => {
           onValueChange={onToggle}
           disabled={disabled}
           trackColor={{
-            false: '#EBEBEB',
-            true: disabled ? '#B0B0B0' : '#10B981',
+            false: theme.colors.border,
+            true: disabled ? '#B0B0B0' : theme.colors.primary,
           }}
           thumbColor='#FFFFFF'
         />
@@ -278,7 +279,7 @@ const NotificationSettingsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.surface} />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           style={styles.backButton}
@@ -286,7 +287,7 @@ const NotificationSettingsScreen: React.FC = () => {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name='arrow-back' size={24} color='#222222' />
+          <Ionicons name='arrow-back' size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notification Settings</Text>
         <Button
@@ -438,30 +439,30 @@ const NotificationSettingsScreen: React.FC = () => {
                 onPress={() => setShowStartPicker(true)}
               >
                 <View style={styles.settingLeft}>
-                  <View style={[styles.iconContainer, { backgroundColor: '#F7F7F7' }]}>
-                    <Ionicons name='time-outline' size={18} color='#717171' />
+                  <View style={[styles.iconContainer, { backgroundColor: theme.colors.backgroundSecondary }]}>
+                    <Ionicons name='time-outline' size={18} color={theme.colors.textSecondary} />
                   </View>
                   <View style={styles.settingInfo}>
                     <Text style={styles.settingTitle}>Start Time</Text>
                     <Text style={styles.settingDescription}>{formatTime(settings.quietHoursStart)}</Text>
                   </View>
                 </View>
-                <Ionicons name='chevron-forward' size={16} color='#B0B0B0' />
+                <Ionicons name='chevron-forward' size={16} color={theme.colors.textTertiary} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.settingRow}
                 onPress={() => setShowEndPicker(true)}
               >
                 <View style={styles.settingLeft}>
-                  <View style={[styles.iconContainer, { backgroundColor: '#F7F7F7' }]}>
-                    <Ionicons name='time-outline' size={18} color='#717171' />
+                  <View style={[styles.iconContainer, { backgroundColor: theme.colors.backgroundSecondary }]}>
+                    <Ionicons name='time-outline' size={18} color={theme.colors.textSecondary} />
                   </View>
                   <View style={styles.settingInfo}>
                     <Text style={styles.settingTitle}>End Time</Text>
                     <Text style={styles.settingDescription}>{formatTime(settings.quietHoursEnd)}</Text>
                   </View>
                 </View>
-                <Ionicons name='chevron-forward' size={16} color='#B0B0B0' />
+                <Ionicons name='chevron-forward' size={16} color={theme.colors.textTertiary} />
               </TouchableOpacity>
             </>
           )}
@@ -506,22 +507,22 @@ const NotificationSettingsScreen: React.FC = () => {
 
           <TouchableOpacity style={styles.actionButton} onPress={handleEnableAll}>
             <View style={styles.actionLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: '#D1FAE5' }]}>
-                <Ionicons name='checkmark-circle' size={18} color='#10B981' />
+              <View style={[styles.iconContainer, { backgroundColor: theme.colors.primaryLight }]}>
+                <Ionicons name='checkmark-circle' size={18} color={theme.colors.primary} />
               </View>
               <Text style={styles.actionText}>Enable All Notifications</Text>
             </View>
-            <Ionicons name='chevron-forward' size={16} color='#B0B0B0' />
+            <Ionicons name='chevron-forward' size={16} color={theme.colors.textTertiary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionButton} onPress={handleDisableAll}>
             <View style={styles.actionLeft}>
               <View style={[styles.iconContainer, { backgroundColor: '#FEE2E2' }]}>
-                <Ionicons name='close-circle' size={18} color='#EF4444' />
+                <Ionicons name='close-circle' size={18} color={theme.colors.error} />
               </View>
               <Text style={styles.actionText}>Disable All Notifications</Text>
             </View>
-            <Ionicons name='chevron-forward' size={16} color='#B0B0B0' />
+            <Ionicons name='chevron-forward' size={16} color={theme.colors.textTertiary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionButton} onPress={handleResetToDefaults}>
@@ -531,7 +532,7 @@ const NotificationSettingsScreen: React.FC = () => {
               </View>
               <Text style={styles.actionText}>Reset to Defaults</Text>
             </View>
-            <Ionicons name='chevron-forward' size={16} color='#B0B0B0' />
+            <Ionicons name='chevron-forward' size={16} color={theme.colors.textTertiary} />
           </TouchableOpacity>
         </View>
 
@@ -544,30 +545,30 @@ const NotificationSettingsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingBottom: 12,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 16,
@@ -576,7 +577,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 0,
@@ -595,7 +596,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 16,
@@ -606,7 +607,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   disabledRow: {
     opacity: 0.5,
@@ -631,15 +632,15 @@ const styles = StyleSheet.create({
   settingTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   disabledText: {
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
   settingDescription: {
     fontSize: 13,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     lineHeight: 18,
   },
   actionButton: {
@@ -648,7 +649,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   actionLeft: {
     flexDirection: 'row',
@@ -658,7 +659,7 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   bottomPadding: {
     height: 32,

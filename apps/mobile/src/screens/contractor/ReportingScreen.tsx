@@ -25,6 +25,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../config/supabase';
+import { theme } from '../../theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -49,9 +50,9 @@ const DATE_RANGES = [
 ];
 
 const KPI_CONFIG = [
-  { key: 'jobs', icon: 'checkmark-circle-outline' as const, color: '#10B981', bg: '#D1FAE5', label: 'Jobs Done' },
+  { key: 'jobs', icon: 'checkmark-circle-outline' as const, color: theme.colors.primary, bg: theme.colors.primaryLight, label: 'Jobs Done' },
   { key: 'winRate', icon: 'trending-up-outline' as const, color: '#3B82F6', bg: '#DBEAFE', label: 'Win Rate' },
-  { key: 'earnings', icon: 'cash-outline' as const, color: '#F59E0B', bg: '#FEF3C7', label: 'Earnings' },
+  { key: 'earnings', icon: 'cash-outline' as const, color: theme.colors.accent, bg: theme.colors.accentLight, label: 'Earnings' },
   { key: 'rating', icon: 'star-outline' as const, color: '#8B5CF6', bg: '#EDE9FE', label: 'Avg Rating' },
 ];
 
@@ -222,7 +223,7 @@ export const ReportingScreen: React.FC = () => {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor="#FFFFFF" colors={['#10B981']} />}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor="#FFFFFF" colors={[theme.colors.primary]} />}
       >
         {/* Green Gradient Hero — full bleed behind status bar */}
         <LinearGradient
@@ -236,7 +237,7 @@ export const ReportingScreen: React.FC = () => {
 
           <View style={styles.heroTopBar}>
             <TouchableOpacity style={styles.frostedCircle} onPress={() => navigation.goBack()}>
-              <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+              <Ionicons name="arrow-back" size={20} color={theme.colors.textInverse} />
             </TouchableOpacity>
             <Text style={styles.heroTitle}>Reports & Analytics</Text>
             <View style={{ width: 40 }} />
@@ -263,7 +264,7 @@ export const ReportingScreen: React.FC = () => {
         <View style={styles.content}>
           {isLoading && (
             <View style={styles.loadingWrap}>
-              <ActivityIndicator size="large" color="#10B981" />
+              <ActivityIndicator size="large" color={theme.colors.primary} />
               <Text style={styles.loadingText}>Loading analytics...</Text>
             </View>
           )}
@@ -271,7 +272,7 @@ export const ReportingScreen: React.FC = () => {
           {error && !data && (
             <View style={styles.errorCard}>
               <View style={styles.errorIconWrap}>
-                <Ionicons name="warning-outline" size={24} color="#EF4444" />
+                <Ionicons name="warning-outline" size={24} color={theme.colors.error} />
               </View>
               <Text style={styles.errorText}>Failed to load reporting data</Text>
               <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
@@ -323,7 +324,7 @@ export const ReportingScreen: React.FC = () => {
                         return (
                           <View key={idx} style={styles.barCol}>
                             <Text style={styles.barValue}>{item.count}</Text>
-                            <View style={[styles.bar, { height, width: chartBarWidth, backgroundColor: '#10B981' }]} />
+                            <View style={[styles.bar, { height, width: chartBarWidth, backgroundColor: theme.colors.primary }]} />
                             <Text style={styles.barLabel}>{item.month}</Text>
                           </View>
                         );
@@ -331,7 +332,7 @@ export const ReportingScreen: React.FC = () => {
                     </View>
                   ) : (
                     <View style={styles.chartEmpty}>
-                      <Ionicons name="bar-chart-outline" size={28} color="#B0B0B0" />
+                      <Ionicons name="bar-chart-outline" size={28} color={theme.colors.textTertiary} />
                       <Text style={styles.chartEmptyText}>Complete jobs to see trends</Text>
                     </View>
                   )}
@@ -349,7 +350,7 @@ export const ReportingScreen: React.FC = () => {
                         return (
                           <View key={idx} style={styles.barCol}>
                             <Text style={styles.barValue}>{`\u00A3${item.earnings.toFixed(0)}`}</Text>
-                            <View style={[styles.bar, { height, width: chartBarWidth, backgroundColor: '#F59E0B' }]} />
+                            <View style={[styles.bar, { height, width: chartBarWidth, backgroundColor: theme.colors.accent }]} />
                             <Text style={styles.barLabel}>{item.month}</Text>
                           </View>
                         );
@@ -357,7 +358,7 @@ export const ReportingScreen: React.FC = () => {
                     </View>
                   ) : (
                     <View style={styles.chartEmpty}>
-                      <Ionicons name="cash-outline" size={28} color="#B0B0B0" />
+                      <Ionicons name="cash-outline" size={28} color={theme.colors.textTertiary} />
                       <Text style={styles.chartEmptyText}>Earnings will appear here</Text>
                     </View>
                   )}
@@ -380,7 +381,7 @@ export const ReportingScreen: React.FC = () => {
                     ))
                   ) : (
                     <View style={styles.chartEmpty}>
-                      <Ionicons name="pie-chart-outline" size={28} color="#B0B0B0" />
+                      <Ionicons name="pie-chart-outline" size={28} color={theme.colors.textTertiary} />
                       <Text style={styles.chartEmptyText}>Category data will appear here</Text>
                     </View>
                   )}
@@ -407,8 +408,8 @@ export const ReportingScreen: React.FC = () => {
                     </View>
                     <View style={styles.gaugeDivider} />
                     <View style={styles.gaugeItem}>
-                      <View style={[styles.gaugeCircle, { borderColor: '#F59E0B' }]}>
-                        <Text style={[styles.gaugeValue, { color: '#F59E0B' }]}>{stats.totalReviews}</Text>
+                      <View style={[styles.gaugeCircle, { borderColor: theme.colors.accent }]}>
+                        <Text style={[styles.gaugeValue, { color: theme.colors.accent }]}>{stats.totalReviews}</Text>
                       </View>
                       <Text style={styles.gaugeLabel}>Reviews</Text>
                     </View>
@@ -427,7 +428,7 @@ export const ReportingScreen: React.FC = () => {
                       return (
                         <View key={star} style={styles.ratingRow}>
                           <Text style={styles.ratingLabel}>{star}</Text>
-                          <Ionicons name="star" size={12} color="#F59E0B" />
+                          <Ionicons name="star" size={12} color={theme.colors.accent} />
                           <View style={styles.ratingBar}>
                             <View style={[styles.ratingFill, { width: `${(count / total) * 100}%` }]} />
                           </View>
@@ -437,7 +438,7 @@ export const ReportingScreen: React.FC = () => {
                     })
                   ) : (
                     <View style={styles.chartEmpty}>
-                      <Ionicons name="star-outline" size={28} color="#B0B0B0" />
+                      <Ionicons name="star-outline" size={28} color={theme.colors.textTertiary} />
                       <Text style={styles.chartEmptyText}>Ratings will appear after reviews</Text>
                     </View>
                   )}
@@ -455,7 +456,7 @@ export const ReportingScreen: React.FC = () => {
                           <Text style={styles.reviewerName}>{review.reviewer_name}</Text>
                           <View style={styles.starRow}>
                             {Array.from({ length: 5 }, (_, i) => (
-                              <Ionicons key={i} name={i < review.rating ? 'star' : 'star-outline'} size={14} color="#F59E0B" />
+                              <Ionicons key={i} name={i < review.rating ? 'star' : 'star-outline'} size={14} color={theme.colors.accent} />
                             ))}
                           </View>
                         </View>
@@ -478,7 +479,7 @@ export const ReportingScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
 
   // Hero
   hero: { paddingHorizontal: 20, paddingBottom: 24, overflow: 'hidden', borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
@@ -486,10 +487,10 @@ const styles = StyleSheet.create({
   decorCircle2: { position: 'absolute', width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.06)', bottom: -30, left: -30 },
   heroTopBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
   frostedCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
-  heroTitle: { fontSize: 18, fontWeight: '700', color: '#FFFFFF', letterSpacing: -0.3 },
+  heroTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textInverse, letterSpacing: -0.3 },
   heroKpiRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 16, paddingVertical: 14, paddingHorizontal: 8 },
   heroKpi: { flex: 1, alignItems: 'center' },
-  heroKpiValue: { fontSize: 24, fontWeight: '700', color: '#FFFFFF', letterSpacing: -0.5 },
+  heroKpiValue: { fontSize: 24, fontWeight: '700', color: theme.colors.textInverse, letterSpacing: -0.5 },
   heroKpiLabel: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: '500', marginTop: 2 },
   heroKpiDivider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.2)' },
 
@@ -497,46 +498,46 @@ const styles = StyleSheet.create({
 
   // Loading
   loadingWrap: { alignItems: 'center', paddingVertical: 40 },
-  loadingText: { fontSize: 14, color: '#717171', marginTop: 12 },
+  loadingText: { fontSize: 14, color: theme.colors.textSecondary, marginTop: 12 },
 
   // Error
-  errorCard: { alignItems: 'center', padding: 32, backgroundColor: '#FFFFFF', borderRadius: 16, marginBottom: 16 },
+  errorCard: { alignItems: 'center', padding: 32, backgroundColor: theme.colors.surface, borderRadius: 16, marginBottom: 16 },
   errorIconWrap: { width: 56, height: 56, borderRadius: 18, backgroundColor: '#FEE2E2', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  errorText: { fontSize: 15, fontWeight: '600', color: '#222222', marginBottom: 12 },
-  retryButton: { backgroundColor: '#10B981', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 12 },
-  retryButtonText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
+  errorText: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary, marginBottom: 12 },
+  retryButton: { backgroundColor: theme.colors.primary, paddingHorizontal: 24, paddingVertical: 10, borderRadius: 12 },
+  retryButtonText: { fontSize: 14, fontWeight: '600', color: theme.colors.textInverse },
 
   // Filters
   filterRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   filterChip: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: theme.colors.surface,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 },
       android: { elevation: 1 },
     }),
   },
-  filterChipActive: { backgroundColor: '#10B981' },
-  filterChipText: { fontSize: 12, fontWeight: '600', color: '#717171' },
-  filterChipTextActive: { color: '#FFFFFF' },
+  filterChipActive: { backgroundColor: theme.colors.primary },
+  filterChipText: { fontSize: 12, fontWeight: '600', color: theme.colors.textSecondary },
+  filterChipTextActive: { color: theme.colors.textInverse },
 
   // KPI
   kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
   kpiCard: {
-    flex: 1, minWidth: '45%', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, alignItems: 'center', gap: 4,
+    flex: 1, minWidth: '45%', backgroundColor: theme.colors.surface, borderRadius: 16, padding: 16, alignItems: 'center', gap: 4,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
     }),
   },
   kpiIconWrap: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-  kpiValue: { fontSize: 22, fontWeight: '700', color: '#222222' },
-  kpiLabel: { fontSize: 11, color: '#B0B0B0', fontWeight: '600' },
+  kpiValue: { fontSize: 22, fontWeight: '700', color: theme.colors.textPrimary },
+  kpiLabel: { fontSize: 11, color: theme.colors.textTertiary, fontWeight: '600' },
 
   // Sections
   section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#222222', letterSpacing: -0.2, marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary, letterSpacing: -0.2, marginBottom: 10 },
   sectionCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16,
+    backgroundColor: theme.colors.surface, borderRadius: 16, padding: 16,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6 },
       android: { elevation: 1 },
@@ -547,44 +548,44 @@ const styles = StyleSheet.create({
   barChart: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', height: 130, paddingTop: 20 },
   barCol: { alignItems: 'center', gap: 4 },
   bar: { borderRadius: 6 },
-  barLabel: { fontSize: 11, color: '#B0B0B0' },
-  barValue: { fontSize: 10, fontWeight: '700', color: '#717171' },
+  barLabel: { fontSize: 11, color: theme.colors.textTertiary },
+  barValue: { fontSize: 10, fontWeight: '700', color: theme.colors.textSecondary },
 
   // Chart empty
   chartEmpty: { alignItems: 'center', paddingVertical: 24, gap: 8 },
-  chartEmptyText: { fontSize: 13, color: '#B0B0B0' },
+  chartEmptyText: { fontSize: 13, color: theme.colors.textTertiary },
 
   // Gauge
   gaugeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingVertical: 8 },
   gaugeItem: { alignItems: 'center', gap: 8 },
   gaugeCircle: {
-    width: 64, height: 64, borderRadius: 32, borderWidth: 3, borderColor: '#10B981',
+    width: 64, height: 64, borderRadius: 32, borderWidth: 3, borderColor: theme.colors.primary,
     alignItems: 'center', justifyContent: 'center',
   },
-  gaugeValue: { fontSize: 18, fontWeight: '700', color: '#10B981' },
-  gaugeLabel: { fontSize: 12, color: '#717171', fontWeight: '500' },
-  gaugeDivider: { width: 1, height: 40, backgroundColor: '#EBEBEB' },
+  gaugeValue: { fontSize: 18, fontWeight: '700', color: theme.colors.primary },
+  gaugeLabel: { fontSize: 12, color: theme.colors.textSecondary, fontWeight: '500' },
+  gaugeDivider: { width: 1, height: 40, backgroundColor: theme.colors.border },
 
   // Category
   categoryRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 8 },
-  categoryLabel: { width: 80, fontSize: 13, color: '#717171' },
-  categoryBar: { flex: 1, height: 8, backgroundColor: '#EBEBEB', borderRadius: 4 },
-  categoryFill: { height: 8, backgroundColor: '#10B981', borderRadius: 4 },
-  categoryCount: { width: 24, fontSize: 13, fontWeight: '700', color: '#222222', textAlign: 'right' },
+  categoryLabel: { width: 80, fontSize: 13, color: theme.colors.textSecondary },
+  categoryBar: { flex: 1, height: 8, backgroundColor: theme.colors.border, borderRadius: 4 },
+  categoryFill: { height: 8, backgroundColor: theme.colors.primary, borderRadius: 4 },
+  categoryCount: { width: 24, fontSize: 13, fontWeight: '700', color: theme.colors.textPrimary, textAlign: 'right' },
 
   // Rating
   ratingRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 6 },
-  ratingLabel: { width: 16, fontSize: 13, fontWeight: '700', color: '#222222' },
-  ratingBar: { flex: 1, height: 8, backgroundColor: '#EBEBEB', borderRadius: 4 },
-  ratingFill: { height: 8, backgroundColor: '#F59E0B', borderRadius: 4 },
-  ratingCount: { width: 24, fontSize: 12, color: '#B0B0B0', textAlign: 'right' },
+  ratingLabel: { width: 16, fontSize: 13, fontWeight: '700', color: theme.colors.textPrimary },
+  ratingBar: { flex: 1, height: 8, backgroundColor: theme.colors.border, borderRadius: 4 },
+  ratingFill: { height: 8, backgroundColor: theme.colors.accent, borderRadius: 4 },
+  ratingCount: { width: 24, fontSize: 12, color: theme.colors.textTertiary, textAlign: 'right' },
 
   // Reviews
-  reviewRow: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#EBEBEB', paddingBottom: 10, marginBottom: 10 },
+  reviewRow: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border, paddingBottom: 10, marginBottom: 10 },
   reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  reviewerName: { fontSize: 14, fontWeight: '600', color: '#222222' },
+  reviewerName: { fontSize: 14, fontWeight: '600', color: theme.colors.textPrimary },
   starRow: { flexDirection: 'row', gap: 1 },
-  reviewComment: { fontSize: 14, color: '#717171', lineHeight: 18 },
+  reviewComment: { fontSize: 14, color: theme.colors.textSecondary, lineHeight: 18 },
 });
 
 export default ReportingScreen;

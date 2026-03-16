@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { ServiceArea } from '../../services/ServiceAreasService';
+import { theme } from '../../theme';
 
 interface ServiceAreasStatsProps {
   serviceAreas: ServiceArea[];
@@ -18,7 +19,7 @@ export const ServiceAreasStats: React.FC<ServiceAreasStatsProps> = ({ serviceAre
     icon: string
   ) => (
     <View style={styles.statCard}>
-      <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color="#717171" />
+      <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={theme.colors.textSecondary} />
       <View style={styles.statContent}>
         <Text style={styles.statValue}>{value}</Text>
         <Text style={styles.statLabel}>{title}</Text>
@@ -48,7 +49,7 @@ const styles = StyleSheet.create({
     minWidth: 150,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     ...Platform.select({
@@ -69,11 +70,11 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   statLabel: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
 });

@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAIPricing } from '../hooks/useAIPricing';
 import { JobPricingInput, PricingAnalysis } from '../services/AIPricingEngine';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 interface AIPricingWidgetProps {
   jobInput: JobPricingInput;
@@ -66,9 +67,9 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
   };
 
   const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 0.8) return '#10B981';
-    if (confidence >= 0.6) return '#F59E0B';
-    return '#EF4444';
+    if (confidence >= 0.8) return theme.colors.primary;
+    if (confidence >= 0.6) return theme.colors.accent;
+    return theme.colors.error;
   };
 
   const getComplexityIcon = (complexity: string) => {
@@ -107,7 +108,7 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
           <Ionicons
             name={'brain' as keyof typeof Ionicons.glyphMap}
             size={20}
-            color='#FFFFFF'
+            color={theme.colors.textInverse}
             style={styles.buttonIcon}
           />
           <Text style={styles.analyzeButtonText}>Analyze Pricing</Text>
@@ -122,7 +123,7 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
         <View style={styles.loadingContainer}>
           <ActivityIndicator
             size='large'
-            color='#222222'
+            color={theme.colors.textPrimary}
             testID='activity-indicator'
           />
           <Text style={styles.loadingText}>Analyzing job requirements...</Text>
@@ -151,7 +152,7 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
           size={20}
-          color='#717171'
+          color={theme.colors.textSecondary}
         />
       </TouchableOpacity>
 
@@ -166,7 +167,7 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
             <Ionicons
               name={getComplexityIcon(analysis.complexity)}
               size={16}
-              color='#717171'
+              color={theme.colors.textSecondary}
             />
             <Text style={styles.metaText}>{formatted.complexityLabel}</Text>
           </View>
@@ -207,8 +208,8 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
                     size={16}
                     color={
                       factor.impact === 'increases'
-                        ? '#10B981'
-                        : '#F59E0B'
+                        ? theme.colors.primary
+                        : theme.colors.accent
                     }
                   />
                   <View style={styles.factorContent}>
@@ -240,10 +241,10 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
                     {
                       color:
                         analysis.marketData.demandLevel === 'high'
-                          ? '#EF4444'
+                          ? theme.colors.error
                           : analysis.marketData.demandLevel === 'low'
-                            ? '#10B981'
-                            : '#F59E0B',
+                            ? theme.colors.primary
+                            : theme.colors.accent,
                     },
                   ]}
                 >
@@ -266,9 +267,9 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
                     {
                       borderLeftColor:
                         insight.type === 'success'
-                          ? '#10B981'
+                          ? theme.colors.primary
                           : insight.type === 'warning'
-                            ? '#F59E0B'
+                            ? theme.colors.accent
                             : '#3B82F6',
                     },
                   ]}
@@ -284,9 +285,9 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
                     size={16}
                     color={
                       insight.type === 'success'
-                        ? '#10B981'
+                        ? theme.colors.primary
                         : insight.type === 'warning'
-                          ? '#F59E0B'
+                          ? theme.colors.accent
                           : '#3B82F6'
                     }
                   />
@@ -305,7 +306,7 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
                   <Ionicons
                     name='bulb'
                     size={16}
-                    color='#F59E0B'
+                    color={theme.colors.accent}
                   />
                   <Text style={styles.recommendationText}>
                     {recommendation}
@@ -320,7 +321,7 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
             style={styles.reanalyzeButton}
             onPress={handleAnalyzePricing}
           >
-            <Ionicons name='refresh' size={16} color='#222222' />
+            <Ionicons name='refresh' size={16} color={theme.colors.textPrimary} />
             <Text style={styles.reanalyzeText}>Re-analyze</Text>
           </TouchableOpacity>
         </View>
@@ -331,7 +332,7 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginVertical: 8,
@@ -353,17 +354,17 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginLeft: 8,
   },
   description: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 16,
     lineHeight: 20,
   },
   analyzeButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -373,7 +374,7 @@ const styles = StyleSheet.create({
     minHeight: 56,
   },
   analyzeButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 15,
     fontWeight: '500',
     marginLeft: 4,
@@ -388,12 +389,12 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginTop: 12,
   },
   loadingSubtext: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 4,
   },
   pricingContainer: {
@@ -402,18 +403,18 @@ const styles = StyleSheet.create({
   },
   priceLabel: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 4,
   },
   priceRange: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   optimalPrice: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 12,
   },
   metaInfo: {
@@ -427,14 +428,14 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginLeft: 4,
   },
   expandedContent: {
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
   },
   section: {
     marginBottom: 16,
@@ -442,7 +443,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   factorItem: {
@@ -457,11 +458,11 @@ const styles = StyleSheet.create({
   factorName: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   factorDescription: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 16,
   },
   marketGrid: {
@@ -474,13 +475,13 @@ const styles = StyleSheet.create({
   },
   marketLabel: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 4,
   },
   marketValue: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   insightItem: {
     flexDirection: 'row',
@@ -492,7 +493,7 @@ const styles = StyleSheet.create({
   insightText: {
     flex: 1,
     fontSize: 13,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginLeft: 8,
     lineHeight: 18,
   },
@@ -504,7 +505,7 @@ const styles = StyleSheet.create({
   recommendationText: {
     flex: 1,
     fontSize: 13,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginLeft: 8,
     lineHeight: 18,
   },
@@ -514,13 +515,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     marginTop: 8,
   },
   reanalyzeText: {
     fontSize: 13,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginLeft: 4,
   },
 });

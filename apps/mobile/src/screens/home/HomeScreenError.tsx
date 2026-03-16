@@ -7,6 +7,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useI18n } from '../../hooks/useI18n';
+import { theme } from '../../theme';
 
 interface HomeScreenErrorProps {
   error?: string;
@@ -14,9 +16,11 @@ interface HomeScreenErrorProps {
 }
 
 export const HomeScreenError: React.FC<HomeScreenErrorProps> = ({
-  error = 'Something went wrong',
+  error,
   onRetry,
 }) => {
+  const { t } = useI18n();
+  const displayError = error || String(t('errors.somethingWentWrong'));
   return (
     <View style={styles.container}>
       <View style={styles.errorContent}>
@@ -24,12 +28,12 @@ export const HomeScreenError: React.FC<HomeScreenErrorProps> = ({
           <Ionicons
             name="alert-circle-outline"
             size={36}
-            color="#EF4444"
+            color={theme.colors.error}
           />
         </View>
-        <Text style={styles.errorTitle}>Oops!</Text>
-        <Text style={styles.errorMessage}>{error}</Text>
-        
+        <Text style={styles.errorTitle}>{String(t('errors.oops'))}</Text>
+        <Text style={styles.errorMessage}>{displayError}</Text>
+
         {onRetry && (
           <TouchableOpacity
             style={styles.retryButton}
@@ -37,8 +41,8 @@ export const HomeScreenError: React.FC<HomeScreenErrorProps> = ({
             accessibilityRole="button"
             accessibilityLabel="Retry loading"
           >
-            <Ionicons name="refresh" size={20} color="#FFFFFF" />
-            <Text style={styles.retryButtonText}>Try Again</Text>
+            <Ionicons name="refresh" size={20} color={theme.colors.textInverse} />
+            <Text style={styles.retryButtonText}>{String(t('errors.tryAgain'))}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -49,7 +53,7 @@ export const HomeScreenError: React.FC<HomeScreenErrorProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
@@ -69,19 +73,19 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginTop: 16,
     marginBottom: 8,
   },
   errorMessage: {
     fontSize: 16,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 24,
   },
   retryButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 24,
@@ -90,7 +94,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   retryButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
   },

@@ -12,6 +12,7 @@ import {
 import { useNetworkState } from '../hooks/useNetworkState';
 import { useOfflineSyncStatus } from '../hooks/useOfflineQuery';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 export interface QueryStateWrapperProps<TData = unknown> {
   query: UseQueryResult<TData>;
@@ -168,11 +169,11 @@ export const QueryStateWrapper = <TData,>({
       {!isOnline && query.data && (
         <View
           style={{
-            backgroundColor: '#F7F7F7',
+            backgroundColor: theme.colors.backgroundSecondary,
             padding: 12,
             alignItems: 'center',
             borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: '#EBEBEB',
+            borderBottomColor: theme.colors.border,
           }}
         >
           <NetworkStatusIndicator
@@ -291,7 +292,7 @@ export const MutationStateWrapper = <TData, TVariables>({
         >
           <View
             style={{
-              backgroundColor: '#FFFFFF',
+              backgroundColor: theme.colors.surface,
               padding: 24,
               borderRadius: 16,
               alignItems: 'center',

@@ -4,6 +4,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { KPICard } from './KPICard';
 import type { FinancialSummary } from '../../services/contractor-business';
+import { theme } from '../../theme';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -26,7 +27,7 @@ export const KPIContainer: React.FC<KPIContainerProps> = ({
           (financialData.monthly_revenue ?? []).reduce((sum, rev) => sum + rev, 0)
         )}
         icon='cash'
-        color='#222222'
+        color={theme.colors.textPrimary}
         change={{
           value: financialData.quarterly_growth,
           isPositive: financialData.quarterly_growth > 0,
@@ -38,7 +39,7 @@ export const KPIContainer: React.FC<KPIContainerProps> = ({
         title='Outstanding'
         value={formatCurrency(financialData.outstanding_invoices)}
         icon='time'
-        color='#F59E0B'
+        color={theme.colors.accent}
         onPress={() => navigation.navigate('InvoiceManagement')}
       />
 
@@ -46,7 +47,7 @@ export const KPIContainer: React.FC<KPIContainerProps> = ({
         title='Overdue'
         value={formatCurrency(financialData.overdue_amount)}
         icon='warning'
-        color='#EF4444'
+        color={theme.colors.error}
         onPress={() => navigation.navigate('InvoiceManagement')}
       />
 
@@ -54,7 +55,7 @@ export const KPIContainer: React.FC<KPIContainerProps> = ({
         title='Tax Due'
         value={formatCurrency(financialData.tax_obligations)}
         icon='receipt'
-        color='#717171'
+        color={theme.colors.textSecondary}
         onPress={() => navigation.navigate('Reporting')}
       />
     </View>

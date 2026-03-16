@@ -24,6 +24,7 @@ import type { ProfileStackParamList } from '../navigation/types';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../config/supabase';
+import { theme } from '../theme';
 
 interface ScheduleItem {
   id: string;
@@ -57,9 +58,9 @@ interface Props {
 }
 
 const TYPE_STYLES: Record<string, { color: string; bg: string; icon: keyof typeof Ionicons.glyphMap; label: string }> = {
-  job:      { color: '#10B981', bg: '#D1FAE5', icon: 'hammer-outline', label: 'Job' },
+  job:      { color: theme.colors.primary, bg: theme.colors.primaryLight, icon: 'hammer-outline', label: 'Job' },
   meeting:  { color: '#3B82F6', bg: '#DBEAFE', icon: 'people-outline', label: 'Meeting' },
-  deadline: { color: '#EF4444', bg: '#FEE2E2', icon: 'alarm-outline', label: 'Deadline' },
+  deadline: { color: theme.colors.error, bg: '#FEE2E2', icon: 'alarm-outline', label: 'Deadline' },
 };
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -88,7 +89,7 @@ const ScheduleCard: React.FC<{
   item: ScheduleItem;
   onPress: () => void;
 }> = ({ item, onPress }) => {
-  const typeStyle = TYPE_STYLES[item.type] || { color: '#717171', bg: '#F0F0F0', icon: 'calendar-outline' as const, label: 'Event' };
+  const typeStyle = TYPE_STYLES[item.type] || { color: theme.colors.textSecondary, bg: theme.colors.backgroundTertiary, icon: 'calendar-outline' as const, label: 'Event' };
 
   return (
     <TouchableOpacity
@@ -118,14 +119,14 @@ const ScheduleCard: React.FC<{
 
         {item.address && (
           <View style={styles.addressRow}>
-            <Ionicons name="location-outline" size={13} color="#B0B0B0" />
+            <Ionicons name="location-outline" size={13} color={theme.colors.textTertiary} />
             <Text style={styles.addressText} numberOfLines={1}>{item.address}</Text>
           </View>
         )}
       </View>
 
       <View style={styles.cardChevron}>
-        <Ionicons name="chevron-forward" size={16} color="#B0B0B0" />
+        <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
       </View>
     </TouchableOpacity>
   );
@@ -226,7 +227,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
         {/* Top bar */}
         <View style={styles.heroTopBar}>
           <TouchableOpacity style={styles.frostedCircle} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+            <Ionicons name="arrow-back" size={20} color={theme.colors.textInverse} />
           </TouchableOpacity>
           <Text style={styles.heroTitle}>Calendar</Text>
           <TouchableOpacity
@@ -234,7 +235,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
             onPress={() => setSelectedDate(new Date())}
             accessibilityLabel="Go to today"
           >
-            <Ionicons name="today-outline" size={14} color="#10B981" />
+            <Ionicons name="today-outline" size={14} color={theme.colors.primary} />
             <Text style={styles.todayPillText}>Today</Text>
           </TouchableOpacity>
         </View>
@@ -284,9 +285,9 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
                 {/* Multi-color event dots */}
                 {eventTypes && (
                   <View style={styles.dotsRow}>
-                    {eventTypes.has('job') && <View style={[styles.eventDot, isSel ? styles.eventDotWhite : { backgroundColor: '#10B981' }]} />}
+                    {eventTypes.has('job') && <View style={[styles.eventDot, isSel ? styles.eventDotWhite : { backgroundColor: theme.colors.primary }]} />}
                     {eventTypes.has('meeting') && <View style={[styles.eventDot, isSel ? styles.eventDotWhite : { backgroundColor: '#3B82F6' }]} />}
-                    {eventTypes.has('deadline') && <View style={[styles.eventDot, isSel ? styles.eventDotWhite : { backgroundColor: '#EF4444' }]} />}
+                    {eventTypes.has('deadline') && <View style={[styles.eventDot, isSel ? styles.eventDotWhite : { backgroundColor: theme.colors.error }]} />}
                   </View>
                 )}
               </TouchableOpacity>
@@ -298,7 +299,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
       {/* ── Daily Stats Pills ── */}
       <View style={styles.statsBar}>
         <View style={styles.statPill}>
-          <View style={[styles.statDot, { backgroundColor: '#10B981' }]} />
+          <View style={[styles.statDot, { backgroundColor: theme.colors.primary }]} />
           <Text style={styles.statText}>{dailyStats.job} {dailyStats.job === 1 ? 'Job' : 'Jobs'}</Text>
         </View>
         <View style={styles.statPill}>
@@ -306,7 +307,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.statText}>{dailyStats.meeting} {dailyStats.meeting === 1 ? 'Meeting' : 'Meetings'}</Text>
         </View>
         <View style={styles.statPill}>
-          <View style={[styles.statDot, { backgroundColor: '#EF4444' }]} />
+          <View style={[styles.statDot, { backgroundColor: theme.colors.error }]} />
           <Text style={styles.statText}>{dailyStats.deadline} {dailyStats.deadline === 1 ? 'Deadline' : 'Deadlines'}</Text>
         </View>
       </View>
@@ -323,25 +324,25 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
       {isLoading ? (
         <View style={styles.centeredState}>
           <View style={styles.loadingWrap}>
-            <Ionicons name="calendar" size={28} color="#10B981" />
+            <Ionicons name="calendar" size={28} color={theme.colors.primary} />
           </View>
           <Text style={styles.stateTitle}>Loading schedule...</Text>
         </View>
       ) : error ? (
         <View style={styles.centeredState}>
           <View style={[styles.stateIconWrap, { backgroundColor: '#FEE2E2' }]}>
-            <Ionicons name="warning-outline" size={28} color="#EF4444" />
+            <Ionicons name="warning-outline" size={28} color={theme.colors.error} />
           </View>
           <Text style={styles.stateTitle}>Failed to load schedule</Text>
           <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
-            <Ionicons name="refresh" size={16} color="#FFFFFF" />
+            <Ionicons name="refresh" size={16} color={theme.colors.textInverse} />
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>
       ) : filteredSchedule.length === 0 ? (
         <View style={styles.centeredState}>
           <View style={styles.stateIconWrap}>
-            <Ionicons name="calendar-outline" size={32} color="#10B981" />
+            <Ionicons name="calendar-outline" size={32} color={theme.colors.primary} />
           </View>
           <Text style={styles.stateTitle}>No events</Text>
           <Text style={styles.stateSubtitle}>Nothing scheduled for this day</Text>
@@ -349,7 +350,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
             style={styles.browseButton}
             onPress={() => (navigation as never as { navigate: (s: string) => void }).navigate('JobsList')}
           >
-            <Ionicons name="briefcase-outline" size={16} color="#FFFFFF" />
+            <Ionicons name="briefcase-outline" size={16} color={theme.colors.textInverse} />
             <Text style={styles.browseButtonText}>Browse Jobs</Text>
           </TouchableOpacity>
         </View>
@@ -364,7 +365,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
             />
           )}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#10B981" colors={['#10B981']} />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
           }
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
@@ -379,7 +380,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
         accessibilityLabel="Schedule new event"
         activeOpacity={0.85}
       >
-        <Ionicons name="add" size={26} color="#FFFFFF" />
+        <Ionicons name="add" size={26} color={theme.colors.textInverse} />
       </TouchableOpacity>
     </View>
   );
@@ -388,7 +389,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
 
   // ── Hero ──
@@ -431,14 +432,14 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     letterSpacing: -0.3,
   },
   todayPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
@@ -446,7 +447,7 @@ const styles = StyleSheet.create({
   todayPillText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#10B981',
+    color: theme.colors.primary,
   },
 
   // ── Month nav ──
@@ -468,7 +469,7 @@ const styles = StyleSheet.create({
   monthLabel: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     letterSpacing: -0.2,
     minWidth: 160,
     textAlign: 'center',
@@ -488,7 +489,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   dayCellSelected: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   dayCellToday: {
     backgroundColor: 'rgba(255,255,255,0.12)',
@@ -503,13 +504,13 @@ const styles = StyleSheet.create({
   dayNumber: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   dayTextSelected: {
-    color: '#10B981',
+    color: theme.colors.primary,
   },
   dayNumberToday: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   dotsRow: {
     flexDirection: 'row',
@@ -522,7 +523,7 @@ const styles = StyleSheet.create({
     borderRadius: 2.5,
   },
   eventDotWhite: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
   },
 
   // ── Stats bar ──
@@ -531,15 +532,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   statPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
@@ -552,7 +553,7 @@ const styles = StyleSheet.create({
   statText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
 
   // ── Day label ──
@@ -567,13 +568,13 @@ const styles = StyleSheet.create({
   dayLabelText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.2,
   },
   dayLabelCount: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
 
   // ── Schedule cards ──
@@ -584,7 +585,7 @@ const styles = StyleSheet.create({
   },
   scheduleCard: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     overflow: 'hidden',
     ...Platform.select({
@@ -633,7 +634,7 @@ const styles = StyleSheet.create({
   scheduleTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   timeColumn: {
     alignItems: 'flex-end',
@@ -642,11 +643,11 @@ const styles = StyleSheet.create({
   timeStart: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   timeEnd: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     marginTop: 2,
   },
   addressRow: {
@@ -657,7 +658,7 @@ const styles = StyleSheet.create({
   },
   addressText: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     flex: 1,
   },
   cardChevron: {
@@ -676,7 +677,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 20,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -685,7 +686,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 22,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -693,12 +694,12 @@ const styles = StyleSheet.create({
   stateTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   stateSubtitle: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 20,
@@ -707,7 +708,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 14,
@@ -716,19 +717,19 @@ const styles = StyleSheet.create({
   retryButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   browseButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 14,
     ...Platform.select({
       ios: {
-        shadowColor: '#10B981',
+        shadowColor: theme.colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
@@ -737,7 +738,7 @@ const styles = StyleSheet.create({
     }),
   },
   browseButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -749,12 +750,12 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
       ios: {
-        shadowColor: '#10B981',
+        shadowColor: theme.colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.35,
         shadowRadius: 10,

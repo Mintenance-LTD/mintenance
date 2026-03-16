@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { formatDistanceToNow } from 'date-fns';
+import { theme } from '../../theme';
 
 interface VideoListItemProps {
   video: {
@@ -39,14 +40,14 @@ export const VideoListItem: React.FC<VideoListItemProps> = ({
   const getStatusIcon = () => {
     switch (video.status) {
       case 'completed':
-        return <Icon name="check-circle" size={20} color="#10B981" />;
+        return <Icon name="check-circle" size={20} color={theme.colors.primary} />;
       case 'failed':
-        return <Icon name="error" size={20} color="#EF4444" />;
+        return <Icon name="error" size={20} color={theme.colors.error} />;
       case 'uploading':
       case 'processing':
-        return <ActivityIndicator size="small" color="#222222" />;
+        return <ActivityIndicator size="small" color={theme.colors.textPrimary} />;
       default:
-        return <Icon name="schedule" size={20} color="#B0B0B0" />;
+        return <Icon name="schedule" size={20} color={theme.colors.textTertiary} />;
     }
   };
 
@@ -68,13 +69,13 @@ export const VideoListItem: React.FC<VideoListItemProps> = ({
   const getSeverityColor = () => {
     switch (video.severity) {
       case 'full':
-        return '#EF4444';
+        return theme.colors.error;
       case 'midway':
-        return '#F59E0B';
+        return theme.colors.accent;
       case 'early':
-        return '#10B981';
+        return theme.colors.primary;
       default:
-        return '#B0B0B0';
+        return theme.colors.textTertiary;
     }
   };
 
@@ -95,7 +96,7 @@ export const VideoListItem: React.FC<VideoListItemProps> = ({
           <Image source={{ uri: video.thumbnailUrl }} style={styles.thumbnail} />
         ) : (
           <View style={styles.thumbnailPlaceholder}>
-            <Icon name="videocam" size={32} color="#B0B0B0" />
+            <Icon name="videocam" size={32} color={theme.colors.textTertiary} />
           </View>
         )}
         <View style={styles.durationBadge}>
@@ -103,7 +104,7 @@ export const VideoListItem: React.FC<VideoListItemProps> = ({
         </View>
         {video.status === 'processing' && (
           <View style={styles.processingOverlay}>
-            <ActivityIndicator size="large" color="#FFFFFF" />
+            <ActivityIndicator size="large" color={theme.colors.textInverse} />
           </View>
         )}
       </View>
@@ -126,7 +127,7 @@ export const VideoListItem: React.FC<VideoListItemProps> = ({
         {video.status === 'completed' && video.damageCount !== undefined && (
           <View style={styles.resultsRow}>
             <View style={styles.resultItem}>
-              <Icon name="warning" size={16} color="#717171" />
+              <Icon name="warning" size={16} color={theme.colors.textSecondary} />
               <Text style={styles.resultText}>{video.damageCount} damages</Text>
             </View>
             {video.severity && (
@@ -144,7 +145,7 @@ export const VideoListItem: React.FC<VideoListItemProps> = ({
 
         {video.status === 'failed' && onRetry && (
           <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
-            <Icon name="refresh" size={16} color="#222222" />
+            <Icon name="refresh" size={16} color={theme.colors.textPrimary} />
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
         )}
@@ -156,7 +157,7 @@ export const VideoListItem: React.FC<VideoListItemProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     marginHorizontal: 16,
     marginVertical: 8,
@@ -181,13 +182,13 @@ const styles = StyleSheet.create({
     width: 120,
     height: 80,
     borderRadius: 12,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   thumbnailPlaceholder: {
     width: 120,
     height: 80,
     borderRadius: 12,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -201,7 +202,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   durationText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 11,
     fontWeight: '600',
   },
@@ -229,7 +230,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     flex: 1,
     marginRight: 8,
   },
@@ -241,11 +242,11 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   timeText: {
     fontSize: 11,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
   resultsRow: {
     flexDirection: 'row',
@@ -259,7 +260,7 @@ const styles = StyleSheet.create({
   },
   resultText: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   severityBadge: {
     paddingHorizontal: 8,
@@ -268,7 +269,7 @@ const styles = StyleSheet.create({
   },
   severityText: {
     fontSize: 11,
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontWeight: '600',
     textTransform: 'uppercase',
   },
@@ -280,7 +281,7 @@ const styles = StyleSheet.create({
   },
   retryText: {
     fontSize: 12,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '600',
   },
 });

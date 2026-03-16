@@ -16,6 +16,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { theme } from '../../theme';
 
 interface MarketingStats {
   profile_views: number;
@@ -74,20 +75,20 @@ export const MarketingScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <ScreenHeader title="Marketing" showBack onBack={() => navigation.goBack()} />
 
       <FlatList
         data={TIPS}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor="#222222" colors={['#222222']} />}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />}
         ListHeaderComponent={
           <>
             <View style={styles.statsRow}>
               {statCards.map((s) => (
                 <View key={s.label} style={styles.statCard}>
-                  <Ionicons name={s.icon} size={22} color="#222222" />
+                  <Ionicons name={s.icon} size={22} color={theme.colors.textPrimary} />
                   <Text style={styles.statValue}>{s.value}</Text>
                   <Text style={styles.statLabel}>{s.label}</Text>
                   {s.trend !== undefined && (
@@ -104,7 +105,7 @@ export const MarketingScreen: React.FC = () => {
         renderItem={({ item }) => (
           <View style={styles.tipCard}>
             <View style={styles.tipIcon}>
-              <Ionicons name={item.icon} size={22} color="#222222" />
+              <Ionicons name={item.icon} size={22} color={theme.colors.textPrimary} />
             </View>
             <View style={styles.tipContent}>
               <Text style={styles.tipTitle}>{item.title}</Text>
@@ -118,31 +119,31 @@ export const MarketingScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   list: { padding: 16 },
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
   statCard: {
-    flex: 1, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 14, alignItems: 'center',
+    flex: 1, backgroundColor: theme.colors.surface, borderRadius: 16, padding: 14, alignItems: 'center',
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
     }),
   },
-  statValue: { fontSize: 22, fontWeight: '700', color: '#222222', marginTop: 8 },
-  statLabel: { fontSize: 11, color: '#717171', marginTop: 2, textAlign: 'center' },
+  statValue: { fontSize: 22, fontWeight: '700', color: theme.colors.textPrimary, marginTop: 8 },
+  statLabel: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 2, textAlign: 'center' },
   trend: { fontSize: 12, fontWeight: '600', marginTop: 4 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#222222', marginBottom: 12 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 12 },
   tipCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 10, flexDirection: 'row', alignItems: 'flex-start',
+    backgroundColor: theme.colors.surface, borderRadius: 16, padding: 16, marginBottom: 10, flexDirection: 'row', alignItems: 'flex-start',
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
     }),
   },
-  tipIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#F0F0F0', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  tipIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: theme.colors.backgroundTertiary, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   tipContent: { flex: 1 },
-  tipTitle: { fontSize: 15, fontWeight: '600', color: '#222222' },
-  tipDesc: { fontSize: 13, color: '#717171', marginTop: 4, lineHeight: 18 },
+  tipTitle: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary },
+  tipDesc: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 4, lineHeight: 18 },
 });
 
 export default MarketingScreen;

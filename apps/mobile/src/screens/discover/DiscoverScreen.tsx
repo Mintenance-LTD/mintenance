@@ -11,6 +11,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { supabase } from '../../config/supabase';
+import { theme } from '../../theme';
 
 interface DiscoverContractor {
   id: string;
@@ -59,14 +60,14 @@ export const DiscoverScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <ScreenHeader title="Discover" showBack onBack={() => navigation.goBack()} />
 
       <FlatList
         data={contractors}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor="#222222" colors={['#222222']} />}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />}
         ListHeaderComponent={
           <FlatList
             horizontal
@@ -98,12 +99,12 @@ export const DiscoverScreen: React.FC = () => {
                 <Text style={styles.trade}>{item.trade}</Text>
                 <View style={styles.metaRow}>
                   <View style={styles.ratingWrap}>
-                    <Ionicons name="star" size={14} color="#F59E0B" />
+                    <Ionicons name="star" size={14} color={theme.colors.accent} />
                     <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
                     <Text style={styles.reviewCount}>({item.review_count})</Text>
                   </View>
                   <View style={styles.distanceWrap}>
-                    <Ionicons name="location-outline" size={14} color="#B0B0B0" />
+                    <Ionicons name="location-outline" size={14} color={theme.colors.textTertiary} />
                     <Text style={styles.distanceText}>{item.distance_km.toFixed(1)} km</Text>
                   </View>
                 </View>
@@ -115,7 +116,7 @@ export const DiscoverScreen: React.FC = () => {
               onPress={() => (navigation as { navigate: (screen: string, params: Record<string, string>) => void }).navigate('ContractorProfile', { id: item.id })}
             >
               <Text style={styles.viewBtnText}>View Profile</Text>
-              <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+              <Ionicons name="arrow-forward" size={16} color={theme.colors.textInverse} />
             </TouchableOpacity>
           </View>
         )}
@@ -125,15 +126,15 @@ export const DiscoverScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   list: { padding: 16, paddingBottom: 32 },
   chipRow: { paddingBottom: 16, gap: 8 },
-  chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E0E0E0' },
-  chipActive: { backgroundColor: '#10B981', borderColor: '#10B981' },
-  chipText: { fontSize: 13, fontWeight: '500', color: '#717171' },
-  chipTextActive: { color: '#FFFFFF' },
+  chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: '#E0E0E0' },
+  chipActive: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+  chipText: { fontSize: 13, fontWeight: '500', color: theme.colors.textSecondary },
+  chipTextActive: { color: theme.colors.textInverse },
   card: {
-    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12,
+    backgroundColor: theme.colors.surface, borderRadius: 16, padding: 16, marginBottom: 12,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
@@ -142,19 +143,19 @@ const styles = StyleSheet.create({
   cardTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
   avatarWrap: { marginRight: 12 },
   cardInfo: { flex: 1 },
-  name: { fontSize: 16, fontWeight: '700', color: '#222222' },
-  trade: { fontSize: 13, color: '#717171', marginTop: 2 },
+  name: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
+  trade: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 2 },
   metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 16 },
   ratingWrap: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  ratingText: { fontSize: 13, fontWeight: '600', color: '#222222' },
-  reviewCount: { fontSize: 12, color: '#B0B0B0' },
+  ratingText: { fontSize: 13, fontWeight: '600', color: theme.colors.textPrimary },
+  reviewCount: { fontSize: 12, color: theme.colors.textTertiary },
   distanceWrap: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  distanceText: { fontSize: 12, color: '#B0B0B0' },
+  distanceText: { fontSize: 12, color: theme.colors.textTertiary },
   viewBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    backgroundColor: '#10B981', borderRadius: 12, paddingVertical: 10,
+    backgroundColor: theme.colors.primary, borderRadius: 12, paddingVertical: 10,
   },
-  viewBtnText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
+  viewBtnText: { fontSize: 14, fontWeight: '600', color: theme.colors.textInverse },
 });
 
 export default DiscoverScreen;

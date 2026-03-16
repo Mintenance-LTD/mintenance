@@ -11,6 +11,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, Dimensions, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Job } from '@mintenance/types';
+import { theme } from '../../../theme';
 
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = (width - 48) / 2;
@@ -24,12 +25,12 @@ export const JobImagesGallery: React.FC<JobImagesGalleryProps> = ({ job }) => {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Ionicons name="images-outline" size={20} color="#717171" />
+          <Ionicons name="images-outline" size={20} color={theme.colors.textSecondary} />
           <Text style={styles.title}>Job Photos</Text>
         </View>
         <View style={styles.emptyState}>
           <View style={styles.emptyIconWrap}>
-            <Ionicons name="image-outline" size={28} color="#B0B0B0" />
+            <Ionicons name="image-outline" size={28} color={theme.colors.textTertiary} />
           </View>
           <Text style={styles.emptyText}>No photos uploaded</Text>
         </View>
@@ -40,7 +41,7 @@ export const JobImagesGallery: React.FC<JobImagesGalleryProps> = ({ job }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Ionicons name="images-outline" size={20} color="#717171" />
+        <Ionicons name="images-outline" size={20} color={theme.colors.textSecondary} />
         <Text style={styles.title}>Job Photos ({job.photos.length})</Text>
       </View>
 
@@ -75,7 +76,7 @@ export const JobImagesGallery: React.FC<JobImagesGalleryProps> = ({ job }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
@@ -93,7 +94,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   galleryContainer: {
     paddingRight: 20,
@@ -106,7 +107,7 @@ const styles = StyleSheet.create({
     width: IMAGE_SIZE,
     height: IMAGE_SIZE,
     borderRadius: 12,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   imageOverlay: {
     position: 'absolute',
@@ -120,7 +121,7 @@ const styles = StyleSheet.create({
   },
   imageDescription: {
     fontSize: 13,
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     textAlign: 'center',
   },
   emptyState: {
@@ -131,13 +132,13 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
 });

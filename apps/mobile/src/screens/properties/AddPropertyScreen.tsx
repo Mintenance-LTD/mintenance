@@ -25,6 +25,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../config/supabase';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
+import { theme } from '../../theme';
 
 interface Props {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'AddProperty'>;
@@ -176,8 +177,8 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
               accessibilityLabel="Use current location to fill address"
             >
               {locating
-                ? <ActivityIndicator size="small" color="#FFFFFF" />
-                : <Ionicons name="location" size={18} color="#FFFFFF" />
+                ? <ActivityIndicator size="small" color={theme.colors.textInverse} />
+                : <Ionicons name="location" size={18} color={theme.colors.textInverse} />
               }
               <Text style={styles.locationButtonText}>
                 {locating ? 'Locating...' : 'Use Current Location'}
@@ -191,7 +192,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                 value={address1}
                 onChangeText={setAddress1}
                 placeholder="e.g. 42 High Street"
-                placeholderTextColor="#B0B0B0"
+                placeholderTextColor={theme.colors.textTertiary}
               />
             </View>
 
@@ -202,7 +203,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                 value={address2}
                 onChangeText={setAddress2}
                 placeholder="e.g. Apartment 3B"
-                placeholderTextColor="#B0B0B0"
+                placeholderTextColor={theme.colors.textTertiary}
               />
             </View>
 
@@ -214,7 +215,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                   value={city}
                   onChangeText={setCity}
                   placeholder="e.g. London"
-                  placeholderTextColor="#B0B0B0"
+                  placeholderTextColor={theme.colors.textTertiary}
                 />
               </View>
               <View style={styles.rowSpacer} />
@@ -225,7 +226,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                   value={county}
                   onChangeText={setCounty}
                   placeholder="e.g. Greater London"
-                  placeholderTextColor="#B0B0B0"
+                  placeholderTextColor={theme.colors.textTertiary}
                 />
               </View>
             </View>
@@ -237,7 +238,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                 value={postcode}
                 onChangeText={setPostcode}
                 placeholder="e.g. SW1A 1AA"
-                placeholderTextColor="#B0B0B0"
+                placeholderTextColor={theme.colors.textTertiary}
                 autoCapitalize="characters"
               />
             </View>
@@ -258,7 +259,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                   <Ionicons
                     name={type.icon}
                     size={18}
-                    color={propertyType === type.value ? '#FFFFFF' : '#717171'}
+                    color={propertyType === type.value ? theme.colors.textInverse : theme.colors.textSecondary}
                   />
                   <Text
                     style={[
@@ -283,7 +284,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                   value={bedrooms}
                   onChangeText={setBedrooms}
                   placeholder="0"
-                  placeholderTextColor="#B0B0B0"
+                  placeholderTextColor={theme.colors.textTertiary}
                   keyboardType="number-pad"
                 />
               </View>
@@ -295,7 +296,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                   value={bathrooms}
                   onChangeText={setBathrooms}
                   placeholder="0"
-                  placeholderTextColor="#B0B0B0"
+                  placeholderTextColor={theme.colors.textTertiary}
                   keyboardType="number-pad"
                 />
               </View>
@@ -315,7 +316,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
               value={notes}
               onChangeText={setNotes}
               placeholder="Any additional notes about the property..."
-              placeholderTextColor="#B0B0B0"
+              placeholderTextColor={theme.colors.textTertiary}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -340,7 +341,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   flex: {
     flex: 1,
@@ -350,7 +351,7 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -362,7 +363,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 12,
@@ -373,16 +374,16 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 4,
   },
   input: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 14,
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   postcodeInput: {
     width: 160,
@@ -408,37 +409,37 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   typeChipSelected: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   typeChipText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginLeft: 6,
   },
   typeChipTextSelected: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontWeight: '600',
   },
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 28,
     paddingVertical: 12,
     gap: 8,
     marginBottom: 16,
   },
   locationButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 14,
     fontWeight: '600',
   },
   submitButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 28,
     paddingVertical: 16,
     alignItems: 'center',
@@ -448,7 +449,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   submitButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 17,
     fontWeight: '600',
   },

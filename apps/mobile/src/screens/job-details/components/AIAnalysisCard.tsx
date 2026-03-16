@@ -11,6 +11,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { AIAnalysis } from '../../../services/AIAnalysisService';
+import { theme } from '../../../theme';
 
 interface AIAnalysisCardProps {
   aiAnalysis: AIAnalysis | null;
@@ -29,7 +30,7 @@ export const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({
           <Text style={styles.title} accessibilityRole='header'>AI Analysis</Text>
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#222222" accessibilityLabel='Analyzing job photos' />
+          <ActivityIndicator size="small" color={theme.colors.textPrimary} accessibilityLabel='Analyzing job photos' />
           <Text style={styles.loadingText}>Analyzing job photos...</Text>
         </View>
       </View>
@@ -92,7 +93,7 @@ export const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
@@ -110,7 +111,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     flex: 1,
   },
   confidenceBadge: {
@@ -122,7 +123,7 @@ const styles = StyleSheet.create({
   confidenceText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   loadingContainer: {
     flexDirection: 'row',
@@ -133,7 +134,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   analysisContent: {
     gap: 12,
@@ -141,13 +142,13 @@ const styles = StyleSheet.create({
   categoryTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
   categoryValue: {
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '500',
   },
   toolsList: {
@@ -156,18 +157,18 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   toolTag: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
   toolText: {
     fontSize: 13,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   notesText: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 20,
   },
 });

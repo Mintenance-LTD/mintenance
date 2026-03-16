@@ -7,6 +7,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../theme';
 
 interface ContractorLocation {
   id: string;
@@ -54,7 +55,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
               <Ionicons
                 name='checkmark-circle'
                 size={16}
-                color='#222222'
+                color={theme.colors.textPrimary}
               />
             )}
           </View>
@@ -63,7 +64,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
           </Text>
           <View style={styles.contractorMeta}>
             <View style={styles.ratingContainer}>
-              <Ionicons name='star' size={14} color='#F59E0B' />
+              <Ionicons name='star' size={14} color={theme.colors.accent} />
               <Text style={styles.rating}>{contractor.rating}</Text>
             </View>
             <Text style={styles.metaDivider}>•</Text>
@@ -81,7 +82,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
           <Ionicons
             name='close'
             size={20}
-            color='#717171'
+            color={theme.colors.textSecondary}
           />
         </TouchableOpacity>
       </View>
@@ -91,7 +92,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
           <Ionicons
             name='cash-outline'
             size={16}
-            color='#222222'
+            color={theme.colors.textPrimary}
           />
           <Text style={styles.pricingText}>{contractor.pricing}</Text>
         </View>
@@ -99,7 +100,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
           <Ionicons
             name='time-outline'
             size={16}
-            color='#222222'
+            color={theme.colors.textPrimary}
           />
           <Text style={styles.estimateText}>35 km/50min</Text>
         </View>
@@ -113,7 +114,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
           <Ionicons
             name='chatbubble-outline'
             size={18}
-            color='#222222'
+            color={theme.colors.textPrimary}
           />
           <Text style={styles.actionButtonText}>Message</Text>
         </TouchableOpacity>
@@ -125,7 +126,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
           <Ionicons
             name='call-outline'
             size={18}
-            color='#222222'
+            color={theme.colors.textPrimary}
           />
           <Text style={styles.actionButtonText}>Call</Text>
         </TouchableOpacity>
@@ -134,7 +135,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
           style={[styles.actionButton, styles.directionsButton]}
           onPress={() => onGetDirections(contractor)}
         >
-          <Ionicons name='navigate-outline' size={18} color='#FFFFFF' />
+          <Ionicons name='navigate-outline' size={18} color={theme.colors.textInverse} />
           <Text
             style={[styles.actionButtonText, styles.directionsButtonText]}
           >
@@ -152,7 +153,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
@@ -185,11 +186,11 @@ const styles = StyleSheet.create({
   contractorName: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   contractorSpecialty: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 8,
   },
   contractorMeta: {
@@ -206,23 +207,23 @@ const styles = StyleSheet.create({
   rating: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   metaDivider: {
     fontSize: 14,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
   distance: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   responseTime: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   contractorAddress: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   closeButton: {
     padding: 4,
@@ -240,7 +241,7 @@ const styles = StyleSheet.create({
   pricingText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   estimateInfo: {
     flexDirection: 'row',
@@ -250,7 +251,7 @@ const styles = StyleSheet.create({
   estimateText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   contractorActions: {
     flexDirection: 'row',
@@ -263,18 +264,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     gap: 8,
   },
   actionButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   directionsButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   directionsButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 });

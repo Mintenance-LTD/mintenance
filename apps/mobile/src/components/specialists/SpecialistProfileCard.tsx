@@ -9,6 +9,7 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
+import { theme } from '../../theme';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -266,7 +267,7 @@ export const SpecialistsList: React.FC<{
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     margin: 20,
@@ -296,9 +297,9 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: theme.colors.surface,
   },
   basicInfo: {
     flex: 1,
@@ -307,12 +308,12 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 6,
   },
   title: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
     marginBottom: 6,
   },
@@ -328,28 +329,28 @@ const styles = StyleSheet.create({
   },
   reviewText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   location: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   priceContainer: {
     alignItems: 'center',
   },
   priceLabel: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 6,
   },
   price: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   priceUnit: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -368,12 +369,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 6,
   },
   statLabel: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   availabilitySection: {
     marginBottom: 20,
@@ -381,7 +382,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 16,
   },
   availabilityRow: {
@@ -392,18 +393,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 9999,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   availableBadge: {
     backgroundColor: 'rgba(16, 185, 129, 0.1)',
   },
   availabilityText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
   },
   availableText: {
-    color: '#10B981',
+    color: theme.colors.primary,
   },
   specialtiesSection: {
     marginBottom: 20,
@@ -414,14 +415,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   specialtyBadge: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 9999,
   },
   specialtyText: {
     fontSize: 13,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '500',
   },
   bioSection: {
@@ -429,7 +430,7 @@ const styles = StyleSheet.create({
   },
   bioText: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 24,
   },
   actionButtons: {
@@ -438,7 +439,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     flex: 1,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingVertical: 16,
     borderRadius: 28,
     alignItems: 'center',
@@ -446,11 +447,11 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   secondaryButton: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     paddingVertical: 16,
     borderRadius: 28,
     alignItems: 'center',
@@ -458,11 +459,11 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   contactButton: {
     flex: 1,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingVertical: 16,
     borderRadius: 28,
     alignItems: 'center',
@@ -470,12 +471,12 @@ const styles = StyleSheet.create({
   contactButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 
   // Compact Styles
   compactContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginHorizontal: 20,
@@ -505,9 +506,9 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: theme.colors.surface,
   },
   compactInfo: {
     flex: 1,
@@ -515,12 +516,12 @@ const styles = StyleSheet.create({
   compactName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 6,
   },
   compactTitle: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 6,
   },
   compactMeta: {
@@ -533,7 +534,7 @@ const styles = StyleSheet.create({
   },
   compactProjects: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   compactActions: {
     alignItems: 'flex-end',
@@ -541,11 +542,11 @@ const styles = StyleSheet.create({
   compactPrice: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   compactBookButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 16,
@@ -553,7 +554,7 @@ const styles = StyleSheet.create({
   compactBookText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 
   // List Styles
@@ -570,11 +571,11 @@ const styles = StyleSheet.create({
   listTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   seeAllText: {
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '600',
   },
   listCard: {
@@ -599,20 +600,20 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: theme.colors.surface,
   },
   listName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     textAlign: 'center',
     marginBottom: 6,
   },
   listSpecTitle: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginBottom: 6,
   },

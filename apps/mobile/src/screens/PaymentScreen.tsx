@@ -23,6 +23,7 @@ import { PaymentSummaryCard } from './payment/components/PaymentSummaryCard';
 import { EscrowInfoCard } from './payment/components/EscrowInfoCard';
 import { PaymentMethodOption } from './payment/components/PaymentMethodOption';
 import { usePayment } from './payment/hooks/usePayment';
+import { theme } from '../theme';
 
 interface PaymentScreenProps {
   route: {
@@ -92,13 +93,13 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
               accessibilityLabel="Add payment method"
             >
               <View style={styles.addMethodIconWrap}>
-                <Ionicons name="add" size={22} color="#10B981" />
+                <Ionicons name="add" size={22} color={theme.colors.primary} />
               </View>
               <View style={styles.addMethodContent}>
                 <Text style={styles.addMethodText}>Add Payment Method</Text>
                 <Text style={styles.addMethodSubtext}>Credit card, debit card, or bank account</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color="#B0B0B0" />
+              <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
             </TouchableOpacity>
           ) : (
             payment.paymentMethods.map(method => (
@@ -116,7 +117,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
 
         <View style={styles.securityNote}>
           <View style={styles.securityIconWrap}>
-            <Ionicons name="shield-checkmark" size={16} color="#10B981" />
+            <Ionicons name="shield-checkmark" size={16} color={theme.colors.primary} />
           </View>
           <Text style={styles.securityText}>
             Your payment is protected by 256-bit SSL encryption and held securely in escrow.
@@ -134,10 +135,10 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
           accessibilityState={{ disabled: payment.processing || !payment.selectedMethod }}
         >
           {payment.processing ? (
-            <LoadingSpinner size="small" color="#FFFFFF" />
+            <LoadingSpinner size="small" color={theme.colors.textInverse} />
           ) : (
             <>
-              <Ionicons name="lock-closed" size={18} color="#FFFFFF" />
+              <Ionicons name="lock-closed" size={18} color={theme.colors.textInverse} />
               <Text style={styles.paymentButtonText}>
                 Pay {'\u00A3'}{payment.totalAmount.toFixed(2)}
               </Text>
@@ -152,7 +153,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   scrollView: {
     flex: 1,
@@ -164,11 +165,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   addMethodButton: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     flexDirection: 'row',
@@ -188,7 +189,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -198,12 +199,12 @@ const styles = StyleSheet.create({
   addMethodText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   addMethodSubtext: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   securityNote: {
     flexDirection: 'row',
@@ -216,24 +217,24 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   securityText: {
     flex: 1,
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 17,
   },
   paymentButtonContainer: {
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
   },
   paymentButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 28,
     paddingVertical: 16,
     flexDirection: 'row',
@@ -242,12 +243,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   paymentButtonDisabled: {
-    backgroundColor: '#B0B0B0',
+    backgroundColor: theme.colors.textTertiary,
   },
   paymentButtonText: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 });
 

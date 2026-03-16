@@ -17,6 +17,7 @@ import { useToast } from '../../components/ui/Toast';
 import { FinancialManagementService } from '../../services/contractor-business';
 import type { InvoiceLineItem } from '../../services/contractor-business/types';
 import type { JobsStackParamList } from '../../navigation/types';
+import { theme } from '../../theme';
 
 interface CreateInvoiceScreenProps {
   navigation: NativeStackNavigationProp<JobsStackParamList, 'CreateInvoice'>;
@@ -128,7 +129,7 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={22} color="#222222" />
+          <Ionicons name="arrow-back" size={22} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>New Invoice</Text>
         <TouchableOpacity
@@ -147,14 +148,14 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
           <TextInput
             style={styles.input}
             placeholder="Client name *"
-            placeholderTextColor="#B0B0B0"
+            placeholderTextColor={theme.colors.textTertiary}
             value={clientName}
             onChangeText={setClientName}
           />
           <TextInput
             style={styles.input}
             placeholder="Job reference (optional)"
-            placeholderTextColor="#B0B0B0"
+            placeholderTextColor={theme.colors.textTertiary}
             value={jobRef}
             onChangeText={setJobRef}
           />
@@ -164,9 +165,9 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Due Date</Text>
           <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
-            <Ionicons name="calendar-outline" size={18} color="#717171" />
+            <Ionicons name="calendar-outline" size={18} color={theme.colors.textSecondary} />
             <Text style={styles.dateText}>{formatDate(dueDate)}</Text>
-            <Ionicons name="chevron-forward" size={16} color="#B0B0B0" />
+            <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
           </TouchableOpacity>
           {showDatePicker && (
             <DateTimePicker
@@ -186,7 +187,7 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Line Items</Text>
             <TouchableOpacity style={styles.addItemButton} onPress={addLineItem}>
-              <Ionicons name="add" size={18} color="#FFFFFF" />
+              <Ionicons name="add" size={18} color={theme.colors.textInverse} />
               <Text style={styles.addItemText}>Add Item</Text>
             </TouchableOpacity>
           </View>
@@ -197,14 +198,14 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
                 <Text style={styles.lineItemLabel}>Item {index + 1}</Text>
                 {lineItems.length > 1 && (
                   <TouchableOpacity onPress={() => removeLineItem(index)}>
-                    <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                    <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
                   </TouchableOpacity>
                 )}
               </View>
               <TextInput
                 style={styles.input}
                 placeholder="Description *"
-                placeholderTextColor="#B0B0B0"
+                placeholderTextColor={theme.colors.textTertiary}
                 value={item.description}
                 onChangeText={v => updateLineItem(index, 'description', v)}
               />
@@ -214,7 +215,7 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
                   <TextInput
                     style={styles.input}
                     placeholder="1"
-                    placeholderTextColor="#B0B0B0"
+                    placeholderTextColor={theme.colors.textTertiary}
                     keyboardType="numeric"
                     value={item.quantity}
                     onChangeText={v => updateLineItem(index, 'quantity', v)}
@@ -225,7 +226,7 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
                   <TextInput
                     style={styles.input}
                     placeholder="0.00"
-                    placeholderTextColor="#B0B0B0"
+                    placeholderTextColor={theme.colors.textTertiary}
                     keyboardType="decimal-pad"
                     value={item.rate}
                     onChangeText={v => updateLineItem(index, 'rate', v)}
@@ -250,7 +251,7 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
           <TextInput
             style={[styles.input, styles.notesInput]}
             placeholder="Payment terms, notes to client…"
-            placeholderTextColor="#B0B0B0"
+            placeholderTextColor={theme.colors.textTertiary}
             value={notes}
             onChangeText={setNotes}
             multiline
@@ -282,32 +283,32 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F7F7' },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   saveButton: { padding: 8, minWidth: 60 },
   saveButtonDisabled: { opacity: 0.5 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#222222' },
-  saveText: { fontSize: 16, fontWeight: '600', color: '#222222', textAlign: 'right' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
+  saveText: { fontSize: 16, fontWeight: '600', color: theme.colors.textPrimary, textAlign: 'right' },
   scroll: { flex: 1 },
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 16,
@@ -318,55 +319,55 @@ const styles = StyleSheet.create({
     }),
   },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#222222', marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 12 },
   input: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   notesInput: { height: 80, paddingTop: 12 },
   dateButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 14,
     gap: 8,
   },
-  dateText: { flex: 1, fontSize: 14, color: '#222222' },
+  dateText: { flex: 1, fontSize: 14, color: theme.colors.textPrimary },
   addItemButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 8,
     gap: 4,
   },
-  addItemText: { fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
+  addItemText: { fontSize: 13, fontWeight: '600', color: theme.colors.textInverse },
   lineItem: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
   },
   lineItemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  lineItemLabel: { fontSize: 13, fontWeight: '600', color: '#717171' },
+  lineItemLabel: { fontSize: 13, fontWeight: '600', color: theme.colors.textSecondary },
   lineItemRow: { flexDirection: 'row', gap: 8 },
   lineItemField: { flex: 1 },
-  fieldLabel: { fontSize: 11, color: '#B0B0B0', marginBottom: 4 },
+  fieldLabel: { fontSize: 11, color: theme.colors.textTertiary, marginBottom: 4 },
   amountDisplay: {
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
-  amountText: { fontSize: 14, color: '#222222', fontWeight: '500' },
+  amountText: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: '500' },
   totalsSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 16,
@@ -377,11 +378,11 @@ const styles = StyleSheet.create({
     }),
   },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
-  totalRowFinal: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#EBEBEB', marginTop: 8, paddingTop: 12 },
-  totalLabel: { fontSize: 14, color: '#717171' },
-  totalValue: { fontSize: 14, color: '#222222', fontWeight: '500' },
-  grandTotalLabel: { fontSize: 16, fontWeight: '700', color: '#222222' },
-  grandTotalValue: { fontSize: 18, fontWeight: '700', color: '#222222' },
+  totalRowFinal: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.border, marginTop: 8, paddingTop: 12 },
+  totalLabel: { fontSize: 14, color: theme.colors.textSecondary },
+  totalValue: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: '500' },
+  grandTotalLabel: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
+  grandTotalValue: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
 });
 
 export default CreateInvoiceScreen;

@@ -22,6 +22,7 @@ import {
 import type { Message } from '../services/messaging/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 interface Props {
   meeting: ContractorMeeting;
@@ -210,7 +211,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
       <View style={styles.container}>
         <View style={[styles.header, { paddingTop: insets.top }]}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color="#222222" />
+            <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Meeting Communication</Text>
           <View style={styles.placeholder} />
@@ -225,7 +226,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
             <Ionicons
               name="chatbubbles"
               size={20}
-              color={activeTab === 'chat' ? '#FFFFFF' : '#717171'}
+              color={activeTab === 'chat' ? theme.colors.textInverse : theme.colors.textSecondary}
             />
             <Text
               style={[
@@ -244,7 +245,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
             <Ionicons
               name="calendar"
               size={20}
-              color={activeTab === 'schedule' ? '#FFFFFF' : '#717171'}
+              color={activeTab === 'schedule' ? theme.colors.textInverse : theme.colors.textSecondary}
             />
             <Text
               style={[
@@ -305,7 +306,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
 
               {messages.length === 0 && (
                 <View style={styles.emptyMessages}>
-                  <Ionicons name="chatbubbles-outline" size={50} color="#B0B0B0" />
+                  <Ionicons name="chatbubbles-outline" size={50} color={theme.colors.textTertiary} />
                   <Text style={styles.emptyMessagesText}>No messages yet</Text>
                   <Text style={styles.emptyMessagesSubtext}>
                     Start a conversation about the meeting
@@ -329,7 +330,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                 onPress={sendMessage}
                 disabled={!newMessage.trim()}
               >
-                <Ionicons name="send" size={20} color="#FFFFFF" />
+                <Ionicons name="send" size={20} color={theme.colors.textInverse} />
               </TouchableOpacity>
             </View>
           </View>
@@ -357,18 +358,18 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                   <Text style={styles.sectionTitle}>Quick Actions</Text>
                   <View style={styles.statusButtons}>
                     <TouchableOpacity
-                      style={[styles.statusButton, { backgroundColor: '#10B981' }]}
+                      style={[styles.statusButton, { backgroundColor: theme.colors.primary }]}
                       onPress={() => handleStatusChange('in_progress')}
                     >
-                      <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                      <Ionicons name="checkmark" size={16} color={theme.colors.textInverse} />
                       <Text style={styles.statusButtonText}>Confirm</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      style={[styles.statusButton, { backgroundColor: '#F59E0B' }]}
+                      style={[styles.statusButton, { backgroundColor: theme.colors.accent }]}
                       onPress={() => handleStatusChange('rescheduled')}
                     >
-                      <Ionicons name="calendar" size={16} color="#FFFFFF" />
+                      <Ionicons name="calendar" size={16} color={theme.colors.textInverse} />
                       <Text style={styles.statusButtonText}>Needs Reschedule</Text>
                     </TouchableOpacity>
                   </View>
@@ -429,10 +430,10 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                   disabled={rescheduleLoading}
                 >
                   {rescheduleLoading ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <ActivityIndicator size="small" color={theme.colors.textInverse} />
                   ) : (
                     <>
-                      <Ionicons name="calendar" size={16} color="#FFFFFF" />
+                      <Ionicons name="calendar" size={16} color={theme.colors.textInverse} />
                       <Text style={styles.rescheduleButtonText}>Request Reschedule</Text>
                     </>
                   )}

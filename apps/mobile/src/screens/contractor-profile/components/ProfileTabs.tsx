@@ -9,6 +9,7 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { theme } from '../../../theme';
 
 interface ProfileTabsProps {
   activeTab: 'photos' | 'reviews';
@@ -51,9 +52,9 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   tab: {
     flex: 1,
@@ -63,14 +64,14 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   activeTab: {
-    borderBottomColor: '#222222',
+    borderBottomColor: theme.colors.textPrimary,
   },
   tabText: {
     fontSize: 16,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
   activeTabText: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '600',
   },
 });

@@ -19,6 +19,7 @@ import { ScreenHeader } from '../../components/shared';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { mobileApiClient } from '../../utils/mobileApiClient';
+import { theme } from '../../theme';
 
 interface SubscriptionPlanFeatures {
   maxJobs?: number | null;
@@ -166,22 +167,22 @@ export const SubscriptionScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F7F7" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <ScreenHeader title="Subscription" showBack onBack={() => navigation.goBack()} />
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetchStatus} tintColor="#10B981" colors={['#10B981']} />}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetchStatus} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />}
       >
         {isLoading ? (
           <View style={styles.inlineCenter}>
-            <ActivityIndicator size="large" color="#10B981" />
+            <ActivityIndicator size="large" color={theme.colors.primary} />
             <Text style={styles.inlineText}>Loading subscription...</Text>
           </View>
         ) : statusError ? (
           <View style={styles.inlineCenter}>
-            <Ionicons name="alert-circle-outline" size={32} color="#EF4444" />
+            <Ionicons name="alert-circle-outline" size={32} color={theme.colors.error} />
             <Text style={styles.inlineText}>Failed to load subscription</Text>
             <TouchableOpacity style={styles.retryBtn} onPress={() => refetchStatus()}>
               <Text style={styles.retryBtnText}>Retry</Text>
@@ -202,7 +203,7 @@ export const SubscriptionScreen: React.FC = () => {
           </View>
           {trial?.active && (
             <View style={styles.trialChip}>
-              <Ionicons name="time-outline" size={14} color="#F59E0B" />
+              <Ionicons name="time-outline" size={14} color={theme.colors.accent} />
               <Text style={styles.trialText}>
                 {trial.daysRemaining} days remaining in trial
               </Text>
@@ -253,7 +254,7 @@ export const SubscriptionScreen: React.FC = () => {
                 <View style={styles.badgeStack}>
                   {plan.recommended && (
                     <View style={styles.recommendedBadge}>
-                      <Ionicons name="star" size={10} color="#F59E0B" />
+                      <Ionicons name="star" size={10} color={theme.colors.accent} />
                       <Text style={styles.recommendedText}>Recommended</Text>
                     </View>
                   )}
@@ -268,7 +269,7 @@ export const SubscriptionScreen: React.FC = () => {
               {getFeatureStrings(plan.features).map((feature, idx) => (
                 <View key={idx} style={styles.featureRow}>
                   <View style={styles.featureCheckWrap}>
-                    <Ionicons name="checkmark" size={14} color="#10B981" />
+                    <Ionicons name="checkmark" size={14} color={theme.colors.primary} />
                   </View>
                   <Text style={styles.featureText}>{feature}</Text>
                 </View>
@@ -299,7 +300,7 @@ export const SubscriptionScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   scrollView: {
     flex: 1,
@@ -309,7 +310,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   statusCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 24,
@@ -325,7 +326,7 @@ const styles = StyleSheet.create({
   },
   statusLabel: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -339,14 +340,14 @@ const styles = StyleSheet.create({
   planName: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     textTransform: 'capitalize',
   },
   trialChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.colors.accentLight,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -355,12 +356,12 @@ const styles = StyleSheet.create({
   },
   trialText: {
     fontSize: 13,
-    color: '#F59E0B',
+    color: theme.colors.accent,
     fontWeight: '600',
   },
   periodText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 6,
   },
   cancelBtn: {
@@ -370,11 +371,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 14,
   },
   planCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 14,
@@ -390,11 +391,11 @@ const styles = StyleSheet.create({
   },
   currentPlanCard: {
     borderWidth: 2,
-    borderColor: '#10B981',
+    borderColor: theme.colors.primary,
   },
   selectedPlanCard: {
     borderWidth: 2,
-    borderColor: '#10B981',
+    borderColor: theme.colors.primary,
   },
   planHeader: {
     flexDirection: 'row',
@@ -405,18 +406,18 @@ const styles = StyleSheet.create({
   planTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   planPrice: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginTop: 4,
   },
   planCycle: {
     fontSize: 14,
     fontWeight: '400',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
   badgeStack: {
     gap: 4,
@@ -426,7 +427,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.colors.accentLight,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -434,10 +435,10 @@ const styles = StyleSheet.create({
   recommendedText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#F59E0B',
+    color: theme.colors.accent,
   },
   currentBadge: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -445,7 +446,7 @@ const styles = StyleSheet.create({
   currentBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#10B981',
+    color: theme.colors.primary,
   },
   featureRow: {
     flexDirection: 'row',
@@ -457,13 +458,13 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   featureText: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     flex: 1,
   },
   subscribeBtn: {
@@ -478,17 +479,17 @@ const styles = StyleSheet.create({
   },
   inlineText: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   retryBtn: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     borderRadius: 20,
     paddingHorizontal: 24,
     paddingVertical: 10,
     marginTop: 4,
   },
   retryBtnText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 14,
     fontWeight: '600',
   },

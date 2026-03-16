@@ -1,4 +1,5 @@
 import { StyleSheet, Dimensions, Platform } from 'react-native';
+import { theme } from '../theme';
 
 const { width } = Dimensions.get('window');
 const isTablet = width > 768;
@@ -6,7 +7,7 @@ const isTablet = width > 768;
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   loadingContainer: {
     flex: 1,
@@ -16,27 +17,27 @@ export const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 8,
   },
   header: {
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   kpiSection: {
@@ -48,7 +49,7 @@ export const styles = StyleSheet.create({
     gap: 12,
   },
   kpiCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     borderLeftWidth: 4,
@@ -67,7 +68,7 @@ export const styles = StyleSheet.create({
   kpiTitle: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginLeft: 8,
   },
   kpiValue: {
@@ -77,7 +78,7 @@ export const styles = StyleSheet.create({
   },
   kpiSubtitle: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 8,
   },
   trendContainer: {
@@ -94,7 +95,7 @@ export const styles = StyleSheet.create({
     paddingTop: 0,
   },
   healthScoreCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     ...Platform.select({
@@ -118,11 +119,11 @@ export const styles = StyleSheet.create({
   healthScoreValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#10B981',
+    color: theme.colors.primary,
   },
   healthScoreLabel: {
     fontSize: 12,
-    color: '#10B981',
+    color: theme.colors.primary,
     fontWeight: '500',
   },
   healthScoreBreakdown: {
@@ -133,12 +134,12 @@ export const styles = StyleSheet.create({
   },
   healthMetricLabel: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 4,
   },
   healthBar: {
     height: 6,
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -151,7 +152,7 @@ export const styles = StyleSheet.create({
     paddingTop: 0,
   },
   insightCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 12,
     marginBottom: 8,
@@ -173,11 +174,11 @@ export const styles = StyleSheet.create({
   insightTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   insightMessage: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 18,
   },
   actionItemsSection: {
@@ -185,7 +186,7 @@ export const styles = StyleSheet.create({
     paddingTop: 0,
   },
   actionItem: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 12,
     marginBottom: 8,
@@ -199,18 +200,18 @@ export const styles = StyleSheet.create({
   actionTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginLeft: 8,
   },
   actionDescription: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 4,
   },
   actionText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   quickActionsContainer: {
     padding: 16,
@@ -222,7 +223,7 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   quickActionButton: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 12,
     alignItems: 'center',
@@ -235,7 +236,7 @@ export const styles = StyleSheet.create({
   quickActionText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginTop: 4,
     textAlign: 'center',
   },
@@ -249,7 +250,7 @@ export const styles = StyleSheet.create({
     gap: 12,
   },
   toolCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
@@ -264,13 +265,13 @@ export const styles = StyleSheet.create({
   toolTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginTop: 8,
     textAlign: 'center',
   },
   toolDescription: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 4,
     textAlign: 'center',
   },
@@ -280,7 +281,7 @@ export const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   reportButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -289,7 +290,7 @@ export const styles = StyleSheet.create({
     minHeight: 56,
   },
   reportButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 15,
     fontWeight: '600',
     marginLeft: 8,

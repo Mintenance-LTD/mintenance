@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { PaymentMethod } from '../../../services/PaymentService';
+import { theme } from '../../../theme';
 
 interface PaymentMethodOptionProps {
   method: PaymentMethod;
@@ -48,7 +49,7 @@ export const PaymentMethodOption: React.FC<PaymentMethodOptionProps> = ({
           <Ionicons
             name={getMethodIcon(method.type) as keyof typeof Ionicons.glyphMap}
             size={24}
-            color="#717171"
+            color={theme.colors.textSecondary}
           />
         </View>
         <View style={styles.methodDetails}>
@@ -59,7 +60,7 @@ export const PaymentMethodOption: React.FC<PaymentMethodOptionProps> = ({
         </View>
       </View>
       {isSelected && (
-        <Ionicons name="checkmark-circle" size={24} color="#222222" />
+        <Ionicons name="checkmark-circle" size={24} color={theme.colors.textPrimary} />
       )}
     </TouchableOpacity>
   );
@@ -67,7 +68,7 @@ export const PaymentMethodOption: React.FC<PaymentMethodOptionProps> = ({
 
 const styles = StyleSheet.create({
   paymentMethodOption: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -80,7 +81,7 @@ const styles = StyleSheet.create({
     }),
   },
   selectedMethod: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   methodContent: {
     flexDirection: 'row',
@@ -91,7 +92,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
@@ -102,11 +103,11 @@ const styles = StyleSheet.create({
   methodType: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   defaultLabel: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 2,
   },
 });

@@ -15,19 +15,20 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Button from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { HELP_LINKS } from '../config/links';
+import { theme } from '../theme';
 
 const QUICK_ACTION_STYLES: Record<string, { iconColor: string; iconBg: string }> = {
   contact: { iconColor: '#3B82F6', iconBg: '#DBEAFE' },
   chat: { iconColor: '#8B5CF6', iconBg: '#EDE9FE' },
-  call: { iconColor: '#10B981', iconBg: '#D1FAE5' },
-  email: { iconColor: '#F59E0B', iconBg: '#FEF3C7' },
+  call: { iconColor: theme.colors.primary, iconBg: theme.colors.primaryLight },
+  email: { iconColor: theme.colors.accent, iconBg: theme.colors.accentLight },
 };
 
 const RESOURCE_STYLES: Record<string, { iconColor: string; iconBg: string }> = {
   book: { iconColor: '#3B82F6', iconBg: '#DBEAFE' },
-  'play-circle': { iconColor: '#EF4444', iconBg: '#FEE2E2' },
+  'play-circle': { iconColor: theme.colors.error, iconBg: '#FEE2E2' },
   globe: { iconColor: '#8B5CF6', iconBg: '#EDE9FE' },
-  people: { iconColor: '#10B981', iconBg: '#D1FAE5' },
+  people: { iconColor: theme.colors.primary, iconBg: theme.colors.primaryLight },
 };
 
 const HelpCenterScreen: React.FC = () => {
@@ -157,7 +158,7 @@ const HelpCenterScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name='arrow-back' size={24} color='#222222' />
+          <Ionicons name='arrow-back' size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Help Center</Text>
         <View style={styles.placeholder} />
@@ -182,7 +183,7 @@ const HelpCenterScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>Get Help Now</Text>
           <View style={styles.quickActionsGrid}>
             {quickActions.map((action) => {
-              const colors = QUICK_ACTION_STYLES[action.id] || { iconColor: '#717171', iconBg: '#F7F7F7' };
+              const colors = QUICK_ACTION_STYLES[action.id] || { iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary };
               return (
                 <TouchableOpacity
                   key={action.id}
@@ -223,7 +224,7 @@ const HelpCenterScreen: React.FC = () => {
                   <Ionicons
                     name={expandedFaq === faq.id ? 'chevron-up' : 'chevron-down'}
                     size={16}
-                    color={expandedFaq === faq.id ? '#FFFFFF' : '#B0B0B0'}
+                    color={expandedFaq === faq.id ? theme.colors.textInverse : theme.colors.textTertiary}
                   />
                 </View>
               </View>
@@ -238,7 +239,7 @@ const HelpCenterScreen: React.FC = () => {
           {filteredFaqs.length === 0 && searchQuery && (
             <View style={styles.noResults}>
               <View style={styles.noResultsIconWrap}>
-                <Ionicons name='search' size={28} color='#B0B0B0' />
+                <Ionicons name='search' size={28} color={theme.colors.textTertiary} />
               </View>
               <Text style={styles.noResultsText}>No results found</Text>
               <Text style={styles.noResultsSubtext}>
@@ -253,7 +254,7 @@ const HelpCenterScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>Additional Resources</Text>
 
           {resources.map((res, idx) => {
-            const colors = RESOURCE_STYLES[res.icon] || { iconColor: '#717171', iconBg: '#F7F7F7' };
+            const colors = RESOURCE_STYLES[res.icon] || { iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary };
             return (
               <TouchableOpacity
                 key={res.icon}
@@ -267,7 +268,7 @@ const HelpCenterScreen: React.FC = () => {
                   </View>
                   <Text style={styles.resourceText}>{res.label}</Text>
                 </View>
-                <Ionicons name='chevron-forward' size={14} color='#B0B0B0' />
+                <Ionicons name='chevron-forward' size={14} color={theme.colors.textTertiary} />
               </TouchableOpacity>
             );
           })}
@@ -290,12 +291,12 @@ const HelpCenterScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
     paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: 'row',
@@ -306,14 +307,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 16,
@@ -325,7 +326,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   searchSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 16,
@@ -342,7 +343,7 @@ const styles = StyleSheet.create({
     }),
   },
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 16,
@@ -360,7 +361,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 16,
   },
   quickActionsGrid: {
@@ -370,7 +371,7 @@ const styles = StyleSheet.create({
   },
   quickActionCard: {
     width: '48%',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
@@ -386,13 +387,13 @@ const styles = StyleSheet.create({
   quickActionTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     textAlign: 'center',
     marginBottom: 4,
   },
   quickActionDescription: {
     fontSize: 11,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
   },
   faqItem: {
@@ -400,7 +401,7 @@ const styles = StyleSheet.create({
   },
   faqItemBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   faqQuestion: {
     flexDirection: 'row',
@@ -410,7 +411,7 @@ const styles = StyleSheet.create({
   faqQuestionText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     flex: 1,
     marginRight: 12,
   },
@@ -418,22 +419,22 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   faqChevronActive: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   faqAnswer: {
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
   },
   faqAnswerText: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 21,
   },
   noResults: {
@@ -444,7 +445,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -452,12 +453,12 @@ const styles = StyleSheet.create({
   noResultsText: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   noResultsSubtext: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
   },
   resourceItem: {
@@ -468,7 +469,7 @@ const styles = StyleSheet.create({
   },
   resourceItemBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   resourceLeft: {
     flexDirection: 'row',
@@ -485,7 +486,7 @@ const styles = StyleSheet.create({
   resourceText: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   bottomPadding: {
     height: 32,

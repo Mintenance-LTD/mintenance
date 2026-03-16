@@ -12,6 +12,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Skeleton, SkeletonGroup, SkeletonImage } from './Skeleton';
+import { theme } from '../../theme';
 
 export interface JobCardSkeletonProps {
   /**
@@ -98,7 +99,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     overflow: 'hidden',
   },
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F7F7F7',
+    borderTopColor: theme.colors.backgroundSecondary,
   },
   marginBottom: {
     marginBottom: 8,

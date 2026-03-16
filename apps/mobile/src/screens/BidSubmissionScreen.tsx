@@ -20,6 +20,7 @@ import { logger } from '../utils/logger';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { DatePicker } from '../components/ui/DatePicker';
+import { theme } from '../theme';
 
 type BidSubmissionScreenRouteProp = RouteProp<
   JobsStackParamList,
@@ -103,7 +104,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={{ color: '#717171' }}>Loading job details...</Text>
+        <Text style={{ color: theme.colors.textSecondary }}>Loading job details...</Text>
       </View>
     );
   }
@@ -111,7 +112,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   if (!job) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={{ color: '#717171' }}>Job not found</Text>
+        <Text style={{ color: theme.colors.textSecondary }}>Job not found</Text>
       </View>
     );
   }
@@ -125,7 +126,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >
-          <Ionicons name="arrow-back" size={24} color="#222222" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} accessibilityRole='header'>Submit Bid</Text>
         <View style={{ width: 40 }} />
@@ -140,7 +141,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
             <Text style={styles.jobTitle}>{job.title}</Text>
             <Text style={styles.jobDescription}>{job.description}</Text>
             <View style={styles.jobMetaRow}>
-              <Ionicons name="location-outline" size={14} color="#717171" />
+              <Ionicons name="location-outline" size={14} color={theme.colors.textSecondary} />
               <Text style={styles.jobLocation}>{typeof job.location === 'string' ? job.location : JSON.stringify(job.location)}</Text>
             </View>
             <View style={styles.budgetChip}>
@@ -227,7 +228,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
           <View style={styles.tipBox}>
             <View style={styles.tipHeader}>
               <View style={styles.tipIconWrap}>
-                <Ionicons name="bulb-outline" size={16} color="#F59E0B" />
+                <Ionicons name="bulb-outline" size={16} color={theme.colors.accent} />
               </View>
               <Text style={styles.tipTitle}>Bidding Tips</Text>
             </View>
@@ -259,7 +260,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
           accessibilityLabel={submitting ? 'Submitting bid' : 'Submit bid'}
           accessibilityState={{ disabled: submitting }}
         >
-          <Ionicons name="send-outline" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+          <Ionicons name="send-outline" size={18} color={theme.colors.textInverse} style={{ marginRight: 8 }} />
           <Text style={styles.submitButtonText}>
             {submitting ? 'Submitting...' : 'Submit Bid'}
           </Text>
@@ -272,13 +273,13 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -286,28 +287,28 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   content: {
     flex: 1,
   },
   jobInfo: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     padding: 16,
     marginBottom: 8,
     marginHorizontal: 16,
@@ -339,12 +340,12 @@ const styles = StyleSheet.create({
   jobTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 6,
   },
   jobDescription: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 10,
     lineHeight: 20,
   },
@@ -356,10 +357,10 @@ const styles = StyleSheet.create({
   },
   jobLocation: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   budgetChip: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     alignSelf: 'flex-start',
     borderRadius: 8,
     paddingHorizontal: 10,
@@ -368,10 +369,10 @@ const styles = StyleSheet.create({
   jobBudget: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#10B981',
+    color: theme.colors.primary,
   },
   form: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     padding: 20,
     marginHorizontal: 16,
     borderRadius: 16,
@@ -387,18 +388,18 @@ const styles = StyleSheet.create({
   },
   bidHint: {
     fontSize: 12,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     marginTop: -4,
     marginBottom: 8,
   },
   bidWarning: {
     fontSize: 12,
-    color: '#F59E0B',
+    color: theme.colors.accent,
     marginTop: -4,
     marginBottom: 8,
   },
   tipBox: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.colors.accentLight,
     padding: 16,
     borderRadius: 16,
     marginTop: 20,
@@ -420,24 +421,24 @@ const styles = StyleSheet.create({
   tipTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   tipText: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 5,
     lineHeight: 20,
   },
   footer: {
     padding: 16,
     paddingBottom: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
   },
   submitButton: {
     height: 52,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
@@ -447,7 +448,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   submitButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '700',
   },

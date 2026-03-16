@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { theme } from '../../../theme';
 
 interface QuickActionsProps {
   onStartVideoCapture: () => void;
@@ -15,17 +16,17 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
         style={[styles.actionButton, styles.primaryAction]}
         onPress={onStartVideoCapture}
       >
-        <Icon name="videocam" size={24} color="#FFFFFF" />
+        <Icon name="videocam" size={24} color={theme.colors.textInverse} />
         <Text style={styles.primaryActionText}>Start Video Capture</Text>
       </TouchableOpacity>
 
       <View style={styles.secondaryActions}>
         <TouchableOpacity style={styles.secondaryAction}>
-          <Icon name="save" size={20} color="#717171" />
+          <Icon name="save" size={20} color={theme.colors.textSecondary} />
           <Text style={styles.secondaryActionText}>Save Draft</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.secondaryAction}>
-          <Icon name="share" size={20} color="#717171" />
+          <Icon name="share" size={20} color={theme.colors.textSecondary} />
           <Text style={styles.secondaryActionText}>Share</Text>
         </TouchableOpacity>
       </View>
@@ -36,7 +37,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
 export const TipsCard: React.FC = () => {
   return (
     <View style={styles.tipsCard}>
-      <Icon name="lightbulb-outline" size={20} color="#F59E0B" />
+      <Icon name="lightbulb-outline" size={20} color={theme.colors.accent} />
       <View style={styles.tipsContent}>
         <Text style={styles.tipsTitle}>Pro Tip</Text>
         <Text style={styles.tipsText}>
@@ -61,13 +62,13 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   primaryAction: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     marginBottom: 12,
   },
   primaryActionText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   secondaryActions: {
     flexDirection: 'row',
@@ -78,7 +79,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     paddingVertical: 12,
     gap: 8,
@@ -90,11 +91,11 @@ const styles = StyleSheet.create({
   secondaryActionText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   tipsCard: {
     flexDirection: 'row',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.colors.accentLight,
     borderRadius: 16,
     padding: 16,
     gap: 12,
@@ -110,7 +111,7 @@ const styles = StyleSheet.create({
   },
   tipsText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 18,
   },
 });

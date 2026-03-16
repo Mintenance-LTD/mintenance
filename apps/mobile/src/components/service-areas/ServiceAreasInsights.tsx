@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { ServiceArea } from '../../services/ServiceAreasService';
+import { theme } from '../../theme';
 
 interface ServiceAreasInsightsProps {
   serviceAreas: ServiceArea[];
@@ -24,7 +25,7 @@ export const ServiceAreasInsights: React.FC<ServiceAreasInsightsProps> = ({ serv
 
       {primaryArea && (
         <View style={styles.insightItem}>
-          <Ionicons name='star' size={16} color="#F59E0B" />
+          <Ionicons name='star' size={16} color={theme.colors.accent} />
           <Text style={styles.insightText}>
             Primary area: {primaryArea.area_name}
           </Text>
@@ -35,7 +36,7 @@ export const ServiceAreasInsights: React.FC<ServiceAreasInsightsProps> = ({ serv
         <Ionicons
           name='speedometer'
           size={16}
-          color="#222222"
+          color={theme.colors.textPrimary}
         />
         <Text style={styles.insightText}>
           Average response time: {averageResponseTime}h
@@ -43,7 +44,7 @@ export const ServiceAreasInsights: React.FC<ServiceAreasInsightsProps> = ({ serv
       </View>
 
       <View style={styles.insightItem}>
-        <Ionicons name='cash' size={16} color="#10B981" />
+        <Ionicons name='cash' size={16} color={theme.colors.primary} />
         <Text style={styles.insightText}>
           Base travel charges: £{totalTravelCharges} total
         </Text>
@@ -54,7 +55,7 @@ export const ServiceAreasInsights: React.FC<ServiceAreasInsightsProps> = ({ serv
 
 const styles = StyleSheet.create({
   insightsContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -73,7 +74,7 @@ const styles = StyleSheet.create({
   insightsTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   insightItem: {
@@ -83,7 +84,7 @@ const styles = StyleSheet.create({
   },
   insightText: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginLeft: 8,
     flex: 1,
   },

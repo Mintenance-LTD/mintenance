@@ -11,6 +11,7 @@ import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { CardDetails } from '../viewmodels/PaymentMethodsViewModel';
+import { theme } from '../../../theme';
 
 interface CreditCardFormProps {
   cardDetails: CardDetails;
@@ -38,7 +39,7 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({
           value={cardDetails.holderName}
           onChangeText={(text) => onUpdateDetails({ holderName: text })}
           placeholder="Esther Howard"
-          placeholderTextColor="#B0B0B0"
+          placeholderTextColor={theme.colors.textTertiary}
           accessibilityLabel='Card holder name'
           accessibilityHint='Enter the name as it appears on your card'
         />
@@ -51,7 +52,7 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({
           value={cardDetails.number}
           onChangeText={(text) => onUpdateDetails({ number: formatCardNumber(text) })}
           placeholder="4716 9627 1635 8047"
-          placeholderTextColor="#B0B0B0"
+          placeholderTextColor={theme.colors.textTertiary}
           keyboardType="numeric"
           maxLength={19}
           accessibilityLabel='Card number'
@@ -67,7 +68,7 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({
             value={cardDetails.expiry}
             onChangeText={(text) => onUpdateDetails({ expiry: formatExpiry(text) })}
             placeholder="02/30"
-            placeholderTextColor="#B0B0B0"
+            placeholderTextColor={theme.colors.textTertiary}
             keyboardType="numeric"
             maxLength={5}
             accessibilityLabel='Expiry date'
@@ -81,7 +82,7 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({
             value={cardDetails.cvv}
             onChangeText={(text) => onUpdateDetails({ cvv: text.replace(/\D/g, '') })}
             placeholder="000"
-            placeholderTextColor="#B0B0B0"
+            placeholderTextColor={theme.colors.textTertiary}
             keyboardType="numeric"
             maxLength={3}
             secureTextEntry
@@ -99,7 +100,7 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({
         accessibilityState={{ checked: saveCard }}
       >
         <View style={[styles.checkbox, saveCard && styles.checkboxSelected]}>
-          {saveCard && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
+          {saveCard && <Ionicons name="checkmark" size={16} color={theme.colors.textInverse} />}
         </View>
         <Text style={styles.saveCardText}>Save Card</Text>
       </TouchableOpacity>
@@ -109,7 +110,7 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
   },
@@ -119,15 +120,15 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     padding: 14,
     fontSize: 16,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   row: {
     flexDirection: 'row',
@@ -146,17 +147,17 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.border,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
   },
   checkboxSelected: {
-    borderColor: '#222222',
-    backgroundColor: '#222222',
+    borderColor: theme.colors.textPrimary,
+    backgroundColor: theme.colors.textPrimary,
   },
   saveCardText: {
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
 });

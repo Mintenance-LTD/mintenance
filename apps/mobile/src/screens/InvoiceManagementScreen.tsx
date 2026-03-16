@@ -23,6 +23,7 @@ import { Banner } from '../components/ui/Banner';
 import { useToast } from '../components/ui/Toast';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import type { JobsStackParamList, ProfileStackParamList } from '../navigation/types';
+import { theme } from '../theme';
 
 type InvoiceNavigation = CompositeNavigationProp<
   NativeStackNavigationProp<JobsStackParamList>,
@@ -149,15 +150,15 @@ export const InvoiceManagementScreen: React.FC<
     {
       value: String(filterCounts.overdue),
       label: 'Overdue',
-      iconColor: '#EF4444',
+      iconColor: theme.colors.error,
       iconBg: '#FEE2E2',
       icon: 'alert-circle-outline' as const,
     },
     {
       value: String(filterCounts.paid),
       label: 'Paid',
-      iconColor: '#10B981',
-      iconBg: '#D1FAE5',
+      iconColor: theme.colors.primary,
+      iconBg: theme.colors.primaryLight,
       icon: 'checkmark-circle-outline' as const,
     },
   ];
@@ -204,7 +205,7 @@ export const InvoiceManagementScreen: React.FC<
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Ionicons name='arrow-back' size={24} color='#222222' />
+            <Ionicons name='arrow-back' size={24} color={theme.colors.textPrimary} />
           </TouchableOpacity>
         ) : (
           <View style={styles.backButton} />
@@ -217,7 +218,7 @@ export const InvoiceManagementScreen: React.FC<
           accessibilityLabel="Create new invoice"
         >
           <View style={styles.addIconWrap}>
-            <Ionicons name='add' size={20} color='#FFFFFF' />
+            <Ionicons name='add' size={20} color={theme.colors.textInverse} />
           </View>
         </TouchableOpacity>
       </View>
@@ -254,14 +255,14 @@ export const InvoiceManagementScreen: React.FC<
       <ScrollView
         style={styles.invoiceList}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#222222" colors={['#222222']} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />
         }
         showsVerticalScrollIndicator={false}
       >
         {filteredInvoices.length === 0 ? (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconWrap}>
-              <Ionicons name='document-outline' size={32} color='#B0B0B0' />
+              <Ionicons name='document-outline' size={32} color={theme.colors.textTertiary} />
             </View>
             <Text style={styles.emptyTitle}>No invoices found</Text>
             <Text style={styles.emptyText}>
@@ -334,7 +335,7 @@ export const InvoiceManagementScreen: React.FC<
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -342,22 +343,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   addButton: {
     padding: 4,
@@ -366,7 +367,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -379,7 +380,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     paddingVertical: 14,
     paddingHorizontal: 10,
@@ -405,12 +406,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   statLabel: {
     fontSize: 11,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
   },
   filtersContainer: {
@@ -426,7 +427,7 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     paddingHorizontal: 18,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
@@ -438,15 +439,15 @@ const styles = StyleSheet.create({
     }),
   },
   filterTabActive: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   filterTabText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   filterTabTextActive: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   invoiceList: {
     flex: 1,
@@ -462,7 +463,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -470,12 +471,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 6,
   },
   emptyText: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 20,
@@ -488,7 +489,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 24,
     padding: 24,
     width: '100%',
@@ -497,12 +498,12 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   modalText: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 20,
     marginBottom: 24,
   },

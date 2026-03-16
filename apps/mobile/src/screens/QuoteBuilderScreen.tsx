@@ -24,6 +24,7 @@ import { QuoteCard } from '../components/QuoteCard';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { Banner } from '../components/ui/Banner';
 import { useToast } from '../components/ui/Toast';
+import { theme } from '../theme';
 
 interface QuoteBuilderScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'QuoteBuilder'>;
@@ -145,15 +146,15 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
 
   const STAT_ITEMS = stats ? [
     { value: String(stats.total_quotes), label: 'Total', iconColor: '#3B82F6', iconBg: '#DBEAFE', icon: 'document-text-outline' as const },
-    { value: String(stats.accepted_quotes), label: 'Accepted', iconColor: '#10B981', iconBg: '#D1FAE5', icon: 'checkmark-circle-outline' as const },
-    { value: `£${stats.total_value.toFixed(0)}`, label: 'Value', iconColor: '#F59E0B', iconBg: '#FEF3C7', icon: 'wallet-outline' as const },
+    { value: String(stats.accepted_quotes), label: 'Accepted', iconColor: theme.colors.primary, iconBg: theme.colors.primaryLight, icon: 'checkmark-circle-outline' as const },
+    { value: `£${stats.total_value.toFixed(0)}`, label: 'Value', iconColor: theme.colors.accent, iconBg: theme.colors.accentLight, icon: 'wallet-outline' as const },
     { value: `${stats.acceptance_rate.toFixed(0)}%`, label: 'Success', iconColor: '#8B5CF6', iconBg: '#EDE9FE', icon: 'trending-up-outline' as const },
   ] : [];
 
   const QUICK_ACTIONS = [
     { icon: 'document-text' as const, label: 'Templates', iconColor: '#3B82F6', iconBg: '#DBEAFE', onPress: () => (navigation.navigate as (...args: unknown[]) => void)('QuoteTemplates') },
     { icon: 'analytics' as const, label: 'Analytics', iconColor: '#8B5CF6', iconBg: '#EDE9FE', onPress: () => setShowAnalytics(prev => !prev) },
-    { icon: 'add-circle' as const, label: 'New Quote', iconColor: '#10B981', iconBg: '#D1FAE5', onPress: () => (navigation.navigate as (...args: unknown[]) => void)('CreateQuote') },
+    { icon: 'add-circle' as const, label: 'New Quote', iconColor: theme.colors.primary, iconBg: theme.colors.primaryLight, onPress: () => (navigation.navigate as (...args: unknown[]) => void)('CreateQuote') },
   ];
 
   if (loading && quotes.length === 0) {
@@ -170,7 +171,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name='arrow-back' size={24} color='#222222' />
+          <Ionicons name='arrow-back' size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Quote Builder</Text>
         <TouchableOpacity
@@ -180,7 +181,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
           accessibilityLabel="Create new quote"
         >
           <View style={styles.addIconWrap}>
-            <Ionicons name='add' size={20} color='#FFFFFF' />
+            <Ionicons name='add' size={20} color={theme.colors.textInverse} />
           </View>
         </TouchableOpacity>
       </View>
@@ -188,7 +189,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
       <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#222222" colors={['#222222']} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -308,7 +309,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
           {quotes.length === 0 ? (
             <View style={styles.emptyState}>
               <View style={styles.emptyIconWrap}>
-                <Ionicons name='document-text-outline' size={32} color='#B0B0B0' />
+                <Ionicons name='document-text-outline' size={32} color={theme.colors.textTertiary} />
               </View>
               <Text style={styles.emptyTitle}>No quotes found</Text>
               <Text style={styles.emptyText}>
@@ -351,7 +352,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -359,22 +360,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   addButton: {
     padding: 4,
@@ -383,7 +384,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -392,7 +393,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   statsCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginTop: 16,
@@ -410,7 +411,7 @@ const styles = StyleSheet.create({
   statsTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   statsGrid: {
@@ -432,12 +433,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   statLabel: {
     fontSize: 11,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
   },
   filterContainer: {
@@ -447,7 +448,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   filterChip: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -462,15 +463,15 @@ const styles = StyleSheet.create({
     }),
   },
   filterChipActive: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   filterText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '600',
   },
   filterTextActive: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   actionsContainer: {
     flexDirection: 'row',
@@ -479,7 +480,7 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 14,
     alignItems: 'center',
@@ -503,7 +504,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 12,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '600',
   },
   quotesContainer: {
@@ -512,7 +513,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   emptyState: {
@@ -524,7 +525,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -532,30 +533,30 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 6,
   },
   emptyText: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
     paddingHorizontal: 32,
     lineHeight: 20,
   },
   createButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 28,
   },
   createButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 15,
     fontWeight: '700',
   },
   analyticsPanel: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     marginBottom: 14,
     borderRadius: 16,
     padding: 16,
@@ -572,7 +573,7 @@ const styles = StyleSheet.create({
   analyticsTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   analyticsRow: {
@@ -586,11 +587,11 @@ const styles = StyleSheet.create({
   analyticsValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   analyticsLabel: {
     fontSize: 11,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 2,
     textAlign: 'center',
   },

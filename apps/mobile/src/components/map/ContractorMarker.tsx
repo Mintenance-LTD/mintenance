@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, View, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../theme';
 
 interface ContractorMarkerProps {
   contractor: {
@@ -33,14 +34,14 @@ export const ContractorMarker: React.FC<ContractorMarkerProps> = ({
           size={20}
           color={
             isSelected
-              ? '#FFFFFF'
-              : '#222222'
+              ? theme.colors.textInverse
+              : theme.colors.textPrimary
           }
         />
       </View>
       {contractor.verified && (
         <View style={styles.verifiedBadge}>
-          <Ionicons name='checkmark' size={8} color='#FFFFFF' />
+          <Ionicons name='checkmark' size={8} color={theme.colors.textInverse} />
         </View>
       )}
     </TouchableOpacity>
@@ -55,11 +56,11 @@ const styles = {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     borderWidth: 2,
-    borderColor: '#222222',
+    borderColor: theme.colors.textPrimary,
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
@@ -74,7 +75,7 @@ const styles = {
   },
   selectedMarker: {
     transform: [{ scale: 1.2 }],
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   verifiedBadge: {
     position: 'absolute' as const,
@@ -83,10 +84,10 @@ const styles = {
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: theme.colors.surface,
   },
 };

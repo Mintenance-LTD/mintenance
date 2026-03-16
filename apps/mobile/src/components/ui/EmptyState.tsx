@@ -4,6 +4,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../theme';
 
 interface EmptyStateProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -24,7 +25,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 }) => (
   <View style={[styles.container, style]}>
     <View style={styles.iconWrap}>
-      <Ionicons name={icon} size={48} color="#B0B0B0" />
+      <Ionicons name={icon} size={48} color={theme.colors.textTertiary} />
     </View>
     <Text style={styles.title}>{title}</Text>
     {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
@@ -47,33 +48,33 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginTop: 16,
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 20,
   },
   ctaButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 28,
   },
   ctaText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 15,
     fontWeight: '600',
   },

@@ -15,6 +15,7 @@ import { useNetworkState } from '../hooks/useNetworkState';
 import OfflineSyncStatus from './OfflineSyncStatus';
 import { Job } from '@mintenance/types';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 interface JobListOfflineProps {
   onJobPress?: (job: Job) => void;
@@ -123,9 +124,9 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
             size={16}
             color={
               job.priority === 'high'
-                ? '#EF4444'
+                ? theme.colors.error
                 : job.priority === 'medium'
-                  ? '#F59E0B'
+                  ? theme.colors.accent
                   : '#3B82F6'
             }
           />
@@ -141,7 +142,7 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
           <Ionicons
             name='location-outline'
             size={14}
-            color="#717171"
+            color={theme.colors.textSecondary}
           />
           <Text style={styles.jobLocationText}>{typeof job.location === 'string' ? job.location : 'Unknown location'}</Text>
         </View>
@@ -155,7 +156,7 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
       <Ionicons
         name={isOnline ? 'briefcase-outline' : 'cloud-offline-outline'}
         size={64}
-        color="#B0B0B0"
+        color={theme.colors.textTertiary}
       />
       <Text style={styles.emptyStateTitle}>
         {isOnline ? 'No Jobs Available' : 'Showing Cached Jobs'}
@@ -170,7 +171,7 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
           <Ionicons
             name='information-circle-outline'
             size={16}
-            color="#F59E0B"
+            color={theme.colors.accent}
           />
           <Text style={styles.offlineText}>You are currently offline</Text>
         </View>
@@ -183,7 +184,7 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
       <Ionicons
         name='alert-circle-outline'
         size={64}
-        color="#EF4444"
+        color={theme.colors.error}
       />
       <Text style={styles.errorTitle}>Failed to Load Jobs</Text>
       <Text style={styles.errorMessage}>
@@ -211,7 +212,7 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
               <Ionicons
                 name='cellular'
                 size={16}
-                color="#F59E0B"
+                color={theme.colors.accent}
               />
               <Text style={styles.connectionText}>Slow</Text>
             </View>
@@ -225,7 +226,7 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
               <Ionicons
                 name='add-circle-outline'
                 size={24}
-                color="#222222"
+                color={theme.colors.textPrimary}
               />
             </TouchableOpacity>
           )}
@@ -243,8 +244,8 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
             <RefreshControl
               refreshing={isLoading}
               onRefresh={() => { handleRefresh(); }}
-              colors={['#222222']}
-              tintColor="#222222"
+              colors={[theme.colors.textPrimary]}
+              tintColor={theme.colors.textPrimary}
             />
           }
           ListEmptyComponent={renderEmptyState}
@@ -269,7 +270,7 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -278,12 +279,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   headerRight: {
     flexDirection: 'row',
@@ -297,14 +298,14 @@ const styles = StyleSheet.create({
   },
   connectionText: {
     fontSize: 12,
-    color: '#F59E0B',
+    color: theme.colors.accent,
     fontWeight: '500',
   },
   createButton: {
     padding: 4,
   },
   jobItem: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     padding: 16,
     marginHorizontal: 16,
     marginVertical: 8,
@@ -331,7 +332,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginRight: 8,
   },
   jobPriority: {
@@ -339,7 +340,7 @@ const styles = StyleSheet.create({
   },
   jobDescription: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 20,
     marginBottom: 12,
   },
@@ -356,12 +357,12 @@ const styles = StyleSheet.create({
   },
   jobLocationText: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   jobBudget: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   emptyContainer: {
     flexGrow: 1,
@@ -375,13 +376,13 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyStateMessage: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -392,12 +393,12 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.colors.accentLight,
     borderRadius: 12,
   },
   offlineText: {
     fontSize: 13,
-    color: '#F59E0B',
+    color: theme.colors.accent,
     fontWeight: '500',
   },
   errorState: {
@@ -409,13 +410,13 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginTop: 16,
     marginBottom: 8,
   },
   errorMessage: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 16,
@@ -423,20 +424,20 @@ const styles = StyleSheet.create({
   retryButton: {
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 12,
   },
   retryButtonText: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   creatingOverlay: {
     position: 'absolute',
     bottom: 16,
     left: 16,
     right: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
@@ -454,7 +455,7 @@ const styles = StyleSheet.create({
   },
   creatingText: {
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     textAlign: 'center',
   },
 });

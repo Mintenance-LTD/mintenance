@@ -5,6 +5,7 @@ import {
   Easing,
   PanResponder,
 } from 'react-native';
+import { theme } from '../../../theme';
 
 export type AnimationType = 'fadeIn' | 'fadeOut' | 'slideUp' | 'slideDown' | 'slideLeft' | 'slideRight' | 'scaleIn' | 'scaleOut' | 'bounceIn' | 'pulse' | 'shake' | 'rotate';
 export type EasingType = 'linear' | 'ease' | 'easeIn' | 'easeOut' | 'easeInOut' | 'bounce' | 'spring';

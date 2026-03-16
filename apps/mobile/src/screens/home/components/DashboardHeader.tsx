@@ -11,6 +11,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 
 interface DashboardHeaderProps {
   userName: string;
@@ -54,7 +55,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             <Ionicons
               name="person"
               size={24}
-              color="#717171"
+              color={theme.colors.textSecondary}
             />
           </View>
         </TouchableOpacity>
@@ -77,7 +78,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           <Ionicons
             name="notifications-outline"
             size={24}
-            color="#222222"
+            color={theme.colors.textPrimary}
           />
           {unreadNotifications > 0 && (
             <View style={styles.badge} accessible={false}>
@@ -98,7 +99,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           <Ionicons
             name="settings-outline"
             size={24}
-            color="#222222"
+            color={theme.colors.textPrimary}
           />
         </TouchableOpacity>
       </View>
@@ -113,7 +114,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   userInfo: {
     flexDirection: 'row',
@@ -127,7 +128,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -136,18 +137,18 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '400',
   },
   userName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginTop: 2,
   },
   roleText: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
     marginTop: 1,
   },
@@ -159,7 +160,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
@@ -169,7 +170,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -2,
     right: -2,
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.colors.error,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -178,7 +179,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   badgeText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 12,
     fontWeight: '600',
   },

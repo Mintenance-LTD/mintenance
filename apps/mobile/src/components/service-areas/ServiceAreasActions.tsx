@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../theme';
 
 export const ServiceAreasActions: React.FC = () => {
   return (
@@ -14,7 +15,7 @@ export const ServiceAreasActions: React.FC = () => {
         <Ionicons
           name='analytics'
           size={24}
-          color="#717171"
+          color={theme.colors.textSecondary}
         />
         <Text style={styles.actionButtonText}>View Analytics</Text>
       </TouchableOpacity>
@@ -23,7 +24,7 @@ export const ServiceAreasActions: React.FC = () => {
         style={styles.actionButton}
         onPress={() => Alert.alert('Coming Soon', 'Route optimisation features will be available in the next update.')}
       >
-        <Ionicons name='map' size={24} color="#717171" />
+        <Ionicons name='map' size={24} color={theme.colors.textSecondary} />
         <Text style={styles.actionButtonText}>Route Planning</Text>
       </TouchableOpacity>
 
@@ -34,7 +35,7 @@ export const ServiceAreasActions: React.FC = () => {
         <Ionicons
           name='location'
           size={24}
-          color="#717171"
+          color={theme.colors.textSecondary}
         />
         <Text style={styles.actionButtonText}>Coverage Map</Text>
       </TouchableOpacity>
@@ -44,7 +45,7 @@ export const ServiceAreasActions: React.FC = () => {
 
 const styles = StyleSheet.create({
   actionsContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 32,
@@ -63,7 +64,7 @@ const styles = StyleSheet.create({
   actionsTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 16,
   },
   actionButton: {
@@ -72,12 +73,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     marginBottom: 8,
   },
   actionButtonText: {
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginLeft: 12,
     fontWeight: '500',
   },

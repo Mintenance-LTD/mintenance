@@ -7,6 +7,7 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 
 interface QuoteHeaderProps {
   projectTitle: string;
@@ -29,7 +30,7 @@ export const QuoteHeader: React.FC<QuoteHeaderProps> = ({
     <View style={styles.container}>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionIconWrap}>
-          <Ionicons name="document-text" size={16} color="#10B981" />
+          <Ionicons name="document-text" size={16} color={theme.colors.primary} />
         </View>
         <Text style={styles.sectionTitle}>Project Details</Text>
       </View>
@@ -41,14 +42,14 @@ export const QuoteHeader: React.FC<QuoteHeaderProps> = ({
           value={projectTitle}
           onChangeText={setProjectTitle}
           placeholder="e.g. Bathroom Renovation Quote"
-          placeholderTextColor="#B0B0B0"
+          placeholderTextColor={theme.colors.textTertiary}
           accessibilityLabel="Project title"
         />
       </View>
 
       <TouchableOpacity style={styles.templateButton} onPress={onTemplatePress}>
         <View style={styles.templateIconWrap}>
-          <Ionicons name="copy-outline" size={18} color="#10B981" />
+          <Ionicons name="copy-outline" size={18} color={theme.colors.primary} />
         </View>
         <View style={styles.templateButtonText}>
           <Text style={styles.templateButtonLabel}>Quote Template</Text>
@@ -56,7 +57,7 @@ export const QuoteHeader: React.FC<QuoteHeaderProps> = ({
             {selectedTemplateName || 'Choose a template (optional)'}
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={18} color="#B0B0B0" />
+        <Ionicons name="chevron-forward" size={18} color={theme.colors.textTertiary} />
       </TouchableOpacity>
     </View>
   );
@@ -64,7 +65,7 @@ export const QuoteHeader: React.FC<QuoteHeaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 20,
     padding: 20,
     marginBottom: 12,
@@ -83,14 +84,14 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     letterSpacing: -0.2,
   },
   inputGroup: {
@@ -99,35 +100,35 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   textInput: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 14,
     padding: 14,
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     borderWidth: 1,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.border,
   },
   templateButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.border,
     gap: 12,
   },
   templateIconWrap: {
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -136,7 +137,7 @@ const styles = StyleSheet.create({
   },
   templateButtonLabel: {
     fontSize: 11,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
@@ -144,7 +145,7 @@ const styles = StyleSheet.create({
   },
   templateButtonValue: {
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '500',
   },
 });

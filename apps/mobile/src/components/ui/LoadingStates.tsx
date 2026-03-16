@@ -10,6 +10,7 @@ import {
   DimensionValue,
   Platform,
 } from 'react-native';
+import { theme } from '../../theme';
 
 export interface LoadingProps {
   size?: 'small' | 'large';
@@ -179,28 +180,28 @@ const styles = StyleSheet.create({
   overlayContainer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255, 255, 255, 0.9)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
   fullScreenOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center', zIndex: 9999 },
   overlayContent: {
-    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 24, alignItems: 'center', minWidth: 120,
+    backgroundColor: theme.colors.surface, borderRadius: 16, padding: 24, alignItems: 'center', minWidth: 120,
     ...Platform.select({ ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8 }, android: { elevation: 8 } }),
   },
-  loadingText: { marginTop: 8, fontSize: 13, color: '#717171', textAlign: 'center' },
-  overlayText: { marginTop: 16, fontSize: 15, color: '#222222', fontWeight: '500' },
+  loadingText: { marginTop: 8, fontSize: 13, color: theme.colors.textSecondary, textAlign: 'center' },
+  overlayText: { marginTop: 16, fontSize: 15, color: theme.colors.textPrimary, fontWeight: '500' },
   inlineLoader: { marginHorizontal: 8 },
-  skeletonBase: { backgroundColor: '#F7F7F7', overflow: 'hidden' },
-  shimmer: { ...StyleSheet.absoluteFillObject, backgroundColor: '#EBEBEB' },
+  skeletonBase: { backgroundColor: theme.colors.backgroundSecondary, overflow: 'hidden' },
+  shimmer: { ...StyleSheet.absoluteFillObject, backgroundColor: theme.colors.border },
   skeletonCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, marginBottom: 8,
+    backgroundColor: theme.colors.surface, borderRadius: 12, padding: 16, marginBottom: 8,
     ...Platform.select({ ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 }, android: { elevation: 1 } }),
   },
   skeletonHeader: { flexDirection: 'row', marginBottom: 16 },
   skeletonHeaderText: { flex: 1 },
-  skeletonSeparator: { height: 1, backgroundColor: '#EBEBEB', marginVertical: 8 },
+  skeletonSeparator: { height: 1, backgroundColor: theme.colors.border, marginVertical: 8 },
   skeletonStatsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
   skeletonStatCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, width: (screenWidth - 80) / 3,
+    backgroundColor: theme.colors.surface, borderRadius: 12, padding: 16, width: (screenWidth - 80) / 3,
     ...Platform.select({ ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 }, android: { elevation: 1 } }),
   },
   skeletonProfileStats: {
-    flexDirection: 'row', justifyContent: 'space-around', backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, marginBottom: 20,
+    flexDirection: 'row', justifyContent: 'space-around', backgroundColor: theme.colors.surface, borderRadius: 12, padding: 16, marginBottom: 20,
     ...Platform.select({ ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 }, android: { elevation: 1 } }),
   },
 });

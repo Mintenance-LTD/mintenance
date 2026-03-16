@@ -8,6 +8,7 @@ import {
   Animated,
   Platform,
 } from 'react-native';
+import { theme } from '../../../theme';
 
 export type CardVariant = 'elevated' | 'outlined' | 'filled';
 export type CardPadding = 'none' | 'sm' | 'md' | 'lg' | 'xl';
@@ -107,11 +108,11 @@ const getCardStyles = (variant: CardVariant, padding: CardPadding, disabled: boo
 
   switch (variant) {
     case 'elevated':
-      return { ...baseStyle, backgroundColor: '#FFFFFF', ...shadow, opacity: disabled ? 0.5 : 1 };
+      return { ...baseStyle, backgroundColor: theme.colors.surface, ...shadow, opacity: disabled ? 0.5 : 1 };
     case 'outlined':
-      return { ...baseStyle, backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: '#EBEBEB', opacity: disabled ? 0.5 : 1 };
+      return { ...baseStyle, backgroundColor: theme.colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.colors.border, opacity: disabled ? 0.5 : 1 };
     case 'filled':
-      return { ...baseStyle, backgroundColor: isPressed ? '#EBEBEB' : '#F7F7F7', opacity: disabled ? 0.5 : 1 };
+      return { ...baseStyle, backgroundColor: isPressed ? '#EBEBEB' : theme.colors.backgroundSecondary, opacity: disabled ? 0.5 : 1 };
     default:
       return baseStyle;
   }

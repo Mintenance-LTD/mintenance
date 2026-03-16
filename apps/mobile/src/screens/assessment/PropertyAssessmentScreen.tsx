@@ -19,6 +19,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import VideoListItem from '../../components/video/VideoListItem';
 import VideoService from '../../services/VideoService';
 import { logger } from '@mintenance/shared';
+import { theme } from '../../theme';
 import { AssessmentStep, AssessmentVideo, AssessmentResults } from './types';
 import { AssessmentHeader } from './components/AssessmentHeader';
 import { ProgressBar } from './components/ProgressBar';
@@ -190,7 +191,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Captured Videos</Text>
               <TouchableOpacity onPress={handleStartVideoCapture}>
-                <Icon name="add-circle" size={24} color="#717171" />
+                <Icon name="add-circle" size={24} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             </View>
             {capturedVideos.map(video => (
@@ -226,7 +227,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
               multiline
               numberOfLines={5}
               placeholder="Add your observations, context, or notes about the property..."
-              placeholderTextColor="#B0B0B0"
+              placeholderTextColor={theme.colors.textTertiary}
               value={manualNotes}
               onChangeText={(text) => {
                 setManualNotes(text);
@@ -280,7 +281,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   content: {
     padding: 16,
@@ -291,7 +292,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 16,
   },
   videosSection: {
@@ -304,7 +305,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   notesSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 24,
@@ -314,15 +315,15 @@ const styles = StyleSheet.create({
     }),
   },
   notesInput: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     padding: 12,
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     minHeight: 120,
   },
   reviewSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 24,
@@ -336,28 +337,28 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   reviewLabel: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   reviewValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     maxWidth: '60%',
     textAlign: 'right',
   },
   submitButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 28,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 16,
   },
   submitButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '700',
   },

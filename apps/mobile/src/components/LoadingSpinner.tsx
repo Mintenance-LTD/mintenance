@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { theme } from '../theme';
 
 interface LoadingSpinnerProps {
   message?: string;
@@ -33,7 +34,7 @@ export const FullScreenLoading: React.FC<FullScreenLoadingProps> = ({
 }) => {
   return (
     <View style={styles.fullScreenContainer}>
-      <ActivityIndicator size='large' color='#222222' />
+      <ActivityIndicator size='large' color={theme.colors.textPrimary} />
       <Text style={styles.fullScreenMessage}>{message}</Text>
     </View>
   );
@@ -54,12 +55,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   fullScreenMessage: {
     marginTop: 20,
     fontSize: 16,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
   },
 });

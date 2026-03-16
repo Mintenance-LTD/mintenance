@@ -1,5 +1,6 @@
 import React from 'react';
 import { Text, TextStyle, StyleSheet } from 'react-native';
+import { theme } from '../../../theme';
 
 export type TypographyVariant =
   | 'display1' | 'display2'
@@ -30,12 +31,12 @@ export interface TypographyProps {
 }
 
 const COLOR_MAP: Record<TypographyColor, string> = {
-  primary: '#222222',
-  secondary: '#717171',
-  tertiary: '#B0B0B0',
-  quaternary: '#EBEBEB',
-  inverse: '#FFFFFF',
-  disabled: '#B0B0B0',
+  primary: theme.colors.textPrimary,
+  secondary: theme.colors.textSecondary,
+  tertiary: theme.colors.textTertiary,
+  quaternary: theme.colors.border,
+  inverse: theme.colors.textInverse,
+  disabled: theme.colors.textTertiary,
   success: '#065F46',
   error: '#991B1B',
   warning: '#92400E',
@@ -56,7 +57,7 @@ const VARIANT_STYLES: Record<TypographyVariant, TextStyle> = {
   body1: { fontSize: 15, fontWeight: '400', lineHeight: 24 },
   body2: { fontSize: 13, fontWeight: '400', lineHeight: 20 },
   button: { fontSize: 15, fontWeight: '600', lineHeight: 15, letterSpacing: 0.025 },
-  caption: { fontSize: 12, fontWeight: '400', lineHeight: 18, color: '#717171' },
+  caption: { fontSize: 12, fontWeight: '400', lineHeight: 18, color: theme.colors.textSecondary },
   overline: { fontSize: 12, fontWeight: '600', lineHeight: 18, letterSpacing: 0.05 },
 };
 

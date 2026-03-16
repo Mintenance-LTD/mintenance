@@ -7,6 +7,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 
 interface StepConfig {
   label: string;
@@ -71,10 +72,10 @@ const StepCircle: React.FC<StepCircleProps> = ({ step, state }) => {
   ];
 
   const iconColor = isCompleted
-    ? '#FFFFFF'
+    ? theme.colors.textInverse
     : isActive
-      ? '#222222'
-      : '#B0B0B0';
+      ? theme.colors.textPrimary
+      : theme.colors.textTertiary;
 
   const labelStyle = [
     styles.label,
@@ -85,7 +86,7 @@ const StepCircle: React.FC<StepCircleProps> = ({ step, state }) => {
     <View style={styles.stepContainer}>
       <View style={circleStyle}>
         {isCompleted ? (
-          <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+          <Ionicons name="checkmark" size={16} color={theme.colors.textInverse} />
         ) : (
           <Ionicons name={step.icon} size={14} color={iconColor} />
         )}
@@ -146,7 +147,7 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   stepsRow: {
     flexDirection: 'row',
@@ -165,24 +166,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   circleCompleted: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   circleActive: {
     backgroundColor: 'rgba(34,34,34,0.1)',
     borderWidth: 2,
-    borderColor: '#222222',
+    borderColor: theme.colors.textPrimary,
   },
   circleFuture: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   label: {
     fontSize: 10,
     textAlign: 'center',
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginTop: 4,
   },
   labelActive: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '600',
   },
   connector: {
@@ -192,9 +193,9 @@ const styles = StyleSheet.create({
     marginHorizontal: -2,
   },
   connectorCompleted: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   connectorFuture: {
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
   },
 });

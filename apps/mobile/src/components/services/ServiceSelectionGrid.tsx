@@ -8,6 +8,7 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
+import { theme } from '../../theme';
 
 const { width: screenWidth } = Dimensions.get('window');
 const cardWidth = (screenWidth - 48) / 2; // 2 columns with margins
@@ -175,12 +176,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 6,
   },
   subtitle: {
     fontSize: 15,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   seeAllButton: {
     paddingHorizontal: 16,
@@ -188,7 +189,7 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '600',
   },
   scrollView: {
@@ -213,7 +214,7 @@ const styles = StyleSheet.create({
     marginLeft: 0,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     ...Platform.select({
@@ -233,7 +234,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 16,
     right: 16,
-    backgroundColor: '#F59E0B',
+    backgroundColor: theme.colors.accent,
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 6,
@@ -241,7 +242,7 @@ const styles = StyleSheet.create({
   popularText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   iconContainer: {
     width: 50,
@@ -261,19 +262,19 @@ const styles = StyleSheet.create({
   serviceName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   serviceDescription: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     lineHeight: 13 * 1.4,
   },
   cardFooter: {
     alignItems: 'flex-start',
   },
   selectButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 16,
@@ -281,7 +282,7 @@ const styles = StyleSheet.create({
   selectButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 
   // Special Offers Styles
@@ -290,7 +291,7 @@ const styles = StyleSheet.create({
   },
   offerCard: {
     width: screenWidth * 0.8,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 16,
     padding: 20,
     marginRight: 16,
@@ -308,33 +309,33 @@ const styles = StyleSheet.create({
   },
   discountText: {
     fontSize: 13,
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     opacity: 0.8,
   },
   discountValue: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   offerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     marginBottom: 6,
   },
   offerDescription: {
     fontSize: 13,
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     opacity: 0.9,
     marginBottom: 8,
   },
   validUntil: {
     fontSize: 12,
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     opacity: 0.7,
   },
   claimButton: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderRadius: 16,
@@ -342,6 +343,6 @@ const styles = StyleSheet.create({
   claimButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
 });

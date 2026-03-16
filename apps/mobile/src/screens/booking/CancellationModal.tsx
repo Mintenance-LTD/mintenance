@@ -18,6 +18,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Booking } from './BookingStatusScreen';
 import { useHaptics } from '../../utils/haptics';
+import { theme } from '../../theme';
 
 interface CancellationModalProps {
   visible: boolean;
@@ -88,7 +89,7 @@ export const CancellationModal: React.FC<CancellationModalProps> = ({
               accessibilityRole="button"
               accessibilityLabel="Close modal"
             >
-              <Ionicons name="close" size={24} color="#717171" />
+              <Ionicons name="close" size={24} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -123,7 +124,7 @@ export const CancellationModal: React.FC<CancellationModalProps> = ({
                   {reason.reason}
                 </Text>
                 {selectedReason === reason.id && (
-                  <Ionicons name="checkmark" size={20} color="#222222" />
+                  <Ionicons name="checkmark" size={20} color={theme.colors.textPrimary} />
                 )}
               </TouchableOpacity>
             ))}
@@ -137,7 +138,7 @@ export const CancellationModal: React.FC<CancellationModalProps> = ({
                 value={customReason}
                 onChangeText={setCustomReason}
                 placeholder="Enter your reason..."
-                placeholderTextColor="#B0B0B0"
+                placeholderTextColor={theme.colors.textTertiary}
                 multiline
                 numberOfLines={3}
                 textAlignVertical="top"
@@ -171,7 +172,7 @@ export const CancellationModal: React.FC<CancellationModalProps> = ({
               accessibilityHint='Double tap to confirm cancellation of your booking'
             >
               {cancelling ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color={theme.colors.textInverse} />
               ) : (
                 <Text style={styles.confirmButtonText}>Cancel Booking</Text>
               )}
@@ -192,7 +193,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modal: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 20,
     width: '100%',
     maxHeight: '80%',
@@ -208,12 +209,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   closeButton: {
     padding: 4,
@@ -221,22 +222,22 @@ const styles = StyleSheet.create({
   bookingInfo: {
     padding: 20,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   serviceName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   bookingDate: {
     fontSize: 13,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   reasonLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     padding: 20,
     paddingBottom: 12,
   },
@@ -252,17 +253,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 12,
     marginBottom: 8,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   selectedReasonItem: {
     backgroundColor: '#DBEAFE',
   },
   reasonText: {
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   selectedReasonText: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '600',
   },
   customReasonContainer: {
@@ -272,15 +273,15 @@ const styles = StyleSheet.create({
   customReasonLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   customReasonInput: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     padding: 14,
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   actions: {
     flexDirection: 'row',
@@ -289,7 +290,7 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     paddingVertical: 14,
     borderRadius: 28,
     alignItems: 'center',
@@ -297,21 +298,21 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   confirmButton: {
     flex: 1,
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.colors.error,
     paddingVertical: 14,
     borderRadius: 28,
     alignItems: 'center',
   },
   disabledButton: {
-    backgroundColor: '#B0B0B0',
+    backgroundColor: theme.colors.textTertiary,
   },
   confirmButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 });

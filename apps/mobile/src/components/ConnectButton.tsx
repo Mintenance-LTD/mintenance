@@ -13,6 +13,7 @@ import { MutualConnectionsService } from '../services/MutualConnectionsService';
 import { ConnectionStatus } from '@mintenance/types';
 import { logger } from '../utils/logger';
 import { useHaptics } from '../utils/haptics';
+import { theme } from '../theme';
 
 interface ConnectButtonProps {
   currentUserId: string;
@@ -123,8 +124,8 @@ const ConnectButton: React.FC<ConnectButtonProps> = ({
       return {
         text: '',
         icon: null,
-        backgroundColor: '#F7F7F7',
-        textColor: '#717171',
+        backgroundColor: theme.colors.backgroundSecondary,
+        textColor: theme.colors.textSecondary,
         onPress: () => {},
         disabled: true,
       };
@@ -135,8 +136,8 @@ const ConnectButton: React.FC<ConnectButtonProps> = ({
         return {
           text: 'Connected',
           icon: 'checkmark-circle' as const,
-          backgroundColor: '#222222',
-          textColor: '#FFFFFF',
+          backgroundColor: theme.colors.textPrimary,
+          textColor: theme.colors.textInverse,
           onPress: () => {
             Alert.alert(
               'Connected',
@@ -150,8 +151,8 @@ const ConnectButton: React.FC<ConnectButtonProps> = ({
         return {
           text: 'Pending',
           icon: 'time' as const,
-          backgroundColor: '#F7F7F7',
-          textColor: '#717171',
+          backgroundColor: theme.colors.backgroundSecondary,
+          textColor: theme.colors.textSecondary,
           onPress: handleCancelRequest,
           disabled: false,
         };
@@ -159,8 +160,8 @@ const ConnectButton: React.FC<ConnectButtonProps> = ({
         return {
           text: 'Blocked',
           icon: 'ban' as const,
-          backgroundColor: '#F7F7F7',
-          textColor: '#EF4444',
+          backgroundColor: theme.colors.backgroundSecondary,
+          textColor: theme.colors.error,
           onPress: () => {},
           disabled: true,
         };
@@ -168,8 +169,8 @@ const ConnectButton: React.FC<ConnectButtonProps> = ({
         return {
           text: 'Connect',
           icon: 'person-add' as const,
-          backgroundColor: '#222222',
-          textColor: '#FFFFFF',
+          backgroundColor: theme.colors.textPrimary,
+          textColor: theme.colors.textInverse,
           onPress: handleSendRequest,
           disabled: false,
         };

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { theme } from '../../theme';
 
 interface BudgetRangeSliderProps {
   minValue: string;
@@ -27,7 +28,7 @@ export const BudgetRangeSlider: React.FC<BudgetRangeSliderProps> = ({
           onChangeText={onMinChange}
           keyboardType="numeric"
           placeholder="Min"
-          placeholderTextColor="#B0B0B0"
+          placeholderTextColor={theme.colors.textTertiary}
           accessibilityLabel="Minimum budget"
         />
       </View>
@@ -42,7 +43,7 @@ export const BudgetRangeSlider: React.FC<BudgetRangeSliderProps> = ({
           onChangeText={onMaxChange}
           keyboardType="numeric"
           placeholder="Max"
-          placeholderTextColor="#B0B0B0"
+          placeholderTextColor={theme.colors.textTertiary}
           accessibilityLabel="Maximum budget"
         />
       </View>
@@ -60,7 +61,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   row: {
@@ -72,7 +73,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -80,13 +81,13 @@ const styles = StyleSheet.create({
   prefix: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginRight: 4,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     padding: 0,
   },
   separator: {
@@ -96,12 +97,12 @@ const styles = StyleSheet.create({
   dash: {
     width: 12,
     height: 2,
-    backgroundColor: '#B0B0B0',
+    backgroundColor: theme.colors.textTertiary,
     borderRadius: 1,
   },
   errorText: {
     fontSize: 12,
-    color: '#EF4444',
+    color: theme.colors.error,
     marginTop: 4,
   },
 });

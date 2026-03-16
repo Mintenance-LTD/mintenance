@@ -9,6 +9,7 @@ import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Booking } from './BookingStatusScreen';
 import { BookingCard } from './BookingCard';
+import { theme } from '../../theme';
 
 interface BookingListProps {
   bookings: Booking[];
@@ -50,7 +51,7 @@ export const BookingList: React.FC<BookingListProps> = ({
       ListEmptyComponent={
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconWrap}>
-            <Ionicons name="calendar-outline" size={32} color="#717171" accessible={false} />
+            <Ionicons name="calendar-outline" size={32} color={theme.colors.textSecondary} accessible={false} />
           </View>
           <Text style={styles.emptyTitle}>No bookings found</Text>
           <Text style={styles.emptySubtitle}>
@@ -65,7 +66,7 @@ export const BookingList: React.FC<BookingListProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   contentContainer: {
     padding: 16,
@@ -83,7 +84,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -91,12 +92,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 6,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
   },

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useResponsive, useSidebarLayout } from '../../hooks/useResponsive';
 import { useAuth } from '../../contexts/AuthContext';
+import { theme } from '../../theme';
 
 interface NavigationItem {
   key: string;
@@ -112,7 +113,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
                   <Ionicons
                     name={item.icon}
                     size={20}
-                    color={isActive ? '#222222' : '#717171'}
+                    color={isActive ? theme.colors.textPrimary : theme.colors.textSecondary}
                   />
                   <Text
                     style={[
@@ -159,7 +160,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
                 <Ionicons
                   name={item.icon}
                   size={24}
-                  color={isActive ? '#222222' : '#717171'}
+                  color={isActive ? theme.colors.textPrimary : theme.colors.textSecondary}
                 />
                 {item.badge && item.badge > 0 && (
                   <View style={styles.tabBadge}>
@@ -209,7 +210,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   content: {
     flex: 1,
@@ -221,20 +222,20 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     bottom: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRightWidth: StyleSheet.hairlineWidth,
-    borderRightColor: '#EBEBEB',
+    borderRightColor: theme.colors.border,
     zIndex: 1000,
   },
   sidebarHeader: {
     padding: 24,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   appTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 16,
   },
   userInfo: {
@@ -243,11 +244,11 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   userRole: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textTransform: 'capitalize',
   },
   sidebarNav: {
@@ -271,10 +272,10 @@ const styles = StyleSheet.create({
   sidebarItemText: {
     flex: 1,
     fontSize: 16,
-    color: '#717171',
+    color: theme.colors.textSecondary,
   },
   sidebarItemTextActive: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '600',
   },
 
@@ -285,9 +286,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#EBEBEB',
+    borderTopColor: theme.colors.border,
     paddingTop: 8,
     paddingHorizontal: 4,
   },
@@ -303,17 +304,17 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 12,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
   },
   tabTextActive: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '600',
   },
 
   // Badge styles
   badge: {
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.colors.error,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -322,7 +323,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   badgeText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -330,7 +331,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -6,
     right: -6,
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.colors.error,
     borderRadius: 8,
     minWidth: 16,
     height: 16,
@@ -339,7 +340,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   tabBadgeText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 10,
     fontWeight: '600',
   },

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ErrorBoundary } from './ErrorBoundary';
 import { logger } from '../utils/logger';
 import { captureException } from '../config/sentry';
+import { theme } from '../theme';
 
 interface AsyncErrorBoundaryProps {
   children: React.ReactNode;
@@ -61,7 +62,7 @@ export const AsyncErrorBoundary: React.FC<AsyncErrorBoundaryProps> = ({
   const renderAsyncErrorFallback = (error: Error, resetError: () => void) => (
     <View style={styles.container}>
       <View style={styles.iconContainer}>
-        <Ionicons name='alert-circle-outline' size={54} color='#EF4444' />
+        <Ionicons name='alert-circle-outline' size={54} color={theme.colors.error} />
       </View>
 
       <Text style={styles.title}>Operation Failed</Text>
@@ -81,14 +82,14 @@ export const AsyncErrorBoundary: React.FC<AsyncErrorBoundaryProps> = ({
           <Ionicons
             name='hourglass-outline'
             size={16}
-            color='#FFFFFF'
+            color={theme.colors.textInverse}
             style={styles.buttonIcon}
           />
         ) : (
           <Ionicons
             name='refresh'
             size={16}
-            color='#FFFFFF'
+            color={theme.colors.textInverse}
             style={styles.buttonIcon}
           />
         )}
@@ -125,7 +126,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   iconContainer: {
     marginBottom: 16,
@@ -133,20 +134,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
     textAlign: 'center',
   },
   message: {
     fontSize: 16,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 22,
     paddingHorizontal: 16,
   },
   retryButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 28,
@@ -155,10 +156,10 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   retryButtonDisabled: {
-    backgroundColor: '#B0B0B0',
+    backgroundColor: theme.colors.textTertiary,
   },
   retryButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -166,7 +167,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   debugInfo: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     padding: 12,
     borderRadius: 12,
     marginTop: 16,
@@ -175,7 +176,7 @@ const styles = StyleSheet.create({
   },
   debugText: {
     fontSize: 11,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     fontFamily: 'monospace',
     marginBottom: 4,
   },

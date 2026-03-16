@@ -8,6 +8,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Image, ImageContentFit, ImageTransition } from 'expo-image';
+import { theme } from '../../theme';
 
 // ============================================================================
 // TYPES
@@ -280,13 +281,13 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   placeholder: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   placeholderText: {
     fontSize: 24,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
   loading: {
     backgroundColor: 'rgba(243, 244, 246, 0.6)',
@@ -302,19 +303,19 @@ const styles = StyleSheet.create({
   errorIcon: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#EF4444',
+    color: theme.colors.error,
     width: 28,
     height: 28,
     lineHeight: 28,
     textAlign: 'center',
     borderWidth: 2,
-    borderColor: '#EF4444',
+    borderColor: theme.colors.error,
     borderRadius: 14,
     marginBottom: 4,
   },
   errorMessage: {
     fontSize: 12,
-    color: '#EF4444',
+    color: theme.colors.error,
     textAlign: 'center',
   },
 });

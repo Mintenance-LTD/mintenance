@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Message, MessageDeliveryStatus } from '../../../services/MessagingService';
 import VideoCallMessage from '../../../components/messaging/VideoCallMessage';
 import { formatMessageTime } from '../utils';
+import { theme } from '../../../theme';
 
 interface MessageBubbleProps {
   item: Message;
@@ -44,7 +45,7 @@ const DeliveryStatusIndicator: React.FC<{
         accessibilityRole="button"
         accessibilityLabel="Retry sending message"
       >
-        <Ionicons name="alert-circle" size={14} color="#EF4444" />
+        <Ionicons name="alert-circle" size={14} color={theme.colors.error} />
         <Text style={styles.failedText}>Failed. Tap to retry</Text>
       </TouchableOpacity>
     );
@@ -125,7 +126,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         {dateSep}
         <View style={styles.systemContainer}>
           <View style={styles.systemBubble}>
-            <Ionicons name="information-circle" size={14} color="#10B981" />
+            <Ionicons name="information-circle" size={14} color={theme.colors.primary} />
             <Text style={styles.systemText}>{item.messageText}</Text>
           </View>
         </View>
@@ -148,11 +149,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           ]}>
             <View style={styles.documentRow}>
               <View style={[styles.documentIcon, isFromCurrentUser ? styles.documentIconSent : styles.documentIconReceived]}>
-                <Ionicons name="document-text" size={20} color={isFromCurrentUser ? '#FFFFFF' : '#10B981'} />
+                <Ionicons name="document-text" size={20} color={isFromCurrentUser ? '#FFFFFF' : theme.colors.primary} />
               </View>
               <View style={styles.documentInfo}>
                 <Text style={[styles.documentName, isFromCurrentUser ? styles.currentUserText : styles.otherUserText]} numberOfLines={2}>{docName}</Text>
-                <Text style={[styles.documentLabel, isFromCurrentUser ? { color: 'rgba(255,255,255,0.6)' } : { color: '#B0B0B0' }]}>Shared document</Text>
+                <Text style={[styles.documentLabel, isFromCurrentUser ? { color: 'rgba(255,255,255,0.6)' } : { color: theme.colors.textTertiary }]}>Shared document</Text>
               </View>
             </View>
             <TouchableOpacity
@@ -161,8 +162,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               accessibilityRole="link"
               accessibilityLabel={`View document: ${docName}`}
             >
-              <Ionicons name="open-outline" size={14} color={isFromCurrentUser ? '#FFFFFF' : '#10B981'} />
-              <Text style={[styles.viewDocText, isFromCurrentUser ? { color: '#FFFFFF' } : { color: '#10B981' }]}>View Document</Text>
+              <Ionicons name="open-outline" size={14} color={isFromCurrentUser ? '#FFFFFF' : theme.colors.primary} />
+              <Text style={[styles.viewDocText, isFromCurrentUser ? { color: theme.colors.textInverse } : { color: theme.colors.primary }]}>View Document</Text>
             </TouchableOpacity>
             <View style={styles.metaRow}>
               <Text style={[styles.messageTime, isFromCurrentUser ? styles.currentUserTime : styles.otherUserTime]}>{formatMessageTime(item.createdAt)}</Text>
@@ -264,7 +265,7 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     letterSpacing: 0.3,
   },
 
@@ -277,7 +278,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 12,
@@ -309,11 +310,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   currentUserBubble: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     borderBottomRightRadius: 6,
   },
   otherUserBubble: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomLeftRadius: 6,
     ...Platform.select({
       ios: {
@@ -330,7 +331,7 @@ const styles = StyleSheet.create({
   failedBubble: {
     opacity: 0.7,
     borderWidth: 1.5,
-    borderColor: '#EF4444',
+    borderColor: theme.colors.error,
   },
 
   // Green accent line for received messages
@@ -340,14 +341,14 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 3,
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.primary,
     borderTopLeftRadius: 20,
     borderBottomLeftRadius: 6,
   },
 
   senderName: {
     fontSize: 11,
-    color: '#10B981',
+    color: theme.colors.primary,
     fontWeight: '600',
     marginBottom: 3,
   },
@@ -356,10 +357,10 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   currentUserText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   otherUserText: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   metaRow: {
     flexDirection: 'row',
@@ -374,7 +375,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
   },
   otherUserTime: {
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
 
   // Image attachment
@@ -403,7 +404,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
   },
   documentIconReceived: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
   },
   documentInfo: {
     flex: 1,
@@ -429,7 +430,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
   },
   viewDocButtonReceived: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
   },
   viewDocText: {
     fontSize: 12,
@@ -469,7 +470,7 @@ const styles = StyleSheet.create({
   },
   failedText: {
     fontSize: 11,
-    color: '#EF4444',
+    color: theme.colors.error,
     marginLeft: 4,
     fontWeight: '500',
   },

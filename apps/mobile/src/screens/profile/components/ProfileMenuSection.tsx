@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../../theme';
 
 interface MenuItem {
   label: string;
@@ -49,7 +50,7 @@ export const ProfileMenuSection: React.FC<ProfileMenuSectionProps> = ({
               <Ionicons
                 name={item.icon as keyof typeof Ionicons.glyphMap}
                 size={17}
-                color={item.iconColor ?? '#717171'}
+                color={item.iconColor ?? theme.colors.textSecondary}
               />
             </View>
             <Text style={styles.menuText}>{item.label}</Text>
@@ -60,7 +61,7 @@ export const ProfileMenuSection: React.FC<ProfileMenuSectionProps> = ({
                 </Text>
               </View>
             )}
-            <Ionicons name="chevron-forward" size={14} color="#B0B0B0" />
+            <Ionicons name="chevron-forward" size={14} color={theme.colors.textTertiary} />
           </TouchableOpacity>
         ))}
       </View>
@@ -77,14 +78,14 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 8,
     paddingHorizontal: 4,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     overflow: 'hidden',
     ...Platform.select({
@@ -106,7 +107,7 @@ const styles = StyleSheet.create({
   },
   menuItemBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   iconChip: {
     width: 34,
@@ -118,11 +119,11 @@ const styles = StyleSheet.create({
   menuText: {
     flex: 1,
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '500',
   },
   badge: {
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.colors.error,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   badgeText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 11,
     fontWeight: '700',
   },

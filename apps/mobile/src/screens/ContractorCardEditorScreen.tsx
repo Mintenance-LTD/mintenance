@@ -23,6 +23,7 @@ import { logger } from '../utils/logger';
 import Button from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { theme } from '../theme';
 
 interface ContractorCardEditorScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'ContractorCardEditor'>;
@@ -162,7 +163,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={24} color="#222222" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Edit Discovery Card</Text>
         <TouchableOpacity
@@ -171,7 +172,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
           accessibilityRole="button"
           accessibilityLabel="Preview card"
         >
-          <Ionicons name="eye" size={22} color="#222222" />
+          <Ionicons name="eye" size={22} color={theme.colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -218,7 +219,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
               value={profile.bio}
               onChangeText={(text) => setProfile(prev => ({ ...prev, bio: text }))}
               placeholder="Describe your expertise and what sets you apart..."
-              placeholderTextColor="#B0B0B0"
+              placeholderTextColor={theme.colors.textTertiary}
               multiline
               numberOfLines={4}
             />
@@ -231,7 +232,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
               value={profile.businessAddress}
               onChangeText={(text) => setProfile(prev => ({ ...prev, businessAddress: text }))}
               placeholder="123 Main St, City, State"
-              placeholderTextColor="#B0B0B0"
+              placeholderTextColor={theme.colors.textTertiary}
             />
           </View>
 
@@ -246,7 +247,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
                   hourlyRate: parseInt(text) || 0
                 }))}
                 placeholder="75"
-                placeholderTextColor="#B0B0B0"
+                placeholderTextColor={theme.colors.textTertiary}
                 keyboardType="numeric"
               />
             </View>
@@ -260,7 +261,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
                   yearsExperience: parseInt(text) || 0
                 }))}
                 placeholder="10"
-                placeholderTextColor="#B0B0B0"
+                placeholderTextColor={theme.colors.textTertiary}
                 keyboardType="numeric"
               />
             </View>
@@ -300,7 +301,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
             style={styles.addPortfolioButton}
             onPress={() => handleImagePicker('portfolio')}
           >
-            <Ionicons name="add" size={22} color="#717171" />
+            <Ionicons name="add" size={22} color={theme.colors.textSecondary} />
             <Text style={styles.addPortfolioText}>Add Portfolio Images</Text>
           </TouchableOpacity>
 
@@ -334,7 +335,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
                 serviceRadius: parseInt(text) || 25
               }))}
               placeholder="25"
-              placeholderTextColor="#B0B0B0"
+              placeholderTextColor={theme.colors.textTertiary}
               keyboardType="numeric"
             />
           </View>
@@ -368,7 +369,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
               style={styles.previewCloseBtn}
               onPress={() => setPreviewVisible(false)}
             >
-              <Ionicons name="close" size={22} color="#222222" />
+              <Ionicons name="close" size={22} color={theme.colors.textPrimary} />
             </TouchableOpacity>
           </View>
           <View style={styles.previewContent}>
@@ -392,7 +393,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -400,28 +401,28 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   previewButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -430,7 +431,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     marginTop: 16,
@@ -447,14 +448,14 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 14,
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 16,
     marginTop: -6,
   },
@@ -464,7 +465,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.border,
     borderStyle: 'dashed',
   },
   logoImage: {
@@ -485,7 +486,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   logoPlaceholderText: {
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -495,15 +496,15 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   textInput: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     padding: 14,
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   textArea: {
     height: 100,
@@ -522,18 +523,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   availabilityOptionActive: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   availabilityText: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
   },
   availabilityTextActive: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontWeight: '600',
   },
   addPortfolioButton: {
@@ -543,14 +544,14 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.border,
     borderStyle: 'dashed',
     marginBottom: 16,
     gap: 8,
   },
   addPortfolioText: {
     fontSize: 15,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '600',
   },
   portfolioGrid: {
@@ -583,19 +584,19 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
   },
   saveButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 28,
     paddingVertical: 16,
     alignItems: 'center',
   },
   saveButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '700',
   },
   previewContainer: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   previewHeader: {
     flexDirection: 'row',
@@ -603,20 +604,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EBEBEB',
+    borderBottomColor: theme.colors.border,
   },
   previewTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   previewCloseBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -626,7 +627,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   cardPreview: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 24,
     padding: 28,
     alignItems: 'center',
@@ -649,18 +650,18 @@ const styles = StyleSheet.create({
   previewCompanyName: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   previewBio: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginBottom: 16,
     lineHeight: 20,
   },
   previewRateChip: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.colors.primaryLight,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 6,
@@ -668,7 +669,7 @@ const styles = StyleSheet.create({
   previewRate: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#10B981',
+    color: theme.colors.primary,
   },
 });
 
