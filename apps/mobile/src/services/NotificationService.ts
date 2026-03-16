@@ -143,9 +143,20 @@ export class NotificationService {
 
       return token.data;
     } catch (error) {
-      logger.error('Failed to initialize push notifications', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      this.addBreadcrumb('Failed to initialize push notifications', 'error', { error: errorMessage });
+      const isFirebaseError =
+        errorMessage.includes('Firebase') ||
+        errorMessage.includes('FCM') ||
+        errorMessage.includes('FirebaseApp') ||
+        errorMessage.includes('not initialized');
+
+      if (isFirebaseError) {
+        logger.warn('Push notifications unavailable — Firebase/FCM not configured', { error: errorMessage });
+        this.addBreadcrumb('Push notifications unavailable (no FCM config)', 'warning', { error: errorMessage });
+      } else {
+        logger.error('Failed to initialize push notifications', error);
+        this.addBreadcrumb('Failed to initialize push notifications', 'error', { error: errorMessage });
+      }
       return null;
     }
   }

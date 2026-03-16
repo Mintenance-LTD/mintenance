@@ -89,7 +89,14 @@ export class PushNotificationService {
       this.isInitialized = true;
       logger.info('Push notification service initialized successfully');
     } catch (error) {
-      logger.error('Failed to initialize push notification service', error);
+      const msg = error instanceof Error ? error.message : String(error);
+      const isFirebaseError =
+        msg.includes('Firebase') || msg.includes('FCM') || msg.includes('not initialized');
+      if (isFirebaseError) {
+        logger.warn('Push notification service unavailable — Firebase/FCM not configured');
+      } else {
+        logger.error('Failed to initialize push notification service', error);
+      }
     }
   }
 
