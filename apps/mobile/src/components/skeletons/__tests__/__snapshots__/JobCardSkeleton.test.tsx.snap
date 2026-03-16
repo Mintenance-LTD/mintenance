@@ -22,8 +22,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=1 1`] =
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -213,7 +213,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=1 1`] =
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -259,8 +259,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=1 and s
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -439,7 +439,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=1 and s
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -485,8 +485,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=3 1`] =
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -676,7 +676,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=3 1`] =
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -711,8 +711,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=3 1`] =
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -902,7 +902,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=3 1`] =
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -937,8 +937,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=3 1`] =
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -1128,7 +1128,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=3 1`] =
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -1174,8 +1174,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=3 and s
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -1354,7 +1354,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=3 and s
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -1389,8 +1389,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=3 and s
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -1569,7 +1569,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=3 and s
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -1604,8 +1604,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=3 and s
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -1784,7 +1784,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=3 and s
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -1830,8 +1830,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=3 and s
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -2021,7 +2021,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=3 and s
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -2056,8 +2056,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=3 and s
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -2247,7 +2247,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=3 and s
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -2282,8 +2282,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=3 and s
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -2473,7 +2473,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=3 and s
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -2519,8 +2519,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=5 1`] =
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -2710,7 +2710,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=5 1`] =
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -2745,8 +2745,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=5 1`] =
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -2936,7 +2936,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=5 1`] =
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -2971,8 +2971,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=5 1`] =
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -3162,7 +3162,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=5 1`] =
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -3197,8 +3197,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=5 1`] =
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -3388,7 +3388,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=5 1`] =
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -3423,8 +3423,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=5 1`] =
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -3614,7 +3614,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=5 1`] =
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -3660,8 +3660,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=8 and s
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -3851,7 +3851,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=8 and s
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -3886,8 +3886,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=8 and s
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -4077,7 +4077,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=8 and s
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -4112,8 +4112,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=8 and s
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -4303,7 +4303,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=8 and s
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -4338,8 +4338,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=8 and s
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -4529,7 +4529,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=8 and s
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -4564,8 +4564,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=8 and s
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -4755,7 +4755,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=8 and s
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -4790,8 +4790,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=8 and s
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -4981,7 +4981,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=8 and s
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -5016,8 +5016,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=8 and s
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -5207,7 +5207,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=8 and s
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -5242,8 +5242,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=8 and s
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -5433,7 +5433,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=8 and s
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -5479,8 +5479,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=10 and 
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -5659,7 +5659,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=10 and 
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -5694,8 +5694,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=10 and 
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -5874,7 +5874,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=10 and 
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -5909,8 +5909,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=10 and 
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -6089,7 +6089,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=10 and 
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -6124,8 +6124,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=10 and 
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -6304,7 +6304,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=10 and 
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -6339,8 +6339,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=10 and 
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -6519,7 +6519,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=10 and 
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -6554,8 +6554,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=10 and 
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -6734,7 +6734,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=10 and 
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -6769,8 +6769,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=10 and 
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -6949,7 +6949,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=10 and 
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -6984,8 +6984,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=10 and 
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -7164,7 +7164,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=10 and 
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -7199,8 +7199,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=10 and 
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -7379,7 +7379,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=10 and 
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -7414,8 +7414,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=10 and 
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -7594,7 +7594,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with count=10 and 
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -7640,8 +7640,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with default props
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -7831,7 +7831,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with default props
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -7877,8 +7877,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with showImage=fal
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -8057,7 +8057,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with showImage=fal
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",
@@ -8103,8 +8103,8 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with showImage=tru
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#E5E7EB",
-        "borderRadius": 16,
+        "borderColor": "#EBEBEB",
+        "borderRadius": 12,
         "borderWidth": 1,
         "overflow": "hidden",
       }
@@ -8294,7 +8294,7 @@ exports[`JobCardSkeleton Snapshot Tests should match snapshot with showImage=tru
         style={
           {
             "alignItems": "center",
-            "borderTopColor": "#F3F4F6",
+            "borderTopColor": "#F7F7F7",
             "borderTopWidth": 1,
             "flexDirection": "row",
             "justifyContent": "space-between",

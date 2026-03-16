@@ -9,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../config/supabase';
 import { sanitize } from '@mintenance/security';
 import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
+import { LocationService } from '../../services/LocationService';
 import type { Property } from '@mintenance/types';
 import type { ModalStackParamList } from '../../navigation/types';
 import { type ServiceCategory } from './types';
@@ -163,6 +164,19 @@ export function useServiceRequestForm(onSuccess: () => void) {
         uploadedPhotoUrls.push(urlData.publicUrl);
       }
 
+      // Capture device geolocation for contractor proximity matching
+      let latitude: number | undefined;
+      let longitude: number | undefined;
+      try {
+        const userLocation = await LocationService.getCurrentLocation();
+        if (userLocation) {
+          latitude = userLocation.latitude;
+          longitude = userLocation.longitude;
+        }
+      } catch {
+        // Geolocation is optional — continue without it
+      }
+
       await JobService.createJob({
         title: sanitize.text(title, 200),
         description: sanitize.jobDescription(description),
@@ -174,6 +188,8 @@ export function useServiceRequestForm(onSuccess: () => void) {
         priority,
         photos: uploadedPhotoUrls,
         property_id: selectedProperty?.id,
+        latitude,
+        longitude,
       });
 
       Alert.alert(

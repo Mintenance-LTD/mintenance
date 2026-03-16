@@ -65,7 +65,7 @@ export const HostCard: React.FC<HostCardProps> = memo(({
           <Text style={styles.name} numberOfLines={1}>{name}</Text>
           {rating !== undefined && (
             <View style={styles.ratingInline}>
-              <Ionicons name="star" size={12} color={theme.colors.ratingGold} />
+              <Ionicons name="star" size={12} color={theme.colors.accent} />
               <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
             </View>
           )}
@@ -117,10 +117,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
     minHeight: 44,
   },
   avatarContainer: {
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   actionLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
   },
 });
 

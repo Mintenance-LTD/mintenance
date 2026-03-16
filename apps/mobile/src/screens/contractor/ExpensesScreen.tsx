@@ -3,12 +3,15 @@ import {
   View,
   Text,
   FlatList,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
   TextInput,
   Alert,
   Animated,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -19,8 +22,9 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
-import { theme } from '../../theme';
 import { mobileApiClient } from '../../utils/mobileApiClient';
+import { useAuth } from '../../contexts/AuthContext';
+import { theme } from '../../theme';
 
 interface Expense {
   id: string;
@@ -37,38 +41,50 @@ type CategoryFilter = 'all' | 'materials' | 'tools' | 'fuel' | 'software' | 'ins
 const CATEGORY_COLORS: Record<string, string> = {
   materials: '#3B82F6',
   tools: '#8B5CF6',
-  fuel: '#F59E0B',
-  software: '#06B6D4',
-  insurance: '#10B981',
-  marketing: '#EC4899',
-  other: '#6B7280',
+  fuel: theme.colors.accent,
+  software: '#3B82F6',
+  insurance: theme.colors.primary,
+  marketing: theme.colors.error,
+  other: theme.colors.textSecondary,
 };
 
 export const ExpensesScreen: React.FC = () => {
   const navigation = useNavigation();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [filter, setFilter] = useState<CategoryFilter>('all');
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ description: '', category: 'materials', amount: '', billable: false });
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['contractor-expenses'],
+    queryKey: ['contractor-expenses', user?.id],
     queryFn: async () => {
-      interface ApiExpense { id: string; description: string; category: string; amount: number; date: string; isBillable: boolean; jobId?: string }
-      const res = await mobileApiClient.get<{ expenses: ApiExpense[]; total: number }>('/api/contractor/expenses');
-      return {
-        expenses: (res.expenses || []).map((e): Expense => ({
-          id: e.id, description: e.description, category: e.category,
-          amount: e.amount, date: e.date, billable: e.isBillable, job_id: e.jobId,
-        })),
-        total: res.total,
-      };
+      if (!user?.id) return { expenses: [], total: 0 };
+      const rows = await mobileApiClient.get<Array<Record<string, unknown>>>('/api/contractor/expenses');
+      const expenses: Expense[] = (rows || []).map((e) => ({
+        id: e.id as string,
+        description: (e.description as string) || '',
+        category: (e.category as string) || 'other',
+        amount: (e.amount as number) || 0,
+        date: (e.date as string) || (e.created_at as string),
+        billable: (e.billable ?? e.is_billable ?? false) as boolean,
+        job_id: e.job_id as string | undefined,
+      }));
+      return { expenses, total: expenses.reduce((s, e) => s + e.amount, 0) };
     },
+    enabled: !!user?.id,
   });
 
   const createMutation = useMutation({
     mutationFn: async (expense: { description: string; category: string; amount: number; billable: boolean }) => {
-      return mobileApiClient.post('/api/contractor/expenses', { ...expense, date: new Date().toISOString() });
+      if (!user?.id) throw new Error('Not authenticated');
+      await mobileApiClient.post('/api/contractor/expenses', {
+        description: expense.description,
+        category: expense.category,
+        amount: expense.amount,
+        billable: expense.billable,
+        date: new Date().toISOString(),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contractor-expenses'] });
@@ -85,7 +101,7 @@ export const ExpensesScreen: React.FC = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (expenseId: string) => {
-      return mobileApiClient.delete(`/api/contractor/expenses?id=${expenseId}`);
+      await mobileApiClient.delete(`/api/contractor/expenses/${expenseId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contractor-expenses'] });
@@ -135,52 +151,58 @@ export const ExpensesScreen: React.FC = () => {
   const billableTotal = expenses.filter((e) => e.billable).reduce((sum, e) => sum + e.amount, 0);
 
   if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorView onRetry={refetch} />;
+  if (error) return <ErrorView message="Failed to load expenses" onRetry={refetch} />;
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <ScreenHeader title="Expenses" showBack onBack={() => navigation.goBack()} />
 
       {/* Stats */}
       <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Total</Text>
-          <Text style={styles.statValue}>{'\u00A3'}{totalExpenses.toFixed(2)}</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>This Month</Text>
-          <Text style={styles.statValue}>{'\u00A3'}{thisMonth.toFixed(2)}</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Billable</Text>
-          <Text style={styles.statValue}>{'\u00A3'}{billableTotal.toFixed(2)}</Text>
-        </View>
+        {[
+          { label: 'Total', value: `\u00A3${totalExpenses.toFixed(2)}`, icon: 'wallet-outline' as const, color: '#3B82F6', bg: '#DBEAFE' },
+          { label: 'This Month', value: `\u00A3${thisMonth.toFixed(2)}`, icon: 'calendar-outline' as const, color: '#8B5CF6', bg: '#EDE9FE' },
+          { label: 'Billable', value: `\u00A3${billableTotal.toFixed(2)}`, icon: 'checkmark-circle-outline' as const, color: theme.colors.primary, bg: theme.colors.primaryLight },
+        ].map((stat) => (
+          <View key={stat.label} style={styles.statCard}>
+            <View style={[styles.statIconWrap, { backgroundColor: stat.bg }]}>
+              <Ionicons name={stat.icon} size={16} color={stat.color} />
+            </View>
+            <Text style={styles.statValue}>{stat.value}</Text>
+            <Text style={styles.statLabel}>{stat.label}</Text>
+          </View>
+        ))}
       </View>
 
-      {/* Filter Chips */}
-      <FlatList
+      {/* Filter Chips — horizontal ScrollView to avoid FlatList sizing bugs */}
+      <ScrollView
         horizontal
-        data={['all', 'materials', 'tools', 'fuel', 'software', 'insurance', 'marketing', 'other'] as CategoryFilter[]}
-        keyExtractor={(item) => item}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.filterRow}
-        renderItem={({ item }) => (
+        style={styles.filterScrollView}
+      >
+        {(['all', 'materials', 'tools', 'fuel', 'software', 'insurance', 'marketing', 'other'] as CategoryFilter[]).map((item) => (
           <TouchableOpacity
+            key={item}
             style={[styles.filterChip, filter === item && styles.filterChipActive]}
             onPress={() => setFilter(item)}
+            accessibilityRole="button"
+            accessibilityLabel={`Filter by ${item === 'all' ? 'all categories' : item}`}
+            accessibilityState={{ selected: filter === item }}
           >
             <Text style={[styles.filterChipText, filter === item && styles.filterChipTextActive]}>
               {item === 'all' ? 'All' : item.charAt(0).toUpperCase() + item.slice(1)}
             </Text>
           </TouchableOpacity>
-        )}
-      />
+        ))}
+      </ScrollView>
 
       {/* Add Form */}
       {showForm && (
         <Card variant="elevated" padding="md" style={styles.formCard}>
-          <TextInput style={styles.input} placeholder="Description" placeholderTextColor={theme.colors.placeholder} value={formData.description} onChangeText={(t) => setFormData((p) => ({ ...p, description: t }))} />
-          <TextInput style={styles.input} placeholder="Amount" placeholderTextColor={theme.colors.placeholder} keyboardType="decimal-pad" value={formData.amount} onChangeText={(t) => setFormData((p) => ({ ...p, amount: t }))} />
+          <TextInput style={styles.input} placeholder="Description" placeholderTextColor={theme.colors.textTertiary} value={formData.description} onChangeText={(t) => setFormData((p) => ({ ...p, description: t }))} />
+          <TextInput style={styles.input} placeholder="Amount" placeholderTextColor={theme.colors.textTertiary} keyboardType="decimal-pad" value={formData.amount} onChangeText={(t) => setFormData((p) => ({ ...p, amount: t }))} />
           <View style={styles.formActions}>
             <Button variant="ghost" size="sm" onPress={() => setShowForm(false)}>Cancel</Button>
             <Button variant="primary" size="sm" onPress={() => createMutation.mutate({ ...formData, amount: parseFloat(formData.amount) || 0 })} loading={createMutation.isPending}>Add</Button>
@@ -193,11 +215,11 @@ export const ExpensesScreen: React.FC = () => {
         data={filtered}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />}
         ListEmptyComponent={<EmptyState icon="receipt-outline" title="No Expenses" subtitle="Track your business expenses here." />}
         renderItem={({ item }) => (
           <View style={styles.expenseRow}>
-            <View style={[styles.categoryDot, { backgroundColor: CATEGORY_COLORS[item.category] || '#6B7280' }]} />
+            <View style={[styles.categoryDot, { backgroundColor: CATEGORY_COLORS[item.category] || theme.colors.textSecondary }]} />
             <View style={styles.expenseInfo}>
               <Text style={styles.expenseDesc} numberOfLines={1}>{item.description}</Text>
               <Text style={styles.expenseDate}>{new Date(item.date).toLocaleDateString('en-GB')}</Text>
@@ -233,8 +255,8 @@ export const ExpensesScreen: React.FC = () => {
 
       {/* FAB */}
       {!showForm && (
-        <TouchableOpacity style={styles.fab} onPress={() => setShowForm(true)} accessibilityLabel="Add expense">
-          <Ionicons name="add" size={28} color="#FFFFFF" />
+        <TouchableOpacity style={styles.fab} onPress={() => setShowForm(true)} accessibilityRole="button" accessibilityLabel="Add expense">
+          <Ionicons name="add" size={28} color={theme.colors.textInverse} />
         </TouchableOpacity>
       )}
     </SafeAreaView>
@@ -243,31 +265,63 @@ export const ExpensesScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
-  statsRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12 },
-  statCard: { flex: 1, backgroundColor: theme.colors.surface, borderRadius: 10, padding: 12, alignItems: 'center', ...theme.shadows.sm },
-  statLabel: { fontSize: 11, color: theme.colors.textTertiary, fontWeight: '500', textTransform: 'uppercase', marginBottom: 4 },
-  statValue: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
-  filterRow: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
-  filterChip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.background },
-  filterChipActive: { backgroundColor: theme.colors.textPrimary, borderColor: theme.colors.textPrimary },
-  filterChipText: { fontSize: 13, fontWeight: '500', color: theme.colors.textSecondary },
-  filterChipTextActive: { color: '#FFFFFF' },
+  statsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8 },
+  statCard: {
+    flex: 1, backgroundColor: theme.colors.surface, borderRadius: 16, paddingVertical: 14, paddingHorizontal: 10, alignItems: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
+  },
+  statIconWrap: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  statLabel: { fontSize: 11, color: theme.colors.textTertiary, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6 },
+  statValue: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 2 },
+  filterScrollView: { flexGrow: 0 },
+  filterRow: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
+  filterChip: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: theme.colors.surface,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 },
+      android: { elevation: 1 },
+    }),
+  },
+  filterChipActive: { backgroundColor: theme.colors.textPrimary },
+  filterChipText: { fontSize: 13, fontWeight: '600', color: theme.colors.textSecondary },
+  filterChipTextActive: { color: theme.colors.textInverse },
   formCard: { marginHorizontal: 16, marginBottom: 12 },
-  input: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: 8, padding: 12, fontSize: 15, color: theme.colors.textPrimary, marginBottom: 8 },
+  input: { backgroundColor: theme.colors.backgroundSecondary, borderRadius: 12, padding: 14, fontSize: 15, color: theme.colors.textPrimary, marginBottom: 8 },
   formActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
   list: { paddingHorizontal: 16, paddingBottom: 80 },
-  expenseRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surface, borderRadius: 10, padding: 14, marginBottom: 8, ...theme.shadows.sm },
+  expenseRow: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surface, borderRadius: 16, padding: 14, marginBottom: 8,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
+  },
   categoryDot: { width: 10, height: 10, borderRadius: 5, marginRight: 12 },
   expenseInfo: { flex: 1 },
-  expenseDesc: { fontSize: 15, fontWeight: '500', color: theme.colors.textPrimary },
+  expenseDesc: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary },
   expenseDate: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2 },
   expenseRight: { alignItems: 'flex-end', gap: 4 },
-  expenseAmount: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary },
+  expenseAmount: { fontSize: 15, fontWeight: '700', color: theme.colors.textPrimary },
   deleteButton: { marginLeft: 8, padding: 4 },
-  snackbar: { position: 'absolute', bottom: 90, left: 16, right: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#222222', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 14, ...theme.shadows.lg },
-  snackbarText: { fontSize: 14, color: '#FFFFFF', flex: 1, marginRight: 12 },
-  snackbarUndo: { fontSize: 14, fontWeight: '700', color: '#60A5FA' },
-  fab: { position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: '#222222', justifyContent: 'center', alignItems: 'center', ...theme.shadows.lg },
+  snackbar: {
+    position: 'absolute', bottom: 90, left: 16, right: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: theme.colors.textPrimary, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12 },
+      android: { elevation: 8 },
+    }),
+  },
+  snackbarText: { fontSize: 14, color: theme.colors.textInverse, flex: 1, marginRight: 12 },
+  snackbarUndo: { fontSize: 14, fontWeight: '700', color: '#3B82F6' },
+  fab: {
+    position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: theme.colors.textPrimary, justifyContent: 'center', alignItems: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12 },
+      android: { elevation: 8 },
+    }),
+  },
 });
 
 export default ExpensesScreen;

@@ -105,6 +105,8 @@ export default function QuickJobPage() {
     property_name?: string;
     address?: string;
     street_address?: string;
+    city?: string;
+    postcode?: string;
   } | null>(null);
   const [propertiesLoading, setPropertiesLoading] = useState(true);
   const [propertiesError, setPropertiesError] = useState<string | null>(null);
@@ -240,11 +242,20 @@ export default function QuickJobPage() {
         return;
       }
 
+      // Build a full location string for accurate geocoding
+      // Include postcode and city alongside address for better Google Maps results
+      const locationParts = [
+        primaryProperty?.address || primaryProperty?.street_address,
+        primaryProperty?.city,
+        primaryProperty?.postcode,
+      ].filter(Boolean);
+      const locationString = locationParts.length > 0 ? locationParts.join(', ') : 'Property location';
+
       const jobData = {
         title: formData.title.trim(),
         // Ensure description meets minimum length for API (50 chars)
         description: fullDescription.trim(),
-        location: primaryProperty?.address || primaryProperty?.street_address || 'Property location',
+        location: locationString,
         category: formData.category,
         budget: budgetValue, // Use validated number
         requiredSkills: [],
@@ -365,8 +376,8 @@ export default function QuickJobPage() {
               <p className="text-gray-600 mt-2">Get your repair fixed fast - select a template or describe your issue</p>
             </div>
 
-            {/* Phone Verification Warning */}
-            {user && !user.phone_verified && (
+            {/* Phone Verification Warning (hidden when SKIP_PHONE_VERIFICATION is enabled) */}
+            {user && !user.phone_verified && process.env.NEXT_PUBLIC_SKIP_PHONE_VERIFICATION !== 'true' && (
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />

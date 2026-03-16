@@ -8,6 +8,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Image, ImageContentFit, ImageTransition } from 'expo-image';
+import { theme } from '../../theme';
 
 // ============================================================================
 // TYPES
@@ -101,7 +102,7 @@ export const OptimizedImage = memo<OptimizedImageProps>((props) => {
 
   const optimizedSource = useMemo(() => {
     if (typeof source === 'number') {
-      return source; // Local require() image
+      return source;
     }
 
     if (typeof source === 'string') {
@@ -109,13 +110,11 @@ export const OptimizedImage = memo<OptimizedImageProps>((props) => {
     }
 
     if (typeof source === 'object' && source.uri) {
-      // Safely attempt to add quality param for remote URLs
       try {
         const url = new URL(source.uri);
         url.searchParams.set('quality', QUALITY_MAP[quality].toString());
         return { uri: url.toString() };
       } catch {
-        // Malformed URI - use as-is (relative paths, data URIs, etc.)
         return source;
       }
     }
@@ -232,8 +231,6 @@ export const OptimizedImage = memo<OptimizedImageProps>((props) => {
   // RENDER
   // ============================================================================
 
-  // The Image is ALWAYS mounted so loading can start.
-  // Loading/error/placeholder are rendered as overlays on top.
   return (
     <View
       style={[styles.container, containerStyle]}
@@ -284,13 +281,13 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   placeholder: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   placeholderText: {
     fontSize: 24,
-    color: '#9CA3AF',
+    color: theme.colors.textTertiary,
   },
   loading: {
     backgroundColor: 'rgba(243, 244, 246, 0.6)',
@@ -306,19 +303,19 @@ const styles = StyleSheet.create({
   errorIcon: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#EF4444',
+    color: theme.colors.error,
     width: 28,
     height: 28,
     lineHeight: 28,
     textAlign: 'center',
     borderWidth: 2,
-    borderColor: '#EF4444',
+    borderColor: theme.colors.error,
     borderRadius: 14,
     marginBottom: 4,
   },
   errorMessage: {
     fontSize: 12,
-    color: '#DC2626',
+    color: theme.colors.error,
     textAlign: 'center',
   },
 });

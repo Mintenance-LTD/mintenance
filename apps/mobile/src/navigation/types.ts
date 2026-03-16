@@ -37,10 +37,10 @@ export type RootTabParamList = {
 // ============================================================================
 
 export type AuthStackParamList = {
-  Landing: undefined;
   Login: undefined;
   Register: undefined;
   ForgotPassword: undefined;
+  ResetPassword: { token?: string } | undefined;
   MFAVerification: { preMfaToken: string; redirectScreen?: string };
 };
 
@@ -49,9 +49,6 @@ export type AuthStackParamList = {
 // ============================================================================
 
 export type JobsStackParamList = {
-  InvoiceManagement: undefined;
-  CreateInvoice: { invoiceId?: string } | undefined;
-  InvoiceDetail: { invoiceId: string };
   JobsList: undefined;
   JobDetails: { jobId: string };
   JobPosting: undefined;
@@ -64,8 +61,10 @@ export type JobsStackParamList = {
   PhotoReview: { jobId: string };
   PhotoUpload: { jobId: string; photoType: 'before' | 'after' };
   ContractView: { jobId: string };
+  ContractPreparation: { jobId: string; jobTitle?: string };
   ReviewSubmission: { jobId: string; contractorName?: string; jobTitle?: string };
   JobSignOff: { jobId: string };
+  JobEdit: { jobId: string };
 };
 
 // ============================================================================
@@ -129,6 +128,23 @@ export type ProfileStackParamList = {
   Reporting: undefined;
   Payouts: undefined;
   BookingStatus: undefined;
+  // Contractor feature parity screens
+  Insurance: undefined;
+  Team: undefined;
+  Marketing: undefined;
+  MarketInsights: undefined;
+  // Social: ARCHIVED - social feature removed
+  Connections: undefined;
+  Training: undefined;
+  // PortfolioGallery: ARCHIVED - portfolio feature removed
+  EscrowDashboard: undefined;
+  // Homeowner/shared feature parity screens
+  Favorites: undefined;
+  Discover: undefined;
+  // GDPR/Account management screens
+  MFASecurity: undefined;
+  DataExport: undefined;
+  DeleteAccount: undefined;
 };
 
 // ============================================================================

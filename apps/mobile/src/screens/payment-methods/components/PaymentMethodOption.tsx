@@ -1,17 +1,17 @@
 /**
  * PaymentMethodOption Component
- * 
+ *
  * Single payment method option with icon and selection state.
- * 
+ *
  * @filesize Target: <70 lines
  * @compliance Single Responsibility
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 import type { PaymentMethod } from '../viewmodels/PaymentMethodsViewModel';
+import { theme } from '../../../theme';
 
 interface PaymentMethodOptionProps {
   method: PaymentMethod;
@@ -50,14 +50,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   selected: {
-    borderColor: '#222222',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   left: {
     flexDirection: 'row',
@@ -66,14 +68,14 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 48,
     height: 48,
-    borderRadius: theme.borderRadius.base,
-    backgroundColor: theme.colors.surfaceTertiary,
+    borderRadius: 12,
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: theme.spacing.md,
+    marginRight: 14,
   },
   text: {
-    fontSize: theme.typography.fontSize.lg,
+    fontSize: 16,
     color: theme.colors.textPrimary,
   },
   radio: {
@@ -84,7 +86,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   radioSelected: {
-    borderColor: '#222222',
-    backgroundColor: '#222222',
+    borderColor: theme.colors.textPrimary,
+    backgroundColor: theme.colors.textPrimary,
   },
 });

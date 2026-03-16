@@ -1,8 +1,8 @@
 /**
  * MeetingScheduleScreen Container
- * 
+ *
  * Main container for meeting scheduling with date/time and location.
- * 
+ *
  * @filesize Target: <100 lines
  * @compliance MVVM - Thin container
  */
@@ -20,30 +20,31 @@ import {
   LocationPicker,
   ScheduleActions,
 } from './components';
+import type { User, Job } from '@mintenance/types';
 
 interface Props {
   route: {
     params: {
       contractorId: string;
-      jobId: string;
-      contractor?: unknown;
-      job?: unknown;
+      jobId?: string;
+      contractor?: User;
+      job?: Job;
     };
   };
-  navigation: unknown;
+  navigation: { goBack: () => void };
 }
 
 export const MeetingScheduleScreen: React.FC<Props> = ({ route, navigation }) => {
   const { contractorId, jobId, contractor, job } = route.params;
-  
-  const viewModel = useMeetingScheduleViewModel(contractorId, jobId, contractor, job);
+
+  const viewModel = useMeetingScheduleViewModel(contractorId, jobId ?? '', contractor, job);
 
   if (viewModel.loading) {
     return <LoadingSpinner message="Scheduling meeting..." />;
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.backgroundSecondary }]}>
       <ScreenHeader
         title="Schedule Meeting"
         onBackPress={() => navigation.goBack()}
@@ -78,10 +79,10 @@ export const MeetingScheduleScreen: React.FC<Props> = ({ route, navigation }) =>
           onRetry={viewModel.initializeLocation}
         />
 
-        <View style={styles.notesContainer}>
-          <Text style={styles.notesLabel}>Additional Notes (Optional)</Text>
+        <View style={[styles.notesContainer, { backgroundColor: theme.colors.surface }]}>
+          <Text style={[styles.notesLabel, { color: theme.colors.textTertiary }]}>Additional Notes (Optional)</Text>
           <TextInput
-            style={styles.notesInput}
+            style={[styles.notesInput, { backgroundColor: theme.colors.backgroundSecondary, color: theme.colors.textPrimary }]}
             value={viewModel.notes}
             onChangeText={viewModel.setNotes}
             placeholder="Add any additional details about the meeting..."
@@ -106,33 +107,31 @@ export const MeetingScheduleScreen: React.FC<Props> = ({ route, navigation }) =>
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
   scrollView: {
     flex: 1,
-    paddingHorizontal: theme.spacing.lg,
+    paddingHorizontal: 16,
   },
   notesContainer: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
-    ...theme.shadows.sm,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   notesLabel: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.md,
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   notesInput: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    fontSize: theme.typography.fontSize.md,
-    color: theme.colors.textPrimary,
-    backgroundColor: theme.colors.background,
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
     minHeight: 100,
   },
 });

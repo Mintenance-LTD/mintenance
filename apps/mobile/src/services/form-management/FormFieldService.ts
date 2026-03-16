@@ -150,8 +150,9 @@ export class FormFieldService {
   ): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
 
+    const data = formData as Record<string, unknown>;
     for (const field of fields) {
-      const value = formData[field.field_name];
+      const value = data[field.field_name];
 
       // Check required fields
       if (field.is_required && (!value || value === '')) {
@@ -162,18 +163,20 @@ export class FormFieldService {
       // Skip validation if field is empty and not required
       if (!value || value === '') continue;
 
+      const strValue = String(value);
+
       // Validate based on field type
       switch (field.field_type) {
         case 'email':
           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          if (!emailRegex.test(value)) {
+          if (!emailRegex.test(strValue)) {
             errors.push(`${field.field_label} must be a valid email address`);
           }
           break;
 
         case 'phone':
           const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-          if (!phoneRegex.test(value.replace(/[\s\-\(\)]/g, ''))) {
+          if (!phoneRegex.test(strValue.replace(/[\s\-\(\)]/g, ''))) {
             errors.push(`${field.field_label} must be a valid phone number`);
           }
           break;
@@ -186,7 +189,7 @@ export class FormFieldService {
 
         case 'url':
           try {
-            new URL(value);
+            new URL(strValue);
           } catch {
             errors.push(`${field.field_label} must be a valid URL`);
           }
@@ -195,23 +198,23 @@ export class FormFieldService {
 
       // Apply validation rules
       if (field.validation_rules) {
-        const rules = field.validation_rules;
+        const rules = field.validation_rules as Record<string, unknown>;
 
-        if (rules.min_length && value.length < rules.min_length) {
+        if (rules.min_length && strValue.length < (rules.min_length as number)) {
           errors.push(
             `${field.field_label} must be at least ${rules.min_length} characters long`
           );
         }
 
-        if (rules.max_length && value.length > rules.max_length) {
+        if (rules.max_length && strValue.length > (rules.max_length as number)) {
           errors.push(
             `${field.field_label} must be no more than ${rules.max_length} characters long`
           );
         }
 
         if (rules.pattern) {
-          const regex = new RegExp(rules.pattern);
-          if (!regex.test(value)) {
+          const regex = new RegExp(rules.pattern as string);
+          if (!regex.test(strValue)) {
             errors.push(`${field.field_label} format is invalid`);
           }
         }

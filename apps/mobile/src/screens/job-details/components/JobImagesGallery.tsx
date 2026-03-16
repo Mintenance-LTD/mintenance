@@ -1,20 +1,20 @@
 /**
  * JobImagesGallery Component
- * 
+ *
  * Displays job photos in a scrollable gallery.
- * 
+ *
  * @filesize Target: <80 lines
  * @compliance Single Responsibility - Image gallery display
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, Dimensions, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 import type { Job } from '@mintenance/types';
+import { theme } from '../../../theme';
 
 const { width } = Dimensions.get('window');
-const IMAGE_SIZE = (width - 48) / 2; // 2 images per row with padding
+const IMAGE_SIZE = (width - 48) / 2;
 
 interface JobImagesGalleryProps {
   job: Job;
@@ -29,7 +29,9 @@ export const JobImagesGallery: React.FC<JobImagesGalleryProps> = ({ job }) => {
           <Text style={styles.title}>Job Photos</Text>
         </View>
         <View style={styles.emptyState}>
-          <Ionicons name="image-outline" size={48} color={theme.colors.textTertiary} />
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="image-outline" size={28} color={theme.colors.textTertiary} />
+          </View>
           <Text style={styles.emptyText}>No photos uploaded</Text>
         </View>
       </View>
@@ -39,31 +41,34 @@ export const JobImagesGallery: React.FC<JobImagesGalleryProps> = ({ job }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Ionicons name="images-outline" size={20} color='#717171' />
+        <Ionicons name="images-outline" size={20} color={theme.colors.textSecondary} />
         <Text style={styles.title}>Job Photos ({job.photos.length})</Text>
       </View>
 
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.galleryContainer}
       >
-        {job.photos.map((photo, index) => (
+        {job.photos.map((photo, index) => {
+          const photoUrl = typeof photo === 'string' ? photo : (photo as { url: string }).url;
+          const photoDesc = typeof photo === 'string' ? undefined : (photo as { description?: string }).description;
+          return (
           <View key={index} style={styles.imageContainer}>
-            <Image 
-              source={{ uri: photo.url }} 
+            <Image
+              source={{ uri: photoUrl }}
               style={styles.image}
               resizeMode="cover"
             />
-            {photo.description && (
+            {photoDesc && (
               <View style={styles.imageOverlay}>
                 <Text style={styles.imageDescription} numberOfLines={2}>
-                  {photo.description}
+                  {photoDesc}
                 </Text>
               </View>
             )}
           </View>
-        ))}
+        ); })}
       </ScrollView>
     </View>
   );
@@ -72,57 +77,68 @@ export const JobImagesGallery: React.FC<JobImagesGalleryProps> = ({ job }) => {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
-    ...theme.shadows.sm,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
-    gap: theme.spacing.sm,
+    marginBottom: 12,
+    gap: 8,
   },
   title: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 18,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
   },
   galleryContainer: {
-    paddingRight: theme.spacing.lg,
+    paddingRight: 20,
   },
   imageContainer: {
     position: 'relative',
-    marginRight: theme.spacing.md,
+    marginRight: 12,
   },
   image: {
     width: IMAGE_SIZE,
     height: IMAGE_SIZE,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.surfaceTertiary,
+    borderRadius: 12,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   imageOverlay: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    borderBottomLeftRadius: theme.borderRadius.md,
-    borderBottomRightRadius: theme.borderRadius.md,
-    padding: theme.spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    padding: 8,
   },
   imageDescription: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: 13,
     color: theme.colors.textInverse,
     textAlign: 'center',
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: theme.spacing.xl,
+    paddingVertical: 24,
+  },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: theme.colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
   emptyText: {
-    fontSize: theme.typography.fontSize.md,
+    fontSize: 15,
     color: theme.colors.textSecondary,
-    marginTop: theme.spacing.sm,
   },
 });

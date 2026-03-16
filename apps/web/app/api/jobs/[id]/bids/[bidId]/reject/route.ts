@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
+import { logger, validateBidTransition, BID_STATUS, type BidStatusValue } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
@@ -47,14 +47,13 @@ export const POST = withApiHandler(
       throw new NotFoundError('Bid not found');
     }
 
-    if (bid.status === 'rejected') {
-      throw new BadRequestError('Bid has already been rejected');
-    }
+    // Validate bid transition using state machine
+    validateBidTransition(bid.status as BidStatusValue, BID_STATUS.REJECTED as BidStatusValue);
 
     // Reject the bid
     const { error: rejectError } = await serverSupabase
       .from('bids')
-      .update({ status: 'rejected' })
+      .update({ status: BID_STATUS.REJECTED })
       .eq('id', bidId);
 
     if (rejectError) {

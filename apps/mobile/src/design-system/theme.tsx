@@ -404,7 +404,7 @@ export const getThemeColor = (
     }
   }
 
-  return current;
+  return current as string;
 };
 
 export const createThemedStyles = <T extends Record<string, unknown>>(

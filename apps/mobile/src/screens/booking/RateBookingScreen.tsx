@@ -8,15 +8,16 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
-import { theme } from '../../theme';
 import { useToast } from '../../components/ui/Toast';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { RootStackParamList } from '../../navigation/types';
+import { theme } from '../../theme';
 
 interface Props {
   navigation: NativeStackNavigationProp<RootStackParamList, 'RateBooking'>;
@@ -60,6 +61,7 @@ export const RateBookingScreen: React.FC<Props> = ({ navigation, route }) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.surface} />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
@@ -80,7 +82,7 @@ export const RateBookingScreen: React.FC<Props> = ({ navigation, route }) => {
                 <Ionicons
                   name={star <= rating ? 'star' : 'star-outline'}
                   size={40}
-                  color={star <= rating ? theme.colors.ratingGold : theme.colors.border}
+                  color={star <= rating ? theme.colors.accent : theme.colors.border}
                 />
               </TouchableOpacity>
             ))}
@@ -91,7 +93,7 @@ export const RateBookingScreen: React.FC<Props> = ({ navigation, route }) => {
           )}
 
           {/* Comment */}
-          <Text style={styles.commentLabel}>Comments (optional)</Text>
+          <Text style={styles.commentLabel}>COMMENTS (OPTIONAL)</Text>
           <TextInput
             style={styles.commentInput}
             multiline
@@ -112,7 +114,7 @@ export const RateBookingScreen: React.FC<Props> = ({ navigation, route }) => {
           disabled={loading || rating === 0}
         >
           <Text style={styles.submitButtonText}>
-            {loading ? 'Submitting…' : 'Submit Review'}
+            {loading ? 'Submitting\u2026' : 'Submit Review'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -121,29 +123,32 @@ export const RateBookingScreen: React.FC<Props> = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.surfaceSecondary },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    backgroundColor: theme.colors.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
   },
   headerButton: { padding: 8, width: 40 },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.textPrimary },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
   content: { padding: 16 },
   card: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.xl,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     padding: 20,
     marginBottom: 20,
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
-  cardTitle: { fontSize: 17, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 4 },
-  cardSubtitle: { fontSize: 13, color: theme.colors.textSecondary, marginBottom: 24 },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 4 },
+  cardSubtitle: { fontSize: 14, color: theme.colors.textSecondary, marginBottom: 20 },
   starsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -155,36 +160,34 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.ratingGold,
-    marginBottom: 24,
+    color: theme.colors.accent,
+    marginBottom: 20,
   },
   commentLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textTertiary,
     marginBottom: 8,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
   commentInput: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    padding: 12,
-    fontSize: 14,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
     color: theme.colors.textPrimary,
     minHeight: 100,
-    backgroundColor: theme.colors.surfaceSecondary,
   },
   charCount: {
     textAlign: 'right',
-    fontSize: 12,
+    fontSize: 11,
     color: theme.colors.textTertiary,
     marginTop: 4,
   },
   submitButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.textPrimary,
+    borderRadius: 28,
     paddingVertical: 16,
     alignItems: 'center',
   },

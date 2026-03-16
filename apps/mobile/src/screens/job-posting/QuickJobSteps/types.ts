@@ -10,13 +10,14 @@ export const JOB_CATEGORIES = [
   { id: 'hvac', label: 'HVAC', icon: 'snow-outline'  as const },
   { id: 'general', label: 'General Repair', icon: 'construct-outline'  as const },
 ] as const;
+import { theme } from '../../../theme';
 
 export const URGENCY_OPTIONS = [
-  { value: 'today', label: 'Today', color: '#FEE2E2', textColor: '#B91C1C'  },
-  { value: 'tomorrow', label: 'Tomorrow', color: '#FFEDD5', textColor: '#C2410C'  },
-  { value: 'this_week', label: 'This Week', color: '#FEF9C3', textColor: '#A16207'  },
-  { value: 'flexible', label: 'Flexible', color: '#DCFCE7', textColor: '#15803D'  },
-] as const;
+  { value: 'today', label: 'Today', color: '#FEE2E2', textColor: '#991B1B' },
+  { value: 'tomorrow', label: 'Tomorrow', color: '#FEE2E2', textColor: theme.colors.error },
+  { value: 'this_week', label: 'This Week', color: theme.colors.accentLight, textColor: theme.colors.accent },
+  { value: 'flexible', label: 'Flexible', color: theme.colors.primaryLight, textColor: theme.colors.primary },
+];
 
 export type SearchSegment = 'where' | 'when' | 'what' | null
 

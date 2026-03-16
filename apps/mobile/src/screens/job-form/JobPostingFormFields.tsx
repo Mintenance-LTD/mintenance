@@ -9,6 +9,7 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Platform,
 } from 'react-native';
 import { Input } from '../../components/ui/Input';
 import { Picker } from '@react-native-picker/picker';
@@ -105,6 +106,7 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
       numberOfLines={4}
       textAlignVertical='top'
       maxLength={500}
+      placeholderTextColor={theme.colors.textTertiary}
     />
     <Text style={styles.characterCount}>{description.length}/500 characters</Text>
     {validationErrors.description && (
@@ -119,6 +121,7 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
       value={location}
       onChangeText={(value) => onFieldChange('location', value)}
       maxLength={100}
+      placeholderTextColor={theme.colors.textTertiary}
     />
     {validationErrors.location && (
       <Text style={styles.errorText}>{validationErrors.location}</Text>
@@ -164,6 +167,7 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
         value={budget}
         onChangeText={(value) => onFieldChange('budget', value)}
         keyboardType='numeric'
+        placeholderTextColor={theme.colors.textTertiary}
       />
     </View>
     {validationErrors.budget && (
@@ -213,7 +217,7 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
 
     <View style={styles.budgetHint}>
       <Text style={styles.hintText}>
-        🤖 Use AI-powered pricing above for market-accurate budget suggestions
+        Use AI-powered pricing above for market-accurate budget suggestions
       </Text>
     </View>
   </View>
@@ -224,31 +228,27 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   label: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 14,
+    fontWeight: '600',
     color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[2],
-    marginTop: theme.spacing[3],
+    marginBottom: 8,
+    marginTop: 16,
   },
   input: {
     height: 50,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing[3],
-    backgroundColor: theme.colors.surface,
-    fontSize: theme.typography.fontSize.base,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    fontSize: 15,
     color: theme.colors.textPrimary,
   },
   textArea: {
     height: 120,
-    paddingTop: theme.spacing[3],
+    paddingTop: 14,
   },
   pickerContainer: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
     overflow: 'hidden',
   },
   picker: {
@@ -257,26 +257,23 @@ const styles = StyleSheet.create({
   },
   urgencyContainer: {
     flexDirection: 'row',
-    gap: theme.spacing[2],
-    marginBottom: theme.spacing[2],
+    gap: 8,
+    marginBottom: 8,
   },
   urgencyButton: {
     flex: 1,
-    paddingVertical: theme.spacing[2],
-    paddingHorizontal: theme.spacing[3],
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.surface,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
   },
   urgencyButtonActive: {
-    backgroundColor: '#222222',
-    borderColor: '#222222',
+    backgroundColor: theme.colors.primary,
   },
   urgencyButtonText: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 14,
+    fontWeight: '500',
     color: theme.colors.textSecondary,
   },
   urgencyButtonTextActive: {
@@ -286,66 +283,62 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: 50,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.surface,
-    paddingHorizontal: theme.spacing[3],
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
+    paddingHorizontal: 14,
   },
   currencySymbol: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 18,
+    fontWeight: '600',
     color: theme.colors.textSecondary,
-    marginRight: theme.spacing[1],
+    marginRight: 4,
   },
   budgetInput: {
     flex: 1,
-    fontSize: theme.typography.fontSize.base,
+    fontSize: 15,
     color: theme.colors.textPrimary,
   },
   budgetComparisonContainer: {
-    backgroundColor: '#F7F7F7',
-    padding: theme.spacing[2],
-    borderRadius: theme.borderRadius.sm,
-    marginTop: theme.spacing[1],
+    backgroundColor: theme.colors.primaryLight,
+    padding: 12,
+    borderRadius: 12,
+    marginTop: 8,
   },
   budgetComparisonText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: '#222222',
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 14,
+    color: theme.colors.primaryDark,
+    fontWeight: '600',
   },
   budgetHint: {
-    backgroundColor: '#F7F7F7',
-    padding: theme.spacing[3],
-    borderRadius: theme.borderRadius.md,
-    marginTop: theme.spacing[3],
-    marginBottom: theme.spacing[6],
+    backgroundColor: theme.colors.backgroundSecondary,
+    padding: 14,
+    borderRadius: 12,
+    marginTop: 16,
+    marginBottom: 24,
   },
   hintText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: '#717171',
+    fontSize: 13,
+    color: theme.colors.textSecondary,
     lineHeight: 20,
   },
   addPhotoButton: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderStyle: 'dashed',
-    borderRadius: theme.borderRadius.md,
-    paddingVertical: theme.spacing[4],
-    paddingHorizontal: theme.spacing[3],
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 14,
     alignItems: 'center',
-    marginBottom: theme.spacing[4],
+    marginBottom: 16,
   },
   addPhotoButtonText: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: 14,
     color: theme.colors.textSecondary,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontWeight: '500',
   },
   photosContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: theme.spacing[2],
-    marginBottom: theme.spacing[4],
+    gap: 8,
+    marginBottom: 16,
   },
   photoItem: {
     position: 'relative',
@@ -355,15 +348,13 @@ const styles = StyleSheet.create({
   photoPlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   photoText: {
-    fontSize: theme.typography.fontSize.xs,
+    fontSize: 11,
     color: theme.colors.textSecondary,
   },
   deletePhotoButton: {
@@ -373,7 +364,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: theme.colors.priorityHigh,
+    backgroundColor: theme.colors.error,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -384,12 +375,12 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   inputError: {
-    borderColor: theme.colors.priorityHigh,
+    borderColor: theme.colors.error,
     borderWidth: 2,
   },
   errorText: {
     fontSize: 12,
-    color: theme.colors.priorityHigh,
+    color: theme.colors.error,
     marginTop: 4,
     marginLeft: 4,
   },

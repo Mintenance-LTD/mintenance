@@ -1,6 +1,6 @@
 /**
  * BookingLoading Component
- * 
+ *
  * Displays loading state for the booking screen.
  */
 
@@ -13,7 +13,7 @@ export const BookingLoading: React.FC = () => {
     <View style={styles.container} testID="booking-loading-container">
       <ActivityIndicator
         size="large"
-        color={theme.colors.primary}
+        color={theme.colors.textPrimary}
         testID="booking-loading-spinner"
       />
       <Text style={styles.loadingText} testID="booking-loading-text">
@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   loadingText: {
     fontSize: 16,

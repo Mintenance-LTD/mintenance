@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { PaymentMethod } from '../../../services/PaymentService';
 import { theme } from '../../../theme';
@@ -27,8 +27,9 @@ const getMethodDetails = (method: PaymentMethod): string => {
   if (method.type === 'card' && method.card) {
     return `${method.card.brand.toUpperCase()} \u2022\u2022\u2022\u2022 ${method.card.last4}`;
   }
-  if (method.type === 'bank_account' && method.bankAccount) {
-    return `${method.bankAccount.bankName} \u2022\u2022\u2022\u2022 ${method.bankAccount.last4}`;
+  if (method.type === 'bank_account' && (method as PaymentMethod & { bankAccount?: { bankName: string; last4: string } }).bankAccount) {
+    const bank = (method as PaymentMethod & { bankAccount: { bankName: string; last4: string } }).bankAccount;
+    return `${bank.bankName} \u2022\u2022\u2022\u2022 ${bank.last4}`;
   }
   return 'Payment Method';
 };
@@ -48,7 +49,7 @@ export const PaymentMethodOption: React.FC<PaymentMethodOptionProps> = ({
           <Ionicons
             name={getMethodIcon(method.type) as keyof typeof Ionicons.glyphMap}
             size={24}
-            color='#717171'
+            color={theme.colors.textSecondary}
           />
         </View>
         <View style={styles.methodDetails}>
@@ -59,7 +60,7 @@ export const PaymentMethodOption: React.FC<PaymentMethodOptionProps> = ({
         </View>
       </View>
       {isSelected && (
-        <Ionicons name="checkmark-circle" size={24} color='#222222' />
+        <Ionicons name="checkmark-circle" size={24} color={theme.colors.textPrimary} />
       )}
     </TouchableOpacity>
   );
@@ -68,19 +69,19 @@ export const PaymentMethodOption: React.FC<PaymentMethodOptionProps> = ({
 const styles = StyleSheet.create({
   paymentMethodOption: {
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   selectedMethod: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   methodContent: {
     flexDirection: 'row',
@@ -88,19 +89,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   methodIcon: {
-    marginRight: theme.spacing.md,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: theme.colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
   },
   methodDetails: {
     flex: 1,
   },
   methodType: {
-    fontSize: theme.typography.fontSize.md,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 15,
+    fontWeight: '500',
     color: theme.colors.textPrimary,
   },
   defaultLabel: {
-    fontSize: theme.typography.fontSize.sm,
-    color: '#717171',
-    marginTop: theme.spacing.xs,
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
   },
 });

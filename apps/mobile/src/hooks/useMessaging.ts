@@ -85,6 +85,7 @@ export const useSendMessage = () => {
       read: false,
       createdAt: new Date().toISOString(),
       senderName: 'You',
+      deliveryStatus: 'sending' as const,
     }),
   });
 };
@@ -232,7 +233,7 @@ export const useMessageThreadsWithRealTime = () => {
     const subscriptions: (() => void)[] = [];
 
     // Subscribe to each active conversation
-    threadsQuery.data.forEach((thread: MessageThread) => {
+    (threadsQuery.data as MessageThread[]).forEach((thread: MessageThread) => {
       const unsubscribe = MessagingService.subscribeToJobMessages(
         thread.jobId,
         (newMessage) => {

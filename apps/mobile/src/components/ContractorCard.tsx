@@ -11,7 +11,6 @@ import SwipeableCardWrapper from './SwipeableCardWrapper';
 import { Ionicons } from '@expo/vector-icons';
 import { ContractorProfile } from '@mintenance/types';
 import { theme } from '../theme';
-import ConnectButton from './ConnectButton';
 
 interface Props {
   contractor: ContractorProfile;
@@ -34,7 +33,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
           key={i}
           name='star'
           size={16}
-          color={theme.colors.ratingGold}
+          color={theme.colors.accent}
         />
       );
     }
@@ -45,7 +44,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
           key='half'
           name='star-half'
           size={16}
-          color={theme.colors.ratingGold}
+          color={theme.colors.accent}
         />
       );
     }
@@ -57,7 +56,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
           key={`empty-${i}`}
           name='star-outline'
           size={16}
-          color={theme.colors.ratingGold}
+          color={theme.colors.accent}
         />
       );
     }
@@ -65,7 +64,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
     return stars;
   };
 
-  const cards = [
+  const cards: { type: string; content: React.ReactNode }[] = [
     // Main profile card
     {
       type: 'profile',
@@ -83,9 +82,9 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
 
           <View style={styles.profileHeader}>
             <View style={styles.profileImageContainer}>
-              {contractor.profileImageUrl ? (
+              {contractor.profile_image_url ? (
                 <Image
-                  source={{ uri: contractor.profileImageUrl }}
+                  source={{ uri: contractor.profile_image_url }}
                   style={styles.profileImage}
                 />
               ) : (
@@ -122,7 +121,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
                 </View>
                 <Text style={styles.ratingText}>
                   {(contractor.rating || 0).toFixed(1)} (
-                  {contractor.totalJobsCompleted || contractor.total_jobs_completed || 0} jobs)
+                  {contractor.total_jobs_completed || 0} jobs)
                 </Text>
               </View>
 
@@ -299,53 +298,25 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
         cardIndex={0}
         backgroundColor='transparent'
         stackSize={1}
-        animateOverlayLabelsOpacity
-        animateCardOpacity
         onSwipedLeft={onPass}
         onSwipedRight={onLike}
         overlayLabels={{
           left: {
-            title: 'PASS',
-            style: {
-              label: {
-                backgroundColor: theme.colors.error,
-                color: 'white',
-                fontSize: 24,
-                fontWeight: '700',
-                borderRadius: 8,
-                padding: 10,
-              },
-              wrapper: {
-                flexDirection: 'column',
-                alignItems: 'flex-end',
-                justifyContent: 'flex-start',
-                marginTop: 30,
-                marginLeft: -30,
-              },
-            },
+            element: (
+              <View style={{ flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'flex-start', marginTop: 30, marginLeft: -30 }}>
+                <Text style={{ backgroundColor: theme.colors.error, color: 'white', fontSize: 24, fontWeight: '700', borderRadius: 8, padding: 10, overflow: 'hidden' }}>PASS</Text>
+              </View>
+            ),
           },
           right: {
-            title: 'LIKE',
-            style: {
-              label: {
-                backgroundColor: theme.colors.success,
-                color: 'white',
-                fontSize: 24,
-                fontWeight: '700',
-                borderRadius: 8,
-                padding: 10,
-              },
-              wrapper: {
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                justifyContent: 'flex-start',
-                marginTop: 30,
-                marginLeft: 30,
-              },
-            },
+            element: (
+              <View style={{ flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', marginTop: 30, marginLeft: 30 }}>
+                <Text style={{ backgroundColor: theme.colors.primary, color: 'white', fontSize: 24, fontWeight: '700', borderRadius: 8, padding: 10, overflow: 'hidden' }}>LIKE</Text>
+              </View>
+            ),
           },
         }}
-        renderCard={(card) => <View style={styles.card}>{card?.content}</View>}
+        renderCard={(card) => <View style={styles.card}>{(card as { type: string; content: React.ReactNode })?.content}</View>}
       />
 
       <View style={styles.actionButtons}>
@@ -353,19 +324,8 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
           <Ionicons name='close' size={30} color={theme.colors.error} />
         </TouchableOpacity>
 
-        {currentUserId && (
-          <ConnectButton
-            currentUserId={currentUserId}
-            targetUserId={contractor.id}
-            targetUserName={`${contractor.firstName || contractor.first_name} ${contractor.lastName || contractor.last_name}`}
-            targetUserRole="contractor"
-            size="medium"
-            style={styles.connectButton}
-          />
-        )}
-
         <TouchableOpacity style={styles.likeButton} onPress={onLike} accessibilityRole="button" accessibilityLabel="Like this contractor">
-          <Ionicons name='leaf' size={30} color={theme.colors.success} />
+          <Ionicons name='leaf' size={30} color={theme.colors.primary} />
         </TouchableOpacity>
       </View>
     </View>

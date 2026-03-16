@@ -329,3 +329,106 @@ export async function handleChargeRefunded(
     throw error;
   }
 }
+
+/**
+ * Payment requires 3D Secure or other action — notify homeowner to complete authentication.
+ */
+export async function handlePaymentIntentRequiresAction(
+  paymentIntent: Stripe.PaymentIntent,
+  sendNotification: SendNotificationFn
+): Promise<void> {
+  logger.info('Payment requires action webhook received', {
+    service: 'stripe-webhook',
+    paymentIntentId: paymentIntent.id,
+  });
+
+  try {
+    const homeownerId = paymentIntent.metadata?.homeownerId;
+    const jobId = paymentIntent.metadata?.jobId;
+
+    if (homeownerId) {
+      await sendNotification(
+        homeownerId,
+        'Payment Requires Action',
+        'Your payment requires additional verification (3D Secure). Please return to the payment page to complete authentication.',
+        'payment_requires_action'
+      );
+    }
+
+    logger.info('Payment requires_action notification sent', {
+      service: 'stripe-webhook',
+      paymentIntentId: paymentIntent.id,
+      homeownerId,
+      jobId,
+    });
+  } catch (error) {
+    logger.error('Error in handlePaymentIntentRequiresAction', error, { service: 'stripe-webhook' });
+    throw error;
+  }
+}
+
+/**
+ * Charge succeeded — log for audit trail. Escrow update is handled by payment_intent.succeeded.
+ */
+export async function handleChargeSucceeded(
+  charge: Stripe.Charge,
+  _sendNotification: SendNotificationFn
+): Promise<void> {
+  logger.info('Charge succeeded webhook received', {
+    service: 'stripe-webhook',
+    chargeId: charge.id,
+    paymentIntentId: charge.payment_intent,
+    amount: charge.amount,
+  });
+}
+
+/**
+ * Charge failed — update escrow status and notify homeowner.
+ */
+export async function handleChargeFailed(
+  charge: Stripe.Charge,
+  sendNotification: SendNotificationFn
+): Promise<void> {
+  logger.info('Charge failed webhook received', {
+    service: 'stripe-webhook',
+    chargeId: charge.id,
+    failureCode: charge.failure_code,
+    failureMessage: charge.failure_message,
+  });
+
+  try {
+    const paymentIntentId = charge.payment_intent as string;
+    if (!paymentIntentId) return;
+
+    // Update escrow to failed
+    const { data: escrowTransaction } = await serverSupabase
+      .from('escrow_transactions')
+      .update({
+        status: 'failed',
+        updated_at: new Date().toISOString(),
+      })
+      .or(`payment_intent_id.eq.${paymentIntentId},stripe_payment_intent_id.eq.${paymentIntentId}`)
+      .select()
+      .single();
+
+    const homeownerId = escrowTransaction?.payer_id || charge.metadata?.homeownerId;
+    if (homeownerId) {
+      const reason = charge.failure_message || 'Your card was declined';
+      await sendNotification(
+        homeownerId,
+        'Payment Failed',
+        `${reason}. Please try again with a different payment method.`,
+        'payment_failed'
+      );
+    }
+
+    logger.info('Charge failure processed', {
+      service: 'stripe-webhook',
+      chargeId: charge.id,
+      failureCode: charge.failure_code,
+    });
+  } catch (error) {
+    logger.error('Error in handleChargeFailed', error, { service: 'stripe-webhook' });
+    throw error;
+  }
+}

@@ -4,6 +4,7 @@
 
 import { Alert } from 'react-native';
 import { captureException } from '../config/sentry';
+import { logger } from './logger';
 
 export enum ErrorSeverity {
   LOW = 'low',
@@ -47,13 +48,15 @@ class ErrorManagerService {
   public handleNetworkError(error: unknown): void {
     let message = 'Network error occurred';
     
+    const status = error && typeof error === 'object' && 'status' in error ? (error as { status: number }).status : undefined;
+
     if (!navigator.onLine) {
       message = 'No internet connection. Please check your network.';
-    } else if (error.status === 401) {
+    } else if (status === 401) {
       message = 'Authentication required. Please log in.';
-    } else if (error.status === 403) {
+    } else if (status === 403) {
       message = 'Access denied. Insufficient permissions.';
-    } else if (error.status >= 500) {
+    } else if (status !== undefined && status >= 500) {
       message = 'Server error. Please try again later.';
     }
 

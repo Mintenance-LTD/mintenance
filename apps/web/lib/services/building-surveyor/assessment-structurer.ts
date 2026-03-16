@@ -3,7 +3,7 @@
  * Structures AI responses into Phase1BuildingAssessment format
  */
 
-import type { Phase1BuildingAssessment, Material, VisionAnalysisSummary } from './types';
+import type { Phase1BuildingAssessment, Material, VisionAnalysisSummary, RICSConditionRating, SpecialistReferral } from './types';
 import type { AiAssessmentPayload } from './validation-schemas';
 import { SafetyAnalysisService } from './SafetyAnalysisService';
 import { ComplianceService } from './ComplianceService';
@@ -149,6 +149,16 @@ export async function structureAssessment(
 
   if (evidencePayload) {
     assessment.evidence = evidencePayload;
+  }
+
+  // RICS Condition Rating (additive — present only when AI provides it)
+  if (aiResponse.ricsConditionRating) {
+    assessment.ricsConditionRating = aiResponse.ricsConditionRating as RICSConditionRating;
+  }
+
+  // Specialist Referrals (present only when AI identifies need)
+  if (aiResponse.specialistReferrals && aiResponse.specialistReferrals.length > 0) {
+    assessment.specialistReferrals = aiResponse.specialistReferrals as SpecialistReferral[];
   }
 
   return assessment;

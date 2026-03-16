@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal } from 'react-native';
 import Button from '../ui/Button';
-import { theme } from '../../theme';
 import type { ServiceArea } from '../../services/ServiceAreasService';
+import { theme } from '../../theme';
 
 interface DeleteConfirmationModalProps {
   visible: boolean;
@@ -62,8 +62,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   modalContent: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.xl,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 20,
     padding: 24,
     width: '100%',
     maxWidth: 400,

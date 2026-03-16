@@ -49,7 +49,7 @@ export const TAB_STYLES = {
     paddingTop: NAVIGATION_CONSTANTS.TAB_BAR_PADDING,
     backgroundColor: theme.colors.background,
     borderTopWidth: 0,
-    shadowColor: '#000000',
+    shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: -1 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -57,7 +57,7 @@ export const TAB_STYLES = {
   },
   tabBarLabelStyle: {
     fontSize: 11,
-    fontWeight: '400' as const,
+    fontWeight: theme.typography.fontWeight.regular,
     marginTop: 2,
   },
   tabBarIconStyle: {

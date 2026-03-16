@@ -24,6 +24,10 @@ npm run type-check -w @mintenance/web --silent || {
   echo "❌ TypeScript errors in web app"
   exit 1
 }
+npm run type-check -w @mintenance/mobile --silent || {
+  echo "❌ TypeScript errors in mobile app"
+  exit 1
+}
 
 # Linting staged files
 echo "🔧 Linting staged files..."

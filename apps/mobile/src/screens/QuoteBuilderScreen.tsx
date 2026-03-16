@@ -7,12 +7,12 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../navigation/types';
-import { theme } from '../theme';
 import { logger } from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -24,6 +24,7 @@ import { QuoteCard } from '../components/QuoteCard';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { Banner } from '../components/ui/Banner';
 import { useToast } from '../components/ui/Toast';
+import { theme } from '../theme';
 
 interface QuoteBuilderScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'QuoteBuilder'>;
@@ -53,7 +54,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
 
     try {
       const statusFilter =
-        selectedStatus === 'all' ? undefined : [selectedStatus as unknown];
+        selectedStatus === 'all' ? undefined : [selectedStatus as ContractorQuote['status']];
       const data = await QuoteBuilderService.getQuotes(user?.id || '', {
         status: statusFilter,
       });
@@ -88,7 +89,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
     setLoading(true);
 
     try {
-      const statusFilter = status === 'all' ? undefined : [status as unknown];
+      const statusFilter = status === 'all' ? undefined : [status as ContractorQuote['status']];
       const data = await QuoteBuilderService.getQuotes(user?.id || '', {
         status: statusFilter,
       });
@@ -143,82 +144,18 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
     );
   };
 
-  const renderStatsCard = () => {
-    if (!stats) return null;
+  const STAT_ITEMS = stats ? [
+    { value: String(stats.total_quotes), label: 'Total', iconColor: '#3B82F6', iconBg: '#DBEAFE', icon: 'document-text-outline' as const },
+    { value: String(stats.accepted_quotes), label: 'Accepted', iconColor: theme.colors.primary, iconBg: theme.colors.primaryLight, icon: 'checkmark-circle-outline' as const },
+    { value: `£${stats.total_value.toFixed(0)}`, label: 'Value', iconColor: theme.colors.accent, iconBg: theme.colors.accentLight, icon: 'wallet-outline' as const },
+    { value: `${stats.acceptance_rate.toFixed(0)}%`, label: 'Success', iconColor: '#8B5CF6', iconBg: '#EDE9FE', icon: 'trending-up-outline' as const },
+  ] : [];
 
-    return (
-      <View style={styles.statsContainer}>
-        <Text style={styles.statsTitle}>Quote Performance</Text>
-
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.total_quotes}</Text>
-            <Text style={styles.statLabel}>Total Quotes</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.accepted_quotes}</Text>
-            <Text style={styles.statLabel}>Accepted</Text>
-          </View>
-        </View>
-
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>£{stats.total_value.toFixed(0)}</Text>
-            <Text style={styles.statLabel}>Total Value</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.acceptance_rate.toFixed(1)}%</Text>
-            <Text style={styles.statLabel}>Success Rate</Text>
-          </View>
-        </View>
-      </View>
-    );
-  };
-
-  const renderStatusFilter = () => (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      style={styles.filterContainer}
-      contentContainerStyle={styles.filterContent}
-    >
-      {[
-        { key: 'all', label: 'All', count: stats?.total_quotes || 0 },
-        { key: 'draft', label: 'Draft', count: stats?.draft_quotes || 0 },
-        { key: 'sent', label: 'Sent', count: stats?.sent_quotes || 0 },
-        {
-          key: 'accepted',
-          label: 'Accepted',
-          count: stats?.accepted_quotes || 0,
-        },
-        {
-          key: 'rejected',
-          label: 'Rejected',
-          count: stats?.rejected_quotes || 0,
-        },
-      ].map((filter) => (
-        <TouchableOpacity
-          key={filter.key}
-          style={[
-            styles.filterChip,
-            selectedStatus === filter.key && styles.filterChipActive,
-          ]}
-          onPress={() => handleStatusFilter(filter.key)}
-        >
-          <Text
-            style={[
-              styles.filterText,
-              selectedStatus === filter.key && styles.filterTextActive,
-            ]}
-          >
-            {filter.label} ({filter.count})
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
-  );
+  const QUICK_ACTIONS = [
+    { icon: 'document-text' as const, label: 'Templates', iconColor: '#3B82F6', iconBg: '#DBEAFE', onPress: () => (navigation.navigate as (...args: unknown[]) => void)('QuoteTemplates') },
+    { icon: 'analytics' as const, label: 'Analytics', iconColor: '#8B5CF6', iconBg: '#EDE9FE', onPress: () => setShowAnalytics(prev => !prev) },
+    { icon: 'add-circle' as const, label: 'New Quote', iconColor: theme.colors.primary, iconBg: theme.colors.primaryLight, onPress: () => (navigation.navigate as (...args: unknown[]) => void)('CreateQuote') },
+  ];
 
   if (loading && quotes.length === 0) {
     return <LoadingSpinner message='Loading quotes...' />;
@@ -231,61 +168,109 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <Ionicons name='arrow-back' size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Quote Builder</Text>
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => navigation.navigate('CreateQuote')}
+          onPress={() => (navigation.navigate as (...args: unknown[]) => void)('CreateQuote')}
+          accessibilityRole="button"
+          accessibilityLabel="Create new quote"
         >
-          <Ionicons name='add' size={24} color={theme.colors.textPrimary} />
+          <View style={styles.addIconWrap}>
+            <Ionicons name='add' size={20} color={theme.colors.textInverse} />
+          </View>
         </TouchableOpacity>
       </View>
 
       <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor='#222222' colors={['#222222']} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />
         }
         showsVerticalScrollIndicator={false}
       >
         {listError && (
-          <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+          <View style={{ paddingTop: 8 }}>
             <Banner message={listError} variant="error" />
           </View>
         )}
-        {/* Statistics */}
-        {renderStatsCard()}
 
-        {/* Status Filter */}
-        {renderStatusFilter()}
+        {/* Statistics */}
+        {stats && (
+          <View style={styles.statsCard}>
+            <Text style={styles.statsTitle}>Performance</Text>
+            <View style={styles.statsGrid}>
+              {STAT_ITEMS.map((item) => (
+                <View key={item.label} style={styles.statItem}>
+                  <View style={[styles.statIconWrap, { backgroundColor: item.iconBg }]}>
+                    <Ionicons name={item.icon} size={16} color={item.iconColor} />
+                  </View>
+                  <Text style={styles.statValue}>{item.value}</Text>
+                  <Text style={styles.statLabel}>{item.label}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Status Filter - Dark active */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterContainer}
+          contentContainerStyle={styles.filterContent}
+        >
+          {[
+            { key: 'all', label: 'All', count: stats?.total_quotes || 0 },
+            { key: 'draft', label: 'Draft', count: stats?.draft_quotes || 0 },
+            { key: 'sent', label: 'Sent', count: stats?.sent_quotes || 0 },
+            { key: 'accepted', label: 'Accepted', count: stats?.accepted_quotes || 0 },
+            { key: 'rejected', label: 'Rejected', count: stats?.rejected_quotes || 0 },
+          ].map((filter) => (
+            <TouchableOpacity
+              key={filter.key}
+              style={[
+                styles.filterChip,
+                selectedStatus === filter.key && styles.filterChipActive,
+              ]}
+              onPress={() => handleStatusFilter(filter.key)}
+              accessibilityRole="button"
+              accessibilityLabel={`Filter by ${filter.label}, ${filter.count} quotes`}
+              accessibilityState={{ selected: selectedStatus === filter.key }}
+            >
+              <Text
+                style={[
+                  styles.filterText,
+                  selectedStatus === filter.key && styles.filterTextActive,
+                ]}
+              >
+                {filter.label} ({filter.count})
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
         {/* Quick Actions */}
         <View style={styles.actionsContainer}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('QuoteTemplates')}
-          >
-            <Ionicons name='document-text' size={24} color='#717171' />
-            <Text style={styles.actionButtonText}>Templates</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => setShowAnalytics(prev => !prev)}
-          >
-            <Ionicons name='analytics' size={24} color='#717171' />
-            <Text style={styles.actionButtonText}>Analytics</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('CreateQuote')}
-          >
-            <Ionicons name='add-circle' size={24} color='#717171' />
-            <Text style={styles.actionButtonText}>New Quote</Text>
-          </TouchableOpacity>
+          {QUICK_ACTIONS.map((action) => (
+            <TouchableOpacity
+              key={action.label}
+              style={styles.actionButton}
+              onPress={action.onPress}
+              accessibilityRole="button"
+              accessibilityLabel={action.label}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.actionIconWrap, { backgroundColor: action.iconBg }]}>
+                <Ionicons name={action.icon} size={20} color={action.iconColor} />
+              </View>
+              <Text style={styles.actionButtonText}>{action.label}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* Inline Analytics Panel */}
@@ -323,11 +308,9 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
 
           {quotes.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons
-                name='document-text-outline'
-                size={64}
-                color={theme.colors.textTertiary}
-              />
+              <View style={styles.emptyIconWrap}>
+                <Ionicons name='document-text-outline' size={32} color={theme.colors.textTertiary} />
+              </View>
               <Text style={styles.emptyTitle}>No quotes found</Text>
               <Text style={styles.emptyText}>
                 {selectedStatus === 'all'
@@ -336,7 +319,9 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
               </Text>
               <TouchableOpacity
                 style={styles.createButton}
-                onPress={() => navigation.navigate('CreateQuote')}
+                onPress={() => (navigation.navigate as (...args: unknown[]) => void)('CreateQuote')}
+                accessibilityRole="button"
+                accessibilityLabel="Create your first quote"
               >
                 <Text style={styles.createButtonText}>Create Quote</Text>
               </TouchableOpacity>
@@ -347,10 +332,10 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
                 key={quote.id}
                 quote={quote}
                 onPress={() =>
-                  navigation.navigate('QuoteDetail', { quoteId: quote.id })
+                  (navigation.navigate as (...args: unknown[]) => void)('QuoteDetail', { quoteId: quote.id })
                 }
                 onEdit={() =>
-                  navigation.navigate('CreateQuote', { jobId: quote.job_id })
+                  (navigation.navigate as (...args: unknown[]) => void)('CreateQuote', { jobId: quote.job_id })
                 }
                 onSend={() => handleSendQuote(quote.id)}
                 onDuplicate={() => handleDuplicateQuote(quote.id)}
@@ -367,7 +352,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -375,129 +360,181 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    backgroundColor: theme.colors.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
   },
   addButton: {
-    padding: 8,
+    padding: 4,
+  },
+  addIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: theme.colors.textPrimary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
     flex: 1,
     paddingHorizontal: 16,
   },
-  statsContainer: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
-    padding: 20,
+  statsCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    padding: 16,
     marginTop: 16,
-    marginBottom: 16,
-    ...theme.shadows.base,
+    marginBottom: 14,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
   statsTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginBottom: 16,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 12,
     marginBottom: 12,
   },
-  statCard: {
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  statItem: {
     flex: 1,
-    backgroundColor: theme.colors.surfaceSecondary,
-    borderRadius: theme.borderRadius.base,
-    padding: 16,
     alignItems: 'center',
   },
+  statIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
   statValue: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: theme.colors.textSecondary,
     textAlign: 'center',
   },
   filterContainer: {
-    marginBottom: 16,
+    marginBottom: 14,
   },
   filterContent: {
-    paddingRight: 16,
+    gap: 8,
   },
   filterChip: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: theme.borderRadius.full,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderRadius: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+      },
+      android: { elevation: 1 },
+    }),
   },
   filterChipActive: {
-    backgroundColor: '#222222',
-    borderColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   filterText: {
-    fontSize: 14,
+    fontSize: 13,
     color: theme.colors.textSecondary,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   filterTextActive: {
-    color: theme.colors.white,
+    color: theme.colors.textInverse,
   },
   actionsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-    gap: 12,
+    marginBottom: 20,
+    gap: 10,
   },
   actionButton: {
     flex: 1,
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
-    padding: 16,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    padding: 14,
     alignItems: 'center',
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
+  },
+  actionIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
   },
   actionButtonText: {
     fontSize: 12,
     color: theme.colors.textPrimary,
-    marginTop: 6,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   quotesContainer: {
     marginBottom: 32,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 60,
   },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: theme.colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginTop: 16,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   emptyText: {
     fontSize: 14,
@@ -508,23 +545,30 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   createButton: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 28,
   },
   createButtonText: {
-    color: theme.colors.white,
-    fontSize: 16,
-    fontWeight: '600',
+    color: theme.colors.textInverse,
+    fontSize: 15,
+    fontWeight: '700',
   },
   analyticsPanel: {
-    backgroundColor: theme.colors.background,
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.surface,
+    marginBottom: 14,
+    borderRadius: 16,
     padding: 16,
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
   analyticsTitle: {
     fontSize: 14,

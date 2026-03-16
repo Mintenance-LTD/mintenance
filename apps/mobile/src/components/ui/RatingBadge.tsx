@@ -3,7 +3,7 @@
  * Airbnb-style rating badge used in job cards and detail screens.
  */
 import React, { memo } from 'react';
-import { View, Text, StyleSheet, ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 
@@ -34,7 +34,7 @@ export const RatingBadge: React.FC<RatingBadgeProps> = memo(({
       <Ionicons
         name="star"
         size={sizeConfig.starSize}
-        color={theme.colors.ratingGold}
+        color={theme.colors.accent}
       />
       <Text style={[styles.ratingText, { fontSize: sizeConfig.ratingFontSize }]}>
         {rating.toFixed(2)}
@@ -86,11 +86,14 @@ const SIZE_CONFIGS = {
 
 const BACKGROUND_STYLES: Record<string, ViewStyle> = {
   white: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   transparent: {
     backgroundColor: 'transparent',

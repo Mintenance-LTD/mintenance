@@ -24,13 +24,14 @@ export class ErrorHandler {
   }
 
   static getUserMessage(error: unknown): string {
+    const err = error as Partial<AppError & { error_code?: string }>;
     // Custom user message
-    if (error.userMessage) {
-      return error.userMessage;
+    if (err.userMessage) {
+      return err.userMessage;
     }
 
     // Handle Supabase specific error codes first
-    const errorCode = error?.code || error?.error_code;
+    const errorCode = err?.code || err?.error_code;
 
     // Supabase/PostgreSQL specific errors
     switch (errorCode) {
@@ -60,8 +61,8 @@ export class ErrorHandler {
     }
 
     // Message-based error detection for backward compatibility
-    if (error.message) {
-      const message = error.message.toLowerCase();
+    if (err.message) {
+      const message = err.message.toLowerCase();
 
       if (message.includes('invalid login credentials')) {
         return 'Invalid email or password. Please check your credentials and try again.';
@@ -100,7 +101,7 @@ export class ErrorHandler {
     }
 
     // HTTP status codes take precedence over generic network fallback
-    switch (error.statusCode) {
+    switch (err.statusCode) {
       case 400:
         return 'Invalid request. Please check your input and try again.';
       case 401:
@@ -123,7 +124,7 @@ export class ErrorHandler {
 
     // Network errors
     if (
-      error.code === 'NETWORK_ERROR' ||
+      err.code === 'NETWORK_ERROR' ||
       (typeof navigator !== 'undefined' && !navigator.onLine)
     ) {
       return 'Please check your internet connection and try again.';
@@ -137,7 +138,7 @@ export class ErrorHandler {
     // Import Sentry dynamically to avoid circular dependencies
     import('../config/sentry')
       .then(({ captureException }) => {
-        captureException(error, { context });
+        captureException(error instanceof Error ? error : new Error(String(error)), { context });
       })
       .catch(() => {
         // Fallback if Sentry fails
@@ -173,28 +174,31 @@ export class ErrorHandler {
   }
 
   static isNetworkError(error: unknown): boolean {
+    const err = error as Partial<AppError>;
     const offline =
-      typeof navigator !== 'undefined' && (navigator as unknown).onLine === false;
+      typeof navigator !== 'undefined' && !navigator.onLine;
     return (
-      error.code === 'NETWORK_ERROR' ||
-      error.message?.toLowerCase?.().includes('network') ||
+      err.code === 'NETWORK_ERROR' ||
+      err.message?.toLowerCase?.().includes('network') ||
       offline
     );
   }
 
   static isAuthError(error: unknown): boolean {
+    const err = error as Partial<AppError>;
     return (
-      error.statusCode === 401 ||
-      error.code === '42501' ||
-      error.message?.includes('permission denied')
+      err.statusCode === 401 ||
+      err.code === '42501' ||
+      err.message?.includes('permission denied') || false
     );
   }
 
   static isValidationError(error: unknown): boolean {
+    const err = error as Partial<AppError>;
     return (
-      error.statusCode === 400 ||
-      error.statusCode === 422 ||
-      error.message?.includes('validation')
+      err.statusCode === 400 ||
+      err.statusCode === 422 ||
+      err.message?.includes('validation') || false
     );
   }
 
@@ -274,7 +278,7 @@ export class ErrorHandler {
         const retryDelay = backoff ? delay * Math.pow(2, attempt - 1) : delay;
         logger.warn(
           `Retrying operation in ${retryDelay}ms (attempt ${attempt}/${maxAttempts})`,
-          { context, error: (error as unknown)?.message || String(error) }
+          { context, error: error instanceof Error ? error.message : String(error) }
         );
 
         await new Promise((resolve) => setTimeout(resolve, retryDelay));
@@ -285,13 +289,14 @@ export class ErrorHandler {
   }
 
   static shouldRetry(error: unknown): boolean {
+    const err = error as Partial<AppError>;
     // Retry network errors and server errors
     if (this.isNetworkError(error)) return true;
-    if (error.statusCode >= 500) return true;
+    if (err.statusCode && err.statusCode >= 500) return true;
 
     // Retry specific Supabase errors that might be temporary
     const retryableCodes = ['PGRST301', 'PGRST116']; // Sometimes these are temporary
-    if (retryableCodes.includes(error.code)) return true;
+    if (err.code && retryableCodes.includes(err.code)) return true;
 
     return false;
   }

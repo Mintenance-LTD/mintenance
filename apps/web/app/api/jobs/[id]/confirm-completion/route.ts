@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
+import { logger, JOB_STATUS, ESCROW_STATUS, validateEscrowTransition, type EscrowStatusValue } from '@mintenance/shared';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
 import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { EmailService } from '@/lib/email-service';
 
 /**
  * POST /api/jobs/[id]/confirm-completion
@@ -49,7 +50,7 @@ export const POST = withApiHandler({ roles: ['homeowner'], rateLimit: { maxReque
   }
 
   // Verify job is in completed status
-  if (job.status !== 'completed') {
+  if (job.status !== JOB_STATUS.COMPLETED) {
     throw new BadRequestError(`Cannot confirm completion - job status is ${job.status}. Contractor must mark the job as completed first`);
   }
 
@@ -96,6 +97,49 @@ export const POST = withApiHandler({ roles: ['homeowner'], rateLimit: { maxReque
     }
   }
 
+  // Send email to contractor about work approval and payment release
+  try {
+    const { data: contractorProfile } = await serverSupabase
+      .from('profiles')
+      .select('email, first_name, last_name, company_name')
+      .eq('id', job.contractor_id)
+      .single();
+
+    const { data: homeownerProfile } = await serverSupabase
+      .from('profiles')
+      .select('first_name, last_name')
+      .eq('id', user.id)
+      .single();
+
+    // Get escrow amount for the email
+    const { data: escrowForEmail } = await serverSupabase
+      .from('escrow_transactions')
+      .select('amount')
+      .eq('job_id', jobId)
+      .in('status', [ESCROW_STATUS.HELD, ESCROW_STATUS.RELEASE_PENDING])
+      .limit(1)
+      .single();
+
+    if (contractorProfile?.email) {
+      const contractorName = contractorProfile.first_name && contractorProfile.last_name
+        ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
+        : contractorProfile.company_name || 'Contractor';
+      const homeownerName = homeownerProfile
+        ? `${homeownerProfile.first_name || ''} ${homeownerProfile.last_name || ''}`.trim() || 'The homeowner'
+        : 'The homeowner';
+
+      await EmailService.sendWorkApprovedEmail(contractorProfile.email, {
+        contractorName,
+        homeownerName,
+        jobTitle: job.title || 'Job',
+        amount: escrowForEmail ? Number(escrowForEmail.amount) / 100 : 0,
+        viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/contractor/jobs/${jobId}`,
+      });
+    }
+  } catch (emailError) {
+    logger.error('Failed to send work approved email', emailError, { service: 'jobs', jobId });
+  }
+
   // Trigger escrow release workflow
   try {
     // Check if there's an active escrow transaction for this job
@@ -103,7 +147,7 @@ export const POST = withApiHandler({ roles: ['homeowner'], rateLimit: { maxReque
       .from('escrow_transactions')
       .select('id, status, amount')
       .eq('job_id', jobId)
-      .eq('status', 'held')
+      .eq('status', ESCROW_STATUS.HELD)
       .single();
 
     if (escrowError && escrowError.code !== 'PGRST116') {
@@ -115,12 +159,15 @@ export const POST = withApiHandler({ roles: ['homeowner'], rateLimit: { maxReque
     }
 
     if (escrowTransaction) {
+      // Validate escrow transition before updating
+      validateEscrowTransition(escrowTransaction.status as EscrowStatusValue, ESCROW_STATUS.RELEASE_PENDING as EscrowStatusValue);
+
       // Update escrow status to release_pending
       // The actual Stripe transfer will be handled by a background job/cron
       const { error: releaseError } = await serverSupabase
         .from('escrow_transactions')
         .update({
-          status: 'release_pending',
+          status: ESCROW_STATUS.RELEASE_PENDING,
           updated_at: new Date().toISOString(),
         })
         .eq('id', escrowTransaction.id);

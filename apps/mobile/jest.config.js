@@ -71,13 +71,13 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  // Start with achievable thresholds - increase as coverage improves
+  // Coverage thresholds - raised to enforce meaningful coverage
   coverageThreshold: {
     global: {
-      branches: 20,
-      functions: 25,
-      lines: 30,
-      statements: 30,
+      branches: 50,
+      functions: 60,
+      lines: 55,
+      statements: 55,
     },
   },
   // Increase test timeout for complex tests

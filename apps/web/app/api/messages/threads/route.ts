@@ -93,23 +93,30 @@ export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (req
     .select('id, job_id, last_message_at')
     .in('job_id', jobIds);
 
+  // Build thread_id → job_id mapping
   const threadToJob = new Map<string, string>();
-  for (const t of messageThreadsData ?? []) {
-    threadToJob.set(t.id, t.job_id);
+  const jobToThread = new Map<string, string>();
+  if (messageThreadsData) {
+    for (const t of messageThreadsData) {
+      if (t.job_id && t.id) {
+        threadToJob.set(t.id, t.job_id);
+        jobToThread.set(t.job_id, t.id);
+      }
+    }
   }
 
   const threadIds = Array.from(threadToJob.keys());
 
-  // Fetch last messages per thread using actual schema columns
+  // Fetch last messages per job using job_id (actual DB schema)
   const lastMessages = new Map<string, LastMessageInfo>();
 
-  if (threadIds.length > 0) {
-    const messageLimit = Math.min(Math.max(threadIds.length * 5, limit), 500);
+  if (jobIds.length > 0) {
+    const messageLimit = Math.min(Math.max(jobIds.length * 5, limit), 500);
 
     const { data: messageData, error: messageError } = await serverSupabase
       .from('messages')
-      .select('id, thread_id, sender_id, content, message_type, created_at')
-      .in('thread_id', threadIds)
+      .select('id, job_id, sender_id, content, message_type, created_at')
+      .in('job_id', jobIds)
       .order('created_at', { ascending: false })
       .limit(messageLimit);
 
@@ -117,37 +124,12 @@ export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (req
       logger.error('Failed to load last messages', messageError, {
         service: 'messages',
         userId: user.id,
-        threadCount: threadIds.length,
+        jobCount: jobIds.length,
       });
     }
 
     if (messageData) {
-      for (const row of messageData as { id: string; thread_id: string; sender_id: string; content: string; message_type: string | null; created_at: string }[]) {
-        const jobId = threadToJob.get(row.thread_id);
-        if (jobId && !lastMessages.has(jobId)) {
-          lastMessages.set(jobId, {
-            content: row.content || '',
-            messageText: row.content || '',
-            messageType: normalizeMessageType(row.message_type),
-            createdAt: row.created_at,
-          });
-        }
-      }
-    }
-  }
-
-  // Fallback: for jobs without lastMessage from thread_id lookup, try querying by job_id directly
-  const jobsWithoutMessages = jobIds.filter(id => !lastMessages.has(id));
-  if (jobsWithoutMessages.length > 0) {
-    const { data: fallbackMessages } = await serverSupabase
-      .from('messages')
-      .select('id, job_id, sender_id, content, message_type, created_at')
-      .in('job_id', jobsWithoutMessages)
-      .order('created_at', { ascending: false })
-      .limit(jobsWithoutMessages.length * 3);
-
-    if (fallbackMessages) {
-      for (const row of fallbackMessages as { id: string; job_id: string; sender_id: string; content: string; message_type: string | null; created_at: string }[]) {
+      for (const row of messageData as { id: string; job_id: string; sender_id: string; content: string; message_type: string | null; created_at: string }[]) {
         if (row.job_id && !lastMessages.has(row.job_id)) {
           lastMessages.set(row.job_id, {
             content: row.content || '',
@@ -160,13 +142,15 @@ export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (req
     }
   }
 
-  // Calculate unread counts using read_by array (user not in read_by = unread)
+  // Calculate unread counts using read boolean (actual DB schema)
   const unreadCounts = new Map<string, number>();
-  if (threadIds.length > 0) {
+  if (jobIds.length > 0) {
     const { data: unreadData, error: unreadError } = await serverSupabase
       .from('messages')
-      .select('id, thread_id, sender_id, read_by')
-      .in('thread_id', threadIds);
+      .select('id, job_id, sender_id, read')
+      .in('job_id', jobIds)
+      .neq('sender_id', user.id)
+      .eq('read', false);
 
     if (unreadError) {
       logger.warn('Failed to load unread counts', {
@@ -175,15 +159,9 @@ export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (req
         error: unreadError.message,
       });
     } else {
-      for (const row of (unreadData ?? []) as { id: string; thread_id: string; sender_id: string; read_by: string[] | null }[]) {
-        if (row.sender_id !== user.id) {
-          const readBy = Array.isArray(row.read_by) ? row.read_by : [];
-          if (!readBy.includes(user.id)) {
-            const jobId = threadToJob.get(row.thread_id);
-            if (jobId) {
-              unreadCounts.set(jobId, (unreadCounts.get(jobId) ?? 0) + 1);
-            }
-          }
+      for (const row of (unreadData ?? []) as { id: string; job_id: string; sender_id: string; read: boolean }[]) {
+        if (row.job_id) {
+          unreadCounts.set(row.job_id, (unreadCounts.get(row.job_id) ?? 0) + 1);
         }
       }
     }

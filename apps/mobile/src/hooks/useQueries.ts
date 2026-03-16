@@ -83,7 +83,7 @@ export const useJobDetails = (jobId: string, enabled = true) => {
 
 export const useCreateJob = () => {
   return useMutation({
-    mutationFn: (jobData: unknown) => JobService.createJob(jobData),
+    mutationFn: (jobData: Parameters<typeof JobService.createJob>[0]) => JobService.createJob(jobData),
     onSuccess: () => {
       // Invalidate jobs list to show new job
       invalidateQueries.allJobs();
@@ -105,7 +105,7 @@ export const useUpdateJob = () => {
       jobId: string;
       status: 'posted' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
       contractorId?: string;
-    }) => JobService.updateJobStatus(jobId, status as unknown, contractorId),
+    }) => JobService.updateJobStatus(jobId, status, contractorId),
     onSuccess: (data, variables) => {
       // Invalidate specific job details
       invalidateQueries.jobDetails(variables.jobId);
@@ -123,7 +123,7 @@ export const useDeleteJob = () => {
   return useMutation({
     // Soft-delete by marking as cancelled
     mutationFn: (jobId: string) =>
-      JobService.updateJobStatus(jobId, 'cancelled' as unknown),
+      JobService.updateJobStatus(jobId, 'cancelled'),
     onSuccess: () => {
       invalidateQueries.allJobs();
       HapticService.success();
@@ -181,13 +181,13 @@ export const useConversations = (enabled = true) => {
   });
 };
 
+/** @deprecated Use useJobMessages from useMessaging.ts which uses real-time subscriptions */
 export const useJobMessages = (jobId: string, enabled = true) => {
   return useQuery({
     queryKey: queryKeys.messages.conversation(jobId),
     queryFn: () => MessagingService.getJobMessages(jobId),
     enabled: enabled && !!jobId,
     staleTime: 30 * 1000, // 30 seconds
-    refetchInterval: 5000, // Poll every 5 seconds
   });
 };
 
@@ -219,25 +219,8 @@ export const useSendMessage = () => {
 export const useFeedPosts = (filters?: unknown, enabled = true) => {
   return useQuery({
     queryKey: queryKeys.feed.posts(JSON.stringify(filters || {})),
-    queryFn: () => {
-      // Mock feed posts - replace with actual service call
-      return Promise.resolve([
-        {
-          id: '1',
-          contractorName: 'Mike Johnson',
-          role: 'Plumber',
-          verified: true,
-          timestamp: '2h ago',
-          content: 'Just finished a challenging bathroom renovation!',
-          hashtags: ['#plumbing', '#renovation'],
-          likes: 24,
-          comments: 5,
-          shares: 2,
-          liked: false,
-          saved: false,
-        },
-      ]);
-    },
+    // TODO: Implement feed posts API when feed feature is built
+    queryFn: () => Promise.resolve([] as unknown[]),
     enabled,
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
@@ -245,13 +228,9 @@ export const useFeedPosts = (filters?: unknown, enabled = true) => {
 
 export const useToggleLike = () => {
   return useMutation({
+    // TODO: Implement feed like API when feed feature is built
     mutationFn: ({ postId, isLiked }: { postId: string; isLiked: boolean }) => {
-      // Mock like toggle - replace with actual service call
-      return Promise.resolve({ postId, liked: !isLiked });
-    },
-    onSuccess: () => {
-      invalidateQueries.feedPosts();
-      HapticService.likePost();
+      throw new Error('Feed feature not implemented');
     },
     onError: () => {
       HapticService.error();
@@ -261,13 +240,9 @@ export const useToggleLike = () => {
 
 export const useToggleSave = () => {
   return useMutation({
+    // TODO: Implement feed save API when feed feature is built
     mutationFn: ({ postId, isSaved }: { postId: string; isSaved: boolean }) => {
-      // Mock save toggle - replace with actual service call
-      return Promise.resolve({ postId, saved: !isSaved });
-    },
-    onSuccess: () => {
-      invalidateQueries.feedPosts();
-      HapticService.savePost();
+      throw new Error('Feed feature not implemented');
     },
     onError: () => {
       HapticService.error();
@@ -295,7 +270,7 @@ export const useSearchContractors = (
 export const useSearchJobs = (query: string, filters?: unknown, enabled = true) => {
   return useQuery({
     queryKey: queryKeys.search.jobs(query, JSON.stringify(filters || {})),
-    queryFn: () => JobService.searchJobs(query, filters),
+    queryFn: () => JobService.searchJobs(query, filters as Parameters<typeof JobService.searchJobs>[1]),
     enabled: enabled && query.length > 2,
     staleTime: 2 * 60 * 1000, // 2 minutes
   });

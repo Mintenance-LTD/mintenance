@@ -7,7 +7,6 @@ import { theme } from '../../../theme';
 interface ProfileHeaderUser {
   first_name?: string;
   last_name?: string;
-  /** Computed compat fields */
   firstName?: string;
   lastName?: string;
   company_name?: string;
@@ -21,9 +20,10 @@ interface ProfileHeaderUser {
 interface ProfileHeaderProps {
   user: ProfileHeaderUser | null;
   joinDate: string;
+  topInset?: number;
 }
 
-export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate }) => {
+export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate, topInset = 0 }) => {
   const firstName = user?.first_name || user?.firstName || '';
   const lastName = user?.last_name || user?.lastName || '';
   const displayName =
@@ -39,21 +39,20 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate }) 
   const avatarUri = user?.profile_image_url || user?.avatar_url;
   const isContractor = user?.role === 'contractor';
   const gradientColors: [string, string, string] = isContractor
-    ? ['#0F766E', '#0D9488', '#0891B2']
-    : ['#1E40AF', '#3B82F6', '#06B6D4'];
+    ? ['#064E3B', '#059669', '#10B981']
+    : ['#064E3B', '#059669', '#10B981'];
 
   return (
     <LinearGradient
       colors={gradientColors}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
-      style={styles.hero}
+      style={[styles.hero, { paddingTop: topInset + 20 }]}
     >
-      {/* Decorative circles */}
       <View style={styles.decor1} />
       <View style={styles.decor2} />
+      <View style={styles.decor3} />
 
-      {/* Avatar with white ring */}
       <View style={styles.avatarRing}>
         {avatarUri ? (
           <Image
@@ -68,17 +67,15 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate }) 
         )}
         {user?.verified && (
           <View style={styles.verifiedDot}>
-            <Ionicons name="checkmark-circle" size={18} color={theme.colors.success} />
+            <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
           </View>
         )}
       </View>
 
-      {/* Name */}
       <Text style={styles.displayName} numberOfLines={1}>
         {displayName}
       </Text>
 
-      {/* Contractor subtitle */}
       {isContractor && (
         <View style={styles.subtitleRow}>
           <Ionicons name="hammer" size={12} color="rgba(255,255,255,0.75)" />
@@ -86,14 +83,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate }) 
         </View>
       )}
 
-      {/* Email */}
       {user?.email ? (
         <Text style={styles.emailText} numberOfLines={1}>
           {user.email}
         </Text>
       ) : null}
 
-      {/* Badge pills */}
       <View style={styles.badgeRow}>
         <View style={styles.pill}>
           <Ionicons
@@ -118,19 +113,17 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate }) 
 
 const styles = StyleSheet.create({
   hero: {
-    paddingTop: 32,
     paddingBottom: 28,
     paddingHorizontal: 24,
     alignItems: 'center',
-    marginBottom: 16,
     overflow: 'hidden',
   },
   decor1: {
     position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(255,255,255,0.06)',
     top: -60,
     right: -50,
   },
@@ -139,9 +132,19 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     bottom: -40,
     left: -30,
+  },
+  decor3: {
+    position: 'absolute',
+    width: 50,
+    height: 50,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    top: 100,
+    right: 70,
+    transform: [{ rotate: '45deg' }],
+    borderRadius: 6,
   },
   avatarRing: {
     width: 100,
@@ -169,13 +172,13 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 34,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   verifiedDot: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     width: 24,
     height: 24,
@@ -184,10 +187,11 @@ const styles = StyleSheet.create({
   },
   displayName: {
     fontSize: 22,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontWeight: '700',
+    color: theme.colors.textInverse,
     textAlign: 'center',
     marginBottom: 4,
+    letterSpacing: -0.3,
   },
   subtitleRow: {
     flexDirection: 'row',

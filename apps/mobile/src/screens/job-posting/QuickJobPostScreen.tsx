@@ -28,8 +28,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { JobService } from '../../services/JobService';
 import { sanitize } from '@mintenance/security';
-import { theme } from '../../theme';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
+import { theme } from '../../theme';
 
 // ============================================================================
 // DATA
@@ -44,6 +44,8 @@ const REPAIR_TEMPLATES = [
     description: 'Fix dripping tap, leaking pipe, or water issue',
     budgetRange: '\u00A350-150',
     budget: '100',
+    iconColor: theme.colors.primary,
+    iconBg: theme.colors.primaryLight,
   },
   {
     id: 'electrical-issue',
@@ -53,6 +55,8 @@ const REPAIR_TEMPLATES = [
     description: 'Fix power outlet, switch, or minor electrical problem',
     budgetRange: '\u00A375-200',
     budget: '150',
+    iconColor: '#92400E',
+    iconBg: theme.colors.accentLight,
   },
   {
     id: 'paint-touchup',
@@ -62,6 +66,8 @@ const REPAIR_TEMPLATES = [
     description: 'Paint room, touch-up walls, or refresh surfaces',
     budgetRange: '\u00A3100-300',
     budget: '200',
+    iconColor: '#3B82F6',
+    iconBg: '#DBEAFE',
   },
   {
     id: 'general-repair',
@@ -71,6 +77,8 @@ const REPAIR_TEMPLATES = [
     description: 'Fix door, window, furniture, or general maintenance',
     budgetRange: '\u00A350-200',
     budget: '100',
+    iconColor: theme.colors.textSecondary,
+    iconBg: theme.colors.backgroundSecondary,
   },
   {
     id: 'blocked-drain',
@@ -80,6 +88,8 @@ const REPAIR_TEMPLATES = [
     description: 'Unblock sink, toilet, or drainage issue',
     budgetRange: '\u00A375-150',
     budget: '100',
+    iconColor: '#1E40AF',
+    iconBg: '#DBEAFE',
   },
   {
     id: 'emergency',
@@ -89,6 +99,8 @@ const REPAIR_TEMPLATES = [
     description: 'Urgent fix needed ASAP',
     budgetRange: '\u00A3150+',
     budget: '300',
+    iconColor: '#991B1B',
+    iconBg: '#FEE2E2',
   },
 ];
 
@@ -100,10 +112,10 @@ const BUDGET_RANGES = [
 ];
 
 const URGENCY_OPTIONS = [
-  { label: 'Today', value: 'today', color: '#FEE2E2', textColor: '#B91C1C' },
-  { label: 'Tomorrow', value: 'tomorrow', color: '#FFEDD5', textColor: '#C2410C' },
-  { label: 'This Week', value: 'this_week', color: '#FEF9C3', textColor: '#A16207' },
-  { label: 'Not Urgent', value: 'not_urgent', color: '#F1F5F9', textColor: '#475569' },
+  { label: 'Today', value: 'today', color: '#FEE2E2', textColor: '#991B1B' },
+  { label: 'Tomorrow', value: 'tomorrow', color: '#FEE2E2', textColor: theme.colors.error },
+  { label: 'This Week', value: 'this_week', color: theme.colors.accentLight, textColor: theme.colors.accent },
+  { label: 'Not Urgent', value: 'not_urgent', color: theme.colors.backgroundSecondary, textColor: theme.colors.textSecondary },
 ];
 
 interface RouteParams {
@@ -150,13 +162,11 @@ export const QuickJobPostScreen: React.FC = () => {
 
     setSubmitting(true);
     try {
-      // Build urgency prefix for description (matches web flow)
       let fullDescription = description || title;
       if (urgency === 'today') fullDescription = `URGENT - Needed today! ${fullDescription}`;
       else if (urgency === 'tomorrow') fullDescription = `Needed tomorrow. ${fullDescription}`;
       else if (urgency === 'this_week') fullDescription = `Needed this week. ${fullDescription}`;
 
-      // Pad to minimum 50 chars
       while (fullDescription.length < 50) {
         fullDescription += ' - Please see title for details.';
       }
@@ -195,7 +205,7 @@ export const QuickJobPostScreen: React.FC = () => {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Post a Quick Job</Text>
         <View style={styles.headerSpacer} />
@@ -214,7 +224,7 @@ export const QuickJobPostScreen: React.FC = () => {
         <View style={styles.propertyBanner}>
           <Text style={styles.propertyLabel}>Property</Text>
           <View style={styles.propertyRow}>
-            <Ionicons name="home" size={20} color='#717171' />
+            <Ionicons name="home" size={20} color={theme.colors.textSecondary} />
             <View style={styles.propertyText}>
               <Text style={styles.propertyNameText}>{params?.propertyName || 'My Property'}</Text>
               <Text style={styles.propertyAddressText} numberOfLines={1}>
@@ -237,11 +247,13 @@ export const QuickJobPostScreen: React.FC = () => {
                 ]}
                 onPress={() => handleTemplateSelect(template)}
               >
-                <Ionicons
-                  name={template.icon as keyof typeof Ionicons.glyphMap}
-                  size={22}
-                  color={selectedTemplate === template.id ? '#222222' : theme.colors.textSecondary}
-                />
+                <View style={[styles.templateIconCircle, { backgroundColor: template.iconBg }]}>
+                  <Ionicons
+                    name={template.icon as keyof typeof Ionicons.glyphMap}
+                    size={20}
+                    color={template.iconColor}
+                  />
+                </View>
                 <Text
                   style={[styles.templateTitle, selectedTemplate === template.id && styles.templateTitleActive]}
                 >
@@ -350,10 +362,10 @@ export const QuickJobPostScreen: React.FC = () => {
           accessibilityLabel={submitting ? 'Posting job' : 'Post job'}
         >
           {submitting ? (
-            <ActivityIndicator color="#FFFFFF" />
+            <ActivityIndicator color={theme.colors.textInverse} />
           ) : (
             <>
-              <Ionicons name="paper-plane" size={18} color="#FFFFFF" />
+              <Ionicons name="paper-plane" size={18} color={theme.colors.textInverse} />
               <Text style={styles.submitText}>Post Job</Text>
             </>
           )}
@@ -379,11 +391,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
-    padding: 4,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
@@ -391,7 +408,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   headerSpacer: {
-    width: 32,
+    width: 44,
   },
   scrollContent: {
     flex: 1,
@@ -407,18 +424,20 @@ const styles = StyleSheet.create({
   // Property banner
   propertyBanner: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: '#222222',
+    borderRadius: 16,
     padding: 16,
     marginBottom: 24,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   propertyLabel: {
     fontSize: 12,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
+    fontWeight: '700',
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     marginBottom: 8,
   },
   propertyRow: {
@@ -460,16 +479,24 @@ const styles = StyleSheet.create({
   templateCard: {
     width: '31%',
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: theme.colors.border,
+    borderRadius: 16,
     padding: 14,
     alignItems: 'flex-start',
-    minHeight: 100,
+    minHeight: 110,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   templateCardActive: {
-    borderColor: '#222222',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
+  },
+  templateIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   templateTitle: {
     fontSize: 13,
@@ -478,7 +505,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   templateTitleActive: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   templateBudget: {
     fontSize: 11,
@@ -495,9 +522,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   input: {
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -518,15 +543,16 @@ const styles = StyleSheet.create({
   budgetChip: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: theme.colors.border,
+    borderRadius: 12,
     backgroundColor: theme.colors.surface,
     alignItems: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6 },
+      android: { elevation: 1 },
+    }),
   },
   budgetChipActive: {
-    borderColor: '#222222',
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.textPrimary,
   },
   budgetText: {
     fontSize: 13,
@@ -534,7 +560,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   budgetTextActive: {
-    color: '#222222',
+    color: theme.colors.textInverse,
     fontWeight: '700',
   },
 
@@ -549,7 +575,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 18,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 12,
     gap: 6,
     flex: 1,
     minWidth: '46%',
@@ -573,7 +599,7 @@ const styles = StyleSheet.create({
   },
   moreOptionsText: {
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '500',
   },
 
@@ -584,25 +610,30 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: theme.colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.border,
     paddingHorizontal: 20,
     paddingTop: 12,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.08, shadowRadius: 12 },
+      android: { elevation: 8 },
+    }),
   },
   submitButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.primary,
-    borderRadius: 14,
+    backgroundColor: theme.colors.textPrimary,
+    borderRadius: 28,
     paddingVertical: 16,
     gap: 8,
+    minHeight: 56,
   },
   submitButtonDisabled: {
-    backgroundColor: theme.colors.gray300,
+    opacity: 0.5,
   },
   submitText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '700',
   },

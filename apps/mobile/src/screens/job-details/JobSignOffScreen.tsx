@@ -7,6 +7,7 @@ import {
   Alert,
   StyleSheet,
   RefreshControl,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -14,8 +15,9 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { JobsStackParamList } from '../../navigation/types';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { Button } from '../../components/ui/Button';
-import { theme } from '../../theme';
+import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
+import { theme } from '../../theme';
 
 type Props = NativeStackScreenProps<JobsStackParamList, 'JobSignOff'>;
 
@@ -33,15 +35,21 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
   const { data: job, isLoading, error, refetch } = useQuery({
     queryKey: ['job-signoff', jobId],
     queryFn: async () => {
-      const response = await mobileApiClient.get<{ job: {
-        id: string;
-        title: string;
-        status: string;
-        completion_confirmed_by_homeowner: boolean;
-        contractor_name?: string;
-        photos?: JobPhotoPair[];
-      } }>(`/api/jobs/${jobId}`);
-      return response.job;
+      const { data: row, error: err } = await supabase
+        .from('jobs')
+        .select('id, title, status, completion_confirmed_by_homeowner, contractor:contractor_id(full_name)')
+        .eq('id', jobId)
+        .single();
+      if (err) throw new Error(err.message);
+      const r = row as Record<string, unknown>;
+      const contractor = r.contractor as Record<string, unknown> | null;
+      return {
+        id: r.id as string,
+        title: r.title as string,
+        status: r.status as string,
+        completion_confirmed_by_homeowner: (r.completion_confirmed_by_homeowner as boolean) ?? false,
+        contractor_name: contractor?.full_name as string | undefined,
+      };
     },
   });
 
@@ -95,19 +103,20 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorView onRetry={refetch} />;
-  if (!job) return <ErrorView onRetry={refetch} />;
+  if (error) return <ErrorView message="Failed to load job details" onRetry={refetch} />;
+  if (!job) return <ErrorView message="Job not found" onRetry={refetch} />;
 
   const isAlreadyConfirmed = job.completion_confirmed_by_homeowner;
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <ScreenHeader title="Review Work" showBack onBack={() => navigation.goBack()} />
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor={theme.colors.textPrimary} />}
       >
         <Text style={styles.jobTitle}>{job.title}</Text>
         {job.contractor_name && (
@@ -136,20 +145,16 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
                   fullWidth
                   onPress={handleApprove}
                   loading={confirmMutation.isPending}
-                  leftIcon="checkmark-circle"
-                >
-                  Approve Work
-                </Button>
+                  title="Approve Work"
+                />
 
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   fullWidth
                   onPress={() => setShowChangesForm(true)}
                   style={styles.secondaryAction}
-                  leftIcon="create-outline"
-                >
-                  Request Changes
-                </Button>
+                  title="Request Changes"
+                />
               </View>
             ) : (
               <View style={styles.changesForm}>
@@ -159,7 +164,7 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
                   multiline
                   numberOfLines={5}
                   placeholder="Please describe what needs to be fixed or changed..."
-                  placeholderTextColor={theme.colors.placeholder}
+                  placeholderTextColor={theme.colors.textTertiary}
                   value={changesText}
                   onChangeText={setChangesText}
                   textAlignVertical="top"
@@ -197,93 +202,89 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: theme.layout.screenPadding,
+    padding: 20,
   },
   jobTitle: {
-    fontSize: theme.typography.fontSize['2xl'],
-    fontWeight: theme.typography.fontWeight.bold,
+    fontSize: 24,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[1],
+    marginBottom: 4,
   },
   contractorName: {
-    fontSize: theme.typography.fontSize.base,
+    fontSize: 15,
     color: theme.colors.textSecondary,
-    marginBottom: theme.spacing[6],
+    marginBottom: 24,
   },
   confirmedBanner: {
-    backgroundColor: '#ECFDF5',
-    borderWidth: 1,
-    borderColor: '#A7F3D0',
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing[5],
+    backgroundColor: theme.colors.primaryLight,
+    borderRadius: 16,
+    padding: 20,
     alignItems: 'center',
   },
   confirmedText: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: '#047857',
+    fontSize: 17,
+    fontWeight: '600',
+    color: theme.colors.primaryDark,
   },
   confirmedSubtext: {
-    fontSize: theme.typography.fontSize.sm,
-    color: '#059669',
-    marginTop: theme.spacing[1],
+    fontSize: 14,
+    color: theme.colors.primaryDark,
+    marginTop: 4,
   },
   section: {
-    marginBottom: theme.spacing[6],
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 17,
+    fontWeight: '600',
     color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[2],
+    marginBottom: 8,
   },
   sectionDescription: {
-    fontSize: theme.typography.fontSize.base,
+    fontSize: 15,
     color: theme.colors.textSecondary,
-    lineHeight: theme.typography.fontSize.base * theme.typography.lineHeight.relaxed,
+    lineHeight: 22,
   },
   actions: {
-    gap: theme.spacing[3],
+    gap: 12,
   },
   secondaryAction: {
-    marginTop: theme.spacing[1],
+    marginTop: 4,
   },
   changesForm: {
-    marginTop: theme.spacing[2],
+    marginTop: 8,
   },
   changesLabel: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 15,
+    fontWeight: '500',
     color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[2],
+    marginBottom: 8,
   },
   changesInput: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.base,
-    padding: theme.spacing[3],
-    fontSize: theme.typography.fontSize.base,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 15,
     color: theme.colors.textPrimary,
-    backgroundColor: theme.colors.background,
     minHeight: 120,
   },
   charCount: {
-    fontSize: theme.typography.fontSize.xs,
+    fontSize: 12,
     color: theme.colors.textTertiary,
     textAlign: 'right',
-    marginTop: theme.spacing[1],
-    marginBottom: theme.spacing[4],
+    marginTop: 4,
+    marginBottom: 16,
   },
   changesActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: theme.spacing[3],
+    gap: 12,
   },
   cancelButton: {
     minWidth: 100,

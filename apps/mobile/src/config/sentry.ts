@@ -35,7 +35,7 @@ export const initSentry = () => {
 
   // Set up Sentry functions for logger after initialization
   setSentryFunctions({
-    captureMessage: Sentry.captureMessage,
+    captureMessage: (message: string, level: string) => { Sentry.captureMessage(message, level as Sentry.SeverityLevel); },
     captureException: Sentry.captureException,
     addBreadcrumb: Sentry.addBreadcrumb,
   });

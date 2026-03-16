@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Banknote, Clock, RotateCcw, ClipboardList } from 'lucide-react';
+import { Banknote, Clock, RotateCcw, Receipt } from 'lucide-react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { formatMoney } from '@/lib/utils/currency';
 
@@ -19,29 +19,62 @@ export function PaymentsStatsCards({
   transactionCount,
 }: PaymentsStatsCardsProps) {
   const stats = [
-    { label: 'Total Paid', value: formatMoney(totalPaid, 'GBP'), icon: <Banknote className="w-7 h-7 text-green-600" />, bgColor: 'bg-green-50' },
-    { label: 'Pending', value: formatMoney(pendingAmount, 'GBP'), icon: <Clock className="w-7 h-7 text-yellow-600" />, bgColor: 'bg-yellow-50' },
-    { label: 'Refunded', value: formatMoney(refundedAmount, 'GBP'), icon: <RotateCcw className="w-7 h-7 text-blue-600" />, bgColor: 'bg-blue-50' },
-    { label: 'Transactions', value: transactionCount, icon: <ClipboardList className="w-7 h-7 text-gray-600" />, bgColor: 'bg-gray-50' },
+    {
+      label: 'Total Paid',
+      value: formatMoney(totalPaid, 'GBP'),
+      icon: Banknote,
+      iconColor: 'text-emerald-600',
+      bgIcon: 'bg-emerald-50',
+      accent: 'border-l-emerald-500',
+    },
+    {
+      label: 'In Escrow',
+      value: formatMoney(pendingAmount, 'GBP'),
+      icon: Clock,
+      iconColor: 'text-amber-600',
+      bgIcon: 'bg-amber-50',
+      accent: 'border-l-amber-500',
+    },
+    {
+      label: 'Refunded',
+      value: formatMoney(refundedAmount, 'GBP'),
+      icon: RotateCcw,
+      iconColor: 'text-blue-600',
+      bgIcon: 'bg-blue-50',
+      accent: 'border-l-blue-500',
+    },
+    {
+      label: 'Transactions',
+      value: String(transactionCount),
+      icon: Receipt,
+      iconColor: 'text-violet-600',
+      bgIcon: 'bg-violet-50',
+      accent: 'border-l-violet-500',
+    },
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      {stats.map((stat, index) => (
-        <MotionDiv
-          key={stat.label}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.1 }}
-          className={`${stat.bgColor} rounded-xl p-6 border border-gray-200`}
-        >
-          <div className="flex items-center gap-3 mb-2">
-            {stat.icon}
-          </div>
-          <div className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</div>
-          <div className="text-gray-600 text-sm">{stat.label}</div>
-        </MotionDiv>
-      ))}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      {stats.map((stat, index) => {
+        const Icon = stat.icon;
+        return (
+          <MotionDiv
+            key={stat.label}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.08 }}
+            className={`bg-white rounded-xl border border-gray-200 border-l-4 ${stat.accent} p-5 hover:shadow-md transition-shadow`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">{stat.label}</span>
+              <div className={`w-9 h-9 rounded-lg ${stat.bgIcon} flex items-center justify-center`}>
+                <Icon size={18} className={stat.iconColor} />
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
+          </MotionDiv>
+        );
+      })}
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { logger } from '@mintenance/shared';
 export const GET = withApiHandler(
   { roles: ['contractor'], csrf: false },
   async (_req, { user }) => {
+    // Fetch uploaded documents
     const { data, error } = await serverSupabase
       .from('contractor_documents')
       .select('*, jobs(title)')
@@ -27,7 +28,42 @@ export const GET = withApiHandler(
       jobs: undefined,
     }));
 
-    return NextResponse.json({ documents });
+    // Also fetch contracts as virtual documents
+    const { data: contracts } = await serverSupabase
+      .from('contracts')
+      .select('id, job_id, title, status, amount, created_at, updated_at, contractor_signed_at, homeowner_signed_at, homeowner:profiles!homeowner_id(first_name, last_name)')
+      .eq('contractor_id', user.id)
+      .neq('status', 'draft')
+      .order('created_at', { ascending: false });
+
+    const contractDocs = (contracts || []).map((c: Record<string, unknown>) => {
+      const homeowner = c.homeowner as { first_name?: string; last_name?: string } | null;
+      const homeownerName = homeowner?.first_name && homeowner?.last_name
+        ? `${homeowner.first_name} ${homeowner.last_name}` : 'Homeowner';
+      return {
+        id: `contract-${c.id}`,
+        contract_id: c.id,
+        name: c.title || 'Contract',
+        file_type: 'contract',
+        category: 'contracts',
+        size_bytes: 0,
+        public_url: `/jobs/${c.job_id}`,
+        job_id: c.job_id,
+        jobTitle: c.title,
+        starred: false,
+        tags: [c.status as string],
+        created_at: c.created_at,
+        updated_at: c.updated_at,
+        is_contract: true,
+        contract_status: c.status,
+        contract_amount: c.amount,
+        contractor_signed_at: c.contractor_signed_at,
+        homeowner_signed_at: c.homeowner_signed_at,
+        homeowner_name: homeownerName,
+      };
+    });
+
+    return NextResponse.json({ documents: [...contractDocs, ...documents] });
   },
 );
 

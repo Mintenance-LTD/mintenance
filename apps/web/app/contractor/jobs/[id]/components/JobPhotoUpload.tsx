@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { StandardCard } from '@/components/ui/StandardCard';
 import { Button } from '@/components/ui/Button';
-import { Upload, MapPin, X, Camera, CheckCircle, PlayCircle } from 'lucide-react';
+import { Upload, X, Camera, CheckCircle, PlayCircle } from 'lucide-react';
 import { fetchWithCsrf } from '@/lib/csrf-client';
 
 interface JobPhotoUploadProps {
@@ -35,9 +35,6 @@ interface UploadedPhoto {
 export function JobPhotoUpload({
   jobId,
   jobStatus,
-  latitude,
-  longitude,
-  location,
   onJobStarted,
   onJobCompleted,
 }: JobPhotoUploadProps) {
@@ -166,12 +163,6 @@ export function JobPhotoUpload({
 
   const canStartJob = isBeforeMode && uploadedPhotos.length > 0;
 
-  const mapUrl = latitude && longitude
-    ? `https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${latitude},${longitude}&zoom=15`
-    : location
-      ? `https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(location)}&zoom=15`
-      : null;
-
   return (
     <StandardCard>
       <div className="space-y-4">
@@ -286,25 +277,6 @@ export function JobPhotoUpload({
           <div className="p-3 bg-green-50 text-green-700 text-sm rounded-lg">{successMessage}</div>
         )}
 
-        {/* Google Maps */}
-        {mapUrl && (
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <MapPin className="h-4 w-4 text-gray-600" />
-              <span className="text-sm font-medium text-gray-900">Job Location</span>
-            </div>
-            <div className="w-full h-48 rounded-lg overflow-hidden border border-gray-200">
-              <iframe
-                width="100%"
-                height="100%"
-                frameBorder="0"
-                style={{ border: 0 }}
-                src={mapUrl}
-                allowFullScreen
-              />
-            </div>
-          </div>
-        )}
       </div>
     </StandardCard>
   );

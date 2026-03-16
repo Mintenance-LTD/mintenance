@@ -14,7 +14,37 @@
 // Sentry import - using @sentry/react-native directly (removed sentry-expo for security)
 import { logger } from './logger';
 
-let Sentry: unknown = null;
+interface SentryLike {
+  init(config: Record<string, unknown>): void;
+  setUser(user: Record<string, unknown>): void;
+  setTags(tags: Record<string, unknown>): void;
+  setTag(key: string, value: string): void;
+  setContext(name: string, context: Record<string, unknown>): void;
+  captureException(error: Error, options?: Record<string, unknown>): string;
+  captureMessage(message: string, level?: string): string;
+  addBreadcrumb(breadcrumb: Record<string, unknown>): void;
+  startTransaction(context: Record<string, unknown>): { finish(): void };
+  addGlobalEventProcessor(processor: (event: SentryEvent) => SentryEvent): void;
+  lastEventId(): string | undefined;
+}
+
+interface SentryEvent {
+  exception?: {
+    values?: Array<{
+      type?: string;
+      value?: string;
+      stacktrace?: {
+        frames?: Array<{ filename?: string }>;
+      };
+    }>;
+  };
+  tags?: Record<string, string>;
+  level?: string;
+  fingerprint?: string[];
+  contexts?: Record<string, Record<string, unknown>>;
+}
+
+let Sentry: SentryLike | null = null;
 try {
   Sentry = require('@sentry/react-native');
   logger.info('Sentry (@sentry/react-native) available for error tracking');
@@ -111,7 +141,7 @@ export class ErrorTracker {
       if (Sentry) {
         Sentry.init({
           ...SENTRY_CONFIG,
-          beforeSend(event: unknown) {
+          beforeSend(event: SentryEvent) {
             // Filter out development errors in production
             if (SENTRY_CONFIG.environment === 'production') {
               if (event.exception?.values?.[0]?.value?.includes('__DEV__')) {
@@ -122,7 +152,7 @@ export class ErrorTracker {
             // Add custom processing
             return tracker.processEvent(event);
           },
-          beforeBreadcrumb(breadcrumb: unknown) {
+          beforeBreadcrumb(breadcrumb: { message?: string }) {
             // Filter sensitive information from breadcrumbs
             if (
               breadcrumb.message?.includes('password') ||
@@ -177,9 +207,9 @@ export class ErrorTracker {
         Sentry.setTags({
           category,
           severity,
-          feature: context?.feature,
-          userJourney: context?.userJourney,
-          experiment: context?.experimentVariant,
+          ...(context?.feature && { feature: context.feature }),
+          ...(context?.userJourney && { userJourney: context.userJourney }),
+          ...(context?.experimentVariant && { experiment: context.experimentVariant }),
         });
 
         // Set additional context
@@ -307,7 +337,7 @@ export class ErrorTracker {
     level: 'debug' | 'info' | 'warning' | 'error' = 'info',
     data?: Record<string, unknown>
   ): void {
-    Sentry.addBreadcrumb({
+    Sentry?.addBreadcrumb({
       message,
       category,
       level,
@@ -325,7 +355,7 @@ export class ErrorTracker {
     role?: string;
     segment?: string;
   }): void {
-    Sentry.setUser({
+    Sentry?.setUser({
       id: user.id,
       email: user.email,
       username: user.role,
@@ -337,8 +367,8 @@ export class ErrorTracker {
    * Set release context
    */
   static setReleaseContext(version: string, buildNumber: string): void {
-    Sentry.setTag('app_version', version);
-    Sentry.setTag('build_number', buildNumber);
+    Sentry?.setTag('app_version', version);
+    Sentry?.setTag('build_number', buildNumber);
   }
 
   /**
@@ -350,16 +380,16 @@ export class ErrorTracker {
     context?: BusinessContext
   ): string {
     if (context) {
-      Sentry.setContext('message_context', context);
+      Sentry?.setContext('message_context', context as Record<string, unknown>);
     }
 
-    return Sentry.captureMessage(message, level);
+    return Sentry?.captureMessage(message, level) ?? '';
   }
 
   /**
    * Process events before sending to Sentry
    */
-  private processEvent(event: unknown): unknown | null {
+  private processEvent(event: SentryEvent): SentryEvent | null {
     // Add custom fingerprinting for better error grouping
     if (event.exception?.values?.[0]) {
       const error = event.exception.values[0];
@@ -441,7 +471,7 @@ export class ErrorTracker {
     ];
 
     criticalOperations.forEach((operation) => {
-      Sentry.addGlobalEventProcessor((event: unknown) => {
+      Sentry?.addGlobalEventProcessor((event: SentryEvent) => {
         if (event.tags?.operation === operation) {
           event.level = 'error';
           event.contexts = event.contexts || {};
@@ -466,7 +496,7 @@ export class ErrorTracker {
   } {
     return {
       initialized: ErrorTracker.instance?.initialized || false,
-      lastEventId: Sentry.lastEventId(),
+      lastEventId: Sentry?.lastEventId(),
       environment: SENTRY_CONFIG.environment,
       release: SENTRY_CONFIG.release,
     };

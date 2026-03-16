@@ -2,7 +2,6 @@ import React from 'react';
 import { fireEvent } from '@testing-library/react-native';
 import { render } from '../../test-utils';
 import { KPICard } from '../KPICard';
-import { theme } from '../../../theme';
 
 /**
  * KPICard Component Tests
@@ -28,7 +27,7 @@ describe('KPICard', () => {
     title: 'Total Revenue',
     value: '$12,345',
     icon: 'cash-outline',
-    color: theme.colors.primary,
+    color: '#222222',
   };
 
   beforeEach(() => {
@@ -189,7 +188,7 @@ describe('KPICard', () => {
       expect(title.props.style).toEqual(
         expect.objectContaining({
           fontSize: 14,
-          color: theme.colors.textSecondary,
+          color: '#717171',
           marginLeft: 8,
           fontWeight: '500',
         })
@@ -227,7 +226,7 @@ describe('KPICard', () => {
       const changeText = getByText('+12.5%');
       const changeContainer = changeText.parent;
       const trendIcon = changeContainer?.findByProps({ name: 'trending-up' });
-      expect(trendIcon?.props.color).toBe(theme.colors.success);
+      expect(trendIcon?.props.color).toBe('#10B981');
     });
 
     it('should format positive change value with + prefix', () => {
@@ -243,7 +242,7 @@ describe('KPICard', () => {
       );
       const changeText = getByText('+15.7%');
       expect(changeText.props.style).toContainEqual(
-        expect.objectContaining({ color: theme.colors.success })
+        expect.objectContaining({ color: '#10B981' })
       );
     });
 
@@ -273,7 +272,7 @@ describe('KPICard', () => {
       const changeText = getByText('-3.8%');
       const changeContainer = changeText.parent;
       const trendIcon = changeContainer?.findByProps({ name: 'trending-down' });
-      expect(trendIcon?.props.color).toBe(theme.colors.error);
+      expect(trendIcon?.props.color).toBe('#EF4444');
     });
 
     it('should format negative change value without extra prefix', () => {
@@ -289,7 +288,7 @@ describe('KPICard', () => {
       );
       const changeText = getByText('-10.1%');
       expect(changeText.props.style).toContainEqual(
-        expect.objectContaining({ color: theme.colors.error })
+        expect.objectContaining({ color: '#EF4444' })
       );
     });
 

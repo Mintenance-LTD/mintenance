@@ -3,7 +3,7 @@ import React from 'react';
 import { render, fireEvent } from '../../test-utils';
 import { MapControls } from '../MapControls';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { theme } from '../../../theme';
+
 
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
@@ -56,7 +56,7 @@ describe('MapControls', () => {
         <MapControls loading={false} onMyLocationPress={mockOnMyLocationPress} />
       );
       // Icon mock shows: name-size-color
-      expect(getByText(`locate-24-${theme.colors.primary}`)).toBeTruthy();
+      expect(getByText(`locate-24-${'#222222'}`)).toBeTruthy();
     });
 
     it('should not render loading indicator when loading is false', () => {
@@ -160,7 +160,7 @@ describe('MapControls', () => {
       );
 
       // Icon mock format: name-size-color
-      const iconText = getByText(`locate-24-${theme.colors.primary}`);
+      const iconText = getByText(`locate-24-${'#222222'}`);
       expect(iconText).toBeTruthy();
     });
 
@@ -169,7 +169,7 @@ describe('MapControls', () => {
         <MapControls loading={false} onMyLocationPress={mockOnMyLocationPress} />
       );
 
-      expect(getByText(`locate-24-${theme.colors.primary}`)).toBeTruthy();
+      expect(getByText(`locate-24-${'#222222'}`)).toBeTruthy();
     });
 
     it('should use locate icon name', () => {
@@ -177,7 +177,7 @@ describe('MapControls', () => {
         <MapControls loading={false} onMyLocationPress={mockOnMyLocationPress} />
       );
 
-      const iconText = getByText(`locate-24-${theme.colors.primary}`);
+      const iconText = getByText(`locate-24-${'#222222'}`);
       expect(iconText.props.children).toContain('locate');
     });
 
@@ -186,7 +186,7 @@ describe('MapControls', () => {
         <MapControls loading={false} onMyLocationPress={mockOnMyLocationPress} />
       );
 
-      const iconText = getByText(`locate-24-${theme.colors.primary}`);
+      const iconText = getByText(`locate-24-${'#222222'}`);
       // Icon mock renders array: ["locate", "-", 24, "-", color]
       const childrenStr = Array.isArray(iconText.props.children)
         ? iconText.props.children.join('')
@@ -256,7 +256,7 @@ describe('MapControls', () => {
       );
 
       const indicator = UNSAFE_getByType(ActivityIndicator);
-      expect(indicator.props.color).toBe(theme.colors.primary);
+      expect(indicator.props.color).toBe('#222222');
     });
 
     it('should render loading text', () => {

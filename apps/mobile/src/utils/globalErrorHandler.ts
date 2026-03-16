@@ -67,7 +67,7 @@ export const logError = (error: Error, context?: unknown) => {
     .then(({ captureException }) => {
       captureException(error, {
         contexts: {
-          customContext: context,
+          customContext: context as Record<string, unknown>,
         },
       });
     })

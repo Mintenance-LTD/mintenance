@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, fireEvent } from '../../test-utils';
 import { MapHeader } from '../MapHeader';
-import { theme } from '../../../theme';
+
 
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
@@ -174,7 +174,7 @@ describe('MapHeader', () => {
 
       expect(container?.props.style).toEqual(
         expect.objectContaining({
-          backgroundColor: theme.colors.background,
+          backgroundColor: '#F7F7F7',
         })
       );
     });
@@ -221,7 +221,7 @@ describe('MapHeader', () => {
       const { getByTestId } = render(<MapHeader {...defaultProps} />);
       const icon = getByTestId('icon-arrow-back');
 
-      expect(icon.props.children).toContain(theme.colors.textPrimary);
+      expect(icon.props.children).toContain('#222222');
     });
 
     it('should handle multiple back button presses', () => {
@@ -322,7 +322,7 @@ describe('MapHeader', () => {
       const { getByTestId } = render(<MapHeader {...defaultProps} />);
       const icon = getByTestId('icon-options-outline');
 
-      expect(icon.props.children).toContain(theme.colors.textPrimary);
+      expect(icon.props.children).toContain('#222222');
     });
 
     it('should handle multiple filter button presses', () => {

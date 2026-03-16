@@ -1,14 +1,14 @@
 /**
  * PreviousContractors Component
- * 
+ *
  * Displays previously used contractors with ability to message or rehire them.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import { UserProfile } from '../../services/UserService';
+import { theme } from '../../theme';
 
 interface PreviousContractorsProps {
   contractors: UserProfile[];
@@ -67,7 +67,7 @@ export const PreviousContractors: React.FC<PreviousContractorsProps> = ({
                 <Ionicons
                   name='star'
                   size={12}
-                  color={theme.colors.ratingGold}
+                  color={theme.colors.accent}
                 />
                 <Text style={styles.contractorRatingText}>
                   {contractor.reviews?.[0]?.rating?.toFixed(1) || 'New'}
@@ -97,7 +97,7 @@ export const PreviousContractors: React.FC<PreviousContractorsProps> = ({
                   <Ionicons
                     name='chatbubble'
                     size={12}
-                    color='#717171'
+                    color={theme.colors.textSecondary}
                   />
                   <Text style={styles.messageButtonText}>Message</Text>
                 </TouchableOpacity>
@@ -122,11 +122,13 @@ export const PreviousContractors: React.FC<PreviousContractorsProps> = ({
           // Show placeholder when no previous contractors
           <View style={styles.contractorCard}>
             <View style={styles.emptyContractorState}>
-              <Ionicons
-                name='hammer-outline'
-                size={32}
-                color={theme.colors.textTertiary}
-              />
+              <View style={styles.emptyIconWrap}>
+                <Ionicons
+                  name='hammer-outline'
+                  size={28}
+                  color={theme.colors.textTertiary}
+                />
+              </View>
               <Text style={styles.emptyContractorText}>
                 No previous contractors yet
               </Text>
@@ -151,10 +153,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 4,
+    letterSpacing: -0.3,
   },
   sectionSubtitle: {
     fontSize: 14,
@@ -167,17 +170,27 @@ const styles = StyleSheet.create({
   },
   contractorCard: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 20,
     marginRight: 12,
     width: 260,
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   contractorAvatar: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -192,14 +205,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: -2,
     right: -2,
-    backgroundColor: theme.colors.success,
+    backgroundColor: theme.colors.primary,
     borderRadius: 8,
     width: 16,
     height: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: theme.colors.textInverse,
+    borderColor: theme.colors.surface,
   },
   contractorName: {
     fontSize: 16,
@@ -236,22 +249,22 @@ const styles = StyleSheet.create({
   messageButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
     gap: 4,
   },
   messageButtonText: {
     fontSize: 12,
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '500',
   },
   rehireButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   rehireButtonText: {
     fontSize: 12,
@@ -265,10 +278,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 16,
   },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: theme.colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
   emptyContractorText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: theme.colors.textPrimary,
     marginTop: 12,
     marginBottom: 4,
     textAlign: 'center',

@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import type { User } from '@/types';
+import type { User } from '@mintenance/types';
 import { UserService, ContractorStats, UserProfile } from '../../../services/UserService';
 import { JobService } from '../../../services/JobService';
 import { logger } from '../../../utils/logger';
@@ -35,7 +35,7 @@ export interface HomeViewModel extends HomeState, HomeActions {}
 /**
  * Custom hook that provides Home screen business logic
  */
-export const useHomeViewModel = (user: unknown): HomeViewModel => {
+export const useHomeViewModel = (user: User | null): HomeViewModel => {
   // State management
   const [contractorStats, setContractorStats] = useState<ContractorStats | null>(null);
   const [previousContractors, setPreviousContractors] = useState<UserProfile[]>([]);
@@ -74,8 +74,8 @@ export const useHomeViewModel = (user: unknown): HomeViewModel => {
    */
   const loadContractorSpecificData = async () => {
     const [stats, previousClients] = await Promise.all([
-      UserService.getContractorStats(user.id),
-      UserService.getPreviousContractors(user.id)
+      UserService.getContractorStats(user!.id),
+      UserService.getPreviousContractors(user!.id)
     ]);
 
     setContractorStats(stats);
@@ -86,20 +86,20 @@ export const useHomeViewModel = (user: unknown): HomeViewModel => {
    * Load data specific to homeowners
    */
   const loadHomeownerSpecificData = async (opts?: { skipJobs?: boolean }) => {
-    const promises: Promise<unknown>[] = [
-      UserService.getPreviousContractors(user.id)
+    const promises: Promise<UserProfile[] | unknown[]>[] = [
+      UserService.getPreviousContractors(user!.id)
     ];
 
     if (!opts?.skipJobs) {
-      promises.push(JobService.getJobsByHomeowner(user.id));
+      promises.push(JobService.getJobsByHomeowner(user!.id));
     }
 
     const [previousContracts, jobs] = await Promise.all(promises);
 
-    setPreviousContractors(previousContracts || []);
+    setPreviousContractors((previousContracts as UserProfile[]) || []);
 
     if (!opts?.skipJobs) {
-      setHomeownerJobs(jobs || []);
+      setHomeownerJobs((jobs as unknown[]) || []);
     }
   };
 
@@ -202,7 +202,7 @@ export class HomeViewModelClass {
   }
 
   private async loadHomeownerData(userId: string, opts?: { skipJobs?: boolean }): Promise<void> {
-    const promises: Promise<unknown>[] = [
+    const promises: Promise<UserProfile[] | unknown[]>[] = [
       UserService.getPreviousContractors(userId)
     ];
 
@@ -213,12 +213,12 @@ export class HomeViewModelClass {
     const [previousContracts, jobs] = await Promise.all(promises);
 
     this.setState({
-      previousContractors: previousContracts || [],
-      homeownerJobs: !opts?.skipJobs ? (jobs || []) : this.state.homeownerJobs
+      previousContractors: (previousContracts as UserProfile[]) || [],
+      homeownerJobs: !opts?.skipJobs ? ((jobs as unknown[]) || []) : this.state.homeownerJobs
     });
   }
 
-  handleRefresh(user: unknown): Promise<void> {
+  handleRefresh(user: User | null): Promise<void> {
     this.setState({ refreshing: true });
     return this.loadData(user);
   }

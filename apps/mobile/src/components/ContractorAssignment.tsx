@@ -8,9 +8,9 @@ import {
   Alert,
   Image,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../theme';
 import { Job, Bid } from '@mintenance/types';
 
 interface BidWithExtras extends Bid {
@@ -21,6 +21,7 @@ interface BidWithExtras extends Bid {
 import { useJobBids, useAcceptBid } from '../hooks/useJobs';
 import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 interface ContractorAssignmentProps {
   job: Job;
@@ -35,7 +36,8 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
   const [selectedBid, setSelectedBid] = useState<string | null>(null);
 
   // Get bids for this job
-  const { data: bids = [], isLoading, error, refetch } = useJobBids(job.id);
+  const { data: bidsData = [], isLoading, error, refetch } = useJobBids(job.id);
+  const bids = bidsData as Bid[];
   const acceptBidMutation = useAcceptBid();
 
   const isHomeowner = user?.role === 'homeowner';
@@ -81,7 +83,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       logger.error('Failed to accept bid:', error);
       Alert.alert(
         'Error',
-        error.message || 'Failed to accept bid. Please try again.'
+        (error instanceof Error ? error.message : String(error)) || 'Failed to accept bid. Please try again.'
       );
     } finally {
       setSelectedBid(null);
@@ -128,7 +130,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       >
         {isLowestBid && (
           <View style={styles.lowestBidBadge}>
-            <Ionicons name='trophy' size={14} color='#FFD700' />
+            <Ionicons name='trophy' size={14} color={theme.colors.accent} />
             <Text style={styles.lowestBidText}>Lowest Bid</Text>
           </View>
         )}
@@ -166,7 +168,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
                 style={[
                   styles.budgetComparison,
                   {
-                    color: bid.amount <= job.budget ? '#10B981' : '#EF4444',
+                    color: bid.amount <= job.budget ? theme.colors.primary : theme.colors.error,
                   },
                 ]}
               >
@@ -218,10 +220,10 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
               disabled={isSelected || acceptBidMutation.isPending}
             >
               {isSelected && acceptBidMutation.isPending ? (
-                <ActivityIndicator size='small' color='#FFFFFF' />
+                <ActivityIndicator size='small' color={theme.colors.textInverse} />
               ) : (
                 <>
-                  <Ionicons name='checkmark' size={16} color='#FFFFFF' />
+                  <Ionicons name='checkmark' size={16} color={theme.colors.textInverse} />
                   <Text style={styles.acceptButtonText}>Accept Bid</Text>
                 </>
               )}
@@ -230,7 +232,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
 
           {bid.status === 'accepted' && (
             <View style={styles.acceptedBadge}>
-              <Ionicons name='checkmark-circle' size={16} color='#10B981' />
+              <Ionicons name='checkmark-circle' size={16} color={theme.colors.primary} />
               <Text style={styles.acceptedText}>Accepted</Text>
             </View>
           )}
@@ -270,7 +272,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       <View style={styles.container}>
         {renderHeader()}
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size='large' color={theme.colors.primary} />
+          <ActivityIndicator size='large' color={theme.colors.textPrimary} />
           <Text style={styles.loadingText}>Loading bids...</Text>
         </View>
       </View>
@@ -282,7 +284,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       <View style={styles.container}>
         {renderHeader()}
         <View style={styles.errorContainer}>
-          <Ionicons name='warning-outline' size={48} color='#EF4444' />
+          <Ionicons name='warning-outline' size={48} color={theme.colors.error} />
           <Text style={styles.errorText}>Failed to load bids</Text>
           <TouchableOpacity
             style={styles.retryButton}
@@ -325,47 +327,55 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   bidCount: {
-    fontSize: 14,
+    fontSize: 13,
     color: theme.colors.textSecondary,
   },
   bidsList: {
     gap: 12,
   },
   bidCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     padding: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   lowestBidCard: {
-    borderColor: '#FFD700',
     borderWidth: 2,
+    borderColor: theme.colors.accent,
   },
   selectedBidCard: {
-    borderColor: theme.colors.primary,
     borderWidth: 2,
+    borderColor: theme.colors.textPrimary,
   },
   lowestBidBadge: {
     position: 'absolute',
     top: -8,
     left: 16,
-    backgroundColor: '#FFF7ED',
+    backgroundColor: theme.colors.accentLight,
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   lowestBidText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#F59E0B',
+    color: theme.colors.accent,
   },
   contractorHeader: {
     flexDirection: 'row',
@@ -384,14 +394,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contractorName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   contractorRating: {
-    fontSize: 14,
-    color: '#F59E0B',
+    fontSize: 13,
+    color: theme.colors.accent,
     marginBottom: 2,
   },
   bidTime: {
@@ -404,7 +414,7 @@ const styles = StyleSheet.create({
   bidPrice: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   budgetComparison: {
@@ -414,11 +424,11 @@ const styles = StyleSheet.create({
   bidDescription: {
     marginBottom: 12,
     paddingTop: 12,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: theme.colors.border,
   },
   bidDescriptionText: {
-    fontSize: 14,
+    fontSize: 13,
     color: theme.colors.textSecondary,
     lineHeight: 20,
   },
@@ -429,7 +439,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   timelineText: {
-    fontSize: 14,
+    fontSize: 13,
     color: theme.colors.textSecondary,
   },
   bidActions: {
@@ -440,20 +450,20 @@ const styles = StyleSheet.create({
   viewProfileButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 6,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: theme.colors.primary,
+    borderColor: theme.colors.textPrimary,
   },
   viewProfileText: {
-    fontSize: 14,
-    color: theme.colors.primary,
+    fontSize: 13,
+    color: theme.colors.textPrimary,
     fontWeight: '500',
   },
   acceptButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -462,8 +472,8 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   acceptButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
+    color: theme.colors.textInverse,
+    fontSize: 13,
     fontWeight: '600',
   },
   acceptedBadge: {
@@ -472,17 +482,17 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#ECFDF5',
-    borderRadius: 6,
+    backgroundColor: theme.colors.primaryLight,
+    borderRadius: 12,
   },
   acceptedText: {
-    color: '#10B981',
-    fontSize: 14,
+    color: theme.colors.primary,
+    fontSize: 13,
     fontWeight: '500',
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 48,
+    paddingVertical: 64,
     paddingHorizontal: 32,
   },
   emptyTitle: {
@@ -493,7 +503,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   emptyDescription: {
-    fontSize: 14,
+    fontSize: 13,
     color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
@@ -503,7 +513,7 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: 13,
     color: theme.colors.textSecondary,
     marginTop: 12,
   },
@@ -512,20 +522,20 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
   },
   errorText: {
-    fontSize: 16,
-    color: '#EF4444',
+    fontSize: 15,
+    color: theme.colors.error,
     marginTop: 16,
     marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
   },
   retryText: {
-    color: '#FFFFFF',
-    fontSize: 14,
+    color: theme.colors.textInverse,
+    fontSize: 13,
     fontWeight: '600',
   },
 });

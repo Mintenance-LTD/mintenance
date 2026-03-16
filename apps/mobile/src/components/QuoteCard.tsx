@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../theme';
 import { ContractorQuote } from '../services/QuoteBuilderService';
+import { theme } from '../theme';
 
 interface QuoteCardProps {
   quote: ContractorQuote;
@@ -13,6 +13,24 @@ interface QuoteCardProps {
   onDelete: () => void;
 }
 
+const STATUS_COLORS: Record<string, string> = {
+  draft: theme.colors.textSecondary,
+  sent: theme.colors.textPrimary,
+  viewed: theme.colors.accent,
+  accepted: theme.colors.primary,
+  rejected: theme.colors.error,
+  expired: theme.colors.textTertiary,
+};
+
+const STATUS_ICONS: Record<string, string> = {
+  draft: 'document-outline',
+  sent: 'send',
+  viewed: 'eye',
+  accepted: 'checkmark-circle',
+  rejected: 'close-circle',
+  expired: 'time-outline',
+};
+
 export const QuoteCard: React.FC<QuoteCardProps> = ({
   quote,
   onPress,
@@ -21,44 +39,6 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
   onDuplicate,
   onDelete,
 }) => {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'draft':
-        return theme.colors.textSecondary;
-      case 'sent':
-        return theme.colors.primary;
-      case 'viewed':
-        return theme.colors.warning;
-      case 'accepted':
-        return theme.colors.success;
-      case 'rejected':
-        return theme.colors.error;
-      case 'expired':
-        return theme.colors.textTertiary;
-      default:
-        return theme.colors.textSecondary;
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'draft':
-        return 'document-outline';
-      case 'sent':
-        return 'send';
-      case 'viewed':
-        return 'eye';
-      case 'accepted':
-        return 'checkmark-circle';
-      case 'rejected':
-        return 'close-circle';
-      case 'expired':
-        return 'time-outline';
-      default:
-        return 'document-outline';
-    }
-  };
-
   const formatCurrency = (amount: number) => {
     return `£${amount.toFixed(2)}`;
   };
@@ -74,6 +54,8 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
   const isExpired =
     quote.valid_until && new Date(quote.valid_until) < new Date();
   const actualStatus = isExpired ? 'expired' : quote.status;
+  const statusColor = STATUS_COLORS[actualStatus] || theme.colors.textSecondary;
+  const statusIcon = STATUS_ICONS[actualStatus] || 'document-outline';
 
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
@@ -86,13 +68,13 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
             <View
               style={[
                 styles.statusBadge,
-                { backgroundColor: getStatusColor(actualStatus) },
+                { backgroundColor: statusColor },
               ]}
             >
               <Ionicons
-                name={getStatusIcon(actualStatus) as keyof typeof Ionicons.glyphMap}
+                name={statusIcon as keyof typeof Ionicons.glyphMap}
                 size={12}
-                color='#fff'
+                color={theme.colors.textInverse}
               />
               <Text style={styles.statusText}>
                 {actualStatus.toUpperCase()}
@@ -129,9 +111,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
             <Ionicons
               name='time-outline'
               size={14}
-              color={
-                isExpired ? theme.colors.error : theme.colors.textSecondary
-              }
+              color={isExpired ? theme.colors.error : theme.colors.textSecondary}
             />
             <Text
               style={[
@@ -164,7 +144,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
           <View style={styles.breakdownItem}>
             <Text style={styles.breakdownLabel}>Discount</Text>
             <Text
-              style={[styles.breakdownValue, { color: theme.colors.success }]}
+              style={[styles.breakdownValue, { color: theme.colors.primary }]}
             >
               -{formatCurrency(quote.discount_amount)}
             </Text>
@@ -195,7 +175,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
           {quote.discount_percentage && quote.discount_percentage > 0 && (
             <View style={[styles.infoChip, styles.discountChip]}>
               <Text
-                style={[styles.infoChipText, { color: theme.colors.success }]}
+                style={[styles.infoChipText, { color: theme.colors.primary }]}
               >
                 Discount: {quote.discount_percentage}%
               </Text>
@@ -235,7 +215,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
               onSend();
             }}
           >
-            <Ionicons name='send' size={16} color={theme.colors.success} />
+            <Ionicons name='send' size={16} color={theme.colors.primary} />
           </TouchableOpacity>
         )}
 
@@ -265,11 +245,21 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   header: {
     flexDirection: 'row',
@@ -297,13 +287,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: 6,
     gap: 4,
   },
   statusText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   projectTitle: {
     fontSize: 16,
@@ -376,14 +366,14 @@ const styles = StyleSheet.create({
   infoChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: 6,
     gap: 4,
   },
   discountChip: {
-    backgroundColor: 'rgba(52, 199, 89, 0.1)',
+    backgroundColor: theme.colors.primaryLight,
   },
   infoChipText: {
     fontSize: 11,
@@ -399,15 +389,15 @@ const styles = StyleSheet.create({
   actionButton: {
     width: 32,
     height: 32,
-    borderRadius: theme.borderRadius.base,
-    backgroundColor: theme.colors.surfaceSecondary,
+    borderRadius: 12,
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sendButton: {
-    backgroundColor: 'rgba(52, 199, 89, 0.1)',
+    backgroundColor: theme.colors.primaryLight,
   },
   deleteButton: {
-    backgroundColor: 'rgba(255, 59, 48, 0.1)',
+    backgroundColor: '#FEE2E2',
   },
 });

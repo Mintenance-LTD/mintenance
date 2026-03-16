@@ -43,8 +43,8 @@ export interface TestingConfig {
 }
 
 // Re-export types from other modules
-export { TestPerformanceResult } from './PerformanceTesting';
-export { TestAccessibilityResult } from './AccessibilityTesting';
+export type { TestPerformanceResult } from './PerformanceTesting';
+export type { TestAccessibilityResult } from './AccessibilityTesting';
 
 // ============================================================================
 // ENHANCED RENDER UTILITIES

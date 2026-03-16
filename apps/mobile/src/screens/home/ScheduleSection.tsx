@@ -1,15 +1,15 @@
 /**
  * ScheduleSection Component
  *
- * Displays contractor's upcoming schedule and recent jobs.
- * Renders real data or an empty state when no jobs are scheduled.
+ * Timeline-style schedule section with vertical timeline indicator,
+ * clean cards, and Airbnb-minimal empty state.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import { ContractorStats } from '../../services/UserService';
+import { theme } from '../../theme';
 
 interface ScheduleJob {
   id: string;
@@ -27,7 +27,6 @@ interface ScheduleSectionProps {
 }
 
 export const ScheduleSection: React.FC<ScheduleSectionProps> = ({
-  stats,
   upcomingJobs = [],
   recentlyCompleted = [],
   onViewAllPress,
@@ -36,13 +35,14 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({
   const hasContent = upcomingJobs.length > 0 || recentlyCompleted.length > 0;
 
   return (
-    <View style={styles.scheduleSection}>
+    <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle} accessibilityRole='header'>Today's Schedule</Text>
+        <Text style={styles.sectionTitle} accessibilityRole="header">Today's Schedule</Text>
         <TouchableOpacity
           onPress={onViewAllPress}
-          accessibilityRole='button'
-          accessibilityLabel='View full schedule'
+          accessibilityRole="button"
+          accessibilityLabel="View full schedule"
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text style={styles.viewAllLink}>View All</Text>
         </TouchableOpacity>
@@ -50,31 +50,42 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({
 
       {!hasContent ? (
         <View style={styles.emptyState}>
-          <View style={styles.emptyIcon}>
-            <Ionicons name="calendar-outline" size={32} color={theme.colors.textTertiary} />
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="calendar-outline" size={28} color={theme.colors.textTertiary} />
           </View>
-          <Text style={styles.emptyTitle}>No jobs scheduled today</Text>
+          <Text style={styles.emptyTitle}>No jobs scheduled</Text>
           <Text style={styles.emptySubtitle}>Browse available jobs to fill your schedule</Text>
         </View>
       ) : (
-        <>
-          {upcomingJobs.map((job) => (
+        <View style={styles.timeline}>
+          {upcomingJobs.map((job, index) => (
             <TouchableOpacity
               key={job.id}
-              style={styles.scheduleCard}
+              style={styles.timelineItem}
               onPress={() => onJobDetailsPress(job.id)}
+              accessibilityRole="button"
               accessibilityLabel={`${job.title}, ${job.time || ''}, ${job.status}`}
+              activeOpacity={0.8}
             >
-              <View style={styles.scheduleHeader}>
-                <View style={styles.scheduleIcon}>
-                  <Ionicons name="calendar" size={16} color='#717171' accessible={false} />
-                </View>
-                <View style={styles.scheduleInfo}>
+              {/* Timeline indicator */}
+              <View style={styles.timelineTrack}>
+                <View style={styles.timelineDot} />
+                {index < upcomingJobs.length - 1 && <View style={styles.timelineLine} />}
+              </View>
+
+              {/* Card */}
+              <View style={styles.scheduleCard}>
+                <View style={styles.cardContent}>
                   <Text style={styles.scheduleTitle} numberOfLines={1}>{job.title}</Text>
-                  {job.time && <Text style={styles.scheduleMeta}>{job.time}</Text>}
+                  {job.time && (
+                    <View style={styles.timeRow}>
+                      <Ionicons name="time-outline" size={13} color={theme.colors.textSecondary} />
+                      <Text style={styles.timeText}>{job.time}</Text>
+                    </View>
+                  )}
                 </View>
-                <View style={styles.scheduleStatus}>
-                  <Text style={styles.scheduleStatusText}>{job.status}</Text>
+                <View style={styles.statusChip}>
+                  <Text style={styles.statusText}>{job.status}</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -82,37 +93,31 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({
 
           {recentlyCompleted.length > 0 && (
             <View style={styles.completedSection}>
-              <Text style={styles.completedSectionTitle}>Recently Completed</Text>
+              <Text style={styles.completedLabel}>Recently Completed</Text>
               {recentlyCompleted.map((job) => (
-                <View key={job.id} style={styles.completedCard}>
-                  <View style={styles.completedHeader}>
-                    <View style={styles.completedIcon}>
-                      <Ionicons name="checkmark-circle" size={16} color={theme.colors.successDark} />
-                    </View>
-                    <View style={styles.completedInfo}>
-                      <Text style={styles.completedTitle} numberOfLines={1}>{job.title}</Text>
-                      <Text style={styles.completedMeta}>Completed</Text>
-                    </View>
-                    <TouchableOpacity
-                      onPress={() => onJobDetailsPress(job.id)}
-                      accessibilityRole='button'
-                      accessibilityLabel={`View details for ${job.title}`}
-                    >
-                      <Text style={styles.viewDetailsLink}>View Details</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+                <TouchableOpacity
+                  key={job.id}
+                  style={styles.completedCard}
+                  onPress={() => onJobDetailsPress(job.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Completed: ${job.title}`}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
+                  <Text style={styles.completedTitle} numberOfLines={1}>{job.title}</Text>
+                  <Ionicons name="chevron-forward" size={14} color={theme.colors.textTertiary} />
+                </TouchableOpacity>
               ))}
             </View>
           )}
-        </>
+        </View>
       )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  scheduleSection: {
+  section: {
     marginBottom: 32,
   },
   sectionHeader: {
@@ -125,24 +130,35 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: theme.colors.textPrimary,
+    letterSpacing: -0.3,
   },
   viewAllLink: {
     fontSize: 14,
-    color: '#222222',
+    color: theme.colors.primary,
     fontWeight: '600',
   },
   emptyState: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 32,
+    borderRadius: 16,
+    padding: 40,
     alignItems: 'center',
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
   },
-  emptyIcon: {
+  emptyIconWrap: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -158,94 +174,107 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     textAlign: 'center',
   },
-  scheduleCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 12,
-    ...theme.shadows.sm,
+  timeline: {
+    paddingLeft: 4,
   },
-  scheduleHeader: {
+  timelineItem: {
+    flexDirection: 'row',
+    marginBottom: 4,
+  },
+  timelineTrack: {
+    width: 24,
+    alignItems: 'center',
+    paddingTop: 18,
+  },
+  timelineDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: theme.colors.primary,
+    borderWidth: 2,
+    borderColor: theme.colors.primaryLight,
+  },
+  timelineLine: {
+    flex: 1,
+    width: 2,
+    backgroundColor: theme.colors.border,
+    marginTop: 4,
+  },
+  scheduleCard: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    borderRadius: 14,
+    padding: 16,
+    marginLeft: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
-  scheduleIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: theme.colors.surfaceSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  scheduleInfo: {
+  cardContent: {
     flex: 1,
   },
   scheduleTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: theme.colors.textPrimary,
     marginBottom: 4,
   },
-  scheduleMeta: {
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  timeText: {
     fontSize: 13,
     color: theme.colors.textSecondary,
   },
-  scheduleStatus: {
-    backgroundColor: theme.colors.primary,
+  statusChip: {
+    backgroundColor: theme.colors.primaryLight,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
+    marginLeft: 8,
   },
-  scheduleStatusText: {
+  statusText: {
     fontSize: 11,
-    color: theme.colors.textInverse,
+    color: theme.colors.primaryDark,
     fontWeight: '600',
   },
   completedSection: {
-    marginTop: 24,
+    marginTop: 20,
   },
-  completedSectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 12,
+  completedLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+    marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   completedCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 20,
-    ...theme.shadows.sm,
-  },
-  completedHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  completedIcon: {
-    width: 36,
-    height: 36,
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
-    backgroundColor: theme.colors.surfaceSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  completedInfo: {
-    flex: 1,
+    marginBottom: 6,
   },
   completedTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    flex: 1,
+    fontSize: 14,
     color: theme.colors.textPrimary,
-    marginBottom: 4,
-  },
-  completedMeta: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-  },
-  viewDetailsLink: {
-    fontSize: 12,
-    color: '#222222',
-    fontWeight: '600',
+    fontWeight: '500',
   },
 });

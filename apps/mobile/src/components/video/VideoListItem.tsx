@@ -11,10 +11,11 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { theme } from '../../theme';
 import { formatDistanceToNow } from 'date-fns';
+import { theme } from '../../theme';
 
 interface VideoListItemProps {
   video: {
@@ -39,14 +40,14 @@ export const VideoListItem: React.FC<VideoListItemProps> = ({
   const getStatusIcon = () => {
     switch (video.status) {
       case 'completed':
-        return <Icon name="check-circle" size={20} color="#4CAF50" />;
+        return <Icon name="check-circle" size={20} color={theme.colors.primary} />;
       case 'failed':
-        return <Icon name="error" size={20} color="#F44336" />;
+        return <Icon name="error" size={20} color={theme.colors.error} />;
       case 'uploading':
       case 'processing':
-        return <ActivityIndicator size="small" color="#007AFF" />;
+        return <ActivityIndicator size="small" color={theme.colors.textPrimary} />;
       default:
-        return <Icon name="schedule" size={20} color="#999" />;
+        return <Icon name="schedule" size={20} color={theme.colors.textTertiary} />;
     }
   };
 
@@ -68,13 +69,13 @@ export const VideoListItem: React.FC<VideoListItemProps> = ({
   const getSeverityColor = () => {
     switch (video.severity) {
       case 'full':
-        return '#F44336';
+        return theme.colors.error;
       case 'midway':
-        return '#FF9800';
+        return theme.colors.accent;
       case 'early':
-        return '#4CAF50';
+        return theme.colors.primary;
       default:
-        return '#9E9E9E';
+        return theme.colors.textTertiary;
     }
   };
 
@@ -95,7 +96,7 @@ export const VideoListItem: React.FC<VideoListItemProps> = ({
           <Image source={{ uri: video.thumbnailUrl }} style={styles.thumbnail} />
         ) : (
           <View style={styles.thumbnailPlaceholder}>
-            <Icon name="videocam" size={32} color="#999" />
+            <Icon name="videocam" size={32} color={theme.colors.textTertiary} />
           </View>
         )}
         <View style={styles.durationBadge}>
@@ -103,7 +104,7 @@ export const VideoListItem: React.FC<VideoListItemProps> = ({
         </View>
         {video.status === 'processing' && (
           <View style={styles.processingOverlay}>
-            <ActivityIndicator size="large" color="white" />
+            <ActivityIndicator size="large" color={theme.colors.textInverse} />
           </View>
         )}
       </View>
@@ -126,7 +127,7 @@ export const VideoListItem: React.FC<VideoListItemProps> = ({
         {video.status === 'completed' && video.damageCount !== undefined && (
           <View style={styles.resultsRow}>
             <View style={styles.resultItem}>
-              <Icon name="warning" size={16} color="#666" />
+              <Icon name="warning" size={16} color={theme.colors.textSecondary} />
               <Text style={styles.resultText}>{video.damageCount} damages</Text>
             </View>
             {video.severity && (
@@ -144,7 +145,7 @@ export const VideoListItem: React.FC<VideoListItemProps> = ({
 
         {video.status === 'failed' && onRetry && (
           <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
-            <Icon name="refresh" size={16} color="#007AFF" />
+            <Icon name="refresh" size={16} color={theme.colors.textPrimary} />
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
         )}
@@ -156,16 +157,22 @@ export const VideoListItem: React.FC<VideoListItemProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: 'white',
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     marginHorizontal: 16,
     marginVertical: 8,
     padding: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   thumbnailContainer: {
     position: 'relative',
@@ -174,28 +181,28 @@ const styles = StyleSheet.create({
   thumbnail: {
     width: 120,
     height: 80,
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
+    borderRadius: 12,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   thumbnailPlaceholder: {
     width: 120,
     height: 80,
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
+    borderRadius: 12,
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   durationBadge: {
     position: 'absolute',
-    bottom: 4,
-    right: 4,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    bottom: 6,
+    right: 6,
+    backgroundColor: '#1a1a1a',
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: 6,
   },
   durationText: {
-    color: 'white',
+    color: theme.colors.textInverse,
     fontSize: 11,
     fontWeight: '600',
   },
@@ -205,10 +212,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: '#1a1a1a',
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: 12,
   },
   content: {
     flex: 1,
@@ -218,10 +225,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   title: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: theme.colors.textPrimary,
     flex: 1,
@@ -234,7 +241,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   statusText: {
-    fontSize: 13,
+    fontSize: 12,
     color: theme.colors.textSecondary,
   },
   timeText: {
@@ -249,32 +256,32 @@ const styles = StyleSheet.create({
   resultItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   resultText: {
-    fontSize: 13,
+    fontSize: 12,
     color: theme.colors.textSecondary,
   },
   severityBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
   severityText: {
     fontSize: 11,
-    color: 'white',
+    color: theme.colors.textInverse,
     fontWeight: '600',
     textTransform: 'uppercase',
   },
   retryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 4,
+    gap: 6,
+    paddingVertical: 6,
   },
   retryText: {
-    fontSize: 13,
-    color: '#007AFF',
+    fontSize: 12,
+    color: theme.colors.textPrimary,
     fontWeight: '600',
   },
 });

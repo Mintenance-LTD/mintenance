@@ -1,7 +1,7 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, Image, StyleSheet, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { theme } from "../../theme";
+import { theme } from '../../theme';
 
 interface PhotoSectionProps {
   photoUri: string | null;
@@ -14,34 +14,95 @@ interface PhotoSectionProps {
 export const PhotoSection: React.FC<PhotoSectionProps> = ({
   photoUri, firstName, lastName, profileImageUrl, onPickPhoto,
 }) => {
+  const initials = `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
+
   return (
     <View style={styles.photoSection}>
-      <View style={styles.avatarContainer}>
+      <TouchableOpacity
+        style={styles.avatarContainer}
+        onPress={onPickPhoto}
+        accessibilityRole="button"
+        accessibilityLabel="Change profile photo"
+        activeOpacity={0.8}
+      >
         {(photoUri || profileImageUrl) ? (
           <Image source={{ uri: photoUri || profileImageUrl }} style={styles.avatar} />
         ) : (
           <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarText}>{firstName?.[0]}{lastName?.[0]}</Text>
+            <Text style={styles.avatarText}>{initials}</Text>
           </View>
         )}
-        <TouchableOpacity style={styles.photoEditButton} onPress={onPickPhoto} accessibilityRole="button" accessibilityLabel="Change profile photo">
-          <Ionicons name="camera" size={20} color="#717171" />
-        </TouchableOpacity>
-      </View>
-      <TouchableOpacity style={styles.changePhotoButton} onPress={onPickPhoto} accessibilityRole="button" accessibilityLabel="Change profile photo">
-        <Text style={styles.changePhotoText}>Change Profile Photo</Text>
+        <View style={styles.photoEditButton}>
+          <Ionicons name="camera" size={16} color={theme.colors.textInverse} />
+        </View>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={onPickPhoto} style={styles.changePhotoButton}>
+        <Text style={styles.changePhotoText}>Change Photo</Text>
       </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  photoSection: { backgroundColor: theme.colors.surface, alignItems: "center", paddingVertical: 32, marginBottom: 16 },
-  avatarContainer: { position: "relative", marginBottom: 16 },
-  avatar: { width: 100, height: 100, borderRadius: 50 },
-  avatarPlaceholder: { width: 100, height: 100, borderRadius: 50, backgroundColor: "#222222", alignItems: "center", justifyContent: "center" },
-  avatarText: { fontSize: 36, fontWeight: "600", color: theme.colors.textInverse },
-  photoEditButton: { position: "absolute", bottom: 0, right: 0, width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.surface, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: theme.colors.border },
-  changePhotoButton: { paddingVertical: 8 },
-  changePhotoText: { fontSize: 16, color: theme.colors.textPrimary, fontWeight: "500" },
+  photoSection: {
+    alignItems: "center",
+    paddingVertical: 24,
+    paddingBottom: 16,
+  },
+  avatarContainer: {
+    position: "relative",
+    marginBottom: 12,
+  },
+  avatar: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 3,
+    borderColor: theme.colors.surface,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12 },
+      android: { elevation: 4 },
+    }),
+  },
+  avatarPlaceholder: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: theme.colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 3,
+    borderColor: theme.colors.surface,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12 },
+      android: { elevation: 4 },
+    }),
+  },
+  avatarText: {
+    fontSize: 32,
+    fontWeight: "700",
+    color: theme.colors.textInverse,
+  },
+  photoEditButton: {
+    position: "absolute",
+    bottom: 2,
+    right: 2,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: theme.colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: theme.colors.surface,
+  },
+  changePhotoButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+  },
+  changePhotoText: {
+    fontSize: 14,
+    color: theme.colors.primary,
+    fontWeight: "600",
+  },
 });

@@ -22,9 +22,9 @@ function getStrength(password: string): StrengthLevel {
   if (/[^A-Za-z0-9]/.test(password)) score++;
 
   if (score === 1) return { label: 'Weak', segments: 1, color: theme.colors.error };
-  if (score === 2) return { label: 'Fair', segments: 2, color: theme.colors.warning };
-  if (score === 3) return { label: 'Good', segments: 3, color: '#F59E0B' };
-  return { label: 'Strong', segments: 4, color: theme.colors.success };
+  if (score === 2) return { label: 'Fair', segments: 2, color: theme.colors.accent };
+  if (score === 3) return { label: 'Good', segments: 3, color: theme.colors.primary };
+  return { label: 'Strong', segments: 4, color: theme.colors.primaryDark };
 }
 
 export const PasswordStrengthBar: React.FC<PasswordStrengthBarProps> = ({ password }) => {

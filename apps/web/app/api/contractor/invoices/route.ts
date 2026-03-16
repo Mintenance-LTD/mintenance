@@ -15,7 +15,7 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 async function generateInvoiceNumber(contractorId: string): Promise<string> {
   const year = new Date().getFullYear();
   const { count } = await serverSupabase
-    .from('contractor_invoices')
+    .from('invoices')
     .select('id', { count: 'exact', head: true })
     .eq('contractor_id', contractorId)
     .like('invoice_number', `INV-${year}-%`);
@@ -64,7 +64,7 @@ export const GET = withApiHandler(
     const offset = parseInt(searchParams.get('offset') || '0');
 
     let query = serverSupabase
-      .from('contractor_invoices')
+      .from('invoices')
       .select('*', { count: 'exact' })
       .eq('contractor_id', user.id)
       .order('created_at', { ascending: false })
@@ -147,7 +147,7 @@ export const POST = withApiHandler(
 
     // Create invoice in database
     const { data: invoice, error } = await serverSupabase
-      .from('contractor_invoices')
+      .from('invoices')
       .insert(invoiceData)
       .select()
       .single();
@@ -229,7 +229,7 @@ export const PATCH = withApiHandler(
 
     // Check if invoice belongs to contractor
     const { data: existingInvoice } = await serverSupabase
-      .from('contractor_invoices')
+      .from('invoices')
       .select('contractor_id, status')
       .eq('id', invoiceId)
       .single();
@@ -260,7 +260,7 @@ export const PATCH = withApiHandler(
 
     // Update invoice
     const { data: invoice, error } = await serverSupabase
-      .from('contractor_invoices')
+      .from('invoices')
       .update(updateData)
       .eq('id', invoiceId)
       .select()
@@ -293,7 +293,7 @@ export const DELETE = withApiHandler(
     }
 
     const { data: existing } = await serverSupabase
-      .from('contractor_invoices')
+      .from('invoices')
       .select('id, contractor_id, status')
       .eq('id', invoiceId)
       .eq('contractor_id', user.id)
@@ -308,7 +308,7 @@ export const DELETE = withApiHandler(
     }
 
     const { error } = await serverSupabase
-      .from('contractor_invoices')
+      .from('invoices')
       .delete()
       .eq('id', invoiceId)
       .eq('contractor_id', user.id);

@@ -2,7 +2,7 @@
  * MessagingService — thin facade over the messaging/ subdirectory modules.
  * All implementation lives in messaging/*.ts; this file is the public API surface.
  */
-export type { Message, MessageThread } from './messaging/types';
+export type { Message, MessageThread, MessageDeliveryStatus } from './messaging/types';
 
 import { sendMessage, sendVideoCallInvitation, sendVideoCallStarted, sendVideoCallEnded, sendVideoCallMissed, messagingInternals } from './messaging/MessageSender';
 import { getJobMessages, getUserMessageThreads, searchJobMessages, getVideoCallMessages, getUnreadMessageCount } from './messaging/MessageFetcher';

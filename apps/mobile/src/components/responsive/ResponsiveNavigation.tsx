@@ -3,8 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useResponsive, useSidebarLayout } from '../../hooks/useResponsive';
-import { theme } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
+import { theme } from '../../theme';
 
 interface NavigationItem {
   key: string;
@@ -37,16 +37,14 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
     if (Platform.OS !== 'web') return;
 
     const handleKeyPress = (e: KeyboardEvent) => {
-      // Handle number keys for quick navigation (1-9)
       if (e.key >= '1' && e.key <= '9') {
         const index = parseInt(e.key) - 1;
-        if (items[index] && e.altKey) { // Alt + number for navigation
+        if (items[index] && e.altKey) {
           e.preventDefault();
           onNavigate(items[index].route);
         }
       }
 
-      // Handle arrow keys for sidebar navigation
       if (shouldShowSidebar && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
         const currentIndex = items.findIndex(item => item.route === activeRoute);
         if (currentIndex !== -1) {
@@ -57,16 +55,14 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
             newIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
           }
 
-          if (e.ctrlKey) { // Ctrl + Arrow to navigate
+          if (e.ctrlKey) {
             e.preventDefault();
             onNavigate(items[newIndex].route);
           }
         }
       }
 
-      // Handle Escape key for accessibility
       if (e.key === 'Escape') {
-        // Focus management for accessibility
         const activeElement = document.activeElement as HTMLElement;
         if (activeElement && activeElement.blur) {
           activeElement.blur();
@@ -84,7 +80,6 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
 
     return (
       <View style={[styles.sidebar, { width: sidebarWidth, paddingTop: insets.top }]}>
-        {/* Header */}
         <View style={styles.sidebarHeader}>
           <Text style={styles.appTitle}>Mintenance</Text>
           {user && (
@@ -99,7 +94,6 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
           )}
         </View>
 
-        {/* Navigation Items */}
         <View style={styles.sidebarNav}>
           {items.map((item) => {
             const isActive = activeRoute === item.route;
@@ -119,7 +113,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
                   <Ionicons
                     name={item.icon}
                     size={20}
-                    color={isActive ? theme.colors.primary : theme.colors.textSecondary}
+                    color={isActive ? theme.colors.textPrimary : theme.colors.textSecondary}
                   />
                   <Text
                     style={[
@@ -166,7 +160,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
                 <Ionicons
                   name={item.icon}
                   size={24}
-                  color={isActive ? theme.colors.primary : theme.colors.textSecondary}
+                  color={isActive ? theme.colors.textPrimary : theme.colors.textSecondary}
                 />
                 {item.badge && item.badge > 0 && (
                   <View style={styles.tabBadge}>
@@ -196,13 +190,12 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
     <View style={styles.container}>
       {renderSidebar()}
 
-      {/* Main Content */}
       <View
         style={[
           styles.content,
           {
             marginLeft: shouldShowSidebar ? sidebarWidth : 0,
-            paddingBottom: isDesktop ? 0 : 80, // Space for bottom tabs
+            paddingBottom: isDesktop ? 0 : 80,
           },
         ]}
       >
@@ -217,7 +210,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   content: {
     flex: 1,
@@ -230,19 +223,19 @@ const styles = StyleSheet.create({
     left: 0,
     bottom: 0,
     backgroundColor: theme.colors.surface,
-    borderRightWidth: 1,
+    borderRightWidth: StyleSheet.hairlineWidth,
     borderRightColor: theme.colors.border,
     zIndex: 1000,
   },
   sidebarHeader: {
     padding: 24,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border,
   },
   appTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
     marginBottom: 16,
   },
   userInfo: {
@@ -268,7 +261,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   sidebarItemActive: {
-    backgroundColor: theme.colors.primary + '15',
+    backgroundColor: 'rgba(34, 34, 34, 0.06)',
   },
   sidebarItemContent: {
     flexDirection: 'row',
@@ -282,7 +275,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   sidebarItemTextActive: {
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     fontWeight: '600',
   },
 
@@ -294,7 +287,7 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     backgroundColor: theme.colors.surface,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: theme.colors.border,
     paddingTop: 8,
     paddingHorizontal: 4,
@@ -315,7 +308,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   tabTextActive: {
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     fontWeight: '600',
   },
 
@@ -330,7 +323,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   badgeText: {
-    color: theme.colors.surface,
+    color: theme.colors.textInverse,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -347,7 +340,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   tabBadgeText: {
-    color: theme.colors.surface,
+    color: theme.colors.textInverse,
     fontSize: 10,
     fontWeight: '600',
   },

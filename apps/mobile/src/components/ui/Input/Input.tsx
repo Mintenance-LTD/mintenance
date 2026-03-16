@@ -1,4 +1,4 @@
-import React, { forwardRef, useState, useRef, useEffect } from 'react';
+import React, { forwardRef, useState, useRef } from 'react';
 import {
   View,
   TextInput,
@@ -12,53 +12,32 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../theme';
 
-// ============================================================================
-// TYPES & INTERFACES
-// ============================================================================
-
 export type InputSize = 'sm' | 'md' | 'lg';
 export type InputVariant = 'outline' | 'filled' | 'underline';
 export type InputState = 'default' | 'error' | 'success' | 'disabled';
 
 export interface InputProps extends Omit<TextInputProps, 'style'> {
-  // Styling
   size?: InputSize;
   variant?: InputVariant;
   state?: InputState;
   fullWidth?: boolean;
-
-  // Label and help text
   label?: string;
   helperText?: string;
   errorText?: string;
   required?: boolean;
-
-  // Icons
   leftIcon?: keyof typeof Ionicons.glyphMap;
   rightIcon?: keyof typeof Ionicons.glyphMap;
   onRightIconPress?: () => void;
-
-  // Container styling
   containerStyle?: ViewStyle;
   inputStyle?: ViewStyle;
-
-  // Accessibility
   testID?: string;
 }
 
-// ============================================================================
-// INPUT SIZE CONSTANTS (replaces designTokens.componentSizes.input)
-// ============================================================================
-
 const INPUT_SIZES = {
-  sm: { height: 36, paddingHorizontal: 12, fontSize: theme.typography.fontSize.sm },
-  md: { height: 48, paddingHorizontal: 16, fontSize: theme.typography.fontSize.base },
-  lg: { height: 52, paddingHorizontal: 16, fontSize: theme.typography.fontSize.lg },
+  sm: { height: 36, paddingHorizontal: 12, fontSize: 13 },
+  md: { height: 48, paddingHorizontal: 16, fontSize: 15 },
+  lg: { height: 52, paddingHorizontal: 16, fontSize: 18 },
 };
-
-// ============================================================================
-// INPUT COMPONENT
-// ============================================================================
 
 export const Input = forwardRef<TextInput, InputProps>(
   (
@@ -86,65 +65,25 @@ export const Input = forwardRef<TextInput, InputProps>(
     const borderAnimation = useRef(new Animated.Value(0)).current;
     const labelAnimation = useRef(new Animated.Value(textInputProps.value || textInputProps.defaultValue ? 1 : 0)).current;
 
-    // ========================================================================
-    // COMPUTED STYLES
-    // ========================================================================
-
-    const containerStyles = getContainerStyles(
-      variant,
-      size,
-      state,
-      isFocused,
-      fullWidth,
-      !!leftIcon,
-      !!rightIcon
-    );
+    const containerStyles = getContainerStyles(variant, size, state, isFocused, fullWidth, !!leftIcon, !!rightIcon);
     const textStyles = getTextStyles(size, state);
     const iconColor = getIconColor(state, isFocused);
 
-    // ========================================================================
-    // EVENT HANDLERS
-    // ========================================================================
-
-    const handleFocus = (e: unknown) => {
+    const handleFocus = (e: import('react-native').NativeSyntheticEvent<import('react-native').TargetedEvent>) => {
       setIsFocused(true);
-
-      // Animate border and label
       Animated.parallel([
-        Animated.timing(borderAnimation, {
-          toValue: 1,
-          duration: theme.animation.duration.fast,
-          useNativeDriver: false,
-        }),
-        Animated.timing(labelAnimation, {
-          toValue: 1,
-          duration: theme.animation.duration.fast,
-          useNativeDriver: false,
-        }),
+        Animated.timing(borderAnimation, { toValue: 1, duration: 150, useNativeDriver: false }),
+        Animated.timing(labelAnimation, { toValue: 1, duration: 150, useNativeDriver: false }),
       ]).start();
-
       textInputProps.onFocus?.(e);
     };
 
-    const handleBlur = (e: unknown) => {
+    const handleBlur = (e: import('react-native').NativeSyntheticEvent<import('react-native').TargetedEvent>) => {
       setIsFocused(false);
-
-      // Animate border
-      Animated.timing(borderAnimation, {
-        toValue: 0,
-        duration: theme.animation.duration.fast,
-        useNativeDriver: false,
-      }).start();
-
-      // Only animate label down if no value
+      Animated.timing(borderAnimation, { toValue: 0, duration: 150, useNativeDriver: false }).start();
       if (!hasValue) {
-        Animated.timing(labelAnimation, {
-          toValue: 0,
-          duration: theme.animation.duration.fast,
-          useNativeDriver: false,
-        }).start();
+        Animated.timing(labelAnimation, { toValue: 0, duration: 150, useNativeDriver: false }).start();
       }
-
       textInputProps.onBlur?.(e);
     };
 
@@ -153,34 +92,19 @@ export const Input = forwardRef<TextInput, InputProps>(
       textInputProps.onChangeText?.(text);
     };
 
-    // ========================================================================
-    // RENDER HELPERS
-    // ========================================================================
-
     const renderLabel = () => {
       if (!label) return null;
-
-      // Floating label for outline variant, static for others
       if (variant === 'outline') {
         const animatedLabelStyle = {
           position: 'absolute' as const,
-          left: theme.spacing[4],
-          backgroundColor: theme.colors.background,
-          paddingHorizontal: theme.spacing[1],
-          fontSize: labelAnimation.interpolate({
-            inputRange: [0, 1],
-            outputRange: [theme.typography.fontSize.base, theme.typography.fontSize.sm],
-          }),
-          top: labelAnimation.interpolate({
-            inputRange: [0, 1],
-            outputRange: [theme.spacing[3], -theme.spacing[2]],
-          }),
-          color: isFocused
-            ? theme.colors.primary
-            : theme.colors.textSecondary,
+          left: 16,
+          backgroundColor: theme.colors.backgroundSecondary,
+          paddingHorizontal: 4,
+          fontSize: labelAnimation.interpolate({ inputRange: [0, 1], outputRange: [15, 13] }),
+          top: labelAnimation.interpolate({ inputRange: [0, 1], outputRange: [12, -8] }),
+          color: isFocused ? theme.colors.textPrimary : theme.colors.textSecondary,
           zIndex: 1,
         };
-
         return (
           <Animated.Text style={animatedLabelStyle}>
             {label}
@@ -188,7 +112,6 @@ export const Input = forwardRef<TextInput, InputProps>(
           </Animated.Text>
         );
       }
-
       return (
         <Text style={styles.label}>
           {label}
@@ -203,21 +126,16 @@ export const Input = forwardRef<TextInput, InputProps>(
       onPress?: () => void
     ) => {
       const IconComponent = onPress ? TouchableOpacity : View;
-      const iconSize = size === 'sm' ? 16 : 20;
-
+      const iSize = size === 'sm' ? 16 : 20;
       return (
         <IconComponent
           onPress={onPress}
-          style={[
-            styles.iconContainer,
-            position === 'left' && styles.leftIconContainer,
-            position === 'right' && styles.rightIconContainer,
-          ]}
+          style={[styles.iconContainer, position === 'left' && styles.leftIconContainer, position === 'right' && styles.rightIconContainer]}
           disabled={state === 'disabled'}
           accessibilityRole={onPress ? 'button' : undefined}
           accessibilityLabel={onPress ? `${iconName} button` : undefined}
         >
-          <Ionicons name={iconName} size={iconSize} color={iconColor} />
+          <Ionicons name={iconName} size={iSize} color={iconColor} />
         </IconComponent>
       );
     };
@@ -225,30 +143,14 @@ export const Input = forwardRef<TextInput, InputProps>(
     const renderHelperText = () => {
       const text = errorText || helperText;
       if (!text) return null;
-
-      return (
-        <Text
-          style={[
-            styles.helperText,
-            errorText && styles.errorText,
-          ]}
-        >
-          {text}
-        </Text>
-      );
+      return <Text style={[styles.helperText, errorText && styles.errorText]}>{text}</Text>;
     };
-
-    // ========================================================================
-    // RENDER COMPONENT
-    // ========================================================================
 
     return (
       <View style={[styles.container, containerStyle]} testID={testID}>
         {renderLabel()}
-
         <View style={containerStyles}>
           {leftIcon && renderIcon(leftIcon, 'left')}
-
           <TextInput
             ref={ref}
             style={[textStyles, inputStyle]}
@@ -256,14 +158,12 @@ export const Input = forwardRef<TextInput, InputProps>(
             onBlur={handleBlur}
             onChangeText={handleChangeText}
             editable={state !== 'disabled'}
-            placeholderTextColor={variant === 'outline' && label ? 'transparent' : theme.colors.textQuaternary}
-            selectionColor={theme.colors.primary}
+            placeholderTextColor={variant === 'outline' && label ? 'transparent' : theme.colors.textTertiary}
+            selectionColor={theme.colors.textPrimary}
             {...textInputProps}
           />
-
           {rightIcon && renderIcon(rightIcon, 'right', onRightIconPress)}
         </View>
-
         {renderHelperText()}
       </View>
     );
@@ -271,10 +171,6 @@ export const Input = forwardRef<TextInput, InputProps>(
 );
 
 Input.displayName = 'Input';
-
-// ============================================================================
-// STYLE FUNCTIONS
-// ============================================================================
 
 const getContainerStyles = (
   variant: InputVariant,
@@ -289,106 +185,72 @@ const getContainerStyles = (
     ...INPUT_SIZES[size],
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: theme.layout.minTouchTarget,
+    minHeight: 44,
   };
+  if (fullWidth) baseStyle.width = '100%';
 
-  if (fullWidth) {
-    baseStyle.width = '100%';
-  }
-
-  // Variant-specific styles with enhanced Material Design 3 patterns
   switch (variant) {
     case 'outline':
       return {
         ...baseStyle,
         borderWidth: isFocused ? 2 : 1,
-        borderRadius: theme.borderRadius.lg,
+        borderRadius: 12,
         borderColor: getBorderColor(state, isFocused),
-        backgroundColor: state === 'disabled'
-          ? theme.colors.backgroundSecondary
-          : theme.colors.background,
+        backgroundColor: state === 'disabled' ? theme.colors.backgroundSecondary : theme.colors.textInverse,
       };
-
     case 'filled':
       return {
         ...baseStyle,
-        borderRadius: theme.borderRadius.lg,
+        borderRadius: 12,
         borderBottomLeftRadius: 0,
         borderBottomRightRadius: 0,
-        backgroundColor: state === 'disabled'
-          ? theme.colors.backgroundTertiary
-          : theme.colors.backgroundSecondary,
+        backgroundColor: state === 'disabled' ? theme.colors.border : theme.colors.backgroundSecondary,
         borderBottomWidth: isFocused ? 2 : 1,
         borderBottomColor: getBorderColor(state, isFocused),
       };
-
     case 'underline':
       return {
         ...baseStyle,
         borderBottomWidth: isFocused ? 2 : 1,
         borderBottomColor: getBorderColor(state, isFocused),
         backgroundColor: 'transparent',
-        paddingHorizontal: 0, // Remove horizontal padding for underline
+        paddingHorizontal: 0,
       };
-
     default:
       return baseStyle;
   }
 };
 
-const getTextStyles = (size: InputSize, state: InputState) => {
-  return {
-    flex: 1,
-    fontSize: INPUT_SIZES[size].fontSize,
-    color: state === 'disabled'
-      ? theme.colors.placeholder
-      : theme.colors.textPrimary,
-    fontFamily: theme.typography.fontFamily.regular,
-  };
-};
+const getTextStyles = (size: InputSize, state: InputState) => ({
+  flex: 1,
+  fontSize: INPUT_SIZES[size].fontSize,
+  color: state === 'disabled' ? theme.colors.textTertiary : theme.colors.textPrimary,
+});
 
 const getBorderColor = (state: InputState, isFocused: boolean): string => {
-  if (state === 'error') {
-    return theme.colors.error;
-  }
-  if (state === 'success') {
-    return theme.colors.success;
-  }
-  if (isFocused) {
-    return theme.colors.borderFocus;
-  }
+  if (state === 'error') return theme.colors.error;
+  if (state === 'success') return theme.colors.primary;
+  if (isFocused) return theme.colors.textPrimary;
   return theme.colors.border;
 };
 
 const getIconColor = (state: InputState, isFocused: boolean): string => {
-  if (state === 'error') {
-    return theme.colors.error;
-  }
-  if (state === 'success') {
-    return theme.colors.success;
-  }
-  if (state === 'disabled') {
-    return theme.colors.placeholder;
-  }
-  if (isFocused) {
-    return theme.colors.primary;
-  }
+  if (state === 'error') return theme.colors.error;
+  if (state === 'success') return theme.colors.primary;
+  if (state === 'disabled') return theme.colors.textTertiary;
+  if (isFocused) return theme.colors.textPrimary;
   return theme.colors.textTertiary;
 };
 
-// ============================================================================
-// STYLES
-// ============================================================================
-
 const styles = StyleSheet.create({
   container: {
-    marginBottom: theme.spacing[4],
+    marginBottom: 16,
   },
   label: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 13,
+    fontWeight: '500',
     color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[1],
+    marginBottom: 4,
   },
   required: {
     color: theme.colors.error,
@@ -396,25 +258,25 @@ const styles = StyleSheet.create({
   iconContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    minWidth: theme.layout.minTouchTarget,
-    minHeight: theme.layout.minTouchTarget,
+    minWidth: 44,
+    minHeight: 44,
   },
   leftIconContainer: {
-    paddingLeft: theme.spacing[3],
-    paddingRight: theme.spacing[2],
+    paddingLeft: 12,
+    paddingRight: 8,
   },
   rightIconContainer: {
-    paddingLeft: theme.spacing[2],
-    paddingRight: theme.spacing[3],
+    paddingLeft: 8,
+    paddingRight: 12,
   },
   helperText: {
-    fontSize: theme.typography.fontSize.xs,
+    fontSize: 12,
     color: theme.colors.textTertiary,
-    marginTop: theme.spacing[1],
-    lineHeight: theme.typography.lineHeight.normal,
+    marginTop: 4,
+    lineHeight: 18,
   },
   errorText: {
-    color: theme.colors.errorDark,
+    color: theme.colors.error,
   },
 });
 

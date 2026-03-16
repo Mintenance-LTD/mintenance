@@ -3,88 +3,116 @@
 exports[`MapSearchBar Snapshot Consistency maintains consistent structure with empty value 1`] = `
 <View
   style={
-    {
-      "flexDirection": "row",
-      "gap": 16,
-      "left": 16,
-      "position": "absolute",
-      "right": 16,
-      "top": 16,
-      "zIndex": 1,
-    }
+    [
+      {
+        "left": 16,
+        "position": "absolute",
+        "right": 16,
+        "zIndex": 10,
+      },
+      {
+        "top": 12,
+      },
+      undefined,
+    ]
   }
 >
-  <View
+  <TouchableOpacity
+    accessibilityLabel="Search jobs. Any category · undefined jobs nearby"
+    accessibilityRole="search"
+    activeOpacity={0.9}
     style={
       {
         "alignItems": "center",
         "backgroundColor": "#FFFFFF",
-        "borderRadius": 12,
-        "elevation": 5,
+        "borderRadius": 32,
+        "elevation": 4,
         "flex": 1,
         "flexDirection": "row",
-        "gap": 8,
-        "height": 50,
-        "paddingHorizontal": 24,
-        "shadowColor": "#000",
+        "paddingLeft": 16,
+        "paddingRight": 8,
+        "paddingVertical": 10,
+        "shadowColor": "#000000",
         "shadowOffset": {
           "height": 2,
           "width": 0,
         },
-        "shadowOpacity": 0.1,
-        "shadowRadius": 3.84,
+        "shadowOpacity": 0.12,
+        "shadowRadius": 8,
       }
     }
   >
     <Text
-      color="#64748B"
+      color="#222222"
       name="search"
-      size={20}
+      size={18}
     >
       search
     </Text>
-    <TextInput
-      onChangeText={[MockFunction]}
-      placeholder="Search contractors..."
-      placeholderTextColor="#64748B"
+    <View
       style={
         {
-          "color": "#0F172A",
           "flex": 1,
-          "fontSize": 17,
+          "marginLeft": 12,
         }
       }
-      value=""
-    />
-  </View>
-  <TouchableOpacity
-    onPress={[MockFunction]}
-    style={
-      {
-        "alignItems": "center",
-        "backgroundColor": "#0F172A",
-        "borderRadius": 12,
-        "elevation": 5,
-        "height": 50,
-        "justifyContent": "center",
-        "shadowColor": "#000",
-        "shadowOffset": {
-          "height": 2,
-          "width": 0,
-        },
-        "shadowOpacity": 0.1,
-        "shadowRadius": 3.84,
-        "width": 50,
-      }
-    }
-  >
-    <Text
-      color="#FFFFFF"
-      name="options"
-      size={24}
     >
-      options
-    </Text>
+      <Text
+        style={
+          {
+            "color": "#222222",
+            "fontSize": 14,
+            "fontWeight": "600",
+          }
+        }
+      >
+        Near you
+      </Text>
+      <Text
+        numberOfLines={1}
+        style={
+          {
+            "color": "#717171",
+            "fontSize": 12,
+            "marginTop": 1,
+          }
+        }
+      >
+        Any category · undefined jobs nearby
+      </Text>
+    </View>
+    <TouchableOpacity
+      accessibilityLabel="Open filters"
+      accessibilityRole="button"
+      hitSlop={
+        {
+          "bottom": 8,
+          "left": 8,
+          "right": 8,
+          "top": 8,
+        }
+      }
+      onPress={[MockFunction]}
+      style={
+        {
+          "alignItems": "center",
+          "borderColor": "#F0F0F0",
+          "borderRadius": 18,
+          "borderWidth": 1,
+          "height": 36,
+          "justifyContent": "center",
+          "width": 36,
+        }
+      }
+    >
+      <Text
+        color="#222222"
+        name="options-outline"
+        size={16}
+      >
+        options-outline
+      </Text>
+    </TouchableOpacity>
   </TouchableOpacity>
 </View>
 `;
@@ -92,99 +120,116 @@ exports[`MapSearchBar Snapshot Consistency maintains consistent structure with e
 exports[`MapSearchBar Snapshot Consistency maintains consistent structure with long value 1`] = `
 <View
   style={
-    {
-      "flexDirection": "row",
-      "gap": 16,
-      "left": 16,
-      "position": "absolute",
-      "right": 16,
-      "top": 16,
-      "zIndex": 1,
-    }
+    [
+      {
+        "left": 16,
+        "position": "absolute",
+        "right": 16,
+        "zIndex": 10,
+      },
+      {
+        "top": 12,
+      },
+      undefined,
+    ]
   }
 >
-  <View
+  <TouchableOpacity
+    accessibilityLabel="Search jobs. Any category · undefined jobs nearby"
+    accessibilityRole="search"
+    activeOpacity={0.9}
     style={
       {
         "alignItems": "center",
         "backgroundColor": "#FFFFFF",
-        "borderRadius": 12,
-        "elevation": 5,
+        "borderRadius": 32,
+        "elevation": 4,
         "flex": 1,
         "flexDirection": "row",
-        "gap": 8,
-        "height": 50,
-        "paddingHorizontal": 24,
-        "shadowColor": "#000",
+        "paddingLeft": 16,
+        "paddingRight": 8,
+        "paddingVertical": 10,
+        "shadowColor": "#000000",
         "shadowOffset": {
           "height": 2,
           "width": 0,
         },
-        "shadowOpacity": 0.1,
-        "shadowRadius": 3.84,
+        "shadowOpacity": 0.12,
+        "shadowRadius": 8,
       }
     }
   >
     <Text
-      color="#64748B"
+      color="#222222"
       name="search"
-      size={20}
+      size={18}
     >
       search
     </Text>
-    <TextInput
-      onChangeText={[MockFunction]}
-      placeholder="Search contractors..."
-      placeholderTextColor="#64748B"
+    <View
       style={
         {
-          "color": "#0F172A",
           "flex": 1,
-          "fontSize": 17,
+          "marginLeft": 12,
         }
       }
-      value="Emergency Plumbing Services Available 24/7"
-    />
-    <TouchableOpacity
-      onPress={[Function]}
     >
       <Text
-        color="#64748B"
-        name="close-circle"
-        size={20}
+        style={
+          {
+            "color": "#222222",
+            "fontSize": 14,
+            "fontWeight": "600",
+          }
+        }
       >
-        close-circle
+        Near you
+      </Text>
+      <Text
+        numberOfLines={1}
+        style={
+          {
+            "color": "#717171",
+            "fontSize": 12,
+            "marginTop": 1,
+          }
+        }
+      >
+        Any category · undefined jobs nearby
+      </Text>
+    </View>
+    <TouchableOpacity
+      accessibilityLabel="Open filters"
+      accessibilityRole="button"
+      hitSlop={
+        {
+          "bottom": 8,
+          "left": 8,
+          "right": 8,
+          "top": 8,
+        }
+      }
+      onPress={[MockFunction]}
+      style={
+        {
+          "alignItems": "center",
+          "borderColor": "#F0F0F0",
+          "borderRadius": 18,
+          "borderWidth": 1,
+          "height": 36,
+          "justifyContent": "center",
+          "width": 36,
+        }
+      }
+    >
+      <Text
+        color="#222222"
+        name="options-outline"
+        size={16}
+      >
+        options-outline
       </Text>
     </TouchableOpacity>
-  </View>
-  <TouchableOpacity
-    onPress={[MockFunction]}
-    style={
-      {
-        "alignItems": "center",
-        "backgroundColor": "#0F172A",
-        "borderRadius": 12,
-        "elevation": 5,
-        "height": 50,
-        "justifyContent": "center",
-        "shadowColor": "#000",
-        "shadowOffset": {
-          "height": 2,
-          "width": 0,
-        },
-        "shadowOpacity": 0.1,
-        "shadowRadius": 3.84,
-        "width": 50,
-      }
-    }
-  >
-    <Text
-      color="#FFFFFF"
-      name="options"
-      size={24}
-    >
-      options
-    </Text>
   </TouchableOpacity>
 </View>
 `;
@@ -192,99 +237,116 @@ exports[`MapSearchBar Snapshot Consistency maintains consistent structure with l
 exports[`MapSearchBar Snapshot Consistency maintains consistent structure with value 1`] = `
 <View
   style={
-    {
-      "flexDirection": "row",
-      "gap": 16,
-      "left": 16,
-      "position": "absolute",
-      "right": 16,
-      "top": 16,
-      "zIndex": 1,
-    }
+    [
+      {
+        "left": 16,
+        "position": "absolute",
+        "right": 16,
+        "zIndex": 10,
+      },
+      {
+        "top": 12,
+      },
+      undefined,
+    ]
   }
 >
-  <View
+  <TouchableOpacity
+    accessibilityLabel="Search jobs. Any category · undefined jobs nearby"
+    accessibilityRole="search"
+    activeOpacity={0.9}
     style={
       {
         "alignItems": "center",
         "backgroundColor": "#FFFFFF",
-        "borderRadius": 12,
-        "elevation": 5,
+        "borderRadius": 32,
+        "elevation": 4,
         "flex": 1,
         "flexDirection": "row",
-        "gap": 8,
-        "height": 50,
-        "paddingHorizontal": 24,
-        "shadowColor": "#000",
+        "paddingLeft": 16,
+        "paddingRight": 8,
+        "paddingVertical": 10,
+        "shadowColor": "#000000",
         "shadowOffset": {
           "height": 2,
           "width": 0,
         },
-        "shadowOpacity": 0.1,
-        "shadowRadius": 3.84,
+        "shadowOpacity": 0.12,
+        "shadowRadius": 8,
       }
     }
   >
     <Text
-      color="#64748B"
+      color="#222222"
       name="search"
-      size={20}
+      size={18}
     >
       search
     </Text>
-    <TextInput
-      onChangeText={[MockFunction]}
-      placeholder="Search contractors..."
-      placeholderTextColor="#64748B"
+    <View
       style={
         {
-          "color": "#0F172A",
           "flex": 1,
-          "fontSize": 17,
+          "marginLeft": 12,
         }
       }
-      value="plumber"
-    />
-    <TouchableOpacity
-      onPress={[Function]}
     >
       <Text
-        color="#64748B"
-        name="close-circle"
-        size={20}
+        style={
+          {
+            "color": "#222222",
+            "fontSize": 14,
+            "fontWeight": "600",
+          }
+        }
       >
-        close-circle
+        Near you
+      </Text>
+      <Text
+        numberOfLines={1}
+        style={
+          {
+            "color": "#717171",
+            "fontSize": 12,
+            "marginTop": 1,
+          }
+        }
+      >
+        Any category · undefined jobs nearby
+      </Text>
+    </View>
+    <TouchableOpacity
+      accessibilityLabel="Open filters"
+      accessibilityRole="button"
+      hitSlop={
+        {
+          "bottom": 8,
+          "left": 8,
+          "right": 8,
+          "top": 8,
+        }
+      }
+      onPress={[MockFunction]}
+      style={
+        {
+          "alignItems": "center",
+          "borderColor": "#F0F0F0",
+          "borderRadius": 18,
+          "borderWidth": 1,
+          "height": 36,
+          "justifyContent": "center",
+          "width": 36,
+        }
+      }
+    >
+      <Text
+        color="#222222"
+        name="options-outline"
+        size={16}
+      >
+        options-outline
       </Text>
     </TouchableOpacity>
-  </View>
-  <TouchableOpacity
-    onPress={[MockFunction]}
-    style={
-      {
-        "alignItems": "center",
-        "backgroundColor": "#0F172A",
-        "borderRadius": 12,
-        "elevation": 5,
-        "height": 50,
-        "justifyContent": "center",
-        "shadowColor": "#000",
-        "shadowOffset": {
-          "height": 2,
-          "width": 0,
-        },
-        "shadowOpacity": 0.1,
-        "shadowRadius": 3.84,
-        "width": 50,
-      }
-    }
-  >
-    <Text
-      color="#FFFFFF"
-      name="options"
-      size={24}
-    >
-      options
-    </Text>
   </TouchableOpacity>
 </View>
 `;

@@ -1,8 +1,8 @@
 /**
  * NavigationHeader Component
  *
- * Universal header with notification bell + avatar that opens
- * a profile/actions dropdown when tapped.
+ * Clean Airbnb-style header with notification bell + avatar
+ * that opens a profile/actions dropdown when tapped.
  */
 
 import React, { useState } from 'react';
@@ -16,6 +16,7 @@ import {
   Image,
   Modal,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,7 +34,7 @@ export interface HeaderMenuItem {
   onPress: () => void;
 }
 
-interface NavigationHeaderProps {
+export interface NavigationHeaderProps {
   title: string;
   showMenuIcon?: boolean;
   showBackIcon?: boolean;
@@ -45,27 +46,26 @@ interface NavigationHeaderProps {
   onBackPress?: () => void;
   style?: ViewStyle;
   titleStyle?: TextStyle;
+  /** Override icon/text tint color (default: theme.colors.textPrimary) */
+  tintColor?: string;
   subtitle?: string;
   notificationCount?: number;
   onNotificationPress?: () => void;
   userInitials?: string;
   userName?: string;
   userRole?: string;
-  /** Items rendered in the avatar dropdown */
   menuItems?: HeaderMenuItem[];
-  /** Fallback when no menuItems — navigates to profile tab */
   onUserPress?: () => void;
 }
 
 export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   title,
-  showMenuIcon = true,
   showBackIcon = false,
   rightIcon,
-  onMenuPress,
   onBackPress,
   style,
   titleStyle,
+  tintColor,
   subtitle,
   notificationCount = 0,
   onNotificationPress,
@@ -78,6 +78,8 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const iconColor = tintColor || theme.colors.textPrimary;
+  const subtitleColor = tintColor ? `${tintColor}B3` : theme.colors.textSecondary;
 
   const handleBackPress = () => {
     if (onBackPress) {
@@ -107,10 +109,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
       <View
         style={[
           styles.container,
-          {
-            paddingTop: insets.top,
-            backgroundColor: theme.colors.surface,
-          },
+          { paddingTop: insets.top },
           style,
         ]}
       >
@@ -124,7 +123,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
               accessibilityLabel="Go back"
               testID="back-icon-button"
             >
-              <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+              <Ionicons name="arrow-back" size={22} color={iconColor} />
             </TouchableOpacity>
           ) : (
             <View style={styles.logoContainer} testID="menu-icon-button">
@@ -134,13 +133,9 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
 
           {/* Title */}
           <View style={styles.titleContainer}>
-            <Text style={[styles.title, titleStyle]} numberOfLines={1}>
-              {title}
-            </Text>
+            <Text style={[styles.title, tintColor ? { color: tintColor } : undefined, titleStyle]} numberOfLines={1}>{title}</Text>
             {subtitle && (
-              <Text style={styles.subtitle} numberOfLines={1}>
-                {subtitle}
-              </Text>
+              <Text style={[styles.subtitle, tintColor ? { color: subtitleColor } : undefined]} numberOfLines={1}>{subtitle}</Text>
             )}
           </View>
 
@@ -159,11 +154,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
                   }
                   testID="notification-button"
                 >
-                  <Ionicons
-                    name="notifications-outline"
-                    size={22}
-                    color={theme.colors.textSecondary}
-                  />
+                  <Ionicons name="notifications-outline" size={22} color={iconColor} />
                   {notificationCount > 0 && (
                     <View style={styles.badge}>
                       <Text style={styles.badgeText}>
@@ -192,7 +183,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
               accessibilityRole="button"
               testID="right-icon-button"
             >
-              <Ionicons name={rightIcon.name} size={24} color={theme.colors.textPrimary} />
+              <Ionicons name={rightIcon.name} size={22} color={iconColor} />
             </TouchableOpacity>
           ) : (
             <View style={styles.iconPlaceholder} />
@@ -208,16 +199,13 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
           animationType="fade"
           onRequestClose={() => setDropdownOpen(false)}
         >
-          {/* Backdrop */}
           <TouchableOpacity
             style={styles.backdrop}
             activeOpacity={1}
             onPress={() => setDropdownOpen(false)}
           />
 
-          {/* Dropdown card — top-right below header */}
           <View style={[styles.dropdownCard, { top: insets.top + 62 }]}>
-            {/* User info row */}
             {(userName || userRole) && (
               <View style={styles.dropdownHeader}>
                 <View style={styles.dropdownAvatar}>
@@ -225,9 +213,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
                 </View>
                 <View style={styles.dropdownUserInfo}>
                   {userName && (
-                    <Text style={styles.dropdownUserName} numberOfLines={1}>
-                      {userName}
-                    </Text>
+                    <Text style={styles.dropdownUserName} numberOfLines={1}>{userName}</Text>
                   )}
                   {userRole && (
                     <Text style={styles.dropdownUserRole}>{userRole}</Text>
@@ -272,21 +258,16 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: theme.colors.surface,
-    borderBottomWidth: 0,
-    // Subtle shadow instead of border (Airbnb-style)
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
     zIndex: 10,
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    minHeight: 56,
+    paddingVertical: 8,
+    minHeight: 52,
   },
   iconButton: {
     width: 44,
@@ -294,39 +275,55 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 22,
+    position: 'relative',
   },
   iconPlaceholder: { width: 44, height: 44 },
   logoContainer: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
   logoIcon: { width: 32, height: 32, borderRadius: 8 },
-  titleContainer: { flex: 1, paddingHorizontal: 12, justifyContent: 'center' },
-  title: { fontSize: 28, fontWeight: '800', color: theme.colors.textPrimary },
-  subtitle: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 1 },
-  rightActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  titleContainer: { flex: 1, paddingHorizontal: 8, justifyContent: 'center' },
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    letterSpacing: -0.3,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    marginTop: 1,
+  },
+  rightActions: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   badge: {
     position: 'absolute',
     top: 6,
     right: 6,
-    backgroundColor: theme.colors.primary,
-    borderRadius: 9,
-    minWidth: 18,
-    height: 18,
+    backgroundColor: theme.colors.error,
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: 3,
   },
-  badgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '600' },
+  badgeText: {
+    color: theme.colors.textInverse,
+    fontSize: 9,
+    fontWeight: '700',
+  },
   avatarButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: theme.colors.textPrimary,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 4,
   },
-  avatarText: { color: '#FFFFFF', fontSize: 12, fontWeight: '600' },
-
-  // Dropdown
+  avatarText: {
+    color: theme.colors.textInverse,
+    fontSize: 12,
+    fontWeight: '600',
+  },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.25)',
@@ -335,15 +332,21 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 12,
     width: 260,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 12,
     overflow: 'hidden',
     maxHeight: 420,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 24,
+      },
+      android: {
+        elevation: 12,
+      },
+    }),
   },
   dropdownHeader: {
     flexDirection: 'row',
@@ -359,19 +362,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  dropdownAvatarText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  dropdownAvatarText: {
+    color: theme.colors.textInverse,
+    fontSize: 14,
+    fontWeight: '700',
+  },
   dropdownUserInfo: { flex: 1 },
-  dropdownUserName: { fontSize: 14, fontWeight: '700', color: theme.colors.textPrimary },
-  dropdownUserRole: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 1 },
-  dropdownDivider: { height: 1, backgroundColor: theme.colors.borderLight },
+  dropdownUserName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  dropdownUserRole: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginTop: 1,
+  },
+  dropdownDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: theme.colors.border,
+  },
   dropdownItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 14,
     gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.borderLight,
   },
   dropdownItemLast: { borderBottomWidth: 0 },
   dropdownItemIcon: {
@@ -382,8 +400,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dropdownItemText: { flex: 1 },
-  dropdownItemLabel: { fontSize: 14, fontWeight: '600', color: theme.colors.textPrimary },
-  dropdownItemSubtitle: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 1 },
+  dropdownItemLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+  dropdownItemSubtitle: {
+    fontSize: 11,
+    color: theme.colors.textSecondary,
+    marginTop: 1,
+  },
 });
 
 export default NavigationHeader;

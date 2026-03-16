@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { View, Image, StyleSheet, Dimensions, Text } from 'react-native';
+import { View, Image, StyleSheet, Dimensions, Text, Platform } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { theme } from '../theme';
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     alignSelf: 'center',
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   image: {
     width: IMAGE_WIDTH,
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   labelLeft: { left: 12 },
   labelRight: { right: 12 },
   labelText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 3,
-    backgroundColor: theme.colors.white,
+    backgroundColor: theme.colors.surface,
     marginLeft: -1.5,
     justifyContent: 'center',
     alignItems: 'center',
@@ -142,10 +142,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.white,
+    backgroundColor: theme.colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   sliderArrows: { flexDirection: 'row' },
   arrowText: {

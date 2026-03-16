@@ -1,10 +1,10 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import { theme } from '../../theme';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -12,16 +12,16 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    backgroundColor: theme.colors.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
     padding: 8,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
   },
   placeholder: {
@@ -31,28 +31,27 @@ export const styles = StyleSheet.create({
     padding: 16,
   },
   statusCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     padding: 24,
     alignItems: 'center',
     marginBottom: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   statusIcon: {
     marginBottom: 16,
   },
   statusTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   statusDescription: {
-    fontSize: 16,
+    fontSize: 15,
     color: theme.colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
@@ -63,13 +62,13 @@ export const styles = StyleSheet.create({
   },
   progressBar: {
     height: 6,
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
     borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   loader: {
     marginTop: 8,
@@ -79,7 +78,7 @@ export const styles = StyleSheet.create({
     marginTop: 16,
   },
   errorText: {
-    color: '#F44336',
+    color: theme.colors.error,
     fontSize: 14,
     marginBottom: 16,
     textAlign: 'center',
@@ -87,32 +86,33 @@ export const styles = StyleSheet.create({
   retryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F44336',
+    backgroundColor: theme.colors.error,
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingVertical: 12,
+    borderRadius: 28,
     gap: 8,
   },
   retryButtonText: {
-    color: 'white',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
   },
   queueCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   queueTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
     marginBottom: 16,
   },
   queueStats: {
@@ -123,42 +123,41 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   queueStatValue: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
     color: theme.colors.textPrimary,
   },
   queueStatLabel: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
+    fontSize: 11,
+    color: theme.colors.textTertiary,
     marginTop: 4,
   },
   resultsCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   resultsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
     gap: 8,
   },
   resultsTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     color: theme.colors.textPrimary,
   },
   overallAssessment: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   assessmentRow: {
     flexDirection: 'row',
@@ -175,25 +174,27 @@ export const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   severity_early: {
-    color: '#4CAF50',
+    color: theme.colors.primary,
   },
   severity_midway: {
-    color: '#FF9800',
+    color: theme.colors.accent,
   },
   severity_full: {
-    color: '#F44336',
+    color: theme.colors.error,
   },
   damageSection: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   damageSectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
     marginBottom: 12,
   },
   damageItem: {
-    backgroundColor: '#F9F9F9',
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
@@ -212,12 +213,12 @@ export const styles = StyleSheet.create({
   },
   severityBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
   severityText: {
     fontSize: 11,
-    color: 'white',
+    color: theme.colors.textInverse,
     fontWeight: '600',
     textTransform: 'uppercase',
   },
@@ -230,10 +231,10 @@ export const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   prioritySection: {
-    backgroundColor: '#FFF3E0',
+    backgroundColor: '#FEE2E2',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   priorityHeader: {
     flexDirection: 'row',
@@ -242,9 +243,9 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   priorityTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#F44336',
+    color: theme.colors.error,
   },
   priorityItem: {
     flexDirection: 'row',
@@ -258,13 +259,15 @@ export const styles = StyleSheet.create({
   },
   metadataSection: {
     paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#EBEBEB',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.border,
   },
   metadataTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
     marginBottom: 8,
   },
   metadataText: {
@@ -278,19 +281,23 @@ export const styles = StyleSheet.create({
   },
   actionButton: {
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 28,
     alignItems: 'center',
   },
   primaryButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.textPrimary,
   },
   primaryButtonText: {
-    color: 'white',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
   },
   secondaryButton: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: theme.colors.surface,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 },
+      android: { elevation: 1 },
+    }),
   },
   secondaryButtonText: {
     color: theme.colors.textPrimary,
@@ -299,8 +306,8 @@ export const styles = StyleSheet.create({
   },
   tipsCard: {
     flexDirection: 'row',
-    backgroundColor: '#F7F7F7',
-    borderRadius: 12,
+    backgroundColor: '#DBEAFE',
+    borderRadius: 16,
     padding: 16,
     marginTop: 16,
     gap: 12,
@@ -308,7 +315,7 @@ export const styles = StyleSheet.create({
   tipsText: {
     flex: 1,
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: '#3B82F6',
     lineHeight: 18,
   },
 });

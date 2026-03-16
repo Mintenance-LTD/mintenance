@@ -41,6 +41,9 @@ export const useJob = (jobId: string) => {
     queryFn: () => JobService.getJobById(jobId),
     enabled: !!jobId,
     staleTime: 30 * 1000, // 30 seconds for individual job details
+    retry: 3,
+    gcTime: 15 * 60 * 1000,
+    placeholderData: (prev: Job | null | undefined) => prev,
   });
 };
 
@@ -142,7 +145,7 @@ export const useCreateJob = () => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       bids: [],
-    }),
+    }) as unknown as Job,
   });
 };
 

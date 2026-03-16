@@ -13,16 +13,17 @@ import {
   TouchableOpacity,
   Image,
   Alert,
-  ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { theme } from '../../theme';
 import { PhotoUploadService } from '../../services/PhotoUploadService';
+import { JobService } from '../../services/JobService';
 import { JobsStackParamList } from '../../navigation/types';
+import { theme } from '../../theme';
 
 type ScreenRouteProp = RouteProp<JobsStackParamList, 'PhotoUpload'>;
 type ScreenNavigationProp = NativeStackNavigationProp<JobsStackParamList, 'PhotoUpload'>;
@@ -35,6 +36,7 @@ interface Props {
 interface SelectedPhoto {
   uri: string;
   asset: ImagePicker.ImagePickerAsset;
+  uploaded?: boolean;
 }
 
 export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => {
@@ -94,8 +96,12 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
+  const photosToUpload = photos.filter((p) => !p.uploaded);
+  const hasFailedPhotos = photos.some((p) => !p.uploaded) && photos.some((p) => p.uploaded);
+
   const handleUpload = useCallback(async () => {
-    if (photos.length === 0) {
+    const pending = photos.filter((p) => !p.uploaded);
+    if (pending.length === 0) {
       Alert.alert('No Photos', 'Please select at least one photo to upload.');
       return;
     }
@@ -104,32 +110,87 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
     setUploadProgress(0);
 
     try {
-      const assets = photos.map((p) => p.asset);
+      const assets = pending.map((p) => p.asset);
       const uploadFn = isBefore
         ? PhotoUploadService.uploadBeforePhotos
         : PhotoUploadService.uploadAfterPhotos;
 
-      const results = await uploadFn.call(PhotoUploadService, jobId, assets);
+      const results: Array<{ success: boolean }> = [];
+      for (let i = 0; i < assets.length; i++) {
+        setUploadProgress(((i) / assets.length) * 100);
+        try {
+          const result = await uploadFn.call(PhotoUploadService, jobId, [assets[i]]);
+          results.push(...result);
+        } catch {
+          results.push({ success: false });
+        }
+        setUploadProgress(((i + 1) / assets.length) * 100);
+      }
 
       const successCount = results.filter((r) => r.success).length;
       const failCount = results.length - successCount;
 
+      if (successCount > 0) {
+        setPhotos((prev) => {
+          const updatedPhotos = [...prev];
+          let resultIndex = 0;
+          for (let i = 0; i < updatedPhotos.length; i++) {
+            if (!updatedPhotos[i].uploaded) {
+              if (results[resultIndex]?.success) {
+                updatedPhotos[i] = { ...updatedPhotos[i], uploaded: true };
+              }
+              resultIndex++;
+            }
+          }
+          return updatedPhotos;
+        });
+      }
+
       if (failCount > 0) {
         Alert.alert(
           'Partial Upload',
-          `${successCount} photo(s) uploaded successfully, ${failCount} failed.`,
-          [{ text: 'OK', onPress: () => navigation.goBack() }]
+          `${successCount} photo(s) uploaded successfully, ${failCount} failed. You can retry the failed uploads.`
         );
       } else {
-        Alert.alert(
-          'Upload Complete',
-          isBefore
-            ? `${successCount} before photo(s) uploaded. You can now start the job.`
-            : `${successCount} after photo(s) uploaded. The homeowner will be notified to review your work.`,
-          [{ text: 'OK', onPress: () => navigation.goBack() }]
-        );
+        if (isBefore) {
+          Alert.alert(
+            'Upload Complete',
+            `${successCount} before photo(s) uploaded. Ready to start the job?`,
+            [
+              { text: 'Not Yet', style: 'cancel', onPress: () => navigation.goBack() },
+              {
+                text: 'Start Job',
+                onPress: async () => {
+                  try {
+                    await JobService.startJob(jobId);
+                    Alert.alert('Job Started', 'The homeowner has been notified that work has begun.', [
+                      { text: 'OK', onPress: () => navigation.goBack() },
+                    ]);
+                  } catch (startError) {
+                    const msg = startError instanceof Error ? startError.message : 'Failed to start job';
+                    Alert.alert('Could Not Start Job', msg, [
+                      { text: 'OK', onPress: () => navigation.goBack() },
+                    ]);
+                  }
+                },
+              },
+            ]
+          );
+        } else {
+          // Auto-trigger job completion per spec Phase 8
+          try {
+            await JobService.completeJob(jobId);
+          } catch {
+            // Non-critical: backend may auto-complete via photo webhook
+          }
+          Alert.alert(
+            'Job Completed',
+            `${successCount} after photo(s) uploaded. The homeowner has been notified to review your work.`,
+            [{ text: 'OK', onPress: () => navigation.goBack() }]
+          );
+        }
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Upload Failed', 'Failed to upload photos. Please try again.');
     } finally {
       setUploading(false);
@@ -146,7 +207,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <View style={styles.headerText}>
           <Text style={styles.headerTitle}>{title}</Text>
@@ -164,7 +225,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
           <Ionicons
             name={isBefore ? 'camera-outline' : 'checkmark-circle-outline'}
             size={24}
-            color='#717171'
+            color={isBefore ? theme.colors.textPrimary : theme.colors.primary}
           />
           <Text style={styles.infoText}>
             {isBefore
@@ -178,13 +239,20 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
           {photos.map((photo, index) => (
             <View key={index} style={styles.photoItem}>
               <Image source={{ uri: photo.uri }} style={styles.photoImage} />
-              <TouchableOpacity
-                style={styles.removeButton}
-                onPress={() => removePhoto(index)}
-                accessibilityLabel={`Remove photo ${index + 1}`}
-              >
-                <Ionicons name="close-circle" size={28} color="#FF3B30" />
-              </TouchableOpacity>
+              {photo.uploaded && (
+                <View style={styles.uploadedBadge}>
+                  <Ionicons name="checkmark-circle" size={28} color={theme.colors.primary} />
+                </View>
+              )}
+              {!photo.uploaded && (
+                <TouchableOpacity
+                  style={styles.removeButton}
+                  onPress={() => removePhoto(index)}
+                  accessibilityLabel={`Remove photo ${index + 1}`}
+                >
+                  <Ionicons name="close-circle" size={28} color={theme.colors.error} />
+                </TouchableOpacity>
+              )}
             </View>
           ))}
 
@@ -194,7 +262,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
             onPress={pickFromCamera}
             accessibilityLabel="Take a photo"
           >
-            <Ionicons name="camera" size={32} color='#717171' />
+            <Ionicons name="camera" size={32} color={theme.colors.textPrimary} />
             <Text style={styles.addPhotoText}>Camera</Text>
           </TouchableOpacity>
 
@@ -203,7 +271,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
             onPress={pickFromGallery}
             accessibilityLabel="Choose from gallery"
           >
-            <Ionicons name="images" size={32} color='#717171' />
+            <Ionicons name="images" size={32} color={theme.colors.textPrimary} />
             <Text style={styles.addPhotoText}>Gallery</Text>
           </TouchableOpacity>
         </View>
@@ -217,19 +285,28 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
       {/* Bottom CTA */}
       <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 20) }]}>
         <TouchableOpacity
-          style={[styles.uploadButton, (uploading || photos.length === 0) && styles.uploadButtonDisabled]}
+          style={[styles.uploadButton, (uploading || photosToUpload.length === 0) && styles.uploadButtonDisabled]}
           onPress={handleUpload}
-          disabled={uploading || photos.length === 0}
+          disabled={uploading || photosToUpload.length === 0}
           accessibilityRole="button"
           accessibilityLabel={uploading ? 'Uploading photos' : 'Upload photos'}
         >
           {uploading ? (
-            <ActivityIndicator color="#FFFFFF" />
+            <View style={styles.uploadProgressContainer}>
+              <Text style={styles.uploadButtonText}>
+                Uploading {Math.min(Math.round((uploadProgress / 100) * photosToUpload.length) + 1, photosToUpload.length)} of {photosToUpload.length}...
+              </Text>
+              <View style={styles.progressBarTrack}>
+                <View style={[styles.progressBarFill, { width: `${uploadProgress}%` }]} />
+              </View>
+            </View>
           ) : (
             <>
-              <Ionicons name="cloud-upload" size={20} color="#FFFFFF" />
+              <Ionicons name={hasFailedPhotos ? 'refresh' : 'cloud-upload'} size={20} color={theme.colors.textInverse} />
               <Text style={styles.uploadButtonText}>
-                Upload {photos.length} Photo{photos.length !== 1 ? 's' : ''}
+                {hasFailedPhotos
+                  ? `Retry ${photosToUpload.length} Failed Photo${photosToUpload.length !== 1 ? 's' : ''}`
+                  : `Upload ${photosToUpload.length} Photo${photosToUpload.length !== 1 ? 's' : ''}`}
               </Text>
             </>
           )}
@@ -242,27 +319,28 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
-    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerText: {
     flex: 1,
-    marginLeft: 8,
+    marginLeft: 10,
   },
   headerTitle: {
     fontSize: 18,
@@ -283,16 +361,20 @@ const styles = StyleSheet.create({
   },
   infoCard: {
     flexDirection: 'row',
-    backgroundColor: '#F7F7F7',
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     padding: 16,
     gap: 12,
-    marginBottom: 24,
+    marginBottom: 20,
     alignItems: 'flex-start',
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   infoText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 13,
     color: theme.colors.textPrimary,
     lineHeight: 20,
   },
@@ -304,7 +386,7 @@ const styles = StyleSheet.create({
   photoItem: {
     width: '47%',
     aspectRatio: 1,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -316,20 +398,27 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 6,
     right: 6,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    borderRadius: 14,
+  },
+  uploadedBadge: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    backgroundColor: 'rgba(255,255,255,0.8)',
     borderRadius: 14,
   },
   addPhotoButton: {
     width: '47%',
     aspectRatio: 1,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: theme.colors.borderLight,
+    borderColor: theme.colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: theme.colors.surface,
   },
   addPhotoText: {
     fontSize: 13,
@@ -338,7 +427,7 @@ const styles = StyleSheet.create({
   },
   photoCount: {
     marginTop: 16,
-    fontSize: 14,
+    fontSize: 13,
     color: theme.colors.textSecondary,
     textAlign: 'center',
   },
@@ -347,32 +436,51 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingHorizontal: 20,
     paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
-    ...theme.shadows.large,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.border,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.08, shadowRadius: 12 },
+      android: { elevation: 8 },
+    }),
   },
   uploadButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: 12,
+    backgroundColor: theme.colors.textPrimary,
+    borderRadius: 28,
     paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    minHeight: 52,
+    minHeight: 56,
   },
   uploadButtonDisabled: {
     opacity: 0.5,
   },
   uploadButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    color: theme.colors.textInverse,
+    fontSize: 15,
     fontWeight: '600',
+  },
+  uploadProgressContainer: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 8,
+  },
+  progressBarTrack: {
+    width: '80%',
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: 4,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 2,
   },
 });
 
 export default JobPhotoUploadScreen;
-

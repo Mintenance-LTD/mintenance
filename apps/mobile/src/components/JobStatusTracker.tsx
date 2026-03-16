@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../theme';
 import { Job } from '@mintenance/types';
 import { useUpdateJobStatus } from '../hooks/useJobs';
 import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 interface JobStatusTrackerProps {
   job: Job;
@@ -23,36 +23,36 @@ interface StatusConfig {
 
 const STATUS_CONFIG: Record<string, StatusConfig> = {
   posted: {
-    color: '#222222',
-    bgColor: '#F7F7F7',
+    color: theme.colors.textPrimary,
+    bgColor: theme.colors.backgroundSecondary,
     icon: 'megaphone-outline',
     label: 'Posted',
     description: 'Waiting for contractor bids',
   },
   assigned: {
-    color: '#F59E0B',
-    bgColor: '#FFFBEB',
+    color: theme.colors.accent,
+    bgColor: theme.colors.accentLight,
     icon: 'person-outline',
     label: 'Assigned',
     description: 'Contractor assigned, waiting to start',
   },
   in_progress: {
-    color: '#F59E0B',
-    bgColor: '#FFFBEB',
+    color: '#8B5CF6',
+    bgColor: '#EDE9FE',
     icon: 'hammer-outline',
     label: 'In Progress',
     description: 'Work is currently underway',
   },
   completed: {
-    color: '#10B981',
-    bgColor: '#ECFDF5',
+    color: theme.colors.primary,
+    bgColor: theme.colors.primaryLight,
     icon: 'checkmark-circle-outline',
     label: 'Completed',
     description: 'Job has been finished',
   },
   cancelled: {
-    color: '#EF4444',
-    bgColor: '#FEF2F2',
+    color: theme.colors.error,
+    bgColor: '#FEE2E2',
     icon: 'close-circle-outline',
     label: 'Cancelled',
     description: 'Job was cancelled',
@@ -156,7 +156,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
     );
   };
 
-  const performStatusUpdate = async (newStatus: unknown) => {
+  const performStatusUpdate = async (newStatus: string) => {
     try {
       logger.info('Updating job status', {
         jobId: job.id,
@@ -174,7 +174,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
 
       // Call the optional callback
       if (onStatusUpdate) {
-        onStatusUpdate({ ...job, status: newStatus });
+        onStatusUpdate({ ...job, status: newStatus as Job['status'] });
       }
 
       Alert.alert(
@@ -183,7 +183,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
       );
     } catch (error) {
       logger.error('Failed to update job status:', error);
-      Alert.alert('Error', error.message || 'Failed to update job status');
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to update job status');
     }
   };
 
@@ -237,7 +237,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
                   styles.timelineIcon,
                   {
                     backgroundColor:
-                      isActive || isPassed ? config.color : '#EBEBEB',
+                      isActive || isPassed ? config.color : theme.colors.border,
                     opacity: isCancelled && !isActive ? 0.3 : 1,
                   },
                 ]}
@@ -245,14 +245,14 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
                 <Ionicons
                   name={config.icon}
                   size={16}
-                  color={isActive || isPassed ? '#FFFFFF' : '#B0B0B0'}
+                  color={isActive || isPassed ? theme.colors.surface : theme.colors.textTertiary}
                 />
               </View>
               <Text
                 style={[
                   styles.timelineLabel,
                   {
-                    color: isActive ? config.color : '#717171',
+                    color: isActive ? config.color : theme.colors.textSecondary,
                     fontWeight: isActive ? '600' : '400',
                     opacity: isCancelled && !isActive ? 0.3 : 1,
                   },
@@ -265,7 +265,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
                   style={[
                     styles.timelineLine,
                     {
-                      backgroundColor: isPassed ? config.color : '#EBEBEB',
+                      backgroundColor: isPassed ? config.color : theme.colors.border,
                       opacity: isCancelled ? 0.3 : 1,
                     },
                   ]}
@@ -291,7 +291,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
               { backgroundColor: currentConfig.color },
             ]}
           >
-            <Ionicons name={currentConfig.icon} size={24} color='#FFFFFF' />
+            <Ionicons name={currentConfig.icon} size={24} color={theme.colors.textInverse} />
           </View>
           <View style={styles.statusInfo}>
             <Text style={[styles.statusLabel, { color: currentConfig.color }]}>
@@ -340,7 +340,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
                   <Ionicons
                     name={actionConfig.icon}
                     size={18}
-                    color='#FFFFFF'
+                    color={theme.colors.textInverse}
                   />
                   <Text style={styles.actionButtonText}>{action.label}</Text>
                 </TouchableOpacity>
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   statusCard: {
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 20,
   },
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   statusDescription: {
-    fontSize: 14,
+    fontSize: 13,
     color: theme.colors.textSecondary,
   },
   progressContainer: {
@@ -425,13 +425,13 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 6,
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    backgroundColor: theme.colors.border,
     borderRadius: 3,
     marginBottom: 6,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 3,
   },
   progressText: {
@@ -443,7 +443,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: theme.colors.textPrimary,
     marginBottom: 12,
@@ -490,13 +490,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingVertical: 12,
+    borderRadius: 16,
     gap: 6,
   },
   actionButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
+    color: theme.colors.textInverse,
+    fontSize: 13,
     fontWeight: '600',
   },
   infoGrid: {
@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   infoValue: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: theme.colors.textPrimary,
   },

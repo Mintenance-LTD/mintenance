@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  Platform,
 } from 'react-native';
 import { theme } from '../../theme';
 
@@ -69,7 +70,7 @@ export const ServiceSelectionGrid: React.FC<ServiceSelectionGridProps> = ({
               style={[
                 styles.serviceCard,
                 index % 2 === 0 ? styles.leftCard : styles.rightCard,
-              ]}
+              ] as object}
             />
           ))}
         </View>
@@ -160,178 +161,188 @@ export const SpecialOffersSection: React.FC<{
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: theme.spacing.lg,
+    marginVertical: 20,
   },
   headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
   titleContainer: {
     flex: 1,
   },
   title: {
-    fontSize: theme.typography.fontSize['2xl'],
-    fontWeight: theme.typography.fontWeight.bold,
+    fontSize: 24,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.xs,
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: theme.typography.fontSize.base,
+    fontSize: 15,
     color: theme.colors.textSecondary,
   },
   seeAllButton: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   seeAllText: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.primary,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 15,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
   },
   scrollView: {
-    marginLeft: theme.spacing.lg,
+    marginLeft: 20,
   },
   scrollContainer: {
-    paddingRight: theme.spacing.lg,
+    paddingRight: 20,
   },
   gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    width: cardWidth * 2 + theme.spacing.md,
+    width: cardWidth * 2 + 16,
   },
   serviceCard: {
     width: cardWidth,
-    marginBottom: theme.spacing.md,
+    marginBottom: 16,
   },
   leftCard: {
-    marginRight: theme.spacing.md,
+    marginRight: 16,
   },
   rightCard: {
     marginLeft: 0,
   },
   card: {
-    backgroundColor: theme.colors.white,
-    borderRadius: 12,
-    padding: theme.spacing.lg,
-    ...theme.shadows.base,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    padding: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
     position: 'relative',
   },
   popularBadge: {
     position: 'absolute',
-    top: theme.spacing.md,
-    right: theme.spacing.md,
+    top: 16,
+    right: 16,
     backgroundColor: theme.colors.accent,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.xs,
-    borderRadius: theme.borderRadius.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
   popularText: {
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.white,
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.textInverse,
   },
   iconContainer: {
     width: 50,
     height: 50,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
+    marginBottom: 16,
   },
   icon: {
     fontSize: 24,
   },
   cardContent: {
     flex: 1,
-    marginBottom: theme.spacing.md,
+    marginBottom: 16,
   },
   serviceName: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 18,
+    fontWeight: '600',
     color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.sm,
+    marginBottom: 8,
   },
   serviceDescription: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: 13,
     color: theme.colors.textSecondary,
-    lineHeight: theme.typography.lineHeight.normal * theme.typography.fontSize.sm,
+    lineHeight: 13 * 1.4,
   },
   cardFooter: {
     alignItems: 'flex-start',
   },
   selectButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.textPrimary,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 16,
   },
   selectButtonText: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.white,
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.colors.textInverse,
   },
 
   // Special Offers Styles
   offersContainer: {
-    marginVertical: theme.spacing.lg,
+    marginVertical: 20,
   },
   offerCard: {
     width: screenWidth * 0.8,
-    backgroundColor: theme.colors.primary,
-    borderRadius: 12,
-    padding: theme.spacing.lg,
-    marginRight: theme.spacing.md,
-    marginLeft: theme.spacing.lg,
+    backgroundColor: theme.colors.textPrimary,
+    borderRadius: 16,
+    padding: 20,
+    marginRight: 16,
+    marginLeft: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   offerContent: {
     flex: 1,
-    marginRight: theme.spacing.md,
+    marginRight: 16,
   },
   discountBadge: {
-    marginBottom: theme.spacing.sm,
+    marginBottom: 8,
   },
   discountText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.white,
+    fontSize: 13,
+    color: theme.colors.textInverse,
     opacity: 0.8,
   },
   discountValue: {
-    fontSize: theme.typography.fontSize['3xl'],
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.white,
+    fontSize: 28,
+    fontWeight: '700',
+    color: theme.colors.textInverse,
   },
   offerTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.white,
-    marginBottom: theme.spacing.xs,
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.colors.textInverse,
+    marginBottom: 6,
   },
   offerDescription: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.white,
+    fontSize: 13,
+    color: theme.colors.textInverse,
     opacity: 0.9,
-    marginBottom: theme.spacing.sm,
+    marginBottom: 8,
   },
   validUntil: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.white,
+    fontSize: 12,
+    color: theme.colors.textInverse,
     opacity: 0.7,
   },
   claimButton: {
-    backgroundColor: theme.colors.white,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 16,
   },
   claimButtonText: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.primary,
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
   },
 });

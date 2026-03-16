@@ -2,7 +2,7 @@ import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 
 export const isOnline = async (): Promise<boolean> => {
   const state = await NetInfo.fetch();
-  return state.isConnected && state.isInternetReachable;
+  return !!(state.isConnected && state.isInternetReachable);
 };
 
 export const getConnectionType = async (): Promise<string> => {

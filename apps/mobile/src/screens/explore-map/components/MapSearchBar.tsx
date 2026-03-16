@@ -41,12 +41,11 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({
     <View
       style={[
         styles.container,
-        // Offset by the real status-bar height so we sit below it, not behind it
         { top: insets.top + 12 },
         onBackToList && styles.containerWithBack,
       ]}
     >
-      {/* Back-to-list button — only shown when map is embedded in JobsScreen */}
+      {/* Back-to-list button */}
       {onBackToList && (
         <TouchableOpacity
           style={styles.backButton}
@@ -87,7 +86,6 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    // top is set dynamically via insets.top + 12 (inline style above)
     left: 16,
     right: 16,
     zIndex: 10,
@@ -101,7 +99,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000000',
@@ -115,7 +113,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 32,
     paddingLeft: 16,
     paddingRight: 8,
@@ -144,8 +142,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },

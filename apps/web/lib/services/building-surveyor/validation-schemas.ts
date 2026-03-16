@@ -93,6 +93,12 @@ export const contractorAdviceSchema = z.object({
   complexity: complexityEnum,
 });
 
+export const specialistReferralSchema = z.object({
+  specialistType: z.string(),
+  reason: z.string(),
+  urgency: z.enum(['routine', 'soon', 'urgent', 'immediate']).optional().default('routine'),
+});
+
 export const AI_ASSESSMENT_SCHEMA = z.object({
   damageType: z.string().optional(),
   severity: damageSeverityEnum,
@@ -112,6 +118,11 @@ export const AI_ASSESSMENT_SCHEMA = z.object({
   urgencyReasoning: z.string().optional(),
   homeownerExplanation: homeownerExplanationSchema.optional(),
   contractorAdvice: contractorAdviceSchema.optional(),
+  ricsConditionRating: z.preprocess(
+    (val) => (val === 1 || val === 2 || val === 3 ? val : undefined),
+    z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+  ),
+  specialistReferrals: z.array(specialistReferralSchema).max(5).optional().default([]),
 });
 
 export type AiAssessmentPayload = z.infer<typeof AI_ASSESSMENT_SCHEMA>;

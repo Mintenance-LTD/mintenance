@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import { JobPhotoUpload } from './components/JobPhotoUpload';
 import { OnMyWayButton } from './components/OnMyWayButton';
+import { PrepareContractButton } from './components/PrepareContractButton';
 import { BuildingAssessmentDisplay } from '@/app/jobs/[id]/components/BuildingAssessmentDisplay';
 
 export const metadata: Metadata = {
@@ -43,7 +44,7 @@ function determineStage(jobStatus: string, contractStatus: string, escrowHeld: b
 function getStageConfig(stage: JobStage): { title: string; subtitle: string; accentColor: string; icon: LucideIcon } {
   switch (stage) {
     case 'contract_preparing':
-      return { title: 'Bid Accepted', subtitle: 'A contract is being prepared. You\'ll be able to review and sign it shortly.', accentColor: theme.colors.info, icon: FileText };
+      return { title: 'Bid Accepted — Prepare Your Contract', subtitle: 'Create a detailed contract with your business details, schedule, and terms. The homeowner will review and sign it.', accentColor: theme.colors.info, icon: FileText };
     case 'contract_pending':
       return { title: 'Sign Your Contract', subtitle: 'Review the contract terms below and sign to proceed.', accentColor: theme.colors.warning, icon: FileText };
     case 'awaiting_payment':
@@ -95,7 +96,9 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
     ? 'none'
     : contract.status === 'accepted' || (contract.contractor_signed_at && contract.homeowner_signed_at)
       ? 'accepted'
-      : 'pending';
+      : contract.status === 'draft'
+        ? 'none' // Draft contracts are treated as "not prepared yet"
+        : 'pending';
 
   const { data: escrowTransaction } = await serverSupabase
     .from('escrow_transactions')
@@ -149,7 +152,7 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
   ];
 
   const messageHref = homeowner
-    ? `/messages/${resolvedParams.id}?userId=${homeowner.id}&userName=${encodeURIComponent(`${homeowner.first_name} ${homeowner.last_name}`)}&jobTitle=${encodeURIComponent(job.title || 'Job')}`
+    ? `/contractor/messages?jobId=${resolvedParams.id}`
     : null;
 
   return (
@@ -278,7 +281,19 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
             />
           )}
 
-          {(currentStage === 'contract_preparing' || currentStage === 'awaiting_payment') && messageHref && (
+          {currentStage === 'contract_preparing' && (
+            <div style={{ marginTop: theme.spacing[2], display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
+              <PrepareContractButton jobId={resolvedParams.id} jobTitle={job.title || 'Untitled Job'} />
+              {messageHref && (
+                <Link href={messageHref} className="block">
+                  <Button variant="outline" fullWidth leftIcon={<MessageCircle className="h-5 w-5" />}>
+                    Message Homeowner
+                  </Button>
+                </Link>
+              )}
+            </div>
+          )}
+          {currentStage === 'awaiting_payment' && messageHref && (
             <Link href={messageHref} className="block" style={{ marginTop: theme.spacing[2] }}>
               <Button variant="primary" fullWidth leftIcon={<MessageCircle className="h-5 w-5" />}>
                 Message Homeowner
@@ -491,6 +506,82 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
                   )}
                 </div>
               </div>
+            </Card>
+          )}
+
+          {/* Job Location Map */}
+          {(job.latitude && job.longitude || job.location) && (
+            <Card padding="lg" hover={false}>
+              <h3 style={{
+                margin: 0,
+                marginBottom: theme.spacing[3],
+                fontSize: theme.typography.fontSize.base,
+                fontWeight: theme.typography.fontWeight.bold,
+                color: theme.colors.textPrimary,
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing[2],
+              }}>
+                <MapPin className="h-4 w-4" style={{ color: theme.colors.primary }} />
+                Job Location
+              </h3>
+              {job.location && (
+                <p style={{
+                  margin: 0,
+                  marginBottom: theme.spacing[3],
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.textSecondary,
+                }}>
+                  {job.location}
+                </p>
+              )}
+              <div style={{
+                width: '100%',
+                height: '200px',
+                borderRadius: theme.borderRadius.md,
+                overflow: 'hidden',
+                border: `1px solid ${theme.colors.border}`,
+              }}>
+                {job.latitude && job.longitude ? (
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    style={{ border: 0 }}
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${job.longitude - 0.005},${job.latitude - 0.003},${job.longitude + 0.005},${job.latitude + 0.003}&layer=mapnik&marker=${job.latitude},${job.longitude}`}
+                    title="Job Location Map"
+                  />
+                ) : (
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    style={{ border: 0 }}
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=-2.1,-0.5,2.1,0.5&layer=mapnik`}
+                    title="Job Location Map"
+                  />
+                )}
+              </div>
+              {job.latitude && job.longitude && (
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${job.latitude},${job.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: theme.spacing[2],
+                    marginTop: theme.spacing[3],
+                    fontSize: theme.typography.fontSize.sm,
+                    fontWeight: theme.typography.fontWeight.medium,
+                    color: theme.colors.primary,
+                    textDecoration: 'none',
+                  }}
+                >
+                  <MapPin className="h-4 w-4" />
+                  Get Directions
+                </a>
+              )}
             </Card>
           )}
         </div>

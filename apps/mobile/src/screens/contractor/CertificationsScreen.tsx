@@ -6,6 +6,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -14,8 +16,9 @@ import { useQuery } from '@tanstack/react-query';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Badge } from '../../components/ui/Badge';
+import { supabase } from '../../config/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 import { theme } from '../../theme';
-import { mobileApiClient } from '../../utils/mobileApiClient';
 
 interface Certification {
   id: string;
@@ -28,40 +31,58 @@ interface Certification {
   verified: boolean;
 }
 
-const getExpiryStatus = (expiryDate: string): { label: string; variant: 'success' | 'warning' | 'danger' } => {
+const getExpiryStatus = (expiryDate: string): { label: string; variant: 'success' | 'warning' | 'error' } => {
   const expiry = new Date(expiryDate);
   const now = new Date();
   const daysUntil = Math.floor((expiry.getTime() - now.getTime()) / (1000 * 86400));
-  if (daysUntil < 0) return { label: 'Expired', variant: 'danger' };
+  if (daysUntil < 0) return { label: 'Expired', variant: 'error' };
   if (daysUntil < 30) return { label: 'Expiring Soon', variant: 'warning' };
   return { label: 'Active', variant: 'success' };
 };
 
 export const CertificationsScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { user } = useAuth();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['contractor-certifications'],
+    queryKey: ['contractor-certifications', user?.id],
     queryFn: async () => {
-      const res = await mobileApiClient.get<{ certifications: Certification[] }>('/api/contractor/certifications');
-      return res.certifications || [];
+      if (!user?.id) return [];
+      const { data: rows, error: err } = await supabase
+        .from('contractor_certifications')
+        .select('*')
+        .eq('contractor_id', user.id)
+        .order('issue_date', { ascending: false });
+      if (err) throw new Error(err.message);
+      return (rows || []).map((c: Record<string, unknown>): Certification => ({
+        id: c.id as string,
+        name: c.name as string || '',
+        issuer: c.issuer as string || '',
+        issue_date: c.issue_date as string,
+        expiry_date: c.expiry_date as string,
+        credential_id: c.credential_id as string | undefined,
+        category: c.category as string || 'general',
+        verified: (c.verified as boolean) ?? false,
+      }));
     },
+    enabled: !!user?.id,
   });
 
   const certifications = data || [];
 
   if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorView onRetry={refetch} />;
+  if (error) return <ErrorView message="Failed to load certifications" onRetry={refetch} />;
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <ScreenHeader title="Certifications" showBack onBack={() => navigation.goBack()} />
 
       <FlatList
         data={certifications}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} />}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />}
         ListEmptyComponent={<EmptyState icon="ribbon-outline" title="No Certifications" subtitle="Add your professional certifications." />}
         renderItem={({ item }) => {
           const status = getExpiryStatus(item.expiry_date);
@@ -75,7 +96,7 @@ export const CertificationsScreen: React.FC = () => {
                 <View style={styles.certBadges}>
                   <Badge variant={status.variant} size="sm">{status.label}</Badge>
                   {item.verified && (
-                    <Ionicons name="checkmark-circle" size={18} color={theme.colors.success} />
+                    <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
                   )}
                 </View>
               </View>
@@ -100,7 +121,7 @@ export const CertificationsScreen: React.FC = () => {
         onPress={() => navigation.navigate('AddCertification' as never)}
         accessibilityLabel="Add certification"
       >
-        <Ionicons name="add" size={28} color="#FFFFFF" />
+        <Ionicons name="add" size={28} color={theme.colors.textInverse} />
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -109,16 +130,28 @@ export const CertificationsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   list: { padding: 16, paddingBottom: 80 },
-  certRow: { backgroundColor: theme.colors.surface, borderRadius: 12, padding: 16, marginBottom: 12, ...theme.shadows.sm },
+  certRow: {
+    backgroundColor: theme.colors.surface, borderRadius: 16, padding: 16, marginBottom: 10,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
+  },
   certHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
   certInfo: { flex: 1, marginRight: 12 },
-  certName: { fontSize: 16, fontWeight: '600', color: theme.colors.textPrimary },
+  certName: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
   certIssuer: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 2 },
   certBadges: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   certMeta: { flexDirection: 'row', justifyContent: 'space-between' },
   certDate: { fontSize: 12, color: theme.colors.textTertiary },
-  credentialId: { fontSize: 11, color: theme.colors.textTertiary, marginTop: 6 },
-  fab: { position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: '#222222', justifyContent: 'center', alignItems: 'center', ...theme.shadows.lg },
+  credentialId: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 6 },
+  fab: {
+    position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12 },
+      android: { elevation: 8 },
+    }),
+  },
 });
 
 export default CertificationsScreen;

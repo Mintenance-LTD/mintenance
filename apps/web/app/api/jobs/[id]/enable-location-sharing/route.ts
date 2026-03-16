@@ -5,6 +5,7 @@ import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { enableLocationSharingSchema } from '@/lib/validation/schemas';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { EmailService } from '@/lib/email-service';
 
 /**
  * POST /api/jobs/[id]/enable-location-sharing - toggle location sharing for a job.
@@ -60,6 +61,40 @@ export const POST = withApiHandler(
           contractorId: user.id,
           homeownerId: job.homeowner_id,
         });
+      }
+
+      // Send email to homeowner about location sharing
+      try {
+        const { data: homeownerProfile } = await serverSupabase
+          .from('profiles')
+          .select('email, first_name, last_name')
+          .eq('id', job.homeowner_id)
+          .single();
+
+        const { data: contractorProfile } = await serverSupabase
+          .from('profiles')
+          .select('first_name, last_name, company_name')
+          .eq('id', user.id)
+          .single();
+
+        if (homeownerProfile?.email) {
+          const homeownerName = homeownerProfile.first_name && homeownerProfile.last_name
+            ? `${homeownerProfile.first_name} ${homeownerProfile.last_name}` : 'there';
+          const contractorName = contractorProfile
+            ? (contractorProfile.first_name && contractorProfile.last_name
+                ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
+                : contractorProfile.company_name || 'Your contractor')
+            : 'Your contractor';
+
+          await EmailService.sendLocationSharingEmail(homeownerProfile.email, {
+            homeownerName,
+            contractorName,
+            jobTitle: job.title || 'Job',
+            viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/jobs/${jobId}`,
+          });
+        }
+      } catch (emailError) {
+        logger.error('Failed to send location sharing email', emailError, { service: 'jobs', jobId });
       }
     }
 

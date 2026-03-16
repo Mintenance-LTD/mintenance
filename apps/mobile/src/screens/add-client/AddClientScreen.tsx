@@ -6,15 +6,16 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { theme } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../components/ui/Toast';
 import { ClientManagementService } from '../../services/client-management';
 import type { ProfileStackParamList } from '../../navigation/types';
+import { theme } from '../../theme';
 
 interface AddClientScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'AddClient'>;
@@ -87,13 +88,13 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
           onPress={handleSubmit}
           disabled={submitting}
         >
-          <Text style={styles.saveText}>{submitting ? 'Saving…' : 'Save'}</Text>
+          <Text style={styles.saveText}>{submitting ? 'Saving\u2026' : 'Save'}</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Contact Details</Text>
+          <Text style={styles.sectionTitle}>CONTACT DETAILS</Text>
 
           <Text style={styles.fieldLabel}>First Name *</Text>
           <TextInput
@@ -138,7 +139,7 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Business (Optional)</Text>
+          <Text style={styles.sectionTitle}>BUSINESS (OPTIONAL)</Text>
           <TextInput
             style={styles.input}
             placeholder="Company name"
@@ -150,10 +151,10 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notes</Text>
+          <Text style={styles.sectionTitle}>NOTES</Text>
           <TextInput
             style={[styles.input, styles.notesInput]}
-            placeholder="Additional notes about this client…"
+            placeholder="Additional notes about this client\u2026"
             placeholderTextColor={theme.colors.textTertiary}
             value={notes}
             onChangeText={setNotes}
@@ -170,44 +171,45 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.surfaceSecondary },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    backgroundColor: theme.colors.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
   },
   headerButton: { padding: 8, minWidth: 60 },
   headerButtonDisabled: { opacity: 0.5 },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.textPrimary },
-  saveText: { fontSize: 16, fontWeight: '600', color: theme.colors.textPrimary, textAlign: 'right' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
+  saveText: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary, textAlign: 'right' },
   scroll: { flex: 1 },
   section: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginTop: 16,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 16,
     padding: 16,
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: theme.colors.textSecondary, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionTitle: { fontSize: 12, fontWeight: '700', color: theme.colors.textTertiary, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.8 },
   fieldLabel: { fontSize: 13, color: theme.colors.textSecondary, marginBottom: 6, marginTop: 4 },
   input: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
     color: theme.colors.textPrimary,
-    backgroundColor: theme.colors.surfaceSecondary,
     marginBottom: 8,
   },
-  notesInput: { height: 100, paddingTop: 10 },
+  notesInput: { height: 100, paddingTop: 12 },
 });
 
 export default AddClientScreen;

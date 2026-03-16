@@ -31,8 +31,41 @@ import { theme } from '../../theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+interface DamageData {
+  instance_count: number;
+  average_confidence: number;
+  temporal_coverage: number;
+  severity_estimate: string;
+}
+
+interface AggregatedAssessment {
+  overall_severity: string;
+  confidence_level: string;
+  total_unique_damages: number;
+  damage_summary: Record<string, DamageData>;
+  high_priority_damages: string[];
+  video_metadata: {
+    duration_seconds: number;
+    processed_frames: number;
+    resolution: { width: number; height: number };
+  };
+}
+
+interface ProcessingResults {
+  aggregated_assessment?: AggregatedAssessment;
+}
+
+interface QueueStatus {
+  pending: number;
+  uploading: number;
+  processing: number;
+  completed: number;
+  failed: number;
+  current: { id: string; status: string } | null;
+}
+
 interface Props {
-  navigation: unknown;
+  navigation: { goBack: () => void; navigate: (screen: string, params?: Record<string, unknown>) => void };
   route: {
     params: {
       videoId: string;
@@ -87,9 +120,9 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
   const { videoId, assessmentId, propertyId } = route.params;
 
   const [currentStage, setCurrentStage] = useState<ProcessingStage>(PROCESSING_STAGES[0]);
-  const [processingResults, setProcessingResults] = useState<unknown>(null);
+  const [processingResults, setProcessingResults] = useState<ProcessingResults | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [queueStatus, setQueueStatus] = useState<unknown>(null);
+  const [queueStatus, setQueueStatus] = useState<QueueStatus | null>(null);
   const [isComplete, setIsComplete] = useState(false);
 
   // Animation values
@@ -97,7 +130,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
   const pulseAnimation = useSharedValue(1);
 
   // Polling interval
-  const pollingInterval = useRef<NodeJS.Timeout>();
+  const pollingInterval = useRef<NodeJS.Timeout>(undefined);
   const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -207,12 +240,12 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
     transform: [{ scale: pulseAnimation.value }],
   }));
 
-  const renderDamageItem = (type: string, data: unknown) => {
-    const severityColors = {
-      early: '#4CAF50',
-      midway: '#FF9800',
-      full: '#F44336',
-      none: '#9E9E9E',
+  const renderDamageItem = (type: string, data: DamageData) => {
+    const severityColors: Record<string, string> = {
+      early: theme.colors.primary,
+      midway: theme.colors.accent,
+      full: theme.colors.error,
+      none: theme.colors.textTertiary,
     };
 
     return (
@@ -222,7 +255,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
           <View
             style={[
               styles.severityBadge,
-              { backgroundColor: severityColors[data.severity_estimate] },
+              { backgroundColor: severityColors[data.severity_estimate] || theme.colors.textTertiary },
             ]}
           >
             <Text style={styles.severityText}>{data.severity_estimate}</Text>
@@ -269,10 +302,10 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
               size={64}
               color={
                 currentStage.stage === 'completed'
-                  ? '#4CAF50'
+                  ? theme.colors.primary
                   : currentStage.stage === 'failed'
-                  ? '#F44336'
-                  : '#007AFF'
+                  ? theme.colors.error
+                  : theme.colors.textPrimary
               }
             />
           </Animated.View>
@@ -290,7 +323,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
 
               <ActivityIndicator
                 size="small"
-                color="#007AFF"
+                color={theme.colors.textPrimary}
                 style={styles.loader}
               />
             </>
@@ -346,10 +379,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
                   <View style={styles.assessmentRow}>
                     <Text style={styles.assessmentLabel}>Severity:</Text>
                     <Text
-                      style={[
-                        styles.assessmentValue,
-                        styles[`severity_${processingResults.aggregated_assessment.overall_severity}`],
-                      ]}
+                      style={styles.assessmentValue}
                     >
                       {processingResults.aggregated_assessment.overall_severity.toUpperCase()}
                     </Text>
@@ -373,7 +403,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
                   <View style={styles.damageSection}>
                     <Text style={styles.damageSectionTitle}>Damage Details</Text>
                     {Object.entries(processingResults.aggregated_assessment.damage_summary).map(
-                      ([type, data]: [string, Record<string, unknown>]) =>
+                      ([type, data]) =>
                         data.instance_count > 0 && renderDamageItem(type, data)
                     )}
                   </View>
@@ -383,13 +413,13 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
                 {processingResults.aggregated_assessment.high_priority_damages.length > 0 && (
                   <View style={styles.prioritySection}>
                     <View style={styles.priorityHeader}>
-                      <Icon name="warning" size={20} color="#F44336" />
+                      <Icon name="warning" size={20} color={theme.colors.error} />
                       <Text style={styles.priorityTitle}>High Priority</Text>
                     </View>
                     {processingResults.aggregated_assessment.high_priority_damages.map(
                       (damage: string) => (
                         <View key={damage} style={styles.priorityItem}>
-                          <Icon name="chevron-right" size={16} color="#F44336" />
+                          <Icon name="chevron-right" size={16} color={theme.colors.error} />
                           <Text style={styles.priorityText}>{damage}</Text>
                         </View>
                       )

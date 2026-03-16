@@ -80,9 +80,9 @@ export const navigateToScreen = <T extends keyof RootStackParamList>(
   params?: RootStackParamList[T]
 ) => {
   if (params) {
-    navigation.navigate(screen as never, params as never);
+    (navigation.navigate as (...args: unknown[]) => void)(screen, params);
   } else {
-    navigation.navigate(screen as never);
+    (navigation.navigate as (...args: unknown[]) => void)(screen);
   }
 };
 
@@ -168,15 +168,15 @@ export const useEnhancedNavigation = () => {
     try {
       // Auth guard
       if (options?.requiresAuth && !user) {
-        navigation.navigate('Auth');
+        (navigation.navigate as (...args: unknown[]) => void)('Auth');
         return false;
       }
 
       // Role-based guard
-      if (options?.allowedRoles && user && !options.allowedRoles.includes(user.role)) {
+      if (options?.allowedRoles && user && !options.allowedRoles.includes(user.role as 'homeowner' | 'contractor')) {
         logger.warn(`Navigation blocked: User role ${user.role} not allowed for ${screen}`);
         const fallback = options.fallbackScreen || 'Main';
-        navigation.navigate(fallback);
+        (navigation.navigate as (...args: unknown[]) => void)(fallback);
         return false;
       }
 
@@ -185,9 +185,9 @@ export const useEnhancedNavigation = () => {
 
       // Navigate with params if provided
       if (params) {
-        navigation.navigate(screen as never, params as never);
+        (navigation.navigate as (...args: unknown[]) => void)(screen, params);
       } else {
-        navigation.navigate(screen as never);
+        (navigation.navigate as (...args: unknown[]) => void)(screen);
       }
 
       return true;
@@ -197,7 +197,7 @@ export const useEnhancedNavigation = () => {
       // Fallback navigation on error
       const fallback = options?.fallbackScreen || 'Main';
       try {
-        navigation.navigate(fallback);
+        (navigation.navigate as (...args: unknown[]) => void)(fallback);
       } catch (fallbackError) {
         logger.error('Fallback navigation also failed:', fallbackError);
       }
@@ -213,7 +213,7 @@ export const useEnhancedNavigation = () => {
       if (navigation.canGoBack()) {
         navigation.goBack();
       } else {
-        navigation.navigate(fallbackScreen);
+        (navigation.navigate as (...args: unknown[]) => void)(fallbackScreen);
       }
 
       return true;
@@ -221,7 +221,7 @@ export const useEnhancedNavigation = () => {
       logger.error('Go back error:', error);
 
       try {
-        navigation.navigate(fallbackScreen);
+        (navigation.navigate as (...args: unknown[]) => void)(fallbackScreen);
       } catch (fallbackError) {
         logger.error('Fallback go back also failed:', fallbackError);
       }

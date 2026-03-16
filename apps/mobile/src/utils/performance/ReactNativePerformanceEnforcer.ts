@@ -62,7 +62,7 @@ export class ReactNativePerformanceEnforcer {
 
       logger.info('ReactNativePerformanceEnforcer', 'Performance enforcement initialized successfully');
     } catch (error) {
-      logger.error('ReactNativePerformanceEnforcer', 'Failed to initialize performance enforcement', error);
+      logger.error('ReactNativePerformanceEnforcer', 'Failed to initialize performance enforcement', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -145,7 +145,7 @@ export class ReactNativePerformanceEnforcer {
 
       return bundleInfo;
     } catch (error) {
-      logger.error('ReactNativePerformanceEnforcer', 'Failed to check bundle size', error);
+      logger.error('ReactNativePerformanceEnforcer', 'Failed to check bundle size', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -192,7 +192,7 @@ export class ReactNativePerformanceEnforcer {
       // Additional optimization strategies can be added here
       logger.info('ReactNativePerformanceEnforcer', 'Bundle optimization completed');
     } catch (error) {
-      logger.error('ReactNativePerformanceEnforcer', 'Bundle optimization failed', error);
+      logger.error('ReactNativePerformanceEnforcer', 'Bundle optimization failed', { error: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -231,7 +231,7 @@ export class ReactNativePerformanceEnforcer {
 
       return memoryInfo;
     } catch (error) {
-      logger.error('ReactNativePerformanceEnforcer', 'Failed to check memory usage', error);
+      logger.error('ReactNativePerformanceEnforcer', 'Failed to check memory usage', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -241,8 +241,9 @@ export class ReactNativePerformanceEnforcer {
    */
   private async getMemoryInfo(): Promise<MemoryInfo> {
     // Try React Native specific memory APIs first
-    if (typeof performance !== 'undefined' && (performance as unknown).memory) {
-      const memory = (performance as unknown).memory;
+    const perfWithMemory = performance as unknown as { memory?: MemoryInfo };
+    if (typeof performance !== 'undefined' && perfWithMemory.memory) {
+      const memory = perfWithMemory.memory;
       return {
         usedJSHeapSize: memory.usedJSHeapSize || 0,
         totalJSHeapSize: memory.totalJSHeapSize || 0,
@@ -256,7 +257,7 @@ export class ReactNativePerformanceEnforcer {
       return {
         usedJSHeapSize: usage.used * 1024 * 1024, // Convert MB to bytes
         totalJSHeapSize: usage.total * 1024 * 1024,
-        jsHeapSizeLimit: usage.limit * 1024 * 1024,
+        jsHeapSizeLimit: (usage.limit ?? 0) * 1024 * 1024,
       };
     }
 
@@ -283,13 +284,14 @@ export class ReactNativePerformanceEnforcer {
       }
 
       // Force garbage collection if available
-      if (typeof global !== 'undefined' && (global as unknown).gc) {
-        (global as unknown).gc();
+      const globalWithGc = global as unknown as { gc?: () => void };
+      if (typeof global !== 'undefined' && globalWithGc.gc) {
+        globalWithGc.gc();
       }
 
       logger.info('ReactNativePerformanceEnforcer', 'Memory optimization completed');
     } catch (error) {
-      logger.error('ReactNativePerformanceEnforcer', 'Memory optimization failed', error);
+      logger.error('ReactNativePerformanceEnforcer', 'Memory optimization failed', { error: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -317,7 +319,7 @@ export class ReactNativePerformanceEnforcer {
 
       logger.info('ReactNativePerformanceEnforcer', 'Critical chunks preloaded successfully');
     } catch (error) {
-      logger.error('ReactNativePerformanceEnforcer', 'Failed to preload critical chunks', error);
+      logger.error('ReactNativePerformanceEnforcer', 'Failed to preload critical chunks', { error: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -365,7 +367,7 @@ export class ReactNativePerformanceEnforcer {
       try {
         listener(event);
       } catch (error) {
-        logger.error('ReactNativePerformanceEnforcer', 'Event listener failed', error);
+        logger.error('ReactNativePerformanceEnforcer', 'Event listener failed', { error: error instanceof Error ? error.message : String(error) });
       }
     });
 

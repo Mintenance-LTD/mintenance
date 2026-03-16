@@ -2,6 +2,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { logger } from '../utils/logger';
 import { handleError } from '../utils/errorHandler';
+import { theme } from '../theme';
 
 interface Props {
   children: ReactNode;
@@ -111,7 +112,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#fff8e1',
+    backgroundColor: theme.colors.accentLight,
   },
   icon: {
     fontSize: 48,
@@ -119,47 +120,49 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#f57c00',
+    fontWeight: '700',
+    color: theme.colors.accent,
     marginBottom: 8,
     textAlign: 'center',
   },
   message: {
-    fontSize: 16,
-    color: '#e65100',
+    fontSize: 15,
+    color: '#92400E',
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 22,
   },
   button: {
-    backgroundColor: '#ff9800',
+    backgroundColor: theme.colors.accent,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 28,
     marginBottom: 16,
+    minHeight: 48,
+    justifyContent: 'center',
   },
   buttonText: {
-    color: '#ffffff',
-    fontSize: 16,
+    color: theme.colors.textInverse,
+    fontSize: 15,
     fontWeight: '600',
   },
   exhaustedText: {
-    fontSize: 14,
-    color: '#d84315',
+    fontSize: 13,
+    color: theme.colors.error,
     textAlign: 'center',
     fontStyle: 'italic',
     marginBottom: 16,
   },
   debugContainer: {
-    backgroundColor: '#fff3e0',
+    backgroundColor: theme.colors.accentLight,
     padding: 12,
-    borderRadius: 6,
+    borderRadius: 12,
     marginTop: 16,
     width: '100%',
   },
   debugText: {
     fontSize: 12,
-    color: '#e65100',
+    color: '#92400E',
     fontFamily: 'monospace',
   },
 });

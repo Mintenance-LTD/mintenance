@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { theme } from '../../theme';
 
-type InputVariant = keyof typeof theme.components.input;
+type InputVariant = 'default' | 'outline' | 'error' | 'filled' | 'underline';
 
 export interface InputProps extends TextInputProps {
   containerStyle?: ViewStyle | ViewStyle[];
@@ -24,6 +24,14 @@ export interface InputProps extends TextInputProps {
   state?: string;
   errorText?: string;
 }
+
+const VARIANT_STYLES: Record<InputVariant, { borderColor: string; backgroundColor: string; color: string; placeholderTextColor: string }> = {
+  default: { borderColor: theme.colors.border, backgroundColor: theme.colors.backgroundSecondary, color: theme.colors.textPrimary, placeholderTextColor: theme.colors.textTertiary },
+  outline: { borderColor: theme.colors.border, backgroundColor: theme.colors.surface, color: theme.colors.textPrimary, placeholderTextColor: theme.colors.textTertiary },
+  error: { borderColor: theme.colors.error, backgroundColor: '#FEF2F2', color: theme.colors.textPrimary, placeholderTextColor: theme.colors.textTertiary },
+  filled: { borderColor: 'transparent', backgroundColor: theme.colors.backgroundTertiary, color: theme.colors.textPrimary, placeholderTextColor: theme.colors.textTertiary },
+  underline: { borderColor: theme.colors.border, backgroundColor: 'transparent', color: theme.colors.textPrimary, placeholderTextColor: theme.colors.textTertiary },
+};
 
 export const Input = forwardRef<TextInput, InputProps>(
   ({
@@ -42,27 +50,23 @@ export const Input = forwardRef<TextInput, InputProps>(
     ...props
   }, ref) => {
     const hasError = !!errorText;
-    const v = hasError
-      ? (theme.components.input.error as Record<string, unknown>)
-      : (theme.components.input[variant] as Record<string, unknown>);
+    const v = hasError ? VARIANT_STYLES.error : VARIANT_STYLES[variant] ?? VARIANT_STYLES.default;
     return (
       <View style={containerStyle}>
         <View
           style={[
             styles.container,
-            { borderColor: v?.borderColor, backgroundColor: v?.backgroundColor },
+            { borderColor: v.borderColor, backgroundColor: v.backgroundColor },
           ]}
         >
           <TextInput
             ref={ref}
             style={[
               styles.input,
-              { color: v?.color ?? theme.colors.textPrimary },
+              { color: v.color },
               style,
             ]}
-            placeholderTextColor={
-              v?.placeholderTextColor ?? theme.colors.placeholder
-            }
+            placeholderTextColor={v.placeholderTextColor}
             {...props}
           />
         </View>
@@ -79,18 +83,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderRadius: theme.borderRadius.xl,
-    paddingHorizontal: theme.spacing[4],
-    height: theme.layout.inputHeightLarge,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 52,
   },
   input: {
     flex: 1,
-    fontSize: theme.typography.fontSize.base,
-    paddingVertical: theme.spacing[3],
+    fontSize: 15,
+    paddingVertical: 12,
   },
   errorText: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.accent || '#EF4444',
+    fontSize: 12,
+    color: theme.colors.error,
     marginTop: 4,
     marginLeft: 4,
   },

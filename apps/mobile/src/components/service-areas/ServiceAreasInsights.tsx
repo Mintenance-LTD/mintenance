@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import type { ServiceArea } from '../../services/ServiceAreasService';
+import { theme } from '../../theme';
 
 interface ServiceAreasInsightsProps {
   serviceAreas: ServiceArea[];
@@ -25,7 +25,7 @@ export const ServiceAreasInsights: React.FC<ServiceAreasInsightsProps> = ({ serv
 
       {primaryArea && (
         <View style={styles.insightItem}>
-          <Ionicons name='star' size={16} color={theme.colors.warning} />
+          <Ionicons name='star' size={16} color={theme.colors.accent} />
           <Text style={styles.insightText}>
             Primary area: {primaryArea.area_name}
           </Text>
@@ -36,7 +36,7 @@ export const ServiceAreasInsights: React.FC<ServiceAreasInsightsProps> = ({ serv
         <Ionicons
           name='speedometer'
           size={16}
-          color={theme.colors.primary}
+          color={theme.colors.textPrimary}
         />
         <Text style={styles.insightText}>
           Average response time: {averageResponseTime}h
@@ -44,7 +44,7 @@ export const ServiceAreasInsights: React.FC<ServiceAreasInsightsProps> = ({ serv
       </View>
 
       <View style={styles.insightItem}>
-        <Ionicons name='cash' size={16} color={theme.colors.success} />
+        <Ionicons name='cash' size={16} color={theme.colors.primary} />
         <Text style={styles.insightText}>
           Base travel charges: £{totalTravelCharges} total
         </Text>
@@ -55,11 +55,21 @@ export const ServiceAreasInsights: React.FC<ServiceAreasInsightsProps> = ({ serv
 
 const styles = StyleSheet.create({
   insightsContainer: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   insightsTitle: {
     fontSize: 16,

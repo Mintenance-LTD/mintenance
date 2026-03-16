@@ -1,6 +1,6 @@
 /**
  * Error Boundary Component
- * 
+ *
  * Catches React errors and displays fallback UI
  * instead of crashing the entire app.
  */
@@ -8,6 +8,7 @@
 import React, { Component, ReactNode } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { logger } from '@mintenance/shared';
+import { theme } from '../theme';
 
 interface Props {
   children: ReactNode;
@@ -68,11 +69,11 @@ export class ErrorBoundary extends Component<Props, State> {
         });
       }).catch((importError) => {
         // Fallback if Sentry fails to load
-        logger.warn('Failed to report error to Sentry', importError);
+        logger.warn('Failed to report error to Sentry', { error: importError instanceof Error ? importError.message : String(importError) });
       });
     } catch (sentryError) {
       // Prevent Sentry errors from crashing the app
-      logger.warn('Sentry error reporting failed', sentryError);
+      logger.warn('Sentry error reporting failed', { error: sentryError instanceof Error ? sentryError.message : String(sentryError) });
     }
   }
 
@@ -103,7 +104,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <Text style={styles.message}>
               We're sorry for the inconvenience. The error has been reported to our team.
             </Text>
-            
+
             {process.env.NODE_ENV === 'development' && this.state.error && (
               <View style={styles.errorDetails}>
                 <Text style={styles.errorTitle}>Error Details (Development Only):</Text>
@@ -127,7 +128,7 @@ export class ErrorBoundary extends Component<Props, State> {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -141,55 +142,55 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1F2937',
+    fontSize: 20,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
     textAlign: 'center',
   },
   message: {
-    fontSize: 16,
-    color: '#6B7280',
+    fontSize: 15,
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 24,
   },
   button: {
-    backgroundColor: '#0EA5E9',
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 32,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 28,
     marginTop: 16,
+    minHeight: 56,
+    justifyContent: 'center',
   },
   buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    color: theme.colors.textInverse,
+    fontSize: 15,
     fontWeight: '600',
   },
   errorDetails: {
     marginTop: 20,
     padding: 16,
     backgroundColor: '#FEE2E2',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#EF4444',
+    borderRadius: 16,
     width: '100%',
   },
   errorTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#991B1B',
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.colors.error,
     marginBottom: 8,
   },
   errorMessage: {
-    fontSize: 13,
-    color: '#7F1D1D',
+    fontSize: 12,
+    color: theme.colors.error,
     marginBottom: 8,
     fontWeight: '600',
   },
   errorStack: {
     fontSize: 11,
-    color: '#991B1B',
+    color: theme.colors.error,
     fontFamily: 'monospace',
   },
 });

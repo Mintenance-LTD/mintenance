@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { theme } from '../../../theme';
 
@@ -16,17 +16,17 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
         style={[styles.actionButton, styles.primaryAction]}
         onPress={onStartVideoCapture}
       >
-        <Icon name="videocam" size={24} color="white" />
+        <Icon name="videocam" size={24} color={theme.colors.textInverse} />
         <Text style={styles.primaryActionText}>Start Video Capture</Text>
       </TouchableOpacity>
 
       <View style={styles.secondaryActions}>
         <TouchableOpacity style={styles.secondaryAction}>
-          <Icon name="save" size={20} color="#666" />
+          <Icon name="save" size={20} color={theme.colors.textSecondary} />
           <Text style={styles.secondaryActionText}>Save Draft</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.secondaryAction}>
-          <Icon name="share" size={20} color="#666" />
+          <Icon name="share" size={20} color={theme.colors.textSecondary} />
           <Text style={styles.secondaryActionText}>Share</Text>
         </TouchableOpacity>
       </View>
@@ -37,7 +37,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
 export const TipsCard: React.FC = () => {
   return (
     <View style={styles.tipsCard}>
-      <Icon name="lightbulb-outline" size={20} color="#FFC107" />
+      <Icon name="lightbulb-outline" size={20} color={theme.colors.accent} />
       <View style={styles.tipsContent}>
         <Text style={styles.tipsTitle}>Pro Tip</Text>
         <Text style={styles.tipsText}>
@@ -51,24 +51,24 @@ export const TipsCard: React.FC = () => {
 
 const styles = StyleSheet.create({
   quickActions: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 12,
+    borderRadius: 28,
     paddingVertical: 16,
-    gap: 12,
+    gap: 10,
   },
   primaryAction: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.textPrimary,
     marginBottom: 12,
   },
   primaryActionText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    color: 'white',
+    color: theme.colors.textInverse,
   },
   secondaryActions: {
     flexDirection: 'row',
@@ -79,25 +79,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     paddingVertical: 12,
     gap: 8,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   secondaryActionText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: theme.colors.textSecondary,
   },
   tipsCard: {
     flexDirection: 'row',
-    backgroundColor: '#FFF9E6',
-    borderRadius: 12,
+    backgroundColor: theme.colors.accentLight,
+    borderRadius: 16,
     padding: 16,
     gap: 12,
   },
@@ -105,14 +104,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tipsTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#795548',
+    color: '#92400E',
     marginBottom: 4,
   },
   tipsText: {
     fontSize: 13,
-    color: '#5D4037',
+    color: theme.colors.textSecondary,
     lineHeight: 18,
   },
 });

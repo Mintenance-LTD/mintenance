@@ -190,7 +190,7 @@ export class CacheManager {
       const size = calculateSize(serializedValue);
       const now = Date.now();
 
-      const entry: CacheEntry<T> = {
+      const entry: CacheEntry = {
         key,
         value: serializedValue,
         timestamp: now,
@@ -423,9 +423,9 @@ export class CacheManager {
 
   private deserializeValue<T>(value: unknown): T {
     try {
-      return typeof value === 'string' ? JSON.parse(value) : value;
+      return typeof value === 'string' ? JSON.parse(value) as T : value as T;
     } catch {
-      return value;
+      return value as T;
     }
   }
 

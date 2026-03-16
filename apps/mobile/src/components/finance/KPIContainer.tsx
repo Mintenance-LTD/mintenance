@@ -3,8 +3,8 @@ import { View, StyleSheet, Dimensions } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { KPICard } from './KPICard';
-import { theme } from '../../theme';
 import type { FinancialSummary } from '../../services/contractor-business';
+import { theme } from '../../theme';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -27,7 +27,7 @@ export const KPIContainer: React.FC<KPIContainerProps> = ({
           (financialData.monthly_revenue ?? []).reduce((sum, rev) => sum + rev, 0)
         )}
         icon='cash'
-        color={theme.colors.primary}
+        color={theme.colors.textPrimary}
         change={{
           value: financialData.quarterly_growth,
           isPositive: financialData.quarterly_growth > 0,
@@ -39,7 +39,7 @@ export const KPIContainer: React.FC<KPIContainerProps> = ({
         title='Outstanding'
         value={formatCurrency(financialData.outstanding_invoices)}
         icon='time'
-        color={theme.colors.warning}
+        color={theme.colors.accent}
         onPress={() => navigation.navigate('InvoiceManagement')}
       />
 
@@ -70,4 +70,3 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 });
-

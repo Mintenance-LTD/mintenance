@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import { styles } from './styles';
 import { serviceCategories, type ServiceCategory } from './types';
+import { theme } from '../../theme';
 
 interface CategoryPickerProps {
   onBack: () => void;
@@ -43,17 +43,17 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
           {serviceCategories.map((category) => (
             <TouchableOpacity
               key={category.id}
-              style={[styles.categoryCard, { backgroundColor: '#F7F7F7' }]}
+              style={styles.categoryCard}
               onPress={() => onSelect(category)}
               accessibilityRole="button"
               accessibilityLabel={`${category.name} service category`}
               accessibilityHint="Double tap to select this category"
             >
-              <View style={[styles.categoryIcon, { backgroundColor: '#EBEBEB' }]}>
+              <View style={styles.categoryIcon}>
                 <Ionicons
                   name={category.icon as keyof typeof Ionicons.glyphMap}
                   size={30}
-                  color="#717171"
+                  color={theme.colors.textSecondary}
                 />
               </View>
               <Text style={styles.categoryName}>{category.name}</Text>

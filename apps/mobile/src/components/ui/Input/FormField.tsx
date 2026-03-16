@@ -1,20 +1,11 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
-import { theme } from '../../../theme';
 import { Input, InputProps } from './Input';
-
-// ============================================================================
-// TYPES & INTERFACES
-// ============================================================================
 
 export interface FormFieldProps extends InputProps {
   children?: React.ReactNode;
   fieldStyle?: ViewStyle;
 }
-
-// ============================================================================
-// FORM FIELD COMPONENT
-// ============================================================================
 
 export const FormField: React.FC<FormFieldProps> = ({
   children,
@@ -22,31 +13,15 @@ export const FormField: React.FC<FormFieldProps> = ({
   containerStyle,
   ...inputProps
 }) => {
-  // If children are provided, render custom content instead of Input
   if (children) {
-    return (
-      <View style={[styles.fieldContainer, fieldStyle]}>
-        {children}
-      </View>
-    );
+    return <View style={[styles.fieldContainer, fieldStyle]}>{children}</View>;
   }
-
-  // Default behavior: render Input component
-  return (
-    <Input
-      {...inputProps}
-      containerStyle={StyleSheet.flatten([styles.fieldContainer, containerStyle])}
-    />
-  );
+  return <Input {...inputProps} containerStyle={StyleSheet.flatten([styles.fieldContainer, containerStyle])} />;
 };
-
-// ============================================================================
-// STYLES
-// ============================================================================
 
 const styles = StyleSheet.create({
   fieldContainer: {
-    marginBottom: theme.spacing[4],
+    marginBottom: 16,
   },
 });
 

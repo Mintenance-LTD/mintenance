@@ -357,12 +357,12 @@ export class DynamicImportManager {
   ): Promise<T> {
     // Return cached module if already loaded
     if (this.loadedModules.has(moduleName)) {
-      return this.loadedModules.get(moduleName);
+      return this.loadedModules.get(moduleName) as T;
     }
 
     // Return existing loading promise if in progress
     if (this.loadingPromises.has(moduleName)) {
-      return this.loadingPromises.get(moduleName);
+      return this.loadingPromises.get(moduleName) as Promise<T>;
     }
 
     // Start loading the module

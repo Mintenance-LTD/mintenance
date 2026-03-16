@@ -13,6 +13,15 @@ export interface PricingState {
   error: string | null;
 }
 
+export const useCachedPricing = (jobId: string, analysis: PricingAnalysis | null) => {
+  return useQuery({
+    queryKey: ['pricing', jobId],
+    queryFn: async () => analysis,
+    enabled: !!analysis,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
 export const useAIPricing = () => {
   const [pricingState, setPricingState] = useState<PricingState>({
     analysis: null,
@@ -69,19 +78,6 @@ export const useAIPricing = () => {
     },
     [analyzeJobPricing]
   );
-
-  // Cache pricing analysis for quick access
-  const useCachedPricing = (jobId: string) => {
-    return useQuery({
-      queryKey: ['pricing', jobId],
-      queryFn: async () => {
-        // This would typically fetch from your API
-        return pricingState.analysis;
-      },
-      enabled: !!pricingState.analysis,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    });
-  };
 
   // Invalidate pricing cache when job details change
   const invalidatePricing = useCallback(
@@ -162,7 +158,7 @@ export const useAIPricing = () => {
 
   // Get pricing recommendations for contractors
   const getContractorRecommendations = useCallback(
-    (analysis: PricingAnalysis, contractorProfile?: unknown) => {
+    (analysis: PricingAnalysis, contractorProfile?: { rating?: number; completedJobs?: number }) => {
       const recommendations = [...analysis.recommendations];
 
       // Add contractor-specific recommendations
@@ -251,7 +247,6 @@ export const useAIPricing = () => {
     getContractorRecommendations,
     getHomeownerInsights,
 
-    // Query hooks
-    useCachedPricing,
+    // For cached pricing, use the standalone useCachedPricing hook directly
   };
 };

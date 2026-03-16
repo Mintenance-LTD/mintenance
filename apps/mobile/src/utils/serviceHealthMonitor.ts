@@ -1,3 +1,4 @@
+import { mobileApiClient } from './mobileApiClient';
 import { logger } from './logger';
 
 // ============================================================================
@@ -122,7 +123,7 @@ export class ServiceHealthMonitor {
         isHealthy = await Promise.race([
           serviceCheck.healthCheckFunction(),
           this.createTimeoutPromise(serviceCheck.timeout)
-        ]);
+        ]) as boolean;
       } else if (serviceCheck.healthCheckUrl) {
         isHealthy = await this.checkUrlHealth(serviceCheck.healthCheckUrl, serviceCheck.timeout);
       } else {
@@ -376,21 +377,19 @@ export const serviceHealthMonitor = ServiceHealthMonitor.getInstance();
 
 // Register core application services
 export function initializeCoreServiceHealthChecks(): void {
-  // Database health check
+  // Database health check via API
   serviceHealthMonitor.registerService({
     serviceName: 'Database',
     timeout: 5000,
     healthCheckFunction: async () => {
       try {
-        // Simple Supabase connection test
-        const { supabase } = await import('../config/supabase');
-        const { data, error } = await supabase.from('health_check').select('1').limit(1);
-        return !error;
+        const result = await mobileApiClient.get<{ status: string }>('/api/health');
+        return result?.status === 'ok' || result?.status === 'healthy';
       } catch {
         return false;
       }
     },
-    dependencies: ['supabase']
+    dependencies: ['api']
   });
 
   // Authentication service

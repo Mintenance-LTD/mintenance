@@ -1,15 +1,15 @@
 /**
  * BookingList Component
- * 
- * Displays the list of bookings for the selected tab with action buttons.
+ *
+ * Displays bookings in a clean list with Airbnb-style empty state.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import { Booking } from './BookingStatusScreen';
 import { BookingCard } from './BookingCard';
+import { theme } from '../../theme';
 
 interface BookingListProps {
   bookings: Booking[];
@@ -50,12 +50,9 @@ export const BookingList: React.FC<BookingListProps> = ({
       ]}
       ListEmptyComponent={
         <View style={styles.emptyContainer}>
-          <Ionicons
-            name="calendar-outline"
-            size={64}
-            color={theme.colors.textTertiary}
-            accessible={false}
-          />
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="calendar-outline" size={32} color={theme.colors.textSecondary} accessible={false} />
+          </View>
           <Text style={styles.emptyTitle}>No bookings found</Text>
           <Text style={styles.emptySubtitle}>
             Your bookings will appear here once you have them
@@ -69,10 +66,10 @@ export const BookingList: React.FC<BookingListProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   contentContainer: {
-    padding: 20,
+    padding: 16,
     gap: 12,
   },
   emptyContentContainer: {
@@ -83,12 +80,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 40,
   },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: theme.colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
   emptyTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginTop: 16,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   emptySubtitle: {
     fontSize: 14,

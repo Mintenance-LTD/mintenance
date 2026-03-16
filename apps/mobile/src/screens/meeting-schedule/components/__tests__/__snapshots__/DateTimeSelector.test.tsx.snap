@@ -20,6 +20,7 @@ exports[`DateTimeSelector Component Basic Rendering should match snapshot in def
   }
 >
   <Text
+    accessibilityRole="header"
     style={
       {
         "color": "#000000",
@@ -39,6 +40,8 @@ exports[`DateTimeSelector Component Basic Rendering should match snapshot in def
     }
   >
     <TouchableOpacity
+      accessibilityLabel="Selected date: Sunday, March 15, 2026. Double tap to change"
+      accessibilityRole="button"
       onPress={[Function]}
       style={
         {
@@ -62,7 +65,7 @@ exports[`DateTimeSelector Component Basic Rendering should match snapshot in def
         }
       >
         <Ionicons
-          color="#007AFF"
+          color="#717171"
           name="calendar-outline"
           size={20}
         />
@@ -104,6 +107,8 @@ exports[`DateTimeSelector Component Basic Rendering should match snapshot in def
       />
     </TouchableOpacity>
     <TouchableOpacity
+      accessibilityLabel="Selected time: 2:30 PM. Double tap to change"
+      accessibilityRole="button"
       onPress={[Function]}
       style={
         {
@@ -127,7 +132,7 @@ exports[`DateTimeSelector Component Basic Rendering should match snapshot in def
         }
       >
         <Ionicons
-          color="#007AFF"
+          color="#717171"
           name="time-outline"
           size={20}
         />

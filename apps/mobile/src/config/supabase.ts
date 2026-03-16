@@ -1,14 +1,44 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
-import type { Database } from '@mintenance/types';
 import { logger } from '../utils/logger';
 
-type SupabaseLike = ReturnType<typeof createClient<Database>> | ReturnType<typeof createMockSupabase>;
+type SupabaseLike = SupabaseClient | MockSupabase;
+
+interface MockSupabase {
+  auth: {
+    signUp: (args: unknown) => Promise<{ data: null; error: Error }>;
+    signInWithPassword: (args: unknown) => Promise<{ data: null; error: Error }>;
+    signOut: () => Promise<{ error: null }>;
+    getSession: () => Promise<{ data: { session: null }; error: null }>;
+    getUser: () => Promise<{ data: { user: null }; error: null }>;
+    onAuthStateChange: (cb: unknown) => { data: { subscription: { unsubscribe: () => void } }; error: null };
+  };
+  from: (table: string) => {
+    select: () => unknown;
+    insert: (args: unknown) => Promise<{ data: null; error: Error }>;
+    update: (args: unknown) => unknown;
+    delete: () => Promise<{ data: null; error: Error }>;
+    upsert: (args: unknown) => Promise<{ data: null; error: Error }>;
+    eq: () => unknown;
+  };
+  storage: {
+    from: () => {
+      upload: (args: unknown) => Promise<{ data: null; error: Error }>;
+      download: (args: unknown) => Promise<{ data: null; error: Error }>;
+      list: () => Promise<{ data: unknown[]; error: null }>;
+    };
+  };
+  channel: (name: string) => {
+    on: () => { subscribe: () => Record<string, unknown> };
+    subscribe: () => Record<string, unknown>;
+    unsubscribe: () => Record<string, unknown>;
+  };
+}
 
 const extra: Record<string, unknown> = (Constants as { expoConfig?: { extra?: Record<string, unknown> } })?.expoConfig?.extra ?? {};
 const useMockFlag = (process.env.EXPO_PUBLIC_USE_MOCK ?? '').toLowerCase() === 'true';
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? extra.supabaseUrl;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? extra.supabaseAnonKey;
+const supabaseUrl = (process.env.EXPO_PUBLIC_SUPABASE_URL ?? extra.supabaseUrl) as string | undefined;
+const supabaseAnonKey = (process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? extra.supabaseAnonKey) as string | undefined;
 
 const validateCredentials = (url?: string, key?: string) => {
   const errors: string[] = [];
@@ -44,7 +74,7 @@ const validateCredentials = (url?: string, key?: string) => {
 const validation = validateCredentials(supabaseUrl, supabaseAnonKey);
 const credentialsValid = validation.valid;
 
-let supabase: SupabaseLike;
+let supabase: SupabaseClient;
 
 try {
   if (__DEV__ && useMockFlag) {
@@ -65,7 +95,7 @@ try {
     throw new Error('Supabase credentials missing');
   }
 
-  supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       autoRefreshToken: true,
       persistSession: true,
@@ -87,7 +117,7 @@ try {
   }
   const message = error instanceof Error ? error.message : String(error);
   logger.warn('Supabase', `Falling back to mock client: ${message}`);
-  supabase = createMockSupabase();
+  supabase = createMockSupabase() as unknown as SupabaseClient;
 }
 
 export const isSupabaseConfigured = credentialsValid && !useMockFlag;
@@ -115,11 +145,11 @@ export const testSupabaseConnection = async (): Promise<{ success: boolean; erro
 
 export { supabase };
 
-function createMockSupabase() {
+function createMockSupabase(): MockSupabase {
   const mockError = new Error('Mock Supabase client - configure real credentials to enable data access');
 
   const createQueryChain = (): unknown => {
-    const chain: Record<string, unknown> = {
+    const chain: Record<string | symbol, unknown> = {
       select: () => chain,
       eq: () => chain,
       not: () => chain,
@@ -128,7 +158,8 @@ function createMockSupabase() {
       single: () => Promise.resolve({ data: null, error: null }),
     };
 
-    chain.then = (onResolve: unknown) => Promise.resolve({ data: [], error: null }).then(onResolve);
+    chain.then = (onResolve: ((value: unknown) => unknown) | null | undefined) =>
+      Promise.resolve({ data: [], error: null }).then(onResolve);
     chain[Symbol.asyncIterator] = async function* () {};
     return chain;
   };
@@ -165,5 +196,5 @@ function createMockSupabase() {
       subscribe: () => ({}),
       unsubscribe: () => ({}),
     }),
-  } as SupabaseLike;
+  };
 }

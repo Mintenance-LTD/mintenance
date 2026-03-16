@@ -7,12 +7,8 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import { logger } from '../../utils/logger';
-
-// ============================================================================
-// ERROR TYPES & INTERFACES
-// ============================================================================
+import { theme } from '../../theme';
 
 export interface ErrorInfo {
   componentStack: string;
@@ -40,30 +36,12 @@ export interface ErrorFallbackProps {
   errorId: string;
 }
 
-// ============================================================================
-// DEFAULT ERROR FALLBACK COMPONENT
-// ============================================================================
-
-const DefaultErrorFallback: React.FC<ErrorFallbackProps> = ({
-  error,
-  resetError,
-  errorId,
-}) => (
+const DefaultErrorFallback: React.FC<ErrorFallbackProps> = ({ error, resetError, errorId }) => (
   <View style={styles.container}>
     <View style={styles.errorContent}>
-      <Ionicons
-        name="alert-circle"
-        size={64}
-        color={theme.colors.error}
-        style={styles.errorIcon}
-      />
-
+      <Ionicons name="alert-circle" size={64} color={theme.colors.error} style={styles.errorIcon} />
       <Text style={styles.errorTitle}>Something went wrong</Text>
-
-      <Text style={styles.errorMessage}>
-        We're sorry, but an unexpected error occurred. Please try again.
-      </Text>
-
+      <Text style={styles.errorMessage}>We're sorry, but an unexpected error occurred. Please try again.</Text>
       {__DEV__ && (
         <ScrollView style={styles.errorDetails}>
           <Text style={styles.errorDetailsTitle}>Error Details:</Text>
@@ -72,13 +50,7 @@ const DefaultErrorFallback: React.FC<ErrorFallbackProps> = ({
           <Text style={styles.errorDetailsText}>{errorId}</Text>
         </ScrollView>
       )}
-
-      <TouchableOpacity
-        style={styles.retryButton}
-        onPress={resetError}
-        accessibilityRole="button"
-        accessibilityLabel="Try again"
-      >
+      <TouchableOpacity style={styles.retryButton} onPress={resetError} accessibilityRole="button" accessibilityLabel="Try again">
         <Ionicons name="refresh" size={20} color={theme.colors.textInverse} />
         <Text style={styles.retryButtonText}>Try Again</Text>
       </TouchableOpacity>
@@ -86,203 +58,74 @@ const DefaultErrorFallback: React.FC<ErrorFallbackProps> = ({
   </View>
 );
 
-// ============================================================================
-// ERROR BOUNDARY COMPONENT
-// ============================================================================
-
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   private resetTimeoutId: NodeJS.Timeout | null = null;
 
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = {
-      hasError: false,
-      error: null,
-      errorInfo: null,
-      errorId: null,
-    };
+    this.state = { hasError: false, error: null, errorInfo: null, errorId: null };
   }
 
   static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
-    const errorId = `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-    return {
-      hasError: true,
-      error,
-      errorId,
-    };
+    return { hasError: true, error, errorId: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     const errorId = `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-    // Log error with structured data
     logger.error('React Error Boundary caught error', {
-      error: error.message,
-      stack: error.stack,
-      componentStack: errorInfo.componentStack,
-      errorId,
-      timestamp: new Date().toISOString(),
+      error: error.message, stack: error.stack, componentStack: errorInfo.componentStack, errorId, timestamp: new Date().toISOString(),
     });
-
-    this.setState({
-      errorInfo,
-      errorId,
-    });
-
-    // Call custom error handler if provided
+    this.setState({ errorInfo, errorId });
     this.props.onError?.(error, errorInfo);
   }
 
   componentDidUpdate(prevProps: ErrorBoundaryProps) {
     const { resetKeys, resetOnPropsChange } = this.props;
     const { hasError } = this.state;
-
-    if (hasError && prevProps.children !== this.props.children) {
-      if (resetOnPropsChange) {
-        this.resetError();
-      }
-    }
-
+    if (hasError && prevProps.children !== this.props.children && resetOnPropsChange) this.resetError();
     if (hasError && resetKeys) {
       const prevResetKeys = prevProps.resetKeys || [];
-      const hasResetKeyChanged = resetKeys.some(
-        (key, index) => prevResetKeys[index] !== key
-      );
-
-      if (hasResetKeyChanged) {
-        this.resetError();
-      }
+      if (resetKeys.some((key, index) => prevResetKeys[index] !== key)) this.resetError();
     }
   }
 
-  componentWillUnmount() {
-    if (this.resetTimeoutId) {
-      clearTimeout(this.resetTimeoutId);
-    }
-  }
+  componentWillUnmount() { if (this.resetTimeoutId) clearTimeout(this.resetTimeoutId); }
 
   resetError = () => {
-    // Clear any existing timeout
-    if (this.resetTimeoutId) {
-      clearTimeout(this.resetTimeoutId);
-    }
-
-    // Reset state immediately
-    this.setState({
-      hasError: false,
-      error: null,
-      errorInfo: null,
-      errorId: null,
-    });
+    if (this.resetTimeoutId) clearTimeout(this.resetTimeoutId);
+    this.setState({ hasError: false, error: null, errorInfo: null, errorId: null });
   };
 
   render() {
     const { hasError, error, errorInfo, errorId } = this.state;
     const { children, fallbackComponent: FallbackComponent = DefaultErrorFallback } = this.props;
-
     if (hasError && error && errorInfo && errorId) {
-      return (
-        <FallbackComponent
-          error={error}
-          errorInfo={errorInfo}
-          resetError={this.resetError}
-          errorId={errorId}
-        />
-      );
+      return <FallbackComponent error={error} errorInfo={errorInfo} resetError={this.resetError} errorId={errorId} />;
     }
-
     return children;
   }
 }
-
-// ============================================================================
-// HIGHER-ORDER COMPONENT FOR ERROR BOUNDARIES
-// ============================================================================
 
 export const withErrorBoundary = <P extends object>(
   WrappedComponent: React.ComponentType<P>,
   errorBoundaryProps?: Omit<ErrorBoundaryProps, 'children'>
 ) => {
   const WithErrorBoundaryComponent = (props: P) => (
-    <ErrorBoundary {...errorBoundaryProps}>
-      <WrappedComponent {...props} />
-    </ErrorBoundary>
+    <ErrorBoundary {...errorBoundaryProps}><WrappedComponent {...props} /></ErrorBoundary>
   );
-
-  WithErrorBoundaryComponent.displayName =
-    `withErrorBoundary(${WrappedComponent.displayName || WrappedComponent.name})`;
-
+  WithErrorBoundaryComponent.displayName = `withErrorBoundary(${WrappedComponent.displayName || WrappedComponent.name})`;
   return WithErrorBoundaryComponent;
 };
 
-// ============================================================================
-// STYLES
-// ============================================================================
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: theme.spacing.lg,
-  },
-  errorContent: {
-    maxWidth: 400,
-    alignItems: 'center',
-  },
-  errorIcon: {
-    marginBottom: theme.spacing.lg,
-  },
-  errorTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: theme.spacing.md,
-  },
-  errorMessage: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: theme.spacing.xl,
-  },
-  errorDetails: {
-    maxHeight: 200,
-    width: '100%',
-    backgroundColor: theme.colors.surfaceSecondary,
-    borderRadius: theme.borderRadius.base,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.lg,
-  },
-  errorDetailsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-    marginTop: theme.spacing.sm,
-    marginBottom: theme.spacing.xs,
-  },
-  errorDetailsText: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    fontFamily: 'monospace',
-    lineHeight: 18,
-  },
-  retryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.base,
-    minHeight: 44, // WCAG touch target
-  },
-  retryButtonText: {
-    color: theme.colors.textInverse,
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: theme.spacing.sm,
-  },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  errorContent: { maxWidth: 400, alignItems: 'center' },
+  errorIcon: { marginBottom: 20 },
+  errorTitle: { fontSize: 24, fontWeight: '600', color: theme.colors.textPrimary, textAlign: 'center', marginBottom: 16 },
+  errorMessage: { fontSize: 16, color: theme.colors.textSecondary, textAlign: 'center', lineHeight: 24, marginBottom: 24 },
+  errorDetails: { maxHeight: 200, width: '100%', backgroundColor: theme.colors.backgroundSecondary, borderRadius: 12, padding: 16, marginBottom: 20 },
+  errorDetailsTitle: { fontSize: 14, fontWeight: '600', color: theme.colors.textPrimary, marginTop: 8, marginBottom: 6 },
+  errorDetailsText: { fontSize: 12, color: theme.colors.textSecondary, fontFamily: 'monospace', lineHeight: 18 },
+  retryButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.textPrimary, paddingHorizontal: 20, paddingVertical: 16, borderRadius: 12, minHeight: 44 },
+  retryButtonText: { color: theme.colors.textInverse, fontSize: 16, fontWeight: '600', marginLeft: 8 },
 });

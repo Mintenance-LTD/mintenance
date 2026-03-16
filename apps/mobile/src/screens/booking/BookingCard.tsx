@@ -1,15 +1,16 @@
 /**
  * BookingCard Component
- * 
- * Displays individual booking information with status-specific actions.
+ *
+ * Airbnb-style booking card with soft shadows, no borders,
+ * colored status indicators, and clean action buttons.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import { Booking } from './BookingStatusScreen';
 import { useHaptics } from '../../utils/haptics';
+import { theme } from '../../theme';
 
 interface BookingCardProps {
   booking: Booking;
@@ -20,6 +21,18 @@ interface BookingCardProps {
   onViewDetails: (booking: Booking) => void;
 }
 
+const STATUS_COLORS: Record<string, { text: string; bg: string }> = {
+  upcoming:  { text: '#3B82F6', bg: '#DBEAFE' },
+  completed: { text: theme.colors.primary, bg: theme.colors.primaryLight },
+  cancelled: { text: theme.colors.error, bg: '#FEE2E2' },
+};
+
+const STATUS_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  upcoming: 'time-outline',
+  completed: 'checkmark-circle-outline',
+  cancelled: 'close-circle-outline',
+};
+
 export const BookingCard: React.FC<BookingCardProps> = ({
   booking,
   onCancel,
@@ -29,59 +42,28 @@ export const BookingCard: React.FC<BookingCardProps> = ({
   onViewDetails,
 }) => {
   const haptics = useHaptics();
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'upcoming':
-        return theme.colors.primary;
-      case 'completed':
-        return theme.colors.successDark;
-      case 'cancelled':
-        return theme.colors.error;
-      default:
-        return theme.colors.textSecondary;
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'upcoming':
-        return 'time-outline';
-      case 'completed':
-        return 'checkmark-circle-outline';
-      case 'cancelled':
-        return 'close-circle-outline';
-      default:
-        return 'help-circle-outline';
-    }
-  };
+  const statusColor = STATUS_COLORS[booking.status] || { text: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary };
+  const statusIcon = STATUS_ICONS[booking.status] || 'help-circle-outline';
 
   return (
     <View style={styles.card}>
       <View style={styles.header}>
         <View style={styles.serviceInfo}>
           <Text style={styles.serviceName}>{booking.serviceName}</Text>
-          <View style={styles.statusContainer}>
-            <Ionicons
-              name={getStatusIcon(booking.status) as unknown}
-              size={16}
-              color={getStatusColor(booking.status)}
-            />
-            <Text style={[styles.status, { color: getStatusColor(booking.status) }]}>
+          <View style={[styles.statusChip, { backgroundColor: statusColor.bg }]}>
+            <Ionicons name={statusIcon} size={14} color={statusColor.text} />
+            <Text style={[styles.statusText, { color: statusColor.text }]}>
               {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
             </Text>
           </View>
         </View>
         <TouchableOpacity
           style={styles.shareButton}
-          onPress={() => {
-            haptics.buttonPress();
-            onShare(booking);
-          }}
+          onPress={() => { haptics.buttonPress(); onShare(booking); }}
           accessibilityRole="button"
           accessibilityLabel="Share booking"
         >
-          <Ionicons name="share-outline" size={20} color={theme.colors.textSecondary} />
+          <Ionicons name="share-outline" size={18} color={theme.colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
@@ -99,22 +81,22 @@ export const BookingCard: React.FC<BookingCardProps> = ({
 
       <View style={styles.bookingDetails}>
         <View style={styles.detailRow}>
-          <Ionicons name="calendar-outline" size={16} color={theme.colors.textSecondary} />
+          <Ionicons name="calendar-outline" size={15} color={theme.colors.textSecondary} />
           <Text style={styles.detailText}>{booking.date}</Text>
         </View>
         <View style={styles.detailRow}>
-          <Ionicons name="time-outline" size={16} color={theme.colors.textSecondary} />
+          <Ionicons name="time-outline" size={15} color={theme.colors.textSecondary} />
           <Text style={styles.detailText}>{booking.time}</Text>
         </View>
         <View style={styles.detailRow}>
-          <Ionicons name="hourglass-outline" size={16} color={theme.colors.textSecondary} />
+          <Ionicons name="hourglass-outline" size={15} color={theme.colors.textSecondary} />
           <Text style={styles.detailText}>{booking.estimatedDuration}</Text>
         </View>
       </View>
 
       {booking.specialInstructions && (
         <View style={styles.instructionsContainer}>
-          <Text style={styles.instructionsLabel}>Special Instructions:</Text>
+          <Text style={styles.instructionsLabel}>Special Instructions</Text>
           <Text style={styles.instructionsText}>{booking.specialInstructions}</Text>
         </View>
       )}
@@ -131,27 +113,19 @@ export const BookingCard: React.FC<BookingCardProps> = ({
               {booking.canReschedule && (
                 <TouchableOpacity
                   style={styles.actionButton}
-                  onPress={() => {
-                    haptics.buttonPress();
-                    onReschedule(booking);
-                  }}
+                  onPress={() => { haptics.buttonPress(); onReschedule(booking); }}
                 >
-                  <Ionicons name="refresh-outline" size={16} color='#717171' />
+                  <Ionicons name="refresh-outline" size={14} color={theme.colors.textSecondary} />
                   <Text style={styles.actionButtonText}>Reschedule</Text>
                 </TouchableOpacity>
               )}
               {booking.canCancel && (
                 <TouchableOpacity
                   style={[styles.actionButton, styles.cancelButton]}
-                  onPress={() => {
-                    haptics.buttonPress();
-                    onCancel(booking);
-                  }}
+                  onPress={() => { haptics.buttonPress(); onCancel(booking); }}
                 >
-                  <Ionicons name="close-outline" size={16} color={theme.colors.error} />
-                  <Text style={[styles.actionButtonText, styles.cancelButtonText]}>
-                    Cancel
-                  </Text>
+                  <Ionicons name="close-outline" size={14} color={theme.colors.error} />
+                  <Text style={[styles.actionButtonText, styles.cancelButtonText]}>Cancel</Text>
                 </TouchableOpacity>
               )}
             </>
@@ -160,25 +134,19 @@ export const BookingCard: React.FC<BookingCardProps> = ({
           {booking.status === 'completed' && !booking.rating && (
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => {
-                haptics.buttonPress();
-                onRate(booking);
-              }}
+              onPress={() => { haptics.buttonPress(); onRate(booking); }}
             >
-              <Ionicons name="star-outline" size={16} color={theme.colors.ratingGold} />
+              <Ionicons name="star-outline" size={14} color={theme.colors.accent} />
               <Text style={styles.actionButtonText}>Rate</Text>
             </TouchableOpacity>
           )}
 
           <TouchableOpacity
             style={styles.viewDetailsButton}
-            onPress={() => {
-              haptics.buttonPress();
-              onViewDetails(booking);
-            }}
+            onPress={() => { haptics.buttonPress(); onViewDetails(booking); }}
           >
-            <Text style={styles.viewDetailsText}>View Details</Text>
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
+            <Text style={styles.viewDetailsText}>Details</Text>
+            <Ionicons name="chevron-forward" size={14} color={theme.colors.textTertiary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -191,7 +159,15 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 16,
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
   header: {
     flexDirection: 'row',
@@ -201,41 +177,50 @@ const styles = StyleSheet.create({
   },
   serviceInfo: {
     flex: 1,
+    gap: 6,
   },
   serviceName: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginBottom: 4,
   },
-  statusContainer: {
+  statusChip: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
     gap: 4,
   },
-  status: {
-    fontSize: 14,
+  statusText: {
+    fontSize: 12,
     fontWeight: '600',
   },
   shareButton: {
-    padding: 4,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: theme.colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   contractorInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   contractorAvatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   contractorInitial: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: theme.colors.textInverse,
   },
@@ -243,44 +228,46 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contractorName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   address: {
-    fontSize: 14,
+    fontSize: 13,
     color: theme.colors.textSecondary,
   },
   bookingDetails: {
-    marginBottom: 16,
+    marginBottom: 14,
+    gap: 6,
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
     gap: 8,
   },
   detailText: {
-    fontSize: 14,
+    fontSize: 13,
     color: theme.colors.textSecondary,
   },
   instructionsContainer: {
-    backgroundColor: theme.colors.surfaceSecondary,
-    borderRadius: 8,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
     padding: 12,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   instructionsLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
     marginBottom: 4,
   },
   instructionsText: {
-    fontSize: 14,
+    fontSize: 13,
     color: theme.colors.textPrimary,
-    lineHeight: 20,
+    lineHeight: 19,
   },
   footer: {
     flexDirection: 'row',
@@ -291,8 +278,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   priceLabel: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
+    fontSize: 11,
+    color: theme.colors.textTertiary,
     marginBottom: 2,
   },
   price: {
@@ -308,19 +295,19 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 10,
     gap: 4,
   },
   actionButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   cancelButton: {
-    backgroundColor: theme.colors.errorLight,
+    backgroundColor: '#FEE2E2',
   },
   cancelButtonText: {
     color: theme.colors.error,
@@ -328,11 +315,11 @@ const styles = StyleSheet.create({
   viewDetailsButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 2,
   },
   viewDetailsText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
 });

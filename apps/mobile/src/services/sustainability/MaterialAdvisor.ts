@@ -1,5 +1,5 @@
-import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { MaterialSwapSuggestion, ProcessOptimization, EcoJobRecommendation, SustainabilityMetrics, SustainableMaterialRow } from './types';
 
 export class MaterialAdvisor {
@@ -71,14 +71,24 @@ export class MaterialAdvisor {
   }
 
   async findSustainableAlternatives(material: string): Promise<MaterialSwapSuggestion[]> {
-    const { data, error } = await supabase.from('sustainable_materials').select('*').contains('alternative_to', [material]);
-    if (error) return [];
-    return (data || []).map((item: SustainableMaterialRow) => ({ original_material: material, sustainable_alternative: item.name, benefits: item.certification_labels, carbon_reduction: item.carbon_intensity, cost_difference: item.cost_premium_percentage, availability: item.local_availability ? 'readily_available' : 'order_required' }));
+    try {
+      const response = await mobileApiClient.get<{ materials: SustainableMaterialRow[] }>(
+        `/api/contractor/esg-score?type=sustainable_materials&material=${encodeURIComponent(material)}`
+      );
+      return (response.materials || []).map((item: SustainableMaterialRow) => ({ original_material: material, sustainable_alternative: item.name, benefits: item.certification_labels, carbon_reduction: item.carbon_intensity, cost_difference: item.cost_premium_percentage, availability: item.local_availability ? 'readily_available' : 'order_required' }));
+    } catch {
+      return [];
+    }
   }
 
   async getMaterialCarbonData(material: string): Promise<{ carbon_intensity: number }> {
-    const { data, error } = await supabase.from('sustainable_materials').select('carbon_intensity').eq('name', material).single();
-    if (error) return { carbon_intensity: 5 };
-    return data;
+    try {
+      const response = await mobileApiClient.get<{ carbon_intensity: number }>(
+        `/api/contractor/esg-score?type=material_carbon&material=${encodeURIComponent(material)}`
+      );
+      return { carbon_intensity: response.carbon_intensity };
+    } catch {
+      return { carbon_intensity: 5 };
+    }
   }
 }

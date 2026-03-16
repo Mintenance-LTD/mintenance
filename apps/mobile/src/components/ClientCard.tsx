@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
 
@@ -29,6 +29,20 @@ interface ClientCardProps {
   onEmail?: () => void;
 }
 
+const STATUS_COLORS: Record<string, string> = {
+  active: theme.colors.primary,
+  prospect: theme.colors.accent,
+  inactive: theme.colors.textSecondary,
+  former: theme.colors.error,
+};
+
+const CLIENT_TYPE_ICONS: Record<string, string> = {
+  residential: 'home',
+  commercial: 'business',
+  industrial: 'construct',
+  government: 'library',
+};
+
 export const ClientCard: React.FC<ClientCardProps> = ({
   client,
   onPress,
@@ -36,44 +50,16 @@ export const ClientCard: React.FC<ClientCardProps> = ({
   onMessage,
   onEmail,
 }) => {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return theme.colors.success;
-      case 'prospect':
-        return theme.colors.warning;
-      case 'inactive':
-        return theme.colors.textSecondary;
-      case 'former':
-        return theme.colors.error;
-      default:
-        return theme.colors.textSecondary;
-    }
-  };
-
-  const getClientTypeIcon = (type: string) => {
-    switch (type) {
-      case 'residential':
-        return 'home';
-      case 'commercial':
-        return 'business';
-      case 'industrial':
-        return 'construct';
-      case 'government':
-        return 'library';
-      default:
-        return 'person';
-    }
-  };
-
   const getRiskLevel = (score: number) => {
     if (score >= 70) return { level: 'High', color: theme.colors.error };
-    if (score >= 40) return { level: 'Medium', color: theme.colors.warning };
-    return { level: 'Low', color: theme.colors.success };
+    if (score >= 40) return { level: 'Medium', color: theme.colors.accent };
+    return { level: 'Low', color: theme.colors.primary };
   };
 
   const risk = getRiskLevel(client.churn_risk_score);
   const clientName = `${client.first_name} ${client.last_name}`;
+  const statusColor = STATUS_COLORS[client.relationship_status] || theme.colors.textSecondary;
+  const clientTypeIcon = CLIENT_TYPE_ICONS[client.client_type] || 'person';
   const lastJobDays = client.last_job_date
     ? Math.floor(
         (new Date().getTime() - new Date(client.last_job_date).getTime()) /
@@ -87,7 +73,7 @@ export const ClientCard: React.FC<ClientCardProps> = ({
         <View style={styles.clientInfo}>
           <View style={styles.nameRow}>
             <Ionicons
-              name={getClientTypeIcon(client.client_type) as keyof typeof Ionicons.glyphMap}
+              name={clientTypeIcon as keyof typeof Ionicons.glyphMap}
               size={16}
               color={theme.colors.textSecondary}
             />
@@ -103,7 +89,7 @@ export const ClientCard: React.FC<ClientCardProps> = ({
           <View
             style={[
               styles.statusBadge,
-              { backgroundColor: getStatusColor(client.relationship_status) },
+              { backgroundColor: statusColor },
             ]}
           >
             <Text style={styles.statusText}>
@@ -143,7 +129,7 @@ export const ClientCard: React.FC<ClientCardProps> = ({
               <Text style={styles.metricValue}>
                 {client.satisfaction_score.toFixed(1)}
               </Text>
-              <Ionicons name='star' size={12} color='#FFD700' />
+              <Ionicons name='star' size={12} color={theme.colors.accent} />
             </View>
             <Text style={styles.metricLabel}>Rating</Text>
           </View>
@@ -183,7 +169,7 @@ export const ClientCard: React.FC<ClientCardProps> = ({
             <Ionicons name='mail' size={16} color={theme.colors.textSecondary} />
           </TouchableOpacity>
         )}
-        <TouchableOpacity style={[styles.actionButton, styles.moreButton]}>
+        <TouchableOpacity style={styles.actionButton}>
           <Ionicons
             name='ellipsis-horizontal'
             size={16}
@@ -197,11 +183,21 @@ export const ClientCard: React.FC<ClientCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   header: {
     flexDirection: 'row',
@@ -219,18 +215,18 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   clientName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: theme.colors.textPrimary,
-    marginLeft: 6,
+    marginLeft: 4,
   },
   clientEmail: {
-    fontSize: 14,
+    fontSize: 13,
     color: theme.colors.textSecondary,
     marginBottom: 2,
   },
   clientPhone: {
-    fontSize: 14,
+    fontSize: 13,
     color: theme.colors.textSecondary,
   },
   statusContainer: {
@@ -239,22 +235,22 @@ const styles = StyleSheet.create({
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: 6,
     marginBottom: 4,
   },
   statusText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '600',
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   riskBadge: {
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
     paddingVertical: 2,
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: 6,
     borderWidth: 1,
   },
   riskText: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '500',
   },
   metrics: {
@@ -268,13 +264,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   metricValue: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   metricLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: theme.colors.textSecondary,
   },
   rating: {
@@ -299,14 +295,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   actionButton: {
-    width: 32,
-    height: 32,
-    borderRadius: theme.borderRadius.full,
-    backgroundColor: theme.colors.surfaceSecondary,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  moreButton: {
-    backgroundColor: theme.colors.surfaceSecondary,
   },
 });

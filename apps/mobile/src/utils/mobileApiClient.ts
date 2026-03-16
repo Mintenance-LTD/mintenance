@@ -24,6 +24,10 @@ async function getAuthToken(): Promise<string | null> {
  */
 class MobileApiClient extends ApiClient {
   private isRefreshing = false;
+  private refreshQueue: Array<{
+    resolve: (token: string) => void;
+    reject: (error: unknown) => void;
+  }> = [];
 
   constructor() {
     super({
@@ -35,7 +39,8 @@ class MobileApiClient extends ApiClient {
   }
 
   /**
-   * Override request to automatically add auth token and handle 401 with refresh
+   * Override request to automatically add auth token and handle 401 with refresh.
+   * Uses a queue to prevent concurrent refresh attempts (race condition fix).
    */
   protected async request<T>(url: string, options: RequestOptions = {}): Promise<T> {
     const token = await getAuthToken();
@@ -49,31 +54,54 @@ class MobileApiClient extends ApiClient {
       return await super.request<T>(url, { ...options, headers });
     } catch (error) {
       const apiError = error as IApiError;
-      if (apiError.statusCode === 401 && !this.isRefreshing) {
-        return this.handleTokenRefresh<T>(url, options);
+      if (apiError.statusCode === 401) {
+        // Wait for token refresh (queued if another refresh is in progress)
+        const newToken = await this.waitForTokenRefresh();
+        const retryHeaders = {
+          ...options.headers,
+          Authorization: `Bearer ${newToken}`,
+        };
+        return await super.request<T>(url, { ...options, headers: retryHeaders });
       }
       throw error;
     }
   }
 
-  private async handleTokenRefresh<T>(url: string, options: RequestOptions): Promise<T> {
+  /**
+   * Queue-based token refresh: if a refresh is already in progress, subsequent
+   * callers wait for the same refresh to complete instead of triggering a new one.
+   */
+  private waitForTokenRefresh(): Promise<string> {
+    if (this.isRefreshing) {
+      return new Promise<string>((resolve, reject) => {
+        this.refreshQueue.push({ resolve, reject });
+      });
+    }
+
     this.isRefreshing = true;
+    return this.performTokenRefresh();
+  }
+
+  private async performTokenRefresh(): Promise<string> {
     try {
       const { data, error } = await supabase.auth.refreshSession();
       if (error || !data.session) {
         logger.warn('Session refresh failed, signing out');
         await supabase.auth.signOut();
-        throw error || new Error('Session expired');
+        const refreshError = error || new Error('Session expired');
+        this.refreshQueue.forEach(({ reject }) => reject(refreshError));
+        this.refreshQueue = [];
+        throw refreshError;
       }
 
       const newToken = data.session.access_token;
-      const headers = {
-        ...options.headers,
-        Authorization: `Bearer ${newToken}`,
-      };
-      return await super.request<T>(url, { ...options, headers });
+      this.refreshQueue.forEach(({ resolve }) => resolve(newToken));
+      this.refreshQueue = [];
+      return newToken;
     } catch (refreshError) {
       logger.error('Token refresh failed', refreshError);
+      this.refreshQueue.forEach(({ reject }) => reject(refreshError));
+      this.refreshQueue = [];
       throw refreshError;
     } finally {
       this.isRefreshing = false;

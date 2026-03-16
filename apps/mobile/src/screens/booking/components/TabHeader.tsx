@@ -12,8 +12,8 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { theme } from '../../../theme';
 import type { BookingStatus, TabInfo } from '../viewmodels/BookingViewModel';
+import { theme } from '../../../theme';
 
 interface TabHeaderProps {
   activeTab: BookingStatus;
@@ -36,21 +36,13 @@ export const TabHeader: React.FC<TabHeaderProps> = ({
       {/* Navigation Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity onPress={onBackPress} style={styles.headerButton}>
-          <Ionicons
-            name="arrow-back"
-            size={24}
-            color={theme.colors.text}
-          />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
 
         <Text style={styles.headerTitle}>Bookings</Text>
 
         <TouchableOpacity onPress={onSearchPress} style={styles.headerButton}>
-          <Ionicons
-            name="search"
-            size={24}
-            color={theme.colors.text}
-          />
+          <Ionicons name="search" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -109,13 +101,13 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: theme.colors.textPrimary,
   },
   tabsContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
     marginBottom: 20,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border,
   },
   tab: {
@@ -130,16 +122,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   activeTab: {
-    borderBottomColor: '#222222',
+    borderBottomColor: theme.colors.textPrimary,
   },
   tabText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '500',
     color: theme.colors.textSecondary,
     marginRight: 6,
   },
   activeTabText: {
-    color: '#222222',
+    color: theme.colors.textPrimary,
     fontWeight: '600',
   },
   tabBadge: {
@@ -152,8 +144,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   tabBadgeText: {
-    color: 'white',
-    fontSize: 12,
+    color: theme.colors.textInverse,
+    fontSize: 11,
     fontWeight: '600',
   },
 });

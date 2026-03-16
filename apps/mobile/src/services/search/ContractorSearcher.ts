@@ -85,7 +85,7 @@ function transformContractorResults(
 async function getContractorCount(query: SearchQuery): Promise<{ count: number }> {
   let queryBuilder = supabase
     .from('contractor_profiles')
-    .select('id', { count: 'exact', head: true });
+    .select('id', { count: 'exact', head: true }) as unknown as QueryBuilder;
 
   if (query.text.trim()) {
     const sanitizedText = sanitizeForSQL(query.text);
@@ -93,7 +93,7 @@ async function getContractorCount(query: SearchQuery): Promise<{ count: number }
   }
 
   queryBuilder = applyContractorFilters(queryBuilder, query.filters);
-  const result = await queryBuilder;
+  const result = await (queryBuilder as unknown as PromiseLike<{ count: number | null; error: unknown }>);
   return { count: result.count || 0 };
 }
 
@@ -130,7 +130,7 @@ export async function searchContractors(
         .select(`id,user_id,bio,skills,hourly_rate,rating,review_count,verified,
           location_city,location_state,location_coordinates,
           availability_immediate,availability_this_week,availability_this_month,
-          completed_jobs,response_time,users!inner(first_name,last_name,profile_image_url)`);
+          completed_jobs,response_time,users!inner(first_name,last_name,profile_image_url)`) as unknown as QueryBuilder;
 
       if (query.text.trim()) {
         const sanitizedText = sanitizeForSQL(query.text);
@@ -143,7 +143,7 @@ export async function searchContractors(
       queryBuilder = applyContractorSorting(queryBuilder, query.filters.sortBy);
       queryBuilder = queryBuilder.range((page - 1) * limit, page * limit - 1);
 
-      const res = await queryBuilder;
+      const res = await (queryBuilder as unknown as PromiseLike<{ data: DatabaseContractorProfileRow[] | null; error: { message: string } | null; count: number | null }>);
       if (res.error) throw new Error(`Search failed: ${res.error.message}`);
 
       const contractors = transformContractorResults(

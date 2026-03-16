@@ -4,8 +4,8 @@
  * Comprehensive authentication vulnerability testing
  */
 
-import { SecurityManager } from '../../SecurityManager';
-import type { PenetrationTest, PenetrationTestResult, SecurityVulnerability } from '@mintenance/types';
+import { SecurityManager, SecurityManagerService } from '../../SecurityManager';
+import type { PenetrationTest, PenetrationTestResult, SecurityVulnerability } from '../types';
 
 export class AuthenticationTestSuite {
   static createBruteForceTest(): PenetrationTest {
@@ -79,7 +79,7 @@ export class AuthenticationTestSuite {
               let blockedAfterAttempts = 0;
 
               for (let i = 0; i < 10; i++) {
-                const allowed = SecurityManager.checkRateLimit(identifier, 5, 60000);
+                const allowed = SecurityManagerService.checkRateLimit(identifier, 5, 60000);
                 if (!allowed) {
                   blockedAfterAttempts = i;
                   break;

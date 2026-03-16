@@ -276,7 +276,7 @@ export class CacheService {
     // Update LRU
     this.updateLRU(key);
 
-    return entry.data;
+    return entry.data as T;
   }
 
   private setInMemory<T>(key: string, data: T, ttl: number): void {

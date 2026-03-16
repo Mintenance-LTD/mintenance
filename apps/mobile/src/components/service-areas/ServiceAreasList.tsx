@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ServiceAreaCard } from '../ServiceAreaCard';
 import Button from '../ui/Button';
-import { theme } from '../../theme';
 import type { ServiceArea } from '../../services/ServiceAreasService';
+import { theme } from '../../theme';
 
 interface ServiceAreasListProps {
   serviceAreas: ServiceArea[];

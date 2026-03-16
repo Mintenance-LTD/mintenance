@@ -1,8 +1,8 @@
 /**
  * ScheduleActions Component
- * 
+ *
  * Action buttons for scheduling and canceling.
- * 
+ *
  * @filesize Target: <70 lines
  * @compliance Single Responsibility - Action buttons
  */
@@ -26,17 +26,17 @@ export const ScheduleActions: React.FC<ScheduleActionsProps> = ({
     <View style={styles.container}>
       <View style={styles.buttonRow}>
         <TouchableOpacity
-          style={[styles.button, styles.cancelButton]}
+          style={[styles.button, styles.cancelButton, { backgroundColor: theme.colors.backgroundSecondary }]}
           onPress={onCancel}
           disabled={loading}
           accessibilityRole='button'
           accessibilityLabel='Cancel scheduling'
         >
-          <Text style={styles.cancelButtonText}>Cancel</Text>
+          <Text style={[styles.cancelButtonText, { color: theme.colors.textPrimary }]}>Cancel</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.button, styles.scheduleButton]}
+          style={[styles.button, styles.scheduleButton, { backgroundColor: theme.colors.textPrimary }]}
           onPress={onSchedule}
           disabled={loading}
           accessibilityRole='button'
@@ -45,7 +45,7 @@ export const ScheduleActions: React.FC<ScheduleActionsProps> = ({
           {loading ? (
             <ActivityIndicator size="small" color={theme.colors.textInverse} />
           ) : (
-            <Text style={styles.scheduleButtonText}>Schedule Meeting</Text>
+            <Text style={[styles.scheduleButtonText, { color: theme.colors.textInverse }]}>Schedule Meeting</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -55,36 +55,30 @@ export const ScheduleActions: React.FC<ScheduleActionsProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing.xl,
+    paddingHorizontal: 16,
+    paddingBottom: 24,
   },
   buttonRow: {
     flexDirection: 'row',
-    gap: theme.spacing.md,
+    gap: 12,
   },
   button: {
     flex: 1,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
+    paddingVertical: 14,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: theme.colors.surfaceTertiary,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
   },
   scheduleButton: {
-    backgroundColor: theme.colors.primary,
   },
   cancelButtonText: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '600',
   },
   scheduleButtonText: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textInverse,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

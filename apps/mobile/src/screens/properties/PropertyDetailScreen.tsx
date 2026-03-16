@@ -10,19 +10,21 @@ import {
   StyleSheet,
   RefreshControl,
   Alert,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { theme } from '../../theme';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { Property } from '@mintenance/types';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { Badge } from '../../components/ui/Badge';
+import { theme } from '../../theme';
 
 interface Props {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'PropertyDetail'>;
@@ -35,7 +37,9 @@ const InfoRow: React.FC<{
   value: string;
 }> = ({ icon, label, value }) => (
   <View style={styles.infoRow}>
-    <Ionicons name={icon} size={18} color={theme.colors.textSecondary} />
+    <View style={styles.infoIconWrap}>
+      <Ionicons name={icon} size={16} color={theme.colors.textSecondary} />
+    </View>
     <View style={styles.infoContent}>
       <Text style={styles.infoLabel}>{label}</Text>
       <Text style={styles.infoValue}>{value}</Text>
@@ -51,17 +55,24 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
 
   const { data: property, isLoading, error, refetch } = useQuery({
     queryKey: ['property', propertyId],
-    queryFn: () => apiClient.get<Property>(`/api/properties/${propertyId}`),
+    queryFn: async () => {
+      const data = await mobileApiClient.get<Property>(`/api/properties/${propertyId}`);
+      return data;
+    },
     enabled: !!user && !!propertyId,
   });
 
   const { data: jobsData } = useQuery({
     queryKey: ['property-jobs', propertyId],
     queryFn: async () => {
-      const res = await apiClient.get<{ jobs: Array<{ id: string; title: string; status: string; budget?: number; created_at: string }> }>(
-        `/api/jobs?propertyId=${propertyId}`
-      );
-      return res.jobs || [];
+      try {
+        const rows = await mobileApiClient.get<Array<{
+          id: string; title: string; status: string; budget: number; created_at: string;
+        }>>(`/api/properties/${propertyId}/jobs`);
+        return rows || [];
+      } catch {
+        return [];
+      }
     },
     enabled: !!user && !!propertyId,
   });
@@ -72,7 +83,9 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
     .reduce((sum, j) => sum + (j.budget || 0), 0);
 
   const deleteMutation = useMutation({
-    mutationFn: () => apiClient.delete(`/api/properties/${propertyId}`),
+    mutationFn: async () => {
+      await mobileApiClient.delete(`/api/properties/${propertyId}`);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['properties'] });
       navigation.goBack();
@@ -109,6 +122,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <ScreenHeader
         title="Property Details"
         showBack
@@ -123,11 +137,13 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />
         }
       >
         <View style={styles.addressCard}>
-          <Ionicons name="home" size={32} color='#717171' />
+          <View style={styles.addressIconWrap}>
+            <Ionicons name="home" size={24} color="#3B82F6" />
+          </View>
           <Text style={styles.addressLine1}>{property.property_name}</Text>
           <Text style={styles.addressCity}>
             {property.address}
@@ -135,12 +151,12 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Property Information</Text>
+          <Text style={styles.sectionTitle}>PROPERTY INFORMATION</Text>
 
           <InfoRow
             icon="business-outline"
             label="Type"
-            value={formatType(property.property_type)}
+            value={formatType(property.property_type ?? '')}
           />
 
           {property.bedrooms != null && (
@@ -178,7 +194,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
 
         {property.notes && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Notes</Text>
+            <Text style={styles.sectionTitle}>NOTES</Text>
             <Text style={styles.notesText}>{property.notes}</Text>
           </View>
         )}
@@ -186,21 +202,28 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
         {/* Job History */}
         <View style={styles.section}>
           <View style={styles.jobHistoryHeader}>
-            <Text style={styles.sectionTitle}>Job History</Text>
+            <Text style={styles.sectionTitle}>JOB HISTORY</Text>
             {totalSpent > 0 && (
-              <Text style={styles.totalSpent}>
-                {'\u00A3'}{totalSpent.toLocaleString('en-GB')} spent
-              </Text>
+              <View style={styles.totalSpentBadge}>
+                <Text style={styles.totalSpentText}>
+                  {'\u00A3'}{totalSpent.toLocaleString('en-GB')} spent
+                </Text>
+              </View>
             )}
           </View>
           {propertyJobs.length === 0 ? (
-            <Text style={styles.emptyJobsText}>No jobs for this property yet.</Text>
+            <View style={styles.emptyJobsWrap}>
+              <View style={styles.emptyJobsIcon}>
+                <Ionicons name="briefcase-outline" size={20} color={theme.colors.textTertiary} />
+              </View>
+              <Text style={styles.emptyJobsText}>No jobs for this property yet.</Text>
+            </View>
           ) : (
             propertyJobs.map((job) => (
               <TouchableOpacity
                 key={job.id}
                 style={styles.jobRow}
-                onPress={() => navigation.navigate('JobsTab', { screen: 'JobDetails', params: { jobId: job.id } })}
+                onPress={() => (navigation as any).navigate('JobsTab', { screen: 'JobDetails', params: { jobId: job.id } })}
                 accessibilityRole="button"
                 accessibilityLabel={`View ${job.title}`}
               >
@@ -233,75 +256,93 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   content: {
-    padding: theme.spacing[4],
+    padding: 16,
   },
   addressCard: {
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing[5],
+    borderRadius: 16,
+    padding: 20,
     alignItems: 'center',
-    marginBottom: theme.spacing[4],
-    ...theme.shadows.sm,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
+  },
+  addressIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#DBEAFE',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addressLine1: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.bold,
+    fontSize: 20,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginTop: theme.spacing[3],
-    textAlign: 'center',
-  },
-  addressLine2: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing[1],
+    marginTop: 12,
     textAlign: 'center',
   },
   addressCity: {
-    fontSize: theme.typography.fontSize.base,
+    fontSize: 15,
     color: theme.colors.textSecondary,
-    marginTop: theme.spacing[1],
+    marginTop: 4,
     textAlign: 'center',
   },
   section: {
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing[4],
-    marginBottom: theme.spacing[4],
-    ...theme.shadows.sm,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   sectionTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[3],
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 12,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing[2],
-    borderBottomWidth: 1,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border,
+  },
+  infoIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: theme.colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   infoContent: {
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginLeft: theme.spacing[3],
+    marginLeft: 12,
   },
   infoLabel: {
-    fontSize: theme.typography.fontSize.base,
+    fontSize: 15,
     color: theme.colors.textSecondary,
   },
   infoValue: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 15,
+    fontWeight: '600',
     color: theme.colors.textPrimary,
   },
   notesText: {
-    fontSize: theme.typography.fontSize.base,
+    fontSize: 15,
     color: theme.colors.textSecondary,
     lineHeight: 22,
   },
@@ -309,38 +350,56 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing[3],
+    marginBottom: 12,
   },
-  totalSpent: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+  totalSpentBadge: {
+    backgroundColor: theme.colors.primaryLight,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  totalSpentText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
+  emptyJobsWrap: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  emptyJobsIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
   emptyJobsText: {
-    fontSize: theme.typography.fontSize.base,
+    fontSize: 14,
     color: theme.colors.textTertiary,
     textAlign: 'center',
-    paddingVertical: theme.spacing[4],
   },
   jobRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
   },
   jobRowInfo: {
     flex: 1,
-    marginRight: theme.spacing[3],
+    marginRight: 12,
   },
   jobRowTitle: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 15,
+    fontWeight: '600',
     color: theme.colors.textPrimary,
   },
   jobRowDate: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: 12,
     color: theme.colors.textTertiary,
     marginTop: 2,
   },
@@ -349,8 +408,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   jobRowBudget: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 15,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
   },
 });

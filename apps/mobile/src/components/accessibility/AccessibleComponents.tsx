@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { useAccessibility } from '../../hooks/useAccessibility';
+import { theme } from '../../theme';
 
 // ============================================================================
 // ACCESSIBLE BUTTON
@@ -117,11 +118,11 @@ export const AccessibleTextInput = memo<AccessibleTextInputProps>(({
   inputStyle,
   testID,
 }) => {
-  const { 
-    getTextInputProps, 
-    getFormFieldProps, 
+  const {
+    getTextInputProps,
+    getFormFieldProps,
     getErrorProps,
-    shouldUseBoldText 
+    shouldUseBoldText
   } = useAccessibility();
 
   const containerStyle = [styles.inputContainer, style];
@@ -151,13 +152,11 @@ export const AccessibleTextInput = memo<AccessibleTextInputProps>(({
 
   return (
     <View style={containerStyle}>
-      {/* Label */}
       <Text style={labelStyle} {...formFieldProps}>
         {label}
         {required && <Text style={styles.required}> *</Text>}
       </Text>
 
-      {/* Text Input */}
       <TextInput
         style={textInputStyle}
         value={value}
@@ -170,14 +169,12 @@ export const AccessibleTextInput = memo<AccessibleTextInputProps>(({
         {...inputProps}
       />
 
-      {/* Error Message */}
       {error && (
         <Text style={styles.errorText} {...getErrorProps(error)}>
           {error}
         </Text>
       )}
 
-      {/* Hint */}
       {hint && !error && (
         <Text style={styles.hintText}>
           {hint}
@@ -444,16 +441,16 @@ const styles = {
     borderRadius: 8,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-    minHeight: 44, // Minimum touch target
+    minHeight: 44,
   },
   button_primary: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#3B82F6',
   },
   button_secondary: {
-    backgroundColor: '#E5E5E7',
+    backgroundColor: theme.colors.border,
   },
   button_danger: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: theme.colors.error,
   },
   button_small: {
     paddingVertical: 8,
@@ -475,13 +472,13 @@ const styles = {
     fontWeight: '600' as const,
   },
   buttonText_primary: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   buttonText_secondary: {
     color: '#000000',
   },
   buttonText_danger: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   buttonText_small: {
     fontSize: 14,
@@ -507,42 +504,41 @@ const styles = {
     color: '#000000',
   },
   inputLabel_error: {
-    color: '#FF3B30',
+    color: theme.colors.error,
   },
   inputLabel_disabled: {
-    color: '#8E8E93',
+    color: theme.colors.textTertiary,
   },
   textInput: {
-    borderWidth: 1,
-    borderColor: '#D1D1D6',
-    borderRadius: 8,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
     fontSize: 16,
     minHeight: 44,
-    backgroundColor: '#FFFFFF',
   },
   textInput_multiline: {
     minHeight: 100,
     textAlignVertical: 'top' as const,
   },
   textInput_error: {
-    borderColor: '#FF3B30',
+    borderWidth: 1,
+    borderColor: theme.colors.error,
   },
   textInput_disabled: {
-    backgroundColor: '#F2F2F7',
-    color: '#8E8E93',
+    backgroundColor: theme.colors.backgroundSecondary,
+    color: theme.colors.textTertiary,
   },
   required: {
-    color: '#FF3B30',
+    color: theme.colors.error,
   },
   errorText: {
-    color: '#FF3B30',
+    color: theme.colors.error,
     fontSize: 14,
     marginTop: 4,
   },
   hintText: {
-    color: '#8E8E93',
+    color: theme.colors.textTertiary,
     fontSize: 14,
     marginTop: 4,
   },
@@ -596,21 +592,21 @@ const styles = {
     width: 24,
     height: 24,
     borderWidth: 2,
-    borderColor: '#007AFF',
+    borderColor: '#3B82F6',
     borderRadius: 4,
     marginRight: 12,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
   checkbox_checked: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#3B82F6',
   },
   checkbox_disabled: {
-    borderColor: '#8E8E93',
-    backgroundColor: '#F2F2F7',
+    borderColor: theme.colors.textTertiary,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   checkmark: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '700' as const,
   },
@@ -620,14 +616,14 @@ const styles = {
     flex: 1,
   },
   checkboxLabel_disabled: {
-    color: '#8E8E93',
+    color: theme.colors.textTertiary,
   },
 
   // Tab styles
   tabBar: {
     flexDirection: 'row' as const,
     borderBottomWidth: 1,
-    borderBottomColor: '#D1D1D6',
+    borderBottomColor: theme.colors.border,
   },
   tab: {
     flex: 1,
@@ -638,7 +634,7 @@ const styles = {
   },
   tab_active: {
     borderBottomWidth: 2,
-    borderBottomColor: '#007AFF',
+    borderBottomColor: '#3B82F6',
   },
   tabIcon: {
     fontSize: 20,
@@ -646,10 +642,10 @@ const styles = {
   },
   tabText: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: theme.colors.textTertiary,
   },
   tabText_active: {
-    color: '#007AFF',
+    color: '#3B82F6',
     fontWeight: '600' as const,
   },
 
@@ -661,7 +657,7 @@ const styles = {
   },
   loadingText: {
     fontSize: 16,
-    color: '#8E8E93',
+    color: theme.colors.textTertiary,
   },
 
   // Accessibility styles
@@ -669,4 +665,3 @@ const styles = {
     fontWeight: '700' as const,
   },
 };
-

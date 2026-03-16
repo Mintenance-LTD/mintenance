@@ -16,15 +16,16 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { theme } from '../../theme';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { HapticService } from '../../utils/haptics';
 import { JobsStackParamList } from '../../navigation/types';
+import { theme } from '../../theme';
 
 type ScreenRouteProp = RouteProp<JobsStackParamList, 'ReviewSubmission'>;
 type ScreenNavigationProp = NativeStackNavigationProp<JobsStackParamList, 'ReviewSubmission'>;
@@ -68,6 +69,7 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({ route, navigation }) =
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.surface} />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -76,7 +78,7 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({ route, navigation }) =
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Leave a Review</Text>
         <View style={styles.headerSpacer} />
@@ -117,7 +119,7 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({ route, navigation }) =
                   <Ionicons
                     name={star <= rating ? 'star' : 'star-outline'}
                     size={40}
-                    color={star <= rating ? theme.colors.warning : theme.colors.textTertiary}
+                    color={star <= rating ? theme.colors.accent : theme.colors.textTertiary}
                   />
                 </TouchableOpacity>
               ))}
@@ -173,10 +175,10 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({ route, navigation }) =
           accessibilityLabel="Submit review"
         >
           {submitting ? (
-            <ActivityIndicator color="#FFFFFF" />
+            <ActivityIndicator color={theme.colors.textInverse} />
           ) : (
             <>
-              <Ionicons name="send" size={20} color="#FFFFFF" />
+              <Ionicons name="send" size={20} color={theme.colors.textInverse} />
               <Text style={styles.submitButtonText}>Submit Review</Text>
             </>
           )}
@@ -189,7 +191,7 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({ route, navigation }) =
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   flex: {
     flex: 1,
@@ -199,14 +201,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
-    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -218,7 +221,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   headerSpacer: {
-    width: 40,
+    width: 44,
   },
   scrollView: {
     flex: 1,
@@ -227,32 +230,34 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   jobInfoCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
+    marginBottom: 20,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   jobTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: theme.colors.textPrimary,
   },
   contractorName: {
-    fontSize: 14,
+    fontSize: 13,
     color: theme.colors.textSecondary,
     marginTop: 4,
   },
   ratingSection: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   sectionLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: theme.colors.textPrimary,
-    marginBottom: 16,
+    marginBottom: 12,
     alignSelf: 'flex-start',
   },
   starsRow: {
@@ -263,24 +268,26 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   ratingLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
     marginTop: 8,
   },
   commentSection: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   commentInput: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     padding: 16,
     fontSize: 15,
     color: theme.colors.textPrimary,
     minHeight: 140,
     lineHeight: 22,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   charCount: {
     fontSize: 12,
@@ -289,7 +296,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   charCountWarning: {
-    color: theme.colors.warning,
+    color: theme.colors.accent,
   },
   charCountNearLimit: {
     color: theme.colors.error,
@@ -299,32 +306,34 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     paddingHorizontal: 20,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
-    ...theme.shadows.large,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.border,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.08, shadowRadius: 12 },
+      android: { elevation: 8 },
+    }),
   },
   submitButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: 12,
+    backgroundColor: theme.colors.textPrimary,
+    borderRadius: 28,
     paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    minHeight: 52,
+    minHeight: 56,
   },
   submitButtonDisabled: {
     opacity: 0.5,
   },
   submitButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
   },
 });
 
 export default ReviewSubmissionScreen;
-

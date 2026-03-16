@@ -5,13 +5,14 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import { Message } from '../../services/MessagingService';
 import { VideoCallService } from '../../services/VideoCallService';
 import { useAuth } from '../../contexts/AuthContext';
 import { logger } from '../../utils/logger';
+import { theme } from '../../theme';
 
 interface VideoCallMessageProps {
   message: Message;
@@ -60,13 +61,13 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
   const getMessageColor = (): string => {
     switch (message.messageType) {
       case 'video_call_invitation':
-        return theme.colors.primary;
+        return theme.colors.textPrimary;
       case 'video_call_started':
-        return theme.colors.success;
+        return theme.colors.primary;
       case 'video_call_ended':
-        return theme.colors.info;
+        return '#3B82F6';
       case 'video_call_missed':
-        return theme.colors.warning;
+        return theme.colors.accent;
       default:
         return theme.colors.textSecondary;
     }
@@ -91,7 +92,7 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
     return (
       message.messageType === 'video_call_invitation' &&
       message.receiverId === user?.id &&
-      message.callId &&
+      !!message.callId &&
       !VideoCallService.isUserInCall(user.id)
     );
   };
@@ -107,7 +108,7 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
         onCallAccept?.(message.callId);
       } else if (activeCall?.id === message.callId && activeCall.status === 'scheduled') {
         // Call is scheduled but not started yet - start it
-        await VideoCallService.startCall(message.callId, user.id);
+        await VideoCallService.joinCall(message.callId, user.id);
         onCallAccept?.(message.callId);
       } else {
         Alert.alert(
@@ -148,7 +149,7 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
           <Ionicons
             name={getMessageIcon() as keyof typeof Ionicons.glyphMap}
             size={16}
-            color={theme.colors.surface}
+            color={theme.colors.textInverse}
           />
         </View>
         <Text style={styles.messageText}>{message.messageText}</Text>
@@ -167,7 +168,7 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
               style={[styles.actionButton, styles.declineButton]}
               onPress={handleDeclineCall}
             >
-              <Ionicons name="close" size={16} color={theme.colors.surface} />
+              <Ionicons name="close" size={16} color={theme.colors.textInverse} />
               <Text style={styles.actionButtonText}>Decline</Text>
             </TouchableOpacity>
 
@@ -175,7 +176,7 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
               style={[styles.actionButton, styles.joinButton]}
               onPress={handleJoinCall}
             >
-              <Ionicons name="videocam" size={16} color={theme.colors.surface} />
+              <Ionicons name="videocam" size={16} color={theme.colors.textInverse} />
               <Text style={styles.actionButtonText}>Join</Text>
             </TouchableOpacity>
           </View>
@@ -214,18 +215,24 @@ const styles = StyleSheet.create({
   },
   sentMessage: {
     alignSelf: 'flex-end',
-    backgroundColor: theme.colors.primary + '20',
+    backgroundColor: 'rgba(34, 34, 34, 0.12)',
     borderBottomRightRadius: 4,
   },
   receivedMessage: {
     alignSelf: 'flex-start',
     backgroundColor: theme.colors.surface,
     borderBottomLeftRadius: 4,
-    shadowColor: theme.colors.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   messageHeader: {
     flexDirection: 'row',
@@ -271,13 +278,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   joinButton: {
-    backgroundColor: theme.colors.success,
+    backgroundColor: theme.colors.primary,
   },
   declineButton: {
     backgroundColor: theme.colors.error,
   },
   actionButtonText: {
-    color: theme.colors.surface,
+    color: theme.colors.textInverse,
     fontSize: 12,
     fontWeight: '600',
   },

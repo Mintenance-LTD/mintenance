@@ -252,8 +252,8 @@ export const clearImageCache = async (): Promise<void> => {
     logger.info('Clearing image cache');
 
     // Clear React Native image cache
-    await Image.clearDiskCache();
-    await Image.clearMemoryCache();
+    await (Image as unknown as { clearDiskCache: () => Promise<void> }).clearDiskCache();
+    await (Image as unknown as { clearMemoryCache: () => Promise<void> }).clearMemoryCache();
 
     // Clear custom cache
     // Note: CacheService doesn't have a pattern-based clear yet

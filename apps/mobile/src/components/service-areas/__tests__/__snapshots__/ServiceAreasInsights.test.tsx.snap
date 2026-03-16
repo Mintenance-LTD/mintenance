@@ -8,23 +8,23 @@ exports[`ServiceAreasInsights Snapshots should match snapshot with multiple area
     {
       "backgroundColor": "#FFFFFF",
       "borderRadius": 12,
-      "elevation": 5,
+      "elevation": 2,
       "marginBottom": 16,
       "padding": 16,
-      "shadowColor": "#000",
+      "shadowColor": "#000000",
       "shadowOffset": {
         "height": 2,
         "width": 0,
       },
-      "shadowOpacity": 0.1,
-      "shadowRadius": 3.84,
+      "shadowOpacity": 0.08,
+      "shadowRadius": 8,
     }
   }
 >
   <Text
     style={
       {
-        "color": "#0F172A",
+        "color": "#222222",
         "fontSize": 16,
         "fontWeight": "600",
         "marginBottom": 12,
@@ -52,7 +52,7 @@ exports[`ServiceAreasInsights Snapshots should match snapshot with multiple area
     <Text
       style={
         {
-          "color": "#475569",
+          "color": "#717171",
           "flex": 1,
           "fontSize": 14,
           "marginLeft": 8,
@@ -73,7 +73,7 @@ exports[`ServiceAreasInsights Snapshots should match snapshot with multiple area
     }
   >
     <Text
-      color="#0F172A"
+      color="#10B981"
       name="speedometer"
       size={16}
     >
@@ -82,7 +82,7 @@ exports[`ServiceAreasInsights Snapshots should match snapshot with multiple area
     <Text
       style={
         {
-          "color": "#475569",
+          "color": "#717171",
           "flex": 1,
           "fontSize": 14,
           "marginLeft": 8,
@@ -113,7 +113,7 @@ exports[`ServiceAreasInsights Snapshots should match snapshot with multiple area
     <Text
       style={
         {
-          "color": "#475569",
+          "color": "#717171",
           "flex": 1,
           "fontSize": 14,
           "marginLeft": 8,
@@ -134,23 +134,23 @@ exports[`ServiceAreasInsights Snapshots should match snapshot with single area 1
     {
       "backgroundColor": "#FFFFFF",
       "borderRadius": 12,
-      "elevation": 5,
+      "elevation": 2,
       "marginBottom": 16,
       "padding": 16,
-      "shadowColor": "#000",
+      "shadowColor": "#000000",
       "shadowOffset": {
         "height": 2,
         "width": 0,
       },
-      "shadowOpacity": 0.1,
-      "shadowRadius": 3.84,
+      "shadowOpacity": 0.08,
+      "shadowRadius": 8,
     }
   }
 >
   <Text
     style={
       {
-        "color": "#0F172A",
+        "color": "#222222",
         "fontSize": 16,
         "fontWeight": "600",
         "marginBottom": 12,
@@ -169,7 +169,7 @@ exports[`ServiceAreasInsights Snapshots should match snapshot with single area 1
     }
   >
     <Text
-      color="#0F172A"
+      color="#10B981"
       name="speedometer"
       size={16}
     >
@@ -178,7 +178,7 @@ exports[`ServiceAreasInsights Snapshots should match snapshot with single area 1
     <Text
       style={
         {
-          "color": "#475569",
+          "color": "#717171",
           "flex": 1,
           "fontSize": 14,
           "marginLeft": 8,
@@ -209,7 +209,7 @@ exports[`ServiceAreasInsights Snapshots should match snapshot with single area 1
     <Text
       style={
         {
-          "color": "#475569",
+          "color": "#717171",
           "flex": 1,
           "fontSize": 14,
           "marginLeft": 8,

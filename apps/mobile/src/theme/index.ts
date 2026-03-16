@@ -100,10 +100,10 @@ export const theme = {
   // Typography from design tokens with mobile normalization
   typography: {
     fontFamily: {
-      regular: 'System',
-      medium: 'System',
-      semibold: 'System',
-      bold: 'System',
+      regular: 'Inter-Regular',
+      medium: 'Inter-Medium',
+      semibold: 'Inter-SemiBold',
+      bold: 'Inter-Bold',
     },
     fontWeight: {
       regular: '400' as const,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import type { MessagingStackParamList } from '@mintenance/types';
+import type { MessagingStackParamList } from '../types';
 
 // Import existing screens
 import MessagesListScreen from '../../screens/MessagesListScreen';
@@ -20,7 +20,7 @@ const SafeMessagesListScreen = withScreenErrorBoundary(
 );
 
 const SafeMessagingScreen = withScreenErrorBoundary(
-  MessagingScreen as React.ComponentType<Record<string, unknown>>,
+  MessagingScreen as unknown as React.ComponentType<Record<string, unknown>>,
   'Messaging',
   { fallbackRoute: 'MessagesList' }
 );

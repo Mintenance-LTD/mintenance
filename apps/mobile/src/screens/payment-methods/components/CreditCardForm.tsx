@@ -1,8 +1,8 @@
 /**
  * CreditCardForm Component
- * 
+ *
  * Form inputs for credit card details.
- * 
+ *
  * @filesize Target: <140 lines
  * @compliance Single Responsibility - Card form
  */
@@ -10,8 +10,8 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 import type { CardDetails } from '../viewmodels/PaymentMethodsViewModel';
+import { theme } from '../../../theme';
 
 interface CreditCardFormProps {
   cardDetails: CardDetails;
@@ -100,7 +100,7 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({
         accessibilityState={{ checked: saveCard }}
       >
         <View style={[styles.checkbox, saveCard && styles.checkboxSelected]}>
-          {saveCard && <Ionicons name="checkmark" size={16} color={theme.colors.white} />}
+          {saveCard && <Ionicons name="checkmark" size={16} color={theme.colors.textInverse} />}
         </View>
         <Text style={styles.saveCardText}>Save Card</Text>
       </TouchableOpacity>
@@ -111,24 +111,23 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
+    borderRadius: 16,
+    padding: 20,
   },
   inputGroup: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: 20,
   },
   label: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 15,
+    fontWeight: '500',
     color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.sm,
+    marginBottom: 8,
   },
   input: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.base,
-    padding: theme.spacing.md,
-    fontSize: theme.typography.fontSize.lg,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 16,
     color: theme.colors.textPrimary,
   },
   row: {
@@ -141,24 +140,24 @@ const styles = StyleSheet.create({
   saveCardContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing.lg,
+    marginBottom: 20,
   },
   checkbox: {
     width: 24,
     height: 24,
-    borderRadius: 4,
+    borderRadius: 6,
     borderWidth: 2,
     borderColor: theme.colors.border,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: theme.spacing.sm,
+    marginRight: 8,
   },
   checkboxSelected: {
-    borderColor: '#222222',
-    backgroundColor: '#222222',
+    borderColor: theme.colors.textPrimary,
+    backgroundColor: theme.colors.textPrimary,
   },
   saveCardText: {
-    fontSize: theme.typography.fontSize.base,
+    fontSize: 15,
     color: theme.colors.textPrimary,
   },
 });

@@ -2,6 +2,7 @@
  * NotificationScreen Component
  *
  * Displays user notifications with filter tabs and compact card layout.
+ * Airbnb-style: borderless cards, soft shadows, clean typography.
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -13,15 +14,18 @@ import {
   StyleSheet,
   RefreshControl,
   Alert,
+  Platform,
+  ScrollView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import { theme } from '../theme';
-import { ScreenHeader, LoadingSpinner, ErrorView } from '../components/shared';
+import { LoadingSpinner, ErrorView } from '../components/shared';
 import { NotificationService, NotificationData } from '../services/NotificationService';
 import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 type FilterTab = 'all' | 'unread' | 'jobs' | 'payments' | 'messages';
 
@@ -46,29 +50,27 @@ function formatRelativeTime(timestamp: string): string {
   return 'just now';
 }
 
-const getIconName = (type: NotificationData['type']): keyof typeof Ionicons.glyphMap => {
-  switch (type) {
-    case 'job_update':
-      return 'briefcase-outline';
-    case 'bid_received':
-      return 'cash-outline';
-    case 'meeting_scheduled':
-      return 'calendar-outline';
-    case 'payment_received':
-      return 'card-outline';
-    case 'message_received':
-      return 'chatbubble-outline';
-    case 'quote_sent':
-      return 'document-text-outline';
-    case 'system':
-      return 'information-circle-outline';
-    default:
-      return 'notifications-outline';
-  }
+const ICON_COLORS: Record<string, { icon: string; bg: string }> = {
+  job_update:        { icon: '#3B82F6', bg: '#DBEAFE' },
+  bid_received:      { icon: theme.colors.primary, bg: theme.colors.primaryLight },
+  meeting_scheduled: { icon: '#8B5CF6', bg: '#EDE9FE' },
+  payment_received:  { icon: theme.colors.accent, bg: theme.colors.accentLight },
+  message_received:  { icon: '#06B6D4', bg: '#CFFAFE' },
+  quote_sent:        { icon: '#EC4899', bg: '#FCE7F3' },
+  system:            { icon: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary },
 };
 
-const getIconColor = (_type: NotificationData['type']): string => {
-  return '#717171';
+const getIconName = (type: NotificationData['type']): keyof typeof Ionicons.glyphMap => {
+  switch (type) {
+    case 'job_update': return 'briefcase-outline';
+    case 'bid_received': return 'cash-outline';
+    case 'meeting_scheduled': return 'calendar-outline';
+    case 'payment_received': return 'card-outline';
+    case 'message_received': return 'chatbubble-outline';
+    case 'quote_sent': return 'document-text-outline';
+    case 'system': return 'information-circle-outline';
+    default: return 'notifications-outline';
+  }
 };
 
 const filterNotifications = (notifications: NotificationData[], tab: FilterTab): NotificationData[] => {
@@ -95,28 +97,36 @@ interface CompactNotificationProps {
   onPress: () => void;
 }
 
-const CompactNotification: React.FC<CompactNotificationProps> = ({ notification, onPress }) => (
-  <TouchableOpacity
-    style={[styles.notifRow, !notification.read && styles.notifRowUnread]}
-    onPress={onPress}
-    accessibilityRole="button"
-    accessibilityLabel={`${notification.read ? '' : 'Unread: '}${notification.title}`}
-  >
-    <View style={[styles.iconCircle, { backgroundColor: getIconColor(notification.type) + '14' }]}>
-      <Ionicons name={getIconName(notification.type)} size={18} color={getIconColor(notification.type)} />
-      {!notification.read && <View style={styles.unreadDot} />}
-    </View>
-    <View style={styles.notifContent}>
-      <Text style={styles.notifTitle} numberOfLines={1}>{notification.title}</Text>
-      <Text style={styles.notifBody} numberOfLines={1}>{notification.body}</Text>
-    </View>
-    <Text style={styles.notifTime}>{formatRelativeTime(notification.createdAt)}</Text>
-  </TouchableOpacity>
-);
+const CompactNotification: React.FC<CompactNotificationProps> = ({ notification, onPress }) => {
+  const colors = ICON_COLORS[notification.type] || ICON_COLORS.system;
+  return (
+    <TouchableOpacity
+      style={[styles.notifCard, !notification.read && styles.notifCardUnread]}
+      onPress={onPress}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={`${notification.read ? '' : 'Unread: '}${notification.title}`}
+    >
+      <View style={[styles.iconCircle, { backgroundColor: colors.bg }]}>
+        <Ionicons name={getIconName(notification.type)} size={20} color={colors.icon} />
+      </View>
+      <View style={styles.notifContent}>
+        <View style={styles.notifHeader}>
+          <Text style={[styles.notifTitle, !notification.read && styles.notifTitleUnread]} numberOfLines={1}>
+            {notification.title}
+          </Text>
+          <Text style={styles.notifTime}>{formatRelativeTime(notification.createdAt)}</Text>
+        </View>
+        <Text style={styles.notifBody} numberOfLines={2}>{notification.body}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 export const NotificationScreen: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -163,51 +173,85 @@ export const NotificationScreen: React.FC = () => {
     }
 
     const data = notification.data as Record<string, string> | undefined;
+    // Support both camelCase and snake_case keys from notification payload
+    const jobId = data?.jobId || data?.job_id;
+    const conversationId = data?.conversationId || data?.conversation_id;
+    const meetingId = data?.meetingId || data?.meeting_id;
+    const senderId = data?.senderId || data?.sender_id;
+    const senderName = data?.senderName || data?.sender_name;
+    const jobTitle = data?.jobTitle || data?.job_title;
+
     switch (notification.type) {
       case 'job_update':
-      case 'payment_received':
-      case 'quote_sent':
       case 'bid_accepted' as NotificationData['type']:
-        if (data?.jobId) {
-          navigation.navigate('Main', {
+        if (jobId) {
+          (navigation as any).navigate('Main', {
             screen: 'JobsTab',
-            params: { screen: 'JobDetails', params: { jobId: data.jobId } },
+            params: { screen: 'JobDetails', params: { jobId } },
+          });
+        }
+        break;
+      case 'payment_received':
+        if (jobId) {
+          (navigation as any).navigate('Main', {
+            screen: 'ProfileTab',
+            params: { screen: 'PaymentHistory' },
+          });
+        } else {
+          (navigation as any).navigate('Main', {
+            screen: 'ProfileTab',
+            params: { screen: 'PaymentHistory' },
+          });
+        }
+        break;
+      case 'quote_sent':
+        if (jobId) {
+          (navigation as any).navigate('Main', {
+            screen: 'JobsTab',
+            params: { screen: 'JobDetails', params: { jobId } },
           });
         }
         break;
       case 'bid_received':
-        if (data?.jobId) {
-          navigation.navigate('Main', {
+        if (jobId) {
+          (navigation as any).navigate('Main', {
             screen: 'JobsTab',
-            params: { screen: 'BidReview', params: { jobId: data.jobId } },
+            params: { screen: 'BidReview', params: { jobId } },
           });
         }
         break;
       case 'message_received':
-        if (data?.conversationId) {
-          navigation.navigate('Main', {
+        if (conversationId) {
+          (navigation as any).navigate('Main', {
             screen: 'MessagingTab',
             params: {
               screen: 'Messaging',
               params: {
-                conversationId: data.conversationId,
-                jobTitle: data.jobTitle,
-                recipientId: data.senderId,
-                recipientName: data.senderName,
+                conversationId,
+                jobTitle: jobTitle || '',
+                recipientId: senderId || '',
+                recipientName: senderName || '',
               },
             },
           });
         }
         break;
       case 'meeting_scheduled':
-        if (data?.meetingId) {
-          navigation.navigate('Modal', {
+        if (meetingId) {
+          (navigation as any).navigate('Modal', {
             screen: 'MeetingDetails',
-            params: { meetingId: data.meetingId },
+            params: { meetingId },
+          });
+        } else {
+          (navigation as any).navigate('Main', {
+            screen: 'ProfileTab',
+            params: { screen: 'Calendar' },
           });
         }
         break;
       default:
+        // Navigate to home for unhandled notification types
+        (navigation as any).navigate('Main', { screen: 'HomeTab' });
         break;
     }
   };
@@ -244,20 +288,42 @@ export const NotificationScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScreenHeader
-        title="Notifications"
-        rightComponent={
-          unreadCount > 0 ? (
-            <TouchableOpacity onPress={handleMarkAllAsRead} accessibilityRole="button" accessibilityLabel="Mark all as read">
+    <View style={styles.container}>
+      {/* Hero Header */}
+      <LinearGradient
+        colors={['#064E3B', '#059669', '#10B981']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.heroHeader, { paddingTop: insets.top + 12 }]}
+      >
+        <View style={styles.heroDecor1} />
+        <View style={styles.heroDecor2} />
+        <View style={styles.headerBar}>
+          <View>
+            <Text style={styles.headerTitle}>Notifications</Text>
+            <Text style={styles.headerSubtitle}>
+              {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
+            </Text>
+          </View>
+          {unreadCount > 0 && (
+            <TouchableOpacity
+              style={styles.markAllButton}
+              onPress={handleMarkAllAsRead}
+              accessibilityRole="button"
+              accessibilityLabel="Mark all as read"
+            >
+              <Ionicons name="checkmark-done-outline" size={18} color={theme.colors.primary} />
               <Text style={styles.markAllText}>Mark All</Text>
             </TouchableOpacity>
-          ) : null
-        }
-      />
+          )}
+        </View>
+      </LinearGradient>
 
-      {/* Filter tabs */}
-      <View style={styles.tabsRow}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tabsRow}
+      >
         {FILTER_TABS.map((tab) => {
           const isActive = activeTab === tab.key;
           const count = tab.key === 'unread' ? unreadCount : undefined;
@@ -267,20 +333,23 @@ export const NotificationScreen: React.FC = () => {
               style={[styles.tab, isActive && styles.tabActive]}
               onPress={() => setActiveTab(tab.key)}
               accessibilityRole="tab"
+              accessibilityLabel={`Filter ${tab.label}${count != null && count > 0 ? `, ${count} notifications` : ''}`}
               accessibilityState={{ selected: isActive }}
             >
               <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
                 {tab.label}
-                {count != null && count > 0 ? ` (${count})` : ''}
+                {count != null && count > 0 ? ` ${count}` : ''}
               </Text>
             </TouchableOpacity>
           );
         })}
-      </View>
+      </ScrollView>
 
       {filteredNotifications.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="notifications-off-outline" size={48} color={theme.colors.textTertiary} accessible={false} />
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="notifications-off-outline" size={32} color={theme.colors.textSecondary} accessible={false} />
+          </View>
           <Text style={styles.emptyTitle}>
             {activeTab === 'unread' ? 'All caught up!' : 'No notifications'}
           </Text>
@@ -301,41 +370,96 @@ export const NotificationScreen: React.FC = () => {
             />
           )}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor='#222222' colors={['#222222']} />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
           }
           contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
+  },
+  heroHeader: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    overflow: 'hidden',
+  },
+  heroDecor1: {
+    position: 'absolute',
+    top: -30,
+    right: -30,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  heroDecor2: {
+    position: 'absolute',
+    bottom: -20,
+    left: -20,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  headerBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: theme.colors.textInverse,
+    letterSpacing: -0.5,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
+  },
+  markAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 20,
+  },
+  markAllText: {
+    fontSize: 13,
+    color: theme.colors.primary,
+    fontWeight: '600',
   },
   listContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 4,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 24,
   },
-  // Filter tabs
   tabsRow: {
-    flexDirection: 'row',
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    gap: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingTop: 10,
+    paddingBottom: 12,
+    gap: 8,
+    backgroundColor: theme.colors.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
   },
   tab: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: theme.colors.background,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 20,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   tabActive: {
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   tabText: {
     fontSize: 13,
@@ -346,77 +470,95 @@ const styles = StyleSheet.create({
     color: theme.colors.textInverse,
     fontWeight: '600',
   },
-  // Compact notification row
-  notifRow: {
+  notifCard: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    alignItems: 'flex-start',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     backgroundColor: theme.colors.surface,
-    borderRadius: 10,
-    marginBottom: 6,
+    borderRadius: 16,
+    marginBottom: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
-  notifRowUnread: {
+  notifCardUnread: {
+    backgroundColor: theme.colors.primaryLight,
     borderLeftWidth: 3,
-    borderLeftColor: '#222222',
+    borderLeftColor: theme.colors.primary,
   },
   iconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
-    position: 'relative',
-  },
-  unreadDot: {
-    position: 'absolute',
-    top: -1,
-    right: -1,
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: theme.colors.error,
+    marginRight: 12,
+    marginTop: 2,
   },
   notifContent: {
     flex: 1,
-    marginRight: 8,
+  },
+  notifHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 3,
   },
   notifTitle: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '500',
     color: theme.colors.textPrimary,
-    marginBottom: 1,
+    flex: 1,
+    marginRight: 8,
+  },
+  notifTitleUnread: {
+    fontWeight: '700',
   },
   notifBody: {
-    fontSize: 12,
+    fontSize: 13,
     color: theme.colors.textSecondary,
-    lineHeight: 16,
+    lineHeight: 18,
   },
   notifTime: {
-    fontSize: 11,
+    fontSize: 12,
     color: theme.colors.textTertiary,
-    minWidth: 40,
-    textAlign: 'right',
+    flexShrink: 0,
   },
-  // Header actions
-  markAllText: {
-    fontSize: 14,
-    color: '#222222',
-    fontWeight: '500',
-  },
-  // Empty state
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 40,
   },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: theme.colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+      },
+      android: { elevation: 2 },
+    }),
+  },
   emptyTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '600',
     color: theme.colors.textPrimary,
-    marginTop: 12,
     marginBottom: 4,
   },
   emptySubtitle: {

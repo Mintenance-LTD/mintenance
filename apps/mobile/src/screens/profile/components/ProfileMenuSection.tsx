@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../theme';
 
@@ -44,12 +44,12 @@ export const ProfileMenuSection: React.FC<ProfileMenuSectionProps> = ({
             <View
               style={[
                 styles.iconChip,
-                { backgroundColor: item.iconBg ?? theme.colors.surfaceSecondary },
+                { backgroundColor: item.iconBg ?? theme.colors.backgroundSecondary },
               ]}
             >
               <Ionicons
                 name={item.icon as keyof typeof Ionicons.glyphMap}
-                size={18}
+                size={17}
                 color={item.iconColor ?? theme.colors.textSecondary}
               />
             </View>
@@ -61,7 +61,7 @@ export const ProfileMenuSection: React.FC<ProfileMenuSectionProps> = ({
                 </Text>
               </View>
             )}
-            <Ionicons name="chevron-forward" size={15} color={theme.colors.textTertiary} />
+            <Ionicons name="chevron-forward" size={14} color={theme.colors.textTertiary} />
           </TouchableOpacity>
         ))}
       </View>
@@ -88,7 +88,15 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderRadius: 16,
     overflow: 'hidden',
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
   menuItem: {
     flexDirection: 'row',
@@ -98,13 +106,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   menuItemBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
   },
   iconChip: {
     width: 34,
     height: 34,
-    borderRadius: 9,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const current = await AuthService.getCurrentUser();
         if (!isMounted) return;
-        setUser(current);
+        setUser(current as User | null);
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -122,11 +122,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setLoading(true);
     try {
       const result = await AuthService.signIn(email, password);
-      let nextUser: unknown = result?.user;
+      let nextUser = result?.user ?? null;
       if (!nextUser) {
         nextUser = await AuthService.getCurrentUser();
       }
-      setUser(nextUser);
+      setUser(nextUser as User | null);
       // Invoke biometric checks similar to real provider to satisfy tests
       try {
         const available = await BiometricService.isAvailable();
@@ -162,7 +162,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         role: userData.role,
       });
       const nextUser = await AuthService.getCurrentUser();
-      setUser(nextUser);
+      setUser(nextUser as User | null);
       // Biometric prompt simulation
       try {
         const available = await BiometricService.isAvailable();
@@ -198,10 +198,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const { user: restoredUser } =
       await AuthService.restoreSessionFromBiometricTokens({
-        accessToken: credentials.accessToken,
+        accessToken: '',
         refreshToken: credentials.refreshToken,
       });
-    setUser(restoredUser);
+    setUser(restoredUser as User | null);
   };
 
   const isBiometricAvailable = async () => {
@@ -239,5 +239,4 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
 // Export the context and hook
 export { AuthProvider as AuthContextProvider };
-export { useAuth };
 export default AuthProvider;

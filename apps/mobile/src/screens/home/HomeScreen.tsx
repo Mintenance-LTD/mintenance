@@ -1,19 +1,19 @@
 /**
  * HomeScreen Container
- * 
+ *
  * Main container component that orchestrates the home screen functionality
  * and renders the appropriate dashboard based on user role.
  */
 
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { ResponsiveContainer } from '../../components/responsive';
-import { theme } from '../../theme';
 import { HomeownerDashboard } from './HomeownerDashboard';
 import { ContractorDashboard } from './ContractorDashboard';
 import { HomeScreenLoading } from './HomeScreenLoading';
-import { HomeScreenError } from './HomeScreenError';
+import { theme } from '../../theme';
 
 interface HomeScreenProps {
   // Navigation and other props can be passed down if needed
@@ -27,11 +27,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = () => {
     return <HomeScreenLoading />;
   }
 
-  // Error state would be handled by individual dashboard components
-  // This container focuses on role-based rendering
-
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]} edges={['top']}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ResponsiveContainer
         maxWidth={{
           mobile: undefined,
@@ -43,7 +40,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = () => {
           tablet: 16,
           desktop: 24,
         }}
-        style={[styles.container, { backgroundColor: theme.colors.background }]}
+        style={styles.container}
         testID='home-screen'
       >
         {user?.role === 'homeowner' ? (
@@ -56,15 +53,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = () => {
   );
 };
 
-const styles = {
+const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
-};
+});
 
 export default HomeScreen;

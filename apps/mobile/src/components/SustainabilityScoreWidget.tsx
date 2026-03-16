@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import { styles } from './sustainabilityScoreWidgetStyles';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../theme';
 import {
   useContractorESGScore,
   useSustainabilityFormatters,
@@ -17,6 +16,7 @@ import {
   sustainabilityUtils,
 } from '../hooks/useSustainability';
 import { ESGScore } from '../services/SustainabilityEngine';
+import { theme } from '../theme';
 
 interface SustainabilityScoreWidgetProps {
   contractorId?: string;
@@ -25,6 +25,10 @@ interface SustainabilityScoreWidgetProps {
     carbonFootprint?: number;
     recyclingRate?: number;
     energyEfficiency?: number;
+    sustainability_score?: number;
+    predicted_impact?: {
+      carbon_footprint_kg?: number;
+    };
   };
   showDetails?: boolean;
   onScorePress?: () => void;
@@ -58,7 +62,7 @@ export const SustainabilityScoreWidget: React.FC<
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size='large' color={theme.colors.primary} />
+          <ActivityIndicator size='large' color={theme.colors.textPrimary} />
           <Text style={styles.loadingText}>
             Calculating sustainability score...
           </Text>
@@ -85,12 +89,12 @@ export const SustainabilityScoreWidget: React.FC<
     esgScore ||
     (jobAnalysis
       ? ({
-          overall_score: jobAnalysis.sustainability_score,
-          environmental_score: jobAnalysis.sustainability_score,
+          overall_score: jobAnalysis.sustainability_score ?? 0,
+          environmental_score: jobAnalysis.sustainability_score ?? 0,
           social_score: 75,
           governance_score: 70,
           certification_level:
-            jobAnalysis.sustainability_score >= 80 ? 'gold' : 'silver',
+            (jobAnalysis.sustainability_score ?? 0) >= 80 ? 'gold' : 'silver',
           last_calculated: new Date().toISOString(),
         } as ESGScore)
       : null);
@@ -111,7 +115,7 @@ export const SustainabilityScoreWidget: React.FC<
   }
 
   const formatted = formatESGScore(scoreData);
-  const insights = jobAnalysis ? getSustainabilityInsights(jobAnalysis) : [];
+  const insights = jobAnalysis ? getSustainabilityInsights(jobAnalysis as unknown as import('../services/SustainabilityEngine').JobSustainabilityAnalysis) : [];
   const currentLevel = calculateLevel(scoreData.overall_score);
   const nextMilestone = getNextMilestone(scoreData.overall_score);
 
@@ -143,7 +147,7 @@ export const SustainabilityScoreWidget: React.FC<
         onPress={() => setExpanded(!expanded)}
       >
         <View style={styles.headerLeft}>
-          <Ionicons name='leaf' size={24} color={theme.colors.success} />
+          <Ionicons name='leaf' size={24} color={theme.colors.primary} />
           <Text style={styles.headerTitle}>Sustainability Score</Text>
         </View>
         <View style={styles.headerRight}>
@@ -278,10 +282,10 @@ export const SustainabilityScoreWidget: React.FC<
                   {
                     borderLeftColor:
                       insight.type === 'success'
-                        ? theme.colors.success
+                        ? theme.colors.primary
                         : insight.type === 'warning'
-                          ? theme.colors.warning
-                          : theme.colors.info,
+                          ? theme.colors.accent
+                          : '#3B82F6',
                   },
                 ]}
               >
@@ -378,7 +382,7 @@ export const SustainabilityScoreWidget: React.FC<
                     <Text style={styles.detailTitle}>Carbon Footprint</Text>
                     <Text style={styles.detailValue}>
                       {formatCarbonFootprint(
-                        jobAnalysis.predicted_impact.carbon_footprint_kg
+                        jobAnalysis.predicted_impact?.carbon_footprint_kg ?? 0
                       )}
                     </Text>
                     <Text style={styles.detailSubtext}>
@@ -447,9 +451,9 @@ export const SustainabilityScoreWidget: React.FC<
             disabled={isRecalculating}
           >
             {isRecalculating ? (
-              <ActivityIndicator color={theme.colors.primary} size='small' />
+              <ActivityIndicator color={theme.colors.textPrimary} size='small' />
             ) : (
-              <Ionicons name='refresh' size={16} color={theme.colors.primary} />
+              <Ionicons name='refresh' size={16} color={theme.colors.textPrimary} />
             )}
             <Text style={styles.recalculateText}>
               {isRecalculating ? 'Updating...' : 'Recalculate'}

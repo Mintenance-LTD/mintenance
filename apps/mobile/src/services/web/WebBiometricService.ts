@@ -22,8 +22,7 @@ export class WebBiometricService {
 
       addBreadcrumb(
         `Web auth availability check: ${isAvailable}`,
-        'web-auth',
-        'info'
+        'web-auth'
       );
 
       return isAvailable;
@@ -86,8 +85,7 @@ export class WebBiometricService {
 
       addBreadcrumb(
         `Web auth enabled for user: ${email}`,
-        'web-auth',
-        'info'
+        'web-auth'
       );
 
       trackUserAction('web_auth_enabled', {
@@ -110,8 +108,7 @@ export class WebBiometricService {
 
       addBreadcrumb(
         'Web auth disabled',
-        'web-auth',
-        'info'
+        'web-auth'
       );
 
       trackUserAction('web_auth_disabled', {
@@ -144,8 +141,7 @@ export class WebBiometricService {
       if (!password) {
         addBreadcrumb(
           'Web auth cancelled by user',
-          'web-auth',
-          'info'
+          'web-auth'
         );
         return null;
       }
@@ -161,8 +157,7 @@ export class WebBiometricService {
 
       addBreadcrumb(
         'Web auth successful',
-        'web-auth',
-        'info'
+        'web-auth'
       );
 
       trackUserAction('web_auth_success', {
@@ -174,14 +169,15 @@ export class WebBiometricService {
     } catch (error) {
       logger.error('Web authentication failed:', error);
 
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
       addBreadcrumb(
-        `Web auth failed: ${error.message}`,
-        'web-auth',
-        'error'
+        `Web auth failed: ${errorMessage}`,
+        'web-auth'
       );
 
       trackUserAction('web_auth_failed', {
-        error: error.message,
+        error: errorMessage,
         timestamp: new Date().toISOString(),
       });
 
@@ -243,8 +239,7 @@ export class WebBiometricService {
 
       addBreadcrumb(
         'Web auth data cleared',
-        'web-auth',
-        'info'
+        'web-auth'
       );
 
       logger.info('Web authentication data cleared successfully');

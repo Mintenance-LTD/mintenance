@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Animated, Easing, ViewStyle } from 'react-native';
+import { theme } from '../../theme';
 
 interface JobListSkeletonProps {
   count?: number;
@@ -43,13 +44,13 @@ const SkeletonBox: React.FC<{
       style={[
         styles.skeleton,
         {
-          width,
+          width: width as Animated.AnimatedInterpolation<string | number> | number | string,
           height,
           borderRadius,
           opacity,
         },
         style,
-      ]}
+      ] as unknown as Animated.WithAnimatedArray<ViewStyle>}
     />
   );
 };
@@ -199,18 +200,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   skeleton: {
-    backgroundColor: '#EBEBEB',
+    backgroundColor: theme.colors.border,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#EBEBEB',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -234,7 +233,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   detailContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     padding: 16,
   },
   detailHeader: {
@@ -266,12 +265,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   contractorCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#EBEBEB',
   },
   contractorHeader: {
     flexDirection: 'row',

@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import Stripe from 'stripe';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
+import { logger, ESCROW_STATUS, validateEscrowTransition, type EscrowStatusValue } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
+import { EmailService } from '@/lib/email-service';
 import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { stripe } from '@/lib/stripe';
@@ -97,48 +98,69 @@ export const POST = withApiHandler(
       );
     }
 
-    // Update escrow transaction status with optimistic locking
-    const originalUpdatedAt = currentEscrow.updated_at;
-    const { data: updatedEscrow, error: escrowError } = await serverSupabase
-      .from('escrow_transactions')
-      .update({
-        status: 'held',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('payment_intent_id', paymentIntentId)
-      .eq('job_id', jobId)
-      .eq('updated_at', originalUpdatedAt) // Optimistic lock
-      .select()
-      .single();
+    // FIX CRIT-5: Webhook is the source of truth for escrow status.
+    // If webhook already updated escrow to 'held', just confirm that.
+    // If not yet updated, update here as a fallback (webhook may arrive later).
+    let escrowTransaction = currentEscrow;
 
-    if (escrowError) {
-      logger.error('Error updating escrow transaction', escrowError, {
+    if (currentEscrow.status === ESCROW_STATUS.HELD) {
+      // Webhook already processed — just return success
+      logger.info('Escrow already held (webhook processed first)', {
         service: 'payments',
         userId: user.id,
         paymentIntentId,
-        jobId
+        jobId,
       });
+    } else if (currentEscrow.status === ESCROW_STATUS.PENDING) {
+      // Validate escrow transition: pending -> held
+      validateEscrowTransition(currentEscrow.status as EscrowStatusValue, ESCROW_STATUS.HELD as EscrowStatusValue);
+
+      // Webhook hasn't arrived yet — update as fallback
+      const { data: updatedEscrow, error: escrowError } = await serverSupabase
+        .from('escrow_transactions')
+        .update({
+          status: ESCROW_STATUS.HELD,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('payment_intent_id', paymentIntentId)
+        .eq('job_id', jobId)
+        .eq('status', ESCROW_STATUS.PENDING)
+        .select()
+        .single();
+
+      if (escrowError || !updatedEscrow) {
+        // Likely the webhook updated it between our read and write — re-fetch
+        const { data: refetched } = await serverSupabase
+          .from('escrow_transactions')
+          .select('id, job_id, amount, status, stripe_payment_intent_id, payment_intent_id, version, created_at, updated_at')
+          .eq('payment_intent_id', paymentIntentId)
+          .eq('job_id', jobId)
+          .single();
+
+        if (refetched?.status === ESCROW_STATUS.HELD) {
+          escrowTransaction = refetched;
+        } else {
+          logger.error('Error confirming escrow transaction', escrowError, {
+            service: 'payments',
+            userId: user.id,
+            paymentIntentId,
+            jobId,
+          });
+          return NextResponse.json(
+            { error: 'Failed to confirm payment. Please refresh the page.' },
+            { status: 500 }
+          );
+        }
+      } else {
+        escrowTransaction = updatedEscrow;
+      }
+    } else {
+      // Escrow is in an unexpected state (failed, cancelled, etc.)
       return NextResponse.json(
-        { error: 'Failed to update escrow transaction' },
-        { status: 500 }
+        { error: `Payment cannot be confirmed. Current status: ${currentEscrow.status}` },
+        { status: 400 }
       );
     }
-
-    // Check if update succeeded (optimistic lock check)
-    if (!updatedEscrow) {
-      logger.warn('Escrow confirmation failed - transaction was modified by another request (race condition)', {
-        service: 'payments',
-        userId: user.id,
-        paymentIntentId,
-        jobId
-      });
-      return NextResponse.json(
-        { error: 'This escrow transaction was modified by another request. Please try again.' },
-        { status: 409 }
-      );
-    }
-
-    const escrowTransaction = updatedEscrow;
 
     logger.info('Payment confirmed and escrow updated', {
       service: 'payments',
@@ -178,6 +200,59 @@ export const POST = withApiHandler(
       );
 
       await Promise.all(notificationPromises);
+
+      // Send email notifications (non-blocking)
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.mintenance.co.uk';
+      const { data: homeownerProfile } = await serverSupabase
+        .from('profiles')
+        .select('first_name, last_name, email')
+        .eq('id', user.id)
+        .single();
+
+      const { data: contractorProfile } = job.contractor_id
+        ? await serverSupabase
+            .from('profiles')
+            .select('first_name, last_name, email')
+            .eq('id', job.contractor_id)
+            .single()
+        : { data: null };
+
+      const homeownerName = homeownerProfile
+        ? `${homeownerProfile.first_name || ''} ${homeownerProfile.last_name || ''}`.trim() || 'Homeowner'
+        : 'Homeowner';
+      const contractorName = contractorProfile
+        ? `${contractorProfile.first_name || ''} ${contractorProfile.last_name || ''}`.trim() || 'Contractor'
+        : 'Contractor';
+
+      const emailPromises: Promise<boolean>[] = [];
+
+      if (homeownerProfile?.email) {
+        emailPromises.push(
+          EmailService.sendPaymentConfirmationEmail(homeownerProfile.email, {
+            homeownerName,
+            jobTitle,
+            amount: Number(amount),
+            contractorName,
+            viewUrl: `${baseUrl}/payments`,
+          })
+        );
+      }
+
+      if (contractorProfile?.email && job.contractor_id) {
+        emailPromises.push(
+          EmailService.sendPaymentReceivedEmail(contractorProfile.email, {
+            contractorName,
+            jobTitle,
+            amount: Number(amount),
+            homeownerName,
+            viewUrl: `${baseUrl}/contractor/jobs/${jobId}`,
+          })
+        );
+      }
+
+      if (emailPromises.length > 0) {
+        await Promise.allSettled(emailPromises);
+      }
     } catch (notifError) {
       logger.error('Failed to create payment confirmation notifications', notifError, { service: 'payments', jobId });
     }

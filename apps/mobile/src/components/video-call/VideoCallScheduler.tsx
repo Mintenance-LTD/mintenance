@@ -11,11 +11,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { theme } from '../../theme';
 import { VideoCallService } from '../../services/VideoCallService';
 import { useAuth } from '../../contexts/AuthContext';
 import { logger } from '../../utils/logger';
-import { haptics } from '../../utils/haptics';
+import haptics from '../../utils/haptics';
+import { theme } from '../../theme';
 
 interface VideoCallSchedulerProps {
   jobId: string;
@@ -108,7 +108,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
   }, []);
 
   const handleQuickSelect = useCallback((option: ScheduleOption) => {
-    haptics.impact('light');
+    haptics.light();
     setSelectedTime(option.time);
   }, []);
 
@@ -124,42 +124,26 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
     setIsScheduling(true);
 
     try {
-      await haptics.impact('medium');
+      await haptics.medium();
 
-      const participants = [
-        {
-          userId: user.id,
-          displayName: user.first_name + ' ' + (user.last_name || ''),
-          role: 'host' as const,
-        },
-        {
-          userId: otherUserId,
-          displayName: otherUserName,
-          role: 'participant' as const,
-        },
-      ];
+      const participantIds = [user.id, otherUserId];
 
       const scheduledCall = await VideoCallService.scheduleCall(
         jobId,
         user.id,
-        participants,
-        selectedTime,
+        participantIds,
+        selectedTime.toISOString(),
         callType,
-        {
-          title: `${callType.charAt(0).toUpperCase() + callType.slice(1)} call`,
-          description: `Scheduled video call between ${user.first_name} and ${otherUserName}`,
-          estimatedDuration: 30 * 60, // 30 minutes
-        }
       );
 
-      if (scheduledCall.success && scheduledCall.data) {
+      if (scheduledCall?.id) {
         logger.info('Video call scheduled successfully', {
-          callId: scheduledCall.data.id,
+          callId: scheduledCall.id,
           scheduledTime: selectedTime,
           callType,
         });
 
-        onScheduled(scheduledCall.data.id, selectedTime);
+        onScheduled(scheduledCall.id, selectedTime);
         onClose();
 
         Alert.alert(
@@ -168,7 +152,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
           [{ text: 'OK' }]
         );
       } else {
-        throw new Error(scheduledCall.error || 'Failed to schedule call');
+        throw new Error('Failed to schedule call');
       }
     } catch (error) {
       logger.error('Failed to schedule video call:', error);
@@ -231,7 +215,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
             <View style={styles.participantCard}>
               <View style={styles.participantRow}>
                 <View style={styles.participantAvatar}>
-                  <Ionicons name="person" size={20} color={theme.colors.primary} />
+                  <Ionicons name="person" size={20} color={theme.colors.textPrimary} />
                 </View>
                 <Text style={styles.participantName}>You</Text>
                 <View style={styles.hostBadge}>
@@ -259,7 +243,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
                     callType === option.value && styles.callTypeOptionSelected,
                   ]}
                   onPress={() => {
-                    haptics.impact('light');
+                    haptics.light();
                     setCallType(option.value);
                   }}
                 >
@@ -268,7 +252,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
                     size={20}
                     color={
                       callType === option.value
-                        ? theme.colors.surface
+                        ? theme.colors.textInverse
                         : theme.colors.textSecondary
                     }
                   />
@@ -329,11 +313,11 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
               <TouchableOpacity
                 style={styles.dateTimeButton}
                 onPress={() => {
-                  haptics.impact('light');
+                  haptics.light();
                   setShowDatePicker(true);
                 }}
               >
-                <Ionicons name="calendar" size={20} color={theme.colors.primary} />
+                <Ionicons name="calendar" size={20} color={theme.colors.textPrimary} />
                 <Text style={styles.dateTimeButtonText}>
                   {formatDateTime(selectedTime)}
                 </Text>
@@ -346,7 +330,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
           <View style={styles.summaryContainer}>
             <View style={styles.summaryCard}>
               <View style={styles.summaryHeader}>
-                <Ionicons name="time" size={20} color={theme.colors.primary} />
+                <Ionicons name="time" size={20} color={theme.colors.textPrimary} />
                 <Text style={styles.summaryTitle}>Scheduled for</Text>
               </View>
               <Text style={styles.summaryDateTime}>{formatDateTime(selectedTime)}</Text>
@@ -399,7 +383,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -407,7 +391,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
   },
@@ -450,7 +434,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -461,7 +445,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   hostBadge: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -469,7 +453,7 @@ const styles = StyleSheet.create({
   hostBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.surface,
+    color: theme.colors.textInverse,
   },
   callTypeContainer: {
     gap: 8,
@@ -483,7 +467,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   callTypeOptionSelected: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.textPrimary,
   },
   callTypeLabel: {
     fontSize: 16,
@@ -491,7 +475,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   callTypeLabelSelected: {
-    color: theme.colors.surface,
+    color: theme.colors.textInverse,
   },
   quickOptionsContainer: {
     gap: 8,
@@ -500,12 +484,11 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     padding: 16,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'transparent',
   },
   quickOptionSelected: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary + '10',
+    backgroundColor: 'rgba(34, 34, 34, 0.06)',
+    borderWidth: 2,
+    borderColor: theme.colors.textPrimary,
   },
   quickOptionLabel: {
     fontSize: 16,
@@ -514,14 +497,14 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   quickOptionLabelSelected: {
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
   },
   quickOptionTime: {
     fontSize: 14,
     color: theme.colors.textSecondary,
   },
   quickOptionTimeSelected: {
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
   },
   customTimeContainer: {
     gap: 8,
@@ -548,8 +531,17 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     padding: 20,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.primary + '20',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   summaryHeader: {
     flexDirection: 'row',
@@ -565,7 +557,7 @@ const styles = StyleSheet.create({
   summaryDateTime: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   summaryType: {
@@ -578,19 +570,19 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingBottom: Platform.OS === 'ios' ? 34 : 16,
     backgroundColor: theme.colors.surface,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: theme.colors.border,
     gap: 12,
   },
   actionButton: {
     flex: 1,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   cancelButtonText: {
     fontSize: 16,
@@ -598,15 +590,15 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   scheduleButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.textPrimary,
   },
   scheduleButtonDisabled: {
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   scheduleButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.surface,
+    color: theme.colors.textInverse,
   },
 });
 

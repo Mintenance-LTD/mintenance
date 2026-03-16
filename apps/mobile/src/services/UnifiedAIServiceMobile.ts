@@ -9,12 +9,14 @@ import {
   PricingRecommendation,
   AgentDecision,
   SearchResult,
+  SearchFilters,
   ESGScore,
   ImageAnalysis,
   SemanticSearchQuery,
   AgentContext,
   AIServiceResponse,
-  AIServiceConfig
+  AIServiceConfig,
+  UserCorrection
 } from '@mintenance/ai-core';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { config } from '../config/environment';
@@ -159,7 +161,7 @@ export class UnifiedAIServiceMobile {
   /**
    * Semantic search
    */
-  async search(query: string, filters?: unknown): Promise<SearchResult[]> {
+  async search(query: string, filters?: SearchFilters): Promise<SearchResult[]> {
     try {
       const searchQuery: SemanticSearchQuery = {
         query,
@@ -222,7 +224,7 @@ export class UnifiedAIServiceMobile {
    */
   async submitCorrections(
     assessmentId: string,
-    corrections: unknown[]
+    corrections: UserCorrection[]
   ): Promise<boolean> {
     try {
       const response = await this.service.submitCorrections(
@@ -278,8 +280,9 @@ export class UnifiedAIServiceMobile {
       { jobId, contractorId, preferredTimes }
     );
 
-    if (response.success && response.data?.appointmentTime) {
-      return new Date(response.data.appointmentTime);
+    const data = response.data as { appointmentTime?: string } | undefined;
+    if (response.success && data?.appointmentTime) {
+      return new Date(data.appointmentTime);
     }
     return null;
   }
@@ -356,7 +359,7 @@ export class UnifiedAIServiceMobile {
    */
   private getFallbackAssessment(
     images: string[],
-    jobDetails?: unknown
+    jobDetails?: { category?: string }
   ): BuildingAssessment | null {
     // Use the existing RealAIAnalysisService fallback logic
     // This ensures mobile app still works even if API is down
@@ -415,7 +418,7 @@ export class UnifiedAIServiceMobile {
    * Estimate severity from category
    */
   private estimateSeverityFromCategory(category: string): 'minimal' | 'moderate' | 'severe' | 'critical' {
-    const severityMap: { [key: string]: unknown } = {
+    const severityMap: { [key: string]: 'minimal' | 'moderate' | 'severe' | 'critical' } = {
       'emergency': 'critical',
       'plumbing_leak': 'severe',
       'electrical': 'severe',
@@ -431,7 +434,7 @@ export class UnifiedAIServiceMobile {
   /**
    * Perform local search when API is unavailable
    */
-  private async performLocalSearch(query: string, filters?: unknown): Promise<SearchResult[]> {
+  private async performLocalSearch(query: string, filters?: SearchFilters): Promise<SearchResult[]> {
     // Implement basic local search using AsyncStorage
     // This would search through cached jobs, contractors, etc.
     return [];

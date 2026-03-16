@@ -2,9 +2,9 @@ import React, { ErrorInfo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ErrorBoundary } from './ErrorBoundary';
-import { theme } from '../theme';
 import { logger } from '../utils/logger';
 import { captureException } from '../config/sentry';
+import { theme } from '../theme';
 
 interface QueryErrorBoundaryProps {
   children: React.ReactNode;
@@ -42,7 +42,7 @@ export const QueryErrorBoundary: React.FC<QueryErrorBoundaryProps> = ({
       <Ionicons
         name='cloud-offline-outline'
         size={48}
-        color={theme.colors.warning}
+        color={theme.colors.accent}
       />
 
       <Text style={styles.title}>Data Load Error</Text>
@@ -113,12 +113,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   retryButton: {
-    backgroundColor: theme.colors.info,
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 28,
     flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 44,
   },
   retryButtonText: {
     color: theme.colors.textInverse,
@@ -129,9 +130,9 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   debugInfo: {
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
     padding: 12,
-    borderRadius: 6,
+    borderRadius: 12,
     marginTop: 16,
     width: '100%',
   },

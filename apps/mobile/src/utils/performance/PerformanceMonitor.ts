@@ -211,7 +211,7 @@ export class PerformanceMonitor {
   }
 
   getBudgetStatus(): PerformanceBudget[] {
-    return this.generateReport().budgets;
+    return this.generateReport().budgets ?? [];
   }
 
   getAdvancedBudgetStatus(): PerformanceBudget[] {

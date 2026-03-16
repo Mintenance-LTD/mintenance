@@ -6,23 +6,23 @@ exports[`ServiceAreasActions Component Rendering should render consistent snapsh
     {
       "backgroundColor": "#FFFFFF",
       "borderRadius": 12,
-      "elevation": 5,
+      "elevation": 2,
       "marginBottom": 32,
       "padding": 16,
-      "shadowColor": "#000",
+      "shadowColor": "#000000",
       "shadowOffset": {
         "height": 2,
         "width": 0,
       },
-      "shadowOpacity": 0.1,
-      "shadowRadius": 3.84,
+      "shadowOpacity": 0.08,
+      "shadowRadius": 8,
     }
   }
 >
   <Text
     style={
       {
-        "color": "#0F172A",
+        "color": "#222222",
         "fontSize": 16,
         "fontWeight": "600",
         "marginBottom": 16,
@@ -36,7 +36,7 @@ exports[`ServiceAreasActions Component Rendering should render consistent snapsh
     style={
       {
         "alignItems": "center",
-        "backgroundColor": "#F8FAFC",
+        "backgroundColor": "#F7F7F7",
         "borderRadius": 8,
         "flexDirection": "row",
         "marginBottom": 8,
@@ -46,14 +46,14 @@ exports[`ServiceAreasActions Component Rendering should render consistent snapsh
     }
   >
     <Ionicons
-      color="#0F172A"
+      color="#717171"
       name="analytics"
       size={24}
     />
     <Text
       style={
         {
-          "color": "#0F172A",
+          "color": "#222222",
           "fontSize": 14,
           "fontWeight": "500",
           "marginLeft": 12,
@@ -68,7 +68,7 @@ exports[`ServiceAreasActions Component Rendering should render consistent snapsh
     style={
       {
         "alignItems": "center",
-        "backgroundColor": "#F8FAFC",
+        "backgroundColor": "#F7F7F7",
         "borderRadius": 8,
         "flexDirection": "row",
         "marginBottom": 8,
@@ -78,14 +78,14 @@ exports[`ServiceAreasActions Component Rendering should render consistent snapsh
     }
   >
     <Ionicons
-      color="#0F172A"
+      color="#717171"
       name="map"
       size={24}
     />
     <Text
       style={
         {
-          "color": "#0F172A",
+          "color": "#222222",
           "fontSize": 14,
           "fontWeight": "500",
           "marginLeft": 12,
@@ -100,7 +100,7 @@ exports[`ServiceAreasActions Component Rendering should render consistent snapsh
     style={
       {
         "alignItems": "center",
-        "backgroundColor": "#F8FAFC",
+        "backgroundColor": "#F7F7F7",
         "borderRadius": 8,
         "flexDirection": "row",
         "marginBottom": 8,
@@ -110,14 +110,14 @@ exports[`ServiceAreasActions Component Rendering should render consistent snapsh
     }
   >
     <Ionicons
-      color="#0F172A"
+      color="#717171"
       name="location"
       size={24}
     />
     <Text
       style={
         {
-          "color": "#0F172A",
+          "color": "#222222",
           "fontSize": 14,
           "fontWeight": "500",
           "marginLeft": 12,

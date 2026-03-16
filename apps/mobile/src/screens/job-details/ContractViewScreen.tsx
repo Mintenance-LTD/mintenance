@@ -13,16 +13,22 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Linking,
+  TextInput,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
+import * as WebBrowser from 'expo-web-browser';
 import { HapticService } from '../../utils/haptics';
-import { theme } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { JobsStackParamList } from '../../navigation/types';
+import { theme } from '../../theme';
 
 type ScreenRouteProp = RouteProp<JobsStackParamList, 'ContractView'>;
 type ScreenNavigationProp = NativeStackNavigationProp<JobsStackParamList, 'ContractView'>;
@@ -56,6 +62,9 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
   const [contract, setContract] = useState<Contract | null>(null);
   const [loading, setLoading] = useState(true);
   const [signing, setSigning] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
+  const [showRejectInput, setShowRejectInput] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const userRole = user?.role as 'homeowner' | 'contractor' | undefined;
@@ -64,10 +73,30 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await mobileApiClient.get(`/api/contracts?job_id=${jobId}`);
-      const data = response.data as { contracts?: Contract[] };
-      setContract(data.contracts?.[0] || null);
-    } catch (err) {
+      const { data: rows, error: err } = await supabase
+        .from('contracts')
+        .select('*')
+        .eq('job_id', jobId)
+        .limit(1);
+      if (err) throw new Error(err.message);
+      const row = rows?.[0] as Record<string, unknown> | undefined;
+      setContract(row ? {
+        id: row.id as string,
+        job_id: row.job_id as string,
+        contractor_id: row.contractor_id as string,
+        homeowner_id: row.homeowner_id as string,
+        status: row.status as string,
+        title: row.title as string | null,
+        description: row.description as string | null,
+        amount: row.amount as number,
+        start_date: row.start_date as string | null,
+        end_date: row.end_date as string | null,
+        contractor_signed_at: row.contractor_signed_at as string | null,
+        homeowner_signed_at: row.homeowner_signed_at as string | null,
+        terms: (row.terms as Record<string, unknown>) || {},
+        created_at: row.created_at as string,
+      } : null);
+    } catch {
       setError('Failed to load contract');
     } finally {
       setLoading(false);
@@ -108,12 +137,48 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   }, [contract, fetchContract]);
 
+  const handleViewPdf = useCallback(async () => {
+    if (!contract) return;
+    const appUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+    const pdfUrl = `${appUrl}/api/contracts/${contract.id}/pdf`;
+    try {
+      await WebBrowser.openBrowserAsync(pdfUrl);
+    } catch {
+      Linking.openURL(pdfUrl);
+    }
+  }, [contract]);
+
+  const handleReject = useCallback(async () => {
+    if (!contract) return;
+    setRejecting(true);
+    try {
+      await mobileApiClient.post(`/api/contracts/${contract.id}/reject`, {
+        reason: rejectReason.trim(),
+      });
+      HapticService.success();
+      Alert.alert('Changes Requested', 'The contractor has been notified of your requested changes.');
+      setShowRejectInput(false);
+      setRejectReason('');
+      await fetchContract();
+    } catch {
+      HapticService.error();
+      Alert.alert('Error', 'Failed to request changes. Please try again.');
+    } finally {
+      setRejecting(false);
+    }
+  }, [contract, rejectReason, fetchContract]);
+
   const nonSignableStatuses = ['accepted', 'rejected', 'cancelled'];
   const canSign =
     contract &&
     !nonSignableStatuses.includes(contract.status) &&
     ((userRole === 'contractor' && !contract.contractor_signed_at) ||
       (userRole === 'homeowner' && !contract.homeowner_signed_at));
+
+  const canReject =
+    contract &&
+    contract.status === 'pending_homeowner' &&
+    userRole === 'homeowner';
 
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString('en-GB', {
@@ -123,39 +188,13 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
       day: 'numeric',
     });
 
-  if (loading) {
-    return (
-      <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>Loading contract...</Text>
-      </View>
-    );
-  }
-
-  if (error || !contract) {
-    return (
-      <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <Ionicons name="document-text-outline" size={64} color={theme.colors.textTertiary} />
-        <Text style={styles.emptyTitle}>{error || 'No Contract Found'}</Text>
-        <Text style={styles.emptySubtitle}>
-          {userRole === 'contractor'
-            ? 'A contract will be created after a bid is accepted.'
-            : 'The contractor will create a contract after accepting the bid.'}
-        </Text>
-        <TouchableOpacity style={styles.retryButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.retryButtonText}>Go Back</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'accepted': return theme.colors.success;
+      case 'accepted': return theme.colors.primary;
       case 'pending_contractor':
-      case 'pending_homeowner': return '#F59E0B';
+      case 'pending_homeowner': return theme.colors.accent;
       case 'rejected':
-      case 'cancelled': return '#EF4444';
+      case 'cancelled': return theme.colors.error;
       default: return theme.colors.textSecondary;
     }
   };
@@ -172,8 +211,37 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
+  if (loading) {
+    return (
+      <View style={[styles.centered, { paddingTop: insets.top }]}>
+        <ActivityIndicator size="large" color={theme.colors.textPrimary} />
+        <Text style={styles.loadingText}>Loading contract...</Text>
+      </View>
+    );
+  }
+
+  if (error || !contract) {
+    return (
+      <View style={[styles.centered, { paddingTop: insets.top }]}>
+        <View style={styles.emptyIconWrap}>
+          <Ionicons name="document-text-outline" size={32} color={theme.colors.textTertiary} />
+        </View>
+        <Text style={styles.emptyTitle}>{error || 'No Contract Found'}</Text>
+        <Text style={styles.emptySubtitle}>
+          {userRole === 'contractor'
+            ? 'A contract will be created after a bid is accepted.'
+            : 'The contractor will create a contract after accepting the bid.'}
+        </Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.retryButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.surface} />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -182,9 +250,17 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Contract</Text>
+        <TouchableOpacity
+          style={styles.pdfButton}
+          onPress={handleViewPdf}
+          accessibilityRole="button"
+          accessibilityLabel="Download PDF"
+        >
+          <Ionicons name="download-outline" size={20} color={theme.colors.textPrimary} />
+        </TouchableOpacity>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(contract.status) + '20' }]}>
           <Text style={[styles.statusText, { color: getStatusColor(contract.status) }]}>
             {getStatusLabel(contract.status)}
@@ -194,14 +270,39 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: canSign ? 120 : 40 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: canSign || (contract.status === 'draft' && userRole === 'contractor') ? 120 : 40 }]}
         showsVerticalScrollIndicator={false}
       >
+        {/* Draft contract banner */}
+        {contract.status === 'draft' && userRole === 'contractor' && (
+          <View style={styles.draftBanner}>
+            <Ionicons name="alert-circle-outline" size={22} color={theme.colors.accent} />
+            <View style={styles.draftBannerContent}>
+              <Text style={styles.draftBannerTitle}>Contract needs preparation</Text>
+              <Text style={styles.draftBannerText}>
+                Fill in contract terms, dates, and business details before the homeowner can review and sign.
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Amount */}
         <View style={styles.amountCard}>
           <Text style={styles.amountLabel}>Contract Amount</Text>
           <Text style={styles.amountValue}>{'\u00A3'}{Number(contract.amount).toLocaleString()}</Text>
         </View>
+
+        {/* Download PDF Button */}
+        <TouchableOpacity
+          style={styles.downloadPdfButton}
+          onPress={handleViewPdf}
+          accessibilityRole="button"
+          accessibilityLabel="Download contract as PDF"
+        >
+          <Ionicons name="document-text-outline" size={20} color={theme.colors.textSecondary} />
+          <Text style={styles.downloadPdfText}>Download Contract PDF</Text>
+          <Ionicons name="download-outline" size={18} color={theme.colors.textSecondary} />
+        </TouchableOpacity>
 
         {/* Title & Description */}
         {contract.title && (
@@ -257,7 +358,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             <Ionicons
               name={contract.contractor_signed_at ? 'checkmark-circle' : 'ellipse-outline'}
               size={24}
-              color={contract.contractor_signed_at ? theme.colors.success : theme.colors.textTertiary}
+              color={contract.contractor_signed_at ? theme.colors.primary : theme.colors.textTertiary}
             />
             <View style={styles.signatureInfo}>
               <Text style={styles.signatureLabel}>
@@ -275,7 +376,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             <Ionicons
               name={contract.homeowner_signed_at ? 'checkmark-circle' : 'ellipse-outline'}
               size={24}
-              color={contract.homeowner_signed_at ? theme.colors.success : theme.colors.textTertiary}
+              color={contract.homeowner_signed_at ? theme.colors.primary : theme.colors.textTertiary}
             />
             <View style={styles.signatureInfo}>
               <Text style={styles.signatureLabel}>
@@ -293,14 +394,87 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Accepted Banner */}
         {contract.status === 'accepted' && (
           <View style={styles.acceptedBanner}>
-            <Ionicons name="checkmark-circle" size={24} color={theme.colors.success} />
+            <Ionicons name="checkmark-circle" size={24} color={theme.colors.primary} />
             <Text style={styles.acceptedText}>Contract accepted! Both parties have signed.</Text>
+          </View>
+        )}
+
+        {/* Request Contract Revision */}
+        {canReject && !showRejectInput && (
+          <View style={styles.revisionSection}>
+            <TouchableOpacity
+              style={styles.requestChangesButton}
+              onPress={() => setShowRejectInput(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Request contract revision"
+            >
+              <Ionicons name="create-outline" size={18} color={theme.colors.accent} />
+              <Text style={styles.requestChangesText}>Request Contract Revision</Text>
+            </TouchableOpacity>
+            <Text style={styles.revisionInfoText}>
+              The contractor will be notified to update the contract terms. This does not cancel the job.
+            </Text>
+          </View>
+        )}
+
+        {showRejectInput && (
+          <View style={styles.rejectCard}>
+            <Text style={styles.rejectCardTitle}>What changes are needed?</Text>
+            <TextInput
+              style={styles.rejectInput}
+              placeholder="Describe what needs to be changed (e.g., dates, amounts, terms)..."
+              placeholderTextColor={theme.colors.textTertiary}
+              multiline
+              numberOfLines={3}
+              value={rejectReason}
+              onChangeText={setRejectReason}
+              textAlignVertical="top"
+              accessibilityLabel="Describe contract changes needed"
+              accessibilityHint="Explain what terms or dates need to be updated"
+            />
+            <Text style={styles.revisionInfoText}>
+              The contractor will be notified to update the contract terms. This does not cancel the job.
+            </Text>
+            <View style={styles.rejectActions}>
+              <TouchableOpacity
+                style={styles.rejectCancelButton}
+                onPress={() => { setShowRejectInput(false); setRejectReason(''); }}
+              >
+                <Text style={styles.rejectCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.rejectSubmitButton, rejecting && { opacity: 0.5 }]}
+                onPress={handleReject}
+                disabled={rejecting}
+              >
+                {rejecting ? (
+                  <ActivityIndicator color={theme.colors.textInverse} size="small" />
+                ) : (
+                  <Text style={styles.rejectSubmitText}>Send Revision Request</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       </ScrollView>
 
+      {/* Prepare Contract Button (for draft contracts) */}
+      {contract.status === 'draft' && userRole === 'contractor' && (
+        <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+          <TouchableOpacity
+            style={styles.signButton}
+            onPress={() => navigation.navigate('ContractPreparation', { jobId, jobTitle: contract.title || undefined })}
+            accessibilityRole="button"
+            accessibilityLabel="Prepare contract"
+          >
+            <Ionicons name="document-text" size={20} color={theme.colors.textInverse} />
+            <Text style={styles.signButtonText}>Prepare Contract</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Sign Button */}
-      {canSign && (
+      {canSign && contract.status !== 'draft' && (
         <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 20) }]}>
           <TouchableOpacity
             style={[styles.signButton, signing && styles.signButtonDisabled]}
@@ -310,10 +484,10 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             accessibilityLabel="Sign contract"
           >
             {signing ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color={theme.colors.textInverse} />
             ) : (
               <>
-                <Ionicons name="create" size={20} color="#FFFFFF" />
+                <Ionicons name="create" size={20} color={theme.colors.textInverse} />
                 <Text style={styles.signButtonText}>Sign Contract</Text>
               </>
             )}
@@ -327,25 +501,34 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
-    backgroundColor: theme.colors.background,
+    padding: 20,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   loadingText: {
     marginTop: 12,
-    fontSize: 16,
+    fontSize: 15,
     color: theme.colors.textSecondary,
+  },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: theme.colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: theme.colors.textPrimary,
-    marginTop: 16,
+    marginTop: 12,
   },
   emptySubtitle: {
     fontSize: 14,
@@ -357,27 +540,28 @@ const styles = StyleSheet.create({
   retryButton: {
     marginTop: 20,
     paddingHorizontal: 24,
-    paddingVertical: 12,
-    backgroundColor: theme.colors.primary,
-    borderRadius: 8,
+    paddingVertical: 14,
+    backgroundColor: theme.colors.textPrimary,
+    borderRadius: 28,
   },
   retryButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontWeight: '600',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -389,7 +573,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   statusBadge: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
   },
@@ -404,13 +588,15 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   amountCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   amountLabel: {
     fontSize: 13,
@@ -419,7 +605,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   amountValue: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: '700',
     color: theme.colors.textPrimary,
   },
@@ -428,14 +614,14 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 12,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
+    fontWeight: '700',
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     marginBottom: 4,
   },
   sectionValue: {
-    fontSize: 16,
+    fontSize: 15,
     color: theme.colors.textPrimary,
     lineHeight: 22,
   },
@@ -449,7 +635,7 @@ const styles = StyleSheet.create({
   },
   termsCard: {
     backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 20,
   },
@@ -477,12 +663,14 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   signaturesCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   signaturesTitle: {
     fontSize: 14,
@@ -509,19 +697,42 @@ const styles = StyleSheet.create({
     color: theme.colors.textTertiary,
     marginTop: 2,
   },
+  draftBanner: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.accentLight,
+    borderRadius: 16,
+    padding: 14,
+    gap: 10,
+    marginBottom: 20,
+    alignItems: 'flex-start',
+  },
+  draftBannerContent: {
+    flex: 1,
+  },
+  draftBannerTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#92400E',
+    marginBottom: 4,
+  },
+  draftBannerText: {
+    fontSize: 13,
+    color: '#92400E',
+    lineHeight: 18,
+  },
   acceptedBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: theme.colors.successLight,
-    borderRadius: 12,
+    backgroundColor: theme.colors.primaryLight,
+    borderRadius: 16,
     padding: 16,
   },
   acceptedText: {
     flex: 1,
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.success,
+    color: theme.colors.primaryDark,
   },
   bottomBar: {
     position: 'absolute',
@@ -529,31 +740,137 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: theme.colors.surface,
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
-    ...theme.shadows.large,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.border,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.08, shadowRadius: 12 },
+      android: { elevation: 8 },
+    }),
   },
   signButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: 12,
+    backgroundColor: theme.colors.textPrimary,
+    borderRadius: 28,
     paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    minHeight: 52,
+    minHeight: 56,
   },
   signButtonDisabled: {
     opacity: 0.5,
   },
   signButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
+  },
+  pdfButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.backgroundSecondary,
+    marginRight: 8,
+  },
+  downloadPdfButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    marginBottom: 20,
+  },
+  downloadPdfText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: theme.colors.textSecondary,
+  },
+  revisionSection: {
+    marginBottom: 20,
+  },
+  requestChangesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 28,
+    backgroundColor: theme.colors.accentLight,
+  },
+  requestChangesText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#92400E',
+  },
+  revisionInfoText: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    lineHeight: 18,
+    marginTop: 8,
+    textAlign: 'center',
+    paddingHorizontal: 8,
+  },
+  rejectCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
+  },
+  rejectCardTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: 10,
+  },
+  rejectInput: {
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    color: theme.colors.textPrimary,
+    minHeight: 80,
+    marginBottom: 12,
+  },
+  rejectActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  rejectCancelButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  rejectCancelText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.colors.textSecondary,
+  },
+  rejectSubmitButton: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 28,
+    backgroundColor: theme.colors.accent,
+    minWidth: 110,
+    alignItems: 'center',
+  },
+  rejectSubmitText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textInverse,
   },
 });
 
 export default ContractViewScreen;
-

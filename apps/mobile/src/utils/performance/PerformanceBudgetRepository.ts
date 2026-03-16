@@ -120,9 +120,10 @@ export class PerformanceBudgetRepository {
    * Set performance budget for a service
    */
   setBudget(budget: PerformanceBudget): void {
-    this.budgets.set(budget.serviceName, budget);
+    const name = budget.serviceName ?? 'unknown';
+    this.budgets.set(name, budget);
     logger.info('PerformanceBudgetRepository', 'Budget set for service', {
-      serviceName: budget.serviceName,
+      serviceName: name,
       budgets: budget.budgets,
     });
   }
@@ -296,7 +297,7 @@ export class PerformanceBudgetRepository {
     const recommendations: string[] = [];
     const budget = this.getBudget(serviceName);
 
-    if (!budget || metrics.length === 0) {
+    if (!budget || !budget.budgets || metrics.length === 0) {
       return recommendations;
     }
 

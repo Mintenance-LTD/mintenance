@@ -13,7 +13,6 @@ import type { Job } from '@mintenance/types';
 import { mobileApiClient } from '../utils/mobileApiClient';
 import { sanitizeText } from '../utils/sanitize';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
-import { checkRateLimit } from '../middleware/RateLimiter';
 
 // Database row interface for Supabase queries (snake_case)
 interface DatabaseJobRow {
@@ -47,6 +46,8 @@ export class JobCRUDService {
     priority?: 'low' | 'medium' | 'high';
     photos?: string[];
     property_id?: string;
+    latitude?: number;
+    longitude?: number;
   }): Promise<Job> {
     const context = {
       service: 'JobCRUDService',
@@ -60,18 +61,11 @@ export class JobCRUDService {
     };
 
     const result = await ServiceErrorHandler.executeOperation(async () => {
-      // Rate limit check
-      const ownerId = jobData.homeowner_id ?? jobData.homeownerId ?? 'unknown';
-      if (!checkRateLimit('job_create', ownerId)) {
-        throw new Error('Too many job creation attempts. Please try again later.');
-      }
-
-      // Basic input sanitization
+      // Client-side validation for quick UX feedback
       const safeTitle = sanitizeText(jobData.title).trim();
       const safeDescription = sanitizeText(jobData.description).trim();
       const safeLocation = sanitizeText(jobData.location).trim();
 
-      // Validation using ServiceErrorHandler
       ServiceErrorHandler.validateRequired(safeTitle, 'Title', context);
       ServiceErrorHandler.validateRequired(safeDescription, 'Description', context);
       ServiceErrorHandler.validateRequired(safeLocation, 'Location', context);
@@ -80,33 +74,26 @@ export class JobCRUDService {
       const homeowner_id = jobData.homeowner_id ?? jobData.homeownerId;
       ServiceErrorHandler.validateRequired(homeowner_id, 'Homeowner ID', context);
 
-      const { data, error } = await supabase
-        .from('jobs')
-        .insert([
-          {
-            title: safeTitle,
-            description: safeDescription,
-            location: safeLocation,
-            budget: jobData.budget,
-            homeowner_id,
-            category: jobData.category,
-            subcategory: jobData.subcategory,
-            priority: jobData.priority,
-            photos: jobData.photos,
-            property_id: jobData.property_id,
-            status: 'posted',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-        ])
-        .select()
-        .single();
+      // Route through web API for server-side validation, notifications, and rate limiting
+      const response = await mobileApiClient.post<{ job: DatabaseJobRow }>('/api/jobs', {
+        title: safeTitle,
+        description: safeDescription,
+        location: safeLocation,
+        budget: jobData.budget,
+        category: jobData.category,
+        subcategory: jobData.subcategory,
+        priority: jobData.priority,
+        photos: jobData.photos,
+        property_id: jobData.property_id,
+        latitude: jobData.latitude,
+        longitude: jobData.longitude,
+      });
 
-      if (error) {
-        throw ServiceErrorHandler.handleDatabaseError(error, context);
+      if (!response.job) {
+        throw new Error('No job returned from API');
       }
 
-      return this.formatJob(data as DatabaseJobRow);
+      return this.formatJob(response.job);
     }, context);
 
     if (!result.success || !result.data) {
@@ -117,9 +104,9 @@ export class JobCRUDService {
   }
 
   static async getJobById(jobId: string): Promise<Job | null> {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase
       .from('jobs')
-      .select('*')
+      .select('*') as unknown as { eq: (col: string, val: string) => { single: () => Promise<{ data: DatabaseJobRow | null; error: { code?: string; message?: string } | null }> } })
       .eq('id', jobId)
       .single();
 
@@ -135,14 +122,14 @@ export class JobCRUDService {
     // since jobs.photos column is typically empty
     if (!job.photos || job.photos.length === 0) {
       const [attachRes, metaRes] = await Promise.all([
-        supabase
+        (supabase
           .from('job_attachments')
-          .select('file_url')
+          .select('file_url') as unknown as { eq: (c: string, v: string) => { eq: (c: string, v: string) => Promise<{ data: { file_url: string }[] | null }> } })
           .eq('job_id', jobId)
           .eq('file_type', 'image'),
-        supabase
+        (supabase
           .from('job_photos_metadata')
-          .select('photo_url')
+          .select('photo_url') as unknown as { eq: (c: string, v: string) => Promise<{ data: { photo_url: string }[] | null }> })
           .eq('job_id', jobId),
       ]);
 
@@ -169,47 +156,47 @@ export class JobCRUDService {
       throw new Error('Invalid status');
     }
 
-    const { data, error } = await supabase
-      .from('jobs')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', jobId)
-      .select('*')
-      .single();
+    // Route through web API for server-side validation, ownership checks, and notifications
+    const response = await mobileApiClient.put<{ job: DatabaseJobRow }>(`/api/jobs/${jobId}`, updates);
 
-    if (error) throw error;
-    if (!data) throw new Error('Job not found');
-    return this.formatJob(data as DatabaseJobRow);
+    if (!response.job) {
+      throw new Error('No job returned from API');
+    }
+
+    return this.formatJob(response.job);
   }
 
   static async deleteJob(jobId: string): Promise<void> {
-    const { error } = await supabase.from('jobs').delete().eq('id', jobId);
-    if (error) throw new Error(error.message || 'Delete failed');
+    // Route through web API for ownership validation, status checks, and cascade handling
+    await mobileApiClient.delete(`/api/jobs/${jobId}`);
   }
 
   static async updateJobStatus(
     jobId: string,
     status: Job['status'],
-    contractorId?: string
+    _contractorId?: string
   ): Promise<Job> {
-    const updateData: Partial<DatabaseJobRow> = {
-      status,
-      updated_at: new Date().toISOString(),
-    };
-
-    if (contractorId) {
-      updateData.contractor_id = contractorId;
+    // Route through web API for state machine validation, permission checks,
+    // photo gates, escrow verification, and notification side-effects.
+    // Each status transition has a dedicated API endpoint with full validation.
+    switch (status) {
+      case 'in_progress':
+        await mobileApiClient.post(`/api/jobs/${jobId}/start`);
+        break;
+      case 'completed':
+        await mobileApiClient.post(`/api/jobs/${jobId}/complete`);
+        break;
+      default:
+        // For other transitions (e.g. posted→assigned via bid acceptance),
+        // use the general PUT endpoint which validates via state machine
+        await mobileApiClient.put(`/api/jobs/${jobId}`, { status });
+        break;
     }
 
-    const { data, error } = await supabase
-      .from('jobs')
-      .update(updateData)
-      .eq('id', jobId)
-      .select('*')
-      .single();
-
-    if (error) throw new Error(error.message || String(error));
-    if (!data) throw new Error('Job not found');
-    return this.formatJob(data as DatabaseJobRow);
+    // Fetch the updated job to return
+    const updatedJob = await this.getJobById(jobId);
+    if (!updatedJob) throw new Error('Job not found after status update');
+    return updatedJob;
   }
 
   static async startJob(jobId: string): Promise<void> {

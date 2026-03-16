@@ -8,9 +8,9 @@
 import { productionReadinessOrchestrator } from './productionReadinessOrchestrator';
 import { securityAuditService } from './security';
 import { performanceMonitor } from './performanceMonitor';
-import { enhancedErrorAnalytics } from './errorTracking';
+import { enhancedErrorAnalytics } from './errorTracking/index';
 import { monitoringAndAlerting } from './monitoringAndAlerting';
-import { WebOptimizations } from './webOptimizations/';
+import { WebOptimizationsManager as WebOptimizations } from './webOptimizations/';
 import { logger } from './logger';
 
 /**
@@ -95,8 +95,8 @@ export async function runDailySecurityAudit(): Promise<void> {
     const auditReport = await securityAuditService.runSecurityAudit('production');
 
     // Check for critical issues
-    const criticalVulns = auditReport.vulnerabilities.filter((v: unknown) => v.severity === 'critical');
-    const highVulns = auditReport.vulnerabilities.filter((v: unknown) => v.severity === 'high');
+    const criticalVulns = auditReport.vulnerabilities.filter((v) => v.severity === 'critical');
+    const highVulns = auditReport.vulnerabilities.filter((v) => v.severity === 'high');
 
     if (criticalVulns.length > 0) {
       logger.error('ProductionSetup', `🚨 CRITICAL: ${criticalVulns.length} critical vulnerabilities found!`, {
@@ -232,7 +232,7 @@ export const webPlatform = {
   // Get Core Web Vitals (web only)
   getCoreWebVitals: () => {
     if (webPlatform.isWeb()) {
-      return WebOptimizations.getInstance().getCoreWebVitals();
+      return WebOptimizations.getInstance().getWebVitals();
     }
     return null;
   },
@@ -280,7 +280,7 @@ export const dashboardData = {
   async getCompleteStatus() {
     const readinessStatus = productionReadinessOrchestrator.getLatestReadinessStatus();
     const performanceMetrics = performanceMonitor.getMetrics();
-    const errorAnalytics = enhancedErrorAnalytics.getErrorAnalytics();
+    const errorAnalytics = enhancedErrorAnalytics.getErrorAnalytics() as Record<string, unknown>;
     const systemHealth = await monitoringAndAlerting.checkSystemHealth();
 
     return {

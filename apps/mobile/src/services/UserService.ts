@@ -50,7 +50,7 @@ interface DatabaseTodaysJobRow {
   id: string;
   title: string;
   location: string;
-  created_at: string;
+  scheduled_start_date: string;
   homeowner?: {
     first_name?: string;
     last_name?: string;
@@ -67,6 +67,14 @@ interface DatabaseContractorRow {
   contractor_skills?: DatabaseSkillRow[];
 }
 
+export interface ScheduledJob {
+  time: string;
+  client: string;
+  location: string;
+  type: string;
+  jobId: string;
+}
+
 export interface ContractorStats {
   activeJobs: number;
   monthlyEarnings: number;
@@ -77,13 +85,8 @@ export interface ContractorStats {
   responseTime: string;
   successRate: number;
   todaysAppointments: number;
-  nextAppointment?: {
-    time: string;
-    client: string;
-    location: string;
-    type: string;
-    jobId: string;
-  };
+  nextAppointment?: ScheduledJob;
+  todaysJobs: ScheduledJob[];
 }
 
 export interface UserProfile extends User {
@@ -125,16 +128,16 @@ export class UserService {
 
       const typedReviews = (reviews || []) as DatabaseReviewRow[];
 
-      // Get today's appointments (jobs starting today)
-      const today = new Date();
-      const todayStart = new Date(today.setHours(0, 0, 0, 0)).toISOString();
-      const todayEnd = new Date(today.setHours(23, 59, 59, 999)).toISOString();
+      // Get today's scheduled appointments
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+      const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).toISOString();
 
       const { data: todaysJobs, error: todaysError } = await supabase
         .from('jobs')
         .select(
           `
-          id, title, location, created_at,
+          id, title, location, scheduled_start_date,
           homeowner:homeowner_id (
             first_name, last_name
           )
@@ -142,9 +145,9 @@ export class UserService {
         )
         .eq('contractor_id', contractorId)
         .in('status', ['assigned', 'in_progress'])
-        .gte('created_at', todayStart)
-        .lte('created_at', todayEnd)
-        .order('created_at', { ascending: true });
+        .gte('scheduled_start_date', todayStart)
+        .lte('scheduled_start_date', todayEnd)
+        .order('scheduled_start_date', { ascending: true });
 
       if (todaysError) throw todaysError;
 
@@ -180,7 +183,7 @@ export class UserService {
             typedReviews.length
           : 0;
 
-      // Calculate response time (mock for now - would need message timestamps)
+      // Response time (estimated from rating until real message tracking is available)
       const responseTime =
         avgRating >= 4.5 ? '< 1h' : avgRating >= 4.0 ? '< 2h' : '< 4h';
 
@@ -189,23 +192,19 @@ export class UserService {
       const successRate =
         totalJobs > 0 ? Math.round((completedJobs / totalJobs) * 100) : 0;
 
-      // Get next appointment
-      let nextAppointment;
-      if (typedTodaysJobs.length > 0) {
-        const nextJob = typedTodaysJobs[0];
-        nextAppointment = {
-          time: new Date(nextJob.created_at).toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-          }),
-          client:
-            `${nextJob.homeowner?.first_name || ''} ${nextJob.homeowner?.last_name || ''}`.trim() ||
-            'Client',
-          location: nextJob.location,
-          type: nextJob.title,
-          jobId: nextJob.id,
-        };
-      }
+      // Map today's scheduled jobs
+      const scheduledJobs: ScheduledJob[] = typedTodaysJobs.map((job) => ({
+        time: new Date(job.scheduled_start_date).toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+        }),
+        client:
+          `${job.homeowner?.first_name || ''} ${job.homeowner?.last_name || ''}`.trim() ||
+          'Client',
+        location: job.location,
+        type: job.title,
+        jobId: job.id,
+      }));
 
       return {
         activeJobs,
@@ -217,7 +216,8 @@ export class UserService {
         responseTime,
         successRate,
         todaysAppointments: typedTodaysJobs.length,
-        nextAppointment,
+        nextAppointment: scheduledJobs[0],
+        todaysJobs: scheduledJobs,
       };
     } catch (error) {
       const errorInstance =
@@ -234,6 +234,7 @@ export class UserService {
         responseTime: '< 2h',
         successRate: 0,
         todaysAppointments: 0,
+        todaysJobs: [],
       };
     }
   }
@@ -530,7 +531,7 @@ export class UserService {
         contractor: DatabaseContractorRow;
       }
 
-      const typedJobs = completedJobs as JobWithContractor[];
+      const typedJobs = completedJobs as unknown as JobWithContractor[];
 
       // Get unique contractors (avoid duplicates if they worked multiple jobs)
       const uniqueContractors = new Map<string, UserProfile>();

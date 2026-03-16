@@ -64,7 +64,7 @@ export const ResponsiveContainer: React.FC<ResponsiveContainerProps> = ({
   ];
 
   return (
-    <View style={containerStyle} {...props}>
+    <View style={containerStyle as object} {...props}>
       {children}
     </View>
   );

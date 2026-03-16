@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { useListOptimization, useThrottled } from '../../hooks/usePerformance';
+import { theme } from '../../theme';
 
 // ============================================================================
 // TYPES
@@ -82,7 +83,7 @@ export const OptimizedList = memo(<T,>(props: OptimizedListProps<T>) => {
       if (customKeyExtractor) {
         return customKeyExtractor(item, index);
       }
-      return listOptimization.keyExtractor(item, index);
+      return listOptimization.keyExtractor(item as Record<string, unknown>, index);
     },
     [customKeyExtractor, listOptimization.keyExtractor]
   );
@@ -108,7 +109,7 @@ export const OptimizedList = memo(<T,>(props: OptimizedListProps<T>) => {
   // Throttle end reached to prevent multiple calls
   const throttledOnEndReached = useThrottled(
     onEndReached || (() => {}),
-    1000 // 1 second throttle for pagination
+    1000
   );
 
   // ============================================================================
@@ -117,13 +118,13 @@ export const OptimizedList = memo(<T,>(props: OptimizedListProps<T>) => {
 
   const refreshControl = useMemo(() => {
     if (!onRefresh) return undefined;
-    
+
     return (
       <RefreshControl
         refreshing={refreshing}
         onRefresh={onRefresh}
-        tintColor="#007AFF"
-        colors={['#007AFF']}
+        tintColor="#3B82F6"
+        colors={['#3B82F6']}
       />
     );
   }, [onRefresh, refreshing]);
@@ -136,25 +137,25 @@ export const OptimizedList = memo(<T,>(props: OptimizedListProps<T>) => {
         </View>
       );
     }
-    
-    return React.isValidElement(ListEmptyComponent) 
-      ? ListEmptyComponent 
+
+    return React.isValidElement(ListEmptyComponent)
+      ? ListEmptyComponent
       : <ListEmptyComponent />;
   }, [ListEmptyComponent, testID]);
 
   const headerComponent = useMemo(() => {
     if (!ListHeaderComponent) return null;
-    
-    return React.isValidElement(ListHeaderComponent) 
-      ? ListHeaderComponent 
+
+    return React.isValidElement(ListHeaderComponent)
+      ? ListHeaderComponent
       : <ListHeaderComponent />;
   }, [ListHeaderComponent]);
 
   const footerComponent = useMemo(() => {
     if (!ListFooterComponent) return null;
-    
-    return React.isValidElement(ListFooterComponent) 
-      ? ListFooterComponent 
+
+    return React.isValidElement(ListFooterComponent)
+      ? ListFooterComponent
       : <ListFooterComponent />;
   }, [ListFooterComponent]);
 
@@ -163,85 +164,54 @@ export const OptimizedList = memo(<T,>(props: OptimizedListProps<T>) => {
   // ============================================================================
 
   const optimizedProps = useMemo(() => ({
-    // Core props
     data,
     renderItem,
     keyExtractor,
     getItemLayout: !horizontal ? getItemLayout : undefined,
-    
-    // Performance props
     removeClippedSubviews: listOptimization.removeClippedSubviews,
     maxToRenderPerBatch: listOptimization.maxToRenderPerBatch,
     updateCellsBatchingPeriod: listOptimization.updateCellsBatchingPeriod,
     initialNumToRender: listOptimization.initialNumToRender,
     windowSize: listOptimization.windowSize,
-    
-    // Event props
     onScroll: onScroll ? throttledOnScroll : undefined,
     scrollEventThrottle: onScroll ? scrollEventThrottle : undefined,
     onEndReached: onEndReached ? throttledOnEndReached : undefined,
     onEndReachedThreshold,
-    
-    // Component props
     ListEmptyComponent: emptyComponent,
     ListHeaderComponent: headerComponent,
     ListFooterComponent: footerComponent,
     refreshControl,
-    
-    // Style props
     style: [styles.list, style],
     contentContainerStyle: [
       data?.length === 0 && styles.emptyContentContainer,
       contentContainerStyle,
     ],
-    
-    // Layout props
     numColumns,
     horizontal,
-    
-    // Accessibility
     testID,
-    
-    // Platform specific optimizations
     ...(Platform.OS === 'ios' && {
       bounces: true,
       bouncesZoom: false,
       alwaysBounceVertical: false,
       alwaysBounceHorizontal: false,
     }),
-    
     ...(Platform.OS === 'android' && {
-      overScrollMode: 'auto',
+      overScrollMode: 'auto' as const,
     }),
   }), [
-    data,
-    renderItem,
-    keyExtractor,
-    getItemLayout,
-    horizontal,
-    listOptimization,
-    onScroll,
-    throttledOnScroll,
-    scrollEventThrottle,
-    onEndReached,
-    throttledOnEndReached,
-    onEndReachedThreshold,
-    emptyComponent,
-    headerComponent,
-    footerComponent,
-    refreshControl,
-    style,
-    contentContainerStyle,
-    numColumns,
-    testID,
+    data, renderItem, keyExtractor, getItemLayout, horizontal,
+    listOptimization, onScroll, throttledOnScroll, scrollEventThrottle,
+    onEndReached, throttledOnEndReached, onEndReachedThreshold,
+    emptyComponent, headerComponent, footerComponent, refreshControl,
+    style, contentContainerStyle, numColumns, testID,
   ]);
 
   // ============================================================================
   // RENDER
   // ============================================================================
 
-  return <FlatList {...optimizedProps} />;
-}) as <T>(props: OptimizedListProps<T>) => JSX.Element;
+  return <FlatList {...(optimizedProps as React.ComponentProps<typeof FlatList>)} />;
+}) as (<T>(props: OptimizedListProps<T>) => React.ReactElement) & { displayName?: string };
 
 OptimizedList.displayName = 'OptimizedList';
 
@@ -261,7 +231,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#666666',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
   },
   emptyContentContainer: {

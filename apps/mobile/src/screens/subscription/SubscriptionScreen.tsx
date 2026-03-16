@@ -6,16 +6,20 @@ import {
   Alert,
   StyleSheet,
   RefreshControl,
+  Platform,
+  ActivityIndicator,
+  TouchableOpacity,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigation } from '@react-navigation/native';
-import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
+import { Ionicons } from '@expo/vector-icons';
+import { ScreenHeader } from '../../components/shared';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-import { Card } from '../../components/ui/Card';
-import { theme } from '../../theme';
 import { mobileApiClient } from '../../utils/mobileApiClient';
+import { theme } from '../../theme';
 
 interface SubscriptionPlanFeatures {
   maxJobs?: number | null;
@@ -54,14 +58,18 @@ interface SubscriptionStatus {
   role: string;
   subscription: {
     planType: string;
+    planName?: string;
     status: string;
+    amount?: number;
     currentPeriodEnd?: string;
     cancelAtPeriodEnd?: boolean;
   } | null;
   trial?: {
-    active: boolean;
+    isTrialActive?: boolean;
+    active?: boolean;
     daysRemaining: number;
-  };
+  } | null;
+  requiresSubscription?: boolean;
 }
 
 export const SubscriptionScreen: React.FC = () => {
@@ -80,8 +88,23 @@ export const SubscriptionScreen: React.FC = () => {
   const { data: plans, isLoading: plansLoading } = useQuery({
     queryKey: ['subscription-plans'],
     queryFn: async () => {
-      const response = await mobileApiClient.get<{ plans: SubscriptionPlan[] }>('/api/subscriptions/plans');
-      return response.plans || [];
+      const response = await mobileApiClient.get<{
+        plans: Array<{
+          planType: string;
+          name: string;
+          price: number;
+          currency?: string;
+          features: string[] | SubscriptionPlanFeatures;
+        }>;
+      }>('/api/subscriptions/plans');
+      return (response.plans || []).map((p) => ({
+        id: p.planType,
+        name: p.name,
+        price: p.price,
+        billingCycle: 'monthly' as const,
+        features: p.features,
+        recommended: p.planType === 'professional',
+      }));
     },
   });
 
@@ -137,36 +160,54 @@ export const SubscriptionScreen: React.FC = () => {
   };
 
   const isLoading = statusLoading || plansLoading;
-  if (isLoading) return <LoadingSpinner />;
-  if (statusError) return <ErrorView onRetry={refetchStatus} />;
 
   const currentPlan = status?.subscription;
-  const trial = status?.trial;
+  const rawTrial = status?.trial;
+  const trial = rawTrial ? { active: rawTrial.isTrialActive ?? rawTrial.active ?? false, daysRemaining: rawTrial.daysRemaining } : null;
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <ScreenHeader title="Subscription" showBack onBack={() => navigation.goBack()} />
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetchStatus} />}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetchStatus} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />}
       >
+        {isLoading ? (
+          <View style={styles.inlineCenter}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <Text style={styles.inlineText}>Loading subscription...</Text>
+          </View>
+        ) : statusError ? (
+          <View style={styles.inlineCenter}>
+            <Ionicons name="alert-circle-outline" size={32} color={theme.colors.error} />
+            <Text style={styles.inlineText}>Failed to load subscription</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={() => refetchStatus()}>
+              <Text style={styles.retryBtnText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+        <>
         {/* Current Status */}
-        <Card variant="elevated" padding="md" style={styles.statusCard}>
+        <View style={styles.statusCard}>
           <Text style={styles.statusLabel}>Current Plan</Text>
           <View style={styles.statusRow}>
             <Text style={styles.planName}>
-              {currentPlan?.planType || 'No Plan'}
+              {currentPlan?.planName || currentPlan?.planType || 'No Plan'}
             </Text>
             <Badge variant={currentPlan?.status === 'active' ? 'success' : 'warning'}>
               {currentPlan?.status || (trial?.active ? 'Trial' : 'Inactive')}
             </Badge>
           </View>
           {trial?.active && (
-            <Text style={styles.trialText}>
-              {trial.daysRemaining} days remaining in trial
-            </Text>
+            <View style={styles.trialChip}>
+              <Ionicons name="time-outline" size={14} color={theme.colors.accent} />
+              <Text style={styles.trialText}>
+                {trial.daysRemaining} days remaining in trial
+              </Text>
+            </View>
           )}
           {currentPlan?.currentPeriodEnd && (
             <Text style={styles.periodText}>
@@ -185,21 +226,22 @@ export const SubscriptionScreen: React.FC = () => {
               Cancel Subscription
             </Button>
           )}
-        </Card>
+        </View>
 
         {/* Available Plans */}
         <Text style={styles.sectionTitle}>Available Plans</Text>
 
         {(plans || []).map((plan) => {
           const isCurrent = currentPlan?.planType === plan.id;
+          const isSelected = selectedPlan === plan.id;
           return (
-            <Card
+            <View
               key={plan.id}
-              variant={selectedPlan === plan.id ? 'outlined' : 'elevated'}
-              padding="md"
-              style={[styles.planCard, isCurrent && styles.currentPlanCard]}
-              interactive
-              onPress={() => setSelectedPlan(plan.id)}
+              style={[
+                styles.planCard,
+                isCurrent && styles.currentPlanCard,
+                isSelected && !isCurrent && styles.selectedPlanCard,
+              ]}
             >
               <View style={styles.planHeader}>
                 <View>
@@ -209,17 +251,26 @@ export const SubscriptionScreen: React.FC = () => {
                     <Text style={styles.planCycle}>/{plan.billingCycle === 'monthly' ? 'mo' : 'yr'}</Text>
                   </Text>
                 </View>
-                {plan.recommended && (
-                  <Badge variant="primary" size="sm">Recommended</Badge>
-                )}
-                {isCurrent && (
-                  <Badge variant="success" size="sm">Current</Badge>
-                )}
+                <View style={styles.badgeStack}>
+                  {plan.recommended && (
+                    <View style={styles.recommendedBadge}>
+                      <Ionicons name="star" size={10} color={theme.colors.accent} />
+                      <Text style={styles.recommendedText}>Recommended</Text>
+                    </View>
+                  )}
+                  {isCurrent && (
+                    <View style={styles.currentBadge}>
+                      <Text style={styles.currentBadgeText}>Current</Text>
+                    </View>
+                  )}
+                </View>
               </View>
 
               {getFeatureStrings(plan.features).map((feature, idx) => (
                 <View key={idx} style={styles.featureRow}>
-                  <Text style={styles.featureCheck}>✓</Text>
+                  <View style={styles.featureCheckWrap}>
+                    <Ionicons name="checkmark" size={14} color={theme.colors.primary} />
+                  </View>
                   <Text style={styles.featureText}>{feature}</Text>
                 </View>
               ))}
@@ -236,9 +287,11 @@ export const SubscriptionScreen: React.FC = () => {
                   {currentPlan ? 'Switch Plan' : 'Subscribe'}
                 </Button>
               )}
-            </Card>
+            </View>
           );
         })}
+        </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -253,19 +306,31 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: theme.layout.screenPadding,
-    paddingBottom: theme.spacing[10],
+    padding: 16,
+    paddingBottom: 40,
   },
   statusCard: {
-    marginBottom: theme.spacing[6],
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
   statusLabel: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: 12,
     color: theme.colors.textTertiary,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: theme.spacing[2],
+    letterSpacing: 0.8,
+    marginBottom: 8,
   },
   statusRow: {
     flexDirection: 'row',
@@ -273,79 +338,160 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   planName: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.bold,
+    fontSize: 22,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     textTransform: 'capitalize',
   },
+  trialChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: theme.colors.accentLight,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    alignSelf: 'flex-start',
+    marginTop: 8,
+  },
   trialText: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: 13,
     color: theme.colors.accent,
-    fontWeight: theme.typography.fontWeight.medium,
-    marginTop: theme.spacing[1],
+    fontWeight: '600',
   },
   periodText: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: 13,
     color: theme.colors.textSecondary,
-    marginTop: theme.spacing[1],
+    marginTop: 6,
   },
   cancelBtn: {
-    marginTop: theme.spacing[3],
+    marginTop: 12,
     alignSelf: 'flex-start',
   },
   sectionTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 17,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[4],
+    marginBottom: 14,
   },
   planCard: {
-    marginBottom: theme.spacing[4],
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 14,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
   currentPlanCard: {
-    borderColor: '#222222',
     borderWidth: 2,
+    borderColor: theme.colors.primary,
+  },
+  selectedPlanCard: {
+    borderWidth: 2,
+    borderColor: theme.colors.primary,
   },
   planHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: theme.spacing[3],
+    marginBottom: 14,
   },
   planTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 17,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
   },
   planPrice: {
-    fontSize: theme.typography.fontSize['2xl'],
-    fontWeight: theme.typography.fontWeight.bold,
+    fontSize: 28,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginTop: theme.spacing[1],
+    marginTop: 4,
   },
   planCycle: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.regular,
+    fontSize: 14,
+    fontWeight: '400',
     color: theme.colors.textTertiary,
+  },
+  badgeStack: {
+    gap: 4,
+    alignItems: 'flex-end',
+  },
+  recommendedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: theme.colors.accentLight,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  recommendedText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.accent,
+  },
+  currentBadge: {
+    backgroundColor: theme.colors.primaryLight,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  currentBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.primary,
   },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing[2],
+    marginBottom: 8,
+    gap: 10,
   },
-  featureCheck: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.success,
-    marginRight: theme.spacing[2],
-    fontWeight: theme.typography.fontWeight.bold,
+  featureCheckWrap: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   featureText: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: 14,
     color: theme.colors.textSecondary,
     flex: 1,
   },
   subscribeBtn: {
-    marginTop: theme.spacing[4],
+    marginTop: 16,
+    borderRadius: 28,
+  },
+  inlineCenter: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    gap: 12,
+  },
+  inlineText: {
+    fontSize: 15,
+    color: theme.colors.textSecondary,
+  },
+  retryBtn: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    marginTop: 4,
+  },
+  retryBtnText: {
+    color: theme.colors.textInverse,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

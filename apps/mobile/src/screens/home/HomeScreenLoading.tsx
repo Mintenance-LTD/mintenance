@@ -1,13 +1,13 @@
 /**
  * HomeScreenLoading Component
- * 
+ *
  * Displays loading state for the home screen.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../theme';
+import { View, StyleSheet } from 'react-native';
 import { SkeletonDashboard } from '../../components/SkeletonLoader';
+import { theme } from '../../theme';
 
 export const HomeScreenLoading: React.FC = () => {
   return (
@@ -20,6 +20,6 @@ export const HomeScreenLoading: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
 });

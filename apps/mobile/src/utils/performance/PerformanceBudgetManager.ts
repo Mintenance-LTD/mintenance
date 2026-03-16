@@ -7,7 +7,7 @@ import { logger } from '../logger';
 import { errorMonitoring } from '../errorMonitoring';
 import { PerformanceBudgetRepository } from './PerformanceBudgetRepository';
 import { PerformanceMetricsCollector } from './PerformanceMetricsCollector';
-import {
+import type {
   PerformanceBudget,
   PerformanceMetrics,
   BudgetViolation,
@@ -50,8 +50,8 @@ export class PerformanceBudgetManager {
 
     logger.info('PerformanceBudgetManager', 'Budget configured', {
       serviceName: budget.serviceName,
-      responseTime: budget.budgets.responseTime,
-      memoryUsage: budget.budgets.memoryUsage,
+      responseTime: budget.budgets?.responseTime,
+      memoryUsage: budget.budgets?.memoryUsage,
     });
   }
 
@@ -158,9 +158,15 @@ export class PerformanceBudgetManager {
         errorMonitoring.reportError(
           new Error(`Critical performance budget violation: ${alert.message}`),
           {
-            serviceName: metrics.serviceName,
-            metric: violation.metric,
-            violationPercentage: violation.violationPercentage,
+            severity: 'high',
+            context: {
+              component: 'PerformanceBudgetManager',
+              props: {
+                serviceName: metrics.serviceName,
+                metric: violation.metric,
+                violationPercentage: violation.violationPercentage,
+              },
+            },
           }
         );
       }

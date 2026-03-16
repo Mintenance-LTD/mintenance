@@ -44,24 +44,19 @@ export class BidManagementService {
     description: string;
     estimatedDurationDays?: number;
   }): Promise<Bid> {
-    const { data, error } = await supabase
-      .from('bids')
-      .insert([
-        {
-          job_id: bidData.jobId,
-          contractor_id: bidData.contractorId,
-          amount: bidData.amount,
-          message: bidData.description,
-          status: 'pending',
-          created_at: new Date().toISOString(),
-          ...(bidData.estimatedDurationDays && { estimated_duration_days: bidData.estimatedDurationDays }),
-        },
-      ])
-      .select()
-      .single();
+    // Route through web API for server-side validation, subscription checks, and notifications
+    const response = await mobileApiClient.post<{ bid: DatabaseBidsRow }>('/api/contractor/submit-bid', {
+      job_id: bidData.jobId,
+      amount: bidData.amount,
+      message: bidData.description,
+      estimated_duration_days: bidData.estimatedDurationDays,
+    });
 
-    if (error) throw error;
-    return this.formatBid(data);
+    if (!response.bid) {
+      throw new Error('No bid returned from API');
+    }
+
+    return this.formatBid(response.bid);
   }
 
   static async getBidsByJob(jobId: string): Promise<Bid[]> {

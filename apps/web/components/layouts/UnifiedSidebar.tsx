@@ -197,6 +197,7 @@ export function UnifiedSidebar(props: UnifiedSidebarProps) {
                     badge: 'messages',
                     shortcut: 'g m'
                 },
+                { label: 'Documents', href: '/documents', icon: FolderOpen },
                 { label: 'Scheduling', href: '/scheduling', icon: Calendar, shortcut: 'g s' },
                 { label: 'Video Calls', href: '/video-calls', icon: Video, shortcut: 'g v' },
             ]
@@ -207,6 +208,7 @@ export function UnifiedSidebar(props: UnifiedSidebarProps) {
                 { label: 'Properties', href: '/properties', icon: Building2 },
                 { label: 'Compliance', href: '/properties/compliance', icon: ClipboardCheck },
                 { label: 'Financials', href: '/financials', icon: PoundSterling },
+                { label: 'Payments', href: '/payments', icon: CreditCard },
             ]
         },
         {

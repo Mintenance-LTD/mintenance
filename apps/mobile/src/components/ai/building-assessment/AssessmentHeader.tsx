@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 import { BuildingAssessment } from './types';
+import { theme } from '../../../theme';
 
 interface Props { assessment: BuildingAssessment; expanded: boolean; onToggle: () => void }
 
@@ -26,6 +26,6 @@ const styles = StyleSheet.create({
   headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   headerRight: { flexDirection: 'row', alignItems: 'center' },
   title: { fontSize: 16, fontWeight: '700', marginLeft: 8, color: theme.colors.textPrimary },
-  confidenceBadge: { backgroundColor: theme.colors.success + '20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, marginRight: 8 },
-  confidenceText: { fontSize: 12, color: theme.colors.success, fontWeight: '600' },
+  confidenceBadge: { backgroundColor: 'rgba(16, 185, 129, 0.12)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, marginRight: 8 },
+  confidenceText: { fontSize: 12, color: theme.colors.primary, fontWeight: '600' },
 });

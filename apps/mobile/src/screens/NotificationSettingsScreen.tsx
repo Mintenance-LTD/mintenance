@@ -7,16 +7,43 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
-  ActivityIndicator,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../theme';
 import Button from '../components/ui/Button';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { theme } from '../theme';
+
+interface IconConfig {
+  name: keyof typeof Ionicons.glyphMap;
+  color: string;
+  bg: string;
+}
+
+const SETTING_ICONS: Record<string, IconConfig> = {
+  notifications: { name: 'notifications', color: '#3B82F6', bg: '#DBEAFE' },
+  briefcase: { name: 'briefcase', color: theme.colors.primary, bg: theme.colors.primaryLight },
+  pricetag: { name: 'pricetag', color: theme.colors.accent, bg: theme.colors.accentLight },
+  chatbubble: { name: 'chatbubble', color: '#8B5CF6', bg: '#EDE9FE' },
+  refresh: { name: 'refresh', color: '#3B82F6', bg: '#DBEAFE' },
+  card: { name: 'card', color: theme.colors.primary, bg: theme.colors.primaryLight },
+  mail: { name: 'mail', color: theme.colors.error, bg: '#FEE2E2' },
+  calendar: { name: 'calendar', color: theme.colors.accent, bg: theme.colors.accentLight },
+  'shield-checkmark': { name: 'shield-checkmark', color: theme.colors.error, bg: '#FEE2E2' },
+  'volume-high': { name: 'volume-high', color: '#3B82F6', bg: '#DBEAFE' },
+  'phone-portrait': { name: 'phone-portrait', color: '#8B5CF6', bg: '#EDE9FE' },
+  megaphone: { name: 'megaphone', color: theme.colors.accent, bg: theme.colors.accentLight },
+  'information-circle': { name: 'information-circle', color: '#3B82F6', bg: '#DBEAFE' },
+  'moon-outline': { name: 'moon-outline', color: '#8B5CF6', bg: '#EDE9FE' },
+  'time-outline': { name: 'time-outline', color: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary },
+  'checkmark-circle': { name: 'checkmark-circle', color: theme.colors.primary, bg: theme.colors.primaryLight },
+  'close-circle': { name: 'close-circle', color: theme.colors.error, bg: '#FEE2E2' },
+};
 
 const NotificationSettingsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -76,13 +103,13 @@ const NotificationSettingsScreen: React.FC = () => {
   const loadSettings = async () => {
     if (!user?.id) return;
     try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('notification_preferences')
-        .eq('id', user.id)
+      const { data: row } = await supabase
+        .from('user_notification_preferences')
+        .select('*')
+        .eq('user_id', user.id)
         .single();
-      if (data?.notification_preferences) {
-        setSettings((prev) => ({ ...prev, ...data.notification_preferences }));
+      if (row) {
+        setSettings((prev) => ({ ...prev, ...row }));
       }
     } catch {
       // Use defaults if no saved preferences
@@ -175,11 +202,10 @@ const NotificationSettingsScreen: React.FC = () => {
     }
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ notification_preferences: settings })
-        .eq('id', user.id);
-      if (error) throw error;
+      const { error: err } = await supabase
+        .from('user_notification_preferences')
+        .upsert({ user_id: user.id, ...settings }, { onConflict: 'user_id' });
+      if (err) throw err;
       Alert.alert('Success', 'Notification settings updated!');
       navigation.goBack();
     } catch {
@@ -216,58 +242,60 @@ const NotificationSettingsScreen: React.FC = () => {
     value: boolean;
     onToggle: () => void;
     disabled?: boolean;
-  }) => (
-    <View style={[styles.settingRow, disabled && styles.disabledRow]}>
-      <View style={styles.settingLeft}>
-        <View style={styles.iconContainer}>
-          <Ionicons
-            name={icon as unknown}
-            size={20}
-            color={disabled ? '#C7C7CC' : '#717171'}
-          />
+  }) => {
+    const iconConfig = SETTING_ICONS[icon] || { name: icon as keyof typeof Ionicons.glyphMap, color: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary };
+    return (
+      <View style={[styles.settingRow, disabled && styles.disabledRow]}>
+        <View style={styles.settingLeft}>
+          <View style={[styles.iconContainer, { backgroundColor: iconConfig.bg }]}>
+            <Ionicons
+              name={iconConfig.name}
+              size={18}
+              color={disabled ? theme.colors.textTertiary : iconConfig.color}
+            />
+          </View>
+          <View style={styles.settingInfo}>
+            <Text style={[styles.settingTitle, disabled && styles.disabledText]}>
+              {title}
+            </Text>
+            {description && (
+              <Text style={styles.settingDescription}>{description}</Text>
+            )}
+          </View>
         </View>
-        <View style={styles.settingInfo}>
-          <Text style={[styles.settingTitle, disabled && styles.disabledText]}>
-            {title}
-          </Text>
-          {description && (
-            <Text style={styles.settingDescription}>{description}</Text>
-          )}
-        </View>
+        <Switch
+          value={value}
+          onValueChange={onToggle}
+          disabled={disabled}
+          trackColor={{
+            false: theme.colors.border,
+            true: disabled ? theme.colors.textTertiary : theme.colors.primary,
+          }}
+          thumbColor={theme.colors.surface}
+        />
       </View>
-      <Switch
-        value={value}
-        onValueChange={onToggle}
-        disabled={disabled}
-        trackColor={{
-          false: theme.colors.borderLight,
-          true: disabled ? theme.colors.textTertiary : theme.colors.success,
-        }}
-        thumbColor={theme.colors.textInverse}
-      />
-    </View>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.surface} />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
-          <Ionicons
-            name='arrow-back'
-            size={24}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-back' size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Notifications</Text>
+        <Text style={styles.headerTitle}>Notification Settings</Text>
         <Button
           variant='secondary'
           title={saving ? 'Saving...' : 'Save'}
           onPress={handleSave}
           disabled={saving}
-          style={{ paddingHorizontal: 16, borderRadius: 16 }}
+          style={{ paddingHorizontal: 16, borderRadius: 20 }}
         />
       </View>
 
@@ -411,8 +439,8 @@ const NotificationSettingsScreen: React.FC = () => {
                 onPress={() => setShowStartPicker(true)}
               >
                 <View style={styles.settingLeft}>
-                  <View style={styles.iconContainer}>
-                    <Ionicons name='time-outline' size={20} color='#717171' />
+                  <View style={[styles.iconContainer, { backgroundColor: theme.colors.backgroundSecondary }]}>
+                    <Ionicons name='time-outline' size={18} color={theme.colors.textSecondary} />
                   </View>
                   <View style={styles.settingInfo}>
                     <Text style={styles.settingTitle}>Start Time</Text>
@@ -426,8 +454,8 @@ const NotificationSettingsScreen: React.FC = () => {
                 onPress={() => setShowEndPicker(true)}
               >
                 <View style={styles.settingLeft}>
-                  <View style={styles.iconContainer}>
-                    <Ionicons name='time-outline' size={20} color='#717171' />
+                  <View style={[styles.iconContainer, { backgroundColor: theme.colors.backgroundSecondary }]}>
+                    <Ionicons name='time-outline' size={18} color={theme.colors.textSecondary} />
                   </View>
                   <View style={styles.settingInfo}>
                     <Text style={styles.settingTitle}>End Time</Text>
@@ -479,46 +507,32 @@ const NotificationSettingsScreen: React.FC = () => {
 
           <TouchableOpacity style={styles.actionButton} onPress={handleEnableAll}>
             <View style={styles.actionLeft}>
-              <Ionicons
-                name='checkmark-circle'
-                size={20}
-                color='#717171'
-              />
+              <View style={[styles.iconContainer, { backgroundColor: theme.colors.primaryLight }]}>
+                <Ionicons name='checkmark-circle' size={18} color={theme.colors.primary} />
+              </View>
               <Text style={styles.actionText}>Enable All Notifications</Text>
             </View>
-            <Ionicons
-              name='chevron-forward'
-              size={16}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name='chevron-forward' size={16} color={theme.colors.textTertiary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionButton} onPress={handleDisableAll}>
             <View style={styles.actionLeft}>
-              <Ionicons
-                name='close-circle'
-                size={20}
-                color='#717171'
-              />
+              <View style={[styles.iconContainer, { backgroundColor: '#FEE2E2' }]}>
+                <Ionicons name='close-circle' size={18} color={theme.colors.error} />
+              </View>
               <Text style={styles.actionText}>Disable All Notifications</Text>
             </View>
-            <Ionicons
-              name='chevron-forward'
-              size={16}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name='chevron-forward' size={16} color={theme.colors.textTertiary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionButton} onPress={handleResetToDefaults}>
             <View style={styles.actionLeft}>
-              <Ionicons name='refresh' size={20} color='#717171' />
+              <View style={[styles.iconContainer, { backgroundColor: '#DBEAFE' }]}>
+                <Ionicons name='refresh' size={18} color='#3B82F6' />
+              </View>
               <Text style={styles.actionText}>Reset to Defaults</Text>
             </View>
-            <Ionicons
-              name='chevron-forward'
-              size={16}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name='chevron-forward' size={16} color={theme.colors.textTertiary} />
           </TouchableOpacity>
         </View>
 
@@ -531,60 +545,72 @@ const NotificationSettingsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface,
     paddingBottom: 12,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 16,
   },
-  // save button replaced with shared Button
   content: {
     flex: 1,
   },
   section: {
     backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 12,
+    marginTop: 16,
+    marginBottom: 0,
+    borderRadius: 16,
     padding: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 20,
+    color: theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 16,
   },
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
   },
   disabledRow: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   settingLeft: {
     flexDirection: 'row',
@@ -593,10 +619,9 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   iconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: theme.colors.surfaceTertiary,
+    width: 36,
+    height: 36,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -605,8 +630,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   settingTitle: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
     color: theme.colors.textPrimary,
     marginBottom: 2,
   },
@@ -614,7 +639,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textTertiary,
   },
   settingDescription: {
-    fontSize: 14,
+    fontSize: 13,
     color: theme.colors.textTertiary,
     lineHeight: 18,
   },
@@ -622,19 +647,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
   },
   actionLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
   },
   actionText: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
     color: theme.colors.textPrimary,
-    marginLeft: 12,
   },
   bottomPadding: {
     height: 32,

@@ -9,6 +9,7 @@ import {
   ListRenderItem,
   ViewToken,
 } from 'react-native';
+import { theme } from '../../theme';
 
 /**
  * OptimizedFlatList - Performance-optimized FlatList for mintenance mobile app
@@ -33,7 +34,7 @@ import {
  * ```
  */
 
-interface OptimizedFlatListProps<T> extends Omit<FlatListProps<T>, 'getItemLayout'> {
+interface OptimizedFlatListProps<T> extends FlatListProps<T> {
   /**
    * Estimated item size for better scroll performance.
    * If all items have the same height, provide this for optimal performance.
@@ -144,22 +145,11 @@ function OptimizedFlatListComponent<T = unknown>(
     const isLowEndDevice = Platform.OS === 'android' && Platform.Version < 28;
 
     return {
-      // Android benefits more from removing clipped subviews
       removeClippedSubviews: removeClippedSubviews ?? isAndroid,
-
-      // Adjust batch size based on platform and device capability
       maxToRenderPerBatch: maxToRenderPerBatch ?? (isLowEndDevice ? 5 : batchSize),
-
-      // Longer batching period on low-end devices
       updateCellsBatchingPeriod: updateCellsBatchingPeriod ?? (isLowEndDevice ? 100 : 50),
-
-      // Fewer initial items on low-end devices
       initialNumToRender: initialNumToRender ?? (isLowEndDevice ? 5 : 10),
-
-      // Smaller window on low-end devices to save memory
       windowSize: windowSize ?? (isLowEndDevice ? 5 : windowMultiplier),
-
-      // iOS-specific: maintain visible content position for better UX
       maintainVisibleContentPosition:
         maintainVisibleContentPosition ??
         (Platform.OS === 'ios'
@@ -207,13 +197,10 @@ function OptimizedFlatListComponent<T = unknown>(
       viewabilityConfig={optimizedViewabilityConfig}
       {...platformOptimizations}
       {...restProps}
-      // Performance best practices
-      scrollEventThrottle={16} // 60fps
+      scrollEventThrottle={16}
       decelerationRate="fast"
-      // Disable unnecessary features
       disableVirtualization={false}
       directionalLockEnabled={true}
-      // Enable scroll performance optimization
       scrollPerfTag="OptimizedFlatList"
     />
   );
@@ -239,7 +226,7 @@ export function useOptimizedRenderItem<T>(
 // Helper to create memoized item separators
 export function useItemSeparator(
   height: number = 1,
-  color: string = '#e0e0e0'
+  color: string = theme.colors.border
 ): React.ComponentType<Record<string, never>> {
   return useMemo(
     () =>
@@ -253,7 +240,7 @@ export function useItemSeparator(
 const styles = StyleSheet.create({
   separator: {
     height: 1,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: theme.colors.border,
   },
 });
 

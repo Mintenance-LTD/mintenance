@@ -209,7 +209,7 @@ export function BidCard({ bid, jobId }: { bid: Bid; jobId: string }) {
       <div className="flex gap-3">
         <Link
           href={`/contractors/${bid.contractor.id}?returnTo=job&jobId=${jobId}&bidId=${bid.id}&bidAmount=${bid.amount}`}
-          className="btn-secondary text-sm flex-1"
+          className={`btn-secondary text-sm ${bid.status === 'pending' ? 'flex-1' : 'inline-block'}`}
         >
           View Profile
         </Link>

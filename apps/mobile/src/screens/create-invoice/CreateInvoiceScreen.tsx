@@ -7,18 +7,17 @@ import {
   TouchableOpacity,
   TextInput,
   Platform,
-  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { theme } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../components/ui/Toast';
 import { FinancialManagementService } from '../../services/contractor-business';
 import type { InvoiceLineItem } from '../../services/contractor-business/types';
 import type { JobsStackParamList } from '../../navigation/types';
+import { theme } from '../../theme';
 
 interface CreateInvoiceScreenProps {
   navigation: NativeStackNavigationProp<JobsStackParamList, 'CreateInvoice'>;
@@ -129,12 +128,12 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={22} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>New Invoice</Text>
         <TouchableOpacity
-          style={[styles.headerButton, submitting && styles.headerButtonDisabled]}
+          style={[styles.saveButton, submitting && styles.saveButtonDisabled]}
           onPress={handleSubmit}
           disabled={submitting}
         >
@@ -166,7 +165,7 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Due Date</Text>
           <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
-            <Ionicons name="calendar-outline" size={18} color='#717171' />
+            <Ionicons name="calendar-outline" size={18} color={theme.colors.textSecondary} />
             <Text style={styles.dateText}>{formatDate(dueDate)}</Text>
             <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
           </TouchableOpacity>
@@ -188,7 +187,7 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Line Items</Text>
             <TouchableOpacity style={styles.addItemButton} onPress={addLineItem}>
-              <Ionicons name="add" size={18} color='#FFFFFF' />
+              <Ionicons name="add" size={18} color={theme.colors.textInverse} />
               <Text style={styles.addItemText}>Add Item</Text>
             </TouchableOpacity>
           </View>
@@ -284,73 +283,78 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.surfaceSecondary },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    backgroundColor: theme.colors.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
   },
-  headerButton: { padding: 8, minWidth: 60 },
-  headerButtonDisabled: { opacity: 0.5 },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.textPrimary },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveButton: { padding: 8, minWidth: 60 },
+  saveButtonDisabled: { opacity: 0.5 },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
   saveText: { fontSize: 16, fontWeight: '600', color: theme.colors.textPrimary, textAlign: 'right' },
   scroll: { flex: 1 },
   section: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginTop: 16,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 16,
     padding: 16,
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: theme.colors.textPrimary, marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 12 },
   input: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     fontSize: 14,
     color: theme.colors.textPrimary,
-    backgroundColor: theme.colors.surfaceSecondary,
     marginBottom: 8,
   },
-  notesInput: { height: 80, paddingTop: 10 },
+  notesInput: { height: 80, paddingTop: 12 },
   dateButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
     gap: 8,
   },
   dateText: { flex: 1, fontSize: 14, color: theme.colors.textPrimary },
   addItemButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#222222',
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    backgroundColor: theme.colors.textPrimary,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     gap: 4,
   },
-  addItemText: { fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
+  addItemText: { fontSize: 13, fontWeight: '600', color: theme.colors.textInverse },
   lineItem: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
     padding: 12,
     marginBottom: 12,
-    backgroundColor: theme.colors.surfaceSecondary,
   },
   lineItemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   lineItemLabel: { fontSize: 13, fontWeight: '600', color: theme.colors.textSecondary },
@@ -363,15 +367,18 @@ const styles = StyleSheet.create({
   },
   amountText: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: '500' },
   totalsSection: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginTop: 16,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 16,
     padding: 16,
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
-  totalRowFinal: { borderTopWidth: 1, borderTopColor: theme.colors.border, marginTop: 8, paddingTop: 12 },
+  totalRowFinal: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.border, marginTop: 8, paddingTop: 12 },
   totalLabel: { fontSize: 14, color: theme.colors.textSecondary },
   totalValue: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: '500' },
   grandTotalLabel: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },

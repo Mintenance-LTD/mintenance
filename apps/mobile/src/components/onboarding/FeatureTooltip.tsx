@@ -11,7 +11,9 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
+  Platform,
 } from 'react-native';
+import { theme } from '../../theme';
 
 const { width } = Dimensions.get('window');
 
@@ -197,16 +199,20 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: -20,
     right: -20,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 8,
-    borderWidth: 1,
-    borderColor: '#EBEBEB',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
     zIndex: 1000,
   },
   tooltipTop: {
@@ -231,31 +237,31 @@ const styles = StyleSheet.create({
   arrowTop: {
     top: -8,
     borderBottomWidth: 8,
-    borderBottomColor: '#FFFFFF',
+    borderBottomColor: theme.colors.textInverse,
   },
   arrowBottom: {
     bottom: -8,
     borderTopWidth: 8,
-    borderTopColor: '#FFFFFF',
+    borderTopColor: theme.colors.textInverse,
   },
   closeButton: {
     position: 'absolute',
     top: 8,
     right: 8,
-    width: 24,
-    height: 24,
+    width: 20,
+    height: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
-    color: '#9CA3AF',
-    fontSize: 16,
+    color: theme.colors.textTertiary,
+    fontSize: 15,
   },
   iconContainer: {
     width: 40,
     height: 40,
-    backgroundColor: '#DBEAFE',
-    borderRadius: 12,
+    backgroundColor: 'rgba(34, 34, 34, 0.06)',
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
@@ -264,14 +270,14 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   title: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#111827',
+    fontSize: 15,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   description: {
-    fontSize: 14,
-    color: '#6B7280',
+    fontSize: 13,
+    color: theme.colors.textSecondary,
     lineHeight: 20,
     marginBottom: 16,
   },
@@ -286,31 +292,31 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   secondaryButtonText: {
-    fontSize: 14,
-    color: '#6B7280',
+    fontSize: 13,
+    color: theme.colors.textSecondary,
     fontWeight: '500',
   },
   primaryButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
   },
   primaryButtonText: {
-    fontSize: 14,
-    color: '#FFFFFF',
+    fontSize: 13,
+    color: theme.colors.textInverse,
     fontWeight: '600',
   },
   pulse: {
     position: 'absolute',
-    top: -4,
-    right: -4,
+    top: -6,
+    right: -6,
   },
   pulseCircle: {
     width: 12,
     height: 12,
-    borderRadius: 6,
-    backgroundColor: '#10B981',
+    borderRadius: 8,
+    backgroundColor: theme.colors.textPrimary,
   },
 });
 

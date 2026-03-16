@@ -18,14 +18,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { theme } from '../../theme';
 import { ScreenHeader } from '../../components/shared';
 import { DatePicker } from '../../components/ui/DatePicker';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
+import { theme } from '../../theme';
 
 interface Props {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'AddProperty'>;
@@ -61,8 +61,22 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
   useUnsavedChanges(hasUnsavedChanges);
 
   const createMutation = useMutation({
-    mutationFn: (data: Record<string, unknown>) =>
-      apiClient.post('/api/properties', data),
+    mutationFn: async (data: Record<string, unknown>) => {
+      if (!user?.id) throw new Error('Not authenticated');
+      const address = [data.address_line1, data.address_line2, data.city, data.county, data.postcode]
+        .filter(Boolean).join(', ');
+      const propertyName = `${data.property_type || 'Property'} at ${data.address_line1}`;
+      await mobileApiClient.post('/api/properties', {
+        property_name: propertyName,
+        address,
+        property_type: 'residential',
+        city: data.city,
+        postcode: data.postcode,
+        bedrooms: data.bedrooms || null,
+        bathrooms: data.bathrooms || null,
+        is_primary: false,
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['properties'] });
       navigation.goBack();
@@ -83,17 +97,16 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
       const { coords } = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       setLatitude(coords.latitude);
       setLongitude(coords.longitude);
-      interface GeoAddr { house_number?: string; road?: string; city?: string; town?: string; village?: string; postcode?: string }
-      const res = await apiClient.get<{ address?: GeoAddr }>(
-        `/api/geocoding/reverse?lat=${coords.latitude}&lon=${coords.longitude}`
-      );
-      const addr = res.address;
-      if (addr) {
-        const line1 = [addr.house_number, addr.road].filter(Boolean).join(' ');
+      const [result] = await Location.reverseGeocodeAsync({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      });
+      if (result) {
+        const line1 = [result.streetNumber, result.street].filter(Boolean).join(' ');
         if (line1) setAddress1(line1);
-        const cityVal = addr.city || addr.town || addr.village || '';
-        if (cityVal) setCity(cityVal);
-        if (addr.postcode) setPostcode(addr.postcode.toUpperCase());
+        if (result.city) setCity(result.city);
+        if (result.postalCode) setPostcode(result.postalCode.toUpperCase());
+        if (result.region) setCounty(result.region);
       }
     } catch {
       Alert.alert('Error', 'Could not fetch your location. Please enter your address manually.');
@@ -133,10 +146,6 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
       property_type: propertyType,
       bedrooms: bedrooms ? parseInt(bedrooms, 10) : undefined,
       bathrooms: bathrooms ? parseInt(bathrooms, 10) : undefined,
-      purchase_date: purchaseDate ? purchaseDate.toISOString().split('T')[0] : undefined,
-      notes: notes.trim() || undefined,
-      latitude,
-      longitude,
     });
   };
 
@@ -155,7 +164,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Address</Text>
+            <Text style={styles.sectionTitle}>ADDRESS</Text>
 
             {/* Use current location */}
             <TouchableOpacity
@@ -166,8 +175,8 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
               accessibilityLabel="Use current location to fill address"
             >
               {locating
-                ? <ActivityIndicator size="small" color="#FFFFFF" />
-                : <Ionicons name="location" size={18} color="#FFFFFF" />
+                ? <ActivityIndicator size="small" color={theme.colors.textInverse} />
+                : <Ionicons name="location" size={18} color={theme.colors.textInverse} />
               }
               <Text style={styles.locationButtonText}>
                 {locating ? 'Locating...' : 'Use Current Location'}
@@ -234,7 +243,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Property Type</Text>
+            <Text style={styles.sectionTitle}>PROPERTY TYPE</Text>
             <View style={styles.typeGrid}>
               {PROPERTY_TYPES.map(type => (
                 <TouchableOpacity
@@ -264,7 +273,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Details</Text>
+            <Text style={styles.sectionTitle}>DETAILS</Text>
             <View style={styles.row}>
               <View style={[styles.inputGroup, styles.flex]}>
                 <Text style={styles.label}>Bedrooms</Text>
@@ -299,7 +308,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Notes</Text>
+            <Text style={styles.sectionTitle}>NOTES</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               value={notes}
@@ -330,45 +339,48 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   flex: {
     flex: 1,
   },
   content: {
-    padding: theme.spacing[4],
-    paddingBottom: theme.spacing[8],
+    padding: 16,
+    paddingBottom: 32,
   },
   section: {
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing[4],
-    marginBottom: theme.spacing[4],
-    ...theme.shadows.sm,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   sectionTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[3],
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 12,
   },
   inputGroup: {
-    marginBottom: theme.spacing[3],
+    marginBottom: 12,
   },
   label: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 14,
+    fontWeight: '500',
     color: theme.colors.textSecondary,
-    marginBottom: theme.spacing[1],
+    marginBottom: 4,
   },
   input: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[3],
-    fontSize: theme.typography.fontSize.base,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    fontSize: 15,
     color: theme.colors.textPrimary,
   },
   postcodeInput: {
@@ -376,72 +388,69 @@ const styles = StyleSheet.create({
   },
   textArea: {
     minHeight: 100,
-    paddingTop: theme.spacing[3],
+    paddingTop: 14,
   },
   row: {
     flexDirection: 'row',
   },
   rowSpacer: {
-    width: theme.spacing[3],
+    width: 12,
   },
   typeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: theme.spacing[2],
+    gap: 8,
   },
   typeChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing[2],
-    paddingHorizontal: theme.spacing[3],
-    borderRadius: theme.borderRadius.full,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.background,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   typeChipSelected: {
-    backgroundColor: '#222222',
-    borderColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   typeChipText: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: 13,
     color: theme.colors.textSecondary,
-    marginLeft: theme.spacing[1],
+    marginLeft: 6,
   },
   typeChipTextSelected: {
     color: theme.colors.textInverse,
+    fontWeight: '600',
   },
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#222222',
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.textPrimary,
+    borderRadius: 28,
     paddingVertical: 12,
     gap: 8,
-    marginBottom: theme.spacing[3],
+    marginBottom: 16,
   },
   locationButtonText: {
-    color: '#FFFFFF',
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.textInverse,
+    fontSize: 14,
+    fontWeight: '600',
   },
   submitButton: {
-    backgroundColor: '#222222',
-    borderRadius: theme.borderRadius.xl,
-    paddingVertical: theme.spacing[4],
+    backgroundColor: theme.colors.textPrimary,
+    borderRadius: 28,
+    paddingVertical: 16,
     alignItems: 'center',
-    marginTop: theme.spacing[2],
+    marginTop: 8,
   },
   submitButtonDisabled: {
     opacity: 0.5,
   },
   submitButtonText: {
     color: theme.colors.textInverse,
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 17,
+    fontWeight: '600',
   },
 });
 
 export default AddPropertyScreen;
-

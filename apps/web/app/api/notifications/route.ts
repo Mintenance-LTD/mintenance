@@ -5,6 +5,15 @@ import { logger } from '@mintenance/shared';
 import { validateRequest } from '@/lib/validation/validator';
 import { notificationEngagementSchema } from '@/lib/validation/schemas';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { z } from 'zod';
+
+const createNotificationSchema = z.object({
+  user_id: z.string().uuid(),
+  type: z.string().min(1).max(100),
+  title: z.string().min(1).max(300),
+  message: z.string().min(1).max(2000),
+  action_url: z.string().max(500).optional(),
+});
 
 export const GET = withApiHandler(
   { rateLimit: { maxRequests: 120 }, csrf: false },
@@ -357,5 +366,42 @@ export const PATCH = withApiHandler(
     });
 
     return NextResponse.json({ success: true });
+  },
+);
+
+/**
+ * Create a notification (POST endpoint)
+ */
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 60 } },
+  async (request, { user }) => {
+    const validation = await validateRequest(request, createNotificationSchema);
+    if (validation instanceof NextResponse) return validation;
+    const { data: payload } = validation;
+
+    const { data, error } = await serverSupabase
+      .from('notifications')
+      .insert([{
+        user_id: payload.user_id,
+        type: payload.type,
+        title: payload.title,
+        message: payload.message,
+        action_url: payload.action_url,
+        read: false,
+        created_at: new Date().toISOString(),
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      logger.error('Error creating notification', error, {
+        service: 'notifications',
+        userId: user.id,
+        targetUserId: payload.user_id,
+      });
+      throw error;
+    }
+
+    return NextResponse.json({ data }, { status: 201 });
   },
 );

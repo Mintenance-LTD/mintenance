@@ -1,5 +1,6 @@
 import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { QuoteAnalytics, QuoteInteraction, QuoteSummaryStats } from './types';
 
 export async function trackQuoteInteraction(
@@ -8,18 +9,13 @@ export async function trackQuoteInteraction(
   details?: unknown
 ): Promise<void> {
   try {
-    const { error } = await supabase.from('quote_interactions').insert({
-      quote_id: quoteId,
-      interaction_type: interactionType,
-      interaction_details: details,
-    });
-
-    if (error) throw error;
-
-    await supabase.rpc('update_quote_analytics_on_interaction', {
-      p_quote_id: quoteId,
-      p_interaction_type: interactionType,
-    });
+    await mobileApiClient.post(
+      `/api/contractor/quotes/${quoteId}/analytics`,
+      {
+        interaction_type: interactionType,
+        metadata: details || undefined,
+      }
+    );
   } catch (error) {
     logger.error('Error tracking quote interaction', error, { service: 'quote-builder' });
   }

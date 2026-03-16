@@ -30,6 +30,9 @@
       "@mintenance/shared": [
         "../../packages/shared/src"
       ],
+      "@mintenance/shared/*": [
+        "../../packages/shared/src/*"
+      ],
       "@mintenance/design-tokens": [
         "../../packages/design-tokens/src"
       ],

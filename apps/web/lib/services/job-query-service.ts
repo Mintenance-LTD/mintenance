@@ -109,6 +109,7 @@ interface JobListParams {
   limit: number;
   cursor?: string;
   status?: string[];
+  propertyId?: string;
 }
 
 export class JobQueryService {
@@ -129,7 +130,7 @@ export class JobQueryService {
     items: (JobSummary & { photos?: string[]; view_count?: number; ai_assessment?: AIAssessmentData | null })[];
     nextCursor?: string;
   }> {
-    const query = this.buildJobQuery(user, params.status);
+    const query = this.buildJobQuery(user, params.status, params.propertyId);
     const { rows, nextCursor } = await this.fetchJobs(query, params.limit, params.cursor);
 
     const jobIds = rows.map(row => row.id);
@@ -166,7 +167,7 @@ export class JobQueryService {
     return { items, nextCursor };
   }
 
-  private buildJobQuery(user: Pick<User, 'id' | 'role'>, status?: string[]) {
+  private buildJobQuery(user: Pick<User, 'id' | 'role'>, status?: string[], propertyId?: string) {
     let query = serverSupabase
       .from('jobs')
       .select(jobSelectFields);
@@ -183,6 +184,10 @@ export class JobQueryService {
       if (status?.length) {
         query = query.in('status', status);
       }
+    }
+
+    if (propertyId) {
+      query = query.eq('property_id', propertyId);
     }
 
     return query;

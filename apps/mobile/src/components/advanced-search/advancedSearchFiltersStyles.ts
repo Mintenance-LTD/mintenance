@@ -4,7 +4,7 @@ import { theme } from '../../theme';
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -12,8 +12,8 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
   },
   closeButton: {
@@ -28,7 +28,7 @@ export const styles = StyleSheet.create({
     padding: 8,
   },
   resetText: {
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     fontSize: 16,
     fontWeight: '500',
   },
@@ -52,7 +52,7 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '500',
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   slider: {
@@ -77,8 +77,8 @@ export const styles = StyleSheet.create({
     flex: 0.45,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surfaceSecondary,
-    borderRadius: 8,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 12,
   },
@@ -112,20 +112,17 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
-    backgroundColor: theme.colors.surfaceSecondary,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   skillChipSelected: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.textPrimary,
   },
   skillChipText: {
     fontSize: 14,
     color: theme.colors.textSecondary,
   },
   skillChipTextSelected: {
-    color: theme.colors.surface,
+    color: theme.colors.textInverse,
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -149,14 +146,14 @@ export const styles = StyleSheet.create({
     marginBottom: 8,
   },
   radioOptionSelected: {
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   radioCircle: {
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: theme.colors.borderLight,
+    borderColor: theme.colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -165,7 +162,7 @@ export const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.textPrimary,
   },
   radioText: {
     fontSize: 16,
@@ -177,8 +174,8 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 20,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
   },
   footerInfo: {
@@ -189,10 +186,10 @@ export const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   applyButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 28,
     minWidth: 120,
     alignItems: 'center',
   },
@@ -202,6 +199,6 @@ export const styles = StyleSheet.create({
   applyButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.surface,
+    color: theme.colors.textInverse,
   },
 });

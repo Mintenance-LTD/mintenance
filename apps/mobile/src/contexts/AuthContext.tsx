@@ -12,6 +12,7 @@ import { logger } from '../utils/logger';
 import { setUserContext } from '../utils/sentryUtils';
 import { useBiometricAuth } from '../hooks/useBiometricAuth';
 
+import type { Session } from '@supabase/supabase-js';
 import type { AuthContextType, AuthProviderProps, AuthSession } from './auth-types';
 import {
   saveSessionToSecureStore,
@@ -130,7 +131,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (result) {
         setUser(result.user);
         setUserContext(result.user);
-        setSession(result.session);
+        setSession(result.session as unknown as AuthSession | null);
         initializePushNotifications(result.user.id);
       }
     } finally {
@@ -143,10 +144,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     let activeSession = session;
     if (!activeSession?.access_token || !activeSession?.refresh_token) {
-      activeSession = await AuthService.getCurrentSession();
+      activeSession = (await AuthService.getCurrentSession()) as AuthSession | null;
       setSession(activeSession);
     }
-    await biometricAuth.enableBiometric(user, activeSession);
+    await biometricAuth.enableBiometric(user, activeSession as unknown as Session | null);
   }, [user, session, biometricAuth]);
 
   const value: AuthContextType = useMemo(

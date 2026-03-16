@@ -2,7 +2,7 @@ import React from 'react';
 import { ViewStyle } from 'react-native';
 import { render } from '../test-utils';
 import { StatusPill } from '../StatusPill';
-import { theme } from '../../theme';
+
 
 /**
  * StatusPill Component Tests
@@ -30,7 +30,7 @@ describe('StatusPill', () => {
       const { getByLabelText } = render(<StatusPill status="upcoming" />);
       const pill = getByLabelText('Upcoming status');
 
-      const expectedBg = theme.colors.status?.upcoming ?? '#E6F2FF';
+      const expectedBg = '#E6F2FF';
       expect(pill.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -44,7 +44,7 @@ describe('StatusPill', () => {
       const { getByText } = render(<StatusPill status="upcoming" />);
       const textElement = getByText('Upcoming');
 
-      const expectedFg = theme.colors.primary[600] ?? theme.colors.primary;
+      const expectedFg = '#222222';
       expect(textElement.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -70,7 +70,7 @@ describe('StatusPill', () => {
       const { getByLabelText } = render(<StatusPill status="completed" />);
       const pill = getByLabelText('Completed status');
 
-      const expectedBg = theme.colors.status?.completed ?? '#EAF7EE';
+      const expectedBg = '#EAF7EE';
       expect(pill.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -84,7 +84,7 @@ describe('StatusPill', () => {
       const { getByText } = render(<StatusPill status="completed" />);
       const textElement = getByText('Completed');
 
-      const expectedFg = theme.colors.success[700] ?? '#2E7D32';
+      const expectedFg = '#2E7D32';
       expect(textElement.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -110,7 +110,7 @@ describe('StatusPill', () => {
       const { getByLabelText } = render(<StatusPill status="cancelled" />);
       const pill = getByLabelText('Cancelled status');
 
-      const expectedBg = theme.colors.status?.cancelled ?? '#FDECEA';
+      const expectedBg = '#FDECEA';
       expect(pill.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -124,7 +124,7 @@ describe('StatusPill', () => {
       const { getByText } = render(<StatusPill status="cancelled" />);
       const textElement = getByText('Cancelled');
 
-      const expectedFg = theme.colors.error[700] ?? theme.colors.error;
+      const expectedFg = '#EF4444';
       expect(textElement.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({

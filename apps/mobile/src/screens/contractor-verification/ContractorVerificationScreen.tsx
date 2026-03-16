@@ -1,9 +1,9 @@
 /**
  * ContractorVerificationScreen
- * 
+ *
  * Allows contractors to verify their business with license and address
  * Includes geocoding for location tracking on homeowner maps
- * 
+ *
  * @filesize Target: <250 lines
  * @compliance MVVM pattern
  */
@@ -18,15 +18,18 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { theme } from '../../theme';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { sanitize } from '@mintenance/security';
+import { theme } from '../../theme';
 
 interface VerificationScreenProps {
-  navigation: unknown;
+  navigation: { goBack: () => void };
 }
 
 interface VerificationData {
@@ -56,22 +59,22 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
   const checkVerificationStatus = async () => {
     if (!user?.id) return;
     try {
-      const { data } = await supabase
+      const result = await ((supabase
         .from('profiles')
-        .select('company_name, business_address, license_number, license_type, license_expiry, verification_status')
-        .eq('id', user.id)
-        .single();
-      if (data) {
-        if (data.verification_status === 'verified') {
+        .select('company_name, business_address, license_number, license_type, license_expiry, verification_status') as any)
+        .eq('id', user.id)).single() as { data: Record<string, string> | null };
+      const profile = result.data;
+      if (profile) {
+        if (profile.verification_status === 'verified') {
           setIsVerified(true);
         }
-        if (data.company_name) {
+        if (profile.company_name) {
           setFormData({
-            companyName: data.company_name || '',
-            businessAddress: data.business_address || '',
-            licenseNumber: data.license_number || '',
-            licenseType: data.license_type || 'trade',
-            licenseExpiry: data.license_expiry || '',
+            companyName: profile.company_name || '',
+            businessAddress: profile.business_address || '',
+            licenseNumber: profile.license_number || '',
+            licenseType: profile.license_type || 'trade',
+            licenseExpiry: profile.license_expiry || '',
           });
         }
       }
@@ -86,7 +89,6 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
       return;
     }
 
-    // Validation
     if (!formData.companyName.trim()) {
       Alert.alert('Required', 'Please enter your company name');
       return;
@@ -103,7 +105,7 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
     try {
       setLoading(true);
 
-      const { error } = await supabase
+      const { error } = await (supabase
         .from('profiles')
         .update({
           company_name: sanitize.companyName(formData.companyName),
@@ -112,20 +114,14 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
           license_type: formData.licenseType,
           license_expiry: formData.licenseExpiry || null,
           verification_status: 'pending',
-        })
-        .eq('id', user.id);
+        }) as any).eq('id', user.id) as { error: Error | null };
 
       if (error) throw error;
 
       Alert.alert(
         'Verification Submitted',
         'Your verification request has been submitted and will be reviewed within 24-48 hours.',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
-        ]
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch {
       Alert.alert('Error', 'Failed to submit verification. Please try again.');
@@ -136,7 +132,7 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -144,15 +140,17 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >
-          <Text style={styles.backButtonText}>← Back</Text>
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} accessibilityRole='header'>Business Verification</Text>
+        <View style={{ width: 44 }} />
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Info Banner */}
         <View style={styles.infoBanner}>
-          <Text style={styles.infoBannerIcon}>✅</Text>
+          <View style={styles.infoBannerIconWrap}>
+            <Ionicons name="shield-checkmark" size={24} color={theme.colors.primary} />
+          </View>
           <View style={styles.infoBannerContent}>
             <Text style={styles.infoBannerTitle}>Why Verify?</Text>
             <Text style={styles.infoBannerText}>
@@ -161,9 +159,7 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
           </View>
         </View>
 
-        {/* Form */}
         <View style={styles.form}>
-          {/* Company Name */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>
               Company Name <Text style={styles.required}>*</Text>
@@ -173,11 +169,10 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
               value={formData.companyName}
               onChangeText={(text) => setFormData({ ...formData, companyName: text })}
               placeholder="e.g., ABC Plumbing Ltd"
-              placeholderTextColor={theme.colors.textSecondary}
+              placeholderTextColor={theme.colors.textTertiary}
             />
           </View>
 
-          {/* Business Address */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>
               Business Address <Text style={styles.required}>*</Text>
@@ -187,16 +182,15 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
               value={formData.businessAddress}
               onChangeText={(text) => setFormData({ ...formData, businessAddress: text })}
               placeholder="123 Main Street, London, UK"
-              placeholderTextColor={theme.colors.textSecondary}
+              placeholderTextColor={theme.colors.textTertiary}
               multiline
               numberOfLines={3}
             />
             <Text style={styles.helpText}>
-              📍 This address will be used to show your location on the homeowner map
+              This address will be used to show your location on the homeowner map
             </Text>
           </View>
 
-          {/* License Number */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>
               License Number <Text style={styles.required}>*</Text>
@@ -206,11 +200,10 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
               value={formData.licenseNumber}
               onChangeText={(text) => setFormData({ ...formData, licenseNumber: text })}
               placeholder="e.g., LIC-12345-UK"
-              placeholderTextColor={theme.colors.textSecondary}
+              placeholderTextColor={theme.colors.textTertiary}
             />
           </View>
 
-          {/* License Type */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>License Type</Text>
             <View style={styles.radioGroup}>
@@ -228,7 +221,7 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
                   accessibilityLabel={option.label}
                   accessibilityState={{ selected: formData.licenseType === option.value }}
                 >
-                  <View style={styles.radio}>
+                  <View style={[styles.radio, formData.licenseType === option.value && styles.radioActive]}>
                     {formData.licenseType === option.value && <View style={styles.radioSelected} />}
                   </View>
                   <Text style={styles.radioLabel}>{option.label}</Text>
@@ -237,7 +230,6 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
             </View>
           </View>
 
-          {/* License Expiry */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>License Expiry Date (Optional)</Text>
             <TextInput
@@ -245,28 +237,27 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
               value={formData.licenseExpiry}
               onChangeText={(text) => setFormData({ ...formData, licenseExpiry: text })}
               placeholder="DD/MM/YYYY"
-              placeholderTextColor={theme.colors.textSecondary}
+              placeholderTextColor={theme.colors.textTertiary}
             />
           </View>
         </View>
 
-        {/* Benefits List */}
         <View style={styles.benefitsSection}>
-          <Text style={styles.benefitsTitle}>Verification Benefits:</Text>
+          <Text style={styles.benefitsTitle}>Verification Benefits</Text>
           {[
-            '✓ Show up on homeowner map with location pin',
-            '✓ Get "Verified" badge on your profile',
-            '✓ 3x more visibility to homeowners',
-            '✓ Priority in search results',
-            '✓ Build trust with potential clients',
+            'Show up on homeowner map with location pin',
+            'Get "Verified" badge on your profile',
+            '3x more visibility to homeowners',
+            'Priority in search results',
+            'Build trust with potential clients',
           ].map((benefit, index) => (
-            <Text key={index} style={styles.benefitItem}>
-              {benefit}
-            </Text>
+            <View key={index} style={styles.benefitRow}>
+              <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
+              <Text style={styles.benefitItem}>{benefit}</Text>
+            </View>
           ))}
         </View>
 
-        {/* Submit Button */}
         <TouchableOpacity
           style={[styles.submitButton, loading && styles.submitButtonDisabled]}
           onPress={handleSubmit}
@@ -276,15 +267,14 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
           accessibilityState={{ disabled: loading }}
         >
           {loading ? (
-            <ActivityIndicator color="white" />
+            <ActivityIndicator color={theme.colors.textInverse} />
           ) : (
             <Text style={styles.submitButtonText}>Submit for Verification</Text>
           )}
         </TouchableOpacity>
 
-        {/* Privacy Note */}
         <Text style={styles.privacyNote}>
-          🔒 Your information is securely encrypted and will only be used for verification purposes.
+          Your information is securely encrypted and will only be used for verification purposes.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -299,39 +289,48 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: theme.colors.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border,
   },
   backButton: {
-    paddingRight: theme.spacing.md,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: theme.colors.textPrimary,
-    fontWeight: '600',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: theme.colors.textPrimary,
   },
   scrollView: {
     flex: 1,
   },
   infoBanner: {
     flexDirection: 'row',
-    backgroundColor: '#F7F7F7',
-    margin: theme.spacing.md,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: '#EBEBEB',
+    backgroundColor: theme.colors.surface,
+    margin: 16,
+    padding: 16,
+    borderRadius: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
-  infoBannerIcon: {
-    fontSize: 32,
-    marginRight: theme.spacing.sm,
+  infoBannerIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
   infoBannerContent: {
     flex: 1,
@@ -339,39 +338,44 @@ const styles = StyleSheet.create({
   infoBannerTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   infoBannerText: {
     fontSize: 14,
     color: theme.colors.textSecondary,
+    lineHeight: 20,
   },
   form: {
-    backgroundColor: theme.colors.background,
-    margin: theme.spacing.md,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.surface,
+    margin: 16,
+    marginTop: 0,
+    padding: 16,
+    borderRadius: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   formGroup: {
-    marginBottom: theme.spacing.md,
+    marginBottom: 16,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
+    color: theme.colors.textPrimary,
+    marginBottom: 6,
   },
   required: {
     color: theme.colors.error,
   },
   input: {
     backgroundColor: theme.colors.backgroundSecondary,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.sm,
-    fontSize: 16,
-    color: theme.colors.text,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: theme.colors.textPrimary,
   },
   textArea: {
     minHeight: 80,
@@ -383,73 +387,86 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   radioGroup: {
-    marginTop: theme.spacing.xs,
+    marginTop: 4,
   },
   radioOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing.xs,
+    paddingVertical: 8,
   },
   radio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 2,
-    borderColor: '#222222',
-    marginRight: theme.spacing.sm,
+    borderColor: theme.colors.border,
+    marginRight: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  radioActive: {
+    borderColor: theme.colors.textPrimary,
+  },
   radioSelected: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#222222',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: theme.colors.textPrimary,
   },
   radioLabel: {
-    fontSize: 14,
-    color: theme.colors.text,
+    fontSize: 15,
+    color: theme.colors.textPrimary,
   },
   benefitsSection: {
-    backgroundColor: theme.colors.background,
-    margin: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    margin: 16,
     marginTop: 0,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
+    padding: 16,
+    borderRadius: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   benefitsTitle: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
+    color: theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 12,
+  },
+  benefitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
   },
   benefitItem: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginBottom: 6,
+    color: theme.colors.textPrimary,
   },
   submitButton: {
-    backgroundColor: theme.colors.primary,
-    margin: theme.spacing.md,
-    marginTop: 0,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.textPrimary,
+    marginHorizontal: 16,
+    paddingVertical: 16,
+    borderRadius: 28,
     alignItems: 'center',
   },
   submitButtonDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   submitButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: 'white',
+    color: theme.colors.textInverse,
   },
   privacyNote: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: theme.colors.textTertiary,
     textAlign: 'center',
-    marginHorizontal: theme.spacing.md,
-    marginBottom: theme.spacing.xl,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 32,
   },
 });
-

@@ -84,7 +84,7 @@ export const GET = withApiHandler(
     // Explicit column selection to avoid leaking sensitive data
     const { data, error } = await serverSupabase
       .from('jobs')
-      .select('id, title, description, status, homeowner_id, contractor_id, category, budget, budget_min, budget_max, priority, location, city, postcode, latitude, longitude, start_date, end_date, flexible_timeline, access_info, requirements, images, created_at, updated_at')
+      .select('id, title, description, status, homeowner_id, contractor_id, category, budget, budget_min, budget_max, priority, location, city, postcode, latitude, longitude, start_date, end_date, flexible_timeline, access_info, requirements, created_at, updated_at')
       .eq('id', id)
       .single();
 
@@ -673,6 +673,18 @@ export async function DELETE(request: NextRequest, context: Params) {
         homeownerId: existing?.homeowner_id
       });
       throw new ForbiddenError('You can only delete your own jobs');
+    }
+
+    // Block deletion if contract has been accepted by both parties
+    const { data: acceptedContract } = await serverSupabase
+      .from('contracts')
+      .select('id')
+      .eq('job_id', id)
+      .eq('status', 'accepted')
+      .limit(1);
+
+    if (acceptedContract && acceptedContract.length > 0) {
+      throw new BadRequestError('Cannot delete job with a fully signed contract. Please cancel the job instead.');
     }
 
     // Only allow deletion of posted jobs (jobs without assigned contractors or accepted bids)

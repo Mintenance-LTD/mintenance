@@ -10,10 +10,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../theme';
 import { useI18n } from '../hooks/useI18n';
 import { useHaptics } from '../utils/haptics';
 import { useAccessibleText } from '../hooks/useAccessibleText';
+import { theme } from '../theme';
 
 interface SearchBarProps {
   placeholder?: string;
@@ -142,7 +142,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
   const backgroundColor = focusAnimation.interpolate({
     inputRange: [0, 1],
-    outputRange: [theme.colors.surfaceSecondary, theme.colors.surface],
+    outputRange: [theme.colors.backgroundSecondary, theme.colors.surface],
   });
 
   return (
@@ -175,15 +175,15 @@ const SearchBar: React.FC<SearchBarProps> = ({
           onBlur={handleBlur}
           onSubmitEditing={handleSearch}
           placeholder={placeholder || String(t('common.search'))}
-          placeholderTextColor={theme.colors.placeholder}
+          placeholderTextColor={theme.colors.textTertiary}
           autoFocus={autoFocus}
           editable={!disabled}
           returnKeyType='search'
           clearButtonMode={Platform.OS === 'ios' ? 'while-editing' : 'never'}
           accessibilityRole='search'
-          accessibilityLabel={String(t('search.searchInput', 'Search input'))}
+          accessibilityLabel={String(t('search.searchInput', { defaultValue: 'Search input' }))}
           accessibilityHint={String(
-            t('search.searchHint', 'Enter search terms and tap search')
+            t('search.searchHint', { defaultValue: 'Enter search terms and tap search' })
           )}
         />
 
@@ -191,7 +191,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         {loading && (
           <ActivityIndicator
             size='small'
-            color={theme.colors.primary}
+            color={theme.colors.textPrimary}
             style={styles.loadingIndicator}
             testID='activity-indicator'
           />
@@ -205,7 +205,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             accessibilityRole='button'
             accessibilityLabel={String(t('common.clear'))}
             accessibilityHint={String(
-              t('search.clearHint', 'Clear search text')
+              t('search.clearHint', { defaultValue: 'Clear search text' })
             )}
           >
             <Ionicons
@@ -225,7 +225,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             accessibilityRole='button'
             accessibilityLabel={String(t('search.filters'))}
             accessibilityHint={String(
-              t('search.filtersHint', 'Open search filters')
+              t('search.filtersHint', { defaultValue: 'Open search filters' })
             )}
           >
             <Ionicons
@@ -279,7 +279,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 16,
     height: 48,
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
   },
   searchIcon: {
     marginRight: 12,
@@ -299,7 +309,7 @@ const styles = StyleSheet.create({
   filterButton: {
     padding: 8,
     marginLeft: 8,
-    borderRadius: theme.borderRadius.xxl,
+    borderRadius: 20,
   },
   suggestionsContainer: {
     position: 'absolute',
@@ -309,7 +319,17 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
     marginTop: 4,
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
     zIndex: 1000,
   },
   suggestionItem: {
@@ -318,7 +338,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.borderLight,
+    borderBottomColor: theme.colors.border,
   },
   suggestionIcon: {
     marginRight: 12,

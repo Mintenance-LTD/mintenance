@@ -1,4 +1,4 @@
-import { StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet, Dimensions, Platform } from 'react-native';
 import { theme } from '../theme';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -10,12 +10,18 @@ export const styles = StyleSheet.create({
   card: {
     flex: 1,
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    elevation: 3,
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
+    borderRadius: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   cardStyle: {
     top: 0,
@@ -40,7 +46,7 @@ export const styles = StyleSheet.create({
     borderRadius: 40,
   },
   placeholderImage: {
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -92,7 +98,7 @@ export const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   skillTag: {
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -120,8 +126,8 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.border,
     marginBottom: 10,
   },
   detailsButtonText: {
@@ -143,9 +149,9 @@ export const styles = StyleSheet.create({
     maxHeight: 200,
   },
   reviewCard: {
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 8,
   },
   reviewHeader: {
@@ -169,11 +175,17 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 60,
     paddingVertical: 20,
     backgroundColor: theme.colors.surface,
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   passButton: {
     width: 60,
@@ -184,11 +196,17 @@ export const styles = StyleSheet.create({
     borderColor: theme.colors.error,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 2,
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   likeButton: {
     width: 60,
@@ -196,14 +214,20 @@ export const styles = StyleSheet.create({
     borderRadius: 30,
     backgroundColor: theme.colors.surface,
     borderWidth: 2,
-    borderColor: theme.colors.success,
+    borderColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 2,
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   // Enhanced profile styles
   companyLogoContainer: {
@@ -266,7 +290,7 @@ export const styles = StyleSheet.create({
   portfolioImage: {
     width: '100%',
     height: 250,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 16,
   },
   portfolioSpecialties: {
     marginTop: 10,
@@ -283,10 +307,10 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   specialtyTag: {
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: theme.borderRadius.full,
+    borderRadius: 20,
   },
   specialtyText: {
     fontSize: 12,

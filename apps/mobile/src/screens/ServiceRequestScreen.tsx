@@ -19,10 +19,10 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
   const handleAddProperty = () => {
     navigation.goBack();
     setTimeout(() => {
-      navigation.navigate('Main' as never, {
+      (navigation as { navigate: (...args: unknown[]) => void }).navigate('Main', {
         screen: 'ProfileTab',
         params: { screen: 'AddProperty' },
-      } as never);
+      });
     }, 300);
   };
 

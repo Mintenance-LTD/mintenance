@@ -1,8 +1,8 @@
 /**
  * Custom Tab Bar Component
  *
- * Handles the bottom tab bar rendering and styling.
- * The center "AddTab" renders as a prominent Post a Job button.
+ * Airbnb-inspired bottom tab bar with clean icon states,
+ * thin active indicator line, and prominent center action button.
  */
 
 import React from 'react';
@@ -10,9 +10,34 @@ import { TouchableOpacity, StyleSheet, Platform, View, Text } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { NAVIGATION_CONSTANTS, TAB_CONFIG, TAB_STYLES } from '../constants';
+import { NAVIGATION_CONSTANTS, TAB_CONFIG } from '../constants';
 import { useAuth } from '../../contexts/AuthContext';
 import { theme } from '../../theme';
+
+const TabBadge: React.FC<{ badge: number | string | boolean | undefined }> = ({ badge }) => {
+  if (badge === undefined || badge === false || badge === 0 || badge === '') {
+    return null;
+  }
+
+  if (badge === true) {
+    return <View style={styles.badgeDot} />;
+  }
+
+  const numericValue = typeof badge === 'string' ? parseInt(badge, 10) : badge;
+  if (typeof numericValue === 'number' && numericValue <= 0) {
+    return null;
+  }
+
+  const displayText = typeof numericValue === 'number' && numericValue > 99
+    ? '99+'
+    : String(badge);
+
+  return (
+    <View style={styles.badgeContainer}>
+      <Text style={styles.badgeText}>{displayText}</Text>
+    </View>
+  );
+};
 
 export const CustomTabBar: React.FC<BottomTabBarProps> = ({
   state,
@@ -25,156 +50,238 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
   return (
     <View style={[
       styles.tabBar,
-      TAB_STYLES.tabBarStyle,
-      {
-        paddingBottom: Math.max(insets.bottom, NAVIGATION_CONSTANTS.TAB_BAR_PADDING),
-        backgroundColor: theme.colors.surface,
-        borderTopColor: theme.colors.border,
-      }
+      { paddingBottom: Math.max(insets.bottom, 4) }
     ]}>
-      {state.routes.map((route, index) => {
-        const { options } = descriptors[route.key];
-        const label = options.tabBarLabel !== undefined
-          ? options.tabBarLabel
-          : options.title !== undefined
-          ? options.title
-          : route.name;
+      {/* Top border line */}
+      <View style={styles.topBorder} />
 
-        const isFocused = state.index === index;
-        const isAddTab = route.name === 'AddTab';
+      <View style={styles.tabRow}>
+        {state.routes.map((route, index) => {
+          const { options } = descriptors[route.key];
+          const label = options.tabBarLabel !== undefined
+            ? options.tabBarLabel
+            : options.title !== undefined
+            ? options.title
+            : route.name;
 
-        const onPress = () => {
-          const event = navigation.emit({
-            type: 'tabPress',
-            target: route.key,
-            canPreventDefault: true,
-          });
+          const isFocused = state.index === index;
+          const isAddTab = route.name === 'AddTab';
+          const badge = options.tabBarBadge;
 
-          if (!isFocused && !event.defaultPrevented) {
-            navigation.navigate(route.name);
-          }
-        };
-
-        // Center FAB — contractors: Find Jobs / homeowners: Post a Job
-        if (isAddTab) {
-          const isContractor = user?.role === 'contractor';
-          const handleAddPress = () => {
+          const onPress = () => {
             const event = navigation.emit({
               type: 'tabPress',
               target: route.key,
               canPreventDefault: true,
             });
-            if (!event.defaultPrevented) {
+
+            if (!isFocused && !event.defaultPrevented) {
               navigation.navigate(route.name);
             }
           };
 
+          // Center FAB
+          if (isAddTab) {
+            const isContractor = user?.role === 'contractor';
+            const handleAddPress = () => {
+              const event = navigation.emit({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+              });
+              if (!event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+            };
+
+            return (
+              <TouchableOpacity
+                key={route.key}
+                accessibilityRole="button"
+                accessibilityLabel={isContractor ? 'Find jobs' : 'Post a job'}
+                onPress={handleAddPress}
+                style={styles.addTabContainer}
+                activeOpacity={0.8}
+              >
+                <View style={styles.addButton}>
+                  <Ionicons
+                    name={isContractor ? 'search' : 'add'}
+                    size={isContractor ? 20 : 24}
+                    color="#FFFFFF"
+                  />
+                </View>
+                <Text style={styles.addLabel}>
+                  {isContractor ? 'Find Jobs' : 'Post Job'}
+                </Text>
+              </TouchableOpacity>
+            );
+          }
+
+          const tabConfig = TAB_CONFIG[route.name as keyof typeof TAB_CONFIG];
+          const iconName = isFocused ? tabConfig?.activeIcon : tabConfig?.icon;
+
           return (
             <TouchableOpacity
               key={route.key}
-              accessibilityRole="button"
-              accessibilityLabel={isContractor ? 'Find jobs' : 'Post a job'}
-              onPress={handleAddPress}
-              style={styles.addTabContainer}
+              accessibilityRole="tab"
+              accessibilityState={isFocused ? { selected: true } : {}}
+              accessibilityLabel={options.tabBarAccessibilityLabel}
+              testID={(options as Record<string, unknown>).tabBarTestID as string | undefined}
+              onPress={onPress}
+              style={styles.tabItem}
+              activeOpacity={0.7}
             >
-              <View style={styles.addButton}>
-                <Ionicons
-                  name={isContractor ? 'search' : 'add'}
-                  size={isContractor ? 22 : 24}
-                  color={theme.colors.textInverse}
-                />
+              {/* Active indicator line */}
+              <View style={[
+                styles.activeIndicator,
+                isFocused && styles.activeIndicatorVisible,
+              ]} />
+
+              <View style={styles.iconContainer}>
+                {React.createElement(Ionicons, {
+                  name: (iconName || 'help-outline') as keyof typeof Ionicons.glyphMap,
+                  size: 24,
+                  color: isFocused ? '#222222' : '#B0B0B0',
+                })}
+                <TabBadge badge={badge} />
               </View>
-              <Text style={styles.addLabel}>
-                {isContractor ? 'Find Jobs' : 'Post Job'}
+
+              <Text style={[
+                styles.tabLabel,
+                { color: isFocused ? '#222222' : '#B0B0B0' },
+                isFocused && styles.tabLabelActive,
+              ]}>
+                {String(label)}
               </Text>
             </TouchableOpacity>
           );
-        }
-
-        const tabConfig = TAB_CONFIG[route.name as keyof typeof TAB_CONFIG];
-        const iconName = isFocused ? tabConfig?.activeIcon : tabConfig?.icon;
-
-        return (
-          <TouchableOpacity
-            key={route.key}
-            accessibilityRole="tab"
-            accessibilityState={isFocused ? { selected: true } : {}}
-            accessibilityLabel={options.tabBarAccessibilityLabel}
-            testID={options.tabBarTestID}
-            onPress={onPress}
-            style={styles.tabItem}
-          >
-            {React.createElement(Ionicons, {
-              name: (iconName || 'help-outline') as keyof typeof Ionicons.glyphMap,
-              size: isFocused ? NAVIGATION_CONSTANTS.ACTIVE_ICON_SIZE : NAVIGATION_CONSTANTS.ICON_SIZE,
-              color: isFocused ? theme.colors.primary : '#B0B0B0',
-              style: TAB_STYLES.tabBarIconStyle,
-            })}
-            <Text style={[
-              TAB_STYLES.tabBarLabelStyle,
-              {
-                color: isFocused ? theme.colors.primary : '#B0B0B0',
-                fontWeight: isFocused ? '500' : '400',
-              },
-            ]}>
-              {String(label)}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+        })}
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   tabBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    backgroundColor: theme.colors.surface,
-    borderTopWidth: 0,
+    backgroundColor: '#FFFFFF',
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.06,
+        shadowOffset: { width: 0, height: -1 },
+        shadowOpacity: 0.04,
         shadowRadius: 8,
       },
       android: {
-        elevation: 4,
+        elevation: 8,
       },
     }),
+  },
+  topBorder: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#EBEBEB',
+  },
+  tabRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-around',
+    paddingTop: 6,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 2,
+    paddingBottom: 2,
+    minHeight: 52,
+  },
+  activeIndicator: {
+    width: 20,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: 'transparent',
+    marginBottom: 6,
+  },
+  activeIndicatorVisible: {
+    backgroundColor: '#222222',
+  },
+  iconContainer: {
+    position: 'relative',
+    width: 28,
+    height: 28,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 6,
-    minHeight: 48,
+  },
+  tabLabel: {
+    fontSize: 10,
+    fontWeight: '400',
+    marginTop: 2,
+    letterSpacing: 0.1,
+  },
+  tabLabelActive: {
+    fontWeight: '600',
+  },
+  badgeContainer: {
+    position: 'absolute',
+    top: -5,
+    right: -10,
+    backgroundColor: '#FF385C',
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+    lineHeight: 12,
+    textAlign: 'center',
+  },
+  badgeDot: {
+    position: 'absolute',
+    top: -2,
+    right: -4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FF385C',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   addTabContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -16,
+    marginTop: -18,
+    paddingBottom: 2,
+  },
+  addButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#059669',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
   },
   addLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: '#10B981',
     marginTop: 4,
-  },
-  addButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: theme.colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
   },
 });

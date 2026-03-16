@@ -8,11 +8,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/Textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+// Note: native <select> used for license type to avoid Radix portal conflicts inside Dialog
 import { Button } from '@/components/ui/Button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, Loader2, FileText } from 'lucide-react';
+import { AlertCircle, Loader2, FileText, Shield } from 'lucide-react';
 import { logger } from '@mintenance/shared';
+import { useCSRF } from '@/lib/hooks/useCSRF';
 
 interface CreateContractDialogProps {
   open: boolean;
@@ -35,6 +36,8 @@ const contractFormSchema = z.object({
   contractor_company_name: z.string().min(2, 'Company name is required'),
   contractor_license_registration: z.string().min(2, 'License registration number is required'),
   contractor_license_type: z.string().optional(),
+  insurance_provider: z.string().optional(),
+  insurance_policy_number: z.string().optional(),
 }).refine((data) => {
   const startDate = new Date(data.start_date);
   const endDate = new Date(data.end_date);
@@ -47,7 +50,6 @@ const contractFormSchema = z.object({
 type ContractFormData = z.infer<typeof contractFormSchema>;
 
 export function CreateContractDialog(props: CreateContractDialogProps) {
-  // Defensive prop destructuring with defaults to prevent test crashes
   const {
     open = false,
     onOpenChange = () => {},
@@ -57,13 +59,14 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
   } = props || {};
   const [loadingCompanyName, setLoadingCompanyName] = React.useState(true);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const [existingContractStatus, setExistingContractStatus] = React.useState<string | null>(null);
+  const { csrfToken } = useCSRF();
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
     setValue,
-    watch,
     reset,
   } = useForm<ContractFormData>({
     resolver: zodResolver(contractFormSchema),
@@ -77,49 +80,99 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
       contractor_company_name: '',
       contractor_license_registration: '',
       contractor_license_type: '',
+      insurance_provider: '',
+      insurance_policy_number: '',
     },
   });
 
-  const contractorCompanyName = watch('contractor_company_name');
-  const contractorLicenseType = watch('contractor_license_type');
-
-  // Fetch contractor company name and license from verification API
   useEffect(() => {
-    const loadContractorInfo = async () => {
+    if (!open) return;
+
+    // Reset form first, then load async data to populate fields
+    reset({
+      title: jobTitle,
+      description: '',
+      amount: '',
+      start_date: '',
+      end_date: '',
+      terms: '',
+      contractor_company_name: '',
+      contractor_license_registration: '',
+      contractor_license_type: '',
+      insurance_provider: '',
+      insurance_policy_number: '',
+    });
+    setSubmitError(null);
+    setExistingContractStatus(null);
+
+    const loadData = async () => {
       try {
         setLoadingCompanyName(true);
-        const response = await fetch('/api/contractor/verification');
-        if (response.ok) {
-          const verificationData = await response.json();
+
+        // Load contractor info, existing contract, and accepted bid in parallel
+        const [verificationRes, profileRes, contractRes, bidsRes] = await Promise.all([
+          fetch('/api/contractor/verification'),
+          fetch('/api/contractor/profile-data'),
+          jobId ? fetch(`/api/contracts?job_id=${jobId}`) : Promise.resolve(null),
+          jobId ? fetch(`/api/contractor/bids?status=accepted`) : Promise.resolve(null),
+        ]);
+
+        if (verificationRes.ok) {
+          const verificationData = await verificationRes.json();
           if (verificationData.data) {
             setValue('contractor_company_name', verificationData.data.company_name || '');
             setValue('contractor_license_registration', verificationData.data.license_number || '');
           }
         }
+
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          if (profileData.profile) {
+            if (profileData.profile.insurance_provider) {
+              setValue('insurance_provider', profileData.profile.insurance_provider);
+            }
+            if (profileData.profile.insurance_policy_number) {
+              setValue('insurance_policy_number', profileData.profile.insurance_policy_number);
+            }
+          }
+        }
+
+        // Get amount: prefer contract amount > 0, else fall back to accepted bid amount
+        let amount: number | null = null;
+
+        if (contractRes?.ok) {
+          const data = await contractRes.json();
+          const existing = (data.contracts || [])[0];
+          if (existing) {
+            setExistingContractStatus(existing.status);
+            if (existing.amount && Number(existing.amount) > 0) {
+              amount = Number(existing.amount);
+            }
+          }
+        }
+
+        if (amount === null && bidsRes?.ok) {
+          const bidsData = await bidsRes.json();
+          const acceptedBid = (bidsData.bids || []).find(
+            (b: { job_id: string; status: string; amount: number }) => b.job_id === jobId
+          );
+          if (acceptedBid?.amount && Number(acceptedBid.amount) > 0) {
+            amount = Number(acceptedBid.amount);
+          }
+        }
+
+        if (amount !== null) {
+          setValue('amount', String(amount));
+        }
       } catch (err) {
-        logger.error('Error loading contractor verification info:', err);
+        logger.error('Error loading contract dialog data:', err);
       } finally {
         setLoadingCompanyName(false);
       }
     };
 
-    if (open) {
-      loadContractorInfo();
-      // Reset form when dialog opens
-      reset({
-        title: jobTitle,
-        description: '',
-        amount: '',
-        start_date: '',
-        end_date: '',
-        terms: '',
-        contractor_company_name: '',
-        contractor_license_registration: '',
-        contractor_license_type: '',
-      });
-      setSubmitError(null);
-    }
-  }, [open, jobTitle, setValue, reset]);
+    loadData();
+  }, [open, jobId, jobTitle, setValue, reset]);
 
   const onSubmit = async (data: ContractFormData) => {
     setSubmitError(null);
@@ -140,22 +193,26 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
         contractor_company_name: data.contractor_company_name.trim(),
         contractor_license_registration: data.contractor_license_registration.trim(),
         contractor_license_type: data.contractor_license_type?.trim() || undefined,
+        insurance_provider: data.insurance_provider?.trim() || undefined,
+        insurance_policy_number: data.insurance_policy_number?.trim() || undefined,
       };
 
       const response = await fetch('/api/contracts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
         },
+        credentials: 'same-origin',
         body: JSON.stringify(contractData),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create contract');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMsg = errorData.error?.message || errorData.error || 'Failed to create contract';
+        throw new Error(typeof errorMsg === 'string' ? errorMsg : 'Failed to create contract');
       }
 
-      // Success
       onContractCreated();
       onOpenChange(false);
     } catch (err) {
@@ -167,13 +224,32 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Contract</DialogTitle>
+          <DialogTitle>Prepare Contract</DialogTitle>
           <DialogDescription>
-            Fill out the contract details for this job
+            Fill in the contract details. This will be sent to the homeowner for review and signature.
           </DialogDescription>
         </DialogHeader>
 
-        {/* Error Message */}
+        {existingContractStatus && existingContractStatus !== 'draft' && (
+          <Alert variant={existingContractStatus === 'accepted' ? 'default' : 'destructive'}>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>
+              {existingContractStatus === 'accepted' ? 'Contract Signed' :
+               existingContractStatus === 'rejected' ? 'Contract Rejected' :
+               'Contract Already Sent'}
+            </AlertTitle>
+            <AlertDescription>
+              {existingContractStatus === 'pending_homeowner'
+                ? 'A contract has already been sent to the homeowner and is awaiting their signature. Submitting again will update the existing contract.'
+                : existingContractStatus === 'accepted'
+                ? 'This contract has been signed by both parties. No further changes can be made.'
+                : existingContractStatus === 'rejected'
+                ? 'The homeowner has requested changes to the contract. You can update and resend it.'
+                : `A finalized contract already exists for this job (status: ${existingContractStatus.replace('_', ' ')}).`}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {submitError && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
@@ -182,11 +258,14 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
           </Alert>
         )}
 
-        {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-4">
-          {/* Title */}
+          {/* Section: Job Details */}
+          <div className="border-b pb-3 mb-3">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Scope of Work</h3>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="title">Title *</Label>
+            <Label htmlFor="title">Contract Title *</Label>
             <Input
               id="title"
               {...register('title')}
@@ -195,21 +274,24 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
             />
           </div>
 
-          {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description">Description *</Label>
+            <Label htmlFor="description">Description of Work *</Label>
             <Textarea
               id="description"
               {...register('description')}
               errorText={errors.description?.message}
               rows={4}
-              placeholder="Describe the work to be performed..."
+              placeholder="Describe the work to be performed in detail..."
             />
           </div>
 
-          {/* Amount */}
+          {/* Section: Payment & Schedule */}
+          <div className="border-b pb-3 mb-3 mt-6">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Payment & Schedule</h3>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="amount">Amount (£) *</Label>
+            <Label htmlFor="amount">Contract Amount (£) *</Label>
             <Input
               id="amount"
               type="number"
@@ -219,37 +301,35 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
               errorText={errors.amount?.message}
               placeholder="0.00"
             />
+            <p className="text-xs text-gray-500">Payment will be held securely in escrow via Mintenance</p>
           </div>
 
-          {/* Start Date */}
-          <div className="space-y-2">
-            <Label htmlFor="start_date">Start Date *</Label>
-            <Input
-              id="start_date"
-              type="datetime-local"
-              {...register('start_date')}
-              errorText={errors.start_date?.message}
-            />
-            <p className="text-xs text-gray-500">
-              Select the date and time when work will begin
-            </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="start_date">Start Date *</Label>
+              <Input
+                id="start_date"
+                type="datetime-local"
+                {...register('start_date')}
+                errorText={errors.start_date?.message}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="end_date">End Date *</Label>
+              <Input
+                id="end_date"
+                type="datetime-local"
+                {...register('end_date')}
+                errorText={errors.end_date?.message}
+              />
+            </div>
           </div>
 
-          {/* End Date */}
-          <div className="space-y-2">
-            <Label htmlFor="end_date">End Date *</Label>
-            <Input
-              id="end_date"
-              type="datetime-local"
-              {...register('end_date')}
-              errorText={errors.end_date?.message}
-            />
-            <p className="text-xs text-gray-500">
-              Select the date and time when work will be completed
-            </p>
+          {/* Section: Contractor Business Details */}
+          <div className="border-b pb-3 mb-3 mt-6">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Business Details</h3>
           </div>
 
-          {/* Contractor Company Name */}
           <div className="space-y-2">
             <Label htmlFor="contractor_company_name">Company Name *</Label>
             <Input
@@ -259,55 +339,78 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
               disabled={loadingCompanyName}
               placeholder={loadingCompanyName ? "Loading..." : "Enter your company name"}
             />
-            {loadingCompanyName && (
-              <p className="text-xs text-gray-500">Loading your company name...</p>
-            )}
           </div>
 
-          {/* License Registration */}
-          <div className="space-y-2">
-            <Label htmlFor="contractor_license_registration">License Registration Number *</Label>
-            <Input
-              id="contractor_license_registration"
-              {...register('contractor_license_registration')}
-              errorText={errors.contractor_license_registration?.message}
-              placeholder="Enter your license registration number"
-            />
-            <p className="text-xs text-gray-500">
-              This will be visible to the homeowner for verification and trust
-            </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="contractor_license_registration">License Number *</Label>
+              <Input
+                id="contractor_license_registration"
+                {...register('contractor_license_registration')}
+                errorText={errors.contractor_license_registration?.message}
+                placeholder="e.g. LIC-12345"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contractor_license_type">License Type</Label>
+              <select
+                id="contractor_license_type"
+                {...register('contractor_license_type')}
+                className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              >
+                <option value="">Select type</option>
+                <option value="General Contractor">General Contractor</option>
+                <option value="Electrical">Electrical</option>
+                <option value="Plumbing">Plumbing</option>
+                <option value="HVAC">HVAC</option>
+                <option value="Roofing">Roofing</option>
+                <option value="Landscaping">Landscaping</option>
+                <option value="Painting">Painting</option>
+                <option value="Carpentry">Carpentry</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
           </div>
 
-          {/* License Type */}
-          <div className="space-y-2">
-            <Label htmlFor="contractor_license_type">License Type (Optional)</Label>
-            <Select value={contractorLicenseType || ''} onValueChange={(value: string) => setValue('contractor_license_type', value)}>
-              <SelectTrigger id="contractor_license_type">
-                <SelectValue placeholder="Select license type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Select license type</SelectItem>
-                <SelectItem value="General Contractor">General Contractor</SelectItem>
-                <SelectItem value="Electrical">Electrical</SelectItem>
-                <SelectItem value="Plumbing">Plumbing</SelectItem>
-                <SelectItem value="HVAC">HVAC</SelectItem>
-                <SelectItem value="Roofing">Roofing</SelectItem>
-                <SelectItem value="Landscaping">Landscaping</SelectItem>
-                <SelectItem value="Painting">Painting</SelectItem>
-                <SelectItem value="Carpentry">Carpentry</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Insurance Details */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+            <div className="flex items-center gap-2 text-blue-700">
+              <Shield className="w-4 h-4" />
+              <span className="text-sm font-semibold">Insurance Details (Recommended)</span>
+            </div>
+            <p className="text-xs text-blue-600">Adding insurance details builds trust and shows professionalism</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="insurance_provider">Insurance Provider</Label>
+                <Input
+                  id="insurance_provider"
+                  {...register('insurance_provider')}
+                  placeholder="e.g. Hiscox, AXA"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="insurance_policy_number">Policy Number</Label>
+                <Input
+                  id="insurance_policy_number"
+                  {...register('insurance_policy_number')}
+                  placeholder="e.g. POL-123456"
+                />
+              </div>
+            </div>
           </div>
 
-          {/* Terms */}
+          {/* Additional Terms */}
+          <div className="border-b pb-3 mb-3 mt-6">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Additional Terms</h3>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="terms">Additional Terms (Optional)</Label>
+            <Label htmlFor="terms">Terms & Conditions (Optional)</Label>
             <Textarea
               id="terms"
               {...register('terms')}
               rows={3}
-              placeholder="Any additional terms or conditions..."
+              placeholder="Any additional terms, conditions, or special requirements..."
             />
           </div>
 
@@ -324,18 +427,28 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
             <Button
               type="submit"
               variant="primary"
-              disabled={isSubmitting || loadingCompanyName}
+              disabled={isSubmitting || loadingCompanyName || existingContractStatus === 'accepted'}
               loading={isSubmitting}
             >
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creating...
+                  {existingContractStatus === 'pending_homeowner' ? 'Updating...' : 'Creating...'}
+                </>
+              ) : existingContractStatus === 'accepted' ? (
+                <>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Contract Already Signed
+                </>
+              ) : existingContractStatus === 'pending_homeowner' ? (
+                <>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Update & Resend Contract
                 </>
               ) : (
                 <>
                   <FileText className="w-4 h-4 mr-2" />
-                  Create Contract
+                  Send Contract to Homeowner
                 </>
               )}
             </Button>
@@ -345,4 +458,3 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
     </Dialog>
   );
 }
-

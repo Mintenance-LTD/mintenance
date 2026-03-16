@@ -80,10 +80,11 @@ export default function ContractorCalendarPage() {
       }));
 
       // Also fetch appointments
+      let appointments: CalendarEvent[] = [];
       const appointRes = await fetch('/api/appointments', { credentials: 'include' });
       if (appointRes.ok) {
         const appointData = await appointRes.json();
-        const appointments = (appointData.appointments || []).map((a: Record<string, unknown>) => ({
+        appointments = (appointData.appointments || []).map((a: Record<string, unknown>) => ({
           id: a.id as string,
           title: (a.title as string) || 'Appointment',
           type: 'appointment' as const,
@@ -94,10 +95,43 @@ export default function ContractorCalendarPage() {
           location: a.location as string || '',
           status: a.status as string,
         }));
-        setEvents([...jobEvents, ...appointments]);
-      } else {
-        setEvents(jobEvents);
       }
+
+      // Fetch signed contracts with start/end dates
+      let contractEvents: CalendarEvent[] = [];
+      const contractRes = await fetch('/api/contracts?status=accepted', { credentials: 'include' });
+      if (contractRes.ok) {
+        const contractData = await contractRes.json();
+        const contracts = contractData.contracts || [];
+        contractEvents = contracts.flatMap((c: Record<string, unknown>) => {
+          const events: CalendarEvent[] = [];
+          if (c.start_date) {
+            events.push({
+              id: `contract-start-${c.id}`,
+              title: `${(c.title as string) || 'Contract'} — Start`,
+              type: 'job' as const,
+              date: c.start_date as string,
+              startTime: '09:00',
+              endTime: '17:00',
+              status: 'contract_start',
+            });
+          }
+          if (c.end_date) {
+            events.push({
+              id: `contract-end-${c.id}`,
+              title: `${(c.title as string) || 'Contract'} — Due`,
+              type: 'job' as const,
+              date: c.end_date as string,
+              startTime: '09:00',
+              endTime: '17:00',
+              status: 'contract_end',
+            });
+          }
+          return events;
+        });
+      }
+
+      setEvents([...jobEvents, ...appointments, ...contractEvents]);
     } catch (error) {
       logger.error('Error fetching calendar events:', error, { service: 'app' });
     }

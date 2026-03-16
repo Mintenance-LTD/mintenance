@@ -54,15 +54,12 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     paddingHorizontal: 16,
-    borderRadius: theme.borderRadius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.background,
+    borderRadius: 16,
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
   },
   periodButtonActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.textPrimary,
   },
   periodButtonText: {
     fontSize: 14,

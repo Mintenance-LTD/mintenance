@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Platform,
   ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -74,7 +75,7 @@ export const StickyBottomCTA: React.FC<StickyBottomCTAProps> = memo(({
           testID={`${testID}-button`}
         >
           {loading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={theme.colors.textInverse} />
           ) : (
             <Text style={styles.buttonText}>{buttonText}</Text>
           )}
@@ -95,14 +96,17 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
-    ...theme.shadows.large,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.border,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 4 },
+    }),
   },
   priceSection: {
     flex: 1,
@@ -110,7 +114,7 @@ const styles = StyleSheet.create({
   priceText: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.accent,
+    color: theme.colors.primary,
   },
   priceLabel: {
     fontSize: 13,
@@ -125,7 +129,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   button: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 24,
@@ -138,7 +142,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
   },

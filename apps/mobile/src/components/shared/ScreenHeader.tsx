@@ -1,9 +1,9 @@
 /**
  * ScreenHeader Component
- * 
+ *
  * Reusable header component for all screens.
  * Provides consistent navigation and actions across the app.
- * 
+ *
  * @filesize Target: <100 lines
  * @compliance Single Responsibility - Header UI only
  */
@@ -16,8 +16,14 @@ import { theme } from '../../theme';
 interface ScreenHeaderProps {
   title: string;
   onBackPress?: () => void;
+  /** @deprecated Use onBackPress */
+  onBack?: () => void;
   showBackButton?: boolean;
+  /** @deprecated Use showBackButton */
+  showBack?: boolean;
   rightAction?: React.ReactNode;
+  /** @deprecated Use rightAction */
+  rightComponent?: React.ReactNode;
   leftAction?: React.ReactNode;
   subtitle?: string;
 }
@@ -25,43 +31,46 @@ interface ScreenHeaderProps {
 export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   title,
   onBackPress,
-  showBackButton = true,
+  onBack,
+  showBackButton,
+  showBack,
   rightAction,
+  rightComponent,
   leftAction,
   subtitle,
 }) => {
+  const shouldShowBack = showBackButton ?? showBack ?? true;
+  const resolvedOnBack = onBackPress ?? onBack;
+  const resolvedRightAction = rightAction ?? rightComponent;
+
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
+    <View style={styles.container}>
       <View style={styles.leftSection}>
-        {showBackButton && onBackPress && (
+        {shouldShowBack && resolvedOnBack && (
           <TouchableOpacity
-            onPress={onBackPress}
+            onPress={resolvedOnBack}
             style={styles.backButton}
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Ionicons
-              name="arrow-back"
-              size={24}
-              color={theme.colors.textPrimary}
-            />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
           </TouchableOpacity>
         )}
         {leftAction}
       </View>
 
       <View style={styles.centerSection}>
-        <Text style={[styles.title, { color: theme.colors.textPrimary }]} numberOfLines={1} accessibilityRole='header'>
+        <Text style={styles.title} numberOfLines={1} accessibilityRole='header'>
           {title}
         </Text>
         {subtitle && (
-          <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+          <Text style={styles.subtitle} numberOfLines={1}>
             {subtitle}
           </Text>
         )}
       </View>
 
-      <View style={styles.rightSection}>{rightAction}</View>
+      <View style={styles.rightSection}>{resolvedRightAction}</View>
     </View>
   );
 };
@@ -71,22 +80,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.lg,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
     backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border,
   },
   leftSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: 40,
+    width: 44,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.colors.surfaceTertiary,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -94,21 +103,21 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: theme.spacing.md,
+    paddingHorizontal: 16,
   },
   title: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 20,
+    fontWeight: '600',
     color: theme.colors.textPrimary,
   },
   subtitle: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: 13,
     color: theme.colors.textSecondary,
     marginTop: 2,
   },
   rightSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: 40,
+    width: 44,
   },
 });

@@ -18,6 +18,21 @@ import { SubscriptionScreen } from "../../../screens/subscription/SubscriptionSc
 import { FinancialsScreen } from "../../../screens/financials/FinancialsScreen";
 import { SettingsHubScreen } from "../../../screens/settings/SettingsHubScreen";
 import { BookingStatusScreen } from "../../../screens/booking/BookingStatusScreen";
+import { InsuranceScreen } from "../../../screens/contractor/InsuranceScreen";
+import { TeamScreen } from "../../../screens/contractor/TeamScreen";
+import { MarketingScreen } from "../../../screens/contractor/MarketingScreen";
+import { MarketInsightsScreen } from "../../../screens/contractor/MarketInsightsScreen";
+// SocialScreen: ARCHIVED - social feature removed
+import { ConnectionsScreen } from "../../../screens/contractor/ConnectionsScreen";
+import { TrainingScreen } from "../../../screens/contractor/TrainingScreen";
+// HelpCenterScreen from ../../../screens/help/ available but using existing root-level HelpCenterScreen
+import { FavoritesScreen } from "../../../screens/favorites/FavoritesScreen";
+import { DiscoverScreen } from "../../../screens/discover/DiscoverScreen";
+import { MFASecurityScreen } from "../../../screens/settings/MFASecurityScreen";
+import { DataExportScreen } from "../../../screens/settings/DataExportScreen";
+import { DeleteAccountScreen } from "../../../screens/settings/DeleteAccountScreen";
+// PortfolioGalleryScreen: ARCHIVED - portfolio feature removed
+import { EscrowDashboardScreen } from "../../../screens/payment/EscrowDashboardScreen";
 import { withScreenErrorBoundary } from "../../../components/ErrorBoundaryProvider";
 
 export const SafeProfileScreen = withScreenErrorBoundary(ProfileScreen, "Profile", { fallbackRoute: "Main" });
@@ -38,3 +53,17 @@ export const SafeSubscriptionScreen = withScreenErrorBoundary(SubscriptionScreen
 export const SafeFinancialsScreen = withScreenErrorBoundary(FinancialsScreen, "Financials", { fallbackRoute: "ProfileMain" });
 export const SafeSettingsHubScreen = withScreenErrorBoundary(SettingsHubScreen, "Settings", { fallbackRoute: "ProfileMain" });
 export const SafeBookingStatusScreen = withScreenErrorBoundary(BookingStatusScreen, "Booking Status", { fallbackRoute: "ProfileMain" });
+export const SafeInsuranceScreen = withScreenErrorBoundary(InsuranceScreen, "Insurance", { fallbackRoute: "ProfileMain" });
+export const SafeTeamScreen = withScreenErrorBoundary(TeamScreen, "Team", { fallbackRoute: "ProfileMain" });
+export const SafeMarketingScreen = withScreenErrorBoundary(MarketingScreen, "Marketing", { fallbackRoute: "ProfileMain" });
+export const SafeMarketInsightsScreen = withScreenErrorBoundary(MarketInsightsScreen, "Market Insights", { fallbackRoute: "ProfileMain" });
+// SafeSocialScreen: ARCHIVED - social feature removed
+export const SafeConnectionsScreen = withScreenErrorBoundary(ConnectionsScreen, "Connections", { fallbackRoute: "ProfileMain" });
+export const SafeTrainingScreen = withScreenErrorBoundary(TrainingScreen, "Training", { fallbackRoute: "ProfileMain" });
+export const SafeFavoritesScreen = withScreenErrorBoundary(FavoritesScreen, "Favorites", { fallbackRoute: "ProfileMain" });
+export const SafeDiscoverScreen = withScreenErrorBoundary(DiscoverScreen, "Discover", { fallbackRoute: "ProfileMain" });
+export const SafeMFASecurityScreen = withScreenErrorBoundary(MFASecurityScreen, "MFA Security", { fallbackRoute: "SettingsHub" });
+export const SafeDataExportScreen = withScreenErrorBoundary(DataExportScreen, "Data Export", { fallbackRoute: "SettingsHub" });
+export const SafeDeleteAccountScreen = withScreenErrorBoundary(DeleteAccountScreen, "Delete Account", { fallbackRoute: "SettingsHub" });
+// SafePortfolioGalleryScreen: ARCHIVED - portfolio feature removed
+export const SafeEscrowDashboardScreen = withScreenErrorBoundary(EscrowDashboardScreen, "Escrow Dashboard", { fallbackRoute: "ProfileMain" });

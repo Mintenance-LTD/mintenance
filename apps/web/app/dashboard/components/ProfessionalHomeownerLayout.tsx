@@ -27,6 +27,7 @@ import {
   CreditCard,
   Video,
   Crown,
+  FolderOpen,
 } from 'lucide-react';
 
 type HomeownerSummary = {
@@ -131,6 +132,7 @@ export function ProfessionalHomeownerLayout({
             ],
           },
           { label: 'Messages', href: '/messages', icon: MessageSquare, badge: 0 },
+          { label: 'Documents', href: '/documents', icon: FolderOpen },
           { label: 'Calendar', href: '/scheduling', icon: Calendar },
           { label: 'Video Calls', href: '/video-calls', icon: Video },
         ],
@@ -272,6 +274,7 @@ export function ProfessionalHomeownerLayout({
                           <>
                             <button
                               onClick={() => toggleExpand(item.label)}
+                              data-tutorial={item.label.toLowerCase().replace(/\s+/g, '-')}
                               className={`
                                 w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all
                                 ${itemActive ? 'bg-teal-50 text-teal-600' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'}
@@ -311,6 +314,7 @@ export function ProfessionalHomeownerLayout({
                         ) : (
                           <Link
                             href={item.href}
+                            data-tutorial={item.label.toLowerCase().replace(/\s+/g, '-')}
                             className={`
                               flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all
                               ${itemActive ? 'bg-teal-50 text-teal-600' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'}

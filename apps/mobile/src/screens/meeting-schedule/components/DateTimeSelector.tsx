@@ -1,8 +1,8 @@
 /**
  * DateTimeSelector Component
- * 
+ *
  * Date and time picker interface.
- * 
+ *
  * @filesize Target: <90 lines
  * @compliance Single Responsibility - DateTime selection
  */
@@ -52,37 +52,41 @@ export const DateTimeSelector: React.FC<DateTimeSelectorProps> = ({
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.sectionTitle} accessibilityRole='header'>Date & Time</Text>
+    <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
+      <Text style={[styles.sectionTitle, { color: theme.colors.textTertiary }]} accessibilityRole='header'>DATE & TIME</Text>
 
       <View style={styles.selectorRow}>
         <TouchableOpacity
-          style={styles.selectorButton}
+          style={[styles.selectorButton, { backgroundColor: theme.colors.backgroundSecondary }]}
           onPress={() => onShowDatePicker(true)}
           accessibilityRole='button'
           accessibilityLabel={`Selected date: ${formatDate(selectedDate)}. Double tap to change`}
         >
           <View style={styles.selectorContent}>
-            <Ionicons name="calendar-outline" size={20} color='#717171' />
+            <View style={styles.iconWrap}>
+              <Ionicons name="calendar-outline" size={16} color="#3B82F6" />
+            </View>
             <View style={styles.selectorText}>
-              <Text style={styles.selectorLabel}>Date</Text>
-              <Text style={styles.selectorValue}>{formatDate(selectedDate)}</Text>
+              <Text style={[styles.selectorLabel, { color: theme.colors.textSecondary }]}>Date</Text>
+              <Text style={[styles.selectorValue, { color: theme.colors.textPrimary }]}>{formatDate(selectedDate)}</Text>
             </View>
           </View>
           <Ionicons name="chevron-down" size={20} color={theme.colors.textTertiary} />
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.selectorButton}
+          style={[styles.selectorButton, { backgroundColor: theme.colors.backgroundSecondary }]}
           onPress={() => onShowTimePicker(true)}
           accessibilityRole='button'
           accessibilityLabel={`Selected time: ${formatTime(selectedTime)}. Double tap to change`}
         >
           <View style={styles.selectorContent}>
-            <Ionicons name="time-outline" size={20} color='#717171' />
+            <View style={[styles.iconWrap, { backgroundColor: '#EDE9FE' }]}>
+              <Ionicons name="time-outline" size={16} color="#8B5CF6" />
+            </View>
             <View style={styles.selectorText}>
-              <Text style={styles.selectorLabel}>Time</Text>
-              <Text style={styles.selectorValue}>{formatTime(selectedTime)}</Text>
+              <Text style={[styles.selectorLabel, { color: theme.colors.textSecondary }]}>Time</Text>
+              <Text style={[styles.selectorValue, { color: theme.colors.textPrimary }]}>{formatTime(selectedTime)}</Text>
             </View>
           </View>
           <Ionicons name="chevron-down" size={20} color={theme.colors.textTertiary} />
@@ -119,46 +123,54 @@ export const DateTimeSelector: React.FC<DateTimeSelectorProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
-    ...theme.shadows.sm,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   sectionTitle: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.lg,
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   selectorRow: {
-    gap: theme.spacing.md,
+    gap: 12,
   },
   selectorButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: theme.colors.surfaceTertiary,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
+    borderRadius: 12,
+    padding: 14,
   },
   selectorContent: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    gap: theme.spacing.md,
+    gap: 12,
+  },
+  iconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#DBEAFE',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   selectorText: {
     flex: 1,
   },
   selectorLabel: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: 12,
     marginBottom: 2,
   },
   selectorValue: {
-    fontSize: theme.typography.fontSize.md,
-    color: theme.colors.textPrimary,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 15,
+    fontWeight: '500',
   },
 });

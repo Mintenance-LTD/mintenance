@@ -1,14 +1,15 @@
 /**
- * QuickActions Component
+ * QuickActions Component (Contractor)
  *
- * Modern horizontal-row action list with coloured icon chips.
+ * Airbnb category-bar-style: horizontal scrollable icon circles
+ * with label below. Each action is a quick tap target.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import { useHaptics } from '../../utils/haptics';
+import { theme } from '../../theme';
 
 interface QuickActionsProps {
   onBrowseJobsPress: () => void;
@@ -21,10 +22,9 @@ interface QuickActionsProps {
 
 interface ActionItem {
   label: string;
-  subtitle: string;
   icon: keyof typeof Ionicons.glyphMap;
   iconColor: string;
-  iconBg: string;
+  bgColor: string;
   onPress: () => void;
 }
 
@@ -40,80 +40,69 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
 
   const actions: ActionItem[] = [
     {
-      label: 'Browse Jobs',
-      subtitle: 'Find new opportunities',
+      label: 'Browse',
       icon: 'search',
-      iconColor: '#0D9488',
-      iconBg: '#CCFBF1',
+      iconColor: theme.colors.primary,
+      bgColor: theme.colors.primaryLight,
       onPress: onBrowseJobsPress,
     },
     {
       label: 'Inbox',
-      subtitle: 'Messages & updates',
       icon: 'mail',
       iconColor: '#3B82F6',
-      iconBg: '#DBEAFE',
+      bgColor: '#DBEAFE',
       onPress: onInboxPress,
     },
     ...(onQuotesPress
-      ? [
-          {
-            label: 'Quotes',
-            subtitle: 'Build & send estimates',
-            icon: 'document-text' as keyof typeof Ionicons.glyphMap,
-            iconColor: '#8B5CF6',
-            iconBg: '#EDE9FE',
-            onPress: onQuotesPress,
-          },
-        ]
+      ? [{
+          label: 'Quotes',
+          icon: 'document-text' as keyof typeof Ionicons.glyphMap,
+          iconColor: '#8B5CF6',
+          bgColor: '#EDE9FE',
+          onPress: onQuotesPress,
+        }]
       : []),
     ...(onInvoicesPress
-      ? [
-          {
-            label: 'Invoices',
-            subtitle: 'Manage billing',
-            icon: 'receipt' as keyof typeof Ionicons.glyphMap,
-            iconColor: '#D97706',
-            iconBg: '#FEF3C7',
-            onPress: onInvoicesPress,
-          },
-        ]
+      ? [{
+          label: 'Invoices',
+          icon: 'receipt' as keyof typeof Ionicons.glyphMap,
+          iconColor: theme.colors.accent,
+          bgColor: theme.colors.accentLight,
+          onPress: onInvoicesPress,
+        }]
       : []),
     ...(onExpensesPress
-      ? [
-          {
-            label: 'Expenses',
-            subtitle: 'Track costs',
-            icon: 'wallet' as keyof typeof Ionicons.glyphMap,
-            iconColor: '#DC2626',
-            iconBg: '#FEE2E2',
-            onPress: onExpensesPress,
-          },
-        ]
+      ? [{
+          label: 'Expenses',
+          icon: 'wallet' as keyof typeof Ionicons.glyphMap,
+          iconColor: theme.colors.error,
+          bgColor: '#FEE2E2',
+          onPress: onExpensesPress,
+        }]
       : []),
     ...(onCalendarPress
-      ? [
-          {
-            label: 'Calendar',
-            subtitle: 'Schedule & plan',
-            icon: 'calendar' as keyof typeof Ionicons.glyphMap,
-            iconColor: '#059669',
-            iconBg: '#D1FAE5',
-            onPress: onCalendarPress,
-          },
-        ]
+      ? [{
+          label: 'Calendar',
+          icon: 'calendar' as keyof typeof Ionicons.glyphMap,
+          iconColor: '#06B6D4',
+          bgColor: '#CFFAFE',
+          onPress: onCalendarPress,
+        }]
       : []),
   ];
 
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Quick Actions</Text>
-
-      <View style={styles.list}>
-        {actions.map((action, index) => (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {actions.map((action) => (
           <TouchableOpacity
             key={action.label}
-            style={[styles.row, index === actions.length - 1 && styles.rowLast]}
+            style={styles.actionItem}
             onPress={() => {
               haptics.buttonPress();
               action.onPress();
@@ -122,72 +111,48 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
             accessibilityLabel={action.label}
             activeOpacity={0.7}
           >
-            <View style={[styles.iconChip, { backgroundColor: action.iconBg }]}>
-              <Ionicons name={action.icon} size={20} color={action.iconColor} />
+            <View style={[styles.iconCircle, { backgroundColor: action.bgColor }]}>
+              <Ionicons name={action.icon} size={22} color={action.iconColor} />
             </View>
-            <View style={styles.textBlock}>
-              <Text style={styles.rowTitle}>{action.label}</Text>
-              <Text style={styles.rowSubtitle}>{action.subtitle}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
+            <Text style={styles.actionLabel} numberOfLines={1}>{action.label}</Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   section: {
-    marginBottom: 32,
+    marginBottom: 28,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginBottom: 12,
+    marginBottom: 14,
+    letterSpacing: -0.3,
   },
-  list: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.04)',
+  scrollContent: {
+    gap: 16,
+    paddingRight: 8,
   },
-  row: {
-    flexDirection: 'row',
+  actionItem: {
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
-    gap: 14,
+    width: 68,
   },
-  rowLast: {
-    borderBottomWidth: 0,
-  },
-  iconChip: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+  iconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 8,
   },
-  textBlock: {
-    flex: 1,
-  },
-  rowTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-    marginBottom: 2,
-  },
-  rowSubtitle: {
+  actionLabel: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    fontWeight: '500',
+    color: theme.colors.textPrimary,
+    textAlign: 'center',
   },
 });

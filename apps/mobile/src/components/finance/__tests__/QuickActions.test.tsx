@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render, createMockNavigation } from '../../test-utils';
 import { QuickActions } from '../QuickActions';
-import { theme } from '../../../theme';
+
 import { Dimensions } from 'react-native';
 
 /**
@@ -93,7 +93,7 @@ describe('QuickActions', () => {
 
       expect(title.props.style).toEqual(
         expect.objectContaining({
-          color: theme.colors.textPrimary,
+          color: '#222222',
         })
       );
     });
@@ -142,7 +142,7 @@ describe('QuickActions', () => {
       const button = getByText('Create Invoice').parent;
       const icon = button?.findByProps({ name: 'receipt-outline' });
 
-      expect(icon?.props.color).toBe(theme.colors.primary);
+      expect(icon?.props.color).toBe('#222222');
     });
   });
 
@@ -178,7 +178,7 @@ describe('QuickActions', () => {
       const button = getByText('Add Expense').parent;
       const icon = button?.findByProps({ name: 'card-outline' });
 
-      expect(icon?.props.color).toBe(theme.colors.primary);
+      expect(icon?.props.color).toBe('#222222');
     });
   });
 
@@ -214,7 +214,7 @@ describe('QuickActions', () => {
       const button = getByText('Record Payment').parent;
       const icon = button?.findByProps({ name: 'checkmark-circle-outline' });
 
-      expect(icon?.props.color).toBe(theme.colors.primary);
+      expect(icon?.props.color).toBe('#222222');
     });
   });
 
@@ -250,7 +250,7 @@ describe('QuickActions', () => {
       const button = getByText('View Reports').parent;
       const icon = button?.findByProps({ name: 'analytics-outline' });
 
-      expect(icon?.props.color).toBe(theme.colors.primary);
+      expect(icon?.props.color).toBe('#222222');
     });
   });
 
@@ -261,7 +261,7 @@ describe('QuickActions', () => {
 
       expect(container?.props.style).toEqual(
         expect.objectContaining({
-          backgroundColor: theme.colors.background,
+          backgroundColor: '#F7F7F7',
         })
       );
     });
@@ -272,7 +272,7 @@ describe('QuickActions', () => {
 
       expect(container?.props.style).toEqual(
         expect.objectContaining({
-          borderRadius: theme.borderRadius.lg,
+          borderRadius: 16,
         })
       );
     });
@@ -401,7 +401,7 @@ describe('QuickActions', () => {
 
       expect(button?.props.style).toEqual(
         expect.objectContaining({
-          borderRadius: theme.borderRadius.lg,
+          borderRadius: 16,
         })
       );
     });
@@ -423,7 +423,7 @@ describe('QuickActions', () => {
 
       expect(button?.props.style).toEqual(
         expect.objectContaining({
-          borderColor: theme.colors.border,
+          borderColor: '#EBEBEB',
         })
       );
     });
@@ -434,7 +434,7 @@ describe('QuickActions', () => {
 
       expect(button?.props.style).toEqual(
         expect.objectContaining({
-          backgroundColor: theme.colors.surfaceSecondary,
+          backgroundColor: '#F7F7F7',
         })
       );
     });
@@ -458,7 +458,7 @@ describe('QuickActions', () => {
 
       expect(text.props.style).toEqual(
         expect.objectContaining({
-          color: theme.colors.textPrimary,
+          color: '#222222',
         })
       );
     });

@@ -34,7 +34,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${formatted ?? placeholder}. Double tap to change`}
       >
-        <Ionicons name="calendar-outline" size={18} color={theme.colors.primary} />
+        <Ionicons name="calendar-outline" size={18} color={theme.colors.textPrimary} />
         <Text style={[styles.valueText, !formatted && styles.placeholder]}>
           {formatted ?? placeholder}
         </Text>
@@ -71,10 +71,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
     paddingHorizontal: 14,
     paddingVertical: 12,
   },

@@ -203,7 +203,7 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
             >
               <View style={[styles.checkbox, isPrimary && styles.checkboxChecked]}>
                 {isPrimary && (
-                  <Ionicons name="checkmark" size={14} color="#fff" />
+                  <Ionicons name="checkmark" size={14} color={theme.colors.textInverse} />
                 )}
               </View>
               <View style={styles.checkLabel}>
@@ -222,7 +222,7 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
             disabled={isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color={theme.colors.textInverse} />
             ) : (
               <Text style={styles.submitText}>Save Service Area</Text>
             )}
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: 32,
@@ -252,8 +252,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
   },
   title: {
     fontSize: 18,
@@ -275,14 +275,12 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   input: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.base,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
     color: theme.colors.textPrimary,
-    backgroundColor: theme.colors.surface,
   },
   hint: {
     fontSize: 12,
@@ -299,13 +297,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   radiusChipActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.textPrimary,
   },
   radiusChipText: {
     fontSize: 13,
@@ -313,7 +308,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   radiusChipTextActive: {
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   checkRow: {
     flexDirection: 'row',
@@ -333,8 +328,8 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   checkboxChecked: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.textPrimary,
+    borderColor: theme.colors.textPrimary,
   },
   checkLabel: {
     flex: 1,
@@ -352,8 +347,8 @@ const styles = StyleSheet.create({
   submitBtn: {
     marginHorizontal: 20,
     marginTop: 16,
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.base,
+    backgroundColor: theme.colors.textPrimary,
+    borderRadius: 28,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
@@ -362,7 +357,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   submitText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
   },

@@ -1,8 +1,8 @@
 /**
  * ServiceCategoryGrid Component
- * 
+ *
  * Grid of service category icons.
- * 
+ *
  * @filesize Target: <90 lines
  * @compliance Single Responsibility - Service categories display
  */
@@ -10,8 +10,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 import type { Service } from '../viewmodels/EnhancedHomeViewModel';
+import { theme } from '../../../theme';
 
 interface ServiceCategoryGridProps {
   services: Service[];
@@ -37,9 +37,9 @@ export const ServiceCategoryGrid: React.FC<ServiceCategoryGridProps> = ({
           >
             <View style={styles.serviceIcon}>
               <Ionicons
-                name={service.icon}
+                name={service.icon as keyof typeof Ionicons.glyphMap}
                 size={28}
-                color='#717171'
+                color={theme.colors.textSecondary}
               />
             </View>
             <Text style={styles.serviceName}>{service.name}</Text>
@@ -52,36 +52,35 @@ export const ServiceCategoryGrid: React.FC<ServiceCategoryGridProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: theme.spacing.xl,
-    marginVertical: theme.spacing.lg,
+    paddingHorizontal: 20,
+    marginVertical: 16,
   },
   sectionTitle: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 20,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.lg,
+    marginBottom: 16,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
   serviceItem: {
-    // 5 equal columns — stable regardless of item count
     width: '20%',
     alignItems: 'center',
-    marginBottom: theme.spacing.lg,
+    marginBottom: 16,
   },
   serviceIcon: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: theme.colors.surfaceTertiary,
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: theme.spacing.sm,
+    marginBottom: 8,
   },
   serviceName: {
-    fontSize: theme.typography.fontSize.base,
+    fontSize: 12,
     color: theme.colors.textPrimary,
     textAlign: 'center',
   },

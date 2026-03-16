@@ -8,7 +8,7 @@ export const styles = StyleSheet.create({
   },
   permissionContainer: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -32,13 +32,13 @@ export const styles = StyleSheet.create({
     marginBottom: 24,
   },
   permissionButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 28,
   },
   permissionButtonText: {
-    color: theme.colors.surface,
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -51,7 +51,7 @@ export const styles = StyleSheet.create({
   connectingText: {
     marginTop: 20,
     fontSize: 18,
-    color: theme.colors.surface,
+    color: theme.colors.textInverse,
   },
   videoContainer: {
     flex: 1,
@@ -68,11 +68,11 @@ export const styles = StyleSheet.create({
     backgroundColor: '#1a1a1a',
   },
   videoPlaceholder: {
-    color: theme.colors.surface,
+    color: theme.colors.textInverse,
     fontSize: 18,
   },
   videoPlaceholderSmall: {
-    color: theme.colors.surface,
+    color: theme.colors.textInverse,
     fontSize: 10,
     marginTop: 4,
     textAlign: 'center',
@@ -84,7 +84,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#2a2a2a',
   },
   videoDisabledText: {
-    color: theme.colors.surface,
+    color: theme.colors.textInverse,
     fontSize: 16,
     marginTop: 12,
   },
@@ -119,7 +119,7 @@ export const styles = StyleSheet.create({
     borderRadius: 4,
   },
   pipLabelText: {
-    color: theme.colors.surface,
+    color: theme.colors.textInverse,
     fontSize: 10,
     fontWeight: '500',
   },
@@ -153,7 +153,7 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   participantName: {
-    color: theme.colors.surface,
+    color: theme.colors.textInverse,
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 4,
@@ -169,7 +169,7 @@ export const styles = StyleSheet.create({
     marginRight: 8,
   },
   durationText: {
-    color: theme.colors.surface,
+    color: theme.colors.textInverse,
     fontSize: 14,
     fontWeight: '500',
     opacity: 0.8,
@@ -190,7 +190,7 @@ export const styles = StyleSheet.create({
     marginRight: 6,
   },
   recordingText: {
-    color: theme.colors.surface,
+    color: theme.colors.textInverse,
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -253,11 +253,11 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.3)',
   },
   secondaryButtonText: {
-    color: theme.colors.surface,
+    color: theme.colors.textInverse,
     fontSize: 12,
     fontWeight: '500',
   },
   secondaryButtonTextActive: {
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
   },
 });

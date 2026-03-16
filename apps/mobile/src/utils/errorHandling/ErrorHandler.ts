@@ -3,9 +3,19 @@
  * Centralized error management with recovery strategies
  */
 
-import { captureException, captureMessage, addBreadcrumb } from '@sentry/react-native';
+import { captureException, captureMessage, addBreadcrumb, type SeverityLevel } from '@sentry/react-native';
 import { Alert } from 'react-native';
 import { logger } from '../logger';
+
+const severityToSentryLevel = (severity: ErrorSeverity): SeverityLevel => {
+  switch (severity) {
+    case ErrorSeverity.CRITICAL: return 'fatal';
+    case ErrorSeverity.HIGH: return 'error';
+    case ErrorSeverity.MEDIUM: return 'warning';
+    case ErrorSeverity.LOW: return 'info';
+    default: return 'info';
+  }
+};
 
 export enum ErrorType {
   NETWORK = 'NETWORK',
@@ -72,7 +82,7 @@ export class AppError extends Error {
       this.context,
       this.recoveryOptions
     );
-    (error as unknown).retryCount = count;
+    (error as { retryCount: number }).retryCount = count;
     return error;
   }
 }
@@ -96,8 +106,8 @@ export class ErrorHandler {
   private setupNetworkMonitoring(): void {
     // Monitor network status for error context
     const NetInfo = require('@react-native-community/netinfo');
-    NetInfo.addEventListener((state: unknown) => {
-      this.isOnline = state.isConnected && state.isInternetReachable;
+    NetInfo.addEventListener((state: { isConnected: boolean | null; isInternetReachable: boolean | null }) => {
+      this.isOnline = !!(state.isConnected && state.isInternetReachable);
     });
   }
 
@@ -138,7 +148,7 @@ export class ErrorHandler {
       error.message || 'Unknown error occurred',
       type,
       severity,
-      { ...context, originalError: error.name },
+      { ...context, metadata: { ...context.metadata, originalError: error.name } },
       recoveryOptions
     );
   }
@@ -294,7 +304,7 @@ export class ErrorHandler {
     addBreadcrumb({
       category: 'error',
       message: error.message,
-      level: error.severity,
+      level: severityToSentryLevel(error.severity),
       data: error.context
     });
 
@@ -303,7 +313,7 @@ export class ErrorHandler {
       captureException(error);
     } else {
       captureMessage(error.message, {
-        level: error.severity,
+        level: severityToSentryLevel(error.severity),
         extra: {
           type: error.type,
           context: error.context,

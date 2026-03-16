@@ -6,11 +6,35 @@
 
 import { Platform } from 'react-native';
 import { logger } from '../utils/logger';
-import { NotificationBehavior } from '@mintenance/types';
+
+interface NotificationsModule {
+  setNotificationHandler: (handler: {
+    handleNotification: () => Promise<{
+      shouldShowAlert: boolean;
+      shouldPlaySound: boolean;
+      shouldSetBadge: boolean;
+      shouldShowBanner: boolean;
+      shouldShowList: boolean;
+    }>;
+  }) => void;
+  getPermissionsAsync: () => Promise<{ status: string }>;
+  requestPermissionsAsync: () => Promise<{ status: string }>;
+  getExpoPushTokenAsync: () => Promise<{ data: string }>;
+  scheduleNotificationAsync: (options: {
+    content: { title: string; body: string; data: Record<string, unknown> };
+    trigger: { seconds?: number; date?: Date } | null;
+  }) => Promise<{ identifier: string }>;
+  cancelScheduledNotificationAsync: (identifier: string) => Promise<void>;
+  cancelAllScheduledNotificationsAsync: () => Promise<void>;
+}
+
+interface DeviceModule {
+  isDevice: boolean;
+}
 
 // Conditional imports for Expo modules
-let Notifications: unknown;
-let Device: unknown;
+let Notifications: NotificationsModule;
+let Device: DeviceModule;
 
 try {
   Notifications = require('expo-notifications');
@@ -23,6 +47,8 @@ try {
     scheduleNotificationAsync: () => Promise.resolve({ identifier: 'mock-id' }),
     setNotificationHandler: () => {},
     getExpoPushTokenAsync: () => Promise.resolve({ data: 'mock-token' }),
+    cancelScheduledNotificationAsync: () => Promise.resolve(),
+    cancelAllScheduledNotificationsAsync: () => Promise.resolve(),
   };
   Device = { isDevice: true };
 }

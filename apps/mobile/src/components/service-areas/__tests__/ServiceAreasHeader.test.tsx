@@ -3,7 +3,6 @@ import React from 'react';
 import { render, fireEvent } from '../../test-utils';
 import { ServiceAreasHeader } from '../ServiceAreasHeader';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { theme } from '../../../theme';
 
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,

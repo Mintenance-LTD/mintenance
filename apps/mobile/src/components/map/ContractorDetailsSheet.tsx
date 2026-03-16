@@ -55,7 +55,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
               <Ionicons
                 name='checkmark-circle'
                 size={16}
-                color={theme.colors.primary}
+                color={theme.colors.textPrimary}
               />
             )}
           </View>
@@ -64,7 +64,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
           </Text>
           <View style={styles.contractorMeta}>
             <View style={styles.ratingContainer}>
-              <Ionicons name='star' size={14} color='#FFD700' />
+              <Ionicons name='star' size={14} color={theme.colors.accent} />
               <Text style={styles.rating}>{contractor.rating}</Text>
             </View>
             <Text style={styles.metaDivider}>•</Text>
@@ -92,7 +92,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
           <Ionicons
             name='cash-outline'
             size={16}
-            color={theme.colors.primary}
+            color={theme.colors.textPrimary}
           />
           <Text style={styles.pricingText}>{contractor.pricing}</Text>
         </View>
@@ -100,7 +100,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
           <Ionicons
             name='time-outline'
             size={16}
-            color={theme.colors.primary}
+            color={theme.colors.textPrimary}
           />
           <Text style={styles.estimateText}>35 km/50min</Text>
         </View>
@@ -114,7 +114,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
           <Ionicons
             name='chatbubble-outline'
             size={18}
-            color={theme.colors.primary}
+            color={theme.colors.textPrimary}
           />
           <Text style={styles.actionButtonText}>Message</Text>
         </TouchableOpacity>
@@ -126,7 +126,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
           <Ionicons
             name='call-outline'
             size={18}
-            color={theme.colors.primary}
+            color={theme.colors.textPrimary}
           />
           <Text style={styles.actionButtonText}>Call</Text>
         </TouchableOpacity>
@@ -135,7 +135,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
           style={[styles.actionButton, styles.directionsButton]}
           onPress={() => onGetDirections(contractor)}
         >
-          <Ionicons name='navigate-outline' size={18} color={theme.colors.white} />
+          <Ionicons name='navigate-outline' size={18} color={theme.colors.textInverse} />
           <Text
             style={[styles.actionButtonText, styles.directionsButtonText]}
           >
@@ -158,7 +158,17 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     padding: 20,
     paddingBottom: Platform.OS === 'ios' ? 40 : 20,
-    ...theme.shadows.lg,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
   contractorHeader: {
     flexDirection: 'row',
@@ -231,7 +241,7 @@ const styles = StyleSheet.create({
   pricingText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
   },
   estimateInfo: {
     flexDirection: 'row',
@@ -241,7 +251,7 @@ const styles = StyleSheet.create({
   estimateText: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
   },
   contractorActions: {
     flexDirection: 'row',
@@ -254,16 +264,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
     gap: 8,
   },
   actionButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
   },
   directionsButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.textPrimary,
   },
   directionsButtonText: {
     color: theme.colors.textInverse,

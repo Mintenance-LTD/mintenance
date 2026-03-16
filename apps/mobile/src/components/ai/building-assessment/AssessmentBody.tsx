@@ -1,15 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
 import { BuildingAssessment } from './types';
+import { theme } from '../../../theme';
 
 const getSeverityColor = (severity: string) => {
   switch (severity) {
-    case 'critical': return '#FF3B30';
-    case 'severe': return '#FF9500';
-    case 'moderate': return '#FFCC00';
-    case 'minimal': return '#34C759';
+    case 'critical': return theme.colors.error;
+    case 'severe': return theme.colors.accent;
+    case 'moderate': return theme.colors.accent;
+    case 'minimal': return theme.colors.primary;
     default: return theme.colors.textSecondary;
   }
 };
@@ -65,7 +65,7 @@ export const AssessmentBody: React.FC<Props> = ({ assessment, onSubmitCorrection
           <Text style={styles.riskLevel}>Risk Level: {assessment.safetyHazards.riskLevel.toUpperCase()}</Text>
           {assessment.safetyHazards.criticalFlags.map((flag, index) => (
             <View key={index} style={styles.criticalFlag}>
-              <Ionicons name='alert-circle' size={16} color='#FF3B30' />
+              <Ionicons name='alert-circle' size={16} color={theme.colors.error} />
               <Text style={styles.criticalFlagText}>{flag}</Text>
             </View>
           ))}
@@ -116,7 +116,7 @@ export const AssessmentBody: React.FC<Props> = ({ assessment, onSubmitCorrection
       <View style={styles.recommendations}>
         {assessment.recommendations.map((rec, index) => (
           <View key={index} style={styles.recommendationItem}>
-            <Ionicons name='checkmark-circle' size={16} color={theme.colors.success} />
+            <Ionicons name='checkmark-circle' size={16} color={theme.colors.primary} />
             <Text style={styles.recommendationText}>{rec}</Text>
           </View>
         ))}
@@ -131,11 +131,11 @@ export const AssessmentBody: React.FC<Props> = ({ assessment, onSubmitCorrection
     </View>
     <View style={styles.actions}>
       <TouchableOpacity style={styles.correctionButton} onPress={onSubmitCorrections}>
-        <Ionicons name='create-outline' size={20} color={theme.colors.primary} />
+        <Ionicons name='create-outline' size={20} color={theme.colors.textPrimary} />
         <Text style={styles.correctionButtonText}>Correct Assessment</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.refreshButton} onPress={onRerun}>
-        <Ionicons name='refresh' size={20} color={theme.colors.primary} />
+        <Ionicons name='refresh' size={20} color={theme.colors.textPrimary} />
         <Text style={styles.refreshButtonText}>Re-run Analysis</Text>
       </TouchableOpacity>
     </View>
@@ -145,7 +145,7 @@ export const AssessmentBody: React.FC<Props> = ({ assessment, onSubmitCorrection
 const styles = StyleSheet.create({
   content: { maxHeight: 400 },
   section: { padding: 16 },
-  safetySection: { backgroundColor: "#FFF5F5" },
+  safetySection: { backgroundColor: '#FEF2F2' },
   sectionHeader: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
   sectionTitle: { fontSize: 14, fontWeight: "600", color: theme.colors.textPrimary, marginBottom: 12 },
   damageInfo: { gap: 8 },
@@ -153,18 +153,18 @@ const styles = StyleSheet.create({
   label: { fontSize: 14, color: theme.colors.textSecondary, width: 80 },
   value: { fontSize: 14, color: theme.colors.textPrimary, flex: 1 },
   severityBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
-  severityText: { color: "#FFF", fontSize: 12, fontWeight: "600" },
+  severityText: { color: theme.colors.textInverse, fontSize: 12, fontWeight: "600" },
   description: { fontSize: 14, color: theme.colors.textPrimary, lineHeight: 20, marginTop: 8 },
   issuesList: { marginTop: 12 },
   issuesTitle: { fontSize: 13, fontWeight: "600", marginBottom: 8, color: theme.colors.textSecondary },
-  issueItem: { backgroundColor: theme.colors.background, padding: 8, borderRadius: 8, marginBottom: 8 },
+  issueItem: { backgroundColor: theme.colors.backgroundSecondary, padding: 8, borderRadius: 8, marginBottom: 8 },
   issueType: { fontSize: 13, fontWeight: "600", color: theme.colors.textPrimary },
   issueLocation: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
   issueSource: { fontSize: 11, color: theme.colors.textTertiary, marginTop: 2 },
   safetyContent: { gap: 8 },
   riskLevel: { fontSize: 14, fontWeight: "600", color: theme.colors.textPrimary, marginBottom: 8 },
   criticalFlag: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
-  criticalFlagText: { fontSize: 13, color: "#FF3B30", marginLeft: 8 },
+  criticalFlagText: { fontSize: 13, color: theme.colors.error, marginLeft: 8 },
   safetyDetails: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 8, lineHeight: 18 },
   costEstimate: { gap: 8 },
   costRow: { flexDirection: "row", alignItems: "center" },
@@ -180,17 +180,17 @@ const styles = StyleSheet.create({
   riskScore: { flexDirection: "row", alignItems: "center" },
   riskCategory: { flexDirection: "row", alignItems: "center" },
   categoryBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
-  categoryText: { fontSize: 11, color: "#FFF", fontWeight: "600" },
+  categoryText: { fontSize: 11, color: theme.colors.textInverse, fontWeight: "600" },
   recommendedAction: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 8, lineHeight: 18 },
   recommendations: { gap: 8 },
   recommendationItem: { flexDirection: "row", alignItems: "flex-start" },
   recommendationText: { fontSize: 13, color: theme.colors.textPrimary, marginLeft: 8, flex: 1, lineHeight: 18 },
-  metadata: { padding: 16, backgroundColor: theme.colors.background },
+  metadata: { padding: 16, backgroundColor: theme.colors.backgroundSecondary },
   metadataTitle: { fontSize: 12, fontWeight: "600", color: theme.colors.textTertiary, marginBottom: 8 },
   metadataItem: { fontSize: 11, color: theme.colors.textTertiary, marginBottom: 2 },
   actions: { flexDirection: "row", padding: 16, gap: 12 },
   correctionButton: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", padding: 12, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.border },
   correctionButtonText: { fontSize: 14, color: theme.colors.textPrimary, marginLeft: 4 },
-  refreshButton: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", padding: 12, borderRadius: 8, backgroundColor: theme.colors.primary + "10" },
-  refreshButtonText: { fontSize: 14, color: theme.colors.primary, marginLeft: 4 },
+  refreshButton: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", padding: 12, borderRadius: 8, backgroundColor: 'rgba(34, 34, 34, 0.06)' },
+  refreshButtonText: { fontSize: 14, color: theme.colors.textPrimary, marginLeft: 4 },
 });

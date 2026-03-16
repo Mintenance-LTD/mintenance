@@ -2,27 +2,29 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
   Image,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+import { FadeIn, SlideIn } from '../components/animations/primitives';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../contexts/AuthContext';
 import { AuthStackParamList } from '../navigation/types';
-import { theme } from '../theme';
+
 import { useAccessibleText } from '../hooks/useAccessibleText';
 import { useHaptics } from '../utils/haptics';
 import { useI18n } from '../hooks/useI18n';
 import Button from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Banner } from '../components/ui/Banner';
+import { theme } from '../theme';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -37,23 +39,22 @@ const TRUST_ITEMS = [
 ];
 
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { signIn, loading } = useAuth();
 
-  // Development mode test credentials
+  const togglePasswordVisibility = () => setPasswordVisible((prev) => !prev);
+
   const isDev = __DEV__ || process.env.NODE_ENV === 'development';
 
-  // Dynamic text scaling for accessibility
   const headerTitleText = useAccessibleText(28);
   const buttonText = useAccessibleText(18);
   const linkText = useAccessibleText(14);
 
-  // Haptic feedback
   const haptics = useHaptics();
-
-  // Internationalization
   const { t, auth, common, getErrorMessage } = useI18n();
 
   const handleLogin = async () => {
@@ -62,7 +63,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
     if (!email || !password) {
       haptics.error();
-      setErrorMessage(String(t('auth.fillAllFields', 'Please fill in all fields')));
+      setErrorMessage(String(t('auth.fillAllFields', { defaultValue: 'Please fill in all fields' })));
       return;
     }
 
@@ -72,15 +73,24 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       haptics.loginSuccess();
     } catch (error) {
       haptics.loginFailed();
-      setErrorMessage(String(getErrorMessage('loginFailed', error.message)));
+      setErrorMessage(String(getErrorMessage('loginFailed', error instanceof Error ? error.message : String(error))));
     }
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <View style={styles.safeArea}>
+      <StatusBar style="light" />
       <View style={styles.container} testID="login-screen">
-        {/* Header with brand and trust indicators */}
-        <View style={styles.header}>
+        <FadeIn duration={500}>
+        <LinearGradient
+          colors={['#064E3B', '#059669', '#10B981']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.header, { paddingTop: insets.top + 24 }]}
+        >
+          {/* Decorative circles */}
+          <View style={styles.decorCircle1} />
+          <View style={styles.decorCircle2} />
           <View style={styles.headerContent}>
             <Image
               source={require('../../assets/icon.png')}
@@ -95,23 +105,20 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               Mintenance
             </Text>
           </View>
-          <Text
-            style={styles.headerSubtitle}
-            accessibilityRole='text'
-          >
-            Connect homeowners and contractors easily
+          <Text style={styles.headerSubtitle} accessibilityRole='text'>
+            {String(t('auth.tagline'))}
           </Text>
 
-          {/* Trust indicators */}
           <View style={styles.trustRow}>
             {TRUST_ITEMS.map((item) => (
               <View key={item.label} style={styles.trustPill}>
-                <Ionicons name={item.icon} size={13} color={theme.colors.textSecondary} />
+                <Ionicons name={item.icon} size={13} color="rgba(255,255,255,0.9)" />
                 <Text style={styles.trustText}>{item.label}</Text>
               </View>
             ))}
           </View>
-        </View>
+        </LinearGradient>
+        </FadeIn>
 
         <KeyboardAvoidingView
           style={styles.keyboardContainer}
@@ -122,11 +129,12 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps='handled'
           >
-            {/* Form heading */}
+            <SlideIn direction="up" distance={20} duration={400} delay={200}>
             <View style={styles.formHeading}>
-              <Text style={styles.formTitle}>Sign in to your account</Text>
-              <Text style={styles.formSubtitle}>Enter your details below</Text>
+              <Text style={styles.formTitle}>{String(t('auth.signInTitle'))}</Text>
+              <Text style={styles.formSubtitle}>{String(t('auth.signInSubtitle'))}</Text>
             </View>
+            </SlideIn>
 
               {errorMessage ? (
                 <Banner
@@ -136,7 +144,6 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 />
               ) : null}
 
-              {/* Login Form */}
               <View style={styles.formContainer}>
                 <Input
                   testID="email-input"
@@ -145,19 +152,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   value={email}
                   onChangeText={(value) => {
                     setEmail(value);
-                    if (errorMessage) {
-                      setErrorMessage(null);
-                    }
+                    if (errorMessage) setErrorMessage(null);
                   }}
                   leftIcon='mail-outline'
                   keyboardType='email-address'
                   autoCapitalize='none'
                   autoCorrect={false}
                   accessibilityHint={String(
-                    t(
-                      'auth.emailHint',
-                      'Please enter your email address to sign in'
-                    )
+                    t('auth.emailHint', { defaultValue: 'Please enter your email address to sign in' })
                   )}
                   textContentType='emailAddress'
                   autoComplete='email'
@@ -175,17 +177,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   value={password}
                   onChangeText={(value) => {
                     setPassword(value);
-                    if (errorMessage) {
-                      setErrorMessage(null);
-                    }
+                    if (errorMessage) setErrorMessage(null);
                   }}
                   leftIcon='lock-closed-outline'
-                  secureTextEntry
+                  rightIcon={passwordVisible ? 'eye-off-outline' : 'eye-outline'}
+                  onRightIconPress={togglePasswordVisibility}
+                  secureTextEntry={!passwordVisible}
                   accessibilityHint={String(
-                    t(
-                      'auth.passwordHint',
-                      'Please enter your password to sign in'
-                    )
+                    t('auth.passwordHint', { defaultValue: 'Please enter your password to sign in' })
                   )}
                   textContentType='password'
                   autoComplete='password'
@@ -195,7 +194,6 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   required
                 />
 
-                {/* Forgot password link (right-aligned) */}
                 <TouchableOpacity
                   style={styles.forgotPasswordLink}
                   onPress={() => {
@@ -205,10 +203,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   accessibilityRole='button'
                   accessibilityLabel={String(auth.forgotPassword())}
                   accessibilityHint={String(
-                    t(
-                      'auth.forgotPasswordHint',
-                      'Double tap to reset your password'
-                    )
+                    t('auth.forgotPasswordHint', { defaultValue: 'Double tap to reset your password' })
                   )}
                 >
                   <Text style={[styles.forgotPasswordText, linkText.textStyle]}>
@@ -216,19 +211,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   </Text>
                 </TouchableOpacity>
 
-                {/* Loading Spinner */}
-                {loading && (
-                  <ActivityIndicator
-                    testID="loading-spinner"
-                    size="large"
-                    color={theme.colors.primary}
-                    style={{ marginVertical: 20 }}
-                    accessibilityLabel="Signing in"
-                  />
-                )}
-
-                {/* Log In Button */}
-                <Button
+                    <Button
                   variant='primary'
                   title={
                     loading ? String(t('auth.loggingIn')) : String(auth.login())
@@ -240,38 +223,36 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                     loading ? String(t('auth.loggingIn')) : String(auth.login())
                   }
                   fullWidth
-                  style={{ borderRadius: theme.borderRadius.xxl, marginTop: 8 }}
-                  textStyle={buttonText.textStyle as unknown}
+                  style={{ borderRadius: 28, marginTop: 8 }}
+                  textStyle={buttonText.textStyle as import('react-native').TextStyle}
                 />
               </View>
 
-            {/* Divider + Sign Up CTA */}
-              <View style={styles.dividerSection}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>New to Mintenance?</Text>
-                <View style={styles.dividerLine} />
-              </View>
+            <View style={styles.dividerSection}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>{String(t('auth.newToMintenance'))}</Text>
+              <View style={styles.dividerLine} />
+            </View>
 
               <View style={{ paddingHorizontal: 24 }}>
                 <Button
-                  variant='outline'
-                  title='Create Account'
+                  variant='secondary'
+                  title={String(t('auth.createAccount'))}
                   onPress={() => {
                     haptics.buttonPress();
                     navigation.navigate('Register');
                   }}
                   accessibilityLabel={String(
-                    t('auth.signUpForAccount', 'Sign up for new account')
+                    t('auth.signUpForAccount', { defaultValue: 'Sign up for new account' })
                   )}
                   accessibilityHint={String(
-                    t('auth.signUpHint', 'Double tap to create a new account')
+                    t('auth.signUpHint', { defaultValue: 'Double tap to create a new account' })
                   )}
                   fullWidth
-                  style={{ borderRadius: theme.borderRadius.xxl }}
+                  style={{ borderRadius: 28 }}
                 />
               </View>
 
-              {/* Development Test Login Notice */}
               {isDev && (
                 <View style={styles.devSection}>
                   <Text style={styles.devTitle}>Development Mode</Text>
@@ -284,25 +265,44 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           </ScrollView>
         </KeyboardAvoidingView>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#064E3B',
   },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface,
   },
   header: {
-    backgroundColor: theme.colors.background,
-    paddingTop: 20,
-    paddingBottom: 12,
+    paddingBottom: 28,
     paddingHorizontal: 24,
     alignItems: 'center',
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    overflow: 'hidden',
+  },
+  decorCircle1: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    top: -60,
+    right: -40,
+  },
+  decorCircle2: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    bottom: -30,
+    left: -30,
   },
   headerContent: {
     flexDirection: 'row',
@@ -310,19 +310,18 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   headerLogo: {
-    width: 36,
-    height: 36,
-    marginRight: 10,
-    backgroundColor: theme.colors.white,
-    borderRadius: 8,
+    width: 40,
+    height: 40,
+    marginRight: 12,
+    borderRadius: 12,
   },
   headerTitle: {
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: theme.colors.textInverse,
   },
   headerSubtitle: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: 'rgba(255,255,255,0.85)',
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -333,23 +332,23 @@ const styles = StyleSheet.create({
   trustPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
     gap: 4,
   },
   trustText: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: 'rgba(255,255,255,0.9)',
   },
   keyboardContainer: {
     flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface,
     paddingTop: 20,
     paddingBottom: 24,
   },
@@ -358,10 +357,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   formTitle: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 26,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 4,
+    letterSpacing: -0.3,
   },
   formSubtitle: {
     fontSize: 15,
@@ -372,13 +372,12 @@ const styles = StyleSheet.create({
   },
   forgotPasswordLink: {
     alignSelf: 'flex-end',
-    paddingVertical: 4,
+    paddingVertical: 16,
     marginBottom: 8,
   },
   forgotPasswordText: {
-    color: theme.colors.textPrimary,
+    color: theme.colors.primary,
     fontWeight: '600',
-    textDecorationLine: 'underline',
   },
   dividerSection: {
     flexDirection: 'row',
@@ -389,7 +388,7 @@ const styles = StyleSheet.create({
   },
   dividerLine: {
     flex: 1,
-    height: 1,
+    height: StyleSheet.hairlineWidth,
     backgroundColor: theme.colors.border,
   },
   dividerText: {
@@ -398,13 +397,12 @@ const styles = StyleSheet.create({
     color: theme.colors.textTertiary,
     fontWeight: '500',
   },
-  // Development styles
   devSection: {
     marginTop: 16,
     marginHorizontal: 24,
     padding: 12,
-    backgroundColor: theme.colors.surfaceSecondary,
-    borderRadius: 8,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: theme.colors.border,
     borderStyle: 'dashed',
@@ -424,4 +422,3 @@ const styles = StyleSheet.create({
 });
 
 export default LoginScreen;
-

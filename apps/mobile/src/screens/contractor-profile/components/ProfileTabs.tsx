@@ -1,8 +1,8 @@
 /**
  * ProfileTabs Component
- * 
+ *
  * Tab selector for Photos and Reviews.
- * 
+ *
  * @filesize Target: <70 lines
  * @compliance Single Responsibility - Tab navigation
  */
@@ -53,25 +53,25 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border,
   },
   tab: {
     flex: 1,
-    paddingVertical: theme.spacing.lg,
+    paddingVertical: 16,
     alignItems: 'center',
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
   activeTab: {
-    borderBottomColor: '#222222',
+    borderBottomColor: theme.colors.textPrimary,
   },
   tabText: {
-    fontSize: theme.typography.fontSize.lg,
+    fontSize: 16,
     color: theme.colors.textTertiary,
   },
   activeTabText: {
     color: theme.colors.textPrimary,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '600',
   },
 });

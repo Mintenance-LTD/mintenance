@@ -47,19 +47,19 @@ export function useVideoCall({
         'consultation'
       );
 
-      if (call.data) {
+      if (call) {
         await sendMessage({
           jobId,
           receiverId: otherUserId,
           messageText: `${userName || 'Someone'} started a video call`,
           senderId: userId,
           messageType: 'video_call_invitation',
-          callId: call.data.id,
+          callId: call.id,
         });
 
-        setActiveCallId(call.data.id);
+        setActiveCallId(call.id);
         setIsVideoCallActive(true);
-        logger.info('Video call started', { callId: call.data.id });
+        logger.info('Video call started', { callId: call.id });
         scrollToEnd();
       }
     } catch (error) {

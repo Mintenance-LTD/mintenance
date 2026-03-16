@@ -7,6 +7,7 @@
 
 import React, { useEffect, useCallback } from 'react';
 import { NotificationService } from './NotificationService';
+import type { NotificationData } from './notifications/types';
 import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
 import { useNavigationContainerRef , useFocusEffect } from '@react-navigation/native';
@@ -81,7 +82,7 @@ export function RootNavigatorWithNotifications() {
   useEffect(() => {
     // Set navigation reference once it's ready
     if (navigationRef?.current) {
-      NotificationService.setNavigationRef(navigationRef.current as unknown);
+      NotificationService.setNavigationRef(navigationRef.current as unknown as import('./notifications/types').NavigationRef);
       logger.info('Navigation reference set for notification deep linking');
     }
   }, [navigationRef]);
@@ -155,7 +156,7 @@ export function HomeScreenWithBadgeUpdate() {
  * Display list of notifications with mark as read functionality
  */
 export function NotificationListScreen() {
-  const [notifications, setNotifications] = React.useState([]);
+  const [notifications, setNotifications] = React.useState<NotificationData[]>([]);
   const [loading, setLoading] = React.useState(true);
 
   useEffect(() => {
@@ -352,6 +353,7 @@ export async function scheduleMeetingReminder(
       'Meeting Reminder',
       `Your meeting "${meetingTitle}" starts in 30 minutes`,
       {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
         date: reminderTime,
       },
       {

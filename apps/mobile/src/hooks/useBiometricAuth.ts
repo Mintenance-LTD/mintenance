@@ -11,6 +11,7 @@ import { useState, useCallback } from 'react';
 import { BiometricService } from '../services/BiometricService';
 import { AuthService } from '../services/AuthService';
 import { User } from '@mintenance/types';
+import { Session } from '@supabase/supabase-js';
 import { logger } from '../utils/logger';
 import { trackUserAction, addBreadcrumb } from '../utils/sentryUtils';
 
@@ -19,7 +20,7 @@ export interface BiometricAuthHook {
   signInWithBiometrics: () => Promise<{ user: User; session: Session | null } | undefined>;
   isBiometricAvailable: () => Promise<boolean>;
   isBiometricEnabled: () => Promise<boolean>;
-  enableBiometric: (user: User, session: unknown) => Promise<void>;
+  enableBiometric: (user: User, session: Session | null) => Promise<void>;
   disableBiometric: () => Promise<void>;
   promptEnableBiometric: (user: User, session: unknown) => void;
   checkBiometricAvailability: () => Promise<void>;
@@ -48,6 +49,7 @@ export const useBiometricAuth = (): BiometricAuthHook => {
       // Restore session using only refresh token (access token will be regenerated)
       const { user: restoredUser, session: restoredSession } =
         await AuthService.restoreSessionFromBiometricTokens({
+          accessToken: '',
           refreshToken: credentials.refreshToken,
         });
 
@@ -93,7 +95,8 @@ export const useBiometricAuth = (): BiometricAuthHook => {
   }, []);
 
   const promptEnableBiometric = useCallback((user: User, session: unknown) => {
-    if (!biometricAvailable || !session?.access_token || !session?.refresh_token) {
+    const s = session as Session | null;
+    if (!biometricAvailable || !s?.access_token || !s?.refresh_token) {
       return;
     }
 
@@ -101,7 +104,7 @@ export const useBiometricAuth = (): BiometricAuthHook => {
       void BiometricService.promptEnableBiometric(
         user.email,
         async () => {
-          const latestSession = (await AuthService.getCurrentSession()) ?? session;
+          const latestSession = ((await AuthService.getCurrentSession()) ?? s) as Session | null;
 
           if (!latestSession?.access_token || !latestSession?.refresh_token) {
             throw new Error('Session tokens are required to enable biometric authentication');

@@ -78,7 +78,7 @@ const queryCache = new QueryCache({
 
   onSuccess: (data, query) => {
     const duration = Date.now() - (query.state.dataUpdatedAt || Date.now());
-    handleSuccess(query.queryKey, duration);
+    handleSuccess([...query.queryKey], duration);
   },
 });
 
@@ -119,7 +119,7 @@ export const createQueryClient = () => {
         // Retry configuration
         retry: (failureCount, error: unknown) => {
           // Don't retry on 4xx errors (client errors)
-          if ((error as { status?: number })?.status >= 400 && (error as { status?: number })?.status < 500) {
+          if (((error as { status?: number })?.status ?? 0) >= 400 && ((error as { status?: number })?.status ?? 0) < 500) {
             return false;
           }
 

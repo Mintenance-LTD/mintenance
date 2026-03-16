@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ViewStyle, TouchableOpacity, Text } from 'react-native';
+import { ButtonProps } from './Button';
 import { theme } from '../../../theme';
-import { Button, ButtonProps } from './Button';
-
-// ============================================================================
-// TYPES & INTERFACES
-// ============================================================================
 
 export interface ButtonGroupButton {
   id: string;
@@ -15,22 +11,21 @@ export interface ButtonGroupButton {
   icon?: string;
 }
 
+const SPACING_MAP: Record<string, number> = {
+  xs: 6, sm: 8, md: 16, lg: 20, xl: 24,
+};
+
 export interface ButtonGroupProps {
   buttons?: ButtonGroupButton[];
   onSelectionChange?: (selectedValues: string[]) => void;
   selectionMode?: 'single' | 'multiple';
   selectedValues?: string[];
   orientation?: 'horizontal' | 'vertical';
-  spacing?: keyof typeof theme.spacing;
+  spacing?: string;
   style?: ViewStyle;
   layout?: 'horizontal' | 'vertical';
-  // Legacy props for backward compatibility
   children?: React.ReactElement<ButtonProps>[];
 }
-
-// ============================================================================
-// BUTTON GROUP COMPONENT
-// ============================================================================
 
 export const ButtonGroup: React.FC<ButtonGroupProps> = ({
   buttons,
@@ -41,7 +36,7 @@ export const ButtonGroup: React.FC<ButtonGroupProps> = ({
   spacing = 'sm',
   style,
   layout = 'horizontal',
-  children, // Legacy support
+  children,
 }) => {
   const [internalSelectedValues, setInternalSelectedValues] = useState<string[]>(selectedValues);
 
@@ -49,11 +44,9 @@ export const ButtonGroup: React.FC<ButtonGroupProps> = ({
     if (disabled || !onSelectionChange) return;
 
     let newSelectedValues: string[];
-
     if (selectionMode === 'single') {
       newSelectedValues = [buttonValue];
     } else {
-      // Multiple selection mode
       if (internalSelectedValues.includes(buttonValue)) {
         newSelectedValues = internalSelectedValues.filter(value => value !== buttonValue);
       } else {
@@ -67,10 +60,8 @@ export const ButtonGroup: React.FC<ButtonGroupProps> = ({
 
   const currentSelectedValues = selectedValues.length > 0 ? selectedValues : internalSelectedValues;
 
-  // Legacy mode: render children
   if (children && !buttons) {
-    const spacingValue = theme.spacing[spacing];
-
+    const spacingValue = SPACING_MAP[spacing] ?? 8;
     const containerStyle: ViewStyle = {
       flexDirection: orientation === 'horizontal' ? 'row' : 'column',
       ...style,
@@ -79,17 +70,15 @@ export const ButtonGroup: React.FC<ButtonGroupProps> = ({
     const renderChildren = () => {
       return React.Children.map(children, (child, index) => {
         if (!React.isValidElement(child)) return null;
-
         const isLast = index === children.length - 1;
         const marginStyle = !isLast
           ? orientation === 'horizontal'
             ? { marginRight: spacingValue }
             : { marginBottom: spacingValue }
           : {};
-
         return React.cloneElement(child, {
           ...child.props,
-          style: StyleSheet.flatten([child.props.style, marginStyle]),
+          style: StyleSheet.flatten([child.props.style as ViewStyle, marginStyle]),
         });
       });
     };
@@ -97,21 +86,20 @@ export const ButtonGroup: React.FC<ButtonGroupProps> = ({
     return <View style={containerStyle}>{renderChildren()}</View>;
   }
 
-  // New mode: render buttons with selection
   if (buttons) {
+    const spacingValue = SPACING_MAP[spacing] ?? 8;
     return (
       <View
         style={StyleSheet.flatten([
           styles.container,
           orientation === 'vertical' && styles.verticalContainer,
-          { gap: theme.spacing[spacing] },
+          { gap: spacingValue },
           style,
         ])}
         testID="button-group"
       >
         {buttons.map((button) => {
           const isSelected = currentSelectedValues.includes(button.value);
-
           return (
             <TouchableOpacity
               key={button.id}
@@ -138,13 +126,8 @@ export const ButtonGroup: React.FC<ButtonGroupProps> = ({
     );
   }
 
-  // Fallback
   return <View style={style} />;
 };
-
-// ============================================================================
-// STYLES
-// ============================================================================
 
 const styles = StyleSheet.create({
   container: {
@@ -155,9 +138,9 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
   },
   button: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.lg,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
     borderColor: theme.colors.border,
@@ -166,8 +149,8 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   selectedButton: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.textPrimary,
+    borderColor: theme.colors.textPrimary,
   },
   disabledButton: {
     backgroundColor: theme.colors.surface,
@@ -175,12 +158,12 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   buttonText: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.regular,
+    fontSize: 15,
+    fontWeight: '400',
     color: theme.colors.textPrimary,
   },
   selectedButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   disabledButtonText: {
     color: theme.colors.textSecondary,

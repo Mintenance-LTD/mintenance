@@ -30,7 +30,7 @@ export const ResponsiveGrid: React.FC<ResponsiveGridProps> = ({
   return (
     <View style={[gridStyle, style]} {...props}>
       {React.Children.map(children, (child, index) => (
-        <View key={index} style={itemStyle}>
+        <View key={index} style={itemStyle as object}>
           {child}
         </View>
       ))}

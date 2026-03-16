@@ -24,7 +24,9 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   style,
 }) => (
   <View style={[styles.container, style]}>
-    <Ionicons name={icon} size={64} color={theme.colors.textTertiary} />
+    <View style={styles.iconWrap}>
+      <Ionicons name={icon} size={48} color={theme.colors.textTertiary} />
+    </View>
     <Text style={styles.title}>{title}</Text>
     {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
     {ctaLabel && onCtaPress && (
@@ -40,33 +42,41 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing[6],
+    paddingHorizontal: 24,
+  },
+  iconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: theme.colors.backgroundSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: '700' as const,
+    fontSize: 20,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginTop: theme.spacing[4],
-    marginBottom: theme.spacing[2],
+    marginTop: 16,
+    marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: theme.typography.fontSize.base,
+    fontSize: 15,
     color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: theme.spacing[5],
+    marginBottom: 20,
   },
   ctaButton: {
-    backgroundColor: '#222222',
-    paddingVertical: theme.spacing[3],
-    paddingHorizontal: theme.spacing[6],
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.textPrimary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 28,
   },
   ctaText: {
-    color: '#fff',
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.textInverse,
+    fontSize: 15,
+    fontWeight: '600',
   },
 });
 

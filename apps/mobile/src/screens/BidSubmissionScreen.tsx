@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Alert,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { Input } from '../components/ui/Input';
 import { Banner } from '../components/ui/Banner';
@@ -17,8 +18,9 @@ import { Job } from '@mintenance/types';
 import { JobsStackParamList } from '../navigation/types';
 import { logger } from '../utils/logger';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { theme } from '../theme';
+import { Ionicons } from '@expo/vector-icons';
 import { DatePicker } from '../components/ui/DatePicker';
+import { theme } from '../theme';
 
 type BidSubmissionScreenRouteProp = RouteProp<
   JobsStackParamList,
@@ -93,7 +95,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (error) {
-      setFormError(error.message || 'Failed to submit bid. Please try again.');
+      setFormError(error instanceof Error ? error.message : 'Failed to submit bid. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -102,7 +104,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text>Loading job details...</Text>
+        <Text style={{ color: theme.colors.textSecondary }}>Loading job details...</Text>
       </View>
     );
   }
@@ -110,7 +112,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   if (!job) {
     return (
       <View style={styles.loadingContainer}>
-        <Text>Job not found</Text>
+        <Text style={{ color: theme.colors.textSecondary }}>Job not found</Text>
       </View>
     );
   }
@@ -124,18 +126,28 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >
-          <Text style={styles.backButtonText}>‹ Back</Text>
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} accessibilityRole='header'>Submit Bid</Text>
-        <View style={styles.placeholder} />
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView style={styles.content}>
         <View style={styles.jobInfo}>
-          <Text style={styles.jobTitle}>{job.title}</Text>
-          <Text style={styles.jobDescription}>{job.description}</Text>
-          <Text style={styles.jobLocation}>📍 {job.location}</Text>
-          <Text style={styles.jobBudget}>Budget: {'\u00A3'}{job.budget}</Text>
+          <View style={styles.jobIconWrap}>
+            <Ionicons name="briefcase-outline" size={18} color="#3B82F6" />
+          </View>
+          <View style={styles.jobInfoContent}>
+            <Text style={styles.jobTitle}>{job.title}</Text>
+            <Text style={styles.jobDescription}>{job.description}</Text>
+            <View style={styles.jobMetaRow}>
+              <Ionicons name="location-outline" size={14} color={theme.colors.textSecondary} />
+              <Text style={styles.jobLocation}>{typeof job.location === 'string' ? job.location : JSON.stringify(job.location)}</Text>
+            </View>
+            <View style={styles.budgetChip}>
+              <Text style={styles.jobBudget}>Budget: {'\u00A3'}{job.budget}</Text>
+            </View>
+          </View>
         </View>
 
         <View style={styles.form}>
@@ -159,7 +171,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
             if (budgetMax && parsed > budgetMax * 1.5) {
               return (
                 <Text style={styles.bidWarning}>
-                  ⚠️ Your bid (£{parsed.toLocaleString()}) is significantly above the budget
+                  Your bid (£{parsed.toLocaleString()}) is significantly above the budget
                   {budgetMax ? ` (£${budgetMax.toLocaleString()})` : ''}
                 </Text>
               );
@@ -167,7 +179,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
             if (budgetMin && parsed < budgetMin * 0.5) {
               return (
                 <Text style={styles.bidWarning}>
-                  ⚠️ Your bid (£{parsed.toLocaleString()}) is much lower than the minimum budget
+                  Your bid (£{parsed.toLocaleString()}) is much lower than the minimum budget
                   (£{budgetMin.toLocaleString()})
                 </Text>
               );
@@ -214,7 +226,12 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
           />
 
           <View style={styles.tipBox}>
-            <Text style={styles.tipTitle}>💡 Bidding Tips:</Text>
+            <View style={styles.tipHeader}>
+              <View style={styles.tipIconWrap}>
+                <Ionicons name="bulb-outline" size={16} color={theme.colors.accent} />
+              </View>
+              <Text style={styles.tipTitle}>Bidding Tips</Text>
+            </View>
             <Text style={styles.tipText}>
               • Be competitive but fair with your pricing
             </Text>
@@ -243,6 +260,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
           accessibilityLabel={submitting ? 'Submitting bid' : 'Submit bid'}
           accessibilityState={{ disabled: submitting }}
         >
+          <Ionicons name="send-outline" size={18} color={theme.colors.textInverse} style={{ marginRight: 8 }} />
           <Text style={styles.submitButtonText}>
             {submitting ? 'Submitting...' : 'Submit Bid'}
           </Text>
@@ -255,98 +273,118 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
     backgroundColor: theme.colors.surface,
-    borderBottomWidth: 0,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
-    padding: 5,
-  },
-  backButtonText: {
-    fontSize: 18,
-    color: theme.colors.textPrimary,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: theme.colors.textPrimary,
-  },
-  placeholder: {
-    width: 50,
   },
   content: {
     flex: 1,
   },
   jobInfo: {
-    backgroundColor: '#F7F7F7',
-    padding: 20,
-    marginBottom: 15,
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    padding: 16,
+    marginBottom: 8,
     marginHorizontal: 16,
     marginTop: 16,
+    borderRadius: 16,
+    flexDirection: 'row',
+    gap: 14,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
+  },
+  jobIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#DBEAFE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  jobInfoContent: {
+    flex: 1,
   },
   jobTitle: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginBottom: 10,
+    marginBottom: 6,
   },
   jobDescription: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-    marginBottom: 15,
-    lineHeight: 22,
-  },
-  jobLocation: {
     fontSize: 14,
     color: theme.colors.textSecondary,
-    marginBottom: 5,
+    marginBottom: 10,
+    lineHeight: 20,
+  },
+  jobMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 8,
+  },
+  jobLocation: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+  },
+  budgetChip: {
+    backgroundColor: theme.colors.primaryLight,
+    alignSelf: 'flex-start',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
   jobBudget: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: theme.colors.primary,
   },
   form: {
     backgroundColor: theme.colors.surface,
     padding: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-    marginBottom: 8,
-    marginTop: 15,
-  },
-  input: {
-    height: 50,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.base,
-    paddingHorizontal: 15,
-    backgroundColor: theme.colors.surface,
-    fontSize: 16,
-  },
-  textArea: {
-    height: 150,
-    paddingTop: 15,
+    marginHorizontal: 16,
+    borderRadius: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
   bidHint: {
     fontSize: 12,
@@ -356,47 +394,64 @@ const styles = StyleSheet.create({
   },
   bidWarning: {
     fontSize: 12,
-    color: theme.colors.warning,
+    color: theme.colors.accent,
     marginTop: -4,
     marginBottom: 8,
   },
   tipBox: {
-    backgroundColor: '#F7F7F7',
-    padding: 15,
-    borderRadius: 12,
+    backgroundColor: theme.colors.accentLight,
+    padding: 16,
+    borderRadius: 16,
     marginTop: 20,
+  },
+  tipHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  tipIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tipTitle: {
     fontSize: 15,
     fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginBottom: 10,
   },
   tipText: {
     fontSize: 14,
-    color: '#717171',
+    color: theme.colors.textSecondary,
     marginBottom: 5,
+    lineHeight: 20,
   },
   footer: {
-    padding: 24,
+    padding: 16,
+    paddingBottom: 24,
     backgroundColor: theme.colors.surface,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.border,
   },
   submitButton: {
-    height: 50,
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.base,
+    height: 52,
+    backgroundColor: theme.colors.textPrimary,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
+    flexDirection: 'row',
   },
   submitButtonDisabled: {
-    backgroundColor: theme.colors.border,
+    opacity: 0.5,
   },
   submitButtonText: {
     color: theme.colors.textInverse,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });
 
 export default BidSubmissionScreen;
-

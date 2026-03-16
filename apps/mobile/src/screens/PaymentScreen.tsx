@@ -2,6 +2,7 @@
  * PaymentScreen Component
  *
  * Handles payment processing with Stripe integration and escrow functionality.
+ * Airbnb-style: soft shadows, no borders, warm gray background.
  */
 
 import React from 'react';
@@ -11,17 +12,18 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { theme } from '../theme';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../components/shared';
 import { useAuth } from '../contexts/AuthContext';
 import { PaymentSummaryCard } from './payment/components/PaymentSummaryCard';
 import { EscrowInfoCard } from './payment/components/EscrowInfoCard';
 import { PaymentMethodOption } from './payment/components/PaymentMethodOption';
 import { usePayment } from './payment/hooks/usePayment';
+import { theme } from '../theme';
 
 interface PaymentScreenProps {
   route: {
@@ -87,9 +89,17 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
                 (rootNavigation as unknown as { navigate: (screen: string, params?: Record<string, unknown>) => void })
                   .navigate('Main', { screen: 'ProfileTab', params: { screen: 'AddPaymentMethod' } });
               }}
+              accessibilityRole="button"
+              accessibilityLabel="Add payment method"
             >
-              <Ionicons name="add-circle-outline" size={24} color='#717171' />
-              <Text style={styles.addMethodText}>Add Payment Method</Text>
+              <View style={styles.addMethodIconWrap}>
+                <Ionicons name="add" size={22} color={theme.colors.primary} />
+              </View>
+              <View style={styles.addMethodContent}>
+                <Text style={styles.addMethodText}>Add Payment Method</Text>
+                <Text style={styles.addMethodSubtext}>Credit card, debit card, or bank account</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
             </TouchableOpacity>
           ) : (
             payment.paymentMethods.map(method => (
@@ -104,19 +114,31 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
         </View>
 
         {useEscrow && <EscrowInfoCard />}
+
+        <View style={styles.securityNote}>
+          <View style={styles.securityIconWrap}>
+            <Ionicons name="shield-checkmark" size={16} color={theme.colors.primary} />
+          </View>
+          <Text style={styles.securityText}>
+            Your payment is protected by 256-bit SSL encryption and held securely in escrow.
+          </Text>
+        </View>
       </ScrollView>
 
       <View style={styles.paymentButtonContainer}>
         <TouchableOpacity
-          style={[styles.paymentButton, payment.processing && styles.paymentButtonDisabled]}
+          style={[styles.paymentButton, (payment.processing || !payment.selectedMethod) && styles.paymentButtonDisabled]}
           onPress={payment.handlePayment}
           disabled={payment.processing || !payment.selectedMethod}
+          accessibilityRole="button"
+          accessibilityLabel={`Pay ${'\u00A3'}${payment.totalAmount.toFixed(2)}`}
+          accessibilityState={{ disabled: payment.processing || !payment.selectedMethod }}
         >
           {payment.processing ? (
             <LoadingSpinner size="small" color={theme.colors.textInverse} />
           ) : (
             <>
-              <Ionicons name="card-outline" size={20} color={theme.colors.textInverse} />
+              <Ionicons name="lock-closed" size={18} color={theme.colors.textInverse} />
               <Text style={styles.paymentButtonText}>
                 Pay {'\u00A3'}{payment.totalAmount.toFixed(2)}
               </Text>
@@ -131,59 +153,102 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   scrollView: {
     flex: 1,
-    paddingHorizontal: theme.spacing.lg,
+    paddingHorizontal: 16,
   },
   section: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 17,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.md,
+    marginBottom: 12,
   },
   addMethodButton: {
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
+    borderRadius: 16,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
+  },
+  addMethodIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: theme.colors.primaryLight,
+    alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderStyle: 'dashed',
+  },
+  addMethodContent: {
+    flex: 1,
   },
   addMethodText: {
-    fontSize: theme.typography.fontSize.md,
-    color: '#222222',
-    marginLeft: theme.spacing.sm,
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: 2,
+  },
+  addMethodSubtext: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+  },
+  securityNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 4,
+    marginBottom: 24,
+  },
+  securityIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  securityText: {
+    flex: 1,
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    lineHeight: 17,
   },
   paymentButtonContainer: {
-    padding: theme.spacing.lg,
+    padding: 16,
     backgroundColor: theme.colors.surface,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: theme.colors.border,
   },
   paymentButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
+    backgroundColor: theme.colors.textPrimary,
+    borderRadius: 28,
+    paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
   },
   paymentButtonDisabled: {
     backgroundColor: theme.colors.textTertiary,
   },
   paymentButtonText: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 17,
+    fontWeight: '700',
     color: theme.colors.textInverse,
-    marginLeft: theme.spacing.sm,
   },
 });
 

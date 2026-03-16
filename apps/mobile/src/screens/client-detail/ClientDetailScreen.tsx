@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Linking,
   Alert,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,20 +15,41 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { theme } from '../../theme';
 import { useToast } from '../../components/ui/Toast';
 import type { ProfileStackParamList, RootTabParamList } from '../../navigation/types';
+import { theme } from '../../theme';
+
+interface ClientData {
+  client_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  relationship_status: string;
+  total_jobs: number;
+  total_revenue?: number;
+  satisfaction_score?: number;
+  last_job_date?: string;
+}
 
 interface ClientDetailScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'ClientDetail'>;
   route: RouteProp<ProfileStackParamList, 'ClientDetail'>;
 }
 
+const STATUS_COLORS: Record<string, string> = {
+  active: theme.colors.primary,
+  prospect: '#3B82F6',
+  inactive: theme.colors.textSecondary,
+  former: theme.colors.textTertiary,
+};
+
 export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const tabNavigation = useNavigation<BottomTabNavigationProp<RootTabParamList>>();
-  const { client } = route.params;
+  const { client: rawClient } = route.params;
+  const client = rawClient as unknown as ClientData;
 
   const handleCall = async () => {
     if (!client.phone) {
@@ -64,12 +86,6 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({ navigati
     } as never);
   };
 
-  const STATUS_COLORS: Record<string, string> = {
-    active: theme.colors.success,
-    prospect: theme.colors.info,
-    inactive: theme.colors.textSecondary,
-    former: theme.colors.textTertiary,
-  };
   const statusColor = STATUS_COLORS[client.relationship_status as string] ?? theme.colors.textSecondary;
 
   return (
@@ -103,30 +119,34 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({ navigati
 
         {/* Quick Actions */}
         <View style={styles.actionsRow}>
-          <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
-            <Ionicons name="call" size={22} color='#717171' />
-            <Text style={styles.actionBtnText}>Call</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtn} onPress={handleEmail}>
-            <Ionicons name="mail" size={22} color='#717171' />
-            <Text style={styles.actionBtnText}>Email</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtn} onPress={handleMessage}>
-            <Ionicons name="chatbubble" size={22} color='#717171' />
-            <Text style={styles.actionBtnText}>Message</Text>
-          </TouchableOpacity>
+          {[
+            { icon: 'call' as const, label: 'Call', onPress: handleCall, bg: theme.colors.primaryLight, color: theme.colors.primary },
+            { icon: 'mail' as const, label: 'Email', onPress: handleEmail, bg: '#DBEAFE', color: '#3B82F6' },
+            { icon: 'chatbubble' as const, label: 'Message', onPress: handleMessage, bg: '#EDE9FE', color: '#8B5CF6' },
+          ].map((action) => (
+            <TouchableOpacity key={action.label} style={styles.actionBtn} onPress={action.onPress}>
+              <View style={[styles.actionIconWrap, { backgroundColor: action.bg }]}>
+                <Ionicons name={action.icon} size={20} color={action.color} />
+              </View>
+              <Text style={styles.actionBtnText}>{action.label}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* Contact Info */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Contact</Text>
+          <Text style={styles.sectionTitle}>CONTACT</Text>
           <View style={styles.detailRow}>
-            <Ionicons name="mail-outline" size={16} color={theme.colors.textTertiary} />
+            <View style={styles.detailIconWrap}>
+              <Ionicons name="mail-outline" size={14} color={theme.colors.textSecondary} />
+            </View>
             <Text style={styles.detailText}>{client.email}</Text>
           </View>
           {client.phone ? (
             <View style={styles.detailRow}>
-              <Ionicons name="call-outline" size={16} color={theme.colors.textTertiary} />
+              <View style={styles.detailIconWrap}>
+                <Ionicons name="call-outline" size={14} color={theme.colors.textSecondary} />
+              </View>
               <Text style={styles.detailText}>{client.phone}</Text>
             </View>
           ) : null}
@@ -134,26 +154,28 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({ navigati
 
         {/* Stats */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>History</Text>
+          <Text style={styles.sectionTitle}>HISTORY</Text>
           <View style={styles.statsRow}>
             <View style={styles.stat}>
               <Text style={styles.statValue}>{client.total_jobs}</Text>
               <Text style={styles.statLabel}>Jobs</Text>
             </View>
             <View style={styles.stat}>
-              <Text style={styles.statValue}>£{client.total_revenue?.toLocaleString() || '0'}</Text>
+              <Text style={styles.statValue}>{'\u00A3'}{client.total_revenue?.toLocaleString() || '0'}</Text>
               <Text style={styles.statLabel}>Revenue</Text>
             </View>
             <View style={styles.stat}>
               <Text style={styles.statValue}>
-                {client.satisfaction_score?.toFixed(1) || '—'}
+                {client.satisfaction_score?.toFixed(1) || '\u2014'}
               </Text>
               <Text style={styles.statLabel}>Rating</Text>
             </View>
           </View>
           {client.last_job_date ? (
-            <View style={[styles.detailRow, { marginTop: 8 }]}>
-              <Ionicons name="time-outline" size={16} color={theme.colors.textTertiary} />
+            <View style={[styles.detailRow, { marginTop: 12 }]}>
+              <View style={styles.detailIconWrap}>
+                <Ionicons name="time-outline" size={14} color={theme.colors.textSecondary} />
+              </View>
               <Text style={styles.detailText}>
                 Last job: {new Date(client.last_job_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
               </Text>
@@ -168,64 +190,88 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({ navigati
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.surfaceSecondary },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    backgroundColor: theme.colors.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
   },
   headerButton: { padding: 8, width: 40 },
-  headerTitle: { flex: 1, fontSize: 18, fontWeight: '800', color: theme.colors.textPrimary, textAlign: 'center' },
+  headerTitle: { flex: 1, fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary, textAlign: 'center' },
   scroll: { flex: 1 },
   profileCard: {
     alignItems: 'center',
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginTop: 16,
-    borderRadius: theme.borderRadius.xl,
+    borderRadius: 16,
     padding: 24,
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   avatar: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
   },
   avatarText: { fontSize: 24, fontWeight: '700', color: theme.colors.textInverse },
   clientName: { fontSize: 20, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 8 },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: theme.borderRadius.sm },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   statusText: { fontSize: 11, fontWeight: '700', color: theme.colors.textInverse },
   actionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginTop: 12,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 16,
     padding: 16,
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   actionBtn: { alignItems: 'center', gap: 6 },
+  actionIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   actionBtnText: { fontSize: 12, color: theme.colors.textPrimary, fontWeight: '600' },
   section: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginTop: 12,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 16,
     padding: 16,
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
-  sectionTitle: { fontSize: 12, fontWeight: '700', color: theme.colors.textTertiary, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionTitle: { fontSize: 12, fontWeight: '700', color: theme.colors.textTertiary, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.8 },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
+  detailIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: theme.colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   detailText: { fontSize: 14, color: theme.colors.textPrimary },
   statsRow: { flexDirection: 'row', justifyContent: 'space-around' },
   stat: { alignItems: 'center' },

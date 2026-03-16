@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, memo } from 'react';
 import { View, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
+import { theme } from '../../theme';
 
 // ============================================================================
 // TABS COMPOUND COMPONENT
@@ -140,14 +141,19 @@ export const TabsContent = memo<TabsContentProps>(({
 
 TabsContent.displayName = 'Tabs.Content';
 
-// Attach sub-components to Tabs (cast required for memo() + compound component pattern)
-(Tabs as any).List = TabsList;
-(Tabs as any).Trigger = TabsTrigger;
-(Tabs as any).Content = TabsContent;
+// Attach sub-components to Tabs using typed intersection
+type TabsCompound = React.NamedExoticComponent<TabsProps> & {
+  List: typeof TabsList;
+  Trigger: typeof TabsTrigger;
+  Content: typeof TabsContent;
+};
+(Tabs as TabsCompound).List = TabsList;
+(Tabs as TabsCompound).Trigger = TabsTrigger;
+(Tabs as TabsCompound).Content = TabsContent;
 
 const styles = StyleSheet.create({
-  tabsList: { flexDirection: "row", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#E5E5E5" },
+  tabsList: { flexDirection: "row", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
   tabsTrigger: { flex: 1, paddingVertical: 12, paddingHorizontal: 16, alignItems: "center", justifyContent: "center", borderBottomWidth: 2, borderBottomColor: "transparent" },
-  tabsTriggerActive: { borderBottomColor: "#007AFF" },
+  tabsTriggerActive: { borderBottomColor: theme.colors.textPrimary },
   tabsContent: { padding: 16 },
 });

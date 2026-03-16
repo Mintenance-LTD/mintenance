@@ -10,8 +10,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   Animated,
+  Platform,
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
+import { theme } from '../../theme';
 
 interface ProfileCompletionItem {
   id: string;
@@ -78,7 +80,7 @@ export function ProfileCompletionCard({
               cx={50}
               cy={50}
               r={radius}
-              stroke="#EBEBEB"
+              stroke={theme.colors.border}
               strokeWidth={8}
               fill="none"
             />
@@ -88,13 +90,9 @@ export function ProfileCompletionCard({
               cy={50}
               r={radius}
               stroke={
-                completion === 100
-                  ? '#10B981'
-                  : completion >= 75
-                  ? '#10B981'
-                  : completion >= 50
-                  ? '#F59E0B'
-                  : '#F97316'
+                completion >= 50
+                  ? theme.colors.textPrimary
+                  : theme.colors.accent
               }
               strokeWidth={8}
               fill="none"
@@ -175,14 +173,20 @@ export function ProfileCompletionCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   header: {
     flexDirection: 'row',
@@ -205,7 +209,7 @@ const styles = StyleSheet.create({
   percentageText: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   headerContent: {
     flex: 1,
@@ -213,12 +217,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#222222',
-    marginBottom: 4,
+    color: theme.colors.textPrimary,
+    marginBottom: 6,
   },
   headerDescription: {
-    fontSize: 14,
-    color: '#717171',
+    fontSize: 13,
+    color: theme.colors.textSecondary,
   },
   itemsContainer: {
     gap: 8,
@@ -227,57 +231,54 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#EBEBEB',
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
   },
   itemCompleted: {
-    backgroundColor: '#F7F7F7',
-    borderColor: '#EBEBEB',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   checkbox: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: 9999,
     borderWidth: 2,
-    borderColor: '#EBEBEB',
+    borderColor: theme.colors.border,
     marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxCompleted: {
-    backgroundColor: '#10B981',
-    borderColor: '#10B981',
+    backgroundColor: theme.colors.textPrimary,
+    borderColor: theme.colors.textPrimary,
   },
   checkmark: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   itemLabel: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
-    color: '#222222',
+    color: theme.colors.textPrimary,
   },
   itemLabelCompleted: {
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
     textDecorationLine: 'line-through',
   },
   arrow: {
     fontSize: 20,
-    color: '#B0B0B0',
+    color: theme.colors.textTertiary,
   },
   celebration: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 20,
     padding: 16,
-    backgroundColor: '#F0FDF4',
-    borderRadius: 12,
+    backgroundColor: 'rgba(34, 34, 34, 0.06)',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#86EFAC',
+    borderColor: theme.colors.textPrimary,
   },
   celebrationIcon: {
     fontSize: 32,
@@ -287,28 +288,28 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   celebrationTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#065F46',
-    marginBottom: 4,
+    fontSize: 15,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: 6,
   },
   celebrationText: {
-    fontSize: 14,
-    color: '#047857',
+    fontSize: 13,
+    color: theme.colors.textPrimary,
   },
   completeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    backgroundColor: '#F0FDF4',
-    borderRadius: 12,
+    backgroundColor: 'rgba(34, 34, 34, 0.06)',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#86EFAC',
+    borderColor: theme.colors.textPrimary,
   },
   completeBadgeText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#047857',
+    color: theme.colors.textPrimary,
   },
 });
 

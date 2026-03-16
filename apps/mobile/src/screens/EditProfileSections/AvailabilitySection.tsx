@@ -1,7 +1,7 @@
 import React from "react";
-import { View, Text, Switch, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, Switch, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { theme } from "../../theme";
+import { theme } from '../../theme';
 
 interface AvailabilitySectionProps {
   emailNotifications: boolean; setEmailNotifications: (v: boolean) => void;
@@ -23,14 +23,14 @@ export const AvailabilitySection: React.FC<AvailabilitySectionProps> = ({
             <Text style={styles.switchLabel}>Email Notifications</Text>
             <Text style={styles.switchDescription}>Receive updates about jobs and messages via email</Text>
           </View>
-          <Switch value={emailNotifications} onValueChange={setEmailNotifications} trackColor={{ false: theme.colors.borderLight, true: theme.colors.success }} thumbColor={theme.colors.textInverse} accessibilityLabel="Email notifications" />
+          <Switch value={emailNotifications} onValueChange={setEmailNotifications} trackColor={{ false: theme.colors.border, true: theme.colors.primary }} thumbColor={theme.colors.surface} accessibilityLabel="Email notifications" />
         </View>
         <View style={styles.switchRow}>
           <View style={styles.switchInfo}>
             <Text style={styles.switchLabel}>Push Notifications</Text>
             <Text style={styles.switchDescription}>Get instant notifications on your device</Text>
           </View>
-          <Switch value={pushNotifications} onValueChange={setPushNotifications} trackColor={{ false: theme.colors.borderLight, true: theme.colors.success }} thumbColor={theme.colors.textInverse} accessibilityLabel="Push notifications" />
+          <Switch value={pushNotifications} onValueChange={setPushNotifications} trackColor={{ false: theme.colors.border, true: theme.colors.primary }} thumbColor={theme.colors.surface} accessibilityLabel="Push notifications" />
         </View>
       </View>
       <View style={styles.section}>
@@ -55,13 +55,23 @@ export const AvailabilitySection: React.FC<AvailabilitySectionProps> = ({
 };
 
 const styles = StyleSheet.create({
-  section: { backgroundColor: theme.colors.surface, marginHorizontal: 16, marginBottom: 16, borderRadius: 12, padding: 20 },
+  section: {
+    backgroundColor: theme.colors.surface,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+    padding: 20,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
+  },
   sectionTitle: { fontSize: 20, fontWeight: "700", color: theme.colors.textPrimary, marginBottom: 20 },
-  switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight },
+  switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
   switchInfo: { flex: 1, marginRight: 16 },
   switchLabel: { fontSize: 16, fontWeight: "500", color: theme.colors.textPrimary, marginBottom: 4 },
   switchDescription: { fontSize: 14, color: theme.colors.textTertiary },
-  actionItem: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight },
+  actionItem: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
   actionLeft: { flexDirection: "row", alignItems: "center" },
   actionText: { fontSize: 16, color: theme.colors.textPrimary, marginLeft: 12, fontWeight: "500" },
   dangerAction: { borderBottomWidth: 0 },

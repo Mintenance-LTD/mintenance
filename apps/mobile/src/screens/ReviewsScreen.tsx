@@ -9,17 +9,18 @@ import {
   StyleSheet,
   RefreshControl,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../navigation/types';
-import { theme } from '../theme';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../components/shared';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { mobileApiClient as apiClient } from '../utils/mobileApiClient';
+import { theme } from '../theme';
 
 interface Review {
   id: string;
@@ -53,17 +54,19 @@ const StarRating: React.FC<{ rating: number; size?: number }> = ({ rating, size 
         key={star}
         name={star <= rating ? 'star' : star - 0.5 <= rating ? 'star-half' : 'star-outline'}
         size={size}
-        color={star <= rating || star - 0.5 <= rating ? '#222222' : '#B0B0B0'}
+        color={star <= rating || star - 0.5 <= rating ? theme.colors.accent : theme.colors.border}
       />
     ))}
   </View>
 );
 
-const ReviewCard: React.FC<{ review: Review }> = ({ review }) => (
+const AVATAR_COLORS = ['#222222', '#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444'];
+
+const ReviewCard: React.FC<{ review: Review; index: number }> = ({ review, index }) => (
   <View style={styles.reviewCard}>
     <View style={styles.reviewHeader}>
       <View style={styles.reviewerInfo}>
-        <View style={styles.avatarCircle}>
+        <View style={[styles.avatarCircle, { backgroundColor: AVATAR_COLORS[index % AVATAR_COLORS.length] }]}>
           <Text style={styles.avatarText}>
             {review.reviewer_name.charAt(0).toUpperCase()}
           </Text>
@@ -80,7 +83,10 @@ const ReviewCard: React.FC<{ review: Review }> = ({ review }) => (
       <StarRating rating={review.rating} />
     </View>
 
-    <Text style={styles.jobLabel}>{review.job_title}</Text>
+    <View style={styles.jobChip}>
+      <Ionicons name="briefcase-outline" size={12} color={theme.colors.textSecondary} />
+      <Text style={styles.jobLabel}>{review.job_title}</Text>
+    </View>
     {review.comment && (
       <Text style={styles.reviewComment}>{review.comment}</Text>
     )}
@@ -136,7 +142,7 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
         <>
           <View style={styles.summaryCard}>
             <Text style={styles.avgRating}>{averageRating}</Text>
-            <StarRating rating={parseFloat(averageRating)} size={20} />
+            <StarRating rating={parseFloat(averageRating)} size={22} />
             <Text style={styles.reviewCount}>{reviews.length} review{reviews.length !== 1 ? 's' : ''}</Text>
           </View>
 
@@ -148,7 +154,7 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
               return (
                 <View key={star} style={styles.distRow}>
                   <Text style={styles.distLabel}>{star}</Text>
-                  <Ionicons name="star" size={12} color="#717171" />
+                  <Ionicons name="star" size={12} color={theme.colors.accent} />
                   <View style={styles.distBarBg}>
                     <View style={[styles.distBarFill, { width: `${pct}%` }]} />
                   </View>
@@ -158,13 +164,16 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
             })}
           </View>
 
-          {/* Filter Chips */}
+          {/* Filter Chips - Dark active state */}
           <View style={styles.filterRow}>
             {(['all', 'positive', 'negative'] as ReviewFilter[]).map((f) => (
               <TouchableOpacity
                 key={f}
                 style={[styles.filterChip, filter === f && styles.filterChipActive]}
                 onPress={() => setFilter(f)}
+                accessibilityRole="button"
+                accessibilityLabel={`Filter reviews: ${f === 'all' ? 'All' : f === 'positive' ? '4-5 Stars' : '1-3 Stars'}`}
+                accessibilityState={{ selected: filter === f }}
               >
                 <Text style={[styles.filterChipText, filter === f && styles.filterChipTextActive]}>
                   {f === 'all' ? 'All' : f === 'positive' ? '4-5 Stars' : '1-3 Stars'}
@@ -181,7 +190,7 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
           title="No Reviews Yet"
           subtitle="Reviews from homeowners will appear here after you complete jobs."
           ctaLabel="View My Jobs"
-          onCtaPress={() => navigation.navigate('JobsList')}
+          onCtaPress={() => navigation.navigate('JobsList' as never)}
         />
       ) : (
         <FlatList
@@ -191,9 +200,9 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
             return true;
           })}
           keyExtractor={item => item.id}
-          renderItem={({ item }) => <ReviewCard review={item} />}
+          renderItem={({ item, index }) => <ReviewCard review={item} index={index} />}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor='#222222' colors={['#222222']} />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />
           }
           contentContainerStyle={styles.listContainer}
         />
@@ -205,93 +214,127 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   summaryCard: {
     alignItems: 'center',
     backgroundColor: theme.colors.surface,
-    marginHorizontal: theme.spacing[4],
-    marginTop: theme.spacing[3],
-    marginBottom: theme.spacing[2],
-    padding: theme.spacing[4],
-    borderRadius: theme.borderRadius.lg,
-    ...theme.shadows.sm,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 10,
+    padding: 20,
+    borderRadius: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
   avgRating: {
-    fontSize: theme.typography.fontSize['3xl'],
-    fontWeight: theme.typography.fontWeight.bold,
+    fontSize: 36,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[1],
+    marginBottom: 4,
   },
   reviewCount: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: 13,
     color: theme.colors.textSecondary,
-    marginTop: theme.spacing[1],
+    marginTop: 6,
   },
   listContainer: {
-    padding: theme.spacing[4],
+    padding: 16,
+    gap: 10,
   },
   reviewCard: {
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing[4],
-    marginBottom: theme.spacing[3],
-    ...theme.shadows.sm,
+    borderRadius: 16,
+    padding: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
   reviewHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: theme.spacing[2],
+    marginBottom: 10,
   },
   reviewerInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
   },
   avatarCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F7F7F7',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: theme.spacing[2],
   },
   avatarText: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '700',
+    color: theme.colors.textInverse,
   },
   reviewerName: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 15,
+    fontWeight: '600',
     color: theme.colors.textPrimary,
   },
   reviewDate: {
-    fontSize: theme.typography.fontSize.xs,
+    fontSize: 12,
     color: theme.colors.textTertiary,
   },
   starRow: {
     flexDirection: 'row',
+    gap: 2,
+  },
+  jobChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
   },
   jobLabel: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: 12,
     color: theme.colors.textSecondary,
-    fontWeight: theme.typography.fontWeight.medium,
-    marginBottom: theme.spacing[2],
+    fontWeight: '500',
   },
   reviewComment: {
-    fontSize: theme.typography.fontSize.base,
+    fontSize: 14,
     color: theme.colors.textSecondary,
-    lineHeight: 22,
+    lineHeight: 21,
   },
   distributionCard: {
     backgroundColor: theme.colors.surface,
-    marginHorizontal: theme.spacing[4],
-    marginBottom: theme.spacing[2],
-    padding: theme.spacing[4],
-    borderRadius: theme.borderRadius.lg,
-    ...theme.shadows.sm,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    padding: 16,
+    borderRadius: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
   distRow: {
     flexDirection: 'row',
@@ -308,12 +351,12 @@ const styles = StyleSheet.create({
   distBarBg: {
     flex: 1,
     height: 8,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 4,
   },
   distBarFill: {
     height: 8,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 4,
   },
   distCount: {
@@ -324,31 +367,36 @@ const styles = StyleSheet.create({
   },
   filterRow: {
     flexDirection: 'row',
-    paddingHorizontal: theme.spacing[4],
-    marginBottom: theme.spacing[2],
+    paddingHorizontal: 16,
+    marginBottom: 10,
     gap: 8,
   },
   filterChip: {
     paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.background,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: theme.colors.surface,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+      },
+      android: { elevation: 1 },
+    }),
   },
   filterChipActive: {
     backgroundColor: theme.colors.textPrimary,
-    borderColor: theme.colors.textPrimary,
   },
   filterChipText: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '600',
     color: theme.colors.textSecondary,
   },
   filterChipTextActive: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
 });
 
 export default ReviewsScreen;
-

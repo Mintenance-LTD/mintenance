@@ -60,7 +60,7 @@ export class EscrowService {
       throw new Error(transactionError?.message || 'Escrow transaction not found');
     }
 
-    const contractorId = (transaction as Record<string, Record<string, string>>).job?.contractor_id;
+    const contractorId = (transaction as unknown as Record<string, Record<string, string>>).job?.contractor_id;
 
     await apiRequest('/api/payments/release-escrow', {
       method: 'POST',

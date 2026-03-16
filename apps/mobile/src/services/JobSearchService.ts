@@ -7,186 +7,52 @@
  * - Filtering jobs by status/user
  */
 
-import { supabase } from '../config/supabase';
 import { Job } from '@mintenance/types';
-import { sanitizeForSQL, isValidSearchTerm } from '../utils/sqlSanitization';
+import { isValidSearchTerm } from '../utils/sqlSanitization';
 import { logger } from '../utils/logger';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import { JobCRUDService } from './JobCRUDService';
 
-// Database row interface matching snake_case DB schema
-interface DatabaseJobRow {
-  id: string;
-  title: string;
-  description: string;
-  location: string;
-  homeowner_id: string;
-  contractor_id?: string | null;
-  status: 'posted' | 'assigned' | 'in_progress' | 'completed';
-  budget: number;
-  created_at: string;
-  updated_at: string;
-  category?: string | null;
-  subcategory?: string | null;
-  priority?: 'low' | 'medium' | 'high' | null;
-  photos?: string[] | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  city?: string | null;
-}
-
-// Supabase query builder type for jobs table
-interface SupabaseJobQuery extends PromiseLike<{ data: DatabaseJobRow[] | null; error: Error | null }> {
-  select: (columns: string) => SupabaseJobQuery;
-  eq: (column: string, value: string | number) => SupabaseJobQuery;
-  or: (query: string) => SupabaseJobQuery;
-  order: (column: string, options: { ascending: boolean }) => SupabaseJobQuery;
-  limit: (count: number) => Promise<{ data: DatabaseJobRow[] | null; error: Error | null }>;
-  range: (from: number, to: number) => Promise<{ data: DatabaseJobRow[] | null; error: Error | null }>;
-  textSearch?: (column: string, query: string) => SupabaseJobQuery;
-  gte?: (column: string, value: number) => SupabaseJobQuery;
-  lte?: (column: string, value: number) => SupabaseJobQuery;
-}
-
-// Error type with message property
-interface ErrorWithMessage {
-  message: string;
-  code?: string;
-}
-
 export class JobSearchService {
-  /**
-   * Enrich jobs with photos from job_attachments and job_photos_metadata tables.
-   * The jobs.photos column is always empty — real photos live in these related tables.
-   */
-  private static async enrichJobsWithPhotos(jobs: Job[]): Promise<Job[]> {
-    if (jobs.length === 0) return jobs;
-
-    const jobIds = jobs.map((j) => j.id);
-
-    // Fetch from both photo tables in parallel
-    const [attachRes, metaRes] = await Promise.all([
-      supabase
-        .from('job_attachments')
-        .select('job_id, file_url')
-        .in('job_id', jobIds)
-        .eq('file_type', 'image'),
-      supabase
-        .from('job_photos_metadata')
-        .select('job_id, photo_url')
-        .in('job_id', jobIds),
-    ]);
-
-    // Build a map of job_id → photo URLs
-    const photoMap = new Map<string, string[]>();
-
-    if (attachRes.data) {
-      for (const row of attachRes.data) {
-        const arr = photoMap.get(row.job_id) || [];
-        arr.push(row.file_url);
-        photoMap.set(row.job_id, arr);
-      }
-    }
-    if (metaRes.data) {
-      for (const row of metaRes.data) {
-        const arr = photoMap.get(row.job_id) || [];
-        if (!arr.includes(row.photo_url)) {
-          arr.push(row.photo_url);
-        }
-        photoMap.set(row.job_id, arr);
-      }
-    }
-
-    // Merge photos into each job
-    return jobs.map((job) => {
-      const photos = photoMap.get(job.id);
-      if (photos && photos.length > 0) {
-        return { ...job, photos };
-      }
-      return job;
-    });
-  }
-
   static async getJobsByHomeowner(homeownerId: string): Promise<Job[]> {
-    const { data, error } = await supabase
-      .from('jobs')
-      .select('*')
-      .eq('homeowner_id', homeownerId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    if (!data) return [];
-    const jobs = data.map(JobCRUDService['formatJob']);
-    return this.enrichJobsWithPhotos(jobs);
+    const jobs = await mobileApiClient.get<Job[]>(
+      `/api/jobs?homeowner_id=${encodeURIComponent(homeownerId)}&order=created_at&direction=desc`
+    );
+    return jobs || [];
   }
 
   static async getUserJobs(userId: string): Promise<Job[]> {
-    const { data, error } = await supabase
-      .from('jobs')
-      .select('*')
-      .eq('homeowner_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      const err = error as ErrorWithMessage;
-      throw new Error(err.message || String(error));
-    }
-    if (!data) return [];
-    const jobs = data.map(JobCRUDService['formatJob']);
-    return this.enrichJobsWithPhotos(jobs);
+    const jobs = await mobileApiClient.get<Job[]>(
+      `/api/jobs?homeowner_id=${encodeURIComponent(userId)}&order=created_at&direction=desc`
+    );
+    return jobs || [];
   }
 
   static async getAvailableJobs(): Promise<Job[]> {
-    const q = supabase
-      .from('jobs')
-      .select('*')
-      .eq('status', 'posted')
-      .order('created_at', { ascending: false }) as SupabaseJobQuery;
-
-    // Support both chain styles used in tests
-    if (typeof q.limit === 'function') {
-      const { data, error } = await q.limit(20);
-      if (error) throw error;
-      if (!data) return [];
-      const jobs = data.map(JobCRUDService['formatJob']);
-      return this.enrichJobsWithPhotos(jobs);
-    }
-
-    const { data, error } = await q;
-    if (error) throw error;
-    if (!data) return [];
-    const jobs = data.map(JobCRUDService['formatJob']);
-    return this.enrichJobsWithPhotos(jobs);
+    const jobs = await mobileApiClient.get<Job[]>(
+      '/api/jobs?status=posted&order=created_at&direction=desc&limit=20'
+    );
+    return jobs || [];
   }
 
   static async getJobsByStatus(
     status: Job['status'],
     userId?: string
   ): Promise<Job[]> {
-    let query = supabase.from('jobs').select('*').eq('status', status);
-
+    let url = `/api/jobs?status=${encodeURIComponent(status)}&order=created_at&direction=desc`;
     if (userId) {
-      query = query.or(`homeowner_id.eq.${userId},contractor_id.eq.${userId}`);
+      url += `&userId=${encodeURIComponent(userId)}`;
     }
-
-    const { data, error } = await query.order('created_at', {
-      ascending: false,
-    });
-
-    if (error) throw error;
-    if (!data) return [];
-    const jobs = data.map(JobCRUDService['formatJob']);
-    return this.enrichJobsWithPhotos(jobs);
+    const jobs = await mobileApiClient.get<Job[]>(url);
+    return jobs || [];
   }
 
   static async getJobsByUser(userId: string, role: 'homeowner' | 'contractor'): Promise<Job[]> {
-    let q = supabase.from('jobs').select('*') as SupabaseJobQuery;
-    if (role === 'homeowner') q = q.eq('homeowner_id', userId);
-    else q = q.eq('contractor_id', userId);
-    const { data, error } = await q.order('created_at', { ascending: false });
-    if (error) throw error;
-    if (!data) return [];
-    const jobs = data.map(JobCRUDService['formatJob']);
-    return this.enrichJobsWithPhotos(jobs);
+    const param = role === 'homeowner' ? 'homeowner_id' : 'contractor_id';
+    const jobs = await mobileApiClient.get<Job[]>(
+      `/api/jobs?${param}=${encodeURIComponent(userId)}&order=created_at&direction=desc`
+    );
+    return jobs || [];
   }
 
   // Generic job retrieval with pagination
@@ -209,42 +75,16 @@ export class JobSearchService {
       limit = arg2;
     }
 
-    let query = supabase.from('jobs').select('*') as SupabaseJobQuery;
-    if (status) {
-      query = query.eq('status', status);
-    }
-    query = query.order('created_at', { ascending: false });
+    const params = new URLSearchParams();
+    if (status) params.set('status', status);
+    params.set('order', 'created_at');
+    params.set('direction', 'desc');
+    if (typeof limit === 'number') params.set('limit', String(limit));
+    else params.set('limit', '20');
+    if (typeof offset === 'number') params.set('offset', String(offset));
 
-    if (typeof offset === 'number' && typeof limit === 'number' && typeof query.range === 'function') {
-      const { data, error } = await query.range(offset, offset + limit - 1);
-      if (error) throw error;
-      if (!data) return [];
-      const jobs = data.map(JobCRUDService['formatJob']);
-      return this.enrichJobsWithPhotos(jobs);
-    }
-
-    if (typeof limit === 'number' && typeof query.limit === 'function') {
-      const { data, error } = await query.limit(limit);
-      if (error) throw error;
-      if (!data) return [];
-      const jobs = data.map(JobCRUDService['formatJob']);
-      return this.enrichJobsWithPhotos(jobs);
-    }
-
-    // Default to limited page when supported (tests finalize via limit())
-    if (typeof query.limit === 'function') {
-      const { data, error } = await query.limit(20);
-      if (error) throw error;
-      if (!data) return [];
-      const jobs = data.map(JobCRUDService['formatJob']);
-      return this.enrichJobsWithPhotos(jobs);
-    }
-
-    const { data, error } = await query;
-    if (error) throw error;
-    if (!data) return [];
-    const jobs = data.map(JobCRUDService['formatJob']);
-    return this.enrichJobsWithPhotos(jobs);
+    const jobs = await mobileApiClient.get<Job[]>(`/api/jobs?${params.toString()}`);
+    return jobs || [];
   }
 
   // Search jobs by title, description, location, or category
@@ -253,46 +93,23 @@ export class JobSearchService {
     filters?: { category?: string; minBudget?: number; maxBudget?: number },
     limit: number = 20
   ): Promise<Job[]> {
-    // Validate and sanitize search input to prevent SQL injection
+    // Validate search input
     if (!isValidSearchTerm(queryText)) {
       logger.warn('Invalid search term rejected in JobSearchService');
       return [];
     }
 
-    const sanitizedQuery = sanitizeForSQL(queryText);
-    if (!sanitizedQuery) {
-      return [];
-    }
+    const params = new URLSearchParams();
+    params.set('search', queryText);
+    params.set('order', 'created_at');
+    params.set('direction', 'desc');
+    params.set('limit', String(limit));
+    if (filters?.category) params.set('category', filters.category);
+    if (filters?.minBudget != null) params.set('minBudget', String(filters.minBudget));
+    if (filters?.maxBudget != null) params.set('maxBudget', String(filters.maxBudget));
 
-    let q = supabase.from('jobs').select('*') as SupabaseJobQuery;
-
-    // Prefer textSearch when available (some tests mock this)
-    if (typeof q.textSearch === 'function') {
-      q = q.textSearch('fts', sanitizedQuery);
-    } else if (typeof q.or === 'function') {
-      // Use proper parameter binding with SQL-safe escaped values
-      q = q.or(`title.ilike.%${sanitizedQuery}%,description.ilike.%${sanitizedQuery}%,location.ilike.%${sanitizedQuery}%`);
-    }
-
-    if (filters?.category) q = q.eq('category', filters.category);
-    if (filters?.minBudget != null && typeof q.gte === 'function') q = q.gte('budget', filters.minBudget);
-    if (filters?.maxBudget != null && typeof q.lte === 'function') q = q.lte('budget', filters.maxBudget);
-
-    q = q.order('created_at', { ascending: false });
-
-    if (typeof q.limit === 'function') {
-      const { data, error } = await q.limit(limit);
-      if (error) throw error;
-      if (!data) return [];
-      const jobs = data.map(JobCRUDService['formatJob']);
-      return this.enrichJobsWithPhotos(jobs);
-    }
-
-    const { data, error } = await q;
-    if (error) throw error;
-    if (!data) return [];
-    const jobs = data.map(JobCRUDService['formatJob']);
-    return this.enrichJobsWithPhotos(jobs);
+    const jobs = await mobileApiClient.get<Job[]>(`/api/jobs?${params.toString()}`);
+    return jobs || [];
   }
 
   // Get single job (alias for getJobById for consistency)

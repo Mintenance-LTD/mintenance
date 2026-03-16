@@ -1,6 +1,6 @@
 /**
  * BookingError Component
- * 
+ *
  * Displays error state for the booking screen.
  */
 
@@ -17,14 +17,12 @@ interface BookingErrorProps {
 export const BookingError: React.FC<BookingErrorProps> = ({ error, onRetry }) => {
   return (
     <View style={styles.container}>
-      <Ionicons
-        name="alert-circle-outline"
-        size={64}
-        color={theme.colors.error}
-      />
+      <View style={styles.iconWrap}>
+        <Ionicons name="alert-circle-outline" size={32} color={theme.colors.error} />
+      </View>
       <Text style={styles.errorTitle}>Oops!</Text>
       <Text style={styles.errorMessage}>{error}</Text>
-      
+
       <TouchableOpacity
         style={styles.retryButton}
         onPress={onRetry}
@@ -43,14 +41,22 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
     padding: 40,
+  },
+  iconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
   errorTitle: {
     fontSize: 24,
     fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginTop: 16,
     marginBottom: 8,
   },
   errorMessage: {
@@ -61,12 +67,12 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   retryButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.textPrimary,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 16,
+    paddingVertical: 14,
+    borderRadius: 28,
     gap: 8,
   },
   retryButtonText: {

@@ -69,7 +69,8 @@ function transformJobResults(
 }
 
 async function getJobCount(query: SearchQuery): Promise<{ count: number }> {
-  let queryBuilder = supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let queryBuilder: any = supabase
     .from('jobs')
     .select('id', { count: 'exact', head: true })
     .eq('status', 'posted');
@@ -114,7 +115,8 @@ export async function searchJobs(
     const result = await handleDatabaseOperation(async () => {
       const startTime = Date.now();
 
-      let queryBuilder = supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let queryBuilder: any = supabase
         .from('jobs')
         .select(`id,title,description,budget_min,budget_max,budget_type,
           location_city,location_state,location_coordinates,created_at,urgency,
@@ -136,7 +138,7 @@ export async function searchJobs(
       const res = await queryBuilder;
       if (res.error) throw new Error(`Job search failed: ${res.error.message}`);
 
-      const jobs = transformJobResults(res.data || [], query.filters.location.coordinates);
+      const jobs = transformJobResults((res.data || []) as DatabaseJobRow[], query.filters.location.coordinates);
       const countResult = await getJobCount(query);
       const facets = await generateJobFacets(query);
 

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Job } from '@/types';
+import { theme } from '../theme';
 import {
   sustainabilityEngine,
   ESGScore,
@@ -182,11 +183,11 @@ export const useSustainabilityProgress = (
 export const useSustainabilityFormatters = () => {
   const formatESGScore = (score: ESGScore) => {
     const getScoreColor = (value: number) => {
-      if (value >= 90) return '#10B981'; // Green-500
-      if (value >= 80) return '#84CC16'; // Lime-500
-      if (value >= 70) return '#F59E0B'; // Amber-500
-      if (value >= 60) return '#EF4444'; // Red-500
-      return '#6B7280'; // Gray-500
+      if (value >= 90) return theme.colors.primary;
+      if (value >= 80) return theme.colors.success;
+      if (value >= 70) return theme.colors.warning;
+      if (value >= 60) return theme.colors.error;
+      return theme.colors.textSecondary;
     };
 
     const getScoreGrade = (value: number) => {
@@ -250,10 +251,10 @@ export const useSustainabilityFormatters = () => {
   const formatMaterialSwap = (swap: MaterialSwapSuggestion) => {
     const savingsColor =
       swap.carbon_reduction > 5
-        ? '#10B981'
+        ? theme.colors.primary
         : swap.carbon_reduction > 2
-          ? '#F59E0B'
-          : '#6B7280';
+          ? theme.colors.warning
+          : theme.colors.textSecondary;
 
     const availabilityIcon =
       swap.availability === 'readily_available'
@@ -271,10 +272,10 @@ export const useSustainabilityFormatters = () => {
           : `${swap.cost_difference}%`,
       costColor:
         swap.cost_difference > 20
-          ? '#EF4444'
+          ? theme.colors.error
           : swap.cost_difference > 10
-            ? '#F59E0B'
-            : '#10B981',
+            ? theme.colors.warning
+            : theme.colors.primary,
       availabilityIcon,
       availabilityText: swap.availability
         .replace('_', ' ')
@@ -326,7 +327,7 @@ export const useSustainabilityFormatters = () => {
     return insights;
   };
 
-  const getProgressInsights = (progress: unknown) => {
+  const getProgressInsights = (progress: { trend: string; carbon_reduction_kg: number; renewable_increase_percent: number }) => {
     const insights = [];
 
     if (progress.trend === 'improving') {

@@ -74,7 +74,7 @@ function generateCacheKey(imageUrls: string[]): string {
  * GET /api/building-surveyor/assess
  * Get cache statistics (admin only)
  */
-export const GET = withApiHandler({ auth: false, rateLimit: false }, async (request) => {
+export const GET = withApiHandler({ roles: ['admin'] }, async (request) => {
   let deps: Awaited<ReturnType<typeof loadDependencies>>;
   try {
     deps = await loadDependencies();
@@ -84,9 +84,6 @@ export const GET = withApiHandler({ auth: false, rateLimit: false }, async (requ
       { status: 503 }
     );
   }
-
-  const user = await deps.getCurrentUserFromCookies();
-  if (!user || user.role !== 'admin') throw new deps.ForbiddenError('Admin access required');
 
   return NextResponse.json({
     size: assessmentCache.size,
@@ -105,7 +102,7 @@ export const GET = withApiHandler({ auth: false, rateLimit: false }, async (requ
  * Assess building damage from photos using GPT-4 Vision
  * OWASP Security: Rate limited to prevent API cost abuse
  */
-export const POST = withApiHandler({ auth: false, rateLimit: false }, async (request) => {
+export const POST = withApiHandler({ auth: true, rateLimit: false }, async (request, { user }) => {
   let deps: Awaited<ReturnType<typeof loadDependencies>>;
   try {
     deps = await loadDependencies();
@@ -135,9 +132,6 @@ export const POST = withApiHandler({ auth: false, rateLimit: false }, async (req
   }
 
   await deps.requireCSRF(request);
-
-  const user = await deps.getCurrentUserFromCookies();
-  if (!user) throw new deps.UnauthorizedError('Authentication required');
 
   const body = await request.json();
   const validationResult = deps.buildingAssessRequestSchema.safeParse(body);
@@ -392,6 +386,25 @@ export const POST = withApiHandler({ auth: false, rateLimit: false }, async (req
   }
 
   deps.logger.info('Building assessment completed', { service: 'building-surveyor-api', userId: user.id, damageType: assessment.damageAssessment.damageType });
+
+  // Cross-property pattern correlation: connect defects from previous assessments on the same property
+  if (bodyPropertyId && assessment.damageAssessment.damageType) {
+    try {
+      const { correlatePropertyPatterns } = await import('@/lib/services/building-surveyor/PropertyPatternCorrelation');
+      const patternInsights = await correlatePropertyPatterns(bodyPropertyId, assessment.damageAssessment.damageType);
+      if (patternInsights) {
+        assessment.patternInsights = patternInsights;
+        deps.logger.info('Property pattern correlation attached', {
+          service: 'building-surveyor-api',
+          propertyId: bodyPropertyId,
+          connectedDefects: patternInsights.connectedDefects,
+        });
+      }
+    } catch (patternError) {
+      // Non-fatal — pattern correlation failure should never block an assessment
+      deps.logger.warn('Property pattern correlation failed', { service: 'building-surveyor-api', error: patternError });
+    }
+  }
 
   assessmentCache.set(cacheKey, assessment);
   return NextResponse.json(assessment);

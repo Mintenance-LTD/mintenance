@@ -129,8 +129,7 @@ export const useMeetingScheduleViewModel = (
       setLocation({
         latitude: locationResult.coords.latitude,
         longitude: locationResult.coords.longitude,
-        address: address.trim(),
-      });
+      } as LocationData);
       setLocationStatus('success');
     } catch (error) {
       logger.error('Error getting location:', error);

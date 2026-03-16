@@ -17,6 +17,7 @@ import ImageCompressionService, {
   type ProgressCallback,
 } from './ImageCompressionService';
 import { PhotoUploadService } from './PhotoUploadService';
+import { logger } from '../utils/logger';
 import * as ImagePicker from 'expo-image-picker';
 
 // ============================================================================

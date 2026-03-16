@@ -7,7 +7,7 @@ import React from 'react';
 
 import { render , waitFor} from '../test-utils';
 import { LoadingSpinner, FullScreenLoading } from '../LoadingSpinner';
-import { theme } from '../../theme';
+
 
 jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
 jest.mock('react-native-safe-area-context', () => ({
@@ -79,7 +79,7 @@ describe('LoadingSpinner', () => {
       const { getByTestId } = render(<LoadingSpinner />);
 
       const text = getByTestId('loading-text');
-      expect(text.props.style).toContainEqual({ color: theme.colors.info });
+      expect(text.props.style).toContainEqual({ color: '#222222' });
     });
   });
 

@@ -1,4 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+/**
+ * MessagingScreen — Redesigned chat with green bubbles, date separators,
+ * animated typing indicator, and contextual empty state.
+ */
+
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,16 +12,19 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Modal,
+  TouchableOpacity,
+  TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { MessagingStackParamList } from '../navigation/types';
 import { RouteProp } from '@react-navigation/native';
 import { Message } from '../services/MessagingService';
 import VideoCallInterface from '../components/video-call/VideoCallInterface';
 import VideoCallScheduler from '../components/video-call/VideoCallScheduler';
-import { theme } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
 import {
@@ -25,28 +33,32 @@ import {
   useMarkMessagesAsRead,
   useRealTimeMessages,
 } from '../hooks/useMessaging';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../lib/queryClient';
 import { ResponsiveContainer, useResponsive } from '../components/responsive';
 import { ChatHeader } from './messaging/components/ChatHeader';
 import { MessageBubble } from './messaging/components/MessageBubble';
 import { MessageComposer } from './messaging/components/MessageComposer';
 import { MessagingLoading, MessagingError, MessagingEmpty } from './messaging/components/MessagingStates';
 import { useVideoCall } from './messaging/hooks/useVideoCall';
+import { getDateKey, getDateLabel } from './messaging/utils';
 import { supabase } from '../config/supabase';
-
-interface MessagingScreenParams {
-  jobId: string;
-  jobTitle: string;
-  otherUserId: string;
-  otherUserName: string;
-}
+import { mobileApiClient } from '../utils/mobileApiClient';
+import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../theme';
 
 interface Props {
-  route: RouteProp<{ params: MessagingScreenParams }>;
+  route: RouteProp<MessagingStackParamList, 'Messaging'>;
   navigation: NativeStackNavigationProp<MessagingStackParamList, 'Messaging'>;
 }
 
 const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { jobId, jobTitle, otherUserId, otherUserName } = route.params;
+  const {
+    conversationId: jobId,
+    jobTitle = '',
+    recipientId: otherUserId = '',
+    recipientName: otherUserName = '',
+  } = route.params;
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const { isDesktop } = useResponsive();
@@ -54,17 +66,37 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
   const [newMessage, setNewMessage] = useState('');
   const [composerError, setComposerError] = useState<string | null>(null);
   const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
+  const [quoteAmount, setQuoteAmount] = useState('');
+  const [quoteDescription, setQuoteDescription] = useState('');
+  const [quoteSending, setQuoteSending] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingBroadcastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
-    data: messages = [],
+    data: rawMessages,
     isLoading: loading,
     error,
   } = useJobMessages(jobId);
+  const messages = (rawMessages ?? []) as Message[];
   const sendMessageMutation = useSendMessage();
   const markAsReadMutation = useMarkMessagesAsRead();
+  const queryClient = useQueryClient();
+
+  // Build a set of indices that should show a date separator
+  const dateSeparators = useMemo(() => {
+    const map = new Map<number, string>();
+    let lastDateKey = '';
+    messages.forEach((msg, index) => {
+      const key = getDateKey(msg.createdAt);
+      if (key !== lastDateKey) {
+        map.set(index, getDateLabel(msg.createdAt));
+        lastDateKey = key;
+      }
+    });
+    return map;
+  }, [messages]);
 
   const scrollToEnd = useCallback(() => {
     setTimeout(() => {
@@ -82,7 +114,11 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
     callDuration?: number;
     scheduledTime?: string;
   }) => {
-    await sendMessageMutation.mutateAsync(params);
+    const { callId: _callId, callDuration: _callDuration, scheduledTime: _scheduledTime, messageType, ...rest } = params;
+    await sendMessageMutation.mutateAsync({
+      ...rest,
+      messageType: (messageType as 'text' | 'image' | 'file') || 'text',
+    });
   }, [sendMessageMutation]);
 
   const videoCall = useVideoCall({
@@ -106,7 +142,7 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
     true
   );
 
-  // Typing indicator — subscribe to realtime broadcast for this conversation
+  // Typing indicator — subscribe to realtime broadcast
   useEffect(() => {
     if (!user?.id) return;
 
@@ -130,7 +166,7 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const broadcastTyping = useCallback(() => {
     if (!user?.id) return;
-    if (typingBroadcastRef.current) return; // Debounce: only send once every 2s
+    if (typingBroadcastRef.current) return;
 
     typingBroadcastRef.current = setTimeout(() => {
       typingBroadcastRef.current = null;
@@ -154,10 +190,22 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [messages, user?.id, jobId]);
 
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() || !user || sendMessageMutation.isPending) return;
+  const markMessageFailed = useCallback((tempId: string) => {
+    queryClient.setQueryData(
+      queryKeys.messages.conversation(jobId),
+      (oldData: Message[] | undefined) => {
+        if (!oldData) return oldData;
+        return oldData.map((msg) =>
+          msg.id === tempId ? { ...msg, deliveryStatus: 'failed' as const } : msg
+        );
+      }
+    );
+  }, [jobId, queryClient]);
 
-    const messageText = newMessage.trim();
+  const handleSendMessage = async (text?: string) => {
+    const messageText = (text ?? newMessage).trim();
+    if (!messageText || !user || sendMessageMutation.isPending) return;
+
     setComposerError(null);
     setNewMessage('');
 
@@ -172,10 +220,55 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
       scrollToEnd();
     } catch (err) {
       logger.error('Error sending message:', err);
-      setComposerError('Failed to send message. Please try again.');
-      setNewMessage(messageText);
+      const currentMessages: Message[] | undefined = queryClient.getQueryData(
+        queryKeys.messages.conversation(jobId)
+      );
+      const failedMsg = currentMessages?.find(
+        (m) => m.id.startsWith('temp_message_') && m.senderId === user.id && m.messageText === messageText
+      );
+      if (failedMsg) {
+        markMessageFailed(failedMsg.id);
+      } else {
+        setComposerError('Failed to send message. Please try again.');
+        setNewMessage(messageText);
+      }
     }
   };
+
+  const handleRetryMessage = useCallback(async (failedMessage: Message) => {
+    if (!user) return;
+
+    queryClient.setQueryData(
+      queryKeys.messages.conversation(jobId),
+      (oldData: Message[] | undefined) => {
+        if (!oldData) return oldData;
+        return oldData.filter((msg) => msg.id !== failedMessage.id);
+      }
+    );
+
+    try {
+      await sendMessageMutation.mutateAsync({
+        jobId,
+        receiverId: otherUserId,
+        messageText: failedMessage.messageText,
+        senderId: user.id,
+        messageType: (failedMessage.messageType as 'text' | 'image' | 'file') || 'text',
+        attachmentUrl: failedMessage.attachmentUrl,
+      });
+      scrollToEnd();
+    } catch (err) {
+      logger.error('Retry failed:', err);
+      const currentMessages: Message[] | undefined = queryClient.getQueryData(
+        queryKeys.messages.conversation(jobId)
+      );
+      const retryMsg = currentMessages?.find(
+        (m) => m.id.startsWith('temp_message_') && m.messageText === failedMessage.messageText
+      );
+      if (retryMsg) {
+        markMessageFailed(retryMsg.id);
+      }
+    }
+  }, [user, jobId, otherUserId, sendMessageMutation, scrollToEnd, queryClient, markMessageFailed]);
 
   const handleChangeText = (value: string) => {
     if (composerError) setComposerError(null);
@@ -228,38 +321,87 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [user, jobId, otherUserId, sendMessageMutation, scrollToEnd]);
 
-  const renderMessage = useCallback(({ item }: { item: Message }) => (
+  const handleQuickQuoteSend = useCallback(async () => {
+    if (!user || !quoteAmount.trim()) return;
+    const amount = parseFloat(quoteAmount.replace(/[^0-9.]/g, ''));
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert('Invalid Amount', 'Please enter a valid quote amount.');
+      return;
+    }
+    setQuoteSending(true);
+    try {
+      // Insert quote via API
+      await mobileApiClient.post('/api/contractor/quotes', {
+        job_id: jobId,
+        client_name: otherUserName,
+        total_amount: amount,
+        status: 'sent',
+        notes: quoteDescription.trim() || null,
+      });
+
+      // Send a message with the quote details
+      const quoteMsg = `💰 Quote sent: £${amount.toFixed(2)}${quoteDescription.trim() ? `\n${quoteDescription.trim()}` : ''}`;
+      await sendMessageMutation.mutateAsync({
+        jobId,
+        receiverId: otherUserId,
+        messageText: quoteMsg,
+        senderId: user.id,
+        messageType: 'text',
+      });
+      scrollToEnd();
+      setShowQuoteModal(false);
+      setQuoteAmount('');
+      setQuoteDescription('');
+    } catch (err) {
+      logger.error('Failed to send quick quote', err);
+      Alert.alert('Error', 'Failed to send quote. Please try again.');
+    } finally {
+      setQuoteSending(false);
+    }
+  }, [user, quoteAmount, quoteDescription, jobId, otherUserId, otherUserName, sendMessageMutation, scrollToEnd]);
+
+  const renderMessage = useCallback(({ item, index }: { item: Message; index: number }) => (
     <MessageBubble
       item={item}
       isFromCurrentUser={item.senderId === user?.id}
       isDesktop={isDesktop}
       onCallAccept={videoCall.handleCallAccept}
       onCallDecline={videoCall.handleCallDecline}
+      onRetry={handleRetryMessage}
+      showDateSeparator={dateSeparators.get(index)}
     />
-  ), [user?.id, isDesktop, videoCall.handleCallAccept, videoCall.handleCallDecline]);
+  ), [user?.id, isDesktop, videoCall.handleCallAccept, videoCall.handleCallDecline, handleRetryMessage, dateSeparators]);
 
   if (loading) return <MessagingLoading />;
   if (error) return <MessagingError onRetry={() => navigation.goBack()} />;
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <ResponsiveContainer
         maxWidth={{ mobile: undefined, tablet: 768, desktop: 1000 }}
         padding={{ mobile: 0, tablet: 16, desktop: 24 }}
-        style={styles.container}
+        style={styles.responsiveContainer}
       >
         <KeyboardAvoidingView
           style={styles.keyboardContainer}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         >
           <ChatHeader
             otherUserName={otherUserName}
             jobTitle={jobTitle}
             userId={user?.id || ''}
+            jobId={jobId}
             onGoBack={() => navigation.goBack()}
             onScheduleCall={() => videoCall.setShowScheduler(true)}
             onStartVideoCall={videoCall.startVideoCall}
+            onViewJobDetails={() => {
+              navigation.getParent?.()?.navigate('JobsTab', {
+                screen: 'JobDetails',
+                params: { jobId },
+              });
+            }}
+            onSendQuote={user?.role === 'contractor' ? () => setShowQuoteModal(true) : undefined}
           />
 
           <FlatList
@@ -268,8 +410,16 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
             keyExtractor={(item) => item.id}
             renderItem={renderMessage}
             style={styles.messagesList}
-            contentContainerStyle={messages.length === 0 ? styles.emptyList : undefined}
-            ListEmptyComponent={MessagingEmpty}
+            contentContainerStyle={[
+              styles.messagesContent,
+              messages.length === 0 && styles.emptyList,
+            ]}
+            ListEmptyComponent={
+              <MessagingEmpty
+                jobTitle={jobTitle}
+                onQuickMessage={(text) => handleSendMessage(text)}
+              />
+            }
             onContentSizeChange={() => {
               if (messages.length > 0) {
                 flatListRef.current?.scrollToEnd({ animated: false });
@@ -277,16 +427,24 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
             }}
           />
 
+          {/* Typing indicator — animated dots bubble */}
           {isOtherUserTyping && (
             <View style={styles.typingRow}>
-              <Text style={styles.typingText}>{otherUserName} is typing…</Text>
+              <View style={styles.typingBubble}>
+                <View style={styles.typingDots}>
+                  <View style={[styles.dot, styles.dot1]} />
+                  <View style={[styles.dot, styles.dot2]} />
+                  <View style={[styles.dot, styles.dot3]} />
+                </View>
+                <Text style={styles.typingName}>{otherUserName}</Text>
+              </View>
             </View>
           )}
 
           <MessageComposer
             value={newMessage}
             onChangeText={handleChangeText}
-            onSend={handleSendMessage}
+            onSend={() => handleSendMessage()}
             onAttach={handleAttach}
             isSending={sendMessageMutation.isPending}
             error={composerError}
@@ -314,46 +472,337 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
           />
         </KeyboardAvoidingView>
       </ResponsiveContainer>
-    </SafeAreaView>
+
+      {/* Quick Quote Modal */}
+      <Modal
+        visible={showQuoteModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowQuoteModal(false)}
+      >
+        <View style={styles.quoteOverlay}>
+          <View style={styles.quoteCard}>
+            {/* Handle bar */}
+            <View style={styles.quoteHandle} />
+
+            <View style={styles.quoteHeader}>
+              <View style={styles.quoteIconWrap}>
+                <Ionicons name="pricetag" size={18} color={theme.colors.textPrimary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.quoteTitle}>Send Quote</Text>
+                <Text style={styles.quoteSubtitle}>to {otherUserName}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.quoteCloseBtn}
+                onPress={() => setShowQuoteModal(false)}
+                accessibilityLabel="Close"
+              >
+                <Ionicons name="close" size={20} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {jobTitle ? (
+              <View style={styles.quoteJobPill}>
+                <Ionicons name="briefcase-outline" size={14} color={theme.colors.textSecondary} />
+                <Text style={styles.quoteJobText} numberOfLines={1}>{jobTitle}</Text>
+              </View>
+            ) : null}
+
+            {/* Amount input */}
+            <Text style={styles.quoteLabel}>Quote Amount</Text>
+            <View style={styles.quoteAmountRow}>
+              <Text style={styles.quoteCurrency}>£</Text>
+              <TextInput
+                style={styles.quoteAmountInput}
+                value={quoteAmount}
+                onChangeText={setQuoteAmount}
+                placeholder="0.00"
+                placeholderTextColor={theme.colors.textTertiary}
+                keyboardType="decimal-pad"
+                autoFocus
+              />
+            </View>
+
+            {/* Description input */}
+            <Text style={styles.quoteLabel}>Description (optional)</Text>
+            <TextInput
+              style={styles.quoteDescInput}
+              value={quoteDescription}
+              onChangeText={setQuoteDescription}
+              placeholder="e.g. Full bathroom renovation including materials"
+              placeholderTextColor={theme.colors.textTertiary}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
+
+            {/* Actions */}
+            <View style={styles.quoteActions}>
+              <TouchableOpacity
+                style={styles.quoteFullBtn}
+                onPress={() => {
+                  setShowQuoteModal(false);
+                  navigation.navigate('CreateQuote' as never, { jobId } as never);
+                }}
+              >
+                <Ionicons name="document-text-outline" size={16} color={theme.colors.textPrimary} />
+                <Text style={styles.quoteFullBtnText}>Full Quote</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.quoteSendBtn, (!quoteAmount.trim() || quoteSending) && styles.quoteSendBtnDisabled]}
+                onPress={handleQuickQuoteSend}
+                disabled={!quoteAmount.trim() || quoteSending}
+              >
+                {quoteSending ? (
+                  <ActivityIndicator size="small" color={theme.colors.textInverse} />
+                ) : (
+                  <>
+                    <Ionicons name="send" size={16} color={theme.colors.textInverse} />
+                    <Text style={styles.quoteSendBtnText}>Send</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: theme.colors.surfaceSecondary,
-  },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
+  },
+  responsiveContainer: {
+    flex: 1,
   },
   keyboardContainer: {
     flex: 1,
   },
   messagesList: {
     flex: 1,
-    paddingHorizontal: 16,
+  },
+  messagesContent: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   emptyList: {
     flexGrow: 1,
     justifyContent: 'center',
   },
+
+  // Typing indicator
   typingRow: {
     paddingHorizontal: 16,
-    paddingVertical: 6,
-    backgroundColor: theme.colors.surface,
+    paddingVertical: 4,
   },
-  typingText: {
-    fontSize: 13,
+  typingBubble: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 18,
+    borderBottomLeftRadius: 6,
+    gap: 8,
+  },
+  typingDots: {
+    flexDirection: 'row',
+    gap: 3,
+  },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: theme.colors.textTertiary,
+  },
+  dot1: {
+    opacity: 0.4,
+  },
+  dot2: {
+    opacity: 0.6,
+  },
+  dot3: {
+    opacity: 0.8,
+  },
+  typingName: {
+    fontSize: 12,
     color: theme.colors.textTertiary,
     fontStyle: 'italic',
   },
+
   videoCallOverlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 1000,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
+  },
+
+  // Quick Quote Modal
+  quoteOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  quoteCard: {
+    backgroundColor: theme.colors.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 36,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 16,
+      },
+      android: { elevation: 10 },
+    }),
+  },
+  quoteHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: theme.colors.border,
+    alignSelf: 'center',
+    marginTop: 10,
+    marginBottom: 16,
+  },
+  quoteHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 14,
+  },
+  quoteIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: theme.colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quoteTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    letterSpacing: -0.3,
+  },
+  quoteSubtitle: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    marginTop: 1,
+  },
+  quoteCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: theme.colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quoteJobPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: theme.colors.backgroundSecondary,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    marginBottom: 18,
+  },
+  quoteJobText: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    fontWeight: '500',
+  },
+  quoteLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  quoteAmountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  quoteCurrency: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginRight: 4,
+  },
+  quoteAmountInput: {
+    flex: 1,
+    fontSize: 24,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    paddingVertical: 14,
+  },
+  quoteDescInput: {
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 16,
+    padding: 14,
+    fontSize: 15,
+    color: theme.colors.textPrimary,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    minHeight: 80,
+    marginBottom: 20,
+  },
+  quoteActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  quoteFullBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 14,
+    borderRadius: 28,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1.5,
+    borderColor: theme.colors.textPrimary,
+  },
+  quoteFullBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+  quoteSendBtn: {
+    flex: 1.4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 14,
+    borderRadius: 28,
+    backgroundColor: theme.colors.textPrimary,
+  },
+  quoteSendBtnDisabled: {
+    opacity: 0.4,
+  },
+  quoteSendBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: theme.colors.textInverse,
   },
 });
 
 export default MessagingScreen;
-

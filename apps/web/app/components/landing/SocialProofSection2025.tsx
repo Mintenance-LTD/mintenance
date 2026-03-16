@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import { Star, TrendingUp, Users, PoundSterling } from 'lucide-react';
 import { CustomerTestimonials } from '@/components/landing/CustomerTestimonials';
-import { LiveActivityFeed } from '@/components/landing/LiveActivityFeed';
+// LiveActivityFeed: ARCHIVED - social feature removed
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 const stats = [
@@ -54,9 +54,6 @@ export function SocialProofSection2025() {
 
         {/* Customer Testimonials */}
         <CustomerTestimonials />
-
-        {/* Live Activity Feed (floating) */}
-        <LiveActivityFeed />
       </div>
     </section>
   );

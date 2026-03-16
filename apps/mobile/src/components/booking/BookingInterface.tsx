@@ -7,7 +7,6 @@ import {
   TextInput,
   Dimensions,
 } from 'react-native';
-import { theme } from '../../theme';
 import { styles } from './bookingInterfaceStyles';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -56,10 +55,11 @@ export const BookingInterface: React.FC<BookingInterfaceProps> = ({
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
-  const [jobDetails, setJobDetails] = useState({
+  const [jobDetails, setJobDetails] = useState<JobDetails>({
     title: '',
     description: '',
     location: '',
+    preferredDate: '',
     urgency: 'normal',
     budget: '',
   });
@@ -76,7 +76,7 @@ export const BookingInterface: React.FC<BookingInterfaceProps> = ({
       id: 'details',
       title: 'Job Details',
       subtitle: 'Tell us about your project',
-      completed: jobDetails.title && jobDetails.description,
+      completed: !!(jobDetails.title && jobDetails.description),
       active: currentStep === 1,
     },
     {

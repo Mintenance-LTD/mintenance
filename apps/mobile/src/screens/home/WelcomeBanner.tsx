@@ -1,12 +1,13 @@
 /**
  * WelcomeBanner Component
  *
- * Functional segmented search bar: Property | Urgency | Service.
+ * Segmented search bar: Property | Urgency | Service.
  * Each segment opens its own picker or the ServiceRequest modal.
+ * Airbnb-style pill shape with soft shadow, no borders.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 
@@ -64,25 +65,28 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({
 
 const styles = StyleSheet.create({
   welcomeBanner: {
-    backgroundColor: theme.colors.background,
+    paddingHorizontal: 20,
     paddingTop: 4,
     paddingBottom: 8,
-    paddingHorizontal: 24,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.colors.surface,
-    borderRadius: 16,
+    borderRadius: 40,
     paddingVertical: 12,
     paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   searchIconContainer: {
     width: 36,
@@ -121,6 +125,6 @@ const styles = StyleSheet.create({
   segmentDivider: {
     width: 1,
     height: 28,
-    backgroundColor: theme.colors.borderLight,
+    backgroundColor: theme.colors.border,
   },
 });

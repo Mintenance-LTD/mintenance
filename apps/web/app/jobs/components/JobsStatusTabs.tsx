@@ -1,8 +1,6 @@
 'use client';
 
 import React from 'react';
-import { MotionDiv, MotionButton } from '@/components/ui/MotionDiv';
-import { fadeIn } from '@/lib/animations/variants';
 
 type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed' | 'draft' | 'awaiting_action';
 
@@ -24,7 +22,6 @@ export function JobsStatusTabs({
   activeTab,
   onTabChange,
   jobCounts,
-  prefersReducedMotion = false
 }: JobsStatusTabsProps) {
   const tabs = [
     { value: 'all' as FilterStatus, label: 'All Jobs', count: jobCounts.all, highlight: false },
@@ -36,46 +33,40 @@ export function JobsStatusTabs({
   ];
 
   return (
-    <MotionDiv
-      className="flex items-center justify-between gap-4 flex-wrap"
-      variants={prefersReducedMotion ? {} : fadeIn}
-      initial={prefersReducedMotion ? false : "initial"}
-      animate={prefersReducedMotion ? false : "animate"}
-    >
-      <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 p-2 overflow-x-auto">
-        {tabs.map((tab) => (
-          <MotionButton
+    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+      {tabs.map((tab) => {
+        const isActive = activeTab === tab.value;
+        return (
+          <button
             key={tab.value}
             onClick={() => onTabChange(tab.value)}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm transition-all whitespace-nowrap ${
-              activeTab === tab.value
+            className={`relative px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+              isActive
                 ? tab.highlight
-                  ? 'bg-amber-500 text-white'
-                  : 'bg-teal-600 text-white'
+                  ? 'bg-amber-500 text-white shadow-sm shadow-amber-200'
+                  : 'bg-gray-900 text-white shadow-sm'
                 : tab.highlight && tab.count > 0
                   ? 'text-amber-700 bg-amber-50 hover:bg-amber-100'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  : 'text-gray-600 hover:bg-gray-100'
             }`}
-            whileHover={prefersReducedMotion ? {} : { scale: 1.02 }}
-            whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
             aria-label={`Filter by ${tab.label}`}
-            aria-pressed={activeTab === tab.value}
+            aria-pressed={isActive}
           >
             {tab.label}
             {tab.count > 0 && (
-              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-semibold ${
-                activeTab === tab.value
-                  ? 'bg-white/20 text-white'
+              <span className={`ml-1.5 text-xs font-semibold ${
+                isActive
+                  ? 'text-white/70'
                   : tab.highlight
-                    ? 'bg-amber-200 text-amber-800'
-                    : 'bg-gray-200 text-gray-700'
+                    ? 'text-amber-500'
+                    : 'text-gray-400'
               }`}>
                 {tab.count}
               </span>
             )}
-          </MotionButton>
-        ))}
-      </div>
-    </MotionDiv>
+          </button>
+        );
+      })}
+    </div>
   );
 }

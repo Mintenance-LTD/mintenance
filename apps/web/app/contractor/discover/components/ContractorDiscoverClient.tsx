@@ -111,8 +111,9 @@ export function ContractorDiscoverClient({
   const filteredJobs = useMemo(() => {
     const hasLoc = !!(contractorLocation?.latitude && contractorLocation?.longitude);
     return jobsWithCoords
-      .filter(j => j.lat && j.lng)
-      .filter(j => !hasLoc || !j.distance || j.distance <= selectedRadius)
+      // Include jobs without coordinates (they just won't appear on map)
+      // Only apply distance filter to jobs that have coordinates
+      .filter(j => !hasLoc || !(j.lat && j.lng) || !j.distance || j.distance <= selectedRadius)
       .filter(j => !selectedCategory || j.category === selectedCategory)
       .filter(j => j.budget >= minBudget)
       .filter(j => !aiAssessedOnly || (j.building_assessments?.length ?? 0) > 0);

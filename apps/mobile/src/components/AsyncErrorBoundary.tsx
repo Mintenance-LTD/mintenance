@@ -2,9 +2,9 @@ import React, { ErrorInfo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ErrorBoundary } from './ErrorBoundary';
-import { theme } from '../theme';
 import { logger } from '../utils/logger';
 import { captureException } from '../config/sentry';
+import { theme } from '../theme';
 
 interface AsyncErrorBoundaryProps {
   children: React.ReactNode;
@@ -147,12 +147,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   retryButton: {
-    backgroundColor: theme.colors.info,
+    backgroundColor: theme.colors.textPrimary,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 28,
     flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 48,
   },
   retryButtonDisabled: {
     backgroundColor: theme.colors.textTertiary,
@@ -166,9 +167,9 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   debugInfo: {
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
     padding: 12,
-    borderRadius: 6,
+    borderRadius: 12,
     marginTop: 16,
     width: '100%',
     maxHeight: 150,

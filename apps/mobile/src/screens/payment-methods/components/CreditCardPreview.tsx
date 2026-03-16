@@ -1,8 +1,8 @@
 /**
  * CreditCardPreview Component
- * 
+ *
  * Visual credit card preview showing card details.
- * 
+ *
  * @filesize Target: <80 lines
  * @compliance Single Responsibility - Card display
  */
@@ -42,7 +42,7 @@ export const CreditCardPreview: React.FC<CreditCardPreviewProps> = ({
             <Text style={styles.value}>{expiry || '02/30'}</Text>
           </View>
           <View style={styles.chipIcon}>
-            <Ionicons name="card" size={32} color={theme.colors.white} />
+            <Ionicons name="card" size={32} color={theme.colors.textInverse} />
           </View>
         </View>
       </View>
@@ -52,24 +52,24 @@ export const CreditCardPreview: React.FC<CreditCardPreviewProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: theme.spacing['2xl'],
+    marginBottom: 24,
   },
   card: {
-    backgroundColor: '#222222',
-    borderRadius: theme.borderRadius.xl,
-    padding: theme.spacing.xl,
+    backgroundColor: theme.colors.textPrimary,
+    borderRadius: 20,
+    padding: 24,
     height: 200,
   },
   visa: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.colors.white,
+    color: theme.colors.textInverse,
     alignSelf: 'flex-end',
   },
   number: {
     fontSize: 22,
     fontWeight: '600',
-    color: theme.colors.white,
+    color: theme.colors.textInverse,
     letterSpacing: 2,
     marginTop: 40,
   },
@@ -77,17 +77,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    marginTop: theme.spacing.lg,
+    marginTop: 20,
   },
   label: {
     fontSize: 10,
-    color: '#D0D0D0',
+    color: theme.colors.textTertiary,
     marginBottom: 4,
   },
   value: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.white,
+    color: theme.colors.textInverse,
   },
   chipIcon: {
     opacity: 0.5,

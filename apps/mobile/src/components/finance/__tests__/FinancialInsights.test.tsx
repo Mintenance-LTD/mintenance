@@ -1,7 +1,7 @@
 import React from 'react';
 import { render } from '../../test-utils';
 import { FinancialInsights } from '../FinancialInsights';
-import { theme } from '../../../theme';
+
 import type { FinancialSummary } from '../../../services/contractor-business';
 
 /**
@@ -95,7 +95,7 @@ describe('FinancialInsights', () => {
 
       expect(flattenedStyles).toMatchObject(
         expect.objectContaining({
-          backgroundColor: theme.colors.background,
+          backgroundColor: '#F7F7F7',
           padding: 16,
           marginBottom: 32,
         })
@@ -166,7 +166,7 @@ describe('FinancialInsights', () => {
       const growthText = getByText(/Your revenue has grown by/);
       const insightCard = growthText.parent?.parent;
       const icon = insightCard?.findByProps({ name: 'trending-up' });
-      expect(icon?.props.color).toBe(theme.colors.success);
+      expect(icon?.props.color).toBe('#10B981');
     });
 
     it('should render trending-up icon with size 20', () => {
@@ -281,7 +281,7 @@ describe('FinancialInsights', () => {
       const overdueText = getByText(/You have/);
       const insightCard = overdueText.parent?.parent;
       const icon = insightCard?.findByProps({ name: 'warning' });
-      expect(icon?.props.color).toBe(theme.colors.warning);
+      expect(icon?.props.color).toBe('#F59E0B');
     });
 
     it('should render warning icon with size 20', () => {
@@ -401,7 +401,7 @@ describe('FinancialInsights', () => {
       const bulkText = getByText(/Based on your trends/);
       const insightCard = bulkText.parent?.parent;
       const icon = insightCard?.findByProps({ name: 'bulb' });
-      expect(icon?.props.color).toBe(theme.colors.primary);
+      expect(icon?.props.color).toBe('#222222');
     });
 
     it('should render bulb icon with size 20', () => {
@@ -449,7 +449,7 @@ describe('FinancialInsights', () => {
       expect(insightCard?.props.style).toEqual(
         expect.objectContaining({
           borderBottomWidth: 1,
-          borderBottomColor: theme.colors.borderLight,
+          borderBottomColor: '#EBEBEB',
         })
       );
     });
@@ -482,7 +482,7 @@ describe('FinancialInsights', () => {
       expect(growthText.props.style).toEqual(
         expect.objectContaining({
           fontSize: 14,
-          color: theme.colors.textPrimary,
+          color: '#222222',
           marginBottom: 4,
           lineHeight: 20,
         })
@@ -500,7 +500,7 @@ describe('FinancialInsights', () => {
       expect(subtext.props.style).toEqual(
         expect.objectContaining({
           fontSize: 12,
-          color: theme.colors.textSecondary,
+          color: '#717171',
           lineHeight: 16,
         })
       );
@@ -518,7 +518,7 @@ describe('FinancialInsights', () => {
         expect.objectContaining({
           fontSize: 16,
           fontWeight: '600',
-          color: theme.colors.textPrimary,
+          color: '#222222',
           marginBottom: 16,
         })
       );

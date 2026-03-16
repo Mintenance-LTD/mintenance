@@ -1,15 +1,27 @@
 /**
  * RecentJobs Component
  *
- * Airbnb listing-style cards: borderless, full-width rounded images,
- * heart overlay, title + location + star rating layout.
+ * Airbnb listing-style cards: borderless, full-width images,
+ * heart overlay, status badge, category + budget below.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme, getStatusColor } from '../../theme';
+const STATUS_COLORS: Record<string, string> = {
+  posted: '#3B82F6',
+  assigned: '#8B5CF6',
+  in_progress: theme.colors.accent,
+  completed: theme.colors.primary,
+  cancelled: theme.colors.error,
+  disputed: theme.colors.error,
+};
+function getStatusColor(status: string): string {
+  return STATUS_COLORS[status] || theme.colors.textSecondary;
+}
 import { OptimizedImage } from '../../components/optimized/OptimizedImage';
+import { Skeleton } from '../../components/skeletons/Skeleton';
+import { theme } from '../../theme';
 
 interface RecentJob {
   id: string;
@@ -23,6 +35,7 @@ interface RecentJob {
 }
 
 interface RecentJobsProps {
+  isLoading?: boolean;
   jobs: RecentJob[];
   onViewAllPress: () => void;
   onJobPress?: (jobId: string) => void;
@@ -42,12 +55,45 @@ const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   general: 'construct-outline',
 };
 
+const CATEGORY_COLORS: Record<string, { bg: string; icon: string; accent: string }> = {
+  plumbing:    { bg: '#E0F7FA', icon: '#00ACC1', accent: '#B2EBF2' },
+  electrical:  { bg: '#FFF8E1', icon: '#F9A825', accent: '#FFECB3' },
+  roofing:     { bg: '#E8F5E9', icon: '#43A047', accent: '#C8E6C9' },
+  painting:    { bg: '#E3F2FD', icon: '#1E88E5', accent: '#BBDEFB' },
+  carpentry:   { bg: '#FBE9E7', icon: '#D84315', accent: '#FFCCBC' },
+  landscaping: { bg: '#E8F5E9', icon: '#2E7D32', accent: '#A5D6A7' },
+  cleaning:    { bg: '#F3E5F5', icon: '#8E24AA', accent: '#E1BEE7' },
+  hvac:        { bg: '#FFF3E0', icon: '#EF6C00', accent: '#FFE0B2' },
+  general:     { bg: '#F5F5F5', icon: '#616161', accent: '#E0E0E0' },
+};
+
 function formatStatus(status: string): string {
   return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export const RecentJobs: React.FC<RecentJobsProps> = ({ jobs, onViewAllPress, onJobPress, savedJobIds = [], onSavePress }) => {
-  const displayJobs = jobs.slice(0, 3);
+export const RecentJobs: React.FC<RecentJobsProps> = ({ isLoading, jobs, onViewAllPress, onJobPress, savedJobIds = [], onSavePress }) => {
+  if (isLoading) {
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Active Projects</Text>
+        </View>
+        {[1, 2].map((key) => (
+          <View key={key} style={styles.listing}>
+            <Skeleton width="100%" height={200} borderRadius={18} />
+            <View style={styles.listingContent}>
+              <Skeleton width="70%" height={17} borderRadius={4} />
+              <Skeleton width={100} height={20} borderRadius={12} style={{ marginTop: 6 }} />
+            </View>
+          </View>
+        ))}
+      </View>
+    );
+  }
+
+  const activeStatuses = ['posted', 'assigned', 'in_progress'];
+  const activeJobs = jobs.filter((j) => activeStatuses.includes(j.status || ''));
+  const displayJobs = activeJobs.slice(0, 3);
 
   return (
     <View style={styles.section}>
@@ -70,6 +116,7 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ jobs, onViewAllPress, on
           const hasPhoto = photos.length > 0;
           const budget = job.budget || job.budget_min || 0;
           const categoryIcon = CATEGORY_ICONS[job.category?.toLowerCase() || ''] || 'construct-outline';
+          const catColors = CATEGORY_COLORS[job.category?.toLowerCase() || ''] || CATEGORY_COLORS.general;
 
           return (
             <TouchableOpacity
@@ -80,7 +127,7 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ jobs, onViewAllPress, on
               accessibilityLabel={`${job.title}, ${formatStatus(job.status || 'posted')}`}
               activeOpacity={0.95}
             >
-              {/* Image - Airbnb style with rounded corners, no card wrapper */}
+              {/* Image */}
               <View style={styles.imageContainer}>
                 {hasPhoto ? (
                   <OptimizedImage
@@ -90,79 +137,72 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ jobs, onViewAllPress, on
                     cachePolicy="memory-disk"
                   />
                 ) : (
-                  <View style={styles.placeholderHero}>
-                    <View style={styles.placeholderIconCircle}>
-                      <Ionicons name={categoryIcon} size={32} color={theme.colors.textSecondary} />
+                  <View style={[styles.placeholderHero, { backgroundColor: catColors.bg }]}>
+                    <View style={[styles.placeholderDecor, { backgroundColor: catColors.accent, opacity: 0.5 }]} />
+                    <View style={[styles.placeholderDecor2, { backgroundColor: catColors.accent, opacity: 0.3 }]} />
+                    <View style={[styles.placeholderIconCircle, { backgroundColor: catColors.accent }]}>
+                      <Ionicons name={categoryIcon} size={36} color={catColors.icon} />
                     </View>
                     {job.category && (
-                      <Text style={styles.placeholderCategory}>
+                      <Text style={[styles.placeholderCategory, { color: catColors.icon }]}>
                         {job.category.charAt(0).toUpperCase() + job.category.slice(1)}
                       </Text>
                     )}
-                    <Text style={styles.placeholderHint}>No photos yet</Text>
                   </View>
                 )}
 
-                {/* Heart/save overlay (top-right) */}
-                <TouchableOpacity
-                  style={styles.heartOverlay}
-                  onPress={() => onSavePress?.(job.id)}
-                  accessibilityRole="button"
-                  accessibilityLabel={savedJobIds.includes(job.id) ? 'Unsave job' : 'Save job'}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Ionicons
-                    name={savedJobIds.includes(job.id) ? 'heart' : 'heart-outline'}
-                    size={22}
-                    color={savedJobIds.includes(job.id) ? '#FF385C' : '#FFFFFF'}
-                  />
-                </TouchableOpacity>
+                {/* Heart overlay (only shown when save handler is provided) */}
+                {onSavePress && (
+                  <TouchableOpacity
+                    style={styles.heartOverlay}
+                    onPress={() => onSavePress(job.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={savedJobIds.includes(job.id) ? 'Unsave job' : 'Save job'}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons
+                      name={savedJobIds.includes(job.id) ? 'heart' : 'heart-outline'}
+                      size={22}
+                      color={savedJobIds.includes(job.id) ? theme.colors.error : theme.colors.textInverse}
+                    />
+                  </TouchableOpacity>
+                )}
 
-                {/* Status badge overlay (top-left) */}
+                {/* Status badge */}
                 <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
                   <Text style={styles.statusText}>{formatStatus(job.status || 'posted')}</Text>
                 </View>
               </View>
 
-              {/* Content below image - Web dashboard style */}
+              {/* Content below image */}
               <View style={styles.listingContent}>
-                <View style={styles.titleRow}>
-                  <Text style={styles.jobTitle} numberOfLines={1}>{job.title}</Text>
+                <Text style={styles.jobTitle} numberOfLines={1}>{job.title}</Text>
+
+                <View style={styles.metaRow}>
+                  {job.category && (
+                    <View style={styles.categoryChip}>
+                      <Ionicons name={categoryIcon} size={12} color={theme.colors.textSecondary} />
+                      <Text style={styles.categoryText}>
+                        {job.category.charAt(0).toUpperCase() + job.category.slice(1)}
+                      </Text>
+                    </View>
+                  )}
+
+                  {budget > 0 && (
+                    <Text style={styles.budgetText}>{'\u00A3'}{budget.toLocaleString()}</Text>
+                  )}
                 </View>
-                {job.category && (
-                  <View style={styles.categoryBadge}>
-                    <Ionicons name={categoryIcon} size={12} color='#717171' />
-                    <Text style={styles.categoryBadgeText}>
-                      {job.category.charAt(0).toUpperCase() + job.category.slice(1)}
-                    </Text>
-                  </View>
-                )}
-                {budget > 0 && (
-                  <View style={styles.budgetRow}>
-                    <Text style={styles.budgetLabel}>Budget</Text>
-                    <Text style={styles.budgetAmount}>{'\u00A3'}{budget.toLocaleString()}</Text>
-                  </View>
-                )}
-                <TouchableOpacity
-                  style={styles.viewDetailsButton}
-                  onPress={() => onJobPress?.(job.id)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`View details for ${job.title}`}
-                >
-                  <Text style={styles.viewDetailsText}>View Details</Text>
-                  <Ionicons name="arrow-forward" size={14} color={theme.colors.textInverse} />
-                </TouchableOpacity>
               </View>
             </TouchableOpacity>
           );
         })
       ) : (
         <View style={styles.emptyState}>
-          <Ionicons name="briefcase-outline" size={32} color={theme.colors.textTertiary} />
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="briefcase-outline" size={28} color={theme.colors.textTertiary} />
+          </View>
           <Text style={styles.emptyText}>No jobs posted yet</Text>
-          <Text style={styles.emptySubtext}>
-            Post your first job to get started!
-          </Text>
+          <Text style={styles.emptySubtext}>Post your first job to get started!</Text>
         </View>
       )}
     </View>
@@ -183,9 +223,10 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: theme.colors.textPrimary,
+    letterSpacing: -0.3,
   },
   viewAllLink: {
-    fontSize: 16,
+    fontSize: 14,
     color: theme.colors.textPrimary,
     fontWeight: '600',
     textDecorationLine: 'underline',
@@ -209,33 +250,45 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
+    overflow: 'hidden',
+  },
+  placeholderDecor: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    top: -30,
+    right: -20,
+  },
+  placeholderDecor2: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    bottom: -20,
+    left: -10,
   },
   placeholderIconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: theme.colors.border,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     alignItems: 'center',
     justifyContent: 'center',
   },
   placeholderCategory: {
     marginTop: 10,
     fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
-  },
-  placeholderHint: {
-    marginTop: 4,
-    fontSize: 12,
-    color: theme.colors.textTertiary,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   heartOverlay: {
     position: 'absolute',
     top: 12,
     right: 12,
-    width: 32,
-    height: 32,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(0,0,0,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -244,8 +297,8 @@ const styles = StyleSheet.create({
     top: 12,
     left: 12,
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingVertical: 5,
+    borderRadius: 8,
   },
   statusText: {
     fontSize: 12,
@@ -253,75 +306,66 @@ const styles = StyleSheet.create({
     color: theme.colors.textInverse,
   },
   listingContent: {
-    paddingTop: 12,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    paddingTop: 10,
   },
   jobTitle: {
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: '600',
     color: theme.colors.textPrimary,
-    flex: 1,
+    marginBottom: 6,
   },
-  categoryBadge: {
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: '#F7F7F7',
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-    marginTop: 6,
   },
-  categoryBadgeText: {
+  categoryText: {
     fontSize: 13,
-    fontWeight: '600',
     color: theme.colors.textSecondary,
+    fontWeight: '500',
   },
-  budgetRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  budgetLabel: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  budgetAmount: {
-    fontSize: 18,
+  budgetText: {
+    fontSize: 17,
     fontWeight: '700',
     color: theme.colors.textPrimary,
-  },
-  viewDetailsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.primary,
-    borderRadius: 12,
-    paddingVertical: 12,
-    marginTop: 12,
-    gap: 6,
-  },
-  viewDetailsText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.textInverse,
+    letterSpacing: -0.3,
   },
   emptyState: {
     padding: 40,
     alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  },
+  emptyIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   emptyText: {
     fontSize: 16,
     fontWeight: '600',
     color: theme.colors.textPrimary,
     textAlign: 'center',
-    marginTop: 12,
   },
   emptySubtext: {
     fontSize: 14,

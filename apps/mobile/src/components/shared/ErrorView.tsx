@@ -1,8 +1,8 @@
 /**
  * ErrorView Component
- * 
+ *
  * Consistent error display for all screens.
- * 
+ *
  * @filesize Target: <80 lines
  * @compliance Single Responsibility - Error state only
  */
@@ -42,29 +42,29 @@ const styles = StyleSheet.create({
   container: {
     justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing.xl,
+    padding: 24,
   },
   fullScreen: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   message: {
-    marginTop: theme.spacing.lg,
-    fontSize: theme.typography.fontSize.lg,
+    marginTop: 20,
+    fontSize: 18,
     color: theme.colors.textPrimary,
     textAlign: 'center',
     maxWidth: 300,
   },
   retryButton: {
-    marginTop: theme.spacing.xl,
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing.xl,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
+    marginTop: 24,
+    backgroundColor: theme.colors.textPrimary,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 16,
   },
   retryButtonText: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.white,
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.textInverse,
   },
 });

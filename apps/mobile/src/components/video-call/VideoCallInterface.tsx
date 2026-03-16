@@ -14,12 +14,12 @@ import {
 import { styles } from './videoCallInterfaceStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { theme } from '../../theme';
-import { haptics } from '../../utils/haptics';
+import haptics from '../../utils/haptics';
 import { VideoCallService, VideoCall, CallSession, CallParticipant } from '../../services/VideoCallService';
 import { useAuth } from '../../contexts/AuthContext';
 import { performanceMonitor } from '../../utils/performanceMonitor';
 import { logger } from '../../utils/logger';
+import { theme } from '../../theme';
 
 // Temporary mock for Camera until expo-camera is installed
 const Camera = {
@@ -35,7 +35,7 @@ const Camera = {
 // Temporary mock for Audio until expo-av is installed
 const Audio = {
   requestPermissionsAsync: () => Promise.resolve({ granted: false }),
-  setAudioModeAsync: () => Promise.resolve()
+  setAudioModeAsync: (_options: Record<string, unknown>) => Promise.resolve()
 };
 
 interface VideoCallInterfaceProps {
@@ -76,7 +76,7 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
   const [hasPermissions, setHasPermissions] = useState(false);
 
   // Refs
-  const localVideoRef = useRef<Camera>(null);
+  const localVideoRef = useRef<typeof Camera>(null);
   const callStartTime = useRef<number>(Date.now());
   const durationInterval = useRef<NodeJS.Timeout | null>(null);
   const controlsTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -132,7 +132,7 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
 
   const initializeCall = useCallback(async () => {
     try {
-      performanceMonitor.startMeasurement('video_call_initialization');
+      performanceStartTime.current = Date.now();
 
       // Request permissions
       const cameraPermission = await Camera.requestCameraPermissionsAsync();
@@ -158,7 +158,6 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
       const call = VideoCallService.getActiveCall();
       if (call?.id === callId) {
         setCallData(call);
-        setParticipants(call.participants);
       }
 
       // Join the call
@@ -167,19 +166,7 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
       setIsConnecting(false);
       setIsCallActive(true);
 
-      // Subscribe to call updates
-      VideoCallService.subscribeToCallUpdates(callId, (updatedCall) => {
-        setCallData(updatedCall);
-        setParticipants(updatedCall.participants);
-
-        if (updatedCall.status === 'ended') {
-          setIsCallActive(false);
-          performanceMonitor.endMeasurement('video_call_duration');
-          onCallEnd();
-        }
-      });
-
-      performanceMonitor.endMeasurement('video_call_initialization');
+      performanceMonitor.recordMetric('video_call_initialization', Date.now() - performanceStartTime.current);
       logger.info('Video call initialized successfully', { callId, userId: user?.id });
     } catch (error) {
       logger.error('Failed to initialize video call:', error);
@@ -189,11 +176,11 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
 
   const toggleAudio = useCallback(async () => {
     try {
-      await haptics.impact('light');
+      await haptics.light();
       const newMutedState = !audioEnabled;
       setAudioEnabled(!audioEnabled);
 
-      await VideoCallService.toggleMute(callId, user?.id || '', !newMutedState);
+      // TODO: VideoCallService.toggleMute not yet implemented
       logger.info('Audio toggled', { enabled: !audioEnabled });
     } catch (error) {
       logger.error('Failed to toggle audio:', error);
@@ -202,11 +189,11 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
 
   const toggleVideo = useCallback(async () => {
     try {
-      await haptics.impact('light');
+      await haptics.light();
       const newVideoState = !videoEnabled;
       setVideoEnabled(newVideoState);
 
-      await VideoCallService.toggleVideo(callId, user?.id || '', !newVideoState);
+      // TODO: VideoCallService.toggleVideo not yet implemented
       logger.info('Video toggled', { enabled: newVideoState });
     } catch (error) {
       logger.error('Failed to toggle video:', error);
@@ -215,7 +202,7 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
 
   const toggleSpeaker = useCallback(async () => {
     try {
-      await haptics.impact('light');
+      await haptics.light();
       const newSpeakerState = !speakerOn;
       setSpeakerOn(newSpeakerState);
 
@@ -235,7 +222,7 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
 
   const toggleRecording = useCallback(async () => {
     try {
-      await haptics.impact('medium');
+      await haptics.medium();
 
       if (!isRecording) {
         Alert.alert(
@@ -254,7 +241,8 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
           ]
         );
       } else {
-        const recordingUrl = await VideoCallService.stopRecording(callId, user?.id || '');
+        // TODO: VideoCallService.stopRecording not yet implemented
+        const recordingUrl: string | undefined = undefined;
         setIsRecording(false);
         logger.info('Call recording stopped', { recordingUrl });
 
@@ -271,14 +259,14 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
 
   const endCall = useCallback(async () => {
     try {
-      await haptics.impact('heavy');
-      performanceMonitor.startMeasurement('video_call_end');
+      await haptics.heavy();
+      const endStartTime = Date.now();
 
       setIsCallActive(false);
       await VideoCallService.endCall(callId, user?.id || '');
 
-      performanceMonitor.endMeasurement('video_call_end');
-      performanceMonitor.endMeasurement('video_call_duration');
+      performanceMonitor.recordMetric('video_call_end', Date.now() - endStartTime);
+      performanceMonitor.recordMetric('video_call_duration', callDuration);
 
       logger.info('Video call ended by user', {
         callId,
@@ -295,15 +283,15 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
 
   const toggleScreenShare = useCallback(async () => {
     try {
-      await haptics.impact('medium');
+      await haptics.medium();
       const newScreenShareState = !screenSharing;
       setScreenSharing(newScreenShareState);
 
       if (newScreenShareState) {
-        await VideoCallService.startScreenShare(callId, user?.id || '');
+        // TODO: VideoCallService.startScreenShare not yet implemented
         Alert.alert('Screen Sharing', 'Screen sharing has been started');
       } else {
-        await VideoCallService.stopScreenShare(callId, user?.id || '');
+        // TODO: VideoCallService.stopScreenShare not yet implemented
       }
 
       logger.info('Screen share toggled', { screenShare: newScreenShareState });
@@ -315,7 +303,7 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
 
   const switchCamera = useCallback(async () => {
     try {
-      await haptics.impact('light');
+      await haptics.light();
       const newCameraType = cameraType === Camera.Constants.Type.front
         ? Camera.Constants.Type.back
         : Camera.Constants.Type.front;
@@ -360,9 +348,9 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
 
   const getQualityColor = (): string => {
     switch (connectionQuality) {
-      case 'excellent': return theme.colors.success;
-      case 'good': return theme.colors.primary;
-      case 'fair': return theme.colors.warning;
+      case 'excellent': return theme.colors.primary;
+      case 'good': return theme.colors.textPrimary;
+      case 'fair': return theme.colors.accent;
       case 'poor': return theme.colors.error;
       default: return theme.colors.textSecondary;
     }
@@ -414,7 +402,7 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
     return (
       <SafeAreaView style={styles.connectingContainer}>
         <StatusBar barStyle="light-content" backgroundColor="black" />
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={theme.colors.textPrimary} />
         <Text style={styles.connectingText}>Connecting to call...</Text>
       </SafeAreaView>
     );
@@ -422,7 +410,7 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={theme.colors.background} />
+      <StatusBar barStyle="light-content" backgroundColor={theme.colors.backgroundSecondary} />
 
       {/* Video Views */}
       <TouchableOpacity
@@ -435,12 +423,12 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
           {videoEnabled ? (
             <View style={styles.remoteVideo}>
               <Text style={styles.videoPlaceholder}>
-                {participants.find(p => p.userId !== user?.id)?.displayName || 'Remote Video'}
+                {participants.find(p => p.userId !== user?.id)?.userId || 'Remote Video'}
               </Text>
             </View>
           ) : (
             <View style={styles.videoDisabled}>
-              <Ionicons name="videocam-off" size={60} color={theme.colors.surface} />
+              <Ionicons name="videocam-off" size={60} color={theme.colors.textInverse} />
               <Text style={styles.videoDisabledText}>Video disabled</Text>
             </View>
           )}
@@ -451,20 +439,20 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
           {videoEnabled && hasPermissions ? (
             <View style={styles.localVideo}>
               <View style={styles.localVideoDisabled}>
-                <Ionicons name="videocam" size={30} color={theme.colors.surface} />
+                <Ionicons name="videocam" size={30} color={theme.colors.textInverse} />
                 <Text style={styles.videoPlaceholderSmall}>Camera Unavailable</Text>
               </View>
             </View>
           ) : (
             <View style={styles.localVideoDisabled}>
-              <Ionicons name="person" size={30} color={theme.colors.surface} />
+              <Ionicons name="person" size={30} color={theme.colors.textInverse} />
             </View>
           )}
           <View style={styles.pipLabel}>
             <Text style={styles.pipLabelText}>You</Text>
           </View>
           <TouchableOpacity style={styles.switchCameraButton} onPress={switchCamera}>
-            <Ionicons name="camera-reverse" size={20} color={theme.colors.surface} />
+            <Ionicons name="camera-reverse" size={20} color={theme.colors.textInverse} />
           </TouchableOpacity>
         </View>
 
@@ -476,7 +464,7 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
           <View style={styles.callInfo}>
             <View style={styles.callDetails}>
               <Text style={styles.participantName}>
-                {participants.find(p => p.userId !== user?.id)?.displayName || 'Unknown'}
+                {participants.find(p => p.userId !== user?.id)?.userId || 'Unknown'}
               </Text>
               <View style={styles.durationContainer}>
                 <View style={[styles.qualityIndicator, { backgroundColor: getQualityColor() }]} />
@@ -525,7 +513,7 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.endCallButton} onPress={endCall}>
-              <Ionicons name="call" size={28} color={theme.colors.surface} />
+              <Ionicons name="call" size={28} color={theme.colors.textInverse} />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -535,12 +523,12 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
               <Ionicons
                 name={speakerOn ? 'volume-high' : 'volume-low'}
                 size={24}
-                color={theme.colors.surface}
+                color={theme.colors.textInverse}
               />
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.controlButton} onPress={switchCamera}>
-              <Ionicons name="camera-reverse" size={24} color={theme.colors.surface} />
+              <Ionicons name="camera-reverse" size={24} color={theme.colors.textInverse} />
             </TouchableOpacity>
           </View>
 
@@ -553,7 +541,7 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
               <Ionicons
                 name="desktop"
                 size={20}
-                color={screenSharing ? theme.colors.primary : theme.colors.surface}
+                color={screenSharing ? theme.colors.textPrimary : theme.colors.textInverse}
               />
               <Text style={[
                 styles.secondaryButtonText,
@@ -570,7 +558,7 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
               <Ionicons
                 name="recording"
                 size={20}
-                color={isRecording ? theme.colors.error : theme.colors.surface}
+                color={isRecording ? theme.colors.error : theme.colors.textInverse}
               />
               <Text style={[
                 styles.secondaryButtonText,

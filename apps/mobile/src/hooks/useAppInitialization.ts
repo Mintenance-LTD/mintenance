@@ -279,8 +279,8 @@ export const withAppInitialization = <P extends object>(
 
     if (initialization.isReady) {
       return React.createElement(
-        Component as unknown,
-        { ...(props as unknown), ref } as unknown
+        Component as React.ComponentType<Record<string, unknown>>,
+        { ...(props as Record<string, unknown>), ref }
       );
     }
 

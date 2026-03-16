@@ -6,16 +6,17 @@ import {
   TouchableOpacity,
   Platform,
   ScrollView,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
-import { theme } from '../../theme';
 import { useToast } from '../../components/ui/Toast';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { RootStackParamList } from '../../navigation/types';
+import { theme } from '../../theme';
 
 interface Props {
   navigation: NativeStackNavigationProp<RootStackParamList, 'RescheduleBooking'>;
@@ -76,6 +77,7 @@ export const RescheduleBookingScreen: React.FC<Props> = ({ navigation, route }) 
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.surface} />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
@@ -90,7 +92,9 @@ export const RescheduleBookingScreen: React.FC<Props> = ({ navigation, route }) 
           <Text style={styles.cardSubtitle}>Select when you would like to reschedule your booking.</Text>
 
           <TouchableOpacity style={styles.pickerRow} onPress={() => setShowDatePicker(true)}>
-            <Ionicons name="calendar-outline" size={22} color='#717171' />
+            <View style={styles.pickerIconWrap}>
+              <Ionicons name="calendar-outline" size={18} color="#3B82F6" />
+            </View>
             <View style={styles.pickerInfo}>
               <Text style={styles.pickerLabel}>Date</Text>
               <Text style={styles.pickerValue}>{formatDate(selectedDate)}</Text>
@@ -99,7 +103,9 @@ export const RescheduleBookingScreen: React.FC<Props> = ({ navigation, route }) 
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.pickerRow} onPress={() => setShowTimePicker(true)}>
-            <Ionicons name="time-outline" size={22} color='#717171' />
+            <View style={[styles.pickerIconWrap, { backgroundColor: '#EDE9FE' }]}>
+              <Ionicons name="time-outline" size={18} color="#8B5CF6" />
+            </View>
             <View style={styles.pickerInfo}>
               <Text style={styles.pickerLabel}>Time</Text>
               <Text style={styles.pickerValue}>{formatTime(selectedDate)}</Text>
@@ -133,7 +139,7 @@ export const RescheduleBookingScreen: React.FC<Props> = ({ navigation, route }) 
           disabled={loading}
         >
           <Text style={styles.confirmButtonText}>
-            {loading ? 'Rescheduling…' : 'Confirm Reschedule'}
+            {loading ? 'Rescheduling\u2026' : 'Confirm Reschedule'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -142,42 +148,53 @@ export const RescheduleBookingScreen: React.FC<Props> = ({ navigation, route }) 
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.surfaceSecondary },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    backgroundColor: theme.colors.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
   },
   headerButton: { padding: 8, width: 40 },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.textPrimary },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
   content: { padding: 16 },
   card: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.xl,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     padding: 20,
     marginBottom: 20,
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
-  cardTitle: { fontSize: 17, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 4 },
-  cardSubtitle: { fontSize: 13, color: theme.colors.textSecondary, marginBottom: 20 },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 4 },
+  cardSubtitle: { fontSize: 14, color: theme.colors.textSecondary, marginBottom: 20 },
   pickerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 14,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: theme.colors.border,
+  },
+  pickerIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#DBEAFE',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   pickerInfo: { flex: 1, marginLeft: 12 },
   pickerLabel: { fontSize: 12, color: theme.colors.textTertiary, marginBottom: 2 },
   pickerValue: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary },
   confirmButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.textPrimary,
+    borderRadius: 28,
     paddingVertical: 16,
     alignItems: 'center',
   },

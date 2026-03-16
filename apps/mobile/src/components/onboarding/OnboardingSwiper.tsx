@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Swiper from 'react-native-swiper';
+import { theme } from '../../theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -42,7 +43,8 @@ export function OnboardingSwiper({
   userType = 'homeowner',
 }: OnboardingSwiperProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const swiperRef = useRef<Swiper>(null);
+  // react-native-swiper lacks type definitions
+  const swiperRef = useRef<{ scrollBy: (index: number) => void }>(null);
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   const isLastSlide = currentIndex === slides.length - 1;
@@ -98,7 +100,7 @@ export function OnboardingSwiper({
             key={slide.id}
             style={[
               styles.slide,
-              { backgroundColor: slide.backgroundColor || '#F8F9FA' },
+              { backgroundColor: slide.backgroundColor || theme.colors.backgroundSecondary },
             ]}
           >
             {/* Icon or Image */}
@@ -151,13 +153,13 @@ export function OnboardingSwiper({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingTop: 8,
     height: 50,
   },
   skipButton: {
@@ -165,8 +167,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   skipText: {
-    fontSize: 16,
-    color: '#6B7280',
+    fontSize: 15,
+    color: theme.colors.textSecondary,
     fontWeight: '500',
   },
   slide: {
@@ -191,14 +193,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#111827',
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
     textAlign: 'center',
     marginBottom: 16,
   },
   description: {
-    fontSize: 16,
-    color: '#6B7280',
+    fontSize: 15,
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
   },
@@ -215,30 +217,36 @@ const styles = StyleSheet.create({
   dot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
-    marginHorizontal: 4,
+    borderRadius: 6,
+    marginHorizontal: 6,
   },
   activeDot: {
-    backgroundColor: '#10B981',
-    width: 24,
+    backgroundColor: theme.colors.textPrimary,
+    width: 20,
   },
   inactiveDot: {
-    backgroundColor: '#D1D5DB',
+    backgroundColor: theme.colors.border,
   },
   button: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.colors.textPrimary,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
     fontSize: 18,
     fontWeight: '600',
   },
@@ -260,7 +268,7 @@ export const homeownerSlides: OnboardingSlide[] = [
     description:
       'Describe your project, add photos, and our AI will match you with qualified contractors.',
     icon: '📝',
-    backgroundColor: '#F0FDF4',
+    backgroundColor: 'rgba(34, 34, 34, 0.04)',
   },
   {
     id: 'compare-bids',
@@ -268,7 +276,7 @@ export const homeownerSlides: OnboardingSlide[] = [
     description:
       'Review multiple quotes side-by-side. Check ratings, reviews, and portfolios.',
     icon: '📊',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.colors.accentLight,
   },
   {
     id: 'secure-payment',
@@ -296,7 +304,7 @@ export const contractorSlides: OnboardingSlide[] = [
     description:
       'Swipe through jobs matched to your skills and location. No more wasted time.',
     icon: '🔍',
-    backgroundColor: '#F0FDF4',
+    backgroundColor: 'rgba(34, 34, 34, 0.04)',
   },
   {
     id: 'showcase',
@@ -304,7 +312,7 @@ export const contractorSlides: OnboardingSlide[] = [
     description:
       'Build a stunning portfolio with before/after photos. Stand out from the competition.',
     icon: '📸',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.colors.accentLight,
   },
   {
     id: 'get-paid',

@@ -13,15 +13,30 @@ serve(async (req) => {
   let contractorId: string | undefined;
 
   try {
-    // SECURITY: Verify authentication before setting up payout
-    const authUser = await verifyAuth(req);
-
     const body = await req.json();
     contractorId = body.contractorId;
 
-    // SECURITY: Only allow contractors to set up their own payout account
-    if (authUser.userId !== contractorId) {
-      return unauthorizedResponse(req, 'Not authorized to set up payout for another user');
+    if (!contractorId) {
+      return unauthorizedResponse(req, 'Missing contractorId in request body');
+    }
+
+    // SECURITY: Verify authentication before setting up payout
+    // When called server-side from the Next.js API route (withApiHandler already
+    // verified the user), the Authorization header carries the service role key.
+    // We trust the contractorId from the body in that case.
+    const authHeader = req.headers.get('authorization') || '';
+    const bearerToken = authHeader.replace('Bearer ', '');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+
+    const isServerCall = bearerToken === serviceRoleKey;
+
+    if (!isServerCall) {
+      // Direct/client call — verify user JWT
+      const authUser = await verifyAuth(req);
+      // Only allow contractors to set up their own payout account
+      if (authUser.userId !== contractorId) {
+        return unauthorizedResponse(req, 'Not authorized to set up payout for another user');
+      }
     }
 
     // Validate required environment variables

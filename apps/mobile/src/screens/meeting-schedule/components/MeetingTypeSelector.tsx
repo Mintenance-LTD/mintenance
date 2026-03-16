@@ -1,14 +1,14 @@
 /**
  * MeetingTypeSelector Component
- * 
+ *
  * Meeting type selection with duration options.
- * 
+ *
  * @filesize Target: <100 lines
  * @compliance Single Responsibility - Meeting type selection
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../theme';
 import type { MeetingType, MeetingTypeOption } from '../viewmodels/MeetingScheduleViewModel';
@@ -31,9 +31,9 @@ export const MeetingTypeSelector: React.FC<MeetingTypeSelectorProps> = ({
   const durationOptions = [30, 60, 90, 120, 180, 240];
 
   return (
-    <View style={styles.container} testID="meeting-type-container">
-      <Text style={styles.sectionTitle}>Meeting Type</Text>
-      
+    <View style={[styles.container, { backgroundColor: theme.colors.surface }]} testID="meeting-type-container">
+      <Text style={[styles.sectionTitle, { color: theme.colors.textTertiary }]}>MEETING TYPE</Text>
+
       <View style={styles.typeGrid}>
         {meetingTypes.map((type) => (
           <TouchableOpacity
@@ -41,28 +41,31 @@ export const MeetingTypeSelector: React.FC<MeetingTypeSelectorProps> = ({
             testID={`meeting-type-${type.id}`}
             style={[
               styles.typeCard,
-              selectedType === type.id && styles.typeCardSelected,
+              { backgroundColor: theme.colors.backgroundSecondary },
+              selectedType === type.id && { backgroundColor: theme.colors.textPrimary },
             ]}
             onPress={() => {
               onTypeSelect(type.id);
               onDurationChange(type.estimatedDuration);
             }}
           >
-            <View style={styles.typeIcon}>
-              <Ionicons 
-                name={type.icon as unknown} 
-                size={24} 
-                color={selectedType === type.id ? theme.colors.textInverse : '#717171'}
+            <View style={[styles.typeIcon, { backgroundColor: theme.colors.surface }, selectedType === type.id && styles.typeIconSelected]}>
+              <Ionicons
+                name={type.icon as keyof typeof Ionicons.glyphMap}
+                size={24}
+                color={selectedType === type.id ? theme.colors.textInverse : theme.colors.textSecondary}
               />
             </View>
             <Text style={[
               styles.typeName,
-              selectedType === type.id && styles.typeNameSelected,
+              { color: theme.colors.textPrimary },
+              selectedType === type.id && { color: theme.colors.textInverse },
             ]}>
               {type.name}
             </Text>
             <Text style={[
               styles.typeDescription,
+              { color: theme.colors.textSecondary },
               selectedType === type.id && styles.typeDescriptionSelected,
             ]}>
               {type.description}
@@ -72,7 +75,7 @@ export const MeetingTypeSelector: React.FC<MeetingTypeSelectorProps> = ({
       </View>
 
       <View style={styles.durationSection}>
-        <Text style={styles.durationLabel}>Duration (minutes)</Text>
+        <Text style={[styles.durationLabel, { color: theme.colors.textPrimary }]}>Duration (minutes)</Text>
         <View style={styles.durationGrid}>
           {durationOptions.map((option) => (
             <TouchableOpacity
@@ -80,13 +83,15 @@ export const MeetingTypeSelector: React.FC<MeetingTypeSelectorProps> = ({
               testID={`duration-${option}`}
               style={[
                 styles.durationButton,
-                duration === option && styles.durationButtonSelected,
+                { backgroundColor: theme.colors.backgroundSecondary },
+                duration === option && { backgroundColor: theme.colors.textPrimary },
               ]}
               onPress={() => onDurationChange(option)}
             >
               <Text style={[
                 styles.durationText,
-                duration === option && styles.durationTextSelected,
+                { color: theme.colors.textPrimary },
+                duration === option && { color: theme.colors.textInverse },
               ]}>
                 {option}
               </Text>
@@ -100,91 +105,75 @@ export const MeetingTypeSelector: React.FC<MeetingTypeSelectorProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
-    ...theme.shadows.sm,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   sectionTitle: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.lg,
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   typeGrid: {
-    gap: theme.spacing.md,
-    marginBottom: theme.spacing.xl,
+    gap: 12,
+    marginBottom: 20,
   },
   typeCard: {
-    backgroundColor: theme.colors.surfaceTertiary,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
+    borderRadius: 16,
+    padding: 14,
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  typeCardSelected: {
-    backgroundColor: '#222222',
-    borderColor: '#222222',
   },
   typeIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: theme.spacing.sm,
+    marginBottom: 8,
+  },
+  typeIconSelected: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   typeName: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.xs,
-  },
-  typeNameSelected: {
-    color: theme.colors.textInverse,
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   typeDescription: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    fontSize: 12,
     textAlign: 'center',
   },
   typeDescriptionSelected: {
-    color: theme.colors.textInverseMuted,
+    color: 'rgba(255,255,255,0.7)',
   },
   durationSection: {
-    marginTop: theme.spacing.lg,
+    marginTop: 16,
   },
   durationLabel: {
-    fontSize: theme.typography.fontSize.md,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.md,
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 12,
   },
   durationGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: theme.spacing.sm,
+    gap: 8,
   },
   durationButton: {
-    backgroundColor: theme.colors.surfaceTertiary,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     minWidth: 60,
     alignItems: 'center',
   },
-  durationButtonSelected: {
-    backgroundColor: '#222222',
-  },
   durationText: {
-    fontSize: theme.typography.fontSize.md,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.textPrimary,
-  },
-  durationTextSelected: {
-    color: theme.colors.textInverse,
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

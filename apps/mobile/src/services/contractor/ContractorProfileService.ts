@@ -1,6 +1,7 @@
 import { supabase } from '../../config/supabase';
 import { ContractorProfile } from '@mintenance/types';
 import { logger } from '../../utils/logger';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { mapDatabaseToContractorProfile } from './ContractorHelpers';
 import type { DatabaseContractorProfileRow, DatabaseError } from './types';
 
@@ -24,46 +25,34 @@ export async function getContractorProfile(userId: string): Promise<DatabaseCont
   }
 }
 
-/** Update or create a contractor's profile (user + contractor_profiles upsert). */
+/** Update or create a contractor's profile via web API route. */
 export async function updateContractorProfile(
   userId: string,
   profileData: Partial<ContractorProfile>
 ): Promise<ContractorProfile> {
   try {
-    const userUpdateData = {
-      bio: profileData.bio,
-      profile_image_url: profileData.profile_image_url,
-      latitude: profileData.latitude,
-      longitude: profileData.longitude,
-    };
-
-    const { error: userError } = await supabase.from('profiles').update(userUpdateData).eq('id', userId);
-    if (userError) throw userError;
-
-    const contractorProfileData = {
-      user_id: userId,
-      company_name: profileData.companyName,
-      company_logo: profileData.companyLogo,
-      hourly_rate: profileData.hourly_rate || profileData.hourlyRate,
-      years_experience: profileData.years_experience || profileData.yearsExperience,
-      service_radius: profileData.serviceRadius,
-      availability: profileData.availability,
-      portfolio_images: profileData.portfolioImages,
-      specialties: profileData.specialties,
-      certifications: profileData.certifications,
-      license_number: profileData.license_number || profileData.licenseNumber,
-    };
-
-    const { data, error } = await supabase
-      .from('contractor_profiles')
-      .upsert(contractorProfileData)
-      .select()
-      .single();
-
-    if (error) throw error;
+    const response = await mobileApiClient.post<{ profile: DatabaseContractorProfileRow }>(
+      '/api/contractor/update-profile',
+      {
+        bio: profileData.bio,
+        profile_image_url: profileData.profile_image_url,
+        latitude: profileData.latitude,
+        longitude: profileData.longitude,
+        company_name: profileData.companyName,
+        company_logo: profileData.companyLogo,
+        hourly_rate: profileData.hourly_rate || profileData.hourlyRate,
+        years_experience: profileData.years_experience || profileData.yearsExperience,
+        service_radius: profileData.serviceRadius,
+        availability: profileData.availability,
+        portfolio_images: profileData.portfolioImages,
+        specialties: profileData.specialties,
+        certifications: profileData.certifications,
+        license_number: profileData.license_number || profileData.licenseNumber,
+      }
+    );
 
     logger.info('Contractor profile updated successfully');
-    return mapDatabaseToContractorProfile(data as DatabaseContractorProfileRow);
+    return mapDatabaseToContractorProfile(response.profile);
   } catch (error) {
     logger.error('Error updating contractor profile:', error);
     throw error;

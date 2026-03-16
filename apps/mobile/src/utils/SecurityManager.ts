@@ -13,7 +13,7 @@ import InputValidationMiddleware from '../middleware/InputValidationMiddleware';
 import { logger } from './logger';
 
 // Conditional import for FileSystem to handle test environments
-let FileSystem: unknown;
+let FileSystem: { getInfoAsync: (uri: string) => Promise<{ exists: boolean; size?: number }> };
 try {
   FileSystem = require('expo-file-system');
 } catch (error) {
@@ -309,8 +309,9 @@ class SecurityManagerService {
 
         // Only restore entries that haven't expired
         Object.entries(data).forEach(([key, value]: [string, unknown]) => {
-          if (value.resetTime > now) {
-            this.rateLimitMap.set(key, value);
+          const entry = value as { count: number; resetTime: number };
+          if (entry.resetTime > now) {
+            this.rateLimitMap.set(key, entry);
           }
         });
       }
@@ -413,5 +414,6 @@ class SecurityManagerService {
   }
 }
 
+export { SecurityManagerService };
 export const SecurityManager = new SecurityManagerService();
 export default SecurityManager;

@@ -9,8 +9,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import { performanceMonitor, usePerformanceMonitoring } from '../../utils/performance';
+import type { PerformanceReport, PerformanceBudget, ComponentPerformance, PerformanceViolation } from '../../utils/performance/types';
 import { useHaptics } from '../../utils/haptics';
 import { logger } from '../../utils/logger';
 import {
@@ -24,6 +24,7 @@ import {
 } from '../../components/ui';
 import { Button } from '../../components/ui/Button/Button';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card/Card';
+import { theme } from '../../theme';
 
 // ============================================================================
 // TYPES
@@ -56,13 +57,13 @@ export const PerformanceDashboard: React.FC = () => {
 
   const [refreshing, setRefreshing] = useState(false);
   const [monitoringEnabled, setMonitoringEnabled] = useState(true);
-  const [reportData, setReportData] = useState<unknown>(null);
-  const [budgetStatus, setBudgetStatus] = useState<unknown[]>([]);
-  const [componentMetrics, setComponentMetrics] = useState<unknown[]>([]);
+  const [reportData, setReportData] = useState<PerformanceReport | null>(null);
+  const [budgetStatus, setBudgetStatus] = useState<PerformanceBudget[]>([]);
+  const [componentMetrics, setComponentMetrics] = useState<ComponentPerformance[]>([]);
 
   useEffect(() => {
     loadPerformanceData();
-    const interval = setInterval(loadPerformanceData, 30000); // Update every 30s
+    const interval = setInterval(loadPerformanceData, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -74,7 +75,7 @@ export const PerformanceDashboard: React.FC = () => {
 
       setReportData(report);
       setBudgetStatus(budgets);
-      setComponentMetrics(components.slice(0, 10)); // Top 10 components
+      setComponentMetrics(components.slice(0, 10));
     } catch (error) {
       logger.error('Failed to load performance data', { data: error });
     }
@@ -118,7 +119,6 @@ export const PerformanceDashboard: React.FC = () => {
         componentMetrics,
       };
 
-      // In a real app, you'd export this to a file or send to analytics service
       logger.info('Performance report exported', { data: exportData });
       Alert.alert('Export Complete', 'Performance report has been exported to logs');
     } catch (error) {
@@ -135,7 +135,7 @@ export const PerformanceDashboard: React.FC = () => {
 
   if (!reportData) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={styles.container}>
         <View style={styles.loading}>
           <Body1 style={{ color: theme.colors.textSecondary }}>Loading performance data...</Body1>
         </View>
@@ -144,11 +144,11 @@ export const PerformanceDashboard: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView style={styles.container}>
       <ScrollView
         style={styles.scrollView}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -168,11 +168,8 @@ export const PerformanceDashboard: React.FC = () => {
               <Switch
                 value={monitoringEnabled}
                 onValueChange={toggleMonitoring}
-                trackColor={{
-                  false: theme.colors.surfaceTertiary,
-                  true: '#222222',
-                }}
-                thumbColor={theme.colors.background}
+                trackColor={{ false: theme.colors.border, true: theme.colors.textPrimary }}
+                thumbColor={theme.colors.backgroundSecondary}
               />
             </View>
           </CardBody>
@@ -191,24 +188,24 @@ export const PerformanceDashboard: React.FC = () => {
             />
             <MetricCard
               title="Average Render"
-              value={Math.round(reportData.summary.averageRenderTime)}
+              value={Math.round(reportData.summary.averageRenderTime ?? 0)}
               unit="ms"
-              status={reportData.summary.averageRenderTime > 16 ? 'warning' : 'good'}
+              status={(reportData.summary.averageRenderTime ?? 0) > 16 ? 'warning' : 'good'}
               icon="speedometer"
               description="Component render time"
             />
             <MetricCard
               title="Network Time"
-              value={Math.round(reportData.summary.averageNetworkTime)}
+              value={Math.round(reportData.summary.averageNetworkTime ?? 0)}
               unit="ms"
-              status={reportData.summary.averageNetworkTime > 2000 ? 'critical' : 'good'}
+              status={(reportData.summary.averageNetworkTime ?? 0) > 2000 ? 'critical' : 'good'}
               icon="cloud"
               description="Average API response time"
             />
             <MetricCard
               title="Budget Violations"
-              value={reportData.summary.failedBudgets}
-              status={reportData.summary.failedBudgets > 0 ? 'critical' : 'good'}
+              value={reportData.summary.failedBudgets ?? 0}
+              status={(reportData.summary.failedBudgets ?? 0) > 0 ? 'critical' : 'good'}
               icon="warning"
               description="Performance budget failures"
             />
@@ -221,7 +218,13 @@ export const PerformanceDashboard: React.FC = () => {
           <Card>
             <CardBody>
               {budgetStatus.slice(0, 8).map((budget, index) => (
-                <BudgetStatusRow key={index} {...budget} />
+                <BudgetStatusRow
+                  key={index}
+                  metric={budget.metric ?? 'unknown'}
+                  current={budget.current ?? 0}
+                  budget={budget.budget ?? 0}
+                  status={budget.status ?? 'pass'}
+                />
               ))}
             </CardBody>
           </Card>
@@ -244,12 +247,12 @@ export const PerformanceDashboard: React.FC = () => {
         )}
 
         {/* Recent Violations */}
-        {reportData.violations.length > 0 && (
+        {(reportData.violations?.length ?? 0) > 0 && (
           <View style={styles.section}>
             <H2 style={{ color: theme.colors.textPrimary, marginBottom: 16 }}>Recent Violations</H2>
             <Card>
               <CardBody>
-                {reportData.violations.slice(0, 5).map((violation: unknown, index: number) => (
+                {reportData.violations?.slice(0, 5).map((violation, index) => (
                   <ViolationRow key={index} violation={violation} />
                 ))}
               </CardBody>
@@ -282,7 +285,7 @@ export const PerformanceDashboard: React.FC = () => {
         {/* Footer */}
         <View style={styles.footer}>
           <Caption style={{ color: theme.colors.textTertiary, textAlign: 'center' }}>
-            Last updated: {new Date(reportData.timestamp).toLocaleTimeString()}
+            Last updated: {new Date(reportData.timestamp ?? Date.now()).toLocaleTimeString()}
           </Caption>
         </View>
       </ScrollView>
@@ -305,14 +308,10 @@ const MetricCard: React.FC<MetricCardProps> = ({
 }) => {
   const getStatusColor = () => {
     switch (status) {
-      case 'good':
-        return theme.colors.successDark;
-      case 'warning':
-        return theme.colors.warningDark;
-      case 'critical':
-        return theme.colors.errorDark;
-      default:
-        return theme.colors.textSecondary;
+      case 'good': return theme.colors.primaryDark;
+      case 'warning': return theme.colors.accent;
+      case 'critical': return theme.colors.error;
+      default: return theme.colors.textSecondary;
     }
   };
 
@@ -320,12 +319,12 @@ const MetricCard: React.FC<MetricCardProps> = ({
     <Card style={styles.metricCard}>
       <CardBody>
         <View style={styles.metricHeader}>
-          <Ionicons name={icon as unknown} size={24} color={getStatusColor()} />
+          <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={24} color={getStatusColor()} />
           {trend && (
             <Ionicons
               name={trend === 'up' ? 'trending-up' : trend === 'down' ? 'trending-down' : 'remove'}
               size={16}
-              color={trend === 'up' ? theme.colors.error : theme.colors.success}
+              color={trend === 'up' ? theme.colors.error : theme.colors.primary}
               style={styles.trendIcon}
             />
           )}
@@ -353,14 +352,10 @@ const BudgetStatusRow: React.FC<BudgetStatusProps> = ({ metric, current, budget,
   const percentage = Math.round((current / budget) * 100);
   const getBadgeVariant = () => {
     switch (status) {
-      case 'pass':
-        return 'success';
-      case 'warn':
-        return 'warning';
-      case 'fail':
-        return 'error';
-      default:
-        return 'neutral';
+      case 'pass': return 'success';
+      case 'warn': return 'warning';
+      case 'fail': return 'error';
+      default: return 'neutral';
     }
   };
 
@@ -381,11 +376,11 @@ const BudgetStatusRow: React.FC<BudgetStatusProps> = ({ metric, current, budget,
 // COMPONENT METRIC ROW
 // ============================================================================
 
-const ComponentMetricRow: React.FC<{ component: unknown; rank: number }> = ({ component, rank }) => {
+const ComponentMetricRow: React.FC<{ component: ComponentPerformance; rank: number }> = ({ component, rank }) => {
   return (
     <View style={styles.componentRow}>
       <View style={styles.rankBadge}>
-        <Caption style={{ color: theme.colors.white }}>{rank}</Caption>
+        <Caption style={{ color: theme.colors.textInverse }}>{rank}</Caption>
       </View>
       <View style={styles.componentInfo}>
         <Body1 style={{ color: theme.colors.textPrimary }}>{component.componentName}</Body1>
@@ -406,17 +401,13 @@ const ComponentMetricRow: React.FC<{ component: unknown; rank: number }> = ({ co
 // VIOLATION ROW
 // ============================================================================
 
-const ViolationRow: React.FC<{ violation: unknown }> = ({ violation }) => {
+const ViolationRow: React.FC<{ violation: PerformanceViolation }> = ({ violation }) => {
   const getSeverityColor = () => {
     switch (violation.severity) {
-      case 'critical':
-        return theme.colors.errorDark;
-      case 'high':
-        return theme.colors.error;
-      case 'medium':
-        return theme.colors.warning;
-      default:
-        return theme.colors.textSecondary;
+      case 'critical': return theme.colors.error;
+      case 'high': return theme.colors.error;
+      case 'medium': return theme.colors.accent;
+      default: return theme.colors.textSecondary;
     }
   };
 
@@ -450,128 +441,107 @@ const ViolationRow: React.FC<{ violation: unknown }> = ({ violation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
-
   scrollView: {
     flex: 1,
   },
-
   loading: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-
   header: {
-    padding: theme.spacing[4],
-    paddingBottom: theme.spacing[3],
+    padding: 16,
+    paddingBottom: 12,
   },
-
   controlsCard: {
-    marginHorizontal: theme.spacing[4],
-    marginBottom: theme.spacing[4],
+    marginHorizontal: 16,
+    marginBottom: 16,
   },
-
   controlRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-
   section: {
-    marginBottom: theme.spacing[6],
-    paddingHorizontal: theme.spacing[4],
+    marginBottom: 24,
+    paddingHorizontal: 16,
   },
-
   metricsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: theme.spacing[3],
+    gap: 12,
     justifyContent: 'space-between',
   },
-
   metricCard: {
     width: '48%',
     minHeight: 120,
   },
-
   metricHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-
   trendIcon: {
     marginLeft: 'auto',
   },
-
   budgetRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
   },
-
   budgetInfo: {
     flex: 1,
   },
-
   componentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
   },
-
   rankBadge: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.textPrimary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: theme.spacing[3],
+    marginRight: 12,
   },
-
   componentInfo: {
     flex: 1,
   },
-
   componentMetrics: {
     alignItems: 'flex-end',
   },
-
   violationRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: theme.spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
   },
-
   violationIcon: {
-    marginRight: theme.spacing[3],
+    marginRight: 12,
     marginTop: 2,
   },
-
   violationInfo: {
     flex: 1,
   },
-
   actionButtons: {
     flexDirection: 'row',
-    gap: theme.spacing[3],
+    gap: 12,
   },
-
   actionButton: {
     flex: 1,
   },
-
   footer: {
-    padding: theme.spacing[4],
+    padding: 16,
     paddingTop: 0,
   },
 });

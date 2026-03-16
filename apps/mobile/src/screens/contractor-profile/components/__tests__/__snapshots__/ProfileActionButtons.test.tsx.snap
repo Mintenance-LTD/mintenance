@@ -13,11 +13,13 @@ exports[`ProfileActionButtons Component Snapshot Stability renders consistently 
   }
 >
   <TouchableOpacity
+    accessibilityLabel="Send message to contractor"
+    accessibilityRole="button"
     onPress={[MockFunction]}
     style={
       {
         "alignItems": "center",
-        "backgroundColor": "#10B981",
+        "backgroundColor": "#0EA5E9",
         "borderRadius": 8,
         "elevation": 2,
         "flex": 1,
@@ -58,11 +60,13 @@ exports[`ProfileActionButtons Component Snapshot Stability renders consistently 
     </Text>
   </TouchableOpacity>
   <TouchableOpacity
+    accessibilityLabel="Call contractor"
+    accessibilityRole="button"
     onPress={[MockFunction]}
     style={
       {
         "alignItems": "center",
-        "backgroundColor": "#10B981",
+        "backgroundColor": "#0EA5E9",
         "borderRadius": 8,
         "elevation": 2,
         "flex": 1,
@@ -103,11 +107,13 @@ exports[`ProfileActionButtons Component Snapshot Stability renders consistently 
     </Text>
   </TouchableOpacity>
   <TouchableOpacity
+    accessibilityLabel="Start video call with contractor"
+    accessibilityRole="button"
     onPress={[MockFunction]}
     style={
       {
         "alignItems": "center",
-        "backgroundColor": "#10B981",
+        "backgroundColor": "#0EA5E9",
         "borderRadius": 8,
         "elevation": 2,
         "flex": 1,
@@ -148,11 +154,13 @@ exports[`ProfileActionButtons Component Snapshot Stability renders consistently 
     </Text>
   </TouchableOpacity>
   <TouchableOpacity
+    accessibilityLabel="Share contractor profile"
+    accessibilityRole="button"
     onPress={[MockFunction]}
     style={
       {
         "alignItems": "center",
-        "backgroundColor": "#10B981",
+        "backgroundColor": "#0EA5E9",
         "borderRadius": 8,
         "elevation": 2,
         "flex": 1,

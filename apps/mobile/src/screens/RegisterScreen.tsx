@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,13 @@ import {
   Platform,
   Image,
 } from 'react-native';
+import { FadeIn, SlideIn } from '../components/animations/primitives';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { AuthStackParamList } from '../navigation/types';
-import { theme } from '../theme';
+
 import Button from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Banner } from '../components/ui/Banner';
@@ -21,6 +23,123 @@ import { RoleSelector } from './register/components/RoleSelector';
 import { TermsSection, TermsModal } from './register/components/TermsSection';
 import { useRegistrationForm } from './register/hooks/useRegistrationForm';
 import { PasswordStrengthBar } from '../components/ui/PasswordStrengthBar';
+import { theme } from '../theme';
+
+const STEPS = [
+  { number: 1, label: 'Personal' },
+  { number: 2, label: 'Contact' },
+  { number: 3, label: 'Password' },
+] as const;
+
+interface FormProgressProps {
+  currentStep: number;
+}
+
+const FormProgress: React.FC<FormProgressProps> = ({ currentStep }) => {
+  return (
+    <View style={progressStyles.container}>
+      <View style={progressStyles.row}>
+        {STEPS.map((step, index) => {
+          const isCompleted = step.number < currentStep;
+          const isActive = step.number === currentStep;
+          const isFuture = step.number > currentStep;
+
+          return (
+            <React.Fragment key={step.number}>
+              {index > 0 && (
+                <View
+                  style={[
+                    progressStyles.line,
+                    {
+                      backgroundColor: isCompleted || isActive
+                        ? theme.colors.primary
+                        : theme.colors.border,
+                    },
+                  ]}
+                />
+              )}
+              <View style={progressStyles.stepColumn}>
+                <View
+                  style={[
+                    progressStyles.circle,
+                    isCompleted || isActive
+                      ? { backgroundColor: theme.colors.primary }
+                      : { backgroundColor: theme.colors.backgroundSecondary },
+                  ]}
+                >
+                  {isCompleted ? (
+                    <Ionicons name="checkmark" size={16} color={theme.colors.textInverse} />
+                  ) : (
+                    <Text
+                      style={[
+                        progressStyles.circleText,
+                        isActive
+                          ? { color: theme.colors.textInverse }
+                          : { color: theme.colors.textTertiary },
+                      ]}
+                    >
+                      {step.number}
+                    </Text>
+                  )}
+                </View>
+                <Text
+                  style={[
+                    progressStyles.label,
+                    isActive
+                      ? { color: theme.colors.primary, fontWeight: '600' }
+                      : isFuture
+                        ? { color: theme.colors.textTertiary }
+                        : { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  {step.label}
+                </Text>
+              </View>
+            </React.Fragment>
+          );
+        })}
+      </View>
+    </View>
+  );
+};
+
+const progressStyles = StyleSheet.create({
+  container: {
+    paddingHorizontal: 24,
+    marginBottom: 16,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
+  line: {
+    height: 2,
+    flex: 1,
+    marginTop: 14,
+    borderRadius: 1,
+  },
+  stepColumn: {
+    alignItems: 'center',
+    width: 56,
+  },
+  circle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  circleText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  label: {
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+});
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
@@ -47,9 +166,16 @@ const RegisterScreen: React.FC<Props> = () => {
     handleRegister,
   } = useRegistrationForm();
 
+  const currentStep = useMemo(() => {
+    if (form.email.trim().length > 0) return 3;
+    if (form.firstName.trim().length > 0 && form.lastName.trim().length > 0) return 2;
+    return 1;
+  }, [form.firstName, form.lastName, form.email]);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container}>
+        <FadeIn duration={500}>
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <Image
@@ -62,6 +188,7 @@ const RegisterScreen: React.FC<Props> = () => {
           </View>
           <Text style={styles.headerSubtitle}>Create your free account</Text>
         </View>
+        </FadeIn>
 
         <KeyboardAvoidingView
           style={styles.keyboardContainer}
@@ -72,11 +199,14 @@ const RegisterScreen: React.FC<Props> = () => {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps='handled'
           >
-            {/* Form heading */}
+            <SlideIn direction="up" distance={20} duration={400} delay={200}>
             <View style={styles.formHeading}>
               <Text style={styles.formTitle}>Get Started</Text>
               <Text style={styles.formSubtitle}>Fill in your details to create an account</Text>
             </View>
+            </SlideIn>
+
+            <FormProgress currentStep={currentStep} />
 
             <View style={styles.formContainer}>
               {submissionSuccess ? (
@@ -91,7 +221,6 @@ const RegisterScreen: React.FC<Props> = () => {
                 onRoleChange={(role) => updateField('role', role)}
               />
 
-              {/* Personal Details */}
               <Text style={styles.sectionLabel}>Personal Details</Text>
 
               <Input
@@ -132,7 +261,6 @@ const RegisterScreen: React.FC<Props> = () => {
                 required
               />
 
-              {/* Contact Information */}
               <Text style={styles.sectionLabel}>Contact Information</Text>
 
               <Input
@@ -171,7 +299,6 @@ const RegisterScreen: React.FC<Props> = () => {
                 fullWidth
               />
 
-              {/* Create Password */}
               <Text style={styles.sectionLabel}>Create Password</Text>
 
               <Input
@@ -231,10 +358,9 @@ const RegisterScreen: React.FC<Props> = () => {
                 loading={loading}
                 accessibilityLabel={loading ? 'Creating account' : 'Create account'}
                 fullWidth
-                style={{ borderRadius: theme.borderRadius.xxl, marginBottom: 16 }}
+                style={{ borderRadius: 28, marginBottom: 16 }}
               />
 
-              {/* Sign In link */}
               <View style={styles.loginSection}>
                 <View style={styles.loginDivider} />
                 <View style={styles.loginLinkContainer}>
@@ -273,14 +399,14 @@ const RegisterScreen: React.FC<Props> = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface,
   },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface,
   },
   header: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface,
     paddingTop: 20,
     paddingBottom: 12,
     paddingHorizontal: 24,
@@ -295,8 +421,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     marginRight: 10,
-    backgroundColor: theme.colors.white,
-    borderRadius: 8,
+    borderRadius: 10,
   },
   headerTitle: {
     fontSize: 28,
@@ -313,7 +438,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface,
     paddingTop: 20,
     paddingBottom: 32,
   },
@@ -322,10 +447,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   formTitle: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 26,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 4,
+    letterSpacing: -0.3,
   },
   formSubtitle: {
     fontSize: 15,
@@ -340,14 +466,14 @@ const styles = StyleSheet.create({
     color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginTop: 16,
+    marginTop: 20,
     marginBottom: 8,
   },
   loginSection: {
     marginTop: 8,
   },
   loginDivider: {
-    height: 1,
+    height: StyleSheet.hairlineWidth,
     backgroundColor: theme.colors.border,
     marginBottom: 16,
   },
@@ -362,11 +488,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   loginLinkText: {
-    color: '#222222',
+    color: theme.colors.primary,
     fontSize: 15,
     fontWeight: '600',
   },
 });
 
 export default RegisterScreen;
-

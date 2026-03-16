@@ -180,7 +180,8 @@ async function mintAiStub(
  */
 async function injectRAGContext(
   messages: GeneratorMessage[],
-  damageCategory?: string
+  damageCategory?: string,
+  propertyAge?: number,
 ): Promise<GeneratorMessage[]> {
   try {
     let ragContext;
@@ -196,15 +197,16 @@ async function injectRAGContext(
       if (!ragContext.entries.length) {
         const categories = BuildingPathologyRAGService.damageTypeToCategories(damageCategory);
         ragContext = categories.length > 0
-          ? await BuildingPathologyRAGService.queryByCategory(categories, 4)
+          ? await BuildingPathologyRAGService.queryByCategory(categories, 4, propertyAge)
           : await BuildingPathologyRAGService.queryByCategory(
-              ['damp_moisture', 'structural_movement', 'roofing', 'masonry_walls'], 3
+              ['damp_moisture', 'structural_movement', 'roofing', 'masonry_walls'], 3, propertyAge
             );
       }
     } else {
       ragContext = await BuildingPathologyRAGService.queryByCategory(
         ['damp_moisture', 'structural_movement', 'roofing', 'masonry_walls'],
-        3
+        3,
+        propertyAge
       );
     }
 
@@ -228,10 +230,10 @@ async function injectRAGContext(
 export async function getGeneratorContent(
   messages: GeneratorMessage[],
   apiKey: string,
-  context?: { assessmentId?: string; damageCategory?: string; propertyType?: string }
+  context?: { assessmentId?: string; damageCategory?: string; propertyType?: string; propertyAge?: number }
 ): Promise<GeneratorResult> {
-  // Inject RAG knowledge base context before any AI call
-  const enrichedMessages = await injectRAGContext(messages, context?.damageCategory);
+  // Inject RAG knowledge base context before any AI call (with property age for era-filtered results)
+  const enrichedMessages = await injectRAGContext(messages, context?.damageCategory, context?.propertyAge);
 
   // Phase 4: Confidence-based student routing (only when VLM_ROUTING_MODE=auto)
   if (MINT_AI_VLM_ENDPOINT && process.env.VLM_ROUTING_MODE === 'auto' && context?.damageCategory) {
@@ -247,7 +249,37 @@ export async function getGeneratorContent(
 
       if (decision.decision === 'student_only') {
         try {
-          return await callMintAiVLM(enrichedMessages, apiKey);
+          const studentResult = await callMintAiVLM(enrichedMessages, apiKey);
+
+          // Phase 5: Safety recall gate — validate student output before serving
+          try {
+            const { SafetyRecallGate } = await import('../distillation/SafetyRecallGate');
+            const parsed = JSON.parse(studentResult.content);
+            if (parsed?.safetyHazards && parsed?.damageAssessment && parsed?.urgency) {
+              const safetyCheck = SafetyRecallGate.validateStudentSafety(
+                parsed,
+                context.damageCategory
+              );
+              if (!safetyCheck.safe) {
+                logger.warn('Student VLM failed safety gate, falling back to GPT-4o', {
+                  service: 'AssessmentGenerator',
+                  failReason: safetyCheck.failReason,
+                  category: context.damageCategory,
+                });
+                await SafetyRecallGate.recordSafetyViolation(
+                  context.assessmentId || 'unknown',
+                  context.damageCategory,
+                  safetyCheck.failReason || 'unknown',
+                  parsed
+                );
+                return callGPT4o(enrichedMessages, apiKey);
+              }
+            }
+          } catch {
+            // Safety gate parse/check failure is non-fatal — serve student result
+          }
+
+          return studentResult;
         } catch (err) {
           logger.warn('Student VLM failed, falling back to GPT-4o', {
             service: 'AssessmentGenerator',

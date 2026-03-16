@@ -4,8 +4,14 @@
  */
 
 import { ProtectedSupabaseClient, ApiProtectionError } from '../utils/ApiMiddleware';
-import { supabase } from '../config/supabase';
+import { supabase as supabaseRaw } from '../config/supabase';
 import { logger } from '../utils/logger';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+// Cast to SupabaseClient to get proper type inference for query chains.
+// At runtime the real client is always a SupabaseClient; the mock type
+// is only used as a dev fallback and doesn't need full chain typing here.
+const supabase = supabaseRaw as unknown as SupabaseClient;
 
 // Create protected Supabase client
 const protectedSupabase = new ProtectedSupabaseClient(supabase, {
@@ -539,13 +545,19 @@ export class ProtectionStatsService {
     rateLimitHits: number;
   } {
     const stats = protectedSupabase.getStats();
+    const protection = stats.protection as {
+      recentViolations?: number;
+      blockedIPs?: number;
+      blockedUsers?: number;
+      rateLimiterStats?: Record<string, { limitedKeys?: number }>;
+    };
 
     return {
-      recentViolations: stats.protection.recentViolations || 0,
-      blockedIPs: stats.protection.blockedIPs || 0,
-      blockedUsers: stats.protection.blockedUsers || 0,
-      rateLimitHits: Object.values(stats.protection.rateLimiterStats || {})
-        .reduce((total: number, limiter: unknown) => total + (limiter.limitedKeys || 0), 0),
+      recentViolations: protection.recentViolations || 0,
+      blockedIPs: protection.blockedIPs || 0,
+      blockedUsers: protection.blockedUsers || 0,
+      rateLimitHits: Object.values(protection.rateLimiterStats || {})
+        .reduce((total: number, limiter) => total + (limiter.limitedKeys || 0), 0),
     };
   }
 }

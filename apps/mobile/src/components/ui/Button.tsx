@@ -7,13 +7,15 @@ import {
   ViewStyle,
   TextStyle,
   View,
+  Platform,
 } from 'react-native';
 import { theme } from '../../theme';
 
-type ButtonVariant = keyof typeof theme.components.button | 'tertiary';
+type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'tertiary' | 'ghost' | 'danger' | 'success';
 
 export interface ButtonProps {
-  title: string;
+  title?: string;
+  children?: React.ReactNode;
   onPress?: () => void;
   variant?: ButtonVariant;
   size?: 'sm' | 'md';
@@ -22,6 +24,7 @@ export interface ButtonProps {
   style?: ViewStyle | ViewStyle[];
   textStyle?: TextStyle | TextStyle[];
   accessibilityLabel?: string;
+  accessibilityHint?: string;
   accessibilityState?: {
     disabled?: boolean;
     selected?: boolean;
@@ -34,7 +37,19 @@ export interface ButtonProps {
   iconPosition?: 'left' | 'right';
   iconOnly?: boolean;
   testID?: string;
+  leftIcon?: string;
+  rightIcon?: string;
 }
+
+const VARIANT_STYLES: Record<ButtonVariant, { backgroundColor: string; color: string; borderColor: string }> = {
+  primary: { backgroundColor: theme.colors.textPrimary, color: theme.colors.textInverse, borderColor: 'transparent' },
+  secondary: { backgroundColor: theme.colors.backgroundSecondary, color: theme.colors.textPrimary, borderColor: theme.colors.border },
+  outline: { backgroundColor: 'transparent', color: theme.colors.textPrimary, borderColor: theme.colors.border },
+  tertiary: { backgroundColor: 'transparent', color: '#3B82F6', borderColor: 'transparent' },
+  ghost: { backgroundColor: 'transparent', color: theme.colors.textSecondary, borderColor: 'transparent' },
+  danger: { backgroundColor: theme.colors.error, color: theme.colors.textInverse, borderColor: 'transparent' },
+  success: { backgroundColor: theme.colors.primary, color: theme.colors.textInverse, borderColor: 'transparent' },
+};
 
 export const Button: React.FC<ButtonProps> = ({
   title,
@@ -53,12 +68,10 @@ export const Button: React.FC<ButtonProps> = ({
   iconOnly = false,
   testID,
 }) => {
-  const variantStyles = variant === 'tertiary'
-    ? { backgroundColor: 'transparent', color: theme.colors.info, borderColor: 'transparent' }
-    : theme.components.button[variant as Exclude<ButtonVariant, 'tertiary'>];
-  const backgroundColor = disabled ? theme.colors.textTertiary : (variantStyles?.backgroundColor ?? theme.colors.primary);
-  const borderColor = variantStyles?.borderColor ?? 'transparent';
-  const color = variantStyles?.color ?? theme.colors.textInverse;
+  const variantStyles = VARIANT_STYLES[variant];
+  const backgroundColor = disabled ? theme.colors.textTertiary : variantStyles.backgroundColor;
+  const borderColor = variantStyles.borderColor;
+  const color = variantStyles.color;
   const isTertiary = variant === 'tertiary';
 
   const handlePress = () => {
@@ -83,7 +96,7 @@ export const Button: React.FC<ButtonProps> = ({
           borderColor,
           width: fullWidth ? ('100%' as const) : undefined,
         },
-        !disabled && !loading && backgroundColor !== 'transparent' && theme.shadows.lg,
+        !disabled && !loading && backgroundColor !== 'transparent' && styles.shadow,
         style,
       ]}
     >
@@ -99,10 +112,7 @@ export const Button: React.FC<ButtonProps> = ({
           <Text
             style={[
               isTertiary ? styles.linkText : styles.text,
-              {
-                color,
-                ...(isTertiary && { fontSize: theme.typography.fontSize.lg })
-              },
+              { color },
               textStyle,
             ]}
           >
@@ -124,40 +134,46 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   md: {
-    minHeight: theme.layout.buttonHeightLarge,
-    paddingHorizontal: theme.spacing[4],
-    borderRadius: theme.borderRadius.xl,
+    minHeight: 56,
+    paddingHorizontal: 16,
+    borderRadius: 28,
   },
   sm: {
-    // Keep min touch target per accessibility while appearing compact
-    minHeight: theme.layout.minTouchTarget,
-    paddingHorizontal: theme.spacing[2],
-    borderRadius: theme.borderRadius.base,
+    minHeight: 44,
+    paddingHorizontal: 8,
+    borderRadius: 12,
   },
   iconOnly: {
-    minHeight: theme.layout.minTouchTarget,
-    minWidth: theme.layout.minTouchTarget,
+    minHeight: 44,
+    minWidth: 44,
     paddingHorizontal: 0,
-    borderRadius: theme.borderRadius.full,
+    borderRadius: 22,
   },
   text: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 18,
+    fontWeight: '600',
   },
   linkText: {
     textDecorationLine: 'underline',
-    fontWeight: theme.typography.fontWeight.medium,
+    fontWeight: '500',
+    fontSize: 18,
   },
   contentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing[1],
+    gap: 4,
   },
   iconLeft: {
-    marginRight: theme.spacing[1],
+    marginRight: 4,
   },
   iconRight: {
-    marginLeft: theme.spacing[1],
+    marginLeft: 4,
+  },
+  shadow: {
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
 });
 

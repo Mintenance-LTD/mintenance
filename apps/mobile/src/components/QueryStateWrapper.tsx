@@ -1,6 +1,6 @@
 import React from 'react';
 import { UseQueryResult, UseMutationResult } from '@tanstack/react-query';
-import { View, RefreshControl, ScrollView, ViewStyle } from 'react-native';
+import { View, RefreshControl, ScrollView, ViewStyle, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import {
   LoadingState,
@@ -12,6 +12,7 @@ import {
 import { useNetworkState } from '../hooks/useNetworkState';
 import { useOfflineSyncStatus } from '../hooks/useOfflineQuery';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 export interface QueryStateWrapperProps<TData = unknown> {
   query: UseQueryResult<TData>;
@@ -168,11 +169,11 @@ export const QueryStateWrapper = <TData,>({
       {!isOnline && query.data && (
         <View
           style={{
-            backgroundColor: theme.colors.surfaceSecondary,
+            backgroundColor: theme.colors.backgroundSecondary,
             padding: 12,
             alignItems: 'center',
-            borderBottomWidth: 1,
-            borderBottomColor: '#EBEBEB',
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: theme.colors.border,
           }}
         >
           <NetworkStatusIndicator
@@ -283,7 +284,7 @@ export const MutationStateWrapper = <TData, TVariables>({
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backgroundColor: 'rgba(0,0,0,0.5)',
             justifyContent: 'center',
             alignItems: 'center',
             zIndex: 1000,
@@ -291,9 +292,9 @@ export const MutationStateWrapper = <TData, TVariables>({
         >
           <View
             style={{
-              backgroundColor: 'white',
+              backgroundColor: theme.colors.surface,
               padding: 24,
-              borderRadius: 12,
+              borderRadius: 16,
               alignItems: 'center',
             }}
           >

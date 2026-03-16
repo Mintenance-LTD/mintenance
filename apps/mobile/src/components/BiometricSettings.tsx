@@ -6,12 +6,13 @@ import {
   Switch,
   TouchableOpacity,
   Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { BiometricService } from '../services/BiometricService';
-import { theme } from '../theme';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 const BiometricSettings: React.FC = () => {
   const { enableBiometric, disableBiometric, user } = useAuth();
@@ -50,7 +51,6 @@ const BiometricSettings: React.FC = () => {
     setLoading(true);
     try {
       if (value) {
-        // Enable biometric authentication
         await enableBiometric();
         setIsEnabled(true);
         Alert.alert(
@@ -58,7 +58,6 @@ const BiometricSettings: React.FC = () => {
           `${biometricTypes.join(' and ')} authentication has been enabled for your account.`
         );
       } else {
-        // Confirm before disabling
         Alert.alert(
           'Disable Biometric Authentication',
           `Are you sure you want to disable ${biometricTypes.join(' and ')} authentication?`,
@@ -129,7 +128,7 @@ const BiometricSettings: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Ionicons name='finger-print' size={24} color={theme.colors.primary} />
+        <Ionicons name='finger-print' size={24} color={theme.colors.textPrimary} />
         <Text style={styles.title}>Biometric Authentication</Text>
       </View>
 
@@ -150,7 +149,7 @@ const BiometricSettings: React.FC = () => {
           disabled={loading}
           trackColor={{
             false: theme.colors.border,
-            true: theme.colors.primary,
+            true: theme.colors.textPrimary,
           }}
           thumbColor={
             isEnabled ? theme.colors.surface : theme.colors.textTertiary
@@ -173,7 +172,7 @@ const BiometricSettings: React.FC = () => {
           <Ionicons
             name='checkmark-circle-outline'
             size={20}
-            color={theme.colors.primary}
+            color={theme.colors.textPrimary}
           />
           <Text style={styles.testButtonText}>
             Test Biometric Authentication
@@ -185,7 +184,7 @@ const BiometricSettings: React.FC = () => {
         <Ionicons
           name='shield-checkmark-outline'
           size={16}
-          color={theme.colors.info}
+          color='#3B82F6'
         />
         <Text style={styles.infoText}>
           Your biometric data is stored securely on your device and never shared
@@ -199,93 +198,101 @@ const BiometricSettings: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing[5],
-    marginVertical: theme.spacing[3],
-    ...theme.shadows.sm,
+    borderRadius: 16,
+    padding: 20,
+    marginVertical: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing[2],
+    marginBottom: 8,
   },
   title: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 20,
+    fontWeight: '600',
     color: theme.colors.textPrimary,
-    marginLeft: theme.spacing[2],
+    marginLeft: 8,
   },
   subtitle: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: 13,
     color: theme.colors.textSecondary,
-    marginBottom: theme.spacing[4],
+    marginBottom: 16,
   },
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: theme.spacing[4],
+    marginBottom: 16,
   },
   settingInfo: {
     flex: 1,
-    marginRight: theme.spacing[3],
+    marginRight: 12,
   },
   settingLabel: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 18,
+    fontWeight: '500',
     color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[1],
+    marginBottom: 4,
   },
   settingDescription: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: 13,
     color: theme.colors.textSecondary,
     lineHeight: 18,
   },
   testButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing[3],
-    paddingHorizontal: theme.spacing[4],
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.base,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    marginBottom: theme.spacing[4],
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
+    marginBottom: 16,
   },
   testButtonText: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.primary,
-    fontWeight: theme.typography.fontWeight.medium,
-    marginLeft: theme.spacing[2],
+    fontSize: 15,
+    color: theme.colors.textPrimary,
+    fontWeight: '500',
+    marginLeft: 8,
   },
   infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: theme.colors.surfaceSecondary,
-    padding: theme.spacing[3],
-    borderRadius: theme.borderRadius.base,
+    backgroundColor: theme.colors.backgroundSecondary,
+    padding: 12,
+    borderRadius: 12,
     borderLeftWidth: 3,
-    borderLeftColor: theme.colors.info,
+    borderLeftColor: '#3B82F6',
   },
   infoText: {
     flex: 1,
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: 13,
     color: theme.colors.textSecondary,
     lineHeight: 18,
-    marginLeft: theme.spacing[2],
+    marginLeft: 8,
   },
   unavailableContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: theme.spacing[4],
-    backgroundColor: theme.colors.surfaceSecondary,
-    borderRadius: theme.borderRadius.base,
+    padding: 16,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
   },
   unavailableText: {
     flex: 1,
-    fontSize: theme.typography.fontSize.base,
+    fontSize: 15,
     color: theme.colors.textTertiary,
-    marginLeft: theme.spacing[3],
+    marginLeft: 12,
     lineHeight: 20,
   },
 });

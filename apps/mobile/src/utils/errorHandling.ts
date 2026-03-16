@@ -247,7 +247,7 @@ export class ErrorHandlingService {
     const title = this.getAlertTitle(error.category, error.severity);
     const buttons = this.getAlertButtons(error);
 
-    Alert.alert(title, error.userMessage, buttons);
+    Alert.alert(title, error.userMessage, buttons as { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[]);
   }
 
   /**

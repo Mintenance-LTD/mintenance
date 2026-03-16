@@ -12,19 +12,20 @@ import {
   TouchableOpacity,
   Alert,
   TextInput,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import VideoListItem from '../../components/video/VideoListItem';
 import VideoService from '../../services/VideoService';
 import { logger } from '@mintenance/shared';
+import { theme } from '../../theme';
 import { AssessmentStep, AssessmentVideo, AssessmentResults } from './types';
 import { AssessmentHeader } from './components/AssessmentHeader';
 import { ProgressBar } from './components/ProgressBar';
 import { StepCard } from './components/StepCard';
 import { AIInsightsCard } from './components/AIInsightsCard';
 import { QuickActions, TipsCard } from './components/QuickActions';
-import { theme } from '../../theme';
 
 interface Props {
   navigation: { navigate: (screen: string, params?: Record<string, unknown>) => void; goBack: () => void };
@@ -190,13 +191,13 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Captured Videos</Text>
               <TouchableOpacity onPress={handleStartVideoCapture}>
-                <Icon name="add-circle" size={24} color="#717171" />
+                <Icon name="add-circle" size={24} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             </View>
             {capturedVideos.map(video => (
               <VideoListItem
                 key={video.id}
-                video={video}
+                video={{ ...video, createdAt: '', duration: video.duration ?? 0 } as unknown as React.ComponentProps<typeof VideoListItem>['video']}
                 onPress={() => handleVideoPress(video)}
                 onRetry={
                   video.status === 'failed'
@@ -280,7 +281,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   content: {
     padding: 16,
@@ -304,32 +305,38 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   notesSection: {
-    backgroundColor: theme.colors.background,
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 24,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   notesInput: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 8,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
     padding: 12,
     fontSize: 14,
     color: theme.colors.textPrimary,
     minHeight: 120,
-    backgroundColor: theme.colors.surfaceSecondary,
   },
   reviewSection: {
-    backgroundColor: theme.colors.background,
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 24,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   reviewRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 10,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border,
   },
   reviewLabel: {
@@ -344,9 +351,9 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   submitButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: 10,
-    paddingVertical: 14,
+    backgroundColor: theme.colors.textPrimary,
+    borderRadius: 28,
+    paddingVertical: 16,
     alignItems: 'center',
     marginTop: 16,
   },

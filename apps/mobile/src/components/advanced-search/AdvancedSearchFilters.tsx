@@ -14,10 +14,10 @@ import {
 import { styles } from './advancedSearchFiltersStyles';
 import { Ionicons } from '@expo/vector-icons';
 
-import { theme } from '../../theme';
 import { useI18n } from '../../hooks/useI18n';
 import { useHaptics } from '../../utils/haptics';
 import { SearchFilters, PriceRange, LocationRadius, ProjectType } from '../../types/search';
+import { theme } from '../../theme';
 
 // Temporary mock for Slider until @react-native-community/slider is installed
 interface SliderProps {
@@ -25,11 +25,14 @@ interface SliderProps {
   onValueChange?: (value: number) => void;
   minimumValue?: number;
   maximumValue?: number;
+  minimumTrackTintColor?: string;
+  maximumTrackTintColor?: string;
+  thumbTintColor?: string;
   style?: import('react-native').ViewStyle;
 }
 
 const Slider: React.FC<SliderProps> = ({ value, onValueChange, minimumValue, maximumValue, style, ...props }) => (
-  <View style={[{ height: 40, backgroundColor: '#ccc', borderRadius: 4 }, style]} {...props}>
+  <View style={[{ height: 40, backgroundColor: theme.colors.border, borderRadius: 4 }, style]} {...props}>
     <Text style={{ fontSize: 12, textAlign: 'center', paddingTop: 10 }}>
       {value ? Math.round(value) : minimumValue || 0}
     </Text>
@@ -163,7 +166,7 @@ const AdvancedSearchFilters: React.FC<AdvancedSearchFiltersProps> = ({
         <Ionicons
           name={i < rating ? 'star' : 'star-outline'}
           size={24}
-          color={i < rating ? theme.colors.warning : theme.colors.textTertiary}
+          color={i < rating ? theme.colors.accent : theme.colors.textTertiary}
         />
       </TouchableOpacity>
     ));
@@ -220,9 +223,9 @@ const AdvancedSearchFilters: React.FC<AdvancedSearchFiltersProps> = ({
                     radius: Math.round(value),
                   })
                 }
-                minimumTrackTintColor={theme.colors.primary}
-                maximumTrackTintColor={theme.colors.surfaceSecondary}
-                thumbStyle={{ backgroundColor: theme.colors.primary }}
+                minimumTrackTintColor={theme.colors.textPrimary}
+                maximumTrackTintColor={theme.colors.backgroundSecondary}
+                thumbTintColor={theme.colors.textPrimary}
               />
               <View style={styles.sliderLabels}>
                 <Text style={styles.sliderLabelText}>5 mi</Text>
@@ -279,8 +282,8 @@ const AdvancedSearchFilters: React.FC<AdvancedSearchFiltersProps> = ({
                   })
                 }
                 trackColor={{
-                  false: theme.colors.surfaceSecondary,
-                  true: theme.colors.primary,
+                  false: theme.colors.backgroundSecondary,
+                  true: theme.colors.textPrimary,
                 }}
                 thumbColor={theme.colors.surface}
               />
@@ -410,8 +413,8 @@ const AdvancedSearchFilters: React.FC<AdvancedSearchFiltersProps> = ({
                 value={filters.verified}
                 onValueChange={(value) => updateFilter('verified', value)}
                 trackColor={{
-                  false: theme.colors.surfaceSecondary,
-                  true: theme.colors.primary,
+                  false: theme.colors.backgroundSecondary,
+                  true: theme.colors.textPrimary,
                 }}
                 thumbColor={theme.colors.surface}
               />
@@ -423,8 +426,8 @@ const AdvancedSearchFilters: React.FC<AdvancedSearchFiltersProps> = ({
                 value={filters.hasReviews}
                 onValueChange={(value) => updateFilter('hasReviews', value)}
                 trackColor={{
-                  false: theme.colors.surfaceSecondary,
-                  true: theme.colors.primary,
+                  false: theme.colors.backgroundSecondary,
+                  true: theme.colors.textPrimary,
                 }}
                 thumbColor={theme.colors.surface}
               />
@@ -445,7 +448,7 @@ const AdvancedSearchFilters: React.FC<AdvancedSearchFiltersProps> = ({
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color={theme.colors.surface} size="small" />
+              <ActivityIndicator color={theme.colors.textInverse} size="small" />
             ) : (
               <Text style={styles.applyButtonText}>Apply Filters</Text>
             )}

@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react';
 import { View, Text, ViewProps } from 'react-native';
+import { theme } from '../../theme';
 
 // Web-compatible fallback components (react-native-maps removed for web compatibility)
 interface MapViewProps extends ViewProps {
@@ -7,7 +8,7 @@ interface MapViewProps extends ViewProps {
 }
 
 export const MapView: React.FC<MapViewProps> = ({ children, ...props }) => (
-  <View style={{ flex: 1, backgroundColor: '#F7F7F7', justifyContent: 'center', alignItems: 'center' }} {...props}>
+  <View style={{ flex: 1, backgroundColor: theme.colors.backgroundSecondary, justifyContent: 'center', alignItems: 'center' }} {...props}>
     <Text>Map view available on mobile devices</Text>
     {children}
   </View>

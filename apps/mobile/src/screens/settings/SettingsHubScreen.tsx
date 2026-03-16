@@ -6,22 +6,23 @@ import {
   StyleSheet,
   TouchableOpacity,
   Switch,
+  Platform,
+  StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
+import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../../contexts/AuthContext';
+import { mobileApiClient } from '../../utils/mobileApiClient';
+import { theme } from '../../theme';
 
 const LEGAL_URLS = {
   privacyPolicy: 'https://mintenance.app/privacy',
   termsAndConditions: 'https://mintenance.app/terms',
 } as const;
-import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ScreenHeader } from '../../components/shared';
-import { Card } from '../../components/ui/Card';
-import { theme } from '../../theme';
-import { useAuth } from '../../contexts/AuthContext';
-import { mobileApiClient } from '../../utils/mobileApiClient';
 
 interface UserSettings {
   notifications: {
@@ -38,30 +39,40 @@ interface UserSettings {
 interface SettingsRow {
   label: string;
   icon: string;
+  iconColor?: string;
+  iconBg?: string;
   onPress?: () => void;
   rightElement?: React.ReactNode;
   destructive?: boolean;
 }
 
 export const SettingsHubScreen: React.FC = () => {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<{ navigate: (screen: string) => void }>();
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: settings } = useQuery({
-    queryKey: ['user-settings'],
-    queryFn: async () => {
-      const res = await mobileApiClient.get<{ settings: UserSettings }>('/api/users/settings');
-      return res.settings;
+    queryKey: ['user-settings', user?.id],
+    queryFn: async (): Promise<UserSettings> => {
+      if (!user?.id) throw new Error('Not authenticated');
+      const result = await mobileApiClient.get<{ success: boolean; data: UserSettings }>('/api/users/settings');
+      return result.data || {
+        notifications: { email: true, push: true, sms: false },
+        privacy: { profileVisible: true, shareActivityData: false },
+      };
     },
+    enabled: !!user?.id,
   });
 
   const updateSettingMutation = useMutation({
     mutationFn: async (patch: Partial<UserSettings>) => {
-      return mobileApiClient.put('/api/users/settings', patch);
+      if (!user?.id) throw new Error('Not authenticated');
+      const merged = { ...settings, ...patch };
+      await mobileApiClient.patch<{ success: boolean }>('/api/users/settings', merged);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-settings'] });
+      queryClient.invalidateQueries({ queryKey: ['user-settings', user?.id] });
     },
   });
 
@@ -77,23 +88,26 @@ export const SettingsHubScreen: React.FC = () => {
       key={item.label}
       style={[styles.row, !isLast && styles.rowBorder]}
       onPress={item.onPress}
-      disabled={!item.onPress}
+      disabled={!item.onPress && !item.rightElement}
       accessibilityRole="button"
       accessibilityLabel={item.label}
+      activeOpacity={0.7}
     >
       <View style={styles.rowLeft}>
-        <Ionicons
-          name={item.icon as 'settings'}
-          size={20}
-          color={item.destructive ? '#EF4444' : theme.colors.textSecondary}
-        />
+        <View style={[styles.iconChip, { backgroundColor: item.iconBg ?? theme.colors.backgroundSecondary }]}>
+          <Ionicons
+            name={item.icon as 'settings'}
+            size={17}
+            color={item.destructive ? theme.colors.error : (item.iconColor ?? theme.colors.textSecondary)}
+          />
+        </View>
         <Text style={[styles.rowLabel, item.destructive && styles.destructiveText]}>
           {item.label}
         </Text>
       </View>
       {item.rightElement || (
         item.onPress && (
-          <Ionicons name="chevron-forward" size={18} color={theme.colors.textTertiary} />
+          <Ionicons name="chevron-forward" size={14} color={theme.colors.textTertiary} />
         )
       )}
     </TouchableOpacity>
@@ -102,133 +116,157 @@ export const SettingsHubScreen: React.FC = () => {
   const renderSection = (title: string, items: SettingsRow[]) => (
     <View style={styles.section} key={title}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      <Card variant="elevated" padding="none">
+      <View style={styles.card}>
         {items.map((item, idx) => renderRow(item, idx === items.length - 1))}
-      </Card>
+      </View>
     </View>
   );
 
-  const accountItems: SettingsRow[] = [
-    { label: 'Edit Profile', icon: 'person-outline', onPress: () => navigation.navigate('EditProfile') },
-    { label: 'Notification Preferences', icon: 'notifications-outline', onPress: () => navigation.navigate('NotificationSettings') },
-    { label: 'Payment Methods', icon: 'card-outline', onPress: () => navigation.navigate('PaymentMethods') },
+  const securityItems: SettingsRow[] = [
+    { label: 'Notification Preferences', icon: 'notifications-outline', iconColor: theme.colors.accent, iconBg: theme.colors.accentLight, onPress: () => navigation.navigate('NotificationSettings') },
+    { label: 'MFA Security', icon: 'shield-checkmark-outline', iconColor: '#6366F1', iconBg: '#EEF2FF', onPress: () => navigation.navigate('MFASecurity') },
+    { label: 'Payment Methods', icon: 'card-outline', iconColor: theme.colors.primary, iconBg: theme.colors.primaryLight, onPress: () => navigation.navigate('PaymentMethods') },
+    { label: 'Payment History', icon: 'receipt-outline', iconColor: '#3B82F6', iconBg: '#DBEAFE', onPress: () => navigation.navigate('PaymentHistory') },
   ];
-
-  if (user?.role === 'homeowner') {
-    accountItems.push(
-      { label: 'My Properties', icon: 'home-outline', onPress: () => navigation.navigate('Properties') },
-      { label: 'Subscription', icon: 'ribbon-outline', onPress: () => navigation.navigate('Subscription') },
-      { label: 'Financials', icon: 'wallet-outline', onPress: () => navigation.navigate('Financials') },
-    );
-  }
 
   const privacyItems: SettingsRow[] = [
     {
       label: 'Profile Visible',
       icon: 'eye-outline',
+      iconColor: '#3B82F6',
+      iconBg: '#DBEAFE',
       rightElement: (
         <Switch
           value={settings?.privacy?.profileVisible ?? true}
           onValueChange={() => togglePrivacy('profileVisible')}
-          trackColor={{ false: '#E2E8F0', true: '#222222' }}
+          trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+          thumbColor={theme.colors.surface}
         />
       ),
     },
     {
       label: 'Share Activity Data',
       icon: 'analytics-outline',
+      iconColor: '#8B5CF6',
+      iconBg: '#EDE9FE',
       rightElement: (
         <Switch
           value={settings?.privacy?.shareActivityData ?? false}
           onValueChange={() => togglePrivacy('shareActivityData')}
-          trackColor={{ false: '#E2E8F0', true: '#222222' }}
+          trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+          thumbColor={theme.colors.surface}
         />
       ),
     },
-  ];
-
-  const supportItems: SettingsRow[] = [
-    { label: 'Help Center', icon: 'help-circle-outline', onPress: () => navigation.navigate('HelpCenter') },
-    { label: 'Payment History', icon: 'receipt-outline', onPress: () => navigation.navigate('PaymentHistory') },
-    { label: 'Calendar', icon: 'calendar-outline', onPress: () => navigation.navigate('Calendar') },
-    { label: 'Reviews', icon: 'star-outline', onPress: () => navigation.navigate('Reviews') },
   ];
 
   const legalItems: SettingsRow[] = [
     {
       label: 'Privacy Policy',
       icon: 'shield-checkmark-outline',
+      iconColor: theme.colors.primary,
+      iconBg: theme.colors.primaryLight,
       onPress: () => WebBrowser.openBrowserAsync(LEGAL_URLS.privacyPolicy),
     },
     {
       label: 'Terms & Conditions',
       icon: 'document-text-outline',
+      iconColor: theme.colors.textSecondary,
+      iconBg: theme.colors.backgroundSecondary,
       onPress: () => WebBrowser.openBrowserAsync(LEGAL_URLS.termsAndConditions),
     },
   ];
 
+  const dangerItems: SettingsRow[] = [
+    { label: 'Export My Data', icon: 'download-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('DataExport') },
+    { label: 'Delete Account', icon: 'trash-outline', iconColor: theme.colors.error, iconBg: '#FEE2E2', onPress: () => navigation.navigate('DeleteAccount'), destructive: true },
+  ];
+
   return (
-    <SafeAreaView style={styles.container}>
-      <ScreenHeader title="Settings" showBack onBack={() => navigation.goBack()} />
+    <View style={styles.container}>
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      {/* Green gradient hero */}
+      <LinearGradient
+        colors={['#064E3B', '#059669', '#10B981']}
+        style={styles.hero}
+      >
+        <View style={styles.decorCircle1} />
+        <View style={styles.decorCircle2} />
+
+        <View style={{ height: insets.top + 12 }} />
+
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => (navigation as unknown as { goBack: () => void }).goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="chevron-back" size={22} color={theme.colors.textInverse} />
+        </TouchableOpacity>
+
+        <Text style={styles.heroTitle}>Settings</Text>
+        <Text style={styles.heroSubtitle}>Account, security & preferences</Text>
+      </LinearGradient>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-        {renderSection('Account', accountItems)}
+        {renderSection('Account & Security', securityItems)}
         {renderSection('Privacy', privacyItems)}
-        {renderSection('More', supportItems)}
         {renderSection('Legal', legalItems)}
+        {renderSection('Danger Zone', dangerItems)}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  hero: {
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    overflow: 'hidden',
   },
-  scrollView: {
-    flex: 1,
+  decorCircle1: {
+    position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
-  content: {
-    padding: theme.layout.screenPadding,
-    paddingBottom: theme.spacing[10],
+  decorCircle2: {
+    position: 'absolute', bottom: -20, left: -20, width: 80, height: 80, borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
-  section: {
-    marginBottom: theme.spacing[6],
+  backButton: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 14,
   },
+  heroTitle: {
+    fontSize: 26, fontWeight: '700', color: theme.colors.textInverse, letterSpacing: -0.5,
+  },
+  heroSubtitle: {
+    fontSize: 14, color: 'rgba(255,255,255,0.7)', marginTop: 4,
+  },
+  scrollView: { flex: 1 },
+  content: { padding: 16, paddingBottom: 40 },
+  section: { marginBottom: 24 },
   sectionTitle: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textTertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: theme.spacing[2],
-    marginLeft: theme.spacing[1],
+    fontSize: 12, fontWeight: '700', color: theme.colors.textTertiary, textTransform: 'uppercase',
+    letterSpacing: 0.8, marginBottom: 8, paddingHorizontal: 4,
+  },
+  card: {
+    backgroundColor: theme.colors.surface, borderRadius: 16, overflow: 'hidden',
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: theme.spacing[3],
-    paddingHorizontal: theme.spacing[4],
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 13, paddingHorizontal: 14,
   },
-  rowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
-  },
-  rowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  rowLabel: {
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.textPrimary,
-    marginLeft: theme.spacing[3],
-  },
-  destructiveText: {
-    color: '#EF4444',
-  },
+  rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
+  rowLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 12 },
+  iconChip: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  rowLabel: { fontSize: 15, fontWeight: '500', color: theme.colors.textPrimary },
+  destructiveText: { color: theme.colors.error },
 });
 
 export default SettingsHubScreen;

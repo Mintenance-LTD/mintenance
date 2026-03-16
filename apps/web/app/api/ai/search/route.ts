@@ -91,7 +91,19 @@ export const POST = withApiHandler(
       // Auth check is best-effort for rate limiting; don't block search if auth fails
     }
 
-    const { query, filters, limit = 20 } = await request.json();
+    const { query, filters: rawFilters, limit = 20 } = await request.json();
+
+    // Sanitize filters before use in database queries.
+    // Escape ILIKE wildcards (% and _) in user-provided filter strings
+    // to prevent wildcard injection / data enumeration.
+    const escapeIlike = (value: string): string =>
+      value.replace(/[%_\\]/g, (ch) => '\\' + ch);
+
+    const filters: typeof rawFilters = rawFilters ? {
+      ...rawFilters,
+      location: rawFilters.location ? escapeIlike(String(rawFilters.location)) : rawFilters.location,
+      category: rawFilters.category ? String(rawFilters.category).replace(/[^a-zA-Z0-9\s\-_]/g, '') : rawFilters.category,
+    } : rawFilters;
 
     if (!query || typeof query !== 'string') {
       return NextResponse.json(

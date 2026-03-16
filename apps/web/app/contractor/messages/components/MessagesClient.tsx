@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { fetchCurrentUser } from '@/lib/auth-client';
 import type { User } from '@mintenance/types';
 import { logger } from '@mintenance/shared';
@@ -11,9 +11,13 @@ import { Send, CheckCheck, Paperclip, Briefcase, X, Video, Calendar } from 'luci
 import type { Conversation, Message, JobContext, ApiThread, ApiMessageResponse, Participant } from './messagesTypes';
 import { ConversationSidebar } from './ConversationSidebar';
 import { ChatPanel } from './ChatPanel';
+import { CreateContractDialog } from './CreateContractDialog';
+import { ShareDocumentDialog } from './ShareDocumentDialog';
+import { useTypingIndicator } from '@/lib/hooks/useTypingIndicator';
 
 export function MessagesClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { csrfToken } = useCSRF();
   const [user, setUser] = useState<User | null>(null);
@@ -27,9 +31,15 @@ export function MessagesClient() {
   const [messageInput, setMessageInput] = useState('');
   const [sending, setSending] = useState(false);
   const [jobContext, setJobContext] = useState<JobContext | null>(null);
-  const [isTyping, setIsTyping] = useState(false);
   const [showVideoCallDialog, setShowVideoCallDialog] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
+  const [showContractDialog, setShowContractDialog] = useState(false);
+  const [showShareDocDialog, setShowShareDocDialog] = useState(false);
+
+  const { isOtherTyping: isTyping, broadcastTyping } = useTypingIndicator({
+    channelId: selectedConversation?.id ?? null,
+    userId: user?.id ?? null,
+  });
 
   useEffect(() => { loadUserAndMessages(); }, []);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
@@ -58,6 +68,13 @@ export function MessagesClient() {
         };
       });
       setConversations(transformedConversations);
+
+      // Auto-select conversation if jobId is in URL params
+      const targetJobId = searchParams.get('jobId');
+      if (targetJobId) {
+        const match = transformedConversations.find((c: Conversation) => c.id === targetJobId);
+        if (match) setSelectedConversation(match);
+      }
     } catch (err) {
       logger.error('Error loading messages:', err);
       toast.error('Failed to load messages');
@@ -77,6 +94,7 @@ export function MessagesClient() {
         const transformedMessages = (data.messages || []).map((msg: ApiMessageResponse): Message => ({
           id: msg.id, sender_id: msg.senderId || msg.sender_id || '',
           content: msg.content || msg.messageText || '', message_type: msg.messageType || msg.message_type || 'text',
+          attachment_url: msg.attachmentUrl || msg.attachment_url || undefined,
           created_at: msg.createdAt || msg.created_at || '', read: msg.read !== undefined ? msg.read : true,
         }));
         setMessages(transformedMessages);
@@ -87,7 +105,7 @@ export function MessagesClient() {
             setJobContext({ id: jobData.job.id, title: jobData.job.title, status: jobData.job.status, budget: jobData.job.budget, deadline: jobData.job.deadline });
           }
         } catch (error) { logger.warn('Failed to load job context', { error }); }
-        await fetch('/api/messages/threads/' + selectedConversation.id + '/read', { method: 'POST' });
+        await fetch('/api/messages/threads/' + selectedConversation.id + '/read', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
       } catch {
         toast.error('Failed to load messages');
       } finally {
@@ -149,8 +167,40 @@ export function MessagesClient() {
 
   const handleShareDocument = () => {
     if (!selectedConversation) { toast.error('Please select a conversation first'); return; }
-    const params = new URLSearchParams({ shareWith: selectedConversation.otherUser.id, shareWithName: selectedConversation.otherUser.name, jobId: selectedConversation.id });
-    router.push('/contractor/documents?' + params.toString());
+    setShowShareDocDialog(true);
+  };
+
+  const handleDocumentSelected = async (doc: { name: string; url: string; type: string }) => {
+    if (!selectedConversation || !user || !csrfToken) return;
+    try {
+      const content = `Shared document: ${doc.name}`;
+      const response = await fetch('/api/messages/threads/' + selectedConversation.id + '/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        body: JSON.stringify({ content, messageType: 'file', attachments: [doc.url] }),
+      });
+      if (!response.ok) throw new Error('Failed to send');
+      const data = await response.json();
+      const newMessage: Message = {
+        id: data.message?.id || Date.now().toString(), sender_id: user.id,
+        content, message_type: 'file', created_at: new Date().toISOString(), read: false,
+      };
+      setMessages(prev => [...prev, newMessage]);
+      setConversations(prev => prev.map(conv =>
+        conv.id === selectedConversation.id
+          ? { ...conv, lastMessage: { text: content, timestamp: newMessage.created_at, read: false } }
+          : conv
+      ));
+      setShowShareDocDialog(false);
+      toast.success(`Shared "${doc.name}"`);
+    } catch {
+      toast.error('Failed to share document');
+    }
+  };
+
+  const handlePrepareContract = () => {
+    if (!selectedConversation) { toast.error('Please select a conversation first'); return; }
+    setShowContractDialog(true);
   };
 
   const handleViewJob = (jobId: string) => { router.push('/contractor/jobs/' + jobId); };
@@ -217,7 +267,7 @@ export function MessagesClient() {
             jobContext={jobContext}
             showMoreOptions={showMoreOptions}
             messagesEndRef={messagesEndRef}
-            onMessageInputChange={setMessageInput}
+            onMessageInputChange={(val: string) => { setMessageInput(val); broadcastTyping(); }}
             onSendMessage={handleSendMessage}
             onVoiceCall={handleVoiceCall}
             onVideoCall={handleVideoCall}
@@ -225,6 +275,7 @@ export function MessagesClient() {
             onScheduleMeeting={handleScheduleMeeting}
             onSendQuote={handleSendQuote}
             onShareDocument={handleShareDocument}
+            onPrepareContract={handlePrepareContract}
             onViewJob={handleViewJob}
           />
         ) : (
@@ -267,6 +318,27 @@ export function MessagesClient() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Share Document Dialog */}
+      <ShareDocumentDialog
+        open={showShareDocDialog}
+        onOpenChange={setShowShareDocDialog}
+        onShareDocument={handleDocumentSelected}
+      />
+
+      {/* Prepare Contract Dialog */}
+      {selectedConversation && (
+        <CreateContractDialog
+          open={showContractDialog}
+          onOpenChange={setShowContractDialog}
+          jobId={selectedConversation.id}
+          jobTitle={selectedConversation.jobTitle || 'Contract'}
+          onContractCreated={() => {
+            setShowContractDialog(false);
+            toast.success('Contract sent to homeowner for review');
+          }}
+        />
       )}
     </div>
   );

@@ -130,7 +130,7 @@ export class ApiMiddleware {
         // Add timeout protection
         const result = await Promise.race([
           requestFn(),
-          this.createTimeoutPromise(context.endpoint),
+          this.createTimeoutPromise<T>(context.endpoint),
         ]);
 
         if (attempt > 0) {
@@ -141,7 +141,7 @@ export class ApiMiddleware {
           });
         }
 
-        return result;
+        return result as T;
       } catch (error) {
         lastError = error as Error;
         context.retryCount = attempt + 1;
@@ -389,7 +389,7 @@ export class ProtectedSupabaseClient {
     } = {}
   ): Promise<T> {
     return this.middleware.requestMiddleware(
-      () => this.supabaseClient.functions.invoke(functionName, options),
+      () => (this.supabaseClient as { functions: { invoke: (name: string, opts: Record<string, unknown>) => Promise<T> } }).functions.invoke(functionName, options),
       {
         endpoint: `/functions/${functionName}`,
         method: 'POST',

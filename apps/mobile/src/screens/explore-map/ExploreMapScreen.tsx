@@ -1,10 +1,8 @@
 /**
- * ExploreMapScreen - Job Discovery for Contractors
+ * ExploreMapScreen - Job Discovery Map for Contractors
  *
- * Airbnb Explore/Map pattern: search pill at top, horizontal category tabs,
- * price-tag markers on map, listing preview card on marker tap.
- *
- * @compliance MVVM - Thin container
+ * Full-bleed map with floating search bar, category pills,
+ * price-tag markers, and budget-first preview card.
  */
 
 import React, { useRef, useEffect } from 'react';
@@ -16,32 +14,34 @@ import {
   TouchableOpacity,
   Animated,
   Easing,
+  StatusBar,
+  Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { JobsStackParamList } from '../../navigation/types';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import { useExploreMapViewModel } from './viewmodels/ExploreMapViewModel';
-import { MapSearchBar, JobPreviewCard } from './components';
+import { JobPreviewCard } from './components';
+import { theme } from '../../theme';
 
-// Category-to-color map for map markers (matches JobsScreen badge colors)
-const CATEGORY_MARKER_COLORS: Record<string, { bg: string; text: string }> = {
-  plumbing:    { bg: '#2563EB', text: '#FFFFFF' },
-  electrical:  { bg: '#D97706', text: '#FFFFFF' },
-  roofing:     { bg: '#7C3AED', text: '#FFFFFF' },
-  painting:    { bg: '#DB2777', text: '#FFFFFF' },
-  carpentry:   { bg: '#92400E', text: '#FFFFFF' },
-  cleaning:    { bg: '#059669', text: '#FFFFFF' },
-  hvac:        { bg: '#0891B2', text: '#FFFFFF' },
-  landscaping: { bg: '#16A34A', text: '#FFFFFF' },
-  appliance:   { bg: '#EA580C', text: '#FFFFFF' },
-  general:     { bg: '#475569', text: '#FFFFFF' },
+// Category marker config — icon + color per trade
+const CATEGORY_MARKERS: Record<string, { icon: keyof typeof Ionicons.glyphMap; bg: string }> = {
+  plumbing:    { icon: 'water',           bg: theme.colors.primary },
+  electrical:  { icon: 'flash',           bg: theme.colors.accent },
+  roofing:     { icon: 'home',            bg: theme.colors.primary },
+  painting:    { icon: 'color-palette',   bg: '#3B82F6' },
+  carpentry:   { icon: 'hammer',          bg: theme.colors.accent },
+  cleaning:    { icon: 'sparkles',        bg: '#3B82F6' },
+  hvac:        { icon: 'thermometer',     bg: theme.colors.error },
+  landscaping: { icon: 'leaf',            bg: theme.colors.primary },
+  appliance:   { icon: 'settings',        bg: theme.colors.accent },
+  general:     { icon: 'construct',       bg: theme.colors.textSecondary },
 };
 
-// Category tabs - same data as QuickServices for consistency
+// Category tabs
 const CATEGORIES = [
   { id: null, name: 'All', icon: 'grid-outline' as keyof typeof Ionicons.glyphMap },
   { id: 'plumbing', name: 'Plumbing', icon: 'water-outline' as keyof typeof Ionicons.glyphMap },
@@ -54,7 +54,7 @@ const CATEGORIES = [
   { id: 'cleaning', name: 'Cleaning', icon: 'sparkles-outline' as keyof typeof Ionicons.glyphMap },
 ];
 
-// Three-dot loading indicator
+// Loading dots animation
 const LoadingDots: React.FC = () => {
   const dot1 = useRef(new Animated.Value(0.3)).current;
   const dot2 = useRef(new Animated.Value(0.3)).current;
@@ -88,8 +88,10 @@ interface ExploreMapScreenProps {
 }
 
 export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({ onBackToList }) => {
+  const insets = useSafeAreaInsets();
   const viewModel = useExploreMapViewModel();
   const navigation = useNavigation<NativeStackNavigationProp<JobsStackParamList>>();
+
   const handleViewDetails = (jobId: string) => {
     viewModel.handleJobSelect(null);
     navigation.navigate('JobDetails', { jobId });
@@ -100,266 +102,354 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({ onBackToList
     navigation.navigate('BidSubmission', { jobId });
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      {/* Search pill */}
-      <MapSearchBar
-        jobCount={viewModel.jobCount}
-        selectedCategory={viewModel.selectedCategory}
-        onFilterPress={viewModel.handleFilterPress}
-        onBackToList={onBackToList}
-      />
+  const categorySubtitle = viewModel.selectedCategory
+    ? viewModel.selectedCategory.charAt(0).toUpperCase() + viewModel.selectedCategory.slice(1)
+    : 'All trades';
 
-      {/* Category tabs */}
-      <View style={styles.categoryBar}>
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+
+      {/* FULL-BLEED MAP — fills entire screen */}
+      <MapView
+        provider={PROVIDER_GOOGLE}
+        style={StyleSheet.absoluteFillObject}
+        region={viewModel.region}
+        onRegionChangeComplete={viewModel.handleRegionChange}
+        onPress={() => viewModel.handleJobSelect(null)}
+        showsUserLocation={viewModel.locationGranted}
+        showsMyLocationButton={false}
+      >
+        {viewModel.jobs.map((job) => {
+          const isSelected = viewModel.selectedJob?.id === job.id;
+          const cat = CATEGORY_MARKERS[job.category.toLowerCase()] ?? CATEGORY_MARKERS.general;
+          const isUrgent = job.urgency === 'urgent';
+
+          return (
+            <Marker
+              key={job.id}
+              coordinate={{ latitude: job.latitude, longitude: job.longitude }}
+              onPress={() => viewModel.handleJobSelect(job)}
+              anchor={{ x: 0.5, y: 1 }}
+            >
+              <View style={styles.markerWrapper}>
+                {/* Outer ring when selected */}
+                <View style={[
+                  styles.markerPin,
+                  { backgroundColor: isSelected ? '#FFFFFF' : cat.bg },
+                  isSelected && { borderColor: cat.bg, borderWidth: 3 },
+                ]}>
+                  <Ionicons
+                    name={cat.icon}
+                    size={isSelected ? 18 : 16}
+                    color={isSelected ? cat.bg : theme.colors.textInverse}
+                  />
+                </View>
+                {/* Arrow */}
+                <View style={[
+                  styles.markerArrow,
+                  { borderTopColor: isSelected ? '#FFFFFF' : cat.bg },
+                ]} />
+                {/* Urgent pulse dot */}
+                {isUrgent && <View style={styles.urgentDot} />}
+              </View>
+            </Marker>
+          );
+        })}
+      </MapView>
+
+      {/* ── FLOATING TOP BAR ─────────────────────────────────────────────── */}
+      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+        {/* Back + Search pill row */}
+        <View style={styles.searchRow}>
+          {onBackToList && (
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={onBackToList}
+              accessibilityRole="button"
+              accessibilityLabel="Back to list"
+            >
+              <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
+            </TouchableOpacity>
+          )}
+          <View style={styles.searchPill}>
+            <Ionicons name="search" size={18} color={theme.colors.textPrimary} />
+            <View style={styles.searchTextWrap}>
+              <Text style={styles.searchTitle}>Near you</Text>
+              <Text style={styles.searchSubtitle} numberOfLines={1}>
+                {categorySubtitle} · {viewModel.jobCount} job{viewModel.jobCount !== 1 ? 's' : ''}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.filterBtn}
+              onPress={viewModel.handleFilterPress}
+              accessibilityRole="button"
+              accessibilityLabel="Open filters"
+            >
+              <Ionicons name="options-outline" size={16} color={theme.colors.textPrimary} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Category pills — horizontal scroll */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoryScroll}
+          style={styles.categoryRow}
         >
           {CATEGORIES.map((cat) => {
             const isActive = viewModel.selectedCategory === cat.id;
             return (
               <TouchableOpacity
                 key={cat.id ?? 'all'}
-                style={[styles.categoryTab, isActive && styles.categoryTabActive]}
+                style={[styles.categoryPill, isActive && styles.categoryPillActive]}
                 onPress={() => viewModel.handleCategorySelect(cat.id)}
                 accessibilityRole="button"
                 accessibilityState={{ selected: isActive }}
-                accessibilityLabel={`Filter by ${cat.name}`}
               >
                 <Ionicons
                   name={cat.icon}
-                  size={22}
-                  color={isActive ? theme.colors.textPrimary : theme.colors.textSecondary}
+                  size={14}
+                  color={isActive ? theme.colors.textInverse : theme.colors.textSecondary}
                 />
-                <Text style={[styles.categoryLabel, isActive && styles.categoryLabelActive]}>
+                <Text style={[styles.categoryPillText, isActive && styles.categoryPillTextActive]}>
                   {cat.name}
                 </Text>
               </TouchableOpacity>
             );
           })}
         </ScrollView>
-        <View style={styles.categoryDivider} />
       </View>
 
-      {/* Job count */}
-      <View style={styles.jobCountBar}>
-        <View style={styles.jobCountLine} />
+      {/* ── MAP OVERLAYS ─────────────────────────────────────────────────── */}
+
+      {/* "Search this area" pill */}
+      {viewModel.hasPanned && !viewModel.loading && (
+        <TouchableOpacity
+          style={styles.searchAreaPill}
+          onPress={viewModel.searchInRegion}
+          accessibilityRole="button"
+          accessibilityLabel="Search jobs in this area"
+        >
+          <Ionicons name="refresh" size={14} color={theme.colors.textInverse} />
+          <Text style={styles.searchAreaText}>Search this area</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Loading dots */}
+      {viewModel.loading && (
+        <View style={styles.loadingOverlay}>
+          <LoadingDots />
+        </View>
+      )}
+
+      {/* Job count pill — bottom left */}
+      <View style={[styles.jobCountPill, { bottom: viewModel.selectedJob ? 200 : insets.bottom + 16 }]}>
         <Text style={styles.jobCountText}>
           {viewModel.jobCount} job{viewModel.jobCount !== 1 ? 's' : ''}
         </Text>
-        <View style={styles.jobCountLine} />
       </View>
 
-      {/* Map + overlays in a single container so absolute positions are map-relative */}
-      <View style={styles.mapWrapper}>
-        <MapView
-          provider={PROVIDER_GOOGLE}
-          style={styles.map}
-          region={viewModel.region}
-          onRegionChangeComplete={viewModel.handleRegionChange}
-          onPress={() => viewModel.handleJobSelect(null)}
-          showsUserLocation={viewModel.locationGranted}
-          showsMyLocationButton={false}
-        >
-          {viewModel.jobs.map((job) => {
-            const isSelected = viewModel.selectedJob?.id === job.id;
-            const budget = job.budget_max || job.budget_min;
-            const label = budget ? `\u00A3${budget >= 1000 ? `${(budget / 1000).toFixed(budget % 1000 === 0 ? 0 : 1)}k` : budget}` : job.category.slice(0, 3).toUpperCase();
-            const catColor = CATEGORY_MARKER_COLORS[job.category.toLowerCase()] ?? CATEGORY_MARKER_COLORS.general;
+      {/* My location button */}
+      <TouchableOpacity
+        style={[styles.locationButton, { bottom: viewModel.selectedJob ? 200 : insets.bottom + 16 }]}
+        accessibilityRole="button"
+        accessibilityLabel="Center on my location"
+        onPress={viewModel.centerOnUser}
+      >
+        <Ionicons name="navigate" size={20} color={theme.colors.primary} />
+      </TouchableOpacity>
 
-            return (
-              <Marker
-                key={job.id}
-                coordinate={{ latitude: job.latitude, longitude: job.longitude }}
-                onPress={() => viewModel.handleJobSelect(job)}
-              >
-                <View style={[
-                  styles.priceMarker,
-                  { backgroundColor: isSelected ? '#FFFFFF' : catColor.bg },
-                  isSelected && { borderColor: catColor.bg, borderWidth: 2 },
-                ]}>
-                  <Text style={[
-                    styles.priceMarkerText,
-                    { color: isSelected ? catColor.bg : catColor.text },
-                  ]}>
-                    {label}
-                  </Text>
-                </View>
-              </Marker>
-            );
-          })}
-        </MapView>
-
-        {/* "Search this area" pill — appears after user pans the map */}
-        {viewModel.hasPanned && !viewModel.loading && (
-          <TouchableOpacity
-            style={styles.searchAreaPill}
-            onPress={viewModel.searchInRegion}
-            accessibilityRole="button"
-            accessibilityLabel="Search jobs in this area"
-          >
-            <Ionicons name="search" size={14} color="#FFFFFF" />
-            <Text style={styles.searchAreaText}>Search this area</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Loading dots */}
-        {viewModel.loading && (
-          <View style={styles.loadingOverlay}>
-            <LoadingDots />
-          </View>
-        )}
-
-        {/* My location button — bottom-right, above preview card */}
-        <TouchableOpacity
-          style={styles.locationButton}
-          accessibilityRole="button"
-          accessibilityLabel="Center on my location"
-          onPress={viewModel.centerOnUser}
-        >
-          <Ionicons name="navigate" size={20} color={theme.colors.textPrimary} />
-        </TouchableOpacity>
-
-        {/* Job preview card */}
-        {viewModel.selectedJob && (
-          <View style={styles.cardContainer}>
-            <JobPreviewCard
-              job={viewModel.selectedJob}
-              onViewDetails={() => handleViewDetails(viewModel.selectedJob!.id)}
-              onBidNow={() => handleBidNow(viewModel.selectedJob!.id)}
-              onDismiss={() => viewModel.handleJobSelect(null)}
-            />
-          </View>
-        )}
-      </View>
-    </SafeAreaView>
+      {/* Job preview card */}
+      {viewModel.selectedJob && (
+        <View style={[styles.cardContainer, { bottom: insets.bottom + 12 }]}>
+          <JobPreviewCard
+            job={viewModel.selectedJob}
+            onViewDetails={() => handleViewDetails(viewModel.selectedJob!.id)}
+            onBidNow={() => handleBidNow(viewModel.selectedJob!.id)}
+            onDismiss={() => viewModel.handleJobSelect(null)}
+          />
+        </View>
+      )}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
 
-  // Category tabs
-  categoryBar: {
-    marginTop: 72,
-    backgroundColor: theme.colors.background,
+  // ── Floating top bar ───────────────────────────────────────────────────────
+  topBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    paddingBottom: 10,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8 },
+      android: { elevation: 4 },
+    }),
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    gap: 8,
+    marginBottom: 10,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  searchPill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 14,
+    paddingLeft: 14,
+    paddingRight: 6,
+    height: 48,
+  },
+  searchTextWrap: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  searchTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  searchSubtitle: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginTop: 1,
+  },
+  filterBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: theme.colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+
+  // ── Category pills ─────────────────────────────────────────────────────────
+  categoryRow: {
+    maxHeight: 38,
   },
   categoryScroll: {
     paddingHorizontal: 16,
-    gap: 20,
+    gap: 8,
   },
-  categoryTab: {
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingBottom: 8,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-    minWidth: 52,
-  },
-  categoryTabActive: {
-    borderBottomColor: theme.colors.textPrimary,
-  },
-  categoryLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: theme.colors.textSecondary,
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  categoryLabelActive: {
-    color: theme.colors.textPrimary,
-    fontWeight: '600',
-  },
-  categoryDivider: {
-    height: 1,
-    backgroundColor: theme.colors.borderLight,
-  },
-
-  // Job count
-  jobCountBar: {
+  categoryPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 8,
-    backgroundColor: theme.colors.background,
-  },
-  jobCountLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: theme.colors.borderLight,
-  },
-  jobCountText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-    paddingHorizontal: 16,
-  },
-
-  // Map wrapper — contains map + all floating overlays so absolute positions are map-relative
-  mapWrapper: {
-    flex: 1,
-  },
-  // Map
-  map: {
-    flex: 1,
-  },
-
-  // Price tag markers — background/text color applied inline per category
-  priceMarker: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
+    backgroundColor: theme.colors.backgroundSecondary,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
-  priceMarkerText: {
-    fontSize: 13,
-    fontWeight: '700',
+  categoryPillActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  categoryPillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  categoryPillTextActive: {
+    color: theme.colors.textInverse,
   },
 
-  // "Search this area" pill — 16px inside the top of the map container
+  // ── Category icon pin markers ─────────────────────────────────────────────
+  markerWrapper: {
+    alignItems: 'center',
+  },
+  markerPin: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 6 },
+      android: { elevation: 6 },
+    }),
+  },
+  markerArrow: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 7,
+    borderRightWidth: 7,
+    borderTopWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    marginTop: -2,
+  },
+  urgentDot: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: theme.colors.error,
+    borderWidth: 2,
+    borderColor: theme.colors.surface,
+  },
+
+  // ── Search this area ───────────────────────────────────────────────────────
   searchAreaPill: {
     position: 'absolute',
-    top: 16,
+    top: '50%',
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#222222',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 9,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 22,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
     gap: 6,
     zIndex: 6,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 6 },
+      android: { elevation: 4 },
+    }),
   },
   searchAreaText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.textInverse,
   },
 
-  // Loading dots — 16px inside top of map container
+  // ── Loading dots ───────────────────────────────────────────────────────────
   loadingOverlay: {
     position: 'absolute',
-    top: 16,
+    top: '50%',
     alignSelf: 'center',
     zIndex: 5,
   },
   loadingDots: {
     flexDirection: 'row',
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -369,34 +459,52 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
 
-  // My location button — bottom-right of map container, above preview card
+  // ── Job count pill ─────────────────────────────────────────────────────────
+  jobCountPill: {
+    position: 'absolute',
+    left: 16,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    zIndex: 5,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.12, shadowRadius: 4 },
+      android: { elevation: 3 },
+    }),
+  },
+  jobCountText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+
+  // ── My location button ─────────────────────────────────────────────────────
   locationButton: {
     position: 'absolute',
     right: 16,
-    bottom: 96,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FFFFFF',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
     zIndex: 5,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.12, shadowRadius: 4 },
+      android: { elevation: 3 },
+    }),
   },
 
-  // Preview card
+  // ── Preview card ───────────────────────────────────────────────────────────
   cardContainer: {
     position: 'absolute',
-    bottom: 20,
     left: 16,
     right: 16,
+    zIndex: 10,
   },
 });
 

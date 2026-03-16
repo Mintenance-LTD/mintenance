@@ -14,43 +14,46 @@ import { NotificationService as WebNotificationService } from './web/WebNotifica
 import { ImagePicker as WebImagePicker } from './web/WebCameraService';
 
 // Platform-aware services that automatically select the correct implementation
-export const BiometricService = createPlatformAdapter({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const BiometricService = createPlatformAdapter<any>({
   web: WebBiometricService,
   mobile: MobileBiometricService,
 });
 
-export const NotificationService = createPlatformAdapter({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const NotificationService = createPlatformAdapter<any>({
   web: WebNotificationService,
   mobile: MobileNotificationService,
 });
 
-export const ImagePicker = createPlatformAdapter({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const ImagePicker = createPlatformAdapter<any>({
   web: WebImagePicker,
   mobile: MobileImagePicker,
 });
 
 // Haptics service with web fallback
-export const Haptics = Platform.select({
+export const Haptics = Platform.select<unknown>({
   web: {
     // Web fallback for haptics
-    impactAsync: async (style: unknown) => {
+    impactAsync: async (style: string = 'medium') => {
       try {
         if ('vibrate' in navigator) {
-          const patterns = {
+          const patterns: Record<string, number> = {
             light: 50,
             medium: 100,
             heavy: 200,
           };
-          navigator.vibrate(patterns[style] || 100);
+          navigator.vibrate(patterns[style] ?? 100);
         }
       } catch (error) {
         // Silently fail on web if vibration not supported
       }
     },
-    notificationAsync: async (type: unknown) => {
+    notificationAsync: async (type: string = 'success') => {
       try {
         if ('vibrate' in navigator) {
-          const patterns = {
+          const patterns: Record<string, number[]> = {
             success: [100, 50, 100],
             warning: [200, 100, 200],
             error: [300, 150, 300],
@@ -120,8 +123,8 @@ export const Location = Platform.select({
           (error) => reject(new Error(error.message)),
           {
             enableHighAccuracy: options.accuracy === 'high',
-            timeout: options.timeout || 10000,
-            maximumAge: options.maximumAge || 0,
+            timeout: (options.timeout as number) || 10000,
+            maximumAge: (options.maximumAge as number) || 0,
           }
         );
       });
@@ -195,7 +198,7 @@ export const MediaRecording = Platform.select({
           };
         });
       } catch (error) {
-        throw new Error(`Media recording failed: ${error.message}`);
+        throw new Error(`Media recording failed: ${error instanceof Error ? error.message : String(error)}`);
       }
     },
   },
@@ -215,21 +218,21 @@ export const SecureStore = Platform.select({
       try {
         localStorage.setItem(`secure_${key}`, value);
       } catch (error) {
-        throw new Error(`Failed to store item: ${error.message}`);
+        throw new Error(`Failed to store item: ${error instanceof Error ? error.message : String(error)}`);
       }
     },
     getItemAsync: async (key: string) => {
       try {
         return localStorage.getItem(`secure_${key}`);
       } catch (error) {
-        throw new Error(`Failed to retrieve item: ${error.message}`);
+        throw new Error(`Failed to retrieve item: ${error instanceof Error ? error.message : String(error)}`);
       }
     },
     deleteItemAsync: async (key: string) => {
       try {
         localStorage.removeItem(`secure_${key}`);
       } catch (error) {
-        throw new Error(`Failed to delete item: ${error.message}`);
+        throw new Error(`Failed to delete item: ${error instanceof Error ? error.message : String(error)}`);
       }
     },
   },

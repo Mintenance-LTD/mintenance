@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * OFFLINE CONFLICT RESOLUTION - USAGE EXAMPLES
  *

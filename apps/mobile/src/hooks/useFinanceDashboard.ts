@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { Alert } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
 import { logger } from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { ContractorBusinessSuite, type FinancialSummary } from '../services/contractor-business';
@@ -10,26 +9,34 @@ export const useFinanceDashboard = () => {
   const { user } = useAuth();
   const [financialData, setFinancialData] = useState<FinancialSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('6m');
 
-  useEffect(() => {
-    loadFinancialData();
-  }, [selectedPeriod]);
-
-  const loadFinancialData = async () => {
-    if (!user) return;
+  const loadFinancialData = useCallback(async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     try {
+      setError(null);
       const data = await ContractorBusinessSuite.finance.getFinancialSummary(user.id);
       setFinancialData(data);
-    } catch (error) {
-      logger.error('Error loading financial data', error);
-      Alert.alert('Error', 'Failed to load financial data');
+    } catch (err) {
+      logger.error('Error loading financial data', err);
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to load financial data: ${message}. Pull down to retry.`);
+      // Keep previous data visible if available
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    setLoading(true);
+    loadFinancialData();
+  }, [selectedPeriod, loadFinancialData]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -40,6 +47,7 @@ export const useFinanceDashboard = () => {
   return {
     financialData,
     loading,
+    error,
     refreshing,
     selectedPeriod,
     setSelectedPeriod,

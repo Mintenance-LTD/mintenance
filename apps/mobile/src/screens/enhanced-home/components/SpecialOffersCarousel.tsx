@@ -1,16 +1,16 @@
 /**
  * SpecialOffersCarousel Component
- * 
+ *
  * Horizontal carousel displaying special offers with pagination.
- * 
+ *
  * @filesize Target: <120 lines
  * @compliance Single Responsibility - Offers display
  */
 
 import React, { useRef } from 'react';
 import { View, Text, TouchableOpacity, FlatList, Dimensions, StyleSheet } from 'react-native';
-import { theme } from '../../../theme';
 import type { SpecialOffer } from '../viewmodels/EnhancedHomeViewModel';
+import { theme } from '../../../theme';
 
 const { width } = Dimensions.get('window');
 
@@ -26,9 +26,9 @@ export const SpecialOffersCarousel: React.FC<SpecialOffersCarouselProps> = ({
   const [currentIndex, setCurrentIndex] = React.useState(0);
   const flatListRef = useRef<FlatList>(null);
 
-  const onViewRef = React.useRef((viewableItems: unknown) => {
-    if (viewableItems.viewableItems.length > 0) {
-      setCurrentIndex(viewableItems.viewableItems[0].index || 0);
+  const onViewRef = React.useRef((info: { viewableItems: Array<{ index: number | null }> }) => {
+    if (info.viewableItems.length > 0) {
+      setCurrentIndex(info.viewableItems[0].index || 0);
     }
   });
 
@@ -89,81 +89,81 @@ export const SpecialOffersCarousel: React.FC<SpecialOffersCarouselProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: theme.spacing.lg,
+    marginVertical: 16,
   },
   offerCard: {
     width: width - 60,
-    backgroundColor: '#222222',
-    borderRadius: theme.borderRadius.xl,
-    padding: theme.spacing.xl,
-    marginHorizontal: theme.spacing.md,
+    backgroundColor: theme.colors.textPrimary,
+    borderRadius: 20,
+    padding: 24,
+    marginHorizontal: 14,
   },
   offerBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.lg,
-    paddingHorizontal: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    paddingHorizontal: 12,
     paddingVertical: 4,
-    marginBottom: theme.spacing.md,
+    marginBottom: 14,
   },
   offerBadgeText: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
   },
   offerTitle: {
-    fontSize: theme.typography.fontSize['2xl'],
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.white,
-    marginBottom: theme.spacing.sm,
+    fontSize: 24,
+    fontWeight: '700',
+    color: theme.colors.textInverse,
+    marginBottom: 8,
   },
   discountContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    marginBottom: theme.spacing.sm,
+    marginBottom: 8,
   },
   discountText: {
-    fontSize: theme.typography.fontSize.lg,
-    color: theme.colors.white,
-    marginRight: theme.spacing.sm,
+    fontSize: 16,
+    color: theme.colors.textInverse,
+    marginRight: 8,
   },
   discountValue: {
     fontSize: 48,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.white,
+    fontWeight: '700',
+    color: theme.colors.textInverse,
     lineHeight: 48,
   },
   offerDescription: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textInverseMuted,
-    marginBottom: theme.spacing.lg,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.7)',
+    marginBottom: 16,
   },
   claimButton: {
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.base,
-    paddingVertical: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 28,
+    paddingVertical: 14,
     alignItems: 'center',
   },
   claimButtonText: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: '#222222',
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
   },
   pagination: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: theme.spacing.sm,
-    marginTop: theme.spacing.md,
+    gap: 8,
+    marginTop: 14,
   },
   paginationDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.colors.borderLight,
+    backgroundColor: theme.colors.border,
   },
   paginationDotActive: {
     width: 24,
-    backgroundColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
 });

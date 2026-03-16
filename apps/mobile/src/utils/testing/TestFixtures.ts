@@ -77,7 +77,7 @@ export class TestDataBuilder {
   addBids(count: number): this {
     const users = this.entities.get('users') || [];
     const jobs = this.entities.get('jobs') || [];
-    const contractors = users.filter((u: unknown) => u.role === 'contractor');
+    const contractors = users.filter((u: unknown) => (u as Record<string, unknown>).role === 'contractor');
 
     const bids = MockDataGenerator.generateBids(count, jobs, contractors);
     this.entities.set('bids', bids);
@@ -183,7 +183,7 @@ export class TestDataBuilder {
           fromEntities.forEach((entity: unknown) => {
             if (toEntities.length > 0) {
               const randomTarget = toEntities[Math.floor(Math.random() * toEntities.length)];
-              entity[relation.field] = randomTarget.id;
+              (entity as Record<string, unknown>)[relation.field] = (randomTarget as Record<string, unknown>).id;
             }
           });
         }

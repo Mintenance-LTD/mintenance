@@ -7,8 +7,9 @@
 import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
+import { logger, JOB_STATUS } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
+import { EmailService } from '@/lib/email-service';
 import { NotFoundError, BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
 
 export const POST = withApiHandler(
@@ -37,15 +38,17 @@ export const POST = withApiHandler(
       throw new ForbiddenError('Only the homeowner can request changes');
     }
 
-    if (job.status !== 'completed') {
+    if (job.status !== JOB_STATUS.COMPLETED) {
       throw new BadRequestError('Can only request changes on completed jobs');
     }
 
     // 2. Roll back job status to in_progress so contractor can re-do work
+    // Note: This is a special business rule — homeowner requesting changes bypasses
+    // the normal terminal state restriction on 'completed' jobs.
     const { error: updateError } = await serverSupabase
       .from('jobs')
       .update({
-        status: 'in_progress',
+        status: JOB_STATUS.IN_PROGRESS,
         completed_at: null,
         updated_at: new Date().toISOString(),
       })
@@ -68,6 +71,40 @@ export const POST = withApiHandler(
       type: 'changes_requested',
       actionUrl: `/contractor/jobs/${jobId}`,
     });
+
+    // Send email to contractor about changes requested
+    try {
+      const { data: contractorProfile } = await serverSupabase
+        .from('profiles')
+        .select('email, first_name, last_name, company_name')
+        .eq('id', job.contractor_id)
+        .single();
+
+      const { data: homeownerProfile } = await serverSupabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', user.id)
+        .single();
+
+      if (contractorProfile?.email) {
+        const contractorName = contractorProfile.first_name && contractorProfile.last_name
+          ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
+          : contractorProfile.company_name || 'Contractor';
+        const homeownerName = homeownerProfile
+          ? `${homeownerProfile.first_name || ''} ${homeownerProfile.last_name || ''}`.trim() || 'The homeowner'
+          : 'The homeowner';
+
+        await EmailService.sendChangesRequestedEmail(contractorProfile.email, {
+          contractorName,
+          homeownerName,
+          jobTitle: job.title || 'Job',
+          comments,
+          viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/contractor/jobs/${jobId}`,
+        });
+      }
+    } catch (emailError) {
+      logger.error('Failed to send changes requested email', emailError, { service: 'jobs', jobId });
+    }
 
     logger.info('Homeowner requested changes, job rolled back to in_progress', {
       service: 'jobs',

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Text } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Text, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 
@@ -19,13 +19,13 @@ export const MapControls: React.FC<MapControlsProps> = ({
         style={styles.myLocationButton}
         onPress={onMyLocationPress}
       >
-        <Ionicons name='locate' size={24} color={theme.colors.primary} />
+        <Ionicons name='locate' size={24} color={theme.colors.textPrimary} />
       </TouchableOpacity>
 
       {/* Loading Indicator */}
       {loading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size='large' color={theme.colors.primary} />
+          <ActivityIndicator size='large' color={theme.colors.textPrimary} />
           <Text style={styles.loadingText}>Finding nearby contractors...</Text>
         </View>
       )}
@@ -44,7 +44,17 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    ...theme.shadows.base,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   loadingContainer: {
     position: 'absolute',

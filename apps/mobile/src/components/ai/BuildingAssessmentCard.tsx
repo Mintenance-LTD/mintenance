@@ -6,12 +6,12 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import UnifiedAIServiceMobile from '../../services/UnifiedAIServiceMobile';
-import { theme } from '../../theme';
 import { logger } from '../../utils/logger';
 import { BuildingAssessment, BuildingAssessmentCardProps } from './building-assessment/types';
 import { RunAssessmentButton, LoadingState } from './building-assessment/AssessmentStates';
 import { AssessmentHeader } from './building-assessment/AssessmentHeader';
 import { AssessmentBody } from './building-assessment/AssessmentBody';
+import { theme } from '../../theme';
 
 export const BuildingAssessmentCard: React.FC<BuildingAssessmentCardProps> = ({
   images,
@@ -84,5 +84,5 @@ export const BuildingAssessmentCard: React.FC<BuildingAssessmentCardProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: theme.colors.background, borderRadius: 12, marginVertical: 8 },
+  container: { backgroundColor: theme.colors.backgroundSecondary, borderRadius: 12, marginVertical: 8 },
 });

@@ -62,12 +62,15 @@ jest.mock('../../utils/logger', () => ({
   },
 }));
 
-// Mock config
-jest.mock('../../config/environment', () => ({
-  config: {
-    apiBaseUrl: 'https://api.mintenance.com',
-  },
-}));
+// Mock config - also set the env var used by mobileApiClient so fetch URLs match
+jest.mock('../../config/environment', () => {
+  process.env.EXPO_PUBLIC_API_URL = 'https://api.mintenance.com';
+  return {
+    config: {
+      apiBaseUrl: 'https://api.mintenance.com',
+    },
+  };
+});
 
 describe('PaymentService', () => {
   const mockSession = {

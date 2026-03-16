@@ -18,6 +18,8 @@ exports[`ScheduleActions Component Basic Rendering should match snapshot in norm
     }
   >
     <TouchableOpacity
+      accessibilityLabel="Cancel scheduling"
+      accessibilityRole="button"
       disabled={false}
       onPress={[MockFunction]}
       style={
@@ -50,6 +52,8 @@ exports[`ScheduleActions Component Basic Rendering should match snapshot in norm
       </Text>
     </TouchableOpacity>
     <TouchableOpacity
+      accessibilityLabel="Schedule meeting"
+      accessibilityRole="button"
       disabled={false}
       onPress={[MockFunction]}
       style={
@@ -101,6 +105,8 @@ exports[`ScheduleActions Component Loading State should match snapshot in loadin
     }
   >
     <TouchableOpacity
+      accessibilityLabel="Cancel scheduling"
+      accessibilityRole="button"
       disabled={true}
       onPress={[MockFunction]}
       style={
@@ -133,6 +139,8 @@ exports[`ScheduleActions Component Loading State should match snapshot in loadin
       </Text>
     </TouchableOpacity>
     <TouchableOpacity
+      accessibilityLabel="Scheduling meeting"
+      accessibilityRole="button"
       disabled={true}
       onPress={[MockFunction]}
       style={

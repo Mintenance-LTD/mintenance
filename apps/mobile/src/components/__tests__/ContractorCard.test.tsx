@@ -28,22 +28,6 @@ jest.mock('../SwipeableCardWrapper', () => {
   };
 });
 
-jest.mock('../ConnectButton', () => {
-  const React = require('react');
-  const { TouchableOpacity, Text } = require('react-native');
-  return {
-    __esModule: true,
-    default: ({ currentUserId, targetUserId, onConnectionChange }: any) => (
-      <TouchableOpacity
-        testID="connect-button"
-        onPress={() => onConnectionChange && onConnectionChange('pending')}
-      >
-        <Text>Connect</Text>
-      </TouchableOpacity>
-    ),
-  };
-});
-
 jest.mock('@expo/vector-icons', () => {
   const React = require('react');
   const { Text } = require('react-native');
@@ -544,35 +528,6 @@ describe('ContractorCard', () => {
       fireEvent.press(getByText('Swipe Left'));
 
       expect(onPass).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('ConnectButton Integration', () => {
-    it('should render ConnectButton when currentUserId is provided', () => {
-      const { getByTestId } = render(
-        <ContractorCard {...defaultProps} currentUserId="user-123" />
-      );
-
-      expect(getByTestId('connect-button')).toBeTruthy();
-    });
-
-    it('should not render ConnectButton when currentUserId is not provided', () => {
-      const { queryByTestId } = render(<ContractorCard {...defaultProps} />);
-
-      expect(queryByTestId('connect-button')).toBeNull();
-    });
-
-    it('should pass correct props to ConnectButton', () => {
-      const { getByTestId } = render(
-        <ContractorCard
-          {...defaultProps}
-          currentUserId="user-123"
-          contractor={createMockContractor({ id: 'contractor-456' })}
-        />
-      );
-
-      const connectButton = getByTestId('connect-button');
-      expect(connectButton).toBeTruthy();
     });
   });
 

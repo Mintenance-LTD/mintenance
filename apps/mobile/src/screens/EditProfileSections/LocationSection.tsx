@@ -1,7 +1,7 @@
 import React from "react";
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { theme } from "../../theme";
+import { theme } from '../../theme';
 
 interface LocationSectionProps {
   address: string; setAddress: (v: string) => void;
@@ -18,7 +18,7 @@ export const LocationSection: React.FC<LocationSectionProps> = ({
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Location</Text>
       <TouchableOpacity style={styles.locationButton} onPress={onUseMyLocation} disabled={locating} accessibilityRole="button" accessibilityLabel="Use current GPS location">
-        {locating ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="location" size={18} color="#FFFFFF" />}
+        {locating ? <ActivityIndicator size="small" color={theme.colors.textInverse} /> : <Ionicons name="location" size={18} color={theme.colors.textInverse} />}
         <Text style={styles.locationButtonText}>{locating ? "Detecting location..." : "Use My Location"}</Text>
       </TouchableOpacity>
       <View style={styles.inputGroup}>
@@ -41,13 +41,23 @@ export const LocationSection: React.FC<LocationSectionProps> = ({
 };
 
 const styles = StyleSheet.create({
-  section: { backgroundColor: theme.colors.surface, marginHorizontal: 16, marginBottom: 16, borderRadius: 12, padding: 20 },
+  section: {
+    backgroundColor: theme.colors.surface,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+    padding: 20,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
+  },
   sectionTitle: { fontSize: 20, fontWeight: "700", color: theme.colors.textPrimary, marginBottom: 20 },
   inputGroup: { marginBottom: 20 },
   label: { fontSize: 16, fontWeight: "500", color: theme.colors.textPrimary, marginBottom: 8 },
-  input: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, backgroundColor: theme.colors.surface, color: theme.colors.textPrimary },
-  locationButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "#222222", borderRadius: 10, paddingVertical: 12, gap: 8, marginBottom: 20 },
-  locationButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "600" },
+  input: { backgroundColor: theme.colors.backgroundSecondary, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, color: theme.colors.textPrimary },
+  locationButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.primary, borderRadius: 28, paddingVertical: 14, gap: 8, marginBottom: 20 },
+  locationButtonText: { color: theme.colors.textInverse, fontSize: 15, fontWeight: "600" },
   locationRow: { flexDirection: "row", marginBottom: 0 },
   locationRowLeft: { flex: 3, marginBottom: 20 },
   locationRowSpacer: { width: 12 },

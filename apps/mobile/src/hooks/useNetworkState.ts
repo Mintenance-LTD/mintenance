@@ -42,7 +42,7 @@ export const useNetworkState = () => {
           connectionQuality = 'excellent';
         } else if (isCellular) {
           // Check cellular generation if available
-          const cellularGeneration = (state.details as unknown)?.cellularGeneration;
+          const cellularGeneration = (state.details as Record<string, unknown>)?.cellularGeneration;
           switch (cellularGeneration) {
             case '5g':
               connectionQuality = 'excellent';

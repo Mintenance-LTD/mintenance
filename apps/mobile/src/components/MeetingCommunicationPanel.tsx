@@ -18,11 +18,11 @@ import { MessagingService } from '../services/MessagingService';
 import {
   ContractorMeeting,
   MeetingUpdate,
-  Message,
 } from '@mintenance/types';
+import type { Message } from '../services/messaging/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { theme } from '../theme';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 interface Props {
   meeting: ContractorMeeting;
@@ -65,8 +65,8 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
       setLoading(true);
 
       // Load job messages
-      if (meeting.jobId) {
-        const jobMessages = await MessagingService.getJobMessages(meeting.jobId);
+      if (meeting.job_id) {
+        const jobMessages = await MessagingService.getJobMessages(meeting.job_id);
         setMessages(jobMessages);
       }
 
@@ -81,15 +81,17 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !user || !meeting.jobId) return;
+    if (!newMessage.trim() || !user || !meeting.job_id) return;
 
     try {
       const otherUserId = user.role === 'homeowner'
-        ? meeting.contractorId
-        : meeting.homeownerId;
+        ? meeting.contractor_id
+        : meeting.homeowner_id;
+
+      if (!otherUserId) return;
 
       await MessagingService.sendMessage(
-        meeting.jobId,
+        meeting.job_id,
         user.id,
         otherUserId,
         newMessage.trim(),
@@ -258,7 +260,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
 
         {loading && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.info} />
+            <ActivityIndicator size="large" color="#3B82F6" />
           </View>
         )}
 
@@ -342,7 +344,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                 <Text style={styles.sectionTitle}>Current Meeting</Text>
                 <View style={styles.meetingDetails}>
                   <Text style={styles.meetingDateTime}>
-                    {new Date(meeting.scheduledDateTime).toLocaleString()}
+                    {new Date(meeting.scheduled_datetime).toLocaleString()}
                   </Text>
                   <Text style={styles.meetingStatus}>
                     Status: {meeting.status.replace('_', ' ').toUpperCase()}
@@ -356,15 +358,15 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                   <Text style={styles.sectionTitle}>Quick Actions</Text>
                   <View style={styles.statusButtons}>
                     <TouchableOpacity
-                      style={[styles.statusButton, { backgroundColor: theme.colors.success }]}
-                      onPress={() => handleStatusChange('confirmed')}
+                      style={[styles.statusButton, { backgroundColor: theme.colors.primary }]}
+                      onPress={() => handleStatusChange('in_progress')}
                     >
                       <Ionicons name="checkmark" size={16} color={theme.colors.textInverse} />
                       <Text style={styles.statusButtonText}>Confirm</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      style={[styles.statusButton, { backgroundColor: theme.colors.warning }]}
+                      style={[styles.statusButton, { backgroundColor: theme.colors.accent }]}
                       onPress={() => handleStatusChange('rescheduled')}
                     >
                       <Ionicons name="calendar" size={16} color={theme.colors.textInverse} />
@@ -383,7 +385,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                   style={styles.dateTimeButton}
                   onPress={() => setShowDatePicker(true)}
                 >
-                  <Ionicons name="calendar-outline" size={20} color={theme.colors.info} />
+                  <Ionicons name="calendar-outline" size={20} color="#3B82F6" />
                   <Text style={styles.dateTimeText}>
                     {newDate.toLocaleDateString('en-US', {
                       weekday: 'long',
@@ -399,7 +401,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                   style={styles.dateTimeButton}
                   onPress={() => setShowTimePicker(true)}
                 >
-                  <Ionicons name="time-outline" size={20} color={theme.colors.info} />
+                  <Ionicons name="time-outline" size={20} color="#3B82F6" />
                   <Text style={styles.dateTimeText}>
                     {newTime.toLocaleTimeString('en-US', {
                       hour: '2-digit',
@@ -447,14 +449,14 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
                       <View style={styles.updateIcon}>
                         <Ionicons
                           name={
-                            update.updateType === 'schedule_change'
+                            update.updateType === 'rescheduled'
                               ? 'calendar'
                               : update.updateType === 'status_change'
                               ? 'checkmark-circle'
                               : 'notifications'
                           }
                           size={16}
-                          color={theme.colors.info}
+                          color="#3B82F6"
                         />
                       </View>
                       <View style={styles.updateContent}>

@@ -1,14 +1,12 @@
 /**
- * ClientInfo Component
- * 
- * Client information form section.
- * 
- * @filesize Target: <90 lines
- * @compliance Single Responsibility - Client form
+ * ClientInfo — Client contact form with context hints
+ *
+ * Name, email (with send hint), phone inputs with icons.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../../../components/ui/Input';
 import { theme } from '../../../theme';
 
@@ -31,8 +29,13 @@ export const ClientInfo: React.FC<ClientInfoProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle} accessibilityRole='header'>Client Information</Text>
-      
+      <View style={styles.sectionHeader}>
+        <View style={styles.sectionIconWrap}>
+          <Ionicons name="person" size={16} color="#3B82F6" />
+        </View>
+        <Text style={styles.sectionTitle}>Client Information</Text>
+      </View>
+
       <View style={styles.inputGroup}>
         <Input
           label="Client Name"
@@ -41,7 +44,7 @@ export const ClientInfo: React.FC<ClientInfoProps> = ({
           placeholder="Enter client name"
           style={styles.input}
         />
-        
+
         <Input
           label="Email Address"
           value={clientEmail}
@@ -50,12 +53,16 @@ export const ClientInfo: React.FC<ClientInfoProps> = ({
           keyboardType="email-address"
           style={styles.input}
         />
-        
+        <View style={styles.hintRow}>
+          <Ionicons name="mail-outline" size={12} color={theme.colors.textTertiary} />
+          <Text style={styles.hintText}>The quote will be sent to this email address</Text>
+        </View>
+
         <Input
           label="Phone Number"
           value={clientPhone}
           onChangeText={setClientPhone}
-          placeholder="+1 (555) 123-4567"
+          placeholder="+44 7700 900000"
           keyboardType="phone-pad"
           style={styles.input}
         />
@@ -67,21 +74,50 @@ export const ClientInfo: React.FC<ClientInfoProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
-    ...theme.shadows.sm,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 12,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6 },
+      android: { elevation: 1 },
+    }),
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  sectionIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#DBEAFE',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sectionTitle: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 17,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.lg,
+    letterSpacing: -0.2,
   },
   inputGroup: {
-    gap: theme.spacing.md,
+    gap: 12,
   },
   input: {
     marginBottom: 0,
+  },
+  hintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: -4,
+    paddingHorizontal: 4,
+  },
+  hintText: {
+    fontSize: 12,
+    color: theme.colors.textTertiary,
+    fontStyle: 'italic',
   },
 });

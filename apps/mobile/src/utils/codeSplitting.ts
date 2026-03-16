@@ -87,12 +87,12 @@ class CodeSplittingManager {
     // Return from cache if available
     if (this.chunkCache.has(cacheKey)) {
       logger.debug(`Chunk ${chunkName} loaded from cache`);
-      return this.chunkCache.get(cacheKey);
+      return this.chunkCache.get(cacheKey) as T;
     }
 
     // Return existing promise if already loading
     if (this.loadingChunks.has(cacheKey)) {
-      return this.loadingChunks.get(cacheKey)!;
+      return this.loadingChunks.get(cacheKey) as Promise<T>;
     }
 
     const loadPromise = this.performChunkLoad(

@@ -6,6 +6,9 @@ import {
   StyleSheet,
   Image,
   Alert,
+  ViewStyle,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -17,9 +20,9 @@ import { ScreenHeader } from '../../components/shared';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
-import { theme } from '../../theme';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { RootStackParamList } from '../../navigation/types';
+import { theme } from '../../theme';
 
 interface AnalysisResult {
   damageType: string;
@@ -30,13 +33,6 @@ interface AnalysisResult {
   category: string;
   confidence: number;
 }
-
-const SEVERITY_COLORS: Record<string, { bg: string; text: string }> = {
-  low: { bg: '#ECFDF5', text: '#047857' },
-  medium: { bg: '#FEF9C3', text: '#A16207' },
-  high: { bg: '#FEF3C7', text: '#B45309' },
-  critical: { bg: '#FEE2E2', text: '#DC2626' },
-};
 
 export const AIAssessmentScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
@@ -118,13 +114,14 @@ export const AIAssessmentScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
       <ScreenHeader title="AI Assessment" showBack onBack={() => navigation.goBack()} />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {!imageUri ? (
           <View style={styles.uploadSection}>
             <View style={styles.iconCircle}>
-              <Ionicons name="camera-outline" size={48} color='#717171' />
+              <Ionicons name="camera-outline" size={48} color={theme.colors.textSecondary} />
             </View>
             <Text style={styles.uploadTitle}>Analyze Property Damage</Text>
             <Text style={styles.uploadDescription}>
@@ -132,12 +129,8 @@ export const AIAssessmentScreen: React.FC = () => {
               with cost estimates.
             </Text>
             <View style={styles.buttonRow}>
-              <Button variant="primary" onPress={takePhoto} leftIcon="camera" style={styles.actionBtn}>
-                Take Photo
-              </Button>
-              <Button variant="outline" onPress={pickImage} leftIcon="images" style={styles.actionBtn}>
-                Gallery
-              </Button>
+              <Button variant="primary" onPress={takePhoto} title="Take Photo" style={styles.actionBtn as ViewStyle} />
+              <Button variant="secondary" onPress={pickImage} title="Gallery" style={styles.actionBtn as ViewStyle} />
             </View>
           </View>
         ) : (
@@ -156,7 +149,7 @@ export const AIAssessmentScreen: React.FC = () => {
 
             {analyzeMutation.isPending && (
               <Card variant="elevated" padding="md" style={styles.loadingCard}>
-                <Ionicons name="sparkles" size={24} color='#717171' />
+                <Ionicons name="sparkles" size={24} color="#8B5CF6" />
                 <Text style={styles.loadingText}>Analyzing image...</Text>
               </Card>
             )}
@@ -167,7 +160,7 @@ export const AIAssessmentScreen: React.FC = () => {
                   <View style={styles.resultHeader}>
                     <Text style={styles.resultTitle}>Assessment Result</Text>
                     <Badge
-                      variant={result.severity === 'low' ? 'success' : result.severity === 'critical' ? 'danger' : 'warning'}
+                      variant={result.severity === 'low' ? 'success' : result.severity === 'critical' ? 'error' : 'warning'}
                       size="sm"
                     >
                       {result.severity.toUpperCase()}
@@ -199,7 +192,7 @@ export const AIAssessmentScreen: React.FC = () => {
                     <Text style={styles.actionsTitle}>Recommended Actions</Text>
                     {result.recommendedActions.map((action, idx) => (
                       <View key={idx} style={styles.actionItem}>
-                        <Ionicons name="checkmark-circle" size={18} color='#717171' />
+                        <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
                         <Text style={styles.actionText}>{action}</Text>
                       </View>
                     ))}
@@ -210,11 +203,9 @@ export const AIAssessmentScreen: React.FC = () => {
                   variant="primary"
                   fullWidth
                   onPress={handleCreateJob}
-                  leftIcon="add-circle"
-                  style={styles.createJobBtn}
-                >
-                  Create Job from Assessment
-                </Button>
+                  title="Create Job from Assessment"
+                  style={styles.createJobBtn as ViewStyle}
+                />
               </>
             )}
           </>
@@ -231,119 +222,123 @@ const styles = StyleSheet.create({
   },
   scrollView: { flex: 1 },
   content: {
-    padding: theme.layout.screenPadding,
-    paddingBottom: theme.spacing[10],
+    padding: 20,
+    paddingBottom: 40,
   },
   uploadSection: {
     alignItems: 'center',
-    paddingVertical: theme.spacing[10],
+    paddingVertical: 40,
   },
   iconCircle: {
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: theme.colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: theme.spacing[5],
+    marginBottom: 20,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   uploadTitle: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.bold,
+    fontSize: 20,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[2],
+    marginBottom: 8,
   },
   uploadDescription: {
-    fontSize: theme.typography.fontSize.base,
+    fontSize: 15,
     color: theme.colors.textSecondary,
     textAlign: 'center',
-    lineHeight: theme.typography.fontSize.base * 1.5,
-    marginBottom: theme.spacing[6],
-    paddingHorizontal: theme.spacing[4],
+    lineHeight: 22,
+    marginBottom: 24,
+    paddingHorizontal: 16,
   },
   buttonRow: {
     flexDirection: 'row',
-    gap: theme.spacing[3],
+    gap: 12,
   },
   actionBtn: {
     minWidth: 140,
   },
   imageCard: {
-    marginBottom: theme.spacing[4],
+    marginBottom: 16,
   },
   previewImage: {
     width: '100%',
     height: 220,
-    borderRadius: theme.borderRadius.base,
+    borderRadius: 12,
   },
   retakeBtn: {
     alignSelf: 'center',
-    marginTop: theme.spacing[2],
+    marginTop: 8,
   },
   loadingCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing[3],
-    marginBottom: theme.spacing[4],
+    gap: 12,
+    marginBottom: 16,
   },
   loadingText: {
-    fontSize: theme.typography.fontSize.base,
+    fontSize: 15,
     color: theme.colors.textSecondary,
   },
   resultCard: {
-    marginBottom: theme.spacing[4],
+    marginBottom: 16,
   },
   resultHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing[4],
+    marginBottom: 16,
   },
   resultTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 18,
+    fontWeight: '600',
     color: theme.colors.textPrimary,
   },
   resultRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing[2],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
   },
   resultLabel: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: 13,
     color: theme.colors.textTertiary,
   },
   resultValue: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 15,
+    fontWeight: '500',
     color: theme.colors.textPrimary,
   },
   actionsCard: {
-    marginBottom: theme.spacing[6],
+    marginBottom: 24,
   },
   actionsTitle: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 15,
+    fontWeight: '600',
     color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[3],
+    marginBottom: 12,
   },
   actionItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: theme.spacing[2],
-    marginBottom: theme.spacing[2],
+    gap: 8,
+    marginBottom: 8,
   },
   actionText: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: 13,
     color: theme.colors.textSecondary,
     flex: 1,
-    lineHeight: theme.typography.fontSize.sm * 1.5,
+    lineHeight: 20,
   },
   createJobBtn: {
-    marginTop: theme.spacing[2],
+    marginTop: 8,
   },
 });
 

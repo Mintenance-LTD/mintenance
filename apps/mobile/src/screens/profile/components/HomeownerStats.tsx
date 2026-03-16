@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../theme';
 
@@ -13,7 +13,6 @@ interface StatCard {
   icon: keyof typeof Ionicons.glyphMap;
   iconColor: string;
   iconBg: string;
-  valueColor: string;
   value: number;
   label: string;
 }
@@ -26,25 +25,22 @@ export const HomeownerStats: React.FC<HomeownerStatsProps> = ({
   const stats: StatCard[] = [
     {
       icon: 'list',
-      iconColor: '#717171',
-      iconBg: '#F7F7F7',
-      valueColor: theme.colors.textPrimary,
+      iconColor: '#3B82F6',
+      iconBg: '#DBEAFE',
       value: totalJobs,
       label: 'Posted',
     },
     {
       icon: 'checkmark-circle',
-      iconColor: '#717171',
-      iconBg: '#F7F7F7',
-      valueColor: theme.colors.textPrimary,
+      iconColor: theme.colors.primary,
+      iconBg: theme.colors.primaryLight,
       value: completedJobs,
       label: 'Completed',
     },
     {
       icon: 'time',
-      iconColor: '#717171',
-      iconBg: '#F7F7F7',
-      valueColor: theme.colors.textPrimary,
+      iconColor: theme.colors.accent,
+      iconBg: theme.colors.accentLight,
       value: activeJobs,
       label: 'Active',
     },
@@ -61,7 +57,7 @@ export const HomeownerStats: React.FC<HomeownerStatsProps> = ({
             <View style={[styles.iconChip, { backgroundColor: s.iconBg }]}>
               <Ionicons name={s.icon} size={18} color={s.iconColor} />
             </View>
-            <Text style={[styles.value, { color: s.valueColor }]}>{s.value}</Text>
+            <Text style={styles.value}>{s.value}</Text>
             <Text style={styles.label}>{s.label}</Text>
           </View>
         ))}
@@ -91,19 +87,28 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     alignItems: 'flex-start',
-    ...theme.shadows.sm,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
+      android: { elevation: 2 },
+    }),
   },
   iconChip: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
   },
   value: {
     fontSize: 26,
-    fontWeight: '800',
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   label: {

@@ -39,8 +39,7 @@ export class WebCameraService {
 
       addBreadcrumb(
         'Web camera permissions granted',
-        'camera',
-        'info'
+        'camera'
       );
 
       return { status: 'granted' };
@@ -48,9 +47,9 @@ export class WebCameraService {
       logger.error('Camera permission denied:', error);
 
       addBreadcrumb(
-        `Web camera permission denied: ${error.message}`,
+        `Web camera permission denied: ${error instanceof Error ? error.message : String(error)}`,
         'camera',
-        'error'
+        { level: 'error' }
       );
 
       return { status: 'denied' };
@@ -182,8 +181,7 @@ export class WebCameraService {
 
             addBreadcrumb(
               'Web camera photo captured',
-              'camera',
-              'info'
+              'camera'
             );
 
             trackUserAction('web_camera_photo_captured', {
@@ -274,8 +272,7 @@ export class WebCameraService {
 
               addBreadcrumb(
                 'Web image library photo selected',
-                'camera',
-                'info'
+                'camera'
               );
 
               trackUserAction('web_image_library_selected', {

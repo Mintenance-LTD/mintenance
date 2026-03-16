@@ -2,7 +2,7 @@ import React from 'react';
 import { fireEvent } from '@testing-library/react-native';
 import { render, createMockNavigation } from '../../test-utils';
 import { FinanceHeader } from '../FinanceHeader';
-import { theme } from '../../../theme';
+
 
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -99,7 +99,7 @@ describe('FinanceHeader', () => {
 
       expect(title.props.style).toEqual(
         expect.objectContaining({
-          color: theme.colors.textInverse,
+          color: '#FFFFFF',
         })
       );
     });
@@ -136,7 +136,7 @@ describe('FinanceHeader', () => {
       const backButton = getByTestId('back-button');
       const icon = backButton.findByProps({ name: 'arrow-back' });
 
-      expect(icon.props.color).toBe(theme.colors.white);
+      expect(icon.props.color).toBe('#FFFFFF');
     });
 
     it('should apply padding of 8 to back button', () => {
@@ -183,7 +183,7 @@ describe('FinanceHeader', () => {
       const exportButton = getByTestId('export-button');
       const icon = exportButton.findByProps({ name: 'document-text' });
 
-      expect(icon.props.color).toBe(theme.colors.white);
+      expect(icon.props.color).toBe('#FFFFFF');
     });
 
     it('should apply padding of 8 to export button', () => {
@@ -272,7 +272,7 @@ describe('FinanceHeader', () => {
 
       expect(header.props.style).toEqual(
         expect.objectContaining({
-          backgroundColor: theme.colors.primary,
+          backgroundColor: '#222222',
         })
       );
     });

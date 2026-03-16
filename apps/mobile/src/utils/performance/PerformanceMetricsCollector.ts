@@ -66,7 +66,7 @@ export class PerformanceMetricsCollector {
         const collectedMetrics = await collector();
         return { name, metrics: collectedMetrics };
       } catch (error) {
-        logger.error('PerformanceMetricsCollector', `Failed to collect ${name} metrics`, error);
+        logger.error('PerformanceMetricsCollector', `Failed to collect ${name} metrics`, { error: error instanceof Error ? error.message : String(error) });
         return { name, metrics: {} };
       }
     });
@@ -94,7 +94,7 @@ export class PerformanceMetricsCollector {
         memoryUsage: memoryUsageMB,
       };
     } catch (error) {
-      logger.error('PerformanceMetricsCollector', 'Failed to collect memory metrics', error);
+      logger.error('PerformanceMetricsCollector', 'Failed to collect memory metrics', { error: error instanceof Error ? error.message : String(error) });
       return { memoryUsage: 0 };
     }
   }
@@ -121,7 +121,7 @@ export class PerformanceMetricsCollector {
       // Fallback: estimate based on recent API calls
       return this.estimateResponseTime();
     } catch (error) {
-      logger.error('PerformanceMetricsCollector', 'Failed to collect response time metrics', error);
+      logger.error('PerformanceMetricsCollector', 'Failed to collect response time metrics', { error: error instanceof Error ? error.message : String(error) });
       return { responseTime: 0 };
     }
   }
@@ -139,7 +139,7 @@ export class PerformanceMetricsCollector {
         errorRate,
       };
     } catch (error) {
-      logger.error('PerformanceMetricsCollector', 'Failed to collect error rate metrics', error);
+      logger.error('PerformanceMetricsCollector', 'Failed to collect error rate metrics', { error: error instanceof Error ? error.message : String(error) });
       return { errorRate: 0 };
     }
   }
@@ -149,8 +149,9 @@ export class PerformanceMetricsCollector {
    */
   private async getMemoryInfo(): Promise<MemoryInfo> {
     // Try to get actual memory info
-    if (typeof performance !== 'undefined' && (performance as unknown).memory) {
-      const memory = (performance as unknown).memory;
+    const perfWithMemory = performance as unknown as { memory?: MemoryInfo };
+    if (typeof performance !== 'undefined' && perfWithMemory.memory) {
+      const memory = perfWithMemory.memory;
       return {
         usedJSHeapSize: memory.usedJSHeapSize || 0,
         totalJSHeapSize: memory.totalJSHeapSize || 0,
@@ -164,7 +165,7 @@ export class PerformanceMetricsCollector {
       return {
         usedJSHeapSize: usage.used * 1024 * 1024, // Convert MB to bytes
         totalJSHeapSize: usage.total * 1024 * 1024,
-        jsHeapSizeLimit: usage.limit * 1024 * 1024,
+        jsHeapSizeLimit: (usage.limit ?? 0) * 1024 * 1024,
       };
     }
 
@@ -213,12 +214,12 @@ export class PerformanceMetricsCollector {
       actual: number;
       budget: number;
     }[] = [
-      { metric: 'responseTime', actual: metrics.responseTime, budget: budget.budgets.responseTime },
-      { metric: 'memoryUsage', actual: metrics.memoryUsage, budget: budget.budgets.memoryUsage },
-      { metric: 'cpuUsage', actual: metrics.cpuUsage, budget: budget.budgets.cpuUsage },
-      { metric: 'apiCalls', actual: metrics.apiCallsPerMinute, budget: budget.budgets.apiCalls },
-      { metric: 'errorRate', actual: metrics.errorRate, budget: budget.budgets.errorRate },
-      { metric: 'downloadSize', actual: metrics.downloadSize, budget: budget.budgets.downloadSize },
+      { metric: 'responseTime', actual: metrics.responseTime, budget: budget.budgets?.responseTime ?? 0 },
+      { metric: 'memoryUsage', actual: metrics.memoryUsage, budget: budget.budgets?.memoryUsage ?? 0 },
+      { metric: 'cpuUsage', actual: metrics.cpuUsage, budget: budget.budgets?.cpuUsage ?? 0 },
+      { metric: 'apiCalls', actual: metrics.apiCallsPerMinute, budget: budget.budgets?.apiCalls ?? 0 },
+      { metric: 'errorRate', actual: metrics.errorRate, budget: budget.budgets?.errorRate ?? 0 },
+      { metric: 'downloadSize', actual: metrics.downloadSize, budget: budget.budgets?.downloadSize ?? 0 },
     ];
 
     for (const check of checks) {
@@ -226,9 +227,9 @@ export class PerformanceMetricsCollector {
         const violationPercentage = ((check.actual - check.budget) / check.budget) * 100;
 
         let severity: 'warning' | 'critical' = 'warning';
-        if (violationPercentage >= budget.alertThresholds.critical) {
+        if (violationPercentage >= (budget.alertThresholds?.critical ?? 100)) {
           severity = 'critical';
-        } else if (violationPercentage >= budget.alertThresholds.warning) {
+        } else if (violationPercentage >= (budget.alertThresholds?.warning ?? 80)) {
           severity = 'warning';
         }
 
@@ -254,7 +255,7 @@ export class PerformanceMetricsCollector {
       try {
         listener(event);
       } catch (error) {
-        logger.error('PerformanceMetricsCollector', `Event listener ${name} failed`, error);
+        logger.error('PerformanceMetricsCollector', `Event listener ${name} failed`, { error: error instanceof Error ? error.message : String(error) });
       }
     });
 

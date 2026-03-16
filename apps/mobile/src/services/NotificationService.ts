@@ -402,7 +402,7 @@ export class NotificationService {
         userId: row.user_id,
         createdAt: row.created_at,
         read: row.read,
-      }));
+      })) as unknown as NotificationData[];
     } catch (error) {
       logger.error('Failed to get user notifications', error);
       throw error;

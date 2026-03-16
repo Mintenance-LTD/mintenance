@@ -10,6 +10,7 @@ import { OfflineManager, OfflineAction } from '../services/OfflineManager';
 import { LocalDatabase } from '../services/LocalDatabase';
 import { SyncManager } from '../services/SyncManager';
 import { logger } from '../utils/logger';
+import type { Job, User } from '@mintenance/types';
 
 export interface OfflineQueryOptions {
   queryKey: QueryKey;
@@ -51,12 +52,13 @@ export const useOfflineQuery = <T = unknown>({
   // Calculate retry configuration
   const retryConfig = React.useMemo(() => {
     return {
-      retry: (failureCount: number, error: Error | unknown) => {
+      retry: (failureCount: number, error: unknown) => {
         // Don't retry if offline
         if (!isOnline) return false;
 
         // Don't retry on client errors (4xx)
-        if (error?.status >= 400 && error?.status < 500) return false;
+        const status = (error as Record<string, unknown>)?.status as number | undefined;
+        if (status !== undefined && status >= 400 && status < 500) return false;
 
         // Limit retries on slow connections
         const maxRetries = connectionQuality === 'poor' ? 1 : 3;
@@ -71,7 +73,7 @@ export const useOfflineQuery = <T = unknown>({
 
   return useQuery<T>({
     queryKey,
-    queryFn: async () => {
+    queryFn: async (): Promise<T> => {
       try {
         // Try local database first if offline or offlineFirst is enabled
         if (!isOnline || offlineFirst) {
@@ -80,7 +82,7 @@ export const useOfflineQuery = <T = unknown>({
             logger.debug('Returning local data', {
               queryKey: (queryKey as string[]).join('.'),
             });
-            return localData;
+            return localData as T;
           }
         }
 
@@ -98,7 +100,7 @@ export const useOfflineQuery = <T = unknown>({
           });
         }
 
-        return remoteData;
+        return remoteData as T;
       } catch (error) {
         // Enhanced error logging
         logger.error('Query failed:', error, {
@@ -115,7 +117,7 @@ export const useOfflineQuery = <T = unknown>({
             logger.info('Using local data as fallback', {
               queryKey: (queryKey as string[]).join('.'),
             });
-            return localData;
+            return localData as T;
           }
         }
 
@@ -259,8 +261,9 @@ export const useOfflineMutation = <TVariables = unknown, TData = unknown>({
     },
     onError: (error, variables, context: unknown) => {
       // Rollback optimistic update on error
-      if (context?.previousData && context?.queryKey) {
-        queryClient.setQueryData(context.queryKey, context.previousData);
+      const ctx = context as { previousData?: unknown; queryKey?: QueryKey } | undefined;
+      if (ctx?.previousData && ctx?.queryKey) {
+        queryClient.setQueryData(ctx.queryKey, ctx.previousData);
       }
 
       logger.error('Mutation error:', error, {
@@ -387,10 +390,10 @@ const cacheJobsData = async (
 ): Promise<void> => {
   if (Array.isArray(data)) {
     for (const job of data) {
-      await LocalDatabase.saveJob(job, false);
+      await LocalDatabase.saveJob(job as Job, false);
     }
   } else if (data) {
-    await LocalDatabase.saveJob(data, false);
+    await LocalDatabase.saveJob(data as Job, false);
   }
 };
 
@@ -400,7 +403,7 @@ const cacheUserData = async (
   data: unknown
 ): Promise<void> => {
   if (data) {
-    await LocalDatabase.saveUser(data, false);
+    await LocalDatabase.saveUser(data as User, false);
   }
 };
 

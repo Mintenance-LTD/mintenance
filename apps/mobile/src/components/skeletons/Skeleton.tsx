@@ -24,7 +24,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated, AccessibilityInfo, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-
+import { theme } from '../../theme';
 export interface SkeletonProps {
   /**
    * Width of the skeleton
@@ -52,13 +52,13 @@ export interface SkeletonProps {
 
   /**
    * Background color
-   * @default '#EBEBEB'
+   * @default theme.colors.border
    */
   backgroundColor?: string;
 
   /**
    * Shimmer color
-   * @default '#F7F7F7'
+   * @default theme.colors.backgroundSecondary
    */
   shimmerColor?: string;
 
@@ -73,8 +73,8 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   height = 20,
   borderRadius = 8,
   animate = true,
-  backgroundColor = '#EBEBEB',
-  shimmerColor = '#F7F7F7',
+  backgroundColor = theme.colors.border,
+  shimmerColor = theme.colors.backgroundSecondary,
   style,
 }) => {
   const animatedValue = useRef(new Animated.Value(0)).current;
@@ -122,14 +122,14 @@ export const Skeleton: React.FC<SkeletonProps> = ({
       style={[
         styles.container,
         {
-          width: typeof width === 'string' ? width : width,
-          height: typeof height === 'string' ? height : height,
+          width: width as ViewStyle['width'],
+          height: height as ViewStyle['height'],
           borderRadius,
           backgroundColor,
-          overflow: 'hidden',
+          overflow: 'hidden' as const,
         },
         style,
-      ]}
+      ] as ViewStyle[]}
       accessible={true}
       accessibilityLabel="Loading"
       accessibilityRole="progressbar"

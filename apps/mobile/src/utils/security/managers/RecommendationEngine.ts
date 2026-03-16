@@ -4,7 +4,7 @@
  * Generates security recommendations based on findings
  */
 
-import type { SecurityVulnerability } from '@mintenance/types';
+import type { SecurityVulnerability } from '../types';
 
 export class RecommendationEngine {
   /**

@@ -8,8 +8,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import { useHaptics } from '../../utils/haptics';
+import { theme } from '../../theme';
 
 export interface QuickServicesProps {
   onServicePress: (params: Record<string, unknown>) => void;
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   divider: {
-    height: 1,
-    backgroundColor: theme.colors.borderLight,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: theme.colors.border,
   },
 });

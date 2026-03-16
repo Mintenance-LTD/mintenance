@@ -4,7 +4,7 @@ import { theme } from '../theme';
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
     backgroundColor: theme.colors.surface,
@@ -13,15 +13,15 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
   },
   closeButton: {
     padding: 8,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
   },
   placeholder: {
@@ -30,8 +30,8 @@ export const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
   },
   tab: {
     flex: 1,
@@ -41,7 +41,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   activeTab: {
-    backgroundColor: theme.colors.info,
+    backgroundColor: '#3B82F6',
   },
   tabText: {
     fontSize: 14,
@@ -80,7 +80,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   ownMessageBubble: {
-    backgroundColor: theme.colors.info,
+    backgroundColor: '#3B82F6',
   },
   otherMessageBubble: {
     backgroundColor: theme.colors.surface,
@@ -129,12 +129,12 @@ export const styles = StyleSheet.create({
     alignItems: 'flex-end',
     padding: 16,
     backgroundColor: theme.colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.border,
   },
   messageInput: {
     flex: 1,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -143,7 +143,7 @@ export const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   sendButton: {
-    backgroundColor: theme.colors.info,
+    backgroundColor: '#3B82F6',
     borderRadius: 20,
     width: 40,
     height: 40,
@@ -214,7 +214,7 @@ export const styles = StyleSheet.create({
   dateTimeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
     padding: 12,
     borderRadius: 8,
     marginBottom: 12,
@@ -226,7 +226,7 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   reasonInput: {
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 8,
     padding: 12,
     minHeight: 80,
@@ -239,7 +239,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.warning,
+    backgroundColor: theme.colors.accent,
     paddingVertical: 12,
     borderRadius: 8,
   },
@@ -265,7 +265,7 @@ export const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,

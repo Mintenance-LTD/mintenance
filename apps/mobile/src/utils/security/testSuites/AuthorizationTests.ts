@@ -4,8 +4,8 @@
  * Comprehensive authorization and access control testing
  */
 
-import { SecurityManager } from '../../SecurityManager';
-import type { PenetrationTest, PenetrationTestResult, SecurityVulnerability } from '@mintenance/types';
+import { SecurityManagerService } from '../../SecurityManager';
+import type { PenetrationTest, PenetrationTestResult, SecurityVulnerability } from '../types';
 
 export class AuthorizationTestSuite {
   static createPrivilegeEscalationTest(): PenetrationTest {
@@ -66,8 +66,8 @@ export class AuthorizationTestSuite {
 
           switch (testType) {
             case 'privilege_escalation':
-              const homeownerCanAccessAdmin = SecurityManager.hasPermission('homeowner', 'admin');
-              const contractorCanAccessAdmin = SecurityManager.hasPermission('contractor', 'admin');
+              const homeownerCanAccessAdmin = SecurityManagerService.hasPermission('homeowner', 'admin');
+              const contractorCanAccessAdmin = SecurityManagerService.hasPermission('contractor', 'admin');
 
               vulnerabilityFound = homeownerCanAccessAdmin || contractorCanAccessAdmin;
               details = `Privilege escalation ${vulnerabilityFound ? 'possible' : 'prevented'}. Homeowner->Admin: ${homeownerCanAccessAdmin}, Contractor->Admin: ${contractorCanAccessAdmin}`;
@@ -79,8 +79,8 @@ export class AuthorizationTestSuite {
               break;
 
             case 'role_based_access':
-              const adminHasAdminAccess = SecurityManager.hasPermission('admin', 'admin');
-              const contractorHasContractorAccess = SecurityManager.hasPermission('contractor', 'contractor');
+              const adminHasAdminAccess = SecurityManagerService.hasPermission('admin', 'admin');
+              const contractorHasContractorAccess = SecurityManagerService.hasPermission('contractor', 'contractor');
 
               vulnerabilityFound = !adminHasAdminAccess || !contractorHasContractorAccess;
               details = `Role-based access ${vulnerabilityFound ? 'has issues' : 'working correctly'}. Admin access: ${adminHasAdminAccess}, Contractor access: ${contractorHasContractorAccess}`;

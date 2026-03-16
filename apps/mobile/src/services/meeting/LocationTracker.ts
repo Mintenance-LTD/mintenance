@@ -1,8 +1,9 @@
 import { supabase } from '../../config/supabase';
 import { LocationData, ContractorMeeting } from '@mintenance/types';
 import { logger } from '../../utils/logger';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { JobContextLocationService, ContractorLocationContext } from '../JobContextLocationService';
-import { normalizeSupabaseError } from './MeetingHelpers';
+
 import { getMeetingById, updateMeetingStatus, createMeetingUpdate } from './MeetingCRUD';
 import type { ContractorLocation, DatabaseContractorLocationRow, RealtimePayload } from './types';
 
@@ -12,18 +13,27 @@ export async function updateContractorLocation(
   meetingId?: string
 ): Promise<ContractorLocation> {
   try {
-    const { data, error } = await supabase.from('contractor_locations').upsert({
-      contractor_id: contractorId,
-      latitude: location.latitude,
-      longitude: location.longitude,
-      accuracy: 10,
-      timestamp: new Date().toISOString(),
-      is_active: true,
-      meeting_id: meetingId || null,
-    }).select().single();
-    if (error) throw normalizeSupabaseError(error, 'Failed to update contractor location');
-    if (!data) throw new Error('Failed to update contractor location');
-    return { id: data.id, contractorId: data.contractor_id, latitude: data.latitude, longitude: data.longitude, accuracy: data.accuracy, timestamp: data.timestamp, isActive: data.is_active, meetingId: data.meeting_id };
+    const response = await mobileApiClient.patch<{
+      id: string; contractor_id: string; latitude: number; longitude: number;
+      accuracy: number; timestamp: string; is_active: boolean; meeting_id: string | null;
+    }>(
+      '/api/contractor/profile/location',
+      {
+        contractorId,
+        latitude: location.latitude,
+        longitude: location.longitude,
+      }
+    );
+    return {
+      id: response.id || contractorId,
+      contractorId: response.contractor_id || contractorId,
+      latitude: response.latitude || location.latitude,
+      longitude: response.longitude || location.longitude,
+      accuracy: response.accuracy || 10,
+      timestamp: response.timestamp || new Date().toISOString(),
+      isActive: response.is_active ?? true,
+      meetingId: response.meeting_id || meetingId || null,
+    };
   } catch (error) {
     logger.error('Error updating contractor location:', error);
     throw error;
@@ -32,13 +42,26 @@ export async function updateContractorLocation(
 
 export async function getContractorLocation(contractorId: string): Promise<ContractorLocation | null> {
   try {
-    const { data, error } = await supabase.from('contractor_locations').select('*').eq('contractor_id', contractorId).eq('is_active', true).order('timestamp', { ascending: false }).limit(1).single();
-    if (error) {
-      if (error.code === 'PGRST116') return null;
-      throw normalizeSupabaseError(error, 'Failed to fetch contractor location');
-    }
-    return data ? { id: data.id, contractorId: data.contractor_id, latitude: data.latitude, longitude: data.longitude, accuracy: data.accuracy, timestamp: data.timestamp, isActive: data.is_active, meetingId: data.meeting_id } : null;
+    const response = await mobileApiClient.get<{
+      id: string; contractor_id: string; latitude: number; longitude: number;
+      accuracy: number; timestamp: string; is_active: boolean; meeting_id: string | null;
+    }>(
+      `/api/contractor/profile/location?contractorId=${encodeURIComponent(contractorId)}`
+    );
+    return response ? {
+      id: response.id,
+      contractorId: response.contractor_id,
+      latitude: response.latitude,
+      longitude: response.longitude,
+      accuracy: response.accuracy,
+      timestamp: response.timestamp,
+      isActive: response.is_active,
+      meetingId: response.meeting_id,
+    } : null;
   } catch (error) {
+    // 404 means no active location found
+    const apiError = error as { statusCode?: number };
+    if (apiError.statusCode === 404) return null;
     logger.error('Error fetching contractor location:', error);
     throw error;
   }
@@ -50,7 +73,8 @@ export function subscribeToContractorLocation(
 ) {
   return supabase.channel(`contractor_location_${contractorId}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'contractor_locations', filter: `contractor_id=eq.${contractorId}` },
-      (payload: RealtimePayload<DatabaseContractorLocationRow>) => {
+      (rawPayload: unknown) => {
+        const payload = rawPayload as RealtimePayload<DatabaseContractorLocationRow>;
         if (payload.new) {
           callback({ id: payload.new.id, contractorId: payload.new.contractor_id, latitude: payload.new.latitude, longitude: payload.new.longitude, accuracy: payload.new.accuracy, timestamp: payload.new.timestamp, isActive: payload.new.is_active, meetingId: payload.new.meeting_id });
         }
@@ -64,7 +88,8 @@ export function subscribeToMeetingUpdates(
 ) {
   return supabase.channel(`meeting_${meetingId}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'contractor_meetings', filter: `id=eq.${meetingId}` },
-      async (payload: RealtimePayload<{ id: string }>) => {
+      async (rawPayload: unknown) => {
+        const payload = rawPayload as RealtimePayload<{ id: string }>;
         if (payload.new) {
           const meeting = await getMeetingById(payload.new.id);
           callback(meeting);
@@ -80,7 +105,8 @@ export function subscribeToContractorTravelLocation(
 ) {
   return supabase.channel(`contractor_travel_${meetingId}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'contractor_locations', filter: `contractor_id=eq.${contractorId} AND meeting_id=eq.${meetingId} AND is_active=eq.true` },
-      (payload: RealtimePayload<DatabaseContractorLocationRow>) => {
+      (rawPayload: unknown) => {
+        const payload = rawPayload as RealtimePayload<DatabaseContractorLocationRow>;
         if (payload.new) {
           callback({ location: { id: payload.new.id, contractorId: payload.new.contractor_id, latitude: payload.new.latitude, longitude: payload.new.longitude, accuracy: payload.new.accuracy, timestamp: payload.new.timestamp, isActive: payload.new.is_active, meetingId: payload.new.meeting_id }, eta: payload.new.eta_minutes || 0, context: payload.new.context || ContractorLocationContext.TRAVELING_TO_JOB });
         }

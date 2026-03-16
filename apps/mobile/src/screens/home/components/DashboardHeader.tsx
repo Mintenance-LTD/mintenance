@@ -55,7 +55,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             <Ionicons
               name="person"
               size={24}
-              color='#717171'
+              color={theme.colors.textSecondary}
             />
           </View>
         </TouchableOpacity>
@@ -78,7 +78,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           <Ionicons
             name="notifications-outline"
             size={24}
-            color={theme.colors.text}
+            color={theme.colors.textPrimary}
           />
           {unreadNotifications > 0 && (
             <View style={styles.badge} accessible={false}>
@@ -99,7 +99,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           <Ionicons
             name="settings-outline"
             size={24}
-            color={theme.colors.text}
+            color={theme.colors.textPrimary}
           />
         </TouchableOpacity>
       </View>
@@ -128,11 +128,9 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#EBEBEB',
   },
   greetingContainer: {
     flex: 1,
@@ -143,9 +141,9 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   userName: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: theme.colors.textPrimary,
     marginTop: 2,
   },
   roleText: {
@@ -162,7 +160,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
@@ -181,7 +179,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   badgeText: {
-    color: 'white',
+    color: theme.colors.textInverse,
     fontSize: 12,
     fontWeight: '600',
   },

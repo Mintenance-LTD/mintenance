@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { theme } from '../../../theme';
 
 interface PaymentSummaryCardProps {
@@ -62,65 +62,68 @@ export const PaymentSummaryCard: React.FC<PaymentSummaryCardProps> = ({
 const styles = StyleSheet.create({
   summaryCard: {
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.lg,
-    ...theme.shadows.sm,
+    borderRadius: 16,
+    padding: 20,
+    marginTop: 16,
+    marginBottom: 20,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   summaryTitle: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 20,
+    fontWeight: '600',
     color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.lg,
+    marginBottom: 20,
   },
   jobInfo: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: 20,
   },
   jobTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 18,
+    fontWeight: '500',
     color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.xs,
+    marginBottom: 6,
   },
   jobIdText: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: 13,
     color: theme.colors.textSecondary,
   },
   amountBreakdown: {
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: theme.colors.border,
-    paddingTop: theme.spacing.lg,
+    paddingTop: 20,
   },
   amountRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.sm,
+    marginBottom: 8,
   },
   amountLabel: {
-    fontSize: theme.typography.fontSize.md,
+    fontSize: 15,
     color: theme.colors.textSecondary,
   },
   amountValue: {
-    fontSize: theme.typography.fontSize.md,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontSize: 15,
+    fontWeight: '500',
     color: theme.colors.textPrimary,
   },
   totalRow: {
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: theme.colors.border,
-    paddingTop: theme.spacing.md,
-    marginTop: theme.spacing.sm,
+    paddingTop: 16,
+    marginTop: 8,
   },
   totalLabel: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 18,
+    fontWeight: '600',
     color: theme.colors.textPrimary,
   },
   totalValue: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.bold,
+    fontSize: 18,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
   },
 });

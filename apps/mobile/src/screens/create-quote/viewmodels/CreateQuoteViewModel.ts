@@ -192,7 +192,7 @@ export const useCreateQuoteViewModel = (
     if (template) {
       setSelectedTemplate(templateId);
       setTermsAndConditions(template.terms_and_conditions || '');
-      setNotes(template.notes || '');
+      setNotes((template as unknown as Record<string, string>).notes || '');
     }
   }, [templates]);
 
@@ -202,7 +202,6 @@ export const useCreateQuoteViewModel = (
     setLoading(true);
     try {
       const quoteData: CreateQuoteData = {
-        contractorId: user.id,
         job_id: jobId,
         client_name: clientName,
         client_email: clientEmail,
@@ -216,7 +215,7 @@ export const useCreateQuoteViewModel = (
         valid_until: validUntil,
         terms_and_conditions: termsAndConditions,
         notes: notes,
-        template_id: selectedTemplate || null,
+        template_id: selectedTemplate || undefined,
       };
 
       await QuoteBuilderService.createQuote(user.id, quoteData);

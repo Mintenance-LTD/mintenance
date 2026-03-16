@@ -3,9 +3,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { JobsStackParamList } from '../types';
 
 // Import existing screens
-import InvoiceManagementScreen from '../../screens/InvoiceManagementScreen';
-import { CreateInvoiceScreen } from '../../screens/create-invoice/CreateInvoiceScreen';
-import { InvoiceDetailScreen } from '../../screens/invoice-detail/InvoiceDetailScreen';
 import JobsScreen from '../../screens/JobsScreen';
 import { JobDetailsScreen } from '../../screens/job-details';
 import JobPostingScreen from '../../screens/JobPostingScreen';
@@ -17,9 +14,11 @@ import { BidReviewScreen } from '../../screens/BidReviewScreen';
 import { HomeownerPhotoReviewScreen } from '../../screens/job-details/HomeownerPhotoReviewScreen';
 import { JobPhotoUploadScreen } from '../../screens/job-details/JobPhotoUploadScreen';
 import { ContractViewScreen } from '../../screens/job-details/ContractViewScreen';
+import { ContractPreparationScreen } from '../../screens/job-details/ContractPreparationScreen';
 import { ReviewSubmissionScreen } from '../../screens/job-details/ReviewSubmissionScreen';
 import { JobSignOffScreen } from '../../screens/job-details/JobSignOffScreen';
 import { ExploreMapScreen } from '../../screens/explore-map/ExploreMapScreen';
+import JobEditScreen from '../../screens/job-form/JobEditScreen';
 
 // Import error boundary wrapper
 import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider';
@@ -27,12 +26,6 @@ import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider'
 // ============================================================================
 // SCREEN WRAPPERS WITH ERROR BOUNDARIES
 // ============================================================================
-
-const SafeInvoiceManagementScreen = withScreenErrorBoundary(
-  InvoiceManagementScreen,
-  'Invoices',
-  { fallbackRoute: 'Main' }
-);
 
 const SafeJobsScreen = withScreenErrorBoundary(
   JobsScreen,
@@ -100,6 +93,12 @@ const SafeContractViewScreen = withScreenErrorBoundary(
   { fallbackRoute: 'JobDetails' }
 );
 
+const SafeContractPreparationScreen = withScreenErrorBoundary(
+  ContractPreparationScreen,
+  'Contract Preparation',
+  { fallbackRoute: 'JobDetails' }
+);
+
 const SafeReviewSubmissionScreen = withScreenErrorBoundary(
   ReviewSubmissionScreen,
   'Review Submission',
@@ -118,16 +117,10 @@ const SafeExploreMapScreen = withScreenErrorBoundary(
   { fallbackRoute: 'JobsList' }
 );
 
-const SafeCreateInvoiceScreen = withScreenErrorBoundary(
-  CreateInvoiceScreen,
-  'Create Invoice',
-  { fallbackRoute: 'InvoiceManagement' }
-);
-
-const SafeInvoiceDetailScreen = withScreenErrorBoundary(
-  InvoiceDetailScreen,
-  'Invoice Detail',
-  { fallbackRoute: 'InvoiceManagement' }
+const SafeJobEditScreen = withScreenErrorBoundary(
+  JobEditScreen,
+  'Edit Job',
+  { fallbackRoute: 'JobDetails' }
 );
 
 // ============================================================================
@@ -146,27 +139,6 @@ export const JobsNavigator: React.FC = () => {
         animation: 'slide_from_right',
       }}
     >
-      <JobsStack.Screen
-        name="InvoiceManagement"
-        component={SafeInvoiceManagementScreen as React.ComponentType<object>}
-        options={{
-          title: 'Invoices',
-          headerShown: false,
-        }}
-      />
-
-      <JobsStack.Screen
-        name="CreateInvoice"
-        component={SafeCreateInvoiceScreen as React.ComponentType<object>}
-        options={{ title: 'New Invoice', headerShown: false, presentation: 'modal', gestureEnabled: true }}
-      />
-
-      <JobsStack.Screen
-        name="InvoiceDetail"
-        component={SafeInvoiceDetailScreen as React.ComponentType<object>}
-        options={{ title: 'Invoice Detail', headerShown: false, gestureEnabled: true }}
-      />
-
       <JobsStack.Screen
         name="JobsList"
         component={SafeJobsScreen}
@@ -250,6 +222,11 @@ export const JobsNavigator: React.FC = () => {
         }}
       />
       <JobsStack.Screen
+        name="ContractPreparation"
+        component={SafeContractPreparationScreen}
+        options={{ title: 'Prepare Contract', presentation: 'modal', gestureEnabled: true }}
+      />
+      <JobsStack.Screen
         name="ReviewSubmission"
         component={SafeReviewSubmissionScreen}
         options={{ title: 'Leave Review', presentation: 'modal', gestureEnabled: true }}
@@ -262,6 +239,11 @@ export const JobsNavigator: React.FC = () => {
           headerShown: false,
           gestureEnabled: true,
         }}
+      />
+      <JobsStack.Screen
+        name="JobEdit"
+        component={SafeJobEditScreen}
+        options={{ title: 'Edit Job', headerShown: false, gestureEnabled: true }}
       />
       <JobsStack.Screen
         name="ExploreMap"

@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Font from 'expo-font';
 import * as Sentry from '@sentry/react-native';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import { logger } from './src/utils/logger';
@@ -31,9 +32,7 @@ Sentry.init({
   debug: __DEV__,
   tracesSampleRate: __DEV__ ? 1.0 : 0.1,
   integrations: [
-    Sentry.reactNativeTracingIntegration({
-      routingInstrumentation: Sentry.reactNavigationIntegration(),
-    }),
+    Sentry.reactNavigationIntegration(),
   ],
   beforeSend(event, hint) {
     if (__DEV__ && !process.env.EXPO_PUBLIC_SENTRY_DEBUG) {
@@ -72,6 +71,15 @@ export default function App(): React.JSX.Element {
     const initialize = async (): Promise<void> => {
       try {
         logger.info('Mintenance app initializing', { service: 'app' });
+        // Load Inter font to match web app branding (falls back to System if unavailable)
+        await Font.loadAsync({
+          'Inter-Regular': require('./assets/fonts/Inter-Regular.ttf'),
+          'Inter-Medium': require('./assets/fonts/Inter-Medium.ttf'),
+          'Inter-SemiBold': require('./assets/fonts/Inter-SemiBold.ttf'),
+          'Inter-Bold': require('./assets/fonts/Inter-Bold.ttf'),
+        }).catch(() => {
+          logger.warn('Custom fonts not available, using system fonts', { service: 'app' });
+        });
         await HapticService.initialize();
       } catch (error) {
         logger.error('Initialization error', error, { service: 'app' });

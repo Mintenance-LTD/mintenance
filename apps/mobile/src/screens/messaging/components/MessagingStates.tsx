@@ -1,3 +1,9 @@
+/**
+ * MessagingStates — Loading, Error, and Empty states
+ *
+ * Empty state shows job context with quick-action suggestion pills.
+ */
+
 import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -5,7 +11,7 @@ import { theme } from '../../../theme';
 
 export const MessagingLoading: React.FC = () => (
   <View style={styles.loadingContainer}>
-    <ActivityIndicator size='large' color={theme.colors.primary} />
+    <ActivityIndicator size="large" color={theme.colors.primary} />
     <Text style={styles.loadingText}>Loading messages...</Text>
   </View>
 );
@@ -16,19 +22,59 @@ interface MessagingErrorProps {
 
 export const MessagingError: React.FC<MessagingErrorProps> = ({ onRetry }) => (
   <View style={styles.loadingContainer}>
-    <Ionicons name='warning-outline' size={48} color={theme.colors.error} />
-    <Text style={styles.errorText}>Failed to load messages</Text>
+    <View style={styles.errorIconWrap}>
+      <Ionicons name="warning-outline" size={28} color={theme.colors.error} />
+    </View>
+    <Text style={styles.errorTitle}>Failed to load messages</Text>
+    <Text style={styles.errorDesc}>Check your connection and try again.</Text>
     <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
       <Text style={styles.retryText}>Retry</Text>
     </TouchableOpacity>
   </View>
 );
 
-export const MessagingEmpty: React.FC = () => (
+interface MessagingEmptyProps {
+  jobTitle?: string;
+  onQuickMessage?: (text: string) => void;
+}
+
+const QUICK_STARTERS = [
+  { text: 'Hi there!', icon: 'hand-left-outline' as const },
+  { text: 'When are you available?', icon: 'calendar-outline' as const },
+  { text: 'Can I get a quote?', icon: 'pricetag-outline' as const },
+];
+
+export const MessagingEmpty: React.FC<MessagingEmptyProps> = ({
+  jobTitle,
+  onQuickMessage,
+}) => (
   <View style={styles.emptyContainer}>
-    <Ionicons name='chatbubbles-outline' size={48} color={theme.colors.textTertiary} />
-    <Text style={styles.emptyText}>No messages yet</Text>
-    <Text style={styles.emptySubtext}>Start the conversation!</Text>
+    <View style={styles.emptyIconWrap}>
+      <Ionicons name="chatbubbles-outline" size={32} color={theme.colors.primary} />
+    </View>
+    <Text style={styles.emptyTitle}>No Messages Yet</Text>
+    <Text style={styles.emptySubtext}>
+      {jobTitle
+        ? `Start chatting about "${jobTitle}"`
+        : 'Start the conversation!'}
+    </Text>
+
+    {onQuickMessage && (
+      <View style={styles.quickActions}>
+        {QUICK_STARTERS.map((starter) => (
+          <TouchableOpacity
+            key={starter.text}
+            style={styles.quickPill}
+            onPress={() => onQuickMessage(starter.text)}
+            accessibilityRole="button"
+            accessibilityLabel={`Send: ${starter.text}`}
+          >
+            <Ionicons name={starter.icon} size={14} color={theme.colors.primary} />
+            <Text style={styles.quickPillText}>{starter.text}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    )}
   </View>
 );
 
@@ -37,44 +83,92 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
     color: theme.colors.textSecondary,
   },
-  emptyContainer: {
+  errorIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FEE2E2',
     alignItems: 'center',
-    paddingVertical: 60,
+    justifyContent: 'center',
+    marginBottom: 12,
   },
-  emptyText: {
+  errorTitle: {
     fontSize: 18,
-    fontWeight: '500',
-    color: theme.colors.textSecondary,
-    marginTop: 16,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
   },
-  emptySubtext: {
+  errorDesc: {
     fontSize: 14,
-    color: theme.colors.textTertiary,
+    color: theme.colors.textSecondary,
     marginTop: 4,
-  },
-  errorText: {
-    fontSize: 16,
-    color: theme.colors.error,
-    marginTop: 16,
-    textAlign: 'center',
   },
   retryButton: {
     backgroundColor: theme.colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 16,
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 14,
+    marginTop: 20,
   },
   retryText: {
-    color: theme.colors.surface,
+    color: theme.colors.textInverse,
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 32,
+  },
+  emptyIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 24,
+    backgroundColor: theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    letterSpacing: -0.3,
+  },
+  emptySubtext: {
+    fontSize: 15,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 6,
+    lineHeight: 22,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 24,
+  },
+  quickPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.primaryLight,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  quickPillText: {
+    fontSize: 13,
     fontWeight: '600',
-    fontSize: 14,
+    color: theme.colors.primary,
   },
 });

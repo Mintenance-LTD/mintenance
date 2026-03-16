@@ -57,7 +57,7 @@ export const restoreSession = async (
       if (accessToken && isTokenExpiredOrExpiring(accessToken)) {
         logger.info('[AUTH] Token expired or expiring soon, refreshing...');
         try {
-          const refreshedData = await AuthService.refreshToken();
+          const refreshedData = await AuthService.refreshToken() as { session?: AuthSession } | null;
           if (refreshedData?.session) {
             dispatch.setSession(refreshedData.session);
             await saveSessionToSecureStore(refreshedData.session);
@@ -82,7 +82,7 @@ export const restoreSession = async (
     dispatch.setUser(currentUser);
     setUserContext(currentUser);
 
-    const activeSession = await AuthService.getCurrentSession();
+    const activeSession = await AuthService.getCurrentSession() as AuthSession | null;
     if (activeSession) {
       dispatch.setSession(activeSession);
       await saveSessionToSecureStore(activeSession);
@@ -116,7 +116,7 @@ export const performSignIn = async (
     );
 
     const signedInUser = result?.user ?? await AuthService.getCurrentUser();
-    const authSession = result?.session ?? await AuthService.getCurrentSession();
+    const authSession = (result?.session ?? await AuthService.getCurrentSession()) as AuthSession | null;
 
     dispatch.setUser(signedInUser);
     setUserContext(signedInUser);
@@ -162,7 +162,7 @@ export const performSignUp = async (
     );
 
     const newUser = await AuthService.getCurrentUser();
-    const authSession = await AuthService.getCurrentSession();
+    const authSession = await AuthService.getCurrentSession() as AuthSession | null;
     dispatch.setUser(newUser);
     setUserContext(newUser);
     dispatch.setSession(authSession);

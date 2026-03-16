@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { PaymentEnforcement } from '@/lib/services/payment/PaymentEnforcement';
-import { logger } from '@mintenance/shared';
+import { logger, validateStatusTransition, JOB_STATUS, ESCROW_STATUS, type JobStatus } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 
@@ -27,7 +27,9 @@ export const POST = withApiHandler(
     }
 
     // Verify job is in a completable state (must be in_progress - enforces photo workflow)
-    if (job.status !== 'in_progress') {
+    try {
+      validateStatusTransition(job.status as JobStatus, JOB_STATUS.COMPLETED as JobStatus);
+    } catch (err) {
       throw new BadRequestError(
         `Job cannot be completed from '${job.status}' status. Job must be in progress (requires before photos uploaded and job started).`
       );
@@ -58,7 +60,7 @@ export const POST = withApiHandler(
     const { error: updateError } = await serverSupabase
       .from('jobs')
       .update({
-        status: 'completed',
+        status: JOB_STATUS.COMPLETED,
         completed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
@@ -101,7 +103,7 @@ export const POST = withApiHandler(
         .from('escrow_transactions')
         .select('id')
         .eq('job_id', jobId)
-        .eq('status', 'held')
+        .eq('status', ESCROW_STATUS.HELD)
         .limit(1)
         .single();
 

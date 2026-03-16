@@ -184,6 +184,11 @@ export default function MFAVerificationScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
+          <View style={styles.lockIconWrap}>
+            <View style={styles.lockIcon}>
+              <Text style={styles.lockEmoji}>{'\uD83D\uDD12'}</Text>
+            </View>
+          </View>
           <Text style={styles.title} accessibilityRole='header'>Two-Factor Authentication</Text>
           <Text style={styles.subtitle}>
             Enter your verification code to complete login
@@ -236,7 +241,7 @@ export default function MFAVerificationScreen() {
         {/* Code input */}
         <View style={styles.inputContainer}>
           <Text style={styles.label}>
-            {method === 'totp' ? '6-digit code' : 'Backup code'}
+            {method === 'totp' ? '6-DIGIT CODE' : 'BACKUP CODE'}
           </Text>
           <TextInput
             ref={inputRef}
@@ -244,7 +249,7 @@ export default function MFAVerificationScreen() {
             value={code}
             onChangeText={handleCodeChange}
             placeholder={method === 'totp' ? '000000' : 'XXXXXXXX'}
-            placeholderTextColor={theme.colors.placeholder}
+            placeholderTextColor={theme.colors.textTertiary}
             maxLength={method === 'totp' ? 6 : 8}
             keyboardType={method === 'totp' ? 'number-pad' : 'default'}
             autoCapitalize="characters"
@@ -271,7 +276,7 @@ export default function MFAVerificationScreen() {
           accessibilityState={{ checked: rememberDevice }}
         >
           <View style={[styles.checkbox, rememberDevice && styles.checkboxChecked]}>
-            {rememberDevice && <Text style={styles.checkmark}>✓</Text>}
+            {rememberDevice && <Text style={styles.checkmark}>{'\u2713'}</Text>}
           </View>
           <Text style={styles.checkboxLabel}>Trust this device for 30 days</Text>
         </TouchableOpacity>
@@ -288,7 +293,7 @@ export default function MFAVerificationScreen() {
           accessibilityLabel={loading ? 'Verifying code' : 'Verify code'}
         >
           {loading ? (
-            <ActivityIndicator color={theme.colors.white} />
+            <ActivityIndicator color={theme.colors.textInverse} />
           ) : (
             <Text style={styles.buttonText}>Verify</Text>
           )}
@@ -336,6 +341,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 32,
   },
+  lockIconWrap: {
+    marginBottom: 16,
+  },
+  lockIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#DBEAFE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lockEmoji: {
+    fontSize: 28,
+  },
   title: {
     fontSize: 24,
     fontWeight: '700',
@@ -351,74 +370,84 @@ const styles = StyleSheet.create({
   methodSelector: {
     flexDirection: 'row',
     marginBottom: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    padding: 4,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   methodButton: {
     flex: 1,
     paddingVertical: 12,
     alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    borderRadius: 12,
   },
   methodButtonActive: {
-    borderBottomColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
   },
   methodButtonText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
     color: theme.colors.textSecondary,
   },
   methodButtonTextActive: {
-    color: '#222222',
+    color: theme.colors.textInverse,
   },
   inputContainer: {
     marginBottom: 24,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: theme.colors.textPrimary,
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: theme.colors.white,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     padding: 16,
     fontSize: 20,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     textAlign: 'center',
     letterSpacing: 4,
+    color: theme.colors.textPrimary,
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
   },
   hint: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: theme.colors.textTertiary,
     marginTop: 8,
     textAlign: 'center',
   },
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 44,
     marginBottom: 24,
   },
   checkbox: {
-    width: 20,
-    height: 20,
+    width: 24,
+    height: 24,
     borderWidth: 2,
-    borderColor: theme.colors.borderDark,
-    borderRadius: 4,
-    marginRight: 8,
+    borderColor: theme.colors.textTertiary,
+    borderRadius: 6,
+    marginRight: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#222222',
-    borderColor: '#222222',
+    backgroundColor: theme.colors.textPrimary,
+    borderColor: theme.colors.textPrimary,
   },
   checkmark: {
-    color: theme.colors.white,
+    color: theme.colors.textInverse,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -427,17 +456,17 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   button: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: 12,
+    backgroundColor: theme.colors.textPrimary,
+    borderRadius: 28,
     padding: 16,
     alignItems: 'center',
     marginBottom: 24,
   },
   buttonDisabled: {
-    backgroundColor: theme.colors.gray300,
+    opacity: 0.5,
   },
   buttonText: {
-    color: theme.colors.white,
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -445,7 +474,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
     paddingTop: 16,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: theme.colors.border,
   },
   helpText: {
@@ -455,8 +484,8 @@ const styles = StyleSheet.create({
   },
   helpLink: {
     fontSize: 14,
-    color: '#222222',
-    fontWeight: '500',
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
   },
   backButton: {
     alignItems: 'center',

@@ -18,12 +18,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { MeetingService } from '../services/MeetingService';
 import {
   ContractorMeeting,
-  ContractorLocation,
   MeetingUpdate,
   LocationData,
 } from '@mintenance/types';
-import { theme } from '../theme';
+
+import type { ContractorLocation } from '../services/meeting/types';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 // Web-compatible fallback components (react-native-maps removed for web compatibility)
 interface Region {
@@ -33,15 +34,17 @@ interface Region {
   longitudeDelta: number;
 }
 
-const MapView = ({ children, ...props }: unknown) => (
-  <View style={{ flex: 1, backgroundColor: theme.colors.surfaceSecondary, justifyContent: 'center', alignItems: 'center' }}>
-    <Text>Map view available on mobile devices</Text>
-    {children}
-  </View>
-);
+const MapView = React.forwardRef<View, { children?: React.ReactNode; style?: Record<string, unknown> }>(function MapView({ children }, ref) {
+  return (
+    <View ref={ref} style={{ flex: 1, backgroundColor: theme.colors.backgroundSecondary, justifyContent: 'center', alignItems: 'center' }}>
+      <Text>Map view available on mobile devices</Text>
+      {children}
+    </View>
+  );
+});
 
-const Marker = ({ children, ...props }: unknown) => <View {...props}>{children}</View>;
-const Polyline = ({ children, ...props }: unknown) => <View {...props}>{children}</View>;
+const Marker = ({ children, ..._props }: Record<string, unknown> & { children?: React.ReactNode }) => <View>{children}</View>;
+const Polyline = (_props: Record<string, unknown>) => <View />;
 
 interface Props {
   route: {
@@ -49,7 +52,7 @@ interface Props {
       meetingId: string;
     };
   };
-  navigation: unknown;
+  navigation: { goBack: () => void; navigate: (screen: string, params?: Record<string, unknown>) => void };
 }
 
 const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
@@ -64,9 +67,9 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const [updates, setUpdates] = useState<MeetingUpdate[]>([]);
   const [region, setRegion] = useState<Region | null>(null);
 
-  const mapRef = useRef<MapView>(null);
-  const locationSubscription = useRef<unknown>(null);
-  const meetingSubscription = useRef<unknown>(null);
+  const mapRef = useRef<View>(null);
+  const locationSubscription = useRef<{ unsubscribe: () => void } | null>(null);
+  const meetingSubscription = useRef<{ unsubscribe: () => void } | null>(null);
 
   // Travel tracking hook (for contractors)
   const travelTracking = useJobTravelTracking({
@@ -101,12 +104,8 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
     return () => {
       // Cleanup subscriptions
-      if (locationSubscription.current) {
-        locationSubscription.current.unsubscribe();
-      }
-      if (meetingSubscription.current) {
-        meetingSubscription.current.unsubscribe();
-      }
+      locationSubscription.current?.unsubscribe();
+      meetingSubscription.current?.unsubscribe();
     };
   }, []);
 
@@ -135,14 +134,14 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
       // Set initial map region
       setRegion({
-        latitude: meetingData.location.latitude,
-        longitude: meetingData.location.longitude,
+        latitude: meetingData.latitude ?? 0,
+        longitude: meetingData.longitude ?? 0,
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
       });
 
       // Load contractor location
-      const contractorLoc = await MeetingService.getContractorLocation(meetingData.contractorId);
+      const contractorLoc = await MeetingService.getContractorLocation(meetingData.contractor_id);
       setContractorLocation(contractorLoc);
 
       // Load meeting updates
@@ -150,7 +149,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
       setUpdates(meetingUpdates);
 
       // Subscribe to real-time updates
-      setupRealTimeSubscriptions(meetingData.contractorId);
+      setupRealTimeSubscriptions(meetingData.contractor_id);
     } catch (error) {
       logger.error('Error initializing meeting details:', error);
       Alert.alert('Error', 'Failed to load meeting details');
@@ -264,17 +263,16 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const getStatusColor = (status: ContractorMeeting['status']): string => {
     switch (status) {
       case 'scheduled':
-        return theme.colors.primary;
-      case 'confirmed':
-        return theme.colors.success;
+        return theme.colors.textPrimary;
+      // 'confirmed' is not a formal status; handled by 'scheduled'
       case 'in_progress':
-        return theme.colors.warning;
+        return theme.colors.accent;
       case 'completed':
-        return theme.colors.success;
+        return theme.colors.primary;
       case 'cancelled':
         return theme.colors.error;
       case 'rescheduled':
-        return theme.colors.warning;
+        return theme.colors.accent;
       default:
         return theme.colors.textSecondary;
     }
@@ -309,19 +307,19 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   if (loading || !meeting) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={theme.colors.textPrimary} />
         <Text style={styles.loadingText}>Loading meeting details...</Text>
       </View>
     );
   }
 
-  const distance = contractorLocation && meeting.location
+  const distance = contractorLocation && meeting.latitude && meeting.longitude
     ? calculateDistance(
         {
           latitude: contractorLocation.latitude,
           longitude: contractorLocation.longitude,
         },
-        meeting.location
+        { latitude: meeting.latitude, longitude: meeting.longitude }
       )
     : null;
 
@@ -343,7 +341,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           <View style={styles.meetingHeader}>
             <View style={styles.meetingTitleContainer}>
               <Text style={styles.meetingTitle}>
-                {meeting.meetingType.replace('_', ' ').toUpperCase()}
+                {meeting.meeting_type.replace('_', ' ').toUpperCase()}
               </Text>
               <View style={[styles.statusBadge, { backgroundColor: getStatusColor(meeting.status) }]}>
                 <Text style={styles.statusText}>
@@ -352,13 +350,13 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
               </View>
             </View>
             <Text style={styles.meetingTime}>
-              {formatMeetingTime(meeting.scheduledDateTime)}
+              {formatMeetingTime(meeting.scheduled_datetime)}
             </Text>
           </View>
 
           <View style={styles.participantInfo}>
             <View style={styles.participant}>
-              <Ionicons name="person-circle" size={40} color='#717171' />
+              <Ionicons name="person-circle" size={40} color={theme.colors.textSecondary} />
               <View>
                 <Text style={styles.participantName}>
                   {meeting.contractor
@@ -385,20 +383,17 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             {region && (
               <MapView
                 ref={mapRef}
-                style={styles.map}
-                region={region}
-                showsUserLocation={true}
-                showsMyLocationButton={false}
+                style={{ flex: 1 }}
               >
                 {/* Meeting Location Marker */}
                 <Marker
                   coordinate={{
-                    latitude: meeting.location.latitude,
-                    longitude: meeting.location.longitude,
+                    latitude: (meeting.latitude ?? 0),
+                    longitude: (meeting.longitude ?? 0),
                   }}
                   title="Meeting Location"
-                  description={meeting.location.address}
-                  pinColor={'#222222'}
+                  description={(meeting.address ?? '')}
+                  pinColor={theme.colors.textPrimary}
                 />
 
                 {/* Contractor Location Marker */}
@@ -410,7 +405,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                     }}
                     title="Contractor Location"
                     description="Live location"
-                    pinColor={theme.colors.success}
+                    pinColor={theme.colors.primary}
                   >
                     <View style={styles.contractorMarker}>
                       <Ionicons name="car" size={20} color={theme.colors.textInverse} />
@@ -427,11 +422,11 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                         longitude: contractorLocation.longitude,
                       },
                       {
-                        latitude: meeting.location.latitude,
-                        longitude: meeting.location.longitude,
+                        latitude: (meeting.latitude ?? 0),
+                        longitude: (meeting.longitude ?? 0),
                       },
                     ]}
-                    strokeColor={'#222222'}
+                    strokeColor={theme.colors.textPrimary}
                     strokeWidth={3}
                     lineDashPattern={[5, 10]}
                   />
@@ -443,7 +438,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             <View style={styles.locationOverlay}>
               {contractorLocation && distance && (
                 <View style={styles.distanceInfo}>
-                  <Ionicons name="location" size={16} color='#717171' />
+                  <Ionicons name="location" size={16} color={theme.colors.textSecondary} />
                   <Text style={styles.distanceText}>
                     {distance.toFixed(1)} km away
                   </Text>
@@ -472,13 +467,13 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                 onPress={travelTracking.startTracking}
                 disabled={travelTracking.error !== null}
               >
-                <Ionicons name="navigate" size={24} color={theme.colors.white} />
+                <Ionicons name="navigate" size={24} color={theme.colors.textInverse} />
                 <Text style={styles.travelButtonText}>Start Traveling</Text>
               </TouchableOpacity>
             ) : (
               <View style={styles.trackingActiveContainer}>
                 <View style={styles.etaDisplay}>
-                  <Ionicons name="time" size={20} color='#717171' />
+                  <Ionicons name="time" size={20} color={theme.colors.textSecondary} />
                   <Text style={styles.etaText}>
                     ETA: {travelTracking.eta ? `${travelTracking.eta} minutes` : 'Calculating...'}
                   </Text>
@@ -488,14 +483,14 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                     style={[styles.travelButton, styles.arrivedButton]}
                     onPress={travelTracking.markArrived}
                   >
-                    <Ionicons name="checkmark-circle" size={20} color={theme.colors.white} />
+                    <Ionicons name="checkmark-circle" size={20} color={theme.colors.textInverse} />
                     <Text style={styles.travelButtonText}>Mark Arrived</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.travelButton, styles.stopTravelButton]}
                     onPress={travelTracking.stopTracking}
                   >
-                    <Ionicons name="stop-circle" size={20} color={theme.colors.white} />
+                    <Ionicons name="stop-circle" size={20} color={theme.colors.textInverse} />
                     <Text style={styles.travelButtonText}>Stop</Text>
                   </TouchableOpacity>
                 </View>
@@ -515,7 +510,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
               style={styles.actionButton}
               onPress={handleCallContractor}
             >
-              <Ionicons name="call" size={20} color={theme.colors.success} />
+              <Ionicons name="call" size={20} color={theme.colors.primary} />
               <Text style={styles.actionButtonText}>Call</Text>
             </TouchableOpacity>
 
@@ -523,7 +518,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
               style={styles.actionButton}
               onPress={handleMessageContractor}
             >
-              <Ionicons name="chatbubble" size={20} color='#717171' />
+              <Ionicons name="chatbubble" size={20} color={theme.colors.textSecondary} />
               <Text style={styles.actionButtonText}>Message</Text>
             </TouchableOpacity>
 
@@ -531,7 +526,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
               style={styles.actionButton}
               onPress={handleReschedule}
             >
-              <Ionicons name="calendar" size={20} color='#717171' />
+              <Ionicons name="calendar" size={20} color={theme.colors.textSecondary} />
               <Text style={styles.actionButtonText}>Reschedule</Text>
             </TouchableOpacity>
 
@@ -554,7 +549,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                 <View style={styles.updateIcon}>
                   <Ionicons
                     name={
-                      update.updateType === 'schedule_change'
+                      update.updateType === 'rescheduled'
                         ? 'calendar'
                         : update.updateType === 'location_update'
                         ? 'location'
@@ -563,7 +558,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                         : 'notifications'
                     }
                     size={16}
-                    color='#717171'
+                    color={theme.colors.textSecondary}
                   />
                 </View>
                 <View style={styles.updateContent}>

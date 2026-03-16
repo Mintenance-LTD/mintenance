@@ -22,3 +22,21 @@ declare module '@react-native-community/netinfo' {
 declare module 'react-native-elements' {
   export * from 'react-native-elements/src';
 }
+
+declare module 'react-native-vector-icons/MaterialIcons' {
+  import { ComponentType } from 'react';
+  interface IconProps {
+    name: string;
+    size?: number;
+    color?: string;
+    style?: unknown;
+  }
+  const MaterialIcons: ComponentType<IconProps>;
+  export default MaterialIcons;
+}
+
+declare module 'react-native-swiper' {
+  import { ComponentType } from 'react';
+  const Swiper: ComponentType<Record<string, unknown>>;
+  export default Swiper;
+}

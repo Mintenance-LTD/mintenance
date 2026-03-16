@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/api/supabaseServer';
 import { LearningMatchingService } from '@/lib/services/agents/LearningMatchingService';
 import { PricingAgent } from '@/lib/services/agents/PricingAgent';
-import { logger } from '@mintenance/shared';
+import { logger, validateStatusTransition, validateBidTransition, JOB_STATUS, BID_STATUS, CONTRACT_STATUS, type JobStatus, type BidStatusValue } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
+import { EmailService } from '@/lib/email-service';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
 import { ForbiddenError, NotFoundError, ConflictError, InternalServerError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -109,12 +110,18 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
     });
   }
 
+  // Validate bid status transition (must be pending -> accepted)
+  validateBidTransition(bid.status as BidStatusValue, BID_STATUS.ACCEPTED as BidStatusValue);
+
+  // Validate job status transition (must be posted -> assigned)
+  validateStatusTransition(job.status as JobStatus, JOB_STATUS.ASSIGNED as JobStatus);
+
   // Check if another bid is already accepted for this job
   const { data: existingAccepted } = await serverSupabase
     .from('bids')
     .select('id')
     .eq('job_id', jobId)
-    .eq('status', 'accepted')
+    .eq('status', BID_STATUS.ACCEPTED)
     .limit(1);
 
   if (existingAccepted && existingAccepted.length > 0) {
@@ -124,7 +131,7 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
   // Step 1: Accept this bid
   const { error: acceptError } = await serverSupabase
     .from('bids')
-    .update({ status: 'accepted', updated_at: new Date().toISOString() })
+    .update({ status: BID_STATUS.ACCEPTED, updated_at: new Date().toISOString() })
     .eq('id', bidId)
     .eq('job_id', jobId);
 
@@ -145,9 +152,9 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
   // Step 2: Reject other pending bids for this job
   const { error: rejectError } = await serverSupabase
     .from('bids')
-    .update({ status: 'rejected', updated_at: new Date().toISOString() })
+    .update({ status: BID_STATUS.REJECTED, updated_at: new Date().toISOString() })
     .eq('job_id', jobId)
-    .eq('status', 'pending')
+    .eq('status', BID_STATUS.PENDING)
     .neq('id', bidId);
 
   if (rejectError) {
@@ -162,7 +169,7 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
   const { error: jobUpdateError } = await serverSupabase
     .from('jobs')
     .update({
-      status: 'assigned',
+      status: JOB_STATUS.ASSIGNED,
       contractor_id: bid.contractor_id,
       updated_at: new Date().toISOString(),
     })
@@ -229,6 +236,40 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
     // Don't fail the request if notification fails
   }
 
+  // Send email to contractor about bid acceptance
+  try {
+    const { data: contractorProfile } = await serverSupabase
+      .from('profiles')
+      .select('email, first_name, last_name, company_name')
+      .eq('id', bid.contractor_id)
+      .single();
+
+    const { data: homeownerProfile } = await serverSupabase
+      .from('profiles')
+      .select('first_name, last_name')
+      .eq('id', user.id)
+      .single();
+
+    if (contractorProfile?.email) {
+      const contractorName = contractorProfile.first_name && contractorProfile.last_name
+        ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
+        : contractorProfile.company_name || 'Contractor';
+      const homeownerName = homeownerProfile
+        ? `${homeownerProfile.first_name || ''} ${homeownerProfile.last_name || ''}`.trim() || 'Homeowner'
+        : 'Homeowner';
+
+      await EmailService.sendBidAcceptedEmail(contractorProfile.email, {
+        contractorName,
+        homeownerName,
+        jobTitle: jobDetails?.title || 'Job',
+        bidAmount: Number(bid.amount || 0),
+        viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/contractor/jobs/${jobId}`,
+      });
+    }
+  } catch (emailError) {
+    logger.error('Failed to send bid accepted email', emailError, { service: 'jobs', bidId, jobId });
+  }
+
   // Notify homeowner that bid was accepted (confirmation)
   try {
     await NotificationService.createNotification({
@@ -246,34 +287,43 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
   try {
     const welcomeMessage = `Hi! I've accepted your bid for "${jobDetails?.title || 'this job'}". Let's discuss the details and schedule a start date. Feel free to ask any questions!`;
 
-    // Ensure message_thread exists for this job
+    // Ensure message_thread exists for this job (use upsert pattern)
+    let threadId: string | undefined;
     const { data: existingThread } = await serverSupabase
       .from('message_threads')
       .select('id')
       .eq('job_id', jobId)
       .single();
 
-    if (!existingThread) {
-      await serverSupabase
+    if (existingThread) {
+      threadId = existingThread.id;
+    } else {
+      const { data: newThread } = await serverSupabase
         .from('message_threads')
         .insert({
           job_id: jobId,
           participant_ids: [user.id, bid.contractor_id].filter(Boolean),
           last_message_at: new Date().toISOString(),
-        });
+        })
+        .select('id')
+        .single();
+      threadId = newThread?.id;
     }
 
-    // Insert welcome message using production schema (job_id, receiver_id, read)
-    const { error: messageError } = await serverSupabase
+    if (!threadId) {
+      logger.error('Failed to create or find message thread', { service: 'jobs', jobId });
+    }
+
+    // Insert welcome message using production schema (thread_id, read_by, metadata)
+    const { error: messageError } = threadId ? await serverSupabase
       .from('messages')
       .insert({
-        job_id: jobId,
+        thread_id: threadId,
         sender_id: user.id,
-        receiver_id: bid.contractor_id,
         content: welcomeMessage,
         message_type: 'text',
-        read: false,
-      });
+        read_by: [user.id],
+      }) : { error: { message: 'No thread ID' } };
 
     if (messageError) {
       logger.error('Failed to create welcome message', messageError, {
@@ -286,7 +336,7 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
       await serverSupabase
         .from('message_threads')
         .update({ last_message_at: new Date().toISOString() })
-        .eq('job_id', jobId);
+        .eq('id', threadId!);
 
       logger.info('Welcome message created', {
         service: 'jobs',
@@ -311,8 +361,22 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
     // Don't fail the request if message creation fails
   }
 
-  // Auto-create draft contract from accepted bid
+  // Auto-create draft contract from accepted bid (with existence check to prevent duplicates)
   try {
+    // Check if a contract already exists for this job (idempotency guard)
+    const { data: existingContract } = await serverSupabase
+      .from('contracts')
+      .select('id')
+      .eq('job_id', jobId)
+      .limit(1);
+
+    if (existingContract && existingContract.length > 0) {
+      logger.info('Contract already exists for this job, skipping auto-creation', {
+        service: 'jobs',
+        jobId,
+        existingContractId: existingContract[0].id,
+      });
+    } else {
     const bidAmount = bid.amount || 0;
 
     const { error: contractError } = await serverSupabase
@@ -324,7 +388,7 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
         title: `Contract for ${jobDetails?.title || 'Job'}`,
         description: `Contract created from accepted bid for "${jobDetails?.title || 'this job'}"`,
         amount: bidAmount,
-        status: 'draft', // Contractor can complete and submit for homeowner signature
+        status: CONTRACT_STATUS.DRAFT, // Contractor can complete and submit for homeowner signature
         terms: {
           source: 'accepted_bid',
           bid_id: bidId,
@@ -366,6 +430,7 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
         }),
       ]);
     }
+    } // end else (no existing contract)
   } catch (contractError) {
     logger.error('Unexpected error creating draft contract', contractError, {
       service: 'jobs',
@@ -380,7 +445,7 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
       .from('bids')
       .select('id, contractor_id, amount')
       .eq('job_id', jobId)
-      .eq('status', 'rejected');
+      .eq('status', BID_STATUS.REJECTED);
 
     if (rejectedBids && rejectedBids.length > 0) {
       await Promise.all(
