@@ -356,6 +356,7 @@ export const NotificationScreen: React.FC = () => {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.tabsWrapper}
         contentContainerStyle={styles.tabsRow}
       >
         {FILTER_TABS.map((tab) => {
@@ -482,14 +483,16 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 24,
   },
+  tabsWrapper: {
+    backgroundColor: theme.colors.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
+  },
   tabsRow: {
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 12,
     gap: 8,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
   },
   tab: {
     paddingHorizontal: 16,
