@@ -21,6 +21,10 @@ interface Bid {
     company_name?: string;
     profile_image_url?: string;
     city?: string;
+    bio?: string;
+    hourly_rate?: number;
+    years_experience?: number;
+    availability?: string;
     rating?: number;
     completed_jobs?: number;
     portfolioImages?: Array<{ url: string; title?: string; category?: string }>;
@@ -290,6 +294,36 @@ export function BidComparisonTable2025({
                     </div>
                   )}
                 </div>
+
+                {/* Contractor Stats */}
+                {(bid.contractor.hourly_rate || bid.contractor.years_experience || bid.contractor.availability) && (
+                  <div className="flex flex-wrap gap-2 mb-3 text-xs">
+                    {bid.contractor.hourly_rate && (
+                      <span className="px-2 py-1 bg-teal-50 text-teal-700 rounded-full font-medium">
+                        £{bid.contractor.hourly_rate}/hr
+                      </span>
+                    )}
+                    {bid.contractor.years_experience && (
+                      <span className="px-2 py-1 bg-amber-50 text-amber-700 rounded-full font-medium">
+                        {bid.contractor.years_experience} yrs exp
+                      </span>
+                    )}
+                    {bid.contractor.availability && (
+                      <span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full font-medium">
+                        {bid.contractor.availability}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Bio Snippet */}
+                {bid.contractor.bio && (
+                  <div className="mb-3">
+                    <p className="text-xs text-gray-500 italic line-clamp-2">
+                      {bid.contractor.bio}
+                    </p>
+                  </div>
+                )}
 
                 {/* Message Preview */}
                 {bid.message && (

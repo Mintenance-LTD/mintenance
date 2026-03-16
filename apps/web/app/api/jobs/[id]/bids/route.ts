@@ -46,12 +46,16 @@ export const GET = withApiHandler(
         warranty_months,
         created_at,
         updated_at,
-        contractor:profiles!contractor_id (
+        contractor:contractor_id (
           id,
           first_name,
           last_name,
           company_name,
-          profile_image_url
+          profile_image_url,
+          city,
+          bio,
+          hourly_rate,
+          years_experience
         )
       `)
       .eq('job_id', jobId)

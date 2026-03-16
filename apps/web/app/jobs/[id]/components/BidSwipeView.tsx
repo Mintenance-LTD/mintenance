@@ -21,6 +21,10 @@ interface Bid {
     company_name?: string;
     profile_image_url?: string;
     city?: string;
+    bio?: string;
+    hourly_rate?: number;
+    years_experience?: number;
+    availability?: string;
     rating?: number;
     completed_jobs?: number;
     portfolioImages?: Array<{ url: string; title?: string; category?: string }>;
@@ -293,6 +297,45 @@ export function BidSwipeView(props: BidSwipeViewProps) {
                 )}
               </div>
             </div>
+
+            {/* Bio Snippet */}
+            {currentBid.contractor.bio && (
+              <div className="mb-4 px-1">
+                <p className="text-sm text-gray-600 italic line-clamp-2">
+                  "{currentBid.contractor.bio}"
+                </p>
+              </div>
+            )}
+
+            {/* Contractor Stats */}
+            {(currentBid.contractor.hourly_rate || currentBid.contractor.years_experience || currentBid.contractor.availability) && (
+              <div className="flex flex-wrap items-center justify-center gap-3 mb-4 text-sm">
+                {currentBid.contractor.hourly_rate && (
+                  <span className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 rounded-full text-gray-700 font-medium">
+                    <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    £{currentBid.contractor.hourly_rate}/hr
+                  </span>
+                )}
+                {currentBid.contractor.years_experience && (
+                  <span className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 rounded-full text-gray-700 font-medium">
+                    <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                    </svg>
+                    {currentBid.contractor.years_experience} yrs exp
+                  </span>
+                )}
+                {currentBid.contractor.availability && (
+                  <span className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 rounded-full text-gray-700 font-medium">
+                    <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    {currentBid.contractor.availability}
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Bid Amount - Featured */}
             <div className="mb-6 p-6 bg-gradient-to-br from-teal-50 to-teal-100 rounded-xl border-2 border-teal-200">
