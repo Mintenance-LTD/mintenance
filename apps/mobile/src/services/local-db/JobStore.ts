@@ -27,7 +27,7 @@ export async function saveJob(
      category, subcategory, priority, photos, created_at, updated_at, synced_at, is_dirty)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
-  const location = typeof job.location === 'string' ? job.location : JSON.stringify(job.location);
+  const location = typeof job.location === 'string' ? job.location : (job.location ? JSON.stringify(job.location) : '');
   const params: (string | number | null)[] = [
     job.id, job.title || '', job.description || '', location, job.homeowner_id,
     job.contractor_id ?? null, job.status, job.budget ?? null, job.category ?? null,
