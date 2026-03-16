@@ -1,37 +1,38 @@
 import React from "react";
-import { View, Text, Switch, TouchableOpacity, StyleSheet, Platform } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import { theme } from '../../theme';
 
 interface AvailabilitySectionProps {
-  emailNotifications: boolean; setEmailNotifications: (v: boolean) => void;
-  pushNotifications: boolean; setPushNotifications: (v: boolean) => void;
   onChangePassword: () => void;
   onDeleteAccount: () => void;
 }
 
 export const AvailabilitySection: React.FC<AvailabilitySectionProps> = ({
-  emailNotifications, setEmailNotifications, pushNotifications, setPushNotifications,
   onChangePassword, onDeleteAccount,
 }) => {
+  const navigation = useNavigation();
+
   return (
     <>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Notification Preferences</Text>
-        <View style={styles.switchRow}>
-          <View style={styles.switchInfo}>
-            <Text style={styles.switchLabel}>Email Notifications</Text>
-            <Text style={styles.switchDescription}>Receive updates about jobs and messages via email</Text>
+        <TouchableOpacity
+          style={styles.actionItem}
+          onPress={() => (navigation as any).navigate('NotificationSettings')}
+          accessibilityRole="button"
+          accessibilityLabel="Manage notification settings"
+        >
+          <View style={styles.actionLeft}>
+            <Ionicons name="notifications-outline" size={20} color={theme.colors.textSecondary} />
+            <View style={styles.actionInfo}>
+              <Text style={styles.actionText}>Manage Notifications</Text>
+              <Text style={styles.actionDescription}>Push, email, quiet hours, and more</Text>
+            </View>
           </View>
-          <Switch value={emailNotifications} onValueChange={setEmailNotifications} trackColor={{ false: theme.colors.border, true: theme.colors.primary }} thumbColor={theme.colors.surface} accessibilityLabel="Email notifications" />
-        </View>
-        <View style={styles.switchRow}>
-          <View style={styles.switchInfo}>
-            <Text style={styles.switchLabel}>Push Notifications</Text>
-            <Text style={styles.switchDescription}>Get instant notifications on your device</Text>
-          </View>
-          <Switch value={pushNotifications} onValueChange={setPushNotifications} trackColor={{ false: theme.colors.border, true: theme.colors.primary }} thumbColor={theme.colors.surface} accessibilityLabel="Push notifications" />
-        </View>
+          <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
+        </TouchableOpacity>
       </View>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
@@ -67,13 +68,11 @@ const styles = StyleSheet.create({
     }),
   },
   sectionTitle: { fontSize: 20, fontWeight: "700", color: theme.colors.textPrimary, marginBottom: 20 },
-  switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
-  switchInfo: { flex: 1, marginRight: 16 },
-  switchLabel: { fontSize: 16, fontWeight: "500", color: theme.colors.textPrimary, marginBottom: 4 },
-  switchDescription: { fontSize: 14, color: theme.colors.textTertiary },
   actionItem: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
-  actionLeft: { flexDirection: "row", alignItems: "center" },
+  actionLeft: { flexDirection: "row", alignItems: "center", flex: 1 },
+  actionInfo: { marginLeft: 12, flex: 1 },
   actionText: { fontSize: 16, color: theme.colors.textPrimary, marginLeft: 12, fontWeight: "500" },
+  actionDescription: { fontSize: 13, color: theme.colors.textTertiary, marginLeft: 12, marginTop: 2 },
   dangerAction: { borderBottomWidth: 0 },
   dangerText: { color: theme.colors.error },
 });

@@ -33,8 +33,6 @@ const EditProfileScreen: React.FC = () => {
   const [city, setCity] = useState("");
   const [postcode, setPostcode] = useState("");
   const [locating, setLocating] = useState(false);
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(true);
   const [gpsLat, setGpsLat] = useState<number | null>(null);
   const [gpsLng, setGpsLng] = useState<number | null>(null);
 
@@ -206,7 +204,7 @@ const EditProfileScreen: React.FC = () => {
         <PhotoSection photoUri={photoUri} firstName={firstName} lastName={lastName} profileImageUrl={user?.profile_image_url} onPickPhoto={handlePickPhoto} />
         <PersonalInfoSection firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} email={user?.email || ''} phone={phone} setPhone={setPhone} bio={bio} setBio={setBio} userRole={user?.role} />
         <LocationSection address={address} setAddress={setAddress} city={city} setCity={setCity} postcode={postcode} setPostcode={setPostcode} locating={locating} onUseMyLocation={handleUseMyLocation} />
-        <AvailabilitySection emailNotifications={emailNotifications} setEmailNotifications={setEmailNotifications} pushNotifications={pushNotifications} setPushNotifications={setPushNotifications} onChangePassword={handleChangePassword} onDeleteAccount={handleDeleteAccount} />
+        <AvailabilitySection onChangePassword={handleChangePassword} onDeleteAccount={handleDeleteAccount} />
       </ScrollView>
     </SafeAreaView>
   );
