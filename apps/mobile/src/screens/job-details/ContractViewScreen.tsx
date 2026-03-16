@@ -142,9 +142,14 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
     const appUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
     const pdfUrl = `${appUrl}/api/contracts/${contract.id}/pdf`;
     try {
-      await WebBrowser.openBrowserAsync(pdfUrl);
+      const supported = await Linking.canOpenURL(pdfUrl);
+      if (supported) {
+        await WebBrowser.openBrowserAsync(pdfUrl);
+      } else {
+        Alert.alert('Cannot Open PDF', 'Unable to open the contract PDF on this device.');
+      }
     } catch {
-      Linking.openURL(pdfUrl);
+      Alert.alert('Error', 'Failed to open contract PDF.');
     }
   }, [contract]);
 
