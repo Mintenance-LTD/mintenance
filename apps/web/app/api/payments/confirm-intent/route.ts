@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import Stripe from 'stripe';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
+import { logger, ESCROW_STATUS, validateEscrowTransition, type EscrowStatusValue } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { EmailService } from '@/lib/email-service';
 import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
@@ -103,7 +103,7 @@ export const POST = withApiHandler(
     // If not yet updated, update here as a fallback (webhook may arrive later).
     let escrowTransaction = currentEscrow;
 
-    if (currentEscrow.status === 'held') {
+    if (currentEscrow.status === ESCROW_STATUS.HELD) {
       // Webhook already processed — just return success
       logger.info('Escrow already held (webhook processed first)', {
         service: 'payments',
@@ -111,17 +111,20 @@ export const POST = withApiHandler(
         paymentIntentId,
         jobId,
       });
-    } else if (currentEscrow.status === 'pending') {
+    } else if (currentEscrow.status === ESCROW_STATUS.PENDING) {
+      // Validate escrow transition: pending -> held
+      validateEscrowTransition(currentEscrow.status as EscrowStatusValue, ESCROW_STATUS.HELD as EscrowStatusValue);
+
       // Webhook hasn't arrived yet — update as fallback
       const { data: updatedEscrow, error: escrowError } = await serverSupabase
         .from('escrow_transactions')
         .update({
-          status: 'held',
+          status: ESCROW_STATUS.HELD,
           updated_at: new Date().toISOString(),
         })
         .eq('payment_intent_id', paymentIntentId)
         .eq('job_id', jobId)
-        .eq('status', 'pending')
+        .eq('status', ESCROW_STATUS.PENDING)
         .select()
         .single();
 
@@ -134,7 +137,7 @@ export const POST = withApiHandler(
           .eq('job_id', jobId)
           .single();
 
-        if (refetched?.status === 'held') {
+        if (refetched?.status === ESCROW_STATUS.HELD) {
           escrowTransaction = refetched;
         } else {
           logger.error('Error confirming escrow transaction', escrowError, {

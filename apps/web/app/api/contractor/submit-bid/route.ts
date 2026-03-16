@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
+import { logger, JOB_STATUS } from '@mintenance/shared';
 import { BidAcceptanceAgent } from '@/lib/services/agents/BidAcceptanceAgent';
 import { PricingAgent } from '@/lib/services/agents/PricingAgent';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
@@ -177,7 +177,7 @@ export const POST = withApiHandler(
     }
 
     // Check if job is open for bids AND not already assigned
-    if (job.status !== 'posted' && job.status !== 'open') {
+    if (job.status !== JOB_STATUS.POSTED && job.status !== 'open') {
       logger.warn('Bid submitted for closed job', {
         service: 'contractor',
         jobId: validatedData.jobId,

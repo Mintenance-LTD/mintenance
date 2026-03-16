@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
+import { logger, JOB_STATUS, CONTRACT_STATUS } from '@mintenance/shared';
 import { ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { createContractSchema, updateContractSchema } from '@/lib/validation/schemas';
@@ -99,7 +99,7 @@ export const POST = withApiHandler(
       throw new ForbiddenError('Not authorized to create contract for this job');
     }
 
-    if (job.status !== 'assigned') {
+    if (job.status !== JOB_STATUS.ASSIGNED) {
       throw new BadRequestError('Job must be assigned before creating a contract');
     }
 
@@ -125,7 +125,7 @@ export const POST = withApiHandler(
       contractor_company_name,
       contractor_license_registration,
       contractor_license_type: contractor_license_type || null,
-      status: 'pending_homeowner',
+      status: CONTRACT_STATUS.PENDING_HOMEOWNER,
       updated_at: new Date().toISOString(),
     };
 
@@ -135,9 +135,9 @@ export const POST = withApiHandler(
     if (existingContract) {
       // Allow updating draft or pending_homeowner contracts (contractor can resend)
       // Block if already signed/accepted/rejected by homeowner
-      if (!['draft', 'pending_homeowner'].includes(existingContract.status)) {
+      if (!([CONTRACT_STATUS.DRAFT, CONTRACT_STATUS.PENDING_HOMEOWNER] as string[]).includes(existingContract.status)) {
         throw new BadRequestError(
-          existingContract.status === 'accepted'
+          existingContract.status === CONTRACT_STATUS.ACCEPTED
             ? 'This contract has already been signed by both parties and cannot be modified'
             : `Contract cannot be updated in current status: ${existingContract.status.replace('_', ' ')}`
         );
@@ -396,7 +396,7 @@ export const PUT = withApiHandler({}, async (request, { user }) => {
   }
 
   // Can only edit if status is draft or pending
-  if (!['draft', 'pending_contractor', 'pending_homeowner'].includes(contract.status)) {
+  if (!([CONTRACT_STATUS.DRAFT, CONTRACT_STATUS.PENDING_CONTRACTOR, CONTRACT_STATUS.PENDING_HOMEOWNER] as string[]).includes(contract.status)) {
     throw new BadRequestError('Contract cannot be edited in current status');
   }
 
@@ -417,10 +417,10 @@ export const PUT = withApiHandler({}, async (request, { user }) => {
   if (validatedUpdate.terms !== undefined) updateData.terms = validatedUpdate.terms as ContractTerms;
 
   // Update status based on who is editing
-  if (user.role === 'contractor' && contract.status === 'pending_homeowner') {
-    updateData.status = 'pending_homeowner';
-  } else if (user.role === 'homeowner' && contract.status === 'pending_contractor') {
-    updateData.status = 'pending_contractor';
+  if (user.role === 'contractor' && contract.status === CONTRACT_STATUS.PENDING_HOMEOWNER) {
+    updateData.status = CONTRACT_STATUS.PENDING_HOMEOWNER;
+  } else if (user.role === 'homeowner' && contract.status === CONTRACT_STATUS.PENDING_CONTRACTOR) {
+    updateData.status = CONTRACT_STATUS.PENDING_CONTRACTOR;
   }
 
   const { data: updatedContract, error: updateError } = await serverSupabase

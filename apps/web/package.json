@@ -54,6 +54,7 @@
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^5.2.2",
     "@mintenance/ai-core": "file:../../packages/ai-core",
+    "@mintenance/api-contracts": "file:../../packages/api-contracts",
     "@mintenance/auth": "file:../../packages/auth",
     "@mintenance/design-tokens": "file:../../packages/design-tokens",
     "@mintenance/shared": "file:../../packages/shared",

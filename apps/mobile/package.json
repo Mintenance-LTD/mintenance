@@ -47,6 +47,7 @@
     "date-fns": "^3.6.0",
     "zod": "^3.23.4",
     "@mintenance/ai-core": "file:../../packages/ai-core",
+    "@mintenance/api-contracts": "file:../../packages/api-contracts",
     "@mintenance/api-client": "file:../../packages/api-client",
     "@mintenance/design-tokens": "file:../../packages/design-tokens",
     "@mintenance/security": "file:../../packages/security",

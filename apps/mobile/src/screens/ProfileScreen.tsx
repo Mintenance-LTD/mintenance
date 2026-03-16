@@ -82,7 +82,7 @@ const ProfileScreen: React.FC = () => {
     { label: 'Time Tracking', icon: 'time-outline', iconColor: '#3B82F6', iconBg: '#DBEAFE', onPress: () => navigation.navigate('TimeTracking') },
     { label: 'Reports & Analytics', icon: 'bar-chart-outline', iconColor: '#8B5CF6', iconBg: '#EDE9FE', onPress: () => navigation.navigate('Reporting') },
     { label: 'Edit Discovery Card', icon: 'card', iconColor: theme.colors.accent, iconBg: theme.colors.accentLight, onPress: () => navigation.navigate('ContractorCardEditor') },
-    { label: 'Portfolio Gallery', icon: 'images-outline', iconColor: '#EC4899', iconBg: '#FCE7F3', onPress: () => navigation.navigate('PortfolioGallery') },
+    // Portfolio Gallery: ARCHIVED - portfolio feature removed
   ], [navigation]);
 
   const supportMenuItems = useMemo(() => [

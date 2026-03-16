@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
+import { logger, JOB_STATUS, ESCROW_STATUS, validateEscrowTransition, type EscrowStatusValue } from '@mintenance/shared';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
 import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -50,7 +50,7 @@ export const POST = withApiHandler({ roles: ['homeowner'], rateLimit: { maxReque
   }
 
   // Verify job is in completed status
-  if (job.status !== 'completed') {
+  if (job.status !== JOB_STATUS.COMPLETED) {
     throw new BadRequestError(`Cannot confirm completion - job status is ${job.status}. Contractor must mark the job as completed first`);
   }
 
@@ -116,7 +116,7 @@ export const POST = withApiHandler({ roles: ['homeowner'], rateLimit: { maxReque
       .from('escrow_transactions')
       .select('amount')
       .eq('job_id', jobId)
-      .in('status', ['held', 'release_pending'])
+      .in('status', [ESCROW_STATUS.HELD, ESCROW_STATUS.RELEASE_PENDING])
       .limit(1)
       .single();
 
@@ -147,7 +147,7 @@ export const POST = withApiHandler({ roles: ['homeowner'], rateLimit: { maxReque
       .from('escrow_transactions')
       .select('id, status, amount')
       .eq('job_id', jobId)
-      .eq('status', 'held')
+      .eq('status', ESCROW_STATUS.HELD)
       .single();
 
     if (escrowError && escrowError.code !== 'PGRST116') {
@@ -159,12 +159,15 @@ export const POST = withApiHandler({ roles: ['homeowner'], rateLimit: { maxReque
     }
 
     if (escrowTransaction) {
+      // Validate escrow transition before updating
+      validateEscrowTransition(escrowTransaction.status as EscrowStatusValue, ESCROW_STATUS.RELEASE_PENDING as EscrowStatusValue);
+
       // Update escrow status to release_pending
       // The actual Stripe transfer will be handled by a background job/cron
       const { error: releaseError } = await serverSupabase
         .from('escrow_transactions')
         .update({
-          status: 'release_pending',
+          status: ESCROW_STATUS.RELEASE_PENDING,
           updated_at: new Date().toISOString(),
         })
         .eq('id', escrowTransaction.id);

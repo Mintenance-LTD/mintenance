@@ -22,7 +22,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
-import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { theme } from '../../theme';
 
@@ -60,20 +60,15 @@ export const ExpensesScreen: React.FC = () => {
     queryKey: ['contractor-expenses', user?.id],
     queryFn: async () => {
       if (!user?.id) return { expenses: [], total: 0 };
-      const { data: rows, error: err } = await supabase
-        .from('contractor_expenses')
-        .select('*')
-        .eq('contractor_id', user.id)
-        .order('date', { ascending: false });
-      if (err) throw new Error(err.message);
+      const rows = await mobileApiClient.get<Array<Record<string, unknown>>>('/api/contractor/expenses');
       const expenses: Expense[] = (rows || []).map((e) => ({
-        id: e.id,
-        description: e.description || '',
-        category: e.category || 'other',
-        amount: e.amount || 0,
-        date: e.date || e.created_at,
-        billable: e.billable ?? e.is_billable ?? false,
-        job_id: e.job_id,
+        id: e.id as string,
+        description: (e.description as string) || '',
+        category: (e.category as string) || 'other',
+        amount: (e.amount as number) || 0,
+        date: (e.date as string) || (e.created_at as string),
+        billable: (e.billable ?? e.is_billable ?? false) as boolean,
+        job_id: e.job_id as string | undefined,
       }));
       return { expenses, total: expenses.reduce((s, e) => s + e.amount, 0) };
     },
@@ -83,15 +78,13 @@ export const ExpensesScreen: React.FC = () => {
   const createMutation = useMutation({
     mutationFn: async (expense: { description: string; category: string; amount: number; billable: boolean }) => {
       if (!user?.id) throw new Error('Not authenticated');
-      const { error: err } = await supabase.from('contractor_expenses').insert({
-        contractor_id: user.id,
+      await mobileApiClient.post('/api/contractor/expenses', {
         description: expense.description,
         category: expense.category,
         amount: expense.amount,
         billable: expense.billable,
         date: new Date().toISOString(),
       });
-      if (err) throw new Error(err.message);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contractor-expenses'] });
@@ -108,11 +101,7 @@ export const ExpensesScreen: React.FC = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (expenseId: string) => {
-      const { error: err } = await supabase
-        .from('contractor_expenses')
-        .delete()
-        .eq('id', expenseId);
-      if (err) throw new Error(err.message);
+      await mobileApiClient.delete(`/api/contractor/expenses/${expenseId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contractor-expenses'] });

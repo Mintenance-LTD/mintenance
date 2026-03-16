@@ -20,7 +20,7 @@ import { RouteProp } from '@react-navigation/native';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { Property } from '@mintenance/types';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { Badge } from '../../components/ui/Badge';
@@ -56,13 +56,8 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
   const { data: property, isLoading, error, refetch } = useQuery({
     queryKey: ['property', propertyId],
     queryFn: async () => {
-      const { data, error: err } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('id', propertyId)
-        .single();
-      if (err) throw new Error(err.message);
-      return data as Property;
+      const data = await mobileApiClient.get<Property>(`/api/properties/${propertyId}`);
+      return data;
     },
     enabled: !!user && !!propertyId,
   });
@@ -70,13 +65,14 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
   const { data: jobsData } = useQuery({
     queryKey: ['property-jobs', propertyId],
     queryFn: async () => {
-      const { data: rows, error: err } = await supabase
-        .from('jobs')
-        .select('id, title, status, budget, created_at')
-        .eq('property_id', propertyId)
-        .order('created_at', { ascending: false });
-      if (err) return [];
-      return rows || [];
+      try {
+        const rows = await mobileApiClient.get<Array<{
+          id: string; title: string; status: string; budget: number; created_at: string;
+        }>>(`/api/properties/${propertyId}/jobs`);
+        return rows || [];
+      } catch {
+        return [];
+      }
     },
     enabled: !!user && !!propertyId,
   });
@@ -88,8 +84,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      const { error: err } = await supabase.from('properties').delete().eq('id', propertyId);
-      if (err) throw new Error(err.message);
+      await mobileApiClient.delete(`/api/properties/${propertyId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['properties'] });

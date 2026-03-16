@@ -29,6 +29,7 @@ try {
 }
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { theme } from '../../theme';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -118,25 +119,19 @@ export const DocumentsScreen: React.FC = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       if (isContractor) {
-        const { data: docs, error: err } = await supabase
-          .from('contractor_documents')
-          .select('id, name, category, created_at, starred, size_bytes')
-          .eq('contractor_id', user.id)
-          .order('created_at', { ascending: false });
-        if (err) throw err;
+        const docs = await mobileApiClient.get<Array<{
+          id: string; name: string; category: string; created_at: string; starred: boolean; size_bytes?: number;
+        }>>('/api/contractor/documents');
         return (docs || []).map((d): Document => ({
           id: d.id, filename: d.name, category: d.category,
           uploaded_at: d.created_at, starred: d.starred, file_size: d.size_bytes,
         }));
       }
-      // Homeowner: aggregate contracts + bids as virtual documents
-      const { data: contracts, error: cErr } = await supabase
-        .from('contracts')
-        .select('id, title, status, created_at')
-        .eq('homeowner_id', user.id)
-        .neq('status', 'draft');
-      if (cErr) throw cErr;
-      return (contracts || []).map((c): Document => ({
+      // Homeowner: aggregate contracts as virtual documents
+      const contracts = await mobileApiClient.get<Array<{
+        id: string; title: string; status: string; created_at: string;
+      }>>('/api/contracts?role=homeowner');
+      return (contracts || []).filter((c) => c.status !== 'draft').map((c): Document => ({
         id: c.id, filename: c.title || 'Contract', category: 'contract',
         uploaded_at: c.created_at, starred: false,
       }));
@@ -155,8 +150,7 @@ export const DocumentsScreen: React.FC = () => {
       if (uploadErr) throw new Error(uploadErr.message);
       const { data: urlData } = supabase.storage.from('contractor-documents').getPublicUrl(filePath);
       const ext = file.name.split('.').pop()?.toLowerCase() || 'unknown';
-      const { error: insertErr } = await supabase.from('contractor_documents').insert({
-        contractor_id: user?.id,
+      await mobileApiClient.post('/api/contractor/documents', {
         name: file.name,
         file_type: ext,
         public_url: urlData.publicUrl,
@@ -164,7 +158,6 @@ export const DocumentsScreen: React.FC = () => {
         category: filter === 'all' ? 'other' : filter,
         size_bytes: blob.size,
       });
-      if (insertErr) throw new Error(insertErr.message);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
@@ -175,11 +168,7 @@ export const DocumentsScreen: React.FC = () => {
 
   const toggleStarMutation = useMutation({
     mutationFn: async ({ id, starred }: { id: string; starred: boolean }) => {
-      const { error: err } = await supabase
-        .from('contractor_documents')
-        .update({ starred })
-        .eq('id', id);
-      if (err) throw err;
+      await mobileApiClient.patch(`/api/contractor/documents/${id}`, { starred });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }),
   });

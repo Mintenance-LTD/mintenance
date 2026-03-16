@@ -36,10 +36,12 @@ export async function sendEmail(emailData: {
 
 export async function getEmailHistory(contractorId: string, limit: number = 50): Promise<EmailHistory[]> {
   try {
-    const { data, error } = await (await import('../../config/supabase')).supabase
-      .from('email_history').select('*')
-      .eq('contractor_id', contractorId).order('sent_at', { ascending: false }).limit(limit);
-    if (error) throw error;
-    return data || [];
+    const params = new URLSearchParams();
+    params.set('contractor_id', contractorId);
+    params.set('limit', String(limit));
+    const response = await mobileApiClient.get<{ data: EmailHistory[] }>(
+      `/api/email/history?${params.toString()}`
+    );
+    return response.data || [];
   } catch (error) { logger.error('Error fetching email history:', error); throw error; }
 }

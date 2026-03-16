@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useToast } from '../../components/ui/Toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { useAuth } from '../../contexts/AuthContext';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
@@ -78,8 +78,7 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
 
     setLoading(true);
     try {
-      const { error: err } = await supabase.from('contractor_certifications').insert({
-        contractor_id: user.id,
+      await mobileApiClient.post('/api/contractor/certifications', {
         name: certName.trim(),
         issuer: issuer.trim(),
         credential_id: credentialId.trim() || null,
@@ -87,7 +86,6 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
         expiry_date: expiryDateISO || null,
         category: selectedCategory || 'general',
       });
-      if (err) throw new Error(err.message);
       queryClient.invalidateQueries({ queryKey: ['contractor-certifications'] });
       toast.success('Certification added', `${certName} has been saved`);
       navigation.goBack();

@@ -11,10 +11,10 @@ import {
   SafeAddPropertyScreen, SafePaymentHistoryScreen, SafeSubscriptionScreen,
   SafeFinancialsScreen, SafeSettingsHubScreen, SafeBookingStatusScreen,
   SafeInsuranceScreen, SafeTeamScreen, SafeMarketingScreen, SafeMarketInsightsScreen,
-  SafeSocialScreen, SafeConnectionsScreen, SafeTrainingScreen,
+  SafeConnectionsScreen, SafeTrainingScreen,
   SafeFavoritesScreen, SafeDiscoverScreen,
   SafeMFASecurityScreen, SafeDataExportScreen, SafeDeleteAccountScreen,
-  SafePortfolioGalleryScreen, SafeEscrowDashboardScreen,
+  SafeEscrowDashboardScreen,
 } from "./profile/ProfileAccountNavigator";
 
 // Business-related screen wrappers
@@ -80,7 +80,7 @@ export const ProfileNavigator = () => {
       <ProfileStack.Screen name="Team" component={SafeTeamScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="Marketing" component={SafeMarketingScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="MarketInsights" component={SafeMarketInsightsScreen} options={{ headerShown: false }} />
-      <ProfileStack.Screen name="Social" component={SafeSocialScreen} options={{ headerShown: false }} />
+      {/* Social: ARCHIVED - social feature removed */}
       <ProfileStack.Screen name="Connections" component={SafeConnectionsScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="Training" component={SafeTrainingScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="Favorites" component={SafeFavoritesScreen} options={{ headerShown: false }} />
@@ -88,7 +88,7 @@ export const ProfileNavigator = () => {
       <ProfileStack.Screen name="MFASecurity" component={SafeMFASecurityScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="DataExport" component={SafeDataExportScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="DeleteAccount" component={SafeDeleteAccountScreen} options={{ headerShown: false }} />
-      <ProfileStack.Screen name="PortfolioGallery" component={SafePortfolioGalleryScreen} options={{ headerShown: false }} />
+      {/* PortfolioGallery: ARCHIVED - portfolio feature removed */}
       <ProfileStack.Screen name="EscrowDashboard" component={SafeEscrowDashboardScreen} options={{ headerShown: false }} />
     </ProfileStack.Navigator>
   );

@@ -3,7 +3,7 @@ import { LocationData, ContractorMeeting } from '@mintenance/types';
 import { logger } from '../../utils/logger';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { JobContextLocationService, ContractorLocationContext } from '../JobContextLocationService';
-import { normalizeSupabaseError } from './MeetingHelpers';
+
 import { getMeetingById, updateMeetingStatus, createMeetingUpdate } from './MeetingCRUD';
 import type { ContractorLocation, DatabaseContractorLocationRow, RealtimePayload } from './types';
 
@@ -42,13 +42,26 @@ export async function updateContractorLocation(
 
 export async function getContractorLocation(contractorId: string): Promise<ContractorLocation | null> {
   try {
-    const { data, error } = await supabase.from('contractor_locations').select('*').eq('contractor_id', contractorId).eq('is_active', true).order('timestamp', { ascending: false }).limit(1).single();
-    if (error) {
-      if (error.code === 'PGRST116') return null;
-      throw normalizeSupabaseError(error, 'Failed to fetch contractor location');
-    }
-    return data ? { id: data.id, contractorId: data.contractor_id, latitude: data.latitude, longitude: data.longitude, accuracy: data.accuracy, timestamp: data.timestamp, isActive: data.is_active, meetingId: data.meeting_id } : null;
+    const response = await mobileApiClient.get<{
+      id: string; contractor_id: string; latitude: number; longitude: number;
+      accuracy: number; timestamp: string; is_active: boolean; meeting_id: string | null;
+    }>(
+      `/api/contractor/profile/location?contractorId=${encodeURIComponent(contractorId)}`
+    );
+    return response ? {
+      id: response.id,
+      contractorId: response.contractor_id,
+      latitude: response.latitude,
+      longitude: response.longitude,
+      accuracy: response.accuracy,
+      timestamp: response.timestamp,
+      isActive: response.is_active,
+      meetingId: response.meeting_id,
+    } : null;
   } catch (error) {
+    // 404 means no active location found
+    const apiError = error as { statusCode?: number };
+    if (apiError.statusCode === 404) return null;
     logger.error('Error fetching contractor location:', error);
     throw error;
   }

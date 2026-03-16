@@ -3,7 +3,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { stripe } from '@/lib/stripe';
 import { validateRequest } from '@/lib/validation/validator';
 import { releaseEscrowSchema } from '@/lib/validation/schemas';
-import { logger } from '@mintenance/shared';
+import { logger, ESCROW_STATUS, JOB_STATUS } from '@mintenance/shared';
 import { PaymentStateMachine, PaymentAction, PaymentState } from '@/lib/payment-state-machine';
 import { EscrowReleaseAgent } from '@/lib/services/agents/EscrowReleaseAgent';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
@@ -325,7 +325,7 @@ export const POST = withApiHandler(
     }
 
     // If auto-release is enabled and job is completed, evaluate auto-release conditions
-    if (releaseReason === 'job_completed' && job.status === 'completed') {
+    if (releaseReason === 'job_completed' && job.status === JOB_STATUS.COMPLETED) {
       const autoReleaseEval = await EscrowReleaseAgent.evaluateAutoRelease(escrowTransactionId);
       
       // If auto-release evaluation delayed the release due to risk, inform the user
@@ -339,7 +339,7 @@ export const POST = withApiHandler(
     }
 
     // Calculate auto-release date if not set (for future reference)
-    if (releaseReason === 'job_completed' && job.status === 'completed') {
+    if (releaseReason === 'job_completed' && job.status === JOB_STATUS.COMPLETED) {
       await EscrowReleaseAgent.calculateAutoReleaseDate(
         escrowTransactionId,
         job.id,
@@ -408,7 +408,7 @@ export const POST = withApiHandler(
     const { data: pendingEscrow, error: pendingError } = await serverSupabase
       .from('escrow_transactions')
       .update({
-        status: 'release_pending',
+        status: ESCROW_STATUS.RELEASE_PENDING,
         reconciliation_id: reconciliationId,
         transfer_attempted_at: new Date().toISOString(),
         release_reason: releaseReason,
@@ -457,7 +457,7 @@ export const POST = withApiHandler(
       await serverSupabase
         .from('escrow_transactions')
         .update({
-          status: 'held',
+          status: ESCROW_STATUS.HELD,
           reconciliation_id: null,
           transfer_attempted_at: null,
           release_reason: null,
@@ -520,7 +520,7 @@ export const POST = withApiHandler(
         updated_at: new Date().toISOString(),
       })
       .eq('id', escrowTransactionId)
-      .eq('status', 'release_pending')
+      .eq('status', ESCROW_STATUS.RELEASE_PENDING)
       .select();
 
     if (updateError) {
@@ -590,7 +590,7 @@ export const POST = withApiHandler(
     if (releaseReason === 'job_completed') {
       await serverSupabase
         .from('jobs')
-        .update({ status: 'completed', updated_at: new Date().toISOString() })
+        .update({ status: JOB_STATUS.COMPLETED, updated_at: new Date().toISOString() })
         .eq('id', job.id);
     }
 

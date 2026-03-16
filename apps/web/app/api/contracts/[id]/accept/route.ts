@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
+import { logger, CONTRACT_STATUS } from '@mintenance/shared';
 import { isValidUUID } from '@/lib/validation/uuid';
 import { ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -39,7 +39,7 @@ export const POST = withApiHandler(
     }
 
     // Block signing draft contracts — contractor must prepare details first
-    if (contract.status === 'draft') {
+    if (contract.status === CONTRACT_STATUS.DRAFT) {
       throw new BadRequestError('Cannot sign a draft contract. The contractor must prepare the contract details first.');
     }
 
@@ -65,17 +65,17 @@ export const POST = withApiHandler(
       updateData.contractor_signed_at = new Date().toISOString();
       // If homeowner already signed, contract is accepted
       if (contract.homeowner_signed_at) {
-        updateData.status = 'accepted';
+        updateData.status = CONTRACT_STATUS.ACCEPTED;
       } else {
-        updateData.status = 'pending_homeowner';
+        updateData.status = CONTRACT_STATUS.PENDING_HOMEOWNER;
       }
     } else if (isHomeowner) {
       updateData.homeowner_signed_at = new Date().toISOString();
       // If contractor already signed, contract is accepted
       if (contract.contractor_signed_at) {
-        updateData.status = 'accepted';
+        updateData.status = CONTRACT_STATUS.ACCEPTED;
       } else {
-        updateData.status = 'pending_contractor';
+        updateData.status = CONTRACT_STATUS.PENDING_CONTRACTOR;
       }
     }
 
@@ -96,7 +96,7 @@ export const POST = withApiHandler(
     }
 
     // Notify the other party that they need to sign (if contract is not yet fully accepted)
-    if (updatedContract.status !== 'accepted') {
+    if (updatedContract.status !== CONTRACT_STATUS.ACCEPTED) {
       const otherPartyId = isContractor ? contract.homeowner_id : contract.contractor_id;
       const otherPartyRole = isContractor ? 'homeowner' : 'contractor';
       
@@ -168,7 +168,7 @@ export const POST = withApiHandler(
     }
 
     // If contract is now accepted, create notifications and schedule job
-    if (updatedContract.status === 'accepted') {
+    if (updatedContract.status === CONTRACT_STATUS.ACCEPTED) {
       // Notify both parties
       try {
         await Promise.all([
@@ -356,7 +356,7 @@ export const POST = withApiHandler(
     return NextResponse.json({
       success: true,
       contract: updatedContract,
-      message: updatedContract.status === 'accepted'
+      message: updatedContract.status === CONTRACT_STATUS.ACCEPTED
         ? 'Contract accepted! Both parties have signed.'
         : 'Contract signed. Waiting for other party to sign.',
     });

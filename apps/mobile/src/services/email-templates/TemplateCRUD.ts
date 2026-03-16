@@ -1,5 +1,4 @@
 import { mobileApiClient } from '../../utils/mobileApiClient';
-import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
 import type { EmailTemplate } from './types';
 
@@ -26,12 +25,10 @@ export async function createTemplate(templateData: {
 
 export async function getTemplates(contractorId: string): Promise<EmailTemplate[]> {
   try {
-    const { data, error } = await supabase.from('email_templates').select('*')
-      .eq('contractor_id', contractorId)
-      .order('template_category', { ascending: true })
-      .order('template_name', { ascending: true });
-    if (error) throw error;
-    return data || [];
+    const response = await mobileApiClient.get<{ data: EmailTemplate[] }>(
+      `/api/email/templates?contractor_id=${encodeURIComponent(contractorId)}`
+    );
+    return response.data || [];
   } catch (error) { logger.error('Error fetching email templates:', error); throw error; }
 }
 
@@ -39,20 +36,29 @@ export async function getTemplatesByCategory(
   contractorId: string, category: EmailTemplate['template_category']
 ): Promise<EmailTemplate[]> {
   try {
-    const { data, error } = await supabase.from('email_templates').select('*')
-      .eq('contractor_id', contractorId).eq('template_category', category).eq('is_active', true)
-      .order('template_name', { ascending: true });
-    if (error) throw error;
-    return data || [];
+    const params = new URLSearchParams();
+    params.set('contractor_id', contractorId);
+    params.set('category', category);
+    params.set('is_active', 'true');
+    const response = await mobileApiClient.get<{ data: EmailTemplate[] }>(
+      `/api/email/templates?${params.toString()}`
+    );
+    return response.data || [];
   } catch (error) { logger.error('Error fetching templates by category:', error); throw error; }
 }
 
 export async function getTemplate(templateId: string): Promise<EmailTemplate | null> {
   try {
-    const { data, error } = await supabase.from('email_templates').select('*').eq('id', templateId).single();
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
-  } catch (error) { logger.error('Error fetching email template:', error); return null; }
+    const response = await mobileApiClient.get<{ data: EmailTemplate }>(
+      `/api/email/templates/${templateId}`
+    );
+    return response.data || null;
+  } catch (error) {
+    const apiError = error as { statusCode?: number };
+    if (apiError.statusCode === 404) return null;
+    logger.error('Error fetching email template:', error);
+    return null;
+  }
 }
 
 export async function updateTemplate(templateId: string, updates: Partial<EmailTemplate>): Promise<EmailTemplate> {

@@ -7,6 +7,7 @@ import { RealAIAnalysisService } from './RealAIAnalysisService';
 import { PaymentService } from './PaymentService';
 import { MessagingService } from './MessagingService';
 import { NotificationService } from './NotificationService';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import type { Job } from '@mintenance/types';
 import { logger } from '../utils/logger';
 
@@ -240,13 +241,11 @@ export class IntegrationTestService {
       },
     };
 
-    // Test database connection
+    // Test database connection via API
     try {
-      // Simple query to test database
-      const { supabase } = await import('../config/supabase');
-      const { error } = await supabase.from('profiles').select('id').limit(1);
-      health.services.database = !error;
-    } catch (error) {
+      const result = await mobileApiClient.get<{ status: string }>('/api/health');
+      health.services.database = result?.status === 'ok' || result?.status === 'healthy';
+    } catch {
       health.services.database = false;
     }
 

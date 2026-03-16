@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/api/supabaseServer';
 import { LearningMatchingService } from '@/lib/services/agents/LearningMatchingService';
 import { PricingAgent } from '@/lib/services/agents/PricingAgent';
-import { logger } from '@mintenance/shared';
+import { logger, validateStatusTransition, validateBidTransition, JOB_STATUS, BID_STATUS, CONTRACT_STATUS, type JobStatus, type BidStatusValue } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { EmailService } from '@/lib/email-service';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
@@ -110,12 +110,18 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
     });
   }
 
+  // Validate bid status transition (must be pending -> accepted)
+  validateBidTransition(bid.status as BidStatusValue, BID_STATUS.ACCEPTED as BidStatusValue);
+
+  // Validate job status transition (must be posted -> assigned)
+  validateStatusTransition(job.status as JobStatus, JOB_STATUS.ASSIGNED as JobStatus);
+
   // Check if another bid is already accepted for this job
   const { data: existingAccepted } = await serverSupabase
     .from('bids')
     .select('id')
     .eq('job_id', jobId)
-    .eq('status', 'accepted')
+    .eq('status', BID_STATUS.ACCEPTED)
     .limit(1);
 
   if (existingAccepted && existingAccepted.length > 0) {
@@ -125,7 +131,7 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
   // Step 1: Accept this bid
   const { error: acceptError } = await serverSupabase
     .from('bids')
-    .update({ status: 'accepted', updated_at: new Date().toISOString() })
+    .update({ status: BID_STATUS.ACCEPTED, updated_at: new Date().toISOString() })
     .eq('id', bidId)
     .eq('job_id', jobId);
 
@@ -146,9 +152,9 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
   // Step 2: Reject other pending bids for this job
   const { error: rejectError } = await serverSupabase
     .from('bids')
-    .update({ status: 'rejected', updated_at: new Date().toISOString() })
+    .update({ status: BID_STATUS.REJECTED, updated_at: new Date().toISOString() })
     .eq('job_id', jobId)
-    .eq('status', 'pending')
+    .eq('status', BID_STATUS.PENDING)
     .neq('id', bidId);
 
   if (rejectError) {
@@ -163,7 +169,7 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
   const { error: jobUpdateError } = await serverSupabase
     .from('jobs')
     .update({
-      status: 'assigned',
+      status: JOB_STATUS.ASSIGNED,
       contractor_id: bid.contractor_id,
       updated_at: new Date().toISOString(),
     })
@@ -382,7 +388,7 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
         title: `Contract for ${jobDetails?.title || 'Job'}`,
         description: `Contract created from accepted bid for "${jobDetails?.title || 'this job'}"`,
         amount: bidAmount,
-        status: 'draft', // Contractor can complete and submit for homeowner signature
+        status: CONTRACT_STATUS.DRAFT, // Contractor can complete and submit for homeowner signature
         terms: {
           source: 'accepted_bid',
           bid_id: bidId,
@@ -439,7 +445,7 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
       .from('bids')
       .select('id, contractor_id, amount')
       .eq('job_id', jobId)
-      .eq('status', 'rejected');
+      .eq('status', BID_STATUS.REJECTED);
 
     if (rejectedBids && rejectedBids.length > 0) {
       await Promise.all(

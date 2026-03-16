@@ -133,10 +133,10 @@ export type ProfileStackParamList = {
   Team: undefined;
   Marketing: undefined;
   MarketInsights: undefined;
-  Social: undefined;
+  // Social: ARCHIVED - social feature removed
   Connections: undefined;
   Training: undefined;
-  PortfolioGallery: undefined;
+  // PortfolioGallery: ARCHIVED - portfolio feature removed
   EscrowDashboard: undefined;
   // Homeowner/shared feature parity screens
   Favorites: undefined;

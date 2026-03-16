@@ -10,7 +10,6 @@ import { styles } from './contractorCardStyles';
 import SwipeableCardWrapper from './SwipeableCardWrapper';
 import { Ionicons } from '@expo/vector-icons';
 import { ContractorProfile } from '@mintenance/types';
-import ConnectButton from './ConnectButton';
 import { theme } from '../theme';
 
 interface Props {
@@ -324,17 +323,6 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
         <TouchableOpacity style={styles.passButton} onPress={onPass} accessibilityRole="button" accessibilityLabel="Pass on this contractor">
           <Ionicons name='close' size={30} color={theme.colors.error} />
         </TouchableOpacity>
-
-        {currentUserId && (
-          <ConnectButton
-            currentUserId={currentUserId}
-            targetUserId={contractor.id}
-            targetUserName={`${contractor.firstName || contractor.first_name} ${contractor.lastName || contractor.last_name}`}
-            targetUserRole="contractor"
-            size="medium"
-            style={styles.connectButton}
-          />
-        )}
 
         <TouchableOpacity style={styles.likeButton} onPress={onLike} accessibilityRole="button" accessibilityLabel="Like this contractor">
           <Ionicons name='leaf' size={30} color={theme.colors.primary} />

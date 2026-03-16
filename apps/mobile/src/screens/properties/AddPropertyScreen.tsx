@@ -22,7 +22,7 @@ import { ScreenHeader } from '../../components/shared';
 import { DatePicker } from '../../components/ui/DatePicker';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { theme } from '../../theme';
@@ -66,8 +66,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
       const address = [data.address_line1, data.address_line2, data.city, data.county, data.postcode]
         .filter(Boolean).join(', ');
       const propertyName = `${data.property_type || 'Property'} at ${data.address_line1}`;
-      const { error } = await supabase.from('properties').insert({
-        owner_id: user.id,
+      await mobileApiClient.post('/api/properties', {
         property_name: propertyName,
         address,
         property_type: 'residential',
@@ -77,7 +76,6 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
         bathrooms: data.bathrooms || null,
         is_primary: false,
       });
-      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['properties'] });

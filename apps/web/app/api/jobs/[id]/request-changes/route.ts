@@ -7,7 +7,7 @@
 import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
+import { logger, JOB_STATUS } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { EmailService } from '@/lib/email-service';
 import { NotFoundError, BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
@@ -38,15 +38,17 @@ export const POST = withApiHandler(
       throw new ForbiddenError('Only the homeowner can request changes');
     }
 
-    if (job.status !== 'completed') {
+    if (job.status !== JOB_STATUS.COMPLETED) {
       throw new BadRequestError('Can only request changes on completed jobs');
     }
 
     // 2. Roll back job status to in_progress so contractor can re-do work
+    // Note: This is a special business rule — homeowner requesting changes bypasses
+    // the normal terminal state restriction on 'completed' jobs.
     const { error: updateError } = await serverSupabase
       .from('jobs')
       .update({
-        status: 'in_progress',
+        status: JOB_STATUS.IN_PROGRESS,
         completed_at: null,
         updated_at: new Date().toISOString(),
       })
