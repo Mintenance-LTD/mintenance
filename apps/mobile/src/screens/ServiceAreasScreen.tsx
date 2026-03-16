@@ -11,6 +11,7 @@ import type { ServiceArea } from '../services/ServiceAreasService';
 import { DeleteConfirmationModal } from '../components/service-areas/DeleteConfirmationModal';
 import { CreateServiceAreaModal } from '../components/service-areas/CreateServiceAreaModal';
 import { useServiceAreas } from '../hooks/useServiceAreas';
+import { useAuth } from '../contexts/AuthContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { theme } from '../theme';
 
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export const ServiceAreasScreen: React.FC<Props> = ({ navigation }) => {
+  const { user } = useAuth();
   const {
     serviceAreas, loading, refreshing, selectedArea,
     deleteModalVisible, setDeleteModalVisible,
@@ -28,6 +30,15 @@ export const ServiceAreasScreen: React.FC<Props> = ({ navigation }) => {
     handleRefresh, handleCreateServiceArea,
     handleToggleActive, handleDeletePress, handleDeleteConfirm,
   } = useServiceAreas();
+
+  // Derive profile address from user object for pre-filling the create modal
+  const profileAddress = user ? {
+    address: user.address,
+    city: user.city,
+    postcode: user.postcode,
+    latitude: user.latitude,
+    longitude: user.longitude,
+  } : undefined;
 
   if (loading) return <LoadingSpinner message="Loading service areas..." />;
 
@@ -146,6 +157,7 @@ export const ServiceAreasScreen: React.FC<Props> = ({ navigation }) => {
         onClose={() => setCreateModalVisible(false)}
         onCreated={() => setCreateModalVisible(false)}
         onCreate={handleCreateServiceArea}
+        defaultAddress={profileAddress}
       />
     </SafeAreaView>
   );

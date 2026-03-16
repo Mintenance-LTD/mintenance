@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,15 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
+import { mobileApiClient } from '../../utils/mobileApiClient';
+
+interface ProfileAddress {
+  address?: string;
+  city?: string;
+  postcode?: string;
+  latitude?: number;
+  longitude?: number;
+}
 
 interface CreateServiceAreaModalProps {
   visible: boolean;
@@ -26,6 +35,7 @@ interface CreateServiceAreaModalProps {
     radius_km: number;
     is_primary_area: boolean;
   }) => Promise<void>;
+  defaultAddress?: ProfileAddress;
 }
 
 const RADIUS_OPTIONS = [5, 10, 15, 20, 30, 50];
@@ -35,6 +45,7 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
   onClose,
   onCreated,
   onCreate,
+  defaultAddress,
 }) => {
   const [areaName, setAreaName] = useState('');
   const [postcode, setPostcode] = useState('');
@@ -42,6 +53,32 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
   const [isPrimary, setIsPrimary] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [prefilledCoords, setPrefilledCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const hasPrefilledRef = useRef(false);
+
+  // Pre-fill from profile address when modal opens for the first time
+  useEffect(() => {
+    if (visible && defaultAddress && !hasPrefilledRef.current) {
+      hasPrefilledRef.current = true;
+      if (defaultAddress.city) setAreaName(defaultAddress.city);
+      if (defaultAddress.postcode) setPostcode(defaultAddress.postcode);
+      if (defaultAddress.latitude != null && defaultAddress.longitude != null) {
+        setPrefilledCoords({ lat: defaultAddress.latitude, lon: defaultAddress.longitude });
+      }
+    }
+    if (!visible) {
+      hasPrefilledRef.current = false;
+    }
+  }, [visible, defaultAddress]);
+
+  const fillFromProfile = () => {
+    if (!defaultAddress) return;
+    if (defaultAddress.city) setAreaName(defaultAddress.city);
+    if (defaultAddress.postcode) setPostcode(defaultAddress.postcode);
+    if (defaultAddress.latitude != null && defaultAddress.longitude != null) {
+      setPrefilledCoords({ lat: defaultAddress.latitude, lon: defaultAddress.longitude });
+    }
+  };
 
   const reset = () => {
     setAreaName('');
@@ -50,6 +87,7 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
     setIsPrimary(false);
     setGeocoding(false);
     setSaving(false);
+    setPrefilledCoords(null);
   };
 
   const handleClose = () => {
@@ -61,16 +99,11 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
     query: string
   ): Promise<{ lat: number; lon: number } | null> => {
     try {
-      const encoded = encodeURIComponent(query + ', UK');
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1&addressdetails=1`,
-        { headers: { 'Accept-Language': 'en' } }
+      const response = await mobileApiClient.post<{ latitude: number; longitude: number; formatted_address: string }>(
+        '/api/geocode-proxy',
+        { address: query + ', UK' }
       );
-      const results = await res.json();
-      if (results && results.length > 0) {
-        return { lat: parseFloat(results[0].lat), lon: parseFloat(results[0].lon) };
-      }
-      return null;
+      return { lat: response.latitude, lon: response.longitude };
     } catch {
       return null;
     }
@@ -89,9 +122,21 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
       return;
     }
 
-    setGeocoding(true);
-    const coords = await geocodePostcode(postcodeTrimmed);
-    setGeocoding(false);
+    // Use pre-filled coordinates if the postcode hasn't been changed from profile default
+    const useProfileCoords =
+      prefilledCoords &&
+      defaultAddress?.postcode &&
+      postcodeTrimmed.toUpperCase().replace(/\s/g, '') ===
+        defaultAddress.postcode.toUpperCase().replace(/\s/g, '');
+
+    let coords: { lat: number; lon: number } | null;
+    if (useProfileCoords) {
+      coords = prefilledCoords;
+    } else {
+      setGeocoding(true);
+      coords = await geocodePostcode(postcodeTrimmed);
+      setGeocoding(false);
+    }
 
     if (!coords) {
       Alert.alert(
@@ -147,6 +192,18 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
+            {/* Use profile address shortcut */}
+            {defaultAddress?.postcode && (
+              <TouchableOpacity
+                style={styles.profileBtn}
+                onPress={fillFromProfile}
+                disabled={isLoading}
+              >
+                <Ionicons name="person-circle-outline" size={18} color={theme.colors.primary} />
+                <Text style={styles.profileBtnText}>Use My Profile Address</Text>
+              </TouchableOpacity>
+            )}
+
             {/* Area name */}
             <Text style={styles.label}>Area Name *</Text>
             <TextInput
@@ -281,6 +338,21 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
     color: theme.colors.textPrimary,
+  },
+  profileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: theme.colors.primaryLight || '#EFF6FF',
+    marginBottom: 8,
+  },
+  profileBtnText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.colors.primary,
   },
   hint: {
     fontSize: 12,

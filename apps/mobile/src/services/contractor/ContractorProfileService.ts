@@ -40,6 +40,7 @@ export async function updateContractorProfile(
         longitude: profileData.longitude,
         company_name: profileData.companyName,
         company_logo: profileData.companyLogo,
+        business_address: profileData.businessAddress,
         hourly_rate: profileData.hourly_rate || profileData.hourlyRate,
         years_experience: profileData.years_experience || profileData.yearsExperience,
         service_radius: profileData.serviceRadius,
