@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { logger } from '../utils/logger';
-import { supabase } from '../config/supabase';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import { useAuth } from '../contexts/AuthContext';
 import type { ServiceArea } from '../services/ServiceAreasService';
 
@@ -25,14 +25,13 @@ export const useServiceAreas = () => {
   const loadServiceAreas = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const { data, error } = await supabase
-        .from('service_areas')
-        .select('*')
-        .eq('contractor_id', user.id)
-        .order('priority_level', { ascending: true });
-
-      if (error) throw error;
-      setServiceAreas((data as ServiceArea[]) ?? []);
+      const raw = await mobileApiClient.get<unknown>('/api/contractor/service-areas');
+      const areas = Array.isArray(raw)
+        ? raw
+        : (raw as Record<string, unknown>)?.serviceAreas
+          || (raw as Record<string, unknown>)?.service_areas
+          || [];
+      setServiceAreas(areas as ServiceArea[]);
     } catch (error) {
       logger.error('Error loading service areas', error);
       Alert.alert('Error', 'Failed to load service areas');
@@ -53,29 +52,15 @@ export const useServiceAreas = () => {
 
   const handleCreateServiceArea = async (input: CreateServiceAreaInput): Promise<void> => {
     if (!user?.id) return;
-    const { error } = await supabase
-      .from('service_areas')
-      .insert({
-        contractor_id: user.id,
-        area_name: input.area_name,
-        area_type: 'radius',
-        center_latitude: input.center_latitude,
-        center_longitude: input.center_longitude,
-        radius_km: input.radius_km,
-        is_primary_area: input.is_primary_area,
-        is_active: true,
-      });
-    if (error) throw error;
+    await mobileApiClient.post('/api/contractor/add-service-area', input);
     await loadServiceAreas();
   };
 
   const handleToggleActive = async (area: ServiceArea) => {
     try {
-      const { error } = await supabase
-        .from('service_areas')
-        .update({ is_active: !area.is_active })
-        .eq('id', area.id);
-      if (error) throw error;
+      await mobileApiClient.patch(`/api/contractor/service-areas/${area.id}`, {
+        is_active: !area.is_active,
+      });
       await loadServiceAreas();
       Alert.alert(
         'Updated',
@@ -95,11 +80,7 @@ export const useServiceAreas = () => {
     if (!selectedArea) return;
 
     try {
-      const { error } = await supabase
-        .from('service_areas')
-        .delete()
-        .eq('id', selectedArea.id);
-      if (error) throw error;
+      await mobileApiClient.delete(`/api/contractor/service-areas/${selectedArea.id}`);
       await loadServiceAreas();
       Alert.alert('Deleted', 'Service area deleted successfully');
     } catch {
