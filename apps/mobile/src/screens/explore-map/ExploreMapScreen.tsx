@@ -16,15 +16,17 @@ import {
   Easing,
   StatusBar,
   Platform,
+  FlatList,
+  Dimensions,
 } from 'react-native';
+import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { JobsStackParamList } from '../../navigation/types';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
-import { useExploreMapViewModel } from './viewmodels/ExploreMapViewModel';
-import { JobPreviewCard } from './components';
+import { useExploreMapViewModel, type JobMapItem } from './viewmodels/ExploreMapViewModel';
 import { theme } from '../../theme';
 
 // Category marker config — icon + color per trade
@@ -83,6 +85,62 @@ const LoadingDots: React.FC = () => {
   );
 };
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+const CARD_WIDTH = Dimensions.get('window').width * 0.7;
+
+// ── Carousel Card ────────────────────────────────────────────────────────────
+const CarouselCard: React.FC<{
+  job: JobMapItem;
+  isSelected: boolean;
+  onPress: () => void;
+  onBid: () => void;
+  onDetails: () => void;
+}> = ({ job, isSelected, onPress, onBid, onDetails }) => {
+  const budget = job.budget_max || job.budget_min;
+  const budgetText = budget ? `£${budget.toLocaleString()}` : 'TBD';
+  const catKey = job.category.toLowerCase();
+  const catMarker = CATEGORY_MARKERS[catKey] ?? CATEGORY_MARKERS.general;
+
+  return (
+    <TouchableOpacity
+      style={[styles.carouselCard, isSelected && styles.carouselCardSelected]}
+      onPress={onPress}
+      activeOpacity={0.95}
+    >
+      <View style={styles.carouselCardHeader}>
+        <Text style={styles.carouselBudget}>{budgetText}</Text>
+        <View style={[styles.carouselCatPill, { backgroundColor: catMarker.bg + '20' }]}>
+          <Ionicons name={catMarker.icon} size={12} color={catMarker.bg} />
+        </View>
+      </View>
+      <Text style={styles.carouselTitle} numberOfLines={1}>{job.title}</Text>
+      <Text style={styles.carouselMeta}>
+        {job.distance} km · {timeAgo(job.created_at)}
+      </Text>
+      <View style={styles.carouselActions}>
+        <TouchableOpacity style={styles.carouselBidBtn} onPress={onBid}>
+          <Ionicons name="flash" size={13} color="#FFF" />
+          <Text style={styles.carouselBidText}>Quick Bid</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.carouselDetailsBtn} onPress={onDetails}>
+          <Text style={styles.carouselDetailsText}>Details</Text>
+          <Ionicons name="arrow-forward" size={12} color={theme.colors.textPrimary} />
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
 interface ExploreMapScreenProps {
   onBackToList?: () => void;
 }
@@ -91,6 +149,22 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({ onBackToList
   const insets = useSafeAreaInsets();
   const viewModel = useExploreMapViewModel();
   const navigation = useNavigation<NativeStackNavigationProp<JobsStackParamList>>();
+  const mapRef = useRef<MapView>(null);
+  const carouselRef = useRef<FlatList<JobMapItem>>(null);
+
+  const handleCarouselScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const index = Math.round(e.nativeEvent.contentOffset.x / (CARD_WIDTH + 12));
+    const job = viewModel.jobs[index];
+    if (job && job.id !== viewModel.selectedJob?.id) {
+      viewModel.handleJobSelect(job);
+      mapRef.current?.animateToRegion({
+        latitude: job.latitude,
+        longitude: job.longitude,
+        latitudeDelta: 0.02,
+        longitudeDelta: 0.02,
+      }, 300);
+    }
+  };
 
   const handleViewDetails = (jobId: string) => {
     viewModel.handleJobSelect(null);
@@ -112,6 +186,7 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({ onBackToList
 
       {/* FULL-BLEED MAP — fills entire screen */}
       <MapView
+        ref={mapRef}
         provider={PROVIDER_GOOGLE}
         style={StyleSheet.absoluteFillObject}
         region={viewModel.region}
@@ -120,6 +195,22 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({ onBackToList
         showsUserLocation={viewModel.locationGranted}
         showsMyLocationButton={false}
       >
+        {/* Contractor location pin */}
+        {viewModel.userLocation && (
+          <Marker
+            coordinate={viewModel.userLocation}
+            anchor={{ x: 0.5, y: 0.5 }}
+            zIndex={100}
+          >
+            <View style={styles.userMarker}>
+              <View style={styles.userMarkerInner}>
+                <Ionicons name="person" size={14} color="#FFFFFF" />
+              </View>
+              <Text style={styles.userMarkerLabel}>You</Text>
+            </View>
+          </Marker>
+        )}
+
         {viewModel.jobs.map((job) => {
           const isSelected = viewModel.selectedJob?.id === job.id;
           const cat = CATEGORY_MARKERS[job.category.toLowerCase()] ?? CATEGORY_MARKERS.general;
@@ -129,7 +220,13 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({ onBackToList
             <Marker
               key={job.id}
               coordinate={{ latitude: job.latitude, longitude: job.longitude }}
-              onPress={() => viewModel.handleJobSelect(job)}
+              onPress={() => {
+                viewModel.handleJobSelect(job);
+                const index = viewModel.jobs.findIndex(j => j.id === job.id);
+                if (index >= 0 && carouselRef.current) {
+                  carouselRef.current.scrollToIndex({ index, animated: true });
+                }
+              }}
               anchor={{ x: 0.5, y: 1 }}
             >
               <View style={styles.markerWrapper}>
@@ -244,16 +341,16 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({ onBackToList
         </View>
       )}
 
-      {/* Job count pill — bottom left */}
-      <View style={[styles.jobCountPill, { bottom: viewModel.selectedJob ? 200 : insets.bottom + 16 }]}>
+      {/* Job count pill — bottom left (raised above carousel) */}
+      <View style={[styles.jobCountPill, { bottom: viewModel.jobs.length > 0 ? insets.bottom + 172 : insets.bottom + 16 }]}>
         <Text style={styles.jobCountText}>
           {viewModel.jobCount} job{viewModel.jobCount !== 1 ? 's' : ''}
         </Text>
       </View>
 
-      {/* My location button */}
+      {/* My location button (raised above carousel) */}
       <TouchableOpacity
-        style={[styles.locationButton, { bottom: viewModel.selectedJob ? 200 : insets.bottom + 16 }]}
+        style={[styles.locationButton, { bottom: viewModel.jobs.length > 0 ? insets.bottom + 172 : insets.bottom + 16 }]}
         accessibilityRole="button"
         accessibilityLabel="Center on my location"
         onPress={viewModel.centerOnUser}
@@ -261,14 +358,37 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({ onBackToList
         <Ionicons name="navigate" size={20} color={theme.colors.primary} />
       </TouchableOpacity>
 
-      {/* Job preview card */}
-      {viewModel.selectedJob && (
-        <View style={[styles.cardContainer, { bottom: insets.bottom + 12 }]}>
-          <JobPreviewCard
-            job={viewModel.selectedJob}
-            onViewDetails={() => handleViewDetails(viewModel.selectedJob!.id)}
-            onBidNow={() => handleBidNow(viewModel.selectedJob!.id)}
-            onDismiss={() => viewModel.handleJobSelect(null)}
+      {/* Horizontal job card carousel */}
+      {viewModel.jobs.length > 0 && (
+        <View style={[styles.carouselContainer, { bottom: insets.bottom + 12 }]}>
+          <FlatList
+            ref={carouselRef}
+            data={viewModel.jobs}
+            horizontal
+            pagingEnabled={false}
+            snapToInterval={CARD_WIDTH + 12}
+            decelerationRate="fast"
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.carouselContent}
+            keyExtractor={(item) => item.id}
+            onMomentumScrollEnd={handleCarouselScroll}
+            renderItem={({ item }) => (
+              <CarouselCard
+                job={item}
+                isSelected={viewModel.selectedJob?.id === item.id}
+                onPress={() => {
+                  viewModel.handleJobSelect(item);
+                  mapRef.current?.animateToRegion({
+                    latitude: item.latitude,
+                    longitude: item.longitude,
+                    latitudeDelta: 0.02,
+                    longitudeDelta: 0.02,
+                  }, 300);
+                }}
+                onBid={() => handleBidNow(item.id)}
+                onDetails={() => handleViewDetails(item.id)}
+              />
+            )}
           />
         </View>
       )}
@@ -499,12 +619,119 @@ const styles = StyleSheet.create({
     }),
   },
 
-  // ── Preview card ───────────────────────────────────────────────────────────
-  cardContainer: {
+  // ── Carousel ──────────────────────────────────────────────────────────────
+  carouselContainer: {
     position: 'absolute',
-    left: 16,
-    right: 16,
+    left: 0,
+    right: 0,
     zIndex: 10,
+  },
+  carouselContent: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  carouselCard: {
+    width: CARD_WIDTH,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    padding: 14,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.15, shadowRadius: 10 },
+      android: { elevation: 6 },
+    }),
+  },
+  carouselCardSelected: {
+    borderWidth: 2,
+    borderColor: theme.colors.primary,
+  },
+  carouselCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  carouselBudget: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
+    letterSpacing: -0.5,
+  },
+  carouselCatPill: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  carouselTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: 2,
+  },
+  carouselMeta: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginBottom: 10,
+  },
+  carouselActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  carouselBidBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 12,
+    paddingVertical: 8,
+  },
+  carouselBidText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.colors.textInverse,
+  },
+  carouselDetailsBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
+    paddingVertical: 8,
+  },
+  carouselDetailsText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+
+  // ── Contractor location pin ──────────────────────────────────────────────
+  userMarker: {
+    alignItems: 'center',
+  },
+  userMarkerInner: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: theme.colors.primary,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4 },
+      android: { elevation: 4 },
+    }),
+  },
+  userMarkerLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginTop: 2,
   },
 });
 
