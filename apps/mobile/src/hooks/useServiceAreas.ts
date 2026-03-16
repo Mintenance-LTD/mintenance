@@ -52,7 +52,14 @@ export const useServiceAreas = () => {
 
   const handleCreateServiceArea = async (input: CreateServiceAreaInput): Promise<void> => {
     if (!user?.id) return;
-    await mobileApiClient.post('/api/contractor/add-service-area', input);
+    // The API expects city/state/serviceRadius format
+    await mobileApiClient.post('/api/contractor/add-service-area', {
+      city: input.area_name,
+      state: 'England',
+      zipCode: '',
+      serviceRadius: input.radius_km,
+      country: 'UK',
+    });
     await loadServiceAreas();
   };
 
