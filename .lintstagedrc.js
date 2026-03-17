@@ -1,7 +1,7 @@
 module.exports = {
   // TypeScript/JavaScript files
   '*.{ts,tsx,js,jsx}': [
-    'eslint --fix --max-warnings=0',
+    'eslint --fix --max-warnings=0 --no-warn-ignored',
     'prettier --write',
   ],
 
