@@ -2,12 +2,18 @@ import type { JSX } from 'react';
 import type { Metadata } from 'next';
 import { EmbeddedCheckoutComponent } from '@/components/payments/EmbeddedCheckout';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
-import { logger } from '@mintenance/shared';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/Card';
 
 export const metadata: Metadata = {
   title: 'Checkout | Mintenance',
-  description: 'Complete your payment securely through Stripe for maintenance services on Mintenance.',
+  description:
+    'Complete your payment securely through Stripe for maintenance services on Mintenance.',
 };
 
 interface CheckoutPageProps {
@@ -22,24 +28,28 @@ interface CheckoutPageProps {
 
 /**
  * Checkout Page
- * 
+ *
  * Example usage:
  * /checkout?priceId=price_1234567890
  * /checkout?priceId=price_1234567890&jobId=xxx&contractorId=yyy&quantity=2
  */
-export default async function CheckoutPage({ searchParams }: { searchParams: Promise<CheckoutPageProps['searchParams']> }): Promise<JSX.Element> {
+export default async function CheckoutPage({
+  searchParams,
+}: {
+  searchParams: Promise<CheckoutPageProps['searchParams']>;
+}): Promise<JSX.Element> {
   const { priceId, jobId, bidId, contractorId, quantity } = await searchParams;
 
   if (!priceId) {
     return (
-      <div className="container mx-auto p-8">
+      <div className='container mx-auto p-8'>
         <Card>
           <CardHeader>
             <CardTitle>Checkout</CardTitle>
             <CardDescription>Missing Price ID</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
+            <p className='text-sm text-muted-foreground'>
               Please provide a Price ID in the URL: /checkout?priceId=price_xxx
             </p>
           </CardContent>
@@ -49,7 +59,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
   }
 
   return (
-    <div className="container mx-auto p-8">
+    <div className='container mx-auto p-8'>
       <ErrorBoundary>
         <Card>
           <CardHeader>
@@ -63,12 +73,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
               bidId={bidId}
               contractorId={contractorId}
               quantity={quantity ? parseInt(quantity, 10) : 1}
-              onSuccess={() => {
-                logger.info('Payment successful!');
-              }}
-              onError={(error) => {
-                logger.error('Payment error:', error);
-              }}
+              successUrl={jobId ? `/jobs/${jobId}` : '/dashboard'}
             />
           </CardContent>
         </Card>
@@ -76,4 +81,3 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
     </div>
   );
 }
-

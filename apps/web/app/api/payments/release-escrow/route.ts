@@ -1,32 +1,56 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { stripe } from '@/lib/stripe';
 import { validateRequest } from '@/lib/validation/validator';
 import { releaseEscrowSchema } from '@/lib/validation/schemas';
 import { logger, ESCROW_STATUS, JOB_STATUS } from '@mintenance/shared';
-import { PaymentStateMachine, PaymentAction, PaymentState } from '@/lib/payment-state-machine';
+import {
+  PaymentStateMachine,
+  PaymentAction,
+  PaymentState,
+} from '@/lib/payment-state-machine';
 import { EscrowReleaseAgent } from '@/lib/services/agents/EscrowReleaseAgent';
-import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
-import { FeeCalculationService, type PaymentType } from '@/lib/services/payment/FeeCalculationService';
-import { FeeTransferService } from '@/lib/services/payment/FeeTransferService';
-import { EscrowStatusService } from '@/lib/services/escrow/EscrowStatusService';
-import { HomeownerApprovalService } from '@/lib/services/escrow/HomeownerApprovalService';
+import {
+  getIdempotencyKeyFromRequest,
+  checkIdempotency,
+  storeIdempotencyResult,
+} from '@/lib/idempotency';
+import {
+  FeeCalculationService,
+  type PaymentType,
+} from '@/lib/services/payment/FeeCalculationService';
 import { requireAdminFromDatabase } from '@/lib/admin-verification';
-import { ForbiddenError, NotFoundError, BadRequestError, InternalServerError, ConflictError } from '@/lib/errors/api-error';
+import {
+  ForbiddenError,
+  NotFoundError,
+  BadRequestError,
+  InternalServerError,
+  ConflictError,
+} from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import {
+  writeAdminBypassAuditLog,
+  checkReleaseConditions,
+  performStripeTransfer,
+  getChargeId,
+  createFeeTransferRecord,
+  notifyAndEmailContractor,
+  writeEscrowAuditLog,
+} from './_helpers';
 
 export const POST = withApiHandler(
-  { roles: ['homeowner', 'admin', 'contractor'], rateLimit: { maxRequests: 20 } },
+  {
+    roles: ['homeowner', 'admin', 'contractor'],
+    rateLimit: { maxRequests: 20 },
+  },
   async (request, { user }) => {
-
     // Validate and sanitize input using Zod schema
     const validation = await validateRequest(request, releaseEscrowSchema);
     if ('headers' in validation) {
-      // Validation failed - return error response
       return validation;
     }
 
-    const { escrowTransactionId, releaseReason } = validation.data;
+    const { escrowTransactionId, releaseReason, adminJustification } =
+      validation.data;
 
     // Get MFA token from header if present
     const mfaToken = request.headers.get('x-mfa-token');
@@ -39,32 +63,40 @@ export const POST = withApiHandler(
       escrowTransactionId
     );
 
-    // Use distributed locking for idempotency check
-    const idempotencyCheck = await checkIdempotency(idempotencyKey, 'release_escrow', true);
+    const idempotencyCheck = await checkIdempotency(
+      idempotencyKey,
+      'release_escrow',
+      true
+    );
     if (idempotencyCheck?.isDuplicate && idempotencyCheck.cachedResult) {
-      logger.info('Duplicate escrow release detected, returning cached result', {
-        service: 'payments',
-        idempotencyKey,
-        userId: user.id,
-        escrowTransactionId,
-      });
+      logger.info(
+        'Duplicate escrow release detected, returning cached result',
+        {
+          service: 'payments',
+          idempotencyKey,
+          userId: user.id,
+          escrowTransactionId,
+        }
+      );
       return NextResponse.json(idempotencyCheck.cachedResult);
     }
 
-    // Check if lock contention occurred
     if (idempotencyCheck === null) {
       logger.warn('Lock contention detected for escrow release', {
         service: 'payments',
         userId: user.id,
         escrowTransactionId,
       });
-      throw new ConflictError('Request is being processed. Please wait and try again.');
+      throw new ConflictError(
+        'Request is being processed. Please wait and try again.'
+      );
     }
 
-    // Get escrow transaction with job details and all new fields
+    // Get escrow transaction with job details
     const { data: escrowTransaction, error: escrowError } = await serverSupabase
       .from('escrow_transactions')
-      .select(`
+      .select(
+        `
         *,
         jobs!inner (
           id,
@@ -73,7 +105,8 @@ export const POST = withApiHandler(
           contractor_id,
           status
         )
-      `)
+      `
+      )
       .eq('id', escrowTransactionId)
       .single();
 
@@ -81,7 +114,7 @@ export const POST = withApiHandler(
       logger.warn('Escrow release for non-existent transaction', {
         service: 'payments',
         userId: user.id,
-        escrowTransactionId
+        escrowTransactionId,
       });
       throw new NotFoundError('Escrow transaction not found');
     }
@@ -89,7 +122,8 @@ export const POST = withApiHandler(
     const job = escrowTransaction.jobs;
 
     // MFA requirement check for high-risk escrow releases
-    const { requiresMFA, HighRiskOperation } = await import('@/lib/payments/high-risk-checks');
+    const { requiresMFA, HighRiskOperation } =
+      await import('@/lib/payments/high-risk-checks');
     const mfaCheck = await requiresMFA(
       HighRiskOperation.ESCROW_RELEASE,
       escrowTransaction.amount,
@@ -97,7 +131,6 @@ export const POST = withApiHandler(
     );
 
     if (mfaCheck.required) {
-      // Validate MFA token if provided
       if (!mfaToken) {
         logger.warn('MFA required for escrow release but no token provided', {
           service: 'payments',
@@ -106,7 +139,6 @@ export const POST = withApiHandler(
           amount: escrowTransaction.amount,
           riskScore: mfaCheck.riskScore,
         });
-
         return NextResponse.json(
           {
             error: 'MFA verification required',
@@ -118,8 +150,8 @@ export const POST = withApiHandler(
         );
       }
 
-      // Validate the MFA token
-      const { validateMFAForPayment } = await import('@/lib/payments/high-risk-checks');
+      const { validateMFAForPayment } =
+        await import('@/lib/payments/high-risk-checks');
       const mfaValidation = await validateMFAForPayment(
         user.id,
         mfaToken,
@@ -133,7 +165,6 @@ export const POST = withApiHandler(
           escrowTransactionId,
           amount: escrowTransaction.amount,
         });
-
         return NextResponse.json(
           {
             error: 'MFA verification failed',
@@ -152,7 +183,6 @@ export const POST = withApiHandler(
       });
     }
 
-    // Verify user has permission to release escrow
     // SECURITY: For admin operations, verify role from database (not just JWT)
     let isAdminVerified = false;
     if (user.role === 'admin') {
@@ -169,14 +199,14 @@ export const POST = withApiHandler(
       }
     }
 
-    // SECURITY FIX: Contractors cannot directly trigger escrow release.
-    // They can only REQUEST release — the homeowner must approve.
+    // SECURITY: Contractors cannot directly trigger escrow release — they request it.
     if (user.role === 'contractor') {
       if (job.contractor_id !== user.id) {
         throw new ForbiddenError('Not authorized for this escrow transaction');
       }
       try {
-        const { NotificationService } = await import('@/lib/services/notifications/NotificationService');
+        const { NotificationService } =
+          await import('@/lib/services/notifications/NotificationService');
         await NotificationService.createNotification({
           userId: job.homeowner_id,
           title: 'Contractor Requested Payment Release',
@@ -185,10 +215,14 @@ export const POST = withApiHandler(
           actionUrl: `/jobs/${job.id}`,
         });
       } catch (notifyError) {
-        logger.error('Failed to notify homeowner of release request', notifyError, {
-          service: 'payments',
-          escrowTransactionId,
-        });
+        logger.error(
+          'Failed to notify homeowner of release request',
+          notifyError,
+          {
+            service: 'payments',
+            escrowTransactionId,
+          }
+        );
       }
       logger.info('Contractor requested escrow release — notified homeowner', {
         service: 'payments',
@@ -203,8 +237,8 @@ export const POST = withApiHandler(
     }
 
     const canRelease =
-      isAdminVerified || // Admin can release any escrow (verified from database)
-      (user.role === 'homeowner' && job.homeowner_id === user.id); // Homeowner can release their escrow
+      isAdminVerified ||
+      (user.role === 'homeowner' && job.homeowner_id === user.id);
 
     if (!canRelease) {
       logger.warn('Unauthorized escrow release attempt', {
@@ -213,7 +247,7 @@ export const POST = withApiHandler(
         escrowTransactionId,
         homeownerId: job.homeowner_id,
         contractorId: job.contractor_id,
-        userRole: user.role
+        userRole: user.role,
       });
       throw new ForbiddenError('Unauthorized to release this escrow');
     }
@@ -231,121 +265,76 @@ export const POST = withApiHandler(
         userId: user.id,
         escrowTransactionId,
         currentStatus: escrowTransaction.status,
-        error: stateValidation.error
+        error: stateValidation.error,
       });
-      throw new BadRequestError(stateValidation.error || 'Invalid state transition');
+      throw new BadRequestError(
+        stateValidation.error || 'Invalid state transition'
+      );
     }
 
-    // Check all new release conditions (unless admin is forcing release)
-    // Admins can bypass all checks for dispute resolution or other administrative actions
+    // SECURITY: Admin bypass writes a mandatory audit log for compliance.
+    if (isAdminVerified && user.role === 'admin') {
+      await writeAdminBypassAuditLog(
+        user.id,
+        escrowTransactionId,
+        job,
+        escrowTransaction.amount,
+        releaseReason,
+        adminJustification
+      );
+    }
+
+    // Check release conditions (skipped for admin — they bypass all checks)
     if (user.role !== 'admin') {
-      // 1. Check admin approval
-      if (escrowTransaction.admin_hold_status === 'admin_hold' || escrowTransaction.admin_hold_status === 'pending_review') {
-        const blockingReasons = await EscrowStatusService.getBlockingReasons(escrowTransactionId);
-        throw new ForbiddenError('Escrow is on admin hold');
+      const conditionResult = await checkReleaseConditions(
+        escrowTransactionId,
+        escrowTransaction,
+        job.id
+      );
+      if (conditionResult.blocked) {
+        return conditionResult.blocked;
       }
-
-      // 2. Check homeowner approval or auto-approval eligibility
-      if (!escrowTransaction.homeowner_approval) {
-        const autoApprovalEligible = await HomeownerApprovalService.checkAutoApprovalEligibility(escrowTransactionId);
-        if (!autoApprovalEligible) {
-          const blockingReasons = await EscrowStatusService.getBlockingReasons(escrowTransactionId);
-          return NextResponse.json({
-            error: 'Waiting for homeowner approval',
-            blockingReasons,
-          }, { status: 403 });
-        }
-        // Process auto-approval
-        await HomeownerApprovalService.processAutoApproval(escrowTransactionId);
-        // Re-fetch escrow to get updated fields
-        const { data: updatedEscrow } = await serverSupabase
-          .from('escrow_transactions')
-          .select('homeowner_approval, cooling_off_ends_at')
-          .eq('id', escrowTransactionId)
-          .single();
-        if (!updatedEscrow?.homeowner_approval) {
-          return NextResponse.json({
-            error: 'Auto-approval failed',
-          }, { status: 403 });
-        }
-        escrowTransaction.homeowner_approval = updatedEscrow.homeowner_approval;
-        escrowTransaction.cooling_off_ends_at = updatedEscrow.cooling_off_ends_at;
+      // Apply any field mutations from auto-approval
+      if (conditionResult.updatedFields.homeowner_approval !== undefined) {
+        escrowTransaction.homeowner_approval =
+          conditionResult.updatedFields.homeowner_approval;
       }
-
-      // 3. Check photo verification
-      if (escrowTransaction.photo_verification_status !== 'verified') {
-        const blockingReasons = await EscrowStatusService.getBlockingReasons(escrowTransactionId);
-        return NextResponse.json({
-          error: 'Photo verification not completed',
-          blockingReasons,
-        }, { status: 403 });
-      }
-
-      if (!escrowTransaction.photo_quality_passed) {
-        return NextResponse.json({
-          error: 'Photo quality check failed',
-        }, { status: 403 });
-      }
-
-      if (!escrowTransaction.geolocation_verified) {
-        return NextResponse.json({
-          error: 'Geolocation verification pending',
-        }, { status: 403 });
-      }
-
-      if (!escrowTransaction.timestamp_verified) {
-        return NextResponse.json({
-          error: 'Timestamp verification pending',
-        }, { status: 403 });
-      }
-
-      // 4. Check cooling-off period
-      if (escrowTransaction.cooling_off_ends_at) {
-        const coolingOffEnds = new Date(escrowTransaction.cooling_off_ends_at);
-        if (coolingOffEnds > new Date()) {
-          return NextResponse.json({
-            error: `Cooling-off period active until ${coolingOffEnds.toISOString()}`,
-            coolingOffEndsAt: coolingOffEnds.toISOString(),
-          }, { status: 403 });
-        }
-      }
-
-      // 5. Check for active disputes
-      const { count: disputeCount } = await serverSupabase
-        .from('disputes')
-        .select('id', { count: 'exact', head: true })
-        .eq('job_id', job.id)
-        .in('status', ['open', 'pending']);
-
-      if ((disputeCount || 0) > 0) {
-        return NextResponse.json({
-          error: 'Active dispute exists - cannot release escrow',
-        }, { status: 403 });
+      if ('cooling_off_ends_at' in conditionResult.updatedFields) {
+        escrowTransaction.cooling_off_ends_at =
+          conditionResult.updatedFields.cooling_off_ends_at;
       }
     }
 
     // If auto-release is enabled and job is completed, evaluate auto-release conditions
-    if (releaseReason === 'job_completed' && job.status === JOB_STATUS.COMPLETED) {
-      const autoReleaseEval = await EscrowReleaseAgent.evaluateAutoRelease(escrowTransactionId);
-      
-      // If auto-release evaluation delayed the release due to risk, inform the user
+    if (
+      releaseReason === 'job_completed' &&
+      job.status === JOB_STATUS.COMPLETED
+    ) {
+      const autoReleaseEval =
+        await EscrowReleaseAgent.evaluateAutoRelease(escrowTransactionId);
       if (autoReleaseEval && autoReleaseEval.message?.includes('delayed')) {
-        return NextResponse.json({
-          success: false,
-          message: 'Auto-release delayed due to risk assessment. Escrow will be held longer.',
-          metadata: autoReleaseEval.metadata,
-        }, { status: 200 }); // 200 because it's not an error, just information
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              'Auto-release delayed due to risk assessment. Escrow will be held longer.',
+            metadata: autoReleaseEval.metadata,
+          },
+          { status: 200 }
+        );
       }
     }
 
-    // Calculate auto-release date if not set (for future reference)
-    if (releaseReason === 'job_completed' && job.status === JOB_STATUS.COMPLETED) {
+    // Calculate auto-release date if not set (best-effort, non-blocking)
+    if (
+      releaseReason === 'job_completed' &&
+      job.status === JOB_STATUS.COMPLETED
+    ) {
       await EscrowReleaseAgent.calculateAutoReleaseDate(
         escrowTransactionId,
         job.id,
         job.contractor_id
       ).catch((error) => {
-        // Don't fail the release if auto-release date calculation fails
         logger.error('Failed to calculate auto-release date', error, {
           service: 'payments',
           escrowTransactionId,
@@ -361,8 +350,8 @@ export const POST = withApiHandler(
       .single();
 
     if (contractorError || !contractor?.stripe_connect_account_id) {
-      // Send notification to contractor
-      const { PaymentSetupNotificationService } = await import('@/lib/services/contractor/PaymentSetupNotificationService');
+      const { PaymentSetupNotificationService } =
+        await import('@/lib/services/contractor/PaymentSetupNotificationService');
       await PaymentSetupNotificationService.notifyPaymentSetupRequired(
         job.contractor_id,
         escrowTransactionId,
@@ -371,40 +360,38 @@ export const POST = withApiHandler(
       ).catch((error) => {
         logger.error('Failed to send payment setup notification', error);
       });
-
       logger.error('Contractor missing Stripe Connect account', {
         service: 'payments',
         userId: user.id,
         contractorId: job.contractor_id,
-        escrowTransactionId
+        escrowTransactionId,
       });
-      
-      return NextResponse.json({ 
-        error: 'Contractor not set up for payments',
-        message: 'The contractor has been notified to complete payment setup.',
-        requiresPaymentSetup: true
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: 'Contractor not set up for payments',
+          message:
+            'The contractor has been notified to complete payment setup.',
+          requiresPaymentSetup: true,
+        },
+        { status: 400 }
+      );
     }
 
-    // Determine payment type from escrow transaction or default to 'final'
-    const paymentType = (escrowTransaction.payment_type as PaymentType) || 'final';
+    const paymentType =
+      (escrowTransaction.payment_type as PaymentType) || 'final';
+    const feeBreakdown = FeeCalculationService.calculateFees(
+      escrowTransaction.amount,
+      { paymentType }
+    );
+    const contractorAmountCents = Math.round(
+      feeBreakdown.contractorAmount * 100
+    );
 
-    // Calculate fees using FeeCalculationService
-    const feeBreakdown = FeeCalculationService.calculateFees(escrowTransaction.amount, {
-      paymentType,
-    });
-
-    // Calculate contractor payout amount (after platform fee deduction)
-    // Note: Stripe processing fee is charged separately, not deducted from contractor payout
-    const contractorAmountCents = Math.round(feeBreakdown.contractorAmount * 100);
-
-    // FIX CRIT-3: Update DB FIRST (mark as release_pending), THEN transfer via Stripe.
-    // This prevents double-payout: if DB update fails, no money moves.
-    // If Stripe transfer fails after DB update, we revert the DB status.
+    // FIX CRIT-3: DB update FIRST (mark as release_pending), THEN Stripe transfer.
     const originalUpdatedAt = escrowTransaction.updated_at;
     const reconciliationId = crypto.randomUUID();
 
-    // Step 1: Mark escrow as release_pending (DB update BEFORE Stripe call)
+    // Step 1: Mark escrow as release_pending
     const { data: pendingEscrow, error: pendingError } = await serverSupabase
       .from('escrow_transactions')
       .update({
@@ -425,85 +412,37 @@ export const POST = withApiHandler(
         userId: user.id,
         escrowTransactionId,
       });
-      throw new ConflictError('Escrow transaction was modified by another request. Please try again.');
+      throw new ConflictError(
+        'Escrow transaction was modified by another request. Please try again.'
+      );
     }
 
-    // Step 2: Create Stripe transfer (DB is already locked as release_pending)
-    let transfer;
-    try {
-      transfer = await stripe.transfers.create({
-        amount: contractorAmountCents,
-        currency: 'gbp',
-        destination: contractor.stripe_connect_account_id,
-        description: `Payment for job: ${job.title}`,
-        metadata: {
-          jobId: job.id,
-          escrowTransactionId,
-          homeownerId: job.homeowner_id,
-          contractorId: job.contractor_id,
-          releaseReason,
-          reconciliationId,
-          platformFee: feeBreakdown.platformFee.toString(),
-          contractorAmount: feeBreakdown.contractorAmount.toString(),
-        },
-      });
-    } catch (stripeError) {
-      // Stripe transfer failed — revert DB to 'held' status
-      logger.error('Stripe transfer failed, reverting escrow to held', stripeError, {
-        service: 'payments',
-        escrowTransactionId,
-        reconciliationId,
-      });
-      await serverSupabase
-        .from('escrow_transactions')
-        .update({
-          status: ESCROW_STATUS.HELD,
-          reconciliation_id: null,
-          transfer_attempted_at: null,
-          release_reason: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', escrowTransactionId);
+    // Step 2: Create Stripe transfer (DB already locked as release_pending)
+    const transfer = await performStripeTransfer(
+      contractorAmountCents,
+      contractor.stripe_connect_account_id,
+      job,
+      escrowTransactionId,
+      releaseReason,
+      reconciliationId,
+      feeBreakdown
+    );
 
-      throw new InternalServerError('Payment transfer failed. No funds were moved. Please try again.');
-    }
+    // Retrieve charge ID for fee tracking (best-effort)
+    const chargeId = escrowTransaction.payment_intent_id
+      ? await getChargeId(escrowTransaction.payment_intent_id)
+      : undefined;
 
-    // Get payment intent and charge ID for fee tracking
-    let chargeId: string | undefined;
-    if (escrowTransaction.payment_intent_id) {
-      try {
-        const paymentIntent = await stripe.paymentIntents.retrieve(
-          escrowTransaction.payment_intent_id
-        );
-        chargeId = typeof paymentIntent.latest_charge === 'string'
-          ? paymentIntent.latest_charge
-          : paymentIntent.latest_charge?.id;
-      } catch (error) {
-        logger.warn('Failed to retrieve payment intent for fee tracking', {
-          service: 'payments',
-          paymentIntentId: escrowTransaction.payment_intent_id,
-        });
-      }
-    }
-
-    // Create platform fee transfer record
-    let feeTransferResult;
-    try {
-      feeTransferResult = await FeeTransferService.transferPlatformFee({
-        escrowTransactionId,
-        jobId: job.id,
-        contractorId: job.contractor_id,
-        amount: escrowTransaction.amount,
-        paymentIntentId: escrowTransaction.payment_intent_id || '',
-        chargeId,
-        paymentType,
-      });
-    } catch (error) {
-      logger.error('Failed to create fee transfer record', error, {
-        service: 'payments',
-        escrowTransactionId,
-      });
-    }
+    // Create platform fee transfer record (best-effort)
+    const feeTransferResult = await createFeeTransferRecord({
+      escrowTransactionId,
+      jobId: job.id,
+      contractorId: job.contractor_id,
+      amount: escrowTransaction.amount,
+      paymentIntentId: escrowTransaction.payment_intent_id || '',
+      chargeId,
+      paymentType,
+    });
 
     // Step 3: Finalize DB — mark as completed with transfer details
     const { data: updatedEscrow, error: updateError } = await serverSupabase
@@ -525,72 +464,67 @@ export const POST = withApiHandler(
 
     if (updateError) {
       // Transfer succeeded but final DB update failed — create reconciliation record
-      logger.error('CRITICAL: Transfer succeeded but final DB update failed', updateError, {
-        service: 'payments',
-        transferId: transfer.id,
-        escrowTransactionId,
-        reconciliationId,
-      });
-
-      try {
-        await serverSupabase
-          .from('escrow_reconciliation')
-          .insert({
-            escrow_transaction_id: escrowTransactionId,
-            transfer_id: transfer.id,
-            reconciliation_id: reconciliationId,
-            status: 'pending_review',
-            issue_type: 'transfer_succeeded_final_update_failed',
-            amount: contractorAmountCents,
-            contractor_id: job.contractor_id,
-            created_at: new Date().toISOString(),
-          });
-      } catch (reconciliationErr: unknown) {
-        logger.error('Failed to create reconciliation record', reconciliationErr as Error);
-      }
-
-      throw new InternalServerError('Payment was sent but status update failed. Our team has been notified.');
-    }
-
-    // Create payment released notification for contractor
-    if (updatedEscrow && updatedEscrow.length > 0 && job.contractor_id) {
-      try {
-        const { notifyPaymentEvent } = await import('@/lib/services/notifications/NotificationHelper');
-        await notifyPaymentEvent({
-          userId: job.contractor_id,
-          jobId: job.id,
-          jobTitle: job.title,
-          amount: escrowTransaction.amount / 100, // Convert from cents
-          eventType: 'released',
-          transactionId: escrowTransactionId,
-        });
-      } catch (notificationError) {
-        logger.error('Failed to create payment released notification', notificationError, {
+      logger.error(
+        'CRITICAL: Transfer succeeded but final DB update failed',
+        updateError,
+        {
           service: 'payments',
-          contractorId: job.contractor_id,
+          transferId: transfer.id,
           escrowTransactionId,
+          reconciliationId,
+        }
+      );
+      try {
+        await serverSupabase.from('escrow_reconciliation').insert({
+          escrow_transaction_id: escrowTransactionId,
+          transfer_id: transfer.id,
+          reconciliation_id: reconciliationId,
+          status: 'pending_review',
+          issue_type: 'transfer_succeeded_final_update_failed',
+          amount: contractorAmountCents,
+          contractor_id: job.contractor_id,
+          created_at: new Date().toISOString(),
         });
-        // Don't fail the request if notification fails
+      } catch (reconciliationErr: unknown) {
+        logger.error(
+          'Failed to create reconciliation record',
+          reconciliationErr as Error
+        );
       }
+      throw new InternalServerError(
+        'Payment was sent but status update failed. Our team has been notified.'
+      );
     }
 
-    // Verify the update actually applied
-    if (!updatedEscrow || updatedEscrow.length === 0) {
-      // This shouldn't happen since we used status='release_pending' lock,
-      // but log it for safety
-      logger.warn('Escrow final update returned empty - may already be completed', {
-        service: 'payments',
-        userId: user.id,
+    // Notify contractor and send email (best-effort, non-blocking)
+    if (updatedEscrow && updatedEscrow.length > 0 && job.contractor_id) {
+      await notifyAndEmailContractor(
+        job,
         escrowTransactionId,
-        transferId: transfer.id,
-      });
+        escrowTransaction.amount
+      );
+    }
+
+    if (!updatedEscrow || updatedEscrow.length === 0) {
+      logger.warn(
+        'Escrow final update returned empty - may already be completed',
+        {
+          service: 'payments',
+          userId: user.id,
+          escrowTransactionId,
+          transferId: transfer.id,
+        }
+      );
     }
 
     // Update job status to completed if release reason is job_completed
     if (releaseReason === 'job_completed') {
       await serverSupabase
         .from('jobs')
-        .update({ status: JOB_STATUS.COMPLETED, updated_at: new Date().toISOString() })
+        .update({
+          status: JOB_STATUS.COMPLETED,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', job.id);
     }
 
@@ -607,37 +541,21 @@ export const POST = withApiHandler(
       feeTransferId: feeTransferResult?.feeTransferId,
     });
 
-    // Persistent audit trail for escrow releases (especially admin-initiated)
-    try {
-      await serverSupabase
-        .from('escrow_audit_log')
-        .insert({
-          escrow_transaction_id: escrowTransactionId,
-          action: 'released',
-          actor_id: user.id,
-          actor_role: user.role,
-          job_id: job.id,
-          amount: escrowTransaction.amount,
-          platform_fee: feeBreakdown.platformFee,
-          contractor_payout: feeBreakdown.contractorAmount,
-          transfer_id: transfer.id,
-          release_reason: releaseReason,
-          is_admin_action: isAdminVerified,
-          metadata: {
-            reconciliationId,
-            feeTransferId: feeTransferResult?.feeTransferId,
-            mfaUsed: !!mfaToken,
-            contractorId: job.contractor_id,
-            homeownerId: job.homeowner_id,
-          },
-          created_at: new Date().toISOString(),
-        });
-    } catch (auditError) {
-      logger.error('Failed to write escrow audit log', auditError, {
-        service: 'payments',
-        escrowTransactionId,
-      });
-    }
+    // Persistent audit trail for escrow releases
+    await writeEscrowAuditLog({
+      escrowTransactionId,
+      actorId: user.id,
+      actorRole: user.role,
+      job,
+      amount: escrowTransaction.amount,
+      feeBreakdown,
+      transferId: transfer.id,
+      releaseReason,
+      isAdminAction: isAdminVerified,
+      reconciliationId,
+      feeTransferId: feeTransferResult?.feeTransferId,
+      mfaUsed: !!mfaToken,
+    });
 
     const responseData = {
       success: true,
@@ -650,7 +568,6 @@ export const POST = withApiHandler(
       feeTransferId: feeTransferResult?.feeTransferId,
     };
 
-    // Store idempotency result
     await storeIdempotencyResult(
       idempotencyKey,
       'release_escrow',
