@@ -500,8 +500,8 @@ export const AppNavigator: React.FC = () => {
     if (user && navigationRef.isReady() && !listenersRegistered.current) {
       NotificationService.registerListeners({
         navigate: (screen: string, params?: unknown) =>
-          navigationRef.navigate(screen as never, params as never),
-        reset: (state: unknown) => navigationRef.reset(state as never),
+          (navigationRef.navigate as (screen: string, params?: unknown) => void)(screen, params),
+        reset: (state: unknown) => navigationRef.reset(state as Parameters<typeof navigationRef.reset>[0]),
         isReady: () => navigationRef.isReady(),
       });
       listenersRegistered.current = true;

@@ -21,7 +21,7 @@ const demoRequestSchema = z.object({
  * PUBLIC API endpoint for Building Surveyor damage assessment demo
  * Dynamic imports prevent module-level crashes that cause 405
  */
-export const POST = withApiHandler({ auth: false, rateLimit: false }, async (request) => {
+export const POST = withApiHandler({ auth: false, rateLimit: { maxRequests: 10, windowMs: 60_000 } }, async (request) => {
   // Dynamic imports to prevent module-level crashes that cause 405
   let logger: Awaited<typeof import('@mintenance/shared')>['logger'];
   let rateLimiter: Awaited<typeof import('@/lib/rate-limiter')>['rateLimiter'];

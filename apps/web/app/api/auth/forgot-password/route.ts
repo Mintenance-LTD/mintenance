@@ -12,7 +12,7 @@ import { RateLimitError } from '@/lib/errors/api-error';
  * Send password reset email (public endpoint, custom rate limiter)
  */
 export const POST = withApiHandler(
-  { auth: false, rateLimit: false },
+  { auth: false, rateLimit: { maxRequests: 3, windowMs: 3_600_000 } },
   async (request) => {
     // Custom rate limiting - 3 requests per hour
     const rateLimitResult = await checkPasswordResetRateLimit(request);

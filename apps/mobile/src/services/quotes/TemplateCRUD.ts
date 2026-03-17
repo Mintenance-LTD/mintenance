@@ -14,8 +14,8 @@ export async function createQuoteTemplate(
         name: templateData.template_name,
         description: templateData.description,
         line_items: templateData.line_items?.map((item) => ({
-          description: item.description,
-          quantity: item.quantity,
+          description: item.item_description,
+          quantity: item.default_quantity,
           unit_price: item.unit_price,
           unit: item.unit,
           category: item.category,

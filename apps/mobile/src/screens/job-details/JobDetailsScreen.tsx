@@ -73,10 +73,10 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const isOwner = user?.id === job?.homeowner_id;
 
   // Find the logged-in contractor's pending bid on this job
+  const bidsArray = (Array.isArray(bidsData) ? bidsData : []) as Array<{ id: string; contractor_id?: string; status?: string }>;
   const myPendingBid = isContractor && user?.id
-    ? (bidsData || []).find(
-        (b: { contractor_id?: string; status?: string }) =>
-          b.contractor_id === user.id && b.status === 'pending'
+    ? bidsArray.find(
+        (b) => b.contractor_id === user.id && b.status === 'pending'
       )
     : null;
 

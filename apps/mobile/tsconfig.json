@@ -71,7 +71,9 @@
     "**/*.spec.ts",
     "**/*.spec.tsx",
     "scripts/**/*.js",
-    "*.js"
+    "*.js",
+    "src/_archived",
+    "e2e"
   ],
   "references": [
     {

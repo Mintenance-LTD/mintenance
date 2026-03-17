@@ -31,20 +31,13 @@ export const GET = withApiHandler({ roles: ['admin'] }, async (_request) => {
       const mod = await (importer as () => Promise<Record<string, unknown>>)();
       results[name] = `OK (keys: ${Object.keys(mod).slice(0, 5).join(', ')}...)`;
     } catch (e: unknown) {
-      results[name] = `FAIL: ${e instanceof Error ? (e.stack || e.message) : String(e)}`;
+      // SECURITY: Only expose error type and message — never stack traces
+      results[name] = `FAIL: ${e instanceof Error ? e.message : 'Unknown error'}`;
     }
   }
 
-  const envInfo = {
-    NODE_ENV: process.env.NODE_ENV,
-    nodeVersion: process.version,
-    hasJwtSecret: !!process.env.JWT_SECRET,
-    hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-    hasSupabaseAnon: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    hasSupabaseService: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-    hasUpstashUrl: !!process.env.UPSTASH_REDIS_REST_URL,
-    hasUpstashToken: !!process.env.UPSTASH_REDIS_REST_TOKEN,
-  };
+  // SECURITY: Environment presence indicators removed to prevent information leakage.
+  // Use server-side logging or infrastructure dashboards to verify env configuration.
 
-  return NextResponse.json({ imports: results, env: envInfo, timestamp: new Date().toISOString() });
+  return NextResponse.json({ imports: results, timestamp: new Date().toISOString() });
 });

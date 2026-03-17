@@ -3,6 +3,7 @@ import { logger } from '../../utils/logger';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { ServiceErrorHandler } from '../../utils/serviceErrorHandler';
 import { mapDatabaseToMeeting } from './MeetingHelpers';
+import type { DatabaseMeetingRow } from './types';
 
 export async function createMeeting(meetingData: {
   jobId: string;
@@ -21,7 +22,7 @@ export async function createMeeting(meetingData: {
     ServiceErrorHandler.validateRequired(meetingData.contractorId, 'Contractor ID', context);
     ServiceErrorHandler.validateRequired(meetingData.scheduledDateTime, 'Scheduled date time', context);
 
-    const response = await mobileApiClient.post<{ meeting: Record<string, unknown> }>(
+    const response = await mobileApiClient.post<{ meeting: DatabaseMeetingRow }>(
       '/api/contractor/meetings',
       {
         title: `${meetingData.meetingType} meeting`,
@@ -43,7 +44,7 @@ export async function createMeeting(meetingData: {
 
 export async function getMeetingById(meetingId: string): Promise<ContractorMeeting | null> {
   try {
-    const response = await mobileApiClient.get<{ meeting: Record<string, unknown> }>(
+    const response = await mobileApiClient.get<{ meeting: DatabaseMeetingRow }>(
       `/api/contractor/meetings/${meetingId}`
     );
     return response.meeting ? mapDatabaseToMeeting(response.meeting) : null;
@@ -62,7 +63,7 @@ export async function getMeetingsForUser(userId: string, role: 'homeowner' | 'co
     params.set('userId', userId);
     params.set('role', role);
     if (status) params.set('status', status);
-    const response = await mobileApiClient.get<{ meetings: Record<string, unknown>[] }>(
+    const response = await mobileApiClient.get<{ meetings: DatabaseMeetingRow[] }>(
       `/api/contractor/meetings?${params.toString()}`
     );
     return (response.meetings || []).map(mapDatabaseToMeeting);
@@ -74,7 +75,7 @@ export async function getMeetingsForUser(userId: string, role: 'homeowner' | 'co
 
 export async function updateMeetingStatus(meetingId: string, status: ContractorMeeting['status'], updatedBy: string, notes?: string): Promise<ContractorMeeting> {
   try {
-    const response = await mobileApiClient.patch<{ meeting: Record<string, unknown> }>(
+    const response = await mobileApiClient.patch<{ meeting: DatabaseMeetingRow }>(
       `/api/contractor/meetings/${meetingId}`,
       { status, notes: notes || undefined }
     );
@@ -88,7 +89,7 @@ export async function updateMeetingStatus(meetingId: string, status: ContractorM
 
 export async function rescheduleMeeting(meetingId: string, newDateTime: string, updatedBy: string, reason?: string): Promise<ContractorMeeting> {
   try {
-    const response = await mobileApiClient.patch<{ meeting: Record<string, unknown> }>(
+    const response = await mobileApiClient.patch<{ meeting: DatabaseMeetingRow }>(
       `/api/contractor/meetings/${meetingId}`,
       {
         meeting_date: newDateTime.split('T')[0],

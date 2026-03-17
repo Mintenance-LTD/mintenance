@@ -137,7 +137,7 @@ export type ProfileStackParamList = {
   // Social: ARCHIVED - social feature removed
   Connections: undefined;
   Training: undefined;
-  // PortfolioGallery: ARCHIVED - portfolio feature removed
+  PortfolioGallery: undefined;
   EscrowDashboard: undefined;
   // Homeowner/shared feature parity screens
   Favorites: undefined;

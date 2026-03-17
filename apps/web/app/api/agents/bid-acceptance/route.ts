@@ -9,7 +9,7 @@ import { BidAcceptanceAgent } from '@/lib/services/agents/BidAcceptanceAgent';
 import { AgentLogger } from '@/lib/services/agents/AgentLogger';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { z } from 'zod';
-import { logger } from '@mintenance/shared';
+import { logger, validateStatusTransition, validateBidTransition, BID_STATUS, type JobStatus, type BidStatusValue } from '@mintenance/shared';
 import { BadRequestError } from '@/lib/errors/api-error';
 import type { ActionTaken } from '@/lib/services/agents/types';
 
@@ -101,9 +101,15 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
       );
 
       if (evaluation.confidence >= 0.8 && evaluation.recommend) {
-        await serverSupabase.from('bids').update({ status: 'accepted', accepted_at: new Date().toISOString() }).eq('id', context.bidId);
-        await serverSupabase.from('jobs').update({ status: 'in_progress', contractor_id: bid.contractor_id, updated_at: new Date().toISOString() }).eq('id', context.jobId);
-        await serverSupabase.from('bids').update({ status: 'rejected' }).eq('job_id', context.jobId).neq('id', context.bidId);
+        // SECURITY: Validate state transitions before updating — prevents skipping contract/escrow gates
+        validateBidTransition(bid.status as BidStatusValue, BID_STATUS.ACCEPTED as BidStatusValue);
+        validateStatusTransition(job.status as JobStatus, 'assigned' as JobStatus);
+
+        await serverSupabase.from('bids').update({ status: BID_STATUS.ACCEPTED, accepted_at: new Date().toISOString() }).eq('id', context.bidId);
+        // SECURITY FIX: Target status must be 'assigned', not 'in_progress'.
+        // The job lifecycle requires contract signing + escrow before work can start.
+        await serverSupabase.from('jobs').update({ status: 'assigned', contractor_id: bid.contractor_id, updated_at: new Date().toISOString() }).eq('id', context.jobId);
+        await serverSupabase.from('bids').update({ status: BID_STATUS.REJECTED }).eq('job_id', context.jobId).neq('id', context.bidId);
         await serverSupabase.from('notifications').insert({ user_id: bid.contractor_id, type: 'bid_accepted', title: 'Your bid was accepted!', message: `Your bid for "${job.title}" has been accepted.`, data: { jobId: context.jobId, bidId: context.bidId }, created_at: new Date().toISOString() });
         result = { accepted: true, bidId: context.bidId, contractorId: bid.contractor_id, confidence: evaluation.confidence };
       } else {

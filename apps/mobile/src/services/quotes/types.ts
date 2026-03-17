@@ -135,18 +135,22 @@ export interface CreateQuoteData {
 }
 
 export interface UpdateQuoteData {
+  title?: string;
   client_name?: string;
   client_email?: string;
   client_phone?: string;
   project_title?: string;
   project_description?: string;
+  total_amount?: number;
   markup_percentage?: number;
   discount_percentage?: number;
   tax_rate?: number;
   valid_until?: string;
   terms_and_conditions?: string;
+  terms?: string;
   notes?: string;
   status?: ContractorQuote['status'];
+  line_items?: Omit<QuoteLineItem, 'id' | 'quote_id' | 'subtotal' | 'created_at'>[];
 }
 
 export interface QuoteFilters {
