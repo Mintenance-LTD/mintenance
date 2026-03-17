@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotFoundError, ForbiddenError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
@@ -8,6 +8,9 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
 
 export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user, params }) => {
+  // Use RLS-enforced client for user-scoped reads; fall back to service role
+  const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
   // Allow property owner OR team members with any role to view
   const { authorized } = await PropertyTeamService.authorize(user.id, params.id, 'view');
 
@@ -15,7 +18,7 @@ export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (req
     throw new NotFoundError('Property not found');
   }
 
-  const { data, error } = await serverSupabase
+  const { data, error } = await userDb
     .from('properties')
     .select('*')
     .eq('id', params.id)
@@ -29,6 +32,9 @@ export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (req
 });
 
 export const PUT = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user, params }) => {
+  // Use RLS-enforced client for user-scoped operations; fall back to service role
+  const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
   // Require manager+ role for edits
   const { authorized } = await PropertyTeamService.authorize(user.id, params.id, 'edit');
   if (!authorized && user.role !== 'admin') {
@@ -55,7 +61,7 @@ export const PUT = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (req
   } = validation.data;
 
   // Update the property in the database
-  const { data, error } = await serverSupabase
+  const { data, error } = await userDb
     .from('properties')
     .update({
       property_name: name,
@@ -91,6 +97,9 @@ export const PUT = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (req
 });
 
 export const DELETE = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user, params }) => {
+  // Use RLS-enforced client for user-scoped operations; fall back to service role
+  const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
   // Only property owner can delete
   const { authorized } = await PropertyTeamService.authorize(user.id, params.id, 'delete');
   if (!authorized && user.role !== 'admin') {
@@ -98,7 +107,7 @@ export const DELETE = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (
   }
 
   // Delete the property from the database
-  const { error } = await serverSupabase
+  const { error } = await userDb
     .from('properties')
     .delete()
     .eq('id', params.id);

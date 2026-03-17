@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, Play, ExternalLink } from 'lucide-react';
 
@@ -172,17 +173,22 @@ export function FeatureAnnouncement(props: FeatureAnnouncementProps) {
           {announcement.media && (
             <div className="relative -mt-8 mx-8 mb-6 rounded-xl overflow-hidden shadow-xl bg-gray-900">
               {announcement.media.type === 'image' && (
-                <img
+                <Image
                   src={announcement.media.url}
                   alt={announcement.media.alt || announcement.title}
+                  width={800}
+                  height={450}
                   className="w-full h-auto"
                 />
               )}
               {announcement.media.type === 'gif' && (
-                <img
+                <Image
                   src={announcement.media.url}
                   alt={announcement.media.alt || announcement.title}
+                  width={800}
+                  height={450}
                   className="w-full h-auto"
+                  unoptimized
                 />
               )}
               {announcement.media.type === 'video' && (

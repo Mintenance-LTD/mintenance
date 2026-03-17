@@ -28,7 +28,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = () => {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.safeArea} edges={[]}>
       <ResponsiveContainer
         maxWidth={{
           mobile: undefined,

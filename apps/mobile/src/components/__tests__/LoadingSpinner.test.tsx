@@ -9,7 +9,6 @@ import { render , waitFor} from '../test-utils';
 import { LoadingSpinner, FullScreenLoading } from '../LoadingSpinner';
 
 
-jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,
   SafeAreaView: ({ children }) => children,

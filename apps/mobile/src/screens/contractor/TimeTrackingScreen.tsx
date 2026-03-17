@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '../../components/ui/Badge';
-import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { theme } from '../../theme';
 
@@ -39,16 +39,12 @@ export const TimeTrackingScreen: React.FC = () => {
     queryKey: ['contractor-time-tracking', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data: rows, error: err } = await supabase
-        .from('time_entries')
-        .select('id, task_description, job_title, date, duration_minutes, hourly_rate, is_billable')
-        .eq('contractor_id', user.id)
-        .order('date', { ascending: false });
-      if (err) throw new Error(err.message);
-      return (rows || []).map((e: Record<string, unknown>): TimeEntry => ({
+      const raw = await mobileApiClient.get<unknown>('/api/contractor/time-tracking');
+      const rows = Array.isArray(raw) ? raw : (raw as Record<string, unknown>)?.entries || (raw as Record<string, unknown>)?.timeEntries || [];
+      return (rows as Array<Record<string, unknown>>).map((e): TimeEntry => ({
         id: e.id as string,
         task_description: e.task_description as string || '',
-        job_title: e.job_title as string | undefined,
+        job_title: (e.job as Record<string, unknown>)?.title as string || e.job_title as string || undefined,
         date: e.date as string,
         hours: ((e.duration_minutes as number) || 0) / 60,
         hourly_rate: (e.hourly_rate as number) || 0,

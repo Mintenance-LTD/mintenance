@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Badge } from '@/components/ui/Badge.unified';
 
 interface Customer {
@@ -35,10 +36,12 @@ export function CustomerRow(props: CustomerRowProps) {
         >
           {/* Avatar */}
           {customer.profile_image_url ? (
-            <img
+            <Image
               src={customer.profile_image_url}
               alt={customerName}
-              className="w-10 h-10 rounded-full object-cover"
+              width={40}
+              height={40}
+              className="rounded-full object-cover"
             />
           ) : (
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-xs font-semibold text-blue-700">

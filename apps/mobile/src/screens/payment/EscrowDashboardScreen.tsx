@@ -63,8 +63,8 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
     try {
       const { data, error } = await supabase
         .from('escrow_transactions')
-        .select('id, amount, status, created_at, jobs(title)')
-        .or(`homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`)
+        .select('id, amount, status, created_at, job:job_id(title)')
+        .or(`payer_id.eq.${user.id},payee_id.eq.${user.id}`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -75,7 +75,7 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
         status: row.status as string,
         created_at: row.created_at as string,
         job_title:
-          (row.jobs as Record<string, unknown>)?.title as string ?? 'Untitled Job',
+          (row.job as Record<string, unknown>)?.title as string ?? 'Untitled Job',
       }));
       setRecords(mapped);
     } catch (error) {

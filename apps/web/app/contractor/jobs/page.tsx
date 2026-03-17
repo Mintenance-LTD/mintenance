@@ -360,10 +360,12 @@ export default function ContractorJobsPage2025() {
                       {/* Image */}
                       {job.photos.length > 0 ? (
                         <div className="relative h-48 bg-gray-200">
-                          <img
+                          <Image
                             src={job.photos[0]}
                             alt={job.title}
-                            className="w-full h-full object-cover"
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            className="object-cover"
                           />
                           {job.photos.length > 1 && (
                             <div className="absolute bottom-2 right-2 px-3 py-1 bg-black/60 backdrop-blur-sm text-white text-sm rounded-lg">

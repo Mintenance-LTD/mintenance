@@ -6,7 +6,7 @@ import type { ProfileStackParamList } from "../types";
 import {
   SafeProfileScreen, SafeEditProfileScreen, SafeNotificationSettingsScreen,
   SafePaymentMethodsScreen, SafeAddPaymentMethodScreen, SafeHelpCenterScreen,
-  SafePropertiesScreen, SafePropertyDetailScreen, SafePropertyAssessmentScreen,
+  SafePropertiesScreen, SafePropertyDetailScreen, SafeEditPropertyScreen, SafePropertyAssessmentScreen,
   SafeVideoCaptureScreen, SafeVideoProcessingStatusScreen, SafeJobPhotoUploadScreen,
   SafeAddPropertyScreen, SafePaymentHistoryScreen, SafeSubscriptionScreen,
   SafeFinancialsScreen, SafeSettingsHubScreen, SafeBookingStatusScreen,
@@ -56,6 +56,7 @@ export const ProfileNavigator = () => {
       <ProfileStack.Screen name="ContractorVerification" component={SafeContractorVerificationScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="Properties" component={SafePropertiesScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="PropertyDetail" component={SafePropertyDetailScreen} options={{ headerShown: false }} />
+      <ProfileStack.Screen name="EditProperty" component={SafeEditPropertyScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="PropertyAssessment" component={SafePropertyAssessmentScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="VideoCapture" component={SafeVideoCaptureScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="VideoProcessingStatus" component={SafeVideoProcessingStatusScreen} options={{ headerShown: false }} />

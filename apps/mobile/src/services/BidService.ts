@@ -24,6 +24,12 @@ export interface Bid extends BidData {
     rating?: number;
     reviews_count?: number;
     profile_picture?: string;
+    company_name?: string;
+    city?: string;
+    bio?: string;
+    hourly_rate?: number;
+    years_experience?: number;
+    profile_image_url?: string;
   };
   job?: {
     id: string;

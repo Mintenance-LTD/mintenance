@@ -47,11 +47,12 @@ export function JobsToolbar({
     <div className="space-y-3">
       {/* Search Bar */}
       {onSearchChange && (
-        <div className="relative">
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+        <div className="relative" role="search">
+          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true" />
           <input
-            type="text"
+            type="search"
             placeholder="Search jobs by title or description..."
+            aria-label="Search jobs by title or description"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all shadow-sm"
@@ -59,7 +60,8 @@ export function JobsToolbar({
           {searchQuery && (
             <button
               onClick={() => onSearchChange('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+              aria-label="Clear search"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -97,7 +99,10 @@ export function JobsToolbar({
           <div className="relative">
             <button
               onClick={() => setShowSortMenu(!showSortMenu)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-xs font-medium text-gray-700 shadow-sm"
+              aria-expanded={showSortMenu}
+              aria-haspopup="listbox"
+              aria-label="Sort jobs"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-xs font-medium text-gray-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
             >
               <ArrowUpDown size={14} className="text-gray-400" />
               <span className="hidden sm:inline">Sort:</span>
@@ -108,12 +113,19 @@ export function JobsToolbar({
             {showSortMenu && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setShowSortMenu(false)} />
-                <div className="absolute right-0 top-full mt-1.5 w-52 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden py-1">
+                <div
+                  className="absolute right-0 top-full mt-1.5 w-52 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden py-1"
+                  role="listbox"
+                  aria-label="Sort options"
+                  onKeyDown={(e) => { if (e.key === 'Escape') setShowSortMenu(false); }}
+                >
                   {sortOptions.map((option) => (
                     <button
                       key={option.value}
+                      role="option"
+                      aria-selected={sortBy === option.value}
                       onClick={() => { onSortChange(option.value); setShowSortMenu(false); }}
-                      className={`w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${
+                      className={`w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-500 ${
                         sortBy === option.value ? 'text-teal-700 bg-teal-50/50 font-medium' : 'text-gray-700'
                       }`}
                     >
@@ -127,10 +139,11 @@ export function JobsToolbar({
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+          <div className="flex items-center bg-gray-100 rounded-lg p-0.5" role="group" aria-label="View mode">
             <button
               onClick={() => onViewModeChange('grid')}
-              className={`p-2 rounded-md transition-all ${
+              aria-pressed={viewMode === 'grid'}
+              className={`p-2 rounded-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${
                 viewMode === 'grid' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
               aria-label="Grid view"
@@ -139,7 +152,8 @@ export function JobsToolbar({
             </button>
             <button
               onClick={() => onViewModeChange('list')}
-              className={`p-2 rounded-md transition-all ${
+              aria-pressed={viewMode === 'list'}
+              className={`p-2 rounded-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${
                 viewMode === 'list' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
               aria-label="List view"

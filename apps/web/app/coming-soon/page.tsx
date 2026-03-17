@@ -230,7 +230,7 @@ export default function ComingSoonPage() {
       {/* ------------------------------------------------------------------ */}
       {/*  Navigation                                                        */}
       {/* ------------------------------------------------------------------ */}
-      <nav className="sticky top-0 z-50 border-b border-navy-100 bg-white/90 backdrop-blur-md">
+      <nav aria-label="Coming soon navigation" className="sticky top-0 z-50 border-b border-navy-100 bg-white/90 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <a href="/coming-soon" className="flex items-center gap-2" aria-label="Mintenance home">
             <Image src="/assets/icon.png" alt="" width={36} height={36} className="rounded-lg" priority />
@@ -248,6 +248,7 @@ export default function ComingSoonPage() {
         </div>
       </nav>
 
+      <main id="main-content">
       {/* ------------------------------------------------------------------ */}
       {/*  Hero                                                              */}
       {/* ------------------------------------------------------------------ */}
@@ -534,10 +535,12 @@ export default function ComingSoonPage() {
         </div>
       </section>
 
+      </main>
+
       {/* ------------------------------------------------------------------ */}
       {/*  Footer                                                            */}
       {/* ------------------------------------------------------------------ */}
-      <footer className="border-t border-navy-100 bg-navy-900 py-12">
+      <footer className="border-t border-navy-100 bg-navy-900 py-12" role="contentinfo">
         <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
           <div className="mb-4 flex items-center justify-center gap-2">
             <Image src="/assets/icon.png" alt="" width={28} height={28} className="rounded-md" />

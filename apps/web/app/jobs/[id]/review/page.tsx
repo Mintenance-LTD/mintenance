@@ -287,10 +287,12 @@ export default function ReviewSubmissionPage() {
 
           <div className="flex items-center gap-4">
             {contractorAvatar ? (
-              <img
+              <Image
                 src={contractorAvatar}
                 alt={contractorName}
-                className="w-16 h-16 rounded-full border-2 border-gray-200 object-cover"
+                width={64}
+                height={64}
+                className="rounded-full border-2 border-gray-200 object-cover"
               />
             ) : (
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-teal-500 flex items-center justify-center border-2 border-gray-200">

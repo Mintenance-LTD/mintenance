@@ -1,6 +1,5 @@
-"use client";
-
-import React, { useEffect, useState } from 'react';
+import React, { Suspense } from 'react';
+import type { Metadata } from 'next';
 import { logger } from '@mintenance/shared';
 import { HeroSection } from './components/landing/HeroSection';
 import { Footer2025 } from './components/landing/Footer2025';
@@ -17,11 +16,39 @@ import { ExitIntentModal } from '@/components/landing/exit-intent-modal';
 import type { PlatformStats } from '@/components/landing/stats-section';
 
 /**
- * MINTENANCE LANDING PAGE - PRODUCTION QUALITY
- * Inspired by Birch & Revealbot's Professional Design
- *
- * Colors: Navy Blue (#1E293B) + Mint Green (#14B8A6) + Amber Gold (#F59E0B)
+ * MINTENANCE LANDING PAGE - SERVER-RENDERED
+ * Stats fetched server-side for SEO and performance (no empty shell for crawlers).
+ * Child components are "use client" for interactivity.
  */
+
+export const metadata: Metadata = {
+  title: 'Mintenance - Find Trusted Contractors For Your Home Projects',
+  description: 'Connect with verified contractors for all your home maintenance needs. Get instant quotes, read reviews, and hire trusted professionals.',
+  keywords: 'contractors, home maintenance, home repair, plumber, electrician, handyman, trusted contractors',
+  openGraph: {
+    type: 'website',
+    locale: 'en_GB',
+    url: 'https://mintenance.com',
+    siteName: 'Mintenance',
+    title: 'Mintenance - Find Trusted Contractors For Your Home Projects',
+    description: 'Connect with verified contractors. Get instant quotes, compare prices, and hire trusted professionals.',
+    images: [{
+      url: 'https://mintenance.com/og-image.jpg',
+      width: 1200,
+      height: 630,
+      alt: 'Mintenance - Your trusted home maintenance platform',
+    }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@mintenance',
+    title: 'Mintenance - Find Trusted Local Contractors',
+    description: 'Connect with verified contractors for all your home maintenance needs.',
+  },
+  alternates: {
+    canonical: 'https://mintenance.com',
+  },
+};
 
 const FALLBACK_STATS: PlatformStats = {
   activeContractors: 0,
@@ -34,58 +61,28 @@ const FALLBACK_STATS: PlatformStats = {
   responseTimeImprovement: 0,
 };
 
-export default function LandingPage() {
-  const [stats, setStats] = useState<PlatformStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [hasRealStats, setHasRealStats] = useState(false);
+async function fetchPlatformStats(): Promise<{ stats: PlatformStats; hasRealStats: boolean }> {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : 'http://localhost:3000';
 
-  // Fetch platform statistics from API (real contractor/user data only)
-  useEffect(() => {
-    async function fetchStats() {
-      try {
-        const response = await fetch('/api/stats/platform');
-        const contentType = response.headers.get('content-type') || '';
-        if (response.ok && contentType.includes('application/json')) {
-          const data = await response.json();
-          setStats(data);
-          setHasRealStats(true);
-        } else {
-          setStats(FALLBACK_STATS);
-          setHasRealStats(false);
-        }
-      } catch (error) {
-        logger.error('Failed to fetch platform statistics:', error);
-        setStats(FALLBACK_STATS);
-        setHasRealStats(false);
-      } finally {
-        setLoading(false);
-      }
+    const response = await fetch(`${baseUrl}/api/stats/platform`, {
+      next: { revalidate: 3600 }, // Cache for 1 hour
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return { stats: data, hasRealStats: true };
     }
+  } catch (error) {
+    logger.error('Failed to fetch platform statistics:', error);
+  }
+  return { stats: FALLBACK_STATS, hasRealStats: false };
+}
 
-    fetchStats();
-  }, []);
-
-  // Smooth scroll for hash links (only for same-page navigation)
-  useEffect(() => {
-    const handleHashClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const link = target.closest('a[href^="#"]') as HTMLAnchorElement;
-      if (link && link.getAttribute('href')?.startsWith('#')) {
-        const hash = link.getAttribute('href');
-        if (hash && hash !== '#' && window.location.pathname === '/') {
-          e.preventDefault();
-          const element = document.querySelector(hash);
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            window.history.pushState(null, '', hash);
-          }
-        }
-      }
-    };
-
-    document.addEventListener('click', handleHashClick);
-    return () => document.removeEventListener('click', handleHashClick);
-  }, []);
+export default async function LandingPage() {
+  const { stats, hasRealStats } = await fetchPlatformStats();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -93,9 +90,9 @@ export default function LandingPage() {
 
       <main id="main-content" className="pt-16">
         <HeroSection
-          activeContractors={stats?.activeContractors ?? null}
+          activeContractors={stats.activeContractors ?? null}
           hasRealStats={hasRealStats}
-          statsLoading={loading}
+          statsLoading={false}
         />
         <StatsSection stats={stats} />
         <BentoFeaturesSection />

@@ -35,7 +35,8 @@ interface Props {
 }
 
 export const MeetingScheduleScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { contractorId, jobId, contractor, job } = route.params;
+  const params = route.params ?? {};
+  const { contractorId = '', jobId, contractor, job } = params;
 
   const viewModel = useMeetingScheduleViewModel(contractorId, jobId ?? '', contractor, job);
 

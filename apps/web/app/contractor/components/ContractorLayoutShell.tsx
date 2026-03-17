@@ -160,6 +160,14 @@ export function ContractorLayoutShell(props: ContractorLayoutShellProps) {
         fontFamily: theme.typography.fontFamily.regular,
       }}
     >
+      {/* Skip to content link for keyboard users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-[9999] focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-white focus:text-teal-700 focus:rounded-lg focus:shadow-lg focus:font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500"
+      >
+        Skip to content
+      </a>
+
       <UnifiedSidebar
         userRole="contractor"
         userInfo={userInfo}
@@ -235,6 +243,7 @@ export function ContractorLayoutShell(props: ContractorLayoutShellProps) {
                 <form
                   action="/contractors"
                   method="get"
+                  role="search"
                   suppressHydrationWarning
                   style={{
                     flex: '1 1 0%',
@@ -401,6 +410,7 @@ export function ContractorLayoutShell(props: ContractorLayoutShellProps) {
         </header>
 
                 <main
+                  id="main-content"
                   suppressHydrationWarning
                   style={{
                     flex: '1 1 0%',
@@ -420,23 +430,25 @@ export function ContractorLayoutShell(props: ContractorLayoutShellProps) {
       </div>
 
       {/* Mobile Bottom Tab Bar — only visible below lg breakpoint */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50 flex items-stretch justify-around safe-area-bottom">
+      <nav aria-label="Mobile navigation" className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50 flex items-stretch justify-around safe-area-bottom">
         <Link
           href="/contractor/dashboard-enhanced"
+          aria-current={pathname === '/contractor/dashboard-enhanced' ? 'page' : undefined}
           className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2 text-xs font-medium transition-colors ${
             pathname === '/contractor/dashboard-enhanced' ? 'text-teal-600' : 'text-gray-400 hover:text-gray-600'
           }`}
         >
-          <Home className="w-5 h-5" />
+          <Home className="w-5 h-5" aria-hidden="true" />
           <span>Home</span>
         </Link>
         <Link
           href="/contractor/jobs"
+          aria-current={pathname?.startsWith('/contractor/jobs') && !pathname.includes('near-you') ? 'page' : undefined}
           className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2 text-xs font-medium transition-colors ${
             pathname?.startsWith('/contractor/jobs') && !pathname.includes('near-you') ? 'text-teal-600' : 'text-gray-400 hover:text-gray-600'
           }`}
         >
-          <Briefcase className="w-5 h-5" />
+          <Briefcase className="w-5 h-5" aria-hidden="true" />
           <span>Jobs</span>
         </Link>
         <Link
@@ -450,18 +462,20 @@ export function ContractorLayoutShell(props: ContractorLayoutShellProps) {
         </Link>
         <Link
           href="/contractor/quotes"
+          aria-current={pathname?.startsWith('/contractor/quotes') ? 'page' : undefined}
           className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2 text-xs font-medium transition-colors ${
             pathname?.startsWith('/contractor/quotes') ? 'text-teal-600' : 'text-gray-400 hover:text-gray-600'
           }`}
         >
-          <FileText className="w-5 h-5" />
+          <FileText className="w-5 h-5" aria-hidden="true" />
           <span>Quotes</span>
         </Link>
         <button
           onClick={() => setIsMobileOpen(true)}
+          aria-label="Open more navigation options"
           className="flex flex-col items-center justify-center gap-0.5 flex-1 py-2 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors"
         >
-          <Menu className="w-5 h-5" />
+          <Menu className="w-5 h-5" aria-hidden="true" />
           <span>More</span>
         </button>
       </nav>

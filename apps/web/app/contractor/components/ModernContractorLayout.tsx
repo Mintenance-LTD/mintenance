@@ -2,6 +2,7 @@
 
 import React, { ReactNode, useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   Home,
@@ -84,23 +85,32 @@ export function ModernContractorLayout(props: ModernContractorLayoutProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Skip to content link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-[9999] focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-white focus:text-teal-700 focus:rounded-lg focus:shadow-lg focus:font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500"
+      >
+        Skip to content
+      </a>
+
       {/* SIDEBAR - Desktop */}
-      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:block lg:w-64 lg:overflow-y-auto lg:bg-white lg:border-r lg:border-gray-200">
+      <aside aria-label="Contractor navigation" className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:block lg:w-64 lg:overflow-y-auto lg:bg-white lg:border-r lg:border-gray-200">
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className="flex h-16 items-center px-6 border-b border-gray-200">
             <Link href="/contractor/dashboard-enhanced" className="flex items-center gap-3">
-              <img
+              <Image
                 src="/assets/icon.png"
                 alt="Mintenance"
-                className="w-8 h-8"
+                width={32}
+                height={32}
               />
               <span className="text-xl font-bold text-gray-900">Mintenance</span>
             </Link>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 space-y-1 px-3 py-4">
+          <nav aria-label="Main navigation" className="flex-1 space-y-1 px-3 py-4">
             {navigation.map((item) => {
               const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
               const Icon = item.icon;
@@ -109,6 +119,7 @@ export function ModernContractorLayout(props: ModernContractorLayoutProps) {
                 <Link
                   key={item.name}
                   href={item.href}
+                  aria-current={isActive ? 'page' : undefined}
                   className={`
                     group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all
                     ${isActive
@@ -138,10 +149,12 @@ export function ModernContractorLayout(props: ModernContractorLayoutProps) {
               className="flex items-center gap-3 rounded-xl p-2 hover:bg-gray-100 transition-colors"
             >
               {contractor?.profile_image_url ? (
-                <img
+                <Image
                   src={contractor.profile_image_url}
                   alt={displayName}
-                  className="h-10 w-10 rounded-full object-cover"
+                  width={40}
+                  height={40}
+                  className="rounded-full object-cover"
                 />
               ) : (
                 <div className="h-10 w-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-semibold">
@@ -168,18 +181,20 @@ export function ModernContractorLayout(props: ModernContractorLayoutProps) {
                   type="button"
                   className="-m-2.5 p-2.5"
                   onClick={() => setMobileMenuOpen(false)}
+                  aria-label="Close navigation menu"
                 >
-                  <X className="h-6 w-6 text-white" />
+                  <X className="h-6 w-6 text-white" aria-hidden="true" />
                 </button>
               </div>
 
               <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-2">
                 <div className="flex h-16 shrink-0 items-center">
                   <Link href="/contractor/dashboard-enhanced" className="flex items-center gap-3">
-                    <img
+                    <Image
                       src="/assets/icon.png"
                       alt="Mintenance"
-                      className="w-8 h-8"
+                      width={32}
+                      height={32}
                     />
                     <span className="text-xl font-bold text-gray-900">Mintenance</span>
                   </Link>
@@ -229,8 +244,9 @@ export function ModernContractorLayout(props: ModernContractorLayoutProps) {
             type="button"
             className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
             onClick={() => setMobileMenuOpen(true)}
+            aria-label="Open navigation menu"
           >
-            <Menu className="h-6 w-6" />
+            <Menu className="h-6 w-6" aria-hidden="true" />
           </button>
 
           {/* Separator */}
@@ -238,7 +254,7 @@ export function ModernContractorLayout(props: ModernContractorLayoutProps) {
 
           {/* Search bar */}
           <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-            <form className="relative flex flex-1 max-w-md" action="#" method="GET">
+            <form className="relative flex flex-1 max-w-md" action="#" method="GET" role="search">
               <label htmlFor="search-field" className="sr-only">
                 Search
               </label>
@@ -259,8 +275,9 @@ export function ModernContractorLayout(props: ModernContractorLayoutProps) {
               <button
                 type="button"
                 className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500"
+                aria-label="Notifications"
               >
-                <Bell className="h-6 w-6" />
+                <Bell className="h-6 w-6" aria-hidden="true" />
               </button>
 
               {/* Separator */}
@@ -269,10 +286,12 @@ export function ModernContractorLayout(props: ModernContractorLayoutProps) {
               {/* Profile dropdown */}
               <Link href="/contractor/profile" className="flex items-center gap-x-3">
                 {contractor?.profile_image_url ? (
-                  <img
+                  <Image
                     src={contractor.profile_image_url}
-                    alt=""
-                    className="h-8 w-8 rounded-full bg-gray-50 object-cover"
+                    alt={displayName}
+                    width={32}
+                    height={32}
+                    className="rounded-full bg-gray-50 object-cover"
                   />
                 ) : (
                   <div className="h-8 w-8 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white text-sm font-semibold">
@@ -288,7 +307,7 @@ export function ModernContractorLayout(props: ModernContractorLayoutProps) {
         </div>
 
         {/* PAGE CONTENT */}
-        <main className="py-8">
+        <main id="main-content" className="py-8">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             {children}
           </div>

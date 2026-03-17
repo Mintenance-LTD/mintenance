@@ -8,6 +8,7 @@ import AddPaymentMethodScreen from "../../../screens/AddPaymentMethodScreen";
 import HelpCenterScreen from "../../../screens/HelpCenterScreen";
 import { PropertiesScreen } from "../../../screens/properties/PropertiesScreen";
 import { PropertyDetailScreen } from "../../../screens/properties/PropertyDetailScreen";
+import { EditPropertyScreen } from "../../../screens/properties/EditPropertyScreen";
 import { PropertyAssessmentScreen } from "../../../screens/assessment/PropertyAssessmentScreen";
 import { AddPropertyScreen } from "../../../screens/properties/AddPropertyScreen";
 import { VideoCaptureScreen } from "../../../screens/video-capture/VideoCaptureScreen";
@@ -43,6 +44,7 @@ export const SafeAddPaymentMethodScreen = withScreenErrorBoundary(AddPaymentMeth
 export const SafeHelpCenterScreen = withScreenErrorBoundary(HelpCenterScreen, "Help Center", { fallbackRoute: "ProfileMain" });
 export const SafePropertiesScreen = withScreenErrorBoundary(PropertiesScreen, "Properties", { fallbackRoute: "ProfileMain" });
 export const SafePropertyDetailScreen = withScreenErrorBoundary(PropertyDetailScreen, "Property Detail", { fallbackRoute: "Properties" });
+export const SafeEditPropertyScreen = withScreenErrorBoundary(EditPropertyScreen, "Edit Property", { fallbackRoute: "PropertyDetail" });
 export const SafePropertyAssessmentScreen = withScreenErrorBoundary(PropertyAssessmentScreen as unknown as React.ComponentType<Record<string, unknown>>, "Property Assessment", { fallbackRoute: "PropertyDetail" });
 export const SafeVideoCaptureScreen = withScreenErrorBoundary(VideoCaptureScreen as unknown as React.ComponentType<Record<string, unknown>>, "Video Capture", { fallbackRoute: "PropertyAssessment" });
 export const SafeVideoProcessingStatusScreen = withScreenErrorBoundary(VideoProcessingStatusScreen as unknown as React.ComponentType<Record<string, unknown>>, "Video Processing", { fallbackRoute: "PropertyAssessment" });

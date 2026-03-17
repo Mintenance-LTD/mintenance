@@ -13,18 +13,23 @@ function addBreadcrumb(
 }
 
 const DEFAULT_PREFERENCES: NotificationPreferences = {
+  pushEnabled: true,
+  newJobs: true,
+  newBids: true,
+  newMessages: true,
   jobUpdates: true,
-  bidNotifications: true,
-  meetingReminders: true,
-  paymentAlerts: true,
-  messages: true,
-  quotes: true,
-  systemAnnouncements: true,
-  quietHours: {
-    enabled: false,
-    start: '22:00',
-    end: '08:00',
-  },
+  paymentUpdates: true,
+  emailEnabled: true,
+  weeklyDigest: true,
+  promotionalEmails: false,
+  securityAlerts: true,
+  soundEnabled: true,
+  vibrationEnabled: true,
+  marketingEmails: false,
+  productUpdates: true,
+  quietHoursEnabled: false,
+  quietHoursStart: '22:00',
+  quietHoursEnd: '07:00',
 };
 
 function parseTime(timeStr: string): number {
@@ -35,28 +40,27 @@ function parseTime(timeStr: string): number {
 export async function getNotificationPreferences(userId: string): Promise<NotificationPreferences> {
   try {
     const { data, error } = await supabase
-      .from('user_notification_preferences')
-      .select('*')
-      .eq('user_id', userId)
+      .from('profiles')
+      .select('notification_preferences')
+      .eq('id', userId)
       .single();
 
     if (error && error.code !== 'PGRST116') {
       throw error;
     }
 
-    if (!data) {
+    if (!data?.notification_preferences) {
       addBreadcrumb('Fetched notification preferences', 'debug', { userId, preferences: DEFAULT_PREFERENCES });
       return DEFAULT_PREFERENCES;
     }
 
-    const preferences =
-      (data as { preferences?: NotificationPreferences; notification_settings?: NotificationPreferences })
-        .preferences ||
-      (data as { notification_settings?: NotificationPreferences }).notification_settings ||
-      DEFAULT_PREFERENCES;
+    const preferences = {
+      ...DEFAULT_PREFERENCES,
+      ...(data.notification_preferences as Partial<NotificationPreferences>),
+    };
 
     addBreadcrumb('Fetched notification preferences', 'debug', { userId, preferences });
-    return preferences as NotificationPreferences;
+    return preferences;
   } catch (error) {
     logger.error('Failed to get notification preferences', error);
     throw error;
@@ -68,19 +72,29 @@ export async function updateNotificationPreferences(
   preferences: Partial<NotificationPreferences>
 ): Promise<void> {
   try {
+    // Fetch current preferences to merge
+    const { data: current } = await supabase
+      .from('profiles')
+      .select('notification_preferences')
+      .eq('id', userId)
+      .single();
+
+    const merged = {
+      ...DEFAULT_PREFERENCES,
+      ...(current?.notification_preferences as Partial<NotificationPreferences> || {}),
+      ...preferences,
+    };
+
     const { error } = await supabase
-      .from('user_notification_preferences')
-      .upsert({
-        user_id: userId,
-        preferences,
-        updated_at: new Date().toISOString(),
-      });
+      .from('profiles')
+      .update({ notification_preferences: merged })
+      .eq('id', userId);
 
     if (error) throw error;
     logger.info('Notification preferences updated', { userId });
     addBreadcrumb('Updated notification preferences', 'info', {
       userId,
-      quietHoursEnabled: Boolean(preferences.quietHours?.enabled),
+      quietHoursEnabled: Boolean(preferences.quietHoursEnabled),
     });
   } catch (error) {
     logger.error('Failed to update notification preferences', error);
@@ -93,26 +107,36 @@ export function shouldSendNotification(
   type: NotificationData['type']
 ): boolean {
   const safePreferences: NotificationPreferences = {
+    pushEnabled: preferences?.pushEnabled ?? true,
+    newJobs: preferences?.newJobs ?? true,
+    newBids: preferences?.newBids ?? true,
+    newMessages: preferences?.newMessages ?? true,
     jobUpdates: preferences?.jobUpdates ?? true,
-    bidNotifications: preferences?.bidNotifications ?? true,
-    meetingReminders: preferences?.meetingReminders ?? true,
-    paymentAlerts: preferences?.paymentAlerts ?? true,
-    messages: preferences?.messages ?? true,
-    quotes: preferences?.quotes ?? true,
-    systemAnnouncements: preferences?.systemAnnouncements ?? true,
-    quietHours: {
-      enabled: preferences?.quietHours?.enabled ?? false,
-      start: preferences?.quietHours?.start || '22:00',
-      end: preferences?.quietHours?.end || '08:00',
-    },
+    paymentUpdates: preferences?.paymentUpdates ?? true,
+    emailEnabled: preferences?.emailEnabled ?? true,
+    weeklyDigest: preferences?.weeklyDigest ?? true,
+    promotionalEmails: preferences?.promotionalEmails ?? false,
+    securityAlerts: preferences?.securityAlerts ?? true,
+    soundEnabled: preferences?.soundEnabled ?? true,
+    vibrationEnabled: preferences?.vibrationEnabled ?? true,
+    marketingEmails: preferences?.marketingEmails ?? false,
+    productUpdates: preferences?.productUpdates ?? true,
+    quietHoursEnabled: preferences?.quietHoursEnabled ?? false,
+    quietHoursStart: preferences?.quietHoursStart || '22:00',
+    quietHoursEnd: preferences?.quietHoursEnd || '07:00',
   };
 
+  // Push notifications globally disabled
+  if (!safePreferences.pushEnabled) {
+    return false;
+  }
+
   // Check quiet hours
-  if (safePreferences.quietHours.enabled) {
+  if (safePreferences.quietHoursEnabled) {
     const now = new Date();
     const currentTime = now.getHours() * 60 + now.getMinutes();
-    const startTime = parseTime(safePreferences.quietHours.start);
-    const endTime = parseTime(safePreferences.quietHours.end);
+    const startTime = parseTime(safePreferences.quietHoursStart);
+    const endTime = parseTime(safePreferences.quietHoursEnd);
 
     if (startTime <= endTime) {
       if (currentTime >= startTime && currentTime <= endTime) {
@@ -129,17 +153,17 @@ export function shouldSendNotification(
     case 'job_update':
       return safePreferences.jobUpdates;
     case 'bid_received':
-      return safePreferences.bidNotifications;
+      return safePreferences.newBids;
     case 'meeting_scheduled':
-      return safePreferences.meetingReminders;
+      return safePreferences.newJobs;
     case 'payment_received':
-      return safePreferences.paymentAlerts;
+      return safePreferences.paymentUpdates;
     case 'message_received':
-      return safePreferences.messages;
+      return safePreferences.newMessages;
     case 'quote_sent':
-      return safePreferences.quotes;
+      return safePreferences.newBids;
     case 'system':
-      return safePreferences.systemAnnouncements;
+      return safePreferences.pushEnabled;
     default:
       return true;
   }

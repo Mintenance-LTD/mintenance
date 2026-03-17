@@ -1,6 +1,5 @@
 
 // Mock React Native modules
-jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),

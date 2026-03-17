@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { InternalServerError } from '@/lib/errors/api-error';
@@ -19,8 +19,10 @@ const updateAvailabilitySchema = z.object({
 
 export const GET = withApiHandler(
   { roles: ['contractor'], csrf: false },
-  async (_request, { user }) => {
-    const { data: availability, error } = await serverSupabase
+  async (request, { user }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
+    const { data: availability, error } = await userDb
       .from('contractor_availability')
       .select('id, day_of_week, start_time, end_time, is_available')
       .eq('contractor_id', user.id)
@@ -49,12 +51,14 @@ export const GET = withApiHandler(
 export const PUT = withApiHandler(
   { roles: ['contractor'] },
   async (request: NextRequest, { user }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     const validation = await validateRequest(request, updateAvailabilitySchema);
     if (validation instanceof NextResponse) return validation;
     const { availability } = validation.data;
 
     // Delete existing availability
-    await serverSupabase
+    await userDb
       .from('contractor_availability')
       .delete()
       .eq('contractor_id', user.id);
@@ -71,7 +75,7 @@ export const PUT = withApiHandler(
       }));
 
     if (availabilityRecords.length > 0) {
-      const { error: insertError } = await serverSupabase
+      const { error: insertError } = await userDb
         .from('contractor_availability')
         .insert(availabilityRecords);
 

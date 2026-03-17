@@ -16,6 +16,9 @@ export const TEST_CONTRACTOR = {
   password: 'Test1234!',
 };
 
+// Test job ID for flows that require an existing job (must exist in test DB)
+export const TEST_JOB_ID = 'e2e-test-job-001';
+
 /**
  * Log in as a specific user via the login screen.
  * Assumes the app starts on the login screen or is already logged out.
@@ -84,4 +87,50 @@ export async function scrollToElement(
     .toBeVisible()
     .whileElement(by.id(scrollViewId))
     .scroll(pixels, direction);
+}
+
+/**
+ * Tap a text element with fallback to an alternative label.
+ * Useful when button text varies between builds or locales.
+ */
+export async function tapText(primary: string, fallback?: string) {
+  try {
+    await element(by.text(primary)).tap();
+  } catch {
+    if (fallback) {
+      await element(by.text(fallback)).tap();
+    } else {
+      throw new Error(`Could not find element with text "${primary}"`);
+    }
+  }
+}
+
+/**
+ * Wait for any visible element matching the given text.
+ * Returns true if found within the timeout, false otherwise.
+ */
+export async function waitForText(
+  text: string,
+  timeout = 10000,
+): Promise<boolean> {
+  try {
+    await waitFor(element(by.text(text)))
+      .toBeVisible()
+      .withTimeout(timeout);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Navigate to Profile tab and then into a sub-screen by tapping a menu item.
+ */
+export async function navigateToProfileSubScreen(menuItemText: string) {
+  await navigateToTab('Profile');
+  await waitFor(element(by.text('Profile').or(element(by.text('Settings')))))
+    .toBeVisible()
+    .withTimeout(10000);
+  await element(by.text(menuItemText)).tap();
+  await new Promise((r) => setTimeout(r, 500));
 }

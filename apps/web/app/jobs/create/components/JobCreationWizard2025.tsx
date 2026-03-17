@@ -126,7 +126,9 @@ export function JobCreationWizard2025({
                 key={step.id}
                 onClick={() => isClickable && onStepChange(step.id)}
                 disabled={!isClickable}
-                className={`flex flex-col items-center gap-2 relative ${
+                aria-label={`Step ${step.id}: ${step.title}`}
+                aria-current={isActive ? 'step' : undefined}
+                className={`flex flex-col items-center gap-2 relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 rounded-lg ${
                   isClickable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
                 }`}
               >

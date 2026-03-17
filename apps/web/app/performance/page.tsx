@@ -40,7 +40,7 @@ export default function PerformancePage() {
       case 'good':
         return 'text-green-600 bg-green-50 border-green-200';
       case 'needs-improvement':
-        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+        return 'text-yellow-800 bg-yellow-50 border-yellow-200';
       case 'poor':
         return 'text-red-600 bg-red-50 border-red-200';
       default:
@@ -56,7 +56,7 @@ export default function PerformancePage() {
 
   const getHealthScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
+    if (score >= 60) return 'text-yellow-700';
     return 'text-red-600';
   };
 

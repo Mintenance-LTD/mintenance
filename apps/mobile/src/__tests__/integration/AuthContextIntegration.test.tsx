@@ -9,7 +9,6 @@ import { AuthService } from '../../services/AuthService';
 import { BiometricService } from '../../services/BiometricService';
 import { createTestQueryClient } from '../utils/test-utils';
 
-jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,
   SafeAreaView: ({ children }) => children,

@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient, SupabaseClientOptions } from '@supabase/supabase-js';
+import type { NextRequest } from 'next/server';
 
 // Read env vars lazily at client creation time (not module load time).
 // Module-level constants can capture stale/placeholder values during
@@ -132,4 +133,91 @@ export function createUserScopedClient(userJwt: string) {
       },
     },
   });
+}
+
+/**
+ * Extract the raw JWT from an incoming API request.
+ * Checks Bearer token first (mobile clients), then falls back to
+ * the Supabase auth cookie (web clients using Supabase Auth).
+ *
+ * Returns null if no valid token source is found — callers should
+ * fall back to serverSupabase (service role) when this returns null,
+ * since the user was already authenticated by withApiHandler.
+ */
+export function getUserJwtFromRequest(request: NextRequest): string | null {
+  // 1. Bearer token (mobile clients send Supabase JWTs)
+  const authHeader = request.headers.get('authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.slice(7);
+    if (token) return token;
+  }
+
+  // 2. Supabase auth cookie (web clients authenticated via Supabase Auth)
+  //    Cookie name format: sb-<project-ref>-auth-token
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const ref = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1] || '';
+  if (ref) {
+    // @supabase/ssr stores session as base64-encoded JSON chunks
+    // The access_token is inside the decoded JSON object
+    const cookieValue = request.cookies.get(`sb-${ref}-auth-token`)?.value;
+    if (cookieValue) {
+      try {
+        const session = JSON.parse(cookieValue);
+        if (session?.access_token) return session.access_token;
+      } catch {
+        // Cookie might be in chunked format (sb-<ref>-auth-token.0, .1, etc.)
+        // or just the token itself
+      }
+    }
+    // Try chunked cookie format
+    let chunked = '';
+    for (let i = 0; i < 10; i++) {
+      const chunk = request.cookies.get(`sb-${ref}-auth-token.${i}`)?.value;
+      if (!chunk) break;
+      chunked += chunk;
+    }
+    if (chunked) {
+      try {
+        const session = JSON.parse(chunked);
+        if (session?.access_token) return session.access_token;
+      } catch {
+        // Not valid JSON
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Create a Supabase client that respects RLS for the current request.
+ *
+ * This is the preferred way to get a user-scoped client inside API route handlers.
+ * It extracts the JWT from the request (Bearer token or Supabase cookie) and creates
+ * a client with the anon key + user's JWT so all queries go through RLS.
+ *
+ * Falls back to serverSupabase (service role) if no user token is found,
+ * which should only happen if the route allows unauthenticated access.
+ *
+ * @param request - The NextRequest object from the route handler
+ * @returns A Supabase client scoped to the user (RLS-enforced), or null if no JWT found
+ */
+export function createRequestScopedClient(request: NextRequest): SupabaseClient | null {
+  const jwt = getUserJwtFromRequest(request);
+  if (!jwt) return null;
+  return createUserScopedClient(jwt) as SupabaseClient;
+}
+
+/**
+ * Create a Supabase client with the anon key for operations that need
+ * to establish a user session (e.g., password reset via access token).
+ * Unlike createUserScopedClient, this does NOT set an Authorization header,
+ * allowing callers to use auth.setSession() to authenticate.
+ */
+export function createAnonClient() {
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!anonKey) {
+    throw new Error('[Supabase] Missing NEXT_PUBLIC_SUPABASE_ANON_KEY for anon client');
+  }
+  return createClient(getSupabaseUrl(), anonKey, clientOptions as unknown as Parameters<typeof createClient>[2]);
 }

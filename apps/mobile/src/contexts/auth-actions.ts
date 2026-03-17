@@ -35,7 +35,8 @@ export const initializePushNotifications = async (
       await NotificationService.savePushToken(userId, token);
     }
   } catch (error) {
-    logger.error('Failed to initialize push notifications:', error);
+    // Firebase/FCM may not be configured in dev; downgrade to warn
+    logger.warn('Push notification init skipped (FCM not configured?):', error);
   }
 };
 

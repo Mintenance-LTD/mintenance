@@ -1,13 +1,19 @@
 /**
  * Tests for JobSearchService - Job Search and Filtering Operations
+ *
+ * The service now uses mobileApiClient for all search/list operations
+ * and delegates getJob to JobCRUDService.getJobById.
  */
 
 import { JobSearchService } from '../JobSearchService';
 import type { Job } from '@mintenance/types';
 import { JobCRUDService } from '../JobCRUDService';
-import { supabase } from '../../config/supabase';
-import { sanitizeForSQL, isValidSearchTerm } from '../../utils/sqlSanitization';
+import { mobileApiClient } from '../../utils/mobileApiClient';
+import { isValidSearchTerm } from '../../utils/sqlSanitization';
 import { logger } from '../../utils/logger';
+
+// Auto-mock mobileApiClient (picks up __mocks__/mobileApiClient.ts)
+jest.mock('../../utils/mobileApiClient');
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
@@ -20,24 +26,22 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
-// Mock dependencies
-jest.mock('../../config/supabase', () => ({
-  supabase: {
-    from: jest.fn(),
-  },
-}));
+// Note: supabase is provided by the global mock via moduleNameMapper.
+// Do NOT add an inline jest.mock for config/supabase here.
 
 jest.mock('../../utils/sqlSanitization');
 jest.mock('../../utils/logger');
 jest.mock('../JobCRUDService', () => ({
   JobCRUDService: {
-    formatJob: jest.fn((data) => data),
+    formatJob: jest.fn((data: unknown) => data),
     getJobById: jest.fn(),
   },
 }));
 
+const mockedApiClient = mobileApiClient as jest.Mocked<typeof mobileApiClient>;
+
 describe('JobSearchService', () => {
-  const mockJobData = {
+  const mockJobData: Job = {
     id: 'job-123',
     title: 'Plumbing Repair',
     description: 'Fix leaky faucet',
@@ -63,112 +67,68 @@ describe('JobSearchService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (JobCRUDService['formatJob'] as jest.Mock).mockImplementation((data) => ({
-      ...data,
-      // Mock formatting
-    }));
+    (isValidSearchTerm as jest.Mock).mockReturnValue(true);
   });
 
   describe('getJobsByHomeowner', () => {
-    it('should get jobs by homeowner ID', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: [mockJobData], error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+    it('should get jobs by homeowner ID via API', async () => {
+      mockedApiClient.get.mockResolvedValue({ jobs: [mockJobData] });
 
       const result = await JobSearchService.getJobsByHomeowner('homeowner-123');
 
-      expect(supabase.from).toHaveBeenCalledWith('jobs');
-      expect(mockFrom.select).toHaveBeenCalledWith('*');
-      expect(mockFrom.eq).toHaveBeenCalledWith('homeowner_id', 'homeowner-123');
-      expect(mockFrom.order).toHaveBeenCalledWith('created_at', { ascending: false });
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        expect.stringContaining('homeowner_id=homeowner-123')
+      );
       expect(result).toHaveLength(1);
     });
 
     it('should return empty array when no jobs found', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: null, error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({ jobs: [] });
 
       const result = await JobSearchService.getJobsByHomeowner('homeowner-999');
 
       expect(result).toEqual([]);
     });
 
-    it('should throw error when query fails', async () => {
-      const error = new Error('Database error');
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: null, error }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+    it('should throw error when API fails', async () => {
+      mockedApiClient.get.mockRejectedValue(new Error('Database error'));
 
       await expect(JobSearchService.getJobsByHomeowner('homeowner-123')).rejects.toThrow(
         'Database error'
       );
     });
 
-    it('should format jobs using JobCRUDService.formatJob', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: [mockJobData], error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+    it('should handle response without jobs wrapper', async () => {
+      mockedApiClient.get.mockResolvedValue([mockJobData]);
 
-      await JobSearchService.getJobsByHomeowner('homeowner-123');
+      const result = await JobSearchService.getJobsByHomeowner('homeowner-123');
 
-      // formatJob is called via map with (data, index, array) - check first call
-      expect(JobCRUDService['formatJob']).toHaveBeenCalledWith(
-        mockJobData,
-        expect.any(Number),
-        expect.any(Array)
-      );
+      expect(result).toHaveLength(1);
     });
   });
 
   describe('getUserJobs', () => {
     it('should get jobs by user ID', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: [mockJobData], error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({ jobs: [mockJobData] });
 
       const result = await JobSearchService.getUserJobs('user-123');
 
-      expect(mockFrom.eq).toHaveBeenCalledWith('homeowner_id', 'user-123');
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        expect.stringContaining('homeowner_id=user-123')
+      );
       expect(result).toHaveLength(1);
     });
 
     it('should return empty array when no jobs found', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: null, error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({ jobs: [] });
 
       const result = await JobSearchService.getUserJobs('user-999');
 
       expect(result).toEqual([]);
     });
 
-    it('should throw error with message when query fails', async () => {
-      const error = { message: 'Connection failed' };
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: null, error }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+    it('should throw error when API fails', async () => {
+      mockedApiClient.get.mockRejectedValue(new Error('Connection failed'));
 
       await expect(JobSearchService.getUserJobs('user-123')).rejects.toThrow('Connection failed');
     });
@@ -176,59 +136,29 @@ describe('JobSearchService', () => {
 
   describe('getAvailableJobs', () => {
     it('should get available (posted) jobs with limit', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: [mockJobData], error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({ jobs: [mockJobData] });
 
       const result = await JobSearchService.getAvailableJobs();
 
-      expect(mockFrom.eq).toHaveBeenCalledWith('status', 'posted');
-      expect(mockFrom.limit).toHaveBeenCalledWith(20);
-      expect(result).toHaveLength(1);
-    });
-
-    it('should work without limit function (fallback)', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnValue({
-          then: (cb: unknown) => cb({ data: [mockJobData], error: null }),
-        }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
-
-      const result = await JobSearchService.getAvailableJobs();
-
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        expect.stringContaining('status=posted')
+      );
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        expect.stringContaining('limit=20')
+      );
       expect(result).toHaveLength(1);
     });
 
     it('should return empty array when no jobs available', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: null, error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({ jobs: [] });
 
       const result = await JobSearchService.getAvailableJobs();
 
       expect(result).toEqual([]);
     });
 
-    it('should throw error when query fails', async () => {
-      const error = new Error('Query failed');
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: null, error }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+    it('should throw error when API fails', async () => {
+      mockedApiClient.get.mockRejectedValue(new Error('Query failed'));
 
       await expect(JobSearchService.getAvailableJobs()).rejects.toThrow('Query failed');
     });
@@ -236,56 +166,37 @@ describe('JobSearchService', () => {
 
   describe('getJobsByStatus', () => {
     it('should get jobs by status', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: [mockJobData], error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({ jobs: [mockJobData] });
 
       const result = await JobSearchService.getJobsByStatus('posted');
 
-      expect(mockFrom.eq).toHaveBeenCalledWith('status', 'posted');
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        expect.stringContaining('status=posted')
+      );
       expect(result).toHaveLength(1);
     });
 
-    it('should filter by user ID when provided', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        or: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: [mockJobData], error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+    it('should include userId filter when provided', async () => {
+      mockedApiClient.get.mockResolvedValue({ jobs: [mockJobData] });
 
       await JobSearchService.getJobsByStatus('in_progress', 'user-123');
 
-      expect(mockFrom.or).toHaveBeenCalledWith(
-        'homeowner_id.eq.user-123,contractor_id.eq.user-123'
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        expect.stringContaining('userId=user-123')
       );
     });
 
-    it('should not filter by user when userId is undefined', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        or: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: [mockJobData], error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+    it('should not include userId when not provided', async () => {
+      mockedApiClient.get.mockResolvedValue({ jobs: [mockJobData] });
 
       await JobSearchService.getJobsByStatus('posted');
 
-      expect(mockFrom.or).not.toHaveBeenCalled();
+      const callUrl = mockedApiClient.get.mock.calls[0][0];
+      expect(callUrl).not.toContain('userId=');
     });
 
     it('should return empty array when no jobs found', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: null, error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({ jobs: [] });
 
       const result = await JobSearchService.getJobsByStatus('completed');
 
@@ -295,40 +206,29 @@ describe('JobSearchService', () => {
 
   describe('getJobsByUser', () => {
     it('should get jobs by homeowner', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: [mockJobData], error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({ jobs: [mockJobData] });
 
       const result = await JobSearchService.getJobsByUser('user-123', 'homeowner');
 
-      expect(mockFrom.eq).toHaveBeenCalledWith('homeowner_id', 'user-123');
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        expect.stringContaining('homeowner_id=user-123')
+      );
       expect(result).toHaveLength(1);
     });
 
     it('should get jobs by contractor', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: [mockJobData], error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({ jobs: [mockJobData] });
 
       const result = await JobSearchService.getJobsByUser('contractor-123', 'contractor');
 
-      expect(mockFrom.eq).toHaveBeenCalledWith('contractor_id', 'contractor-123');
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        expect.stringContaining('contractor_id=contractor-123')
+      );
       expect(result).toHaveLength(1);
     });
 
     it('should return empty array when no jobs found', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: null, error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({ jobs: [] });
 
       const result = await JobSearchService.getJobsByUser('user-999', 'homeowner');
 
@@ -338,85 +238,39 @@ describe('JobSearchService', () => {
 
   describe('getJobs', () => {
     it('should get jobs with status and limit', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: [mockJobData], error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({ jobs: [mockJobData] });
 
       const result = await JobSearchService.getJobs('posted', 10);
 
-      expect(mockFrom.eq).toHaveBeenCalledWith('status', 'posted');
-      expect(mockFrom.limit).toHaveBeenCalledWith(10);
+      const callUrl = mockedApiClient.get.mock.calls[0][0];
+      expect(callUrl).toContain('status=posted');
+      expect(callUrl).toContain('limit=10');
       expect(result).toHaveLength(1);
     });
 
     it('should get jobs with limit and offset', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        range: jest.fn().mockResolvedValue({ data: [mockJobData], error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({ jobs: [mockJobData] });
 
-      // arg1=10 (limit), arg2=20 (offset) -> range(20, 20 + 10 - 1 = 29)
       const result = await JobSearchService.getJobs(10, 20);
 
-      expect(mockFrom.range).toHaveBeenCalledWith(20, 29); // offset to offset + limit - 1
-      expect(result).toHaveLength(1);
-    });
-
-    it('should get jobs with limit only', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: [mockJobData], error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
-
-      const result = await JobSearchService.getJobs(undefined, 15);
-
-      expect(mockFrom.limit).toHaveBeenCalledWith(15);
+      const callUrl = mockedApiClient.get.mock.calls[0][0];
+      expect(callUrl).toContain('limit=10');
+      expect(callUrl).toContain('offset=20');
       expect(result).toHaveLength(1);
     });
 
     it('should get jobs with default limit when no args', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: [mockJobData], error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({ jobs: [mockJobData] });
 
       const result = await JobSearchService.getJobs();
 
-      expect(mockFrom.limit).toHaveBeenCalledWith(20);
-      expect(result).toHaveLength(1);
-    });
-
-    it('should work without limit function (fallback)', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnValue({
-          then: (cb: unknown) => cb({ data: [mockJobData], error: null }),
-        }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
-
-      const result = await JobSearchService.getJobs();
-
+      const callUrl = mockedApiClient.get.mock.calls[0][0];
+      expect(callUrl).toContain('limit=20');
       expect(result).toHaveLength(1);
     });
 
     it('should return empty array when no jobs found', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: null, error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({ jobs: [] });
 
       const result = await JobSearchService.getJobs();
 
@@ -425,40 +279,14 @@ describe('JobSearchService', () => {
   });
 
   describe('searchJobs', () => {
-    beforeEach(() => {
-      (isValidSearchTerm as jest.Mock).mockReturnValue(true);
-      (sanitizeForSQL as jest.Mock).mockImplementation((s) => s);
-    });
-
-    it('should search jobs with textSearch when available', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        textSearch: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: [mockJobData], error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+    it('should search jobs via API', async () => {
+      mockedApiClient.get.mockResolvedValue({ jobs: [mockJobData] });
 
       const result = await JobSearchService.searchJobs('plumbing');
 
-      expect(mockFrom.textSearch).toHaveBeenCalledWith('fts', 'plumbing');
+      const callUrl = mockedApiClient.get.mock.calls[0][0];
+      expect(callUrl).toContain('search=plumbing');
       expect(result).toHaveLength(1);
-    });
-
-    it('should use or clause when textSearch not available', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        or: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: [mockJobData], error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
-
-      await JobSearchService.searchJobs('plumbing');
-
-      expect(mockFrom.or).toHaveBeenCalledWith(
-        expect.stringContaining('title.ilike.%plumbing%')
-      );
     });
 
     it('should return empty array for invalid search term', async () => {
@@ -470,139 +298,74 @@ describe('JobSearchService', () => {
       expect(logger.warn).toHaveBeenCalledWith('Invalid search term rejected in JobSearchService');
     });
 
-    it('should return empty array when sanitization returns empty', async () => {
-      (sanitizeForSQL as jest.Mock).mockReturnValue('');
-
-      const result = await JobSearchService.searchJobs('test');
-
-      expect(result).toEqual([]);
-    });
-
     it('should apply category filter', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        textSearch: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: [mockJobData], error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({ jobs: [mockJobData] });
 
       await JobSearchService.searchJobs('repair', { category: 'plumbing' });
 
-      expect(mockFrom.eq).toHaveBeenCalledWith('category', 'plumbing');
+      const callUrl = mockedApiClient.get.mock.calls[0][0];
+      expect(callUrl).toContain('category=plumbing');
     });
 
     it('should apply budget filters', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        textSearch: jest.fn().mockReturnThis(),
-        gte: jest.fn().mockReturnThis(),
-        lte: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: [mockJobData], error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({ jobs: [mockJobData] });
 
       await JobSearchService.searchJobs('repair', {
         minBudget: 500,
         maxBudget: 2000,
       });
 
-      expect(mockFrom.gte).toHaveBeenCalledWith('budget', 500);
-      expect(mockFrom.lte).toHaveBeenCalledWith('budget', 2000);
+      const callUrl = mockedApiClient.get.mock.calls[0][0];
+      expect(callUrl).toContain('minBudget=500');
+      expect(callUrl).toContain('maxBudget=2000');
     });
 
     it('should apply custom limit', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        textSearch: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: [mockJobData], error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({ jobs: [mockJobData] });
 
       await JobSearchService.searchJobs('repair', undefined, 50);
 
-      expect(mockFrom.limit).toHaveBeenCalledWith(50);
+      const callUrl = mockedApiClient.get.mock.calls[0][0];
+      expect(callUrl).toContain('limit=50');
     });
 
     it('should use default limit of 20', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        textSearch: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: [mockJobData], error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({ jobs: [mockJobData] });
 
       await JobSearchService.searchJobs('repair');
 
-      expect(mockFrom.limit).toHaveBeenCalledWith(20);
-    });
-
-    it('should work without limit function (fallback)', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        textSearch: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnValue({
-          then: (cb: unknown) => cb({ data: [mockJobData], error: null }),
-        }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
-
-      const result = await JobSearchService.searchJobs('repair');
-
-      expect(result).toHaveLength(1);
+      const callUrl = mockedApiClient.get.mock.calls[0][0];
+      expect(callUrl).toContain('limit=20');
     });
 
     it('should apply all filters together', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        textSearch: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        gte: jest.fn().mockReturnThis(),
-        lte: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: [mockJobData], error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({ jobs: [mockJobData] });
 
       await JobSearchService.searchJobs(
         'plumbing',
-        {
-          category: 'plumbing',
-          minBudget: 500,
-          maxBudget: 2000,
-        },
+        { category: 'plumbing', minBudget: 500, maxBudget: 2000 },
         30
       );
 
-      expect(mockFrom.textSearch).toHaveBeenCalled();
-      expect(mockFrom.eq).toHaveBeenCalledWith('category', 'plumbing');
-      expect(mockFrom.gte).toHaveBeenCalledWith('budget', 500);
-      expect(mockFrom.lte).toHaveBeenCalledWith('budget', 2000);
-      expect(mockFrom.limit).toHaveBeenCalledWith(30);
+      const callUrl = mockedApiClient.get.mock.calls[0][0];
+      expect(callUrl).toContain('search=plumbing');
+      expect(callUrl).toContain('category=plumbing');
+      expect(callUrl).toContain('minBudget=500');
+      expect(callUrl).toContain('maxBudget=2000');
+      expect(callUrl).toContain('limit=30');
     });
 
     it('should handle zero budget values', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        textSearch: jest.fn().mockReturnThis(),
-        gte: jest.fn().mockReturnThis(),
-        lte: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: [mockJobData], error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({ jobs: [mockJobData] });
 
       await JobSearchService.searchJobs('repair', {
         minBudget: 0,
         maxBudget: 0,
       });
 
-      expect(mockFrom.gte).toHaveBeenCalledWith('budget', 0);
-      expect(mockFrom.lte).toHaveBeenCalledWith('budget', 0);
+      const callUrl = mockedApiClient.get.mock.calls[0][0];
+      expect(callUrl).toContain('minBudget=0');
+      expect(callUrl).toContain('maxBudget=0');
     });
   });
 

@@ -1,14 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-  Alert,
-  Linking,
-  Platform,
+  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  RefreshControl, Alert, Linking, Platform, Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,519 +11,295 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { ProfileStackParamList, RootTabParamList } from '../navigation/types';
 import { logger } from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
-import {
-  ContractorBusinessSuite,
-  type ClientAnalytics,
-} from '../services/contractor-business';
-import { ClientCard, ClientData } from '../components/ClientCard';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import SearchBar from '../components/SearchBar';
 import { theme } from '../theme';
+
+interface DerivedClient {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  profile_image_url?: string;
+  total_jobs: number;
+  total_revenue: number;
+  last_job_date: string;
+  last_job_title: string;
+  relationship_status: 'active' | 'prospect' | 'inactive';
+}
+
+interface JobRecord {
+  id: string;
+  homeowner_id: string;
+  status: string;
+  title?: string;
+  created_at: string;
+  completed_at?: string;
+  budget?: number;
+  final_price?: number;
+  homeowner?: {
+    id: string;
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    phone?: string;
+    profile_image_url?: string;
+  };
+}
+
+type FilterKey = 'all' | 'active' | 'prospect' | 'inactive';
+const FILTERS: { key: FilterKey; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'active', label: 'Active' },
+  { key: 'prospect', label: 'Prospects' },
+  { key: 'inactive', label: 'Inactive' },
+];
+const STATUS_DOT: Record<string, string> = { active: '#10B981', prospect: '#F59E0B', inactive: '#B0B0B0' };
+const NINETY_DAYS = 90 * 24 * 60 * 60 * 1000;
+
+function deriveClients(jobs: JobRecord[]): DerivedClient[] {
+  const map = new Map<string, { jobs: JobRecord[]; owner: JobRecord['homeowner'] }>();
+  for (const job of jobs) {
+    if (!job.homeowner_id) continue;
+    const entry = map.get(job.homeowner_id) || { jobs: [], owner: job.homeowner };
+    entry.jobs.push(job);
+    if (job.homeowner) entry.owner = job.homeowner;
+    map.set(job.homeowner_id, entry);
+  }
+  const now = Date.now();
+  const result: DerivedClient[] = [];
+  map.forEach((entry, hid) => {
+    const { owner, jobs: cj } = entry;
+    const done = cj.filter((j) => j.status === 'completed' || j.status === 'in_progress');
+    const rev = cj.reduce((s, j) => s + (j.final_price || j.budget || 0), 0);
+    const sorted = [...cj].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const last = sorted[0];
+    const lastDate = last?.completed_at || last?.created_at || '';
+    const lastMs = lastDate ? new Date(lastDate).getTime() : 0;
+    let status: DerivedClient['relationship_status'] = 'inactive';
+    if (done.length === 0) status = 'prospect';
+    else if (now - lastMs <= NINETY_DAYS) status = 'active';
+    result.push({
+      id: hid, first_name: owner?.first_name || 'Unknown', last_name: owner?.last_name || '',
+      email: owner?.email || '', phone: owner?.phone, profile_image_url: owner?.profile_image_url,
+      total_jobs: cj.length, total_revenue: rev, last_job_date: lastDate,
+      last_job_title: last?.title || 'Untitled job', relationship_status: status,
+    });
+  });
+  return result.sort((a, b) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`));
+}
 
 interface CRMDashboardScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'CRMDashboard'>;
 }
 
-const ANALYTICS_ITEMS = [
-  { key: 'total_clients', label: 'Total Clients', icon: 'people-outline' as const, iconColor: '#3B82F6', iconBg: '#DBEAFE' },
-  { key: 'new_clients_this_month', label: 'New This Month', icon: 'person-add-outline' as const, iconColor: theme.colors.primary, iconBg: theme.colors.primaryLight },
-  { key: 'repeat_clients', label: 'Repeat Clients', icon: 'refresh-outline' as const, iconColor: '#8B5CF6', iconBg: '#EDE9FE' },
-  { key: 'client_lifetime_value', label: 'Avg. LTV', icon: 'cash-outline' as const, iconColor: theme.colors.accent, iconBg: theme.colors.accentLight, prefix: '£', round: true },
-];
-
-export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
-  navigation,
-}) => {
+export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const tabNavigation = useNavigation<BottomTabNavigationProp<RootTabParamList>>();
-  const [clients, setClients] = useState<ClientData[]>([]);
-  const [analytics, setAnalytics] = useState<ClientAnalytics | null>(null);
+  const tabNav = useNavigation<BottomTabNavigationProp<RootTabParamList>>();
+  const [clients, setClients] = useState<DerivedClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState<
-    'all' | 'active' | 'prospect' | 'inactive' | 'high-risk'
-  >('all');
-  const [sortBy, setSortBy] = useState<'name' | 'revenue' | 'jobs' | 'recent'>(
-    'name'
-  );
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<FilterKey>('all');
+  const [showFilters, setShowFilters] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!user) return;
-
     try {
-      const [analyticsData, clientsData] = await Promise.all([
-        ContractorBusinessSuite.clients.getClientAnalytics(user.id),
-        ContractorBusinessSuite.clients.getClients(user.id),
-      ]);
-      setClients((clientsData?.clients as unknown as ClientData[]) || []);
-      setAnalytics(analyticsData as unknown as ClientAnalytics);
-    } catch (error) {
-      logger.error('Error loading CRM data', error);
-      Alert.alert('Error', 'Failed to load client data');
+      setError(null);
+      const raw = await mobileApiClient.get<unknown>('/api/contractor/my-jobs');
+      const jobs: JobRecord[] = Array.isArray(raw)
+        ? raw
+        : ((raw as Record<string, unknown>)?.jobs as JobRecord[]) || [];
+      setClients(deriveClients(jobs));
+    } catch (err) {
+      logger.error('Error loading CRM data', err);
+      setError('Failed to load client data. Pull down to retry.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const handleRefresh = async () => {
+  useEffect(() => { loadData(); }, [loadData]);
+
+  const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
-  };
+  }, [loadData]);
 
-  const filteredAndSortedClients = clients
-    .filter((client) => {
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const name = `${client.first_name} ${client.last_name}`.toLowerCase();
-        if (
-          !name.includes(query) &&
-          !client.email.toLowerCase().includes(query)
-        ) {
-          return false;
-        }
-      }
-
-      if (selectedFilter === 'all') return true;
-      if (selectedFilter === 'high-risk') return client.churn_risk_score >= 70;
-      return client.relationship_status === selectedFilter;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'name':
-          return `${a.first_name} ${a.last_name}`.localeCompare(
-            `${b.first_name} ${b.last_name}`
-          );
-        case 'revenue':
-          return b.total_revenue - a.total_revenue;
-        case 'jobs':
-          return b.total_jobs - a.total_jobs;
-        case 'recent':
-          const aDate = new Date(a.last_job_date || a.created_at);
-          const bDate = new Date(b.last_job_date || b.created_at);
-          return bDate.getTime() - aDate.getTime();
-        default:
-          return 0;
-      }
-    });
-
-  const handleCall = async (client: ClientData) => {
-    if (client.phone) {
-      const url = `tel:${client.phone}`;
-      const canOpen = await Linking.canOpenURL(url);
-      if (canOpen) {
-        Linking.openURL(url);
-      } else {
-        Alert.alert('Error', 'Cannot make phone call');
-      }
+  const filtered = clients.filter((c) => {
+    if (filter !== 'all' && c.relationship_status !== filter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      const n = `${c.first_name} ${c.last_name}`.toLowerCase();
+      if (!n.includes(q) && !c.email.toLowerCase().includes(q)) return false;
     }
-  };
+    return true;
+  });
 
-  const handleMessage = (client: ClientData) => {
-    tabNavigation.navigate('MessagingTab', {
+  const total = clients.length;
+  const active = clients.filter((c) => c.relationship_status === 'active').length;
+  const totalRev = clients.reduce((s, c) => s + c.total_revenue, 0);
+  const avgVal = total > 0 ? Math.round(totalRev / total) : 0;
+
+  const handleCall = async (c: DerivedClient) => {
+    if (!c.phone) return;
+    const url = `tel:${c.phone}`;
+    if (await Linking.canOpenURL(url)) Linking.openURL(url);
+    else Alert.alert('Error', 'Cannot make phone call');
+  };
+  const handleMessage = (c: DerivedClient) => {
+    tabNav.navigate('MessagingTab', {
       screen: 'Messaging',
-      params: {
-        conversationId: client.client_id,
-        recipientId: client.client_id,
-        recipientName: `${client.first_name} ${client.last_name}`.trim(),
-      },
+      params: { conversationId: c.id, recipientId: c.id, recipientName: `${c.first_name} ${c.last_name}`.trim() },
     } as never);
   };
-
-  const handleEmail = async (client: ClientData) => {
-    const url = `mailto:${client.email}`;
-    const canOpen = await Linking.canOpenURL(url);
-    if (canOpen) {
-      Linking.openURL(url);
-    } else {
-      Alert.alert('Error', 'Cannot open email client');
-    }
+  const handleEmail = async (c: DerivedClient) => {
+    const url = `mailto:${c.email}`;
+    if (await Linking.canOpenURL(url)) Linking.openURL(url);
+    else Alert.alert('Error', 'Cannot open email client');
   };
 
-  if (loading) {
-    return <LoadingSpinner message='Loading CRM dashboard...' />;
-  }
+  const renderCard = ({ item }: { item: DerivedClient }) => {
+    const name = `${item.first_name} ${item.last_name}`.trim();
+    const dot = STATUS_DOT[item.relationship_status] || '#B0B0B0';
+    return (
+      <TouchableOpacity style={s.card} activeOpacity={0.7}
+        onPress={() => (navigation.navigate as (...a: unknown[]) => void)('ClientDetail', { client: item })}
+        accessibilityRole="button" accessibilityLabel={`View ${name}`}>
+        <View style={s.cardRow}>
+          {item.profile_image_url
+            ? <Image source={{ uri: item.profile_image_url }} style={s.avatar} />
+            : <View style={s.avatarFb}><Text style={s.initials}>{`${item.first_name.charAt(0)}${item.last_name.charAt(0)}`.toUpperCase()}</Text></View>}
+          <View style={s.info}>
+            <View style={s.nameRow}>
+              <Text style={s.name} numberOfLines={1}>{name}</Text>
+              <View style={[s.dot, { backgroundColor: dot }]} />
+            </View>
+            <Text style={s.sub} numberOfLines={1}>{item.last_job_title}</Text>
+          </View>
+          <View style={s.badge}><Text style={s.badgeTxt}>{'\u00A3'}{item.total_revenue.toLocaleString()}</Text></View>
+        </View>
+        <View style={s.actions}>
+          {item.phone ? <TouchableOpacity style={s.actBtn} onPress={() => handleCall(item)} accessibilityLabel="Call"><Ionicons name="call-outline" size={18} color={theme.colors.textSecondary} /></TouchableOpacity> : null}
+          <TouchableOpacity style={s.actBtn} onPress={() => handleMessage(item)} accessibilityLabel="Message"><Ionicons name="chatbubble-outline" size={18} color={theme.colors.textSecondary} /></TouchableOpacity>
+          {item.email ? <TouchableOpacity style={s.actBtn} onPress={() => handleEmail(item)} accessibilityLabel="Email"><Ionicons name="mail-outline" size={18} color={theme.colors.textSecondary} /></TouchableOpacity> : null}
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const emptyState = () => (
+    <View style={s.empty}>
+      <View style={s.emptyIco}><Ionicons name="people-outline" size={48} color={theme.colors.textTertiary} /></View>
+      <Text style={s.emptyH}>No clients yet</Text>
+      <Text style={s.emptyP}>Complete your first job to start building your client list</Text>
+      <TouchableOpacity style={s.cta} onPress={() => tabNav.navigate('JobsTab', undefined)} accessibilityRole="button">
+        <Text style={s.ctaTxt}>Find Jobs</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  if (loading) return <LoadingSpinner message="Loading clients..." />;
 
   return (
-    <View style={styles.container}>
+    <View style={[s.root, { backgroundColor: theme.colors.background }]}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Ionicons name='arrow-back' size={24} color={theme.colors.textPrimary} />
+      <View style={[s.hdr, { paddingTop: insets.top + 8 }]}>
+        <TouchableOpacity style={s.back} onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel="Go back">
+          <Ionicons name="arrow-back" size={22} color={theme.colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Client Management</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => navigation.navigate('AddClient')}
-          accessibilityRole="button"
-          accessibilityLabel="Add client"
-        >
-          <View style={styles.addIconWrap}>
-            <Ionicons name='person-add' size={18} color={theme.colors.textInverse} />
-          </View>
+        <Text style={s.hdrTitle}>My Clients</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      {total > 0 && (
+        <View style={s.sumBar}>
+          <Text style={s.sumTxt}>
+            {total} Client{total !== 1 ? 's' : ''}{'  \u00B7  '}{active} Active{'  \u00B7  '}{'\u00A3'}{avgVal.toLocaleString()} avg value
+          </Text>
+        </View>
+      )}
+
+      <View style={s.searchRow}>
+        <View style={{ flex: 1 }}><SearchBar placeholder="Search clients..." value={search} onChangeText={setSearch} /></View>
+        <TouchableOpacity style={[s.fltBtn, showFilters && s.fltBtnOn]} onPress={() => setShowFilters((v) => !v)} accessibilityRole="button" accessibilityLabel="Toggle filters">
+          <Ionicons name="options-outline" size={20} color={showFilters ? theme.colors.textInverse : theme.colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />
-        }
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Analytics Cards */}
-        <View style={styles.analyticsContainer}>
-          {ANALYTICS_ITEMS.map((item) => {
-            const raw = analytics ? (analytics as unknown as Record<string, unknown>)[item.key] : 0;
-            const numValue = Number(raw ?? 0) || 0;
-            const displayValue = item.round ? Math.round(numValue) : numValue;
-            return (
-              <View key={item.key} style={styles.analyticsCard}>
-                <View style={[styles.analyticsIconWrap, { backgroundColor: item.iconBg }]}>
-                  <Ionicons name={item.icon} size={16} color={item.iconColor} />
-                </View>
-                <Text style={styles.analyticsValue}>
-                  {item.prefix || ''}{String(displayValue)}
-                </Text>
-                <Text style={styles.analyticsLabel}>{item.label}</Text>
-              </View>
-            );
-          })}
-        </View>
-
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <SearchBar
-            placeholder='Search clients...'
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
-
-        {/* Filter Tabs */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filtersContainer}
-          contentContainerStyle={styles.filtersContent}
-        >
-          {([
-            ['all', 'All'],
-            ['active', 'Active'],
-            ['prospect', 'Prospects'],
-            ['inactive', 'Inactive'],
-            ['high-risk', 'High Risk'],
-          ] as const).map(([filter, label]) => (
-            <TouchableOpacity
-              key={filter}
-              style={[
-                styles.filterButton,
-                selectedFilter === filter && styles.filterButtonActive,
-              ]}
-              onPress={() => setSelectedFilter(filter)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: selectedFilter === filter }}
-            >
-              <Text
-                style={[
-                  styles.filterText,
-                  selectedFilter === filter && styles.filterTextActive,
-                ]}
-              >
-                {label}
-              </Text>
+      {showFilters && (
+        <View style={s.fltRow}>
+          {FILTERS.map((o) => (
+            <TouchableOpacity key={o.key} style={[s.pill, filter === o.key && s.pillOn]} onPress={() => setFilter(o.key)}
+              accessibilityRole="button" accessibilityState={{ selected: filter === o.key }}>
+              <Text style={[s.pillTxt, filter === o.key && s.pillTxtOn]}>{o.label}</Text>
             </TouchableOpacity>
           ))}
-        </ScrollView>
-
-        {/* Sort Options */}
-        <View style={styles.sortContainer}>
-          <Text style={styles.sortLabel}>Sort by</Text>
-          <View style={styles.sortButtons}>
-            {([
-              ['name', 'Name', 'text-outline'],
-              ['revenue', 'Revenue', 'cash-outline'],
-              ['jobs', 'Jobs', 'briefcase-outline'],
-              ['recent', 'Recent', 'time-outline'],
-            ] as const).map(([sort, label, icon]) => (
-              <TouchableOpacity
-                key={sort}
-                style={[styles.sortButton, sortBy === sort && styles.sortButtonActive]}
-                onPress={() => setSortBy(sort)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: sortBy === sort }}
-              >
-                <Ionicons
-                  name={icon as keyof typeof Ionicons.glyphMap}
-                  size={14}
-                  color={sortBy === sort ? theme.colors.textInverse : theme.colors.textSecondary}
-                />
-                <Text style={[styles.sortText, sortBy === sort && styles.sortTextActive]}>
-                  {label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
         </View>
+      )}
 
-        {/* Client List */}
-        <View style={styles.clientList}>
-          {filteredAndSortedClients.length === 0 ? (
-            <View style={styles.emptyState}>
-              <View style={styles.emptyIconWrap}>
-                <Ionicons name='people-outline' size={32} color={theme.colors.textTertiary} />
-              </View>
-              <Text style={styles.emptyTitle}>No clients found</Text>
-              <Text style={styles.emptyText}>
-                {searchQuery
-                  ? `No clients match "${searchQuery}"`
-                  : 'Add your first client to get started'}
-              </Text>
-              {!searchQuery && (
-                <TouchableOpacity
-                  style={styles.addClientButton}
-                  onPress={() => navigation.navigate('AddClient')}
-                >
-                  <Text style={styles.addClientButtonText}>Add Client</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          ) : (
-            filteredAndSortedClients.map((client) => (
-              <ClientCard
-                key={client.id}
-                client={client}
-                onPress={() =>
-                  (navigation.navigate as (...args: unknown[]) => void)('ClientDetail', { client })
-                }
-                onCall={() => handleCall(client)}
-                onMessage={() => handleMessage(client)}
-                onEmail={() => handleEmail(client)}
-              />
-            ))
-          )}
-        </View>
-      </ScrollView>
+      {error && <View style={s.err}><Text style={s.errTxt}>{error}</Text></View>}
+
+      <FlatList data={filtered} keyExtractor={(i) => i.id} renderItem={renderCard}
+        ListEmptyComponent={search || filter !== 'all'
+          ? <View style={s.empty}><Text style={s.emptyH}>No matches</Text><Text style={s.emptyP}>Try adjusting your search or filters</Text></View>
+          : emptyState()}
+        contentContainerStyle={s.list} showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />}
+      />
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-  },
-  addButton: {
-    padding: 4,
-  },
-  addIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: theme.colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  analyticsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 10,
-  },
-  analyticsCard: {
-    flex: 1,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  analyticsIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-  },
-  analyticsValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 2,
-  },
-  analyticsLabel: {
-    fontSize: 10,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-  },
-  searchContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 8,
-  },
-  filtersContainer: {
-    paddingBottom: 8,
-  },
-  filtersContent: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: theme.colors.surface,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-      },
-      android: { elevation: 1 },
-    }),
-  },
-  filterButtonActive: {
-    backgroundColor: theme.colors.primary,
-  },
-  filterText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
-  },
-  filterTextActive: {
-    color: theme.colors.textInverse,
-  },
-  sortContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  sortLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: theme.colors.textTertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 8,
-  },
-  sortButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  sortButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: theme.colors.surface,
-    gap: 4,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-      },
-      android: { elevation: 1 },
-    }),
-  },
-  sortButtonActive: {
-    backgroundColor: theme.colors.primary,
-  },
-  sortText: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    fontWeight: '500',
-  },
-  sortTextActive: {
-    color: theme.colors.textInverse,
-    fontWeight: '600',
-  },
-  clientList: {
-    paddingHorizontal: 16,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: theme.colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 6,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 24,
-    paddingHorizontal: 32,
-    lineHeight: 20,
-  },
-  addClientButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: 28,
-    paddingVertical: 14,
-    borderRadius: 28,
-  },
-  addClientButtonText: {
-    color: theme.colors.textInverse,
-    fontSize: 16,
-    fontWeight: '700',
-  },
+const shadow = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
+  android: { elevation: 2 },
+}) as Record<string, unknown>;
+
+const s = StyleSheet.create({
+  root: { flex: 1 },
+  hdr: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12, backgroundColor: theme.colors.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
+  back: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  hdrTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
+  sumBar: { paddingHorizontal: 20, paddingVertical: 12, backgroundColor: theme.colors.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
+  sumTxt: { fontSize: 14, fontWeight: '600', color: theme.colors.textSecondary, textAlign: 'center' },
+  searchRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6, gap: 10 },
+  fltBtn: { width: 42, height: 42, borderRadius: 12, backgroundColor: theme.colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.border },
+  fltBtnOn: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+  fltRow: { flexDirection: 'row', paddingHorizontal: 16, paddingBottom: 8, gap: 8 },
+  pill: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 24, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border },
+  pillOn: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+  pillTxt: { fontSize: 13, fontWeight: '600', color: theme.colors.textSecondary },
+  pillTxtOn: { color: theme.colors.textInverse },
+  err: { marginHorizontal: 16, marginTop: 8, padding: 12, borderRadius: 12, backgroundColor: '#FEF2F2' },
+  errTxt: { fontSize: 13, color: '#DC2626', textAlign: 'center' },
+  list: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 32, flexGrow: 1 },
+  card: { backgroundColor: theme.colors.surface, borderRadius: 12, padding: 16, marginBottom: 12, ...shadow },
+  cardRow: { flexDirection: 'row', alignItems: 'center' },
+  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.colors.backgroundSecondary },
+  avatarFb: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.colors.backgroundSecondary, alignItems: 'center', justifyContent: 'center' },
+  initials: { fontSize: 15, fontWeight: '700', color: theme.colors.textSecondary },
+  info: { flex: 1, marginLeft: 12, marginRight: 8 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  name: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary, flexShrink: 1 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  sub: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 2 },
+  badge: { backgroundColor: theme.colors.backgroundSecondary, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  badgeTxt: { fontSize: 13, fontWeight: '700', color: theme.colors.textPrimary },
+  actions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10, gap: 8 },
+  actBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.backgroundSecondary, alignItems: 'center', justifyContent: 'center' },
+  empty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 80 },
+  emptyIco: { width: 80, height: 80, borderRadius: 40, backgroundColor: theme.colors.backgroundSecondary, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  emptyH: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 8 },
+  emptyP: { fontSize: 14, fontWeight: '400', color: theme.colors.textSecondary, textAlign: 'center', lineHeight: 20, paddingHorizontal: 40, marginBottom: 28 },
+  cta: { backgroundColor: theme.colors.primary, paddingHorizontal: 32, paddingVertical: 14, borderRadius: 24 },
+  ctaTxt: { color: theme.colors.textInverse, fontSize: 16, fontWeight: '700' },
 });
 
 export default CRMDashboardScreen;

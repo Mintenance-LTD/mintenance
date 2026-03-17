@@ -41,18 +41,23 @@ export interface NotificationData {
 }
 
 export interface NotificationPreferences {
+  pushEnabled: boolean;
+  newJobs: boolean;
+  newBids: boolean;
+  newMessages: boolean;
   jobUpdates: boolean;
-  bidNotifications: boolean;
-  meetingReminders: boolean;
-  paymentAlerts: boolean;
-  messages: boolean;
-  quotes: boolean;
-  systemAnnouncements: boolean;
-  quietHours: {
-    enabled: boolean;
-    start: string; // HH:MM format
-    end: string;   // HH:MM format
-  };
+  paymentUpdates: boolean;
+  emailEnabled: boolean;
+  weeklyDigest: boolean;
+  promotionalEmails: boolean;
+  securityAlerts: boolean;
+  soundEnabled: boolean;
+  vibrationEnabled: boolean;
+  marketingEmails: boolean;
+  productUpdates: boolean;
+  quietHoursEnabled: boolean;
+  quietHoursStart: string; // HH:MM format
+  quietHoursEnd: string;   // HH:MM format
 }
 
 export interface QueuedNotification {

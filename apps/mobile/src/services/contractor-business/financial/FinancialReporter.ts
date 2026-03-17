@@ -3,6 +3,17 @@ import { ServiceErrorHandler } from '../../../utils/serviceErrorHandler';
 import type { DatabaseInvoiceRow, DatabaseExpenseRow } from './types';
 import type { FinancialSummary } from '../types';
 
+/** Safely extract array from API response that may be wrapped (e.g. { invoices: [...] }) or raw */
+function extractArray<T>(response: unknown): T[] {
+  if (Array.isArray(response)) return response;
+  if (response && typeof response === 'object') {
+    const values = Object.values(response as Record<string, unknown>);
+    const arr = values.find(v => Array.isArray(v));
+    if (arr) return arr as T[];
+  }
+  return [];
+}
+
 export function calculateDueDate(paymentTerms: string): string {
   const daysMap: Record<string, number> = {
     '30 days': 30, '14 days': 14, '7 days': 7,
@@ -40,9 +51,9 @@ export async function calculateFinancialTotals(
       `/api/contractor/invoices?status=sent,overdue`
     );
 
-    const typedPaid = paidInvoices || [];
-    const typedExp = expenses || [];
-    const typedOut = outstandingInvoices || [];
+    const typedPaid = extractArray<Pick<DatabaseInvoiceRow, 'total_amount'>>(paidInvoices);
+    const typedExp = extractArray<Pick<DatabaseExpenseRow, 'amount'>>(expenses);
+    const typedOut = extractArray<Pick<DatabaseInvoiceRow, 'total_amount' | 'due_date'>>(outstandingInvoices);
 
     const totalRevenue = typedPaid.reduce((sum, inv) => sum + inv.total_amount, 0);
     const totalExpenses = typedExp.reduce((sum, exp) => sum + exp.amount, 0);
@@ -69,11 +80,12 @@ async function getMonthlyRevenue(contractorId: string, months: number): Promise<
     endDate.setMonth(endDate.getMonth() + 1);
     endDate.setDate(0);
 
-    const invoices = await mobileApiClient.get<Pick<DatabaseInvoiceRow, 'total_amount'>[]>(
+    const response = await mobileApiClient.get<{ invoices: Pick<DatabaseInvoiceRow, 'total_amount'>[] } | Pick<DatabaseInvoiceRow, 'total_amount'>[]>(
       `/api/contractor/invoices?status=paid&period_start=${startDate.toISOString()}&period_end=${endDate.toISOString()}`
     );
+    const invoices = Array.isArray(response) ? response : (response as { invoices: Pick<DatabaseInvoiceRow, 'total_amount'>[] }).invoices || [];
 
-    results.push((invoices || []).reduce((sum, inv) => sum + (inv.total_amount || 0), 0));
+    results.push(invoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0));
   }
   return results;
 }
@@ -92,9 +104,10 @@ function projectYearlyRevenue(monthlyRevenue: number[]): number {
 async function getInvoicesSummary(contractorId: string): Promise<{ outstandingInvoices: number; overdueAmount: number }> {
   let typed: Pick<DatabaseInvoiceRow, 'total_amount' | 'due_date' | 'status'>[];
   try {
-    typed = await mobileApiClient.get<Pick<DatabaseInvoiceRow, 'total_amount' | 'due_date' | 'status'>[]>(
+    const raw = await mobileApiClient.get<unknown>(
       `/api/contractor/invoices?status=sent,overdue`
-    ) || [];
+    );
+    typed = extractArray<Pick<DatabaseInvoiceRow, 'total_amount' | 'due_date' | 'status'>>(raw);
   } catch {
     return { outstandingInvoices: 0, overdueAmount: 0 };
   }
@@ -126,9 +139,9 @@ async function getProfitTrends(contractorId: string, months: number) {
       ),
     ]);
 
-    const revenue = (invoiceData || [])
+    const revenue = extractArray<Pick<DatabaseInvoiceRow, 'total_amount'>>(invoiceData)
       .reduce((s, inv) => s + (inv.total_amount || 0), 0);
-    const expenses = (expenseData || [])
+    const expenses = extractArray<Pick<DatabaseExpenseRow, 'amount'>>(expenseData)
       .reduce((s, exp) => s + (exp.amount || 0), 0);
 
     trends.push({
@@ -154,11 +167,11 @@ async function calculateTaxObligations(contractorId: string): Promise<number> {
     ),
   ]);
 
-  const totalIncome = (invoices || [])
+  const totalIncome = extractArray<Pick<DatabaseInvoiceRow, 'total_amount'>>(invoices)
     .reduce((s, inv) => s + (inv.total_amount || 0), 0);
-  const totalExpenses = (expenses || [])
+  const totalExpensesAmt = extractArray<Pick<DatabaseExpenseRow, 'amount'>>(expenses)
     .reduce((s, exp) => s + (exp.amount || 0), 0);
-  const taxableProfit = Math.max(0, totalIncome - totalExpenses);
+  const taxableProfit = Math.max(0, totalIncome - totalExpensesAmt);
 
   // UK self-employed: ~20% basic rate estimate (simplified)
   return Math.round(taxableProfit * 0.2);
@@ -181,15 +194,15 @@ async function generateCashFlowForecast(contractorId: string, weeks: number) {
     ),
   ]);
 
-  const totalIncome = (paidInvoiceData || [])
+  const totalIncome = extractArray<Pick<DatabaseInvoiceRow, 'total_amount'>>(paidInvoiceData)
     .reduce((s, inv) => s + (inv.total_amount || 0), 0);
-  const totalExpenses = (expenseData || [])
+  const totalExpenses = extractArray<Pick<DatabaseExpenseRow, 'amount'>>(expenseData)
     .reduce((s, exp) => s + (exp.amount || 0), 0);
   const avgWeeklyIncome = Math.round(totalIncome / 12);
   const avgWeeklyExpenses = Math.round(totalExpenses / 12);
 
   // Map pending invoices to their due weeks
-  const pendingInvoices = pendingData || [];
+  const pendingInvoices = extractArray<Pick<DatabaseInvoiceRow, 'total_amount' | 'due_date'>>(pendingData);
 
   return Array.from({ length: weeks }, (_, i) => {
     const weekStart = new Date();

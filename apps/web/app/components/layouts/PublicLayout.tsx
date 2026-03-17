@@ -42,7 +42,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
               Mintenance
             </span>
           </Link>
-          <div style={{ display: 'flex', gap: theme.spacing[4], alignItems: 'center' }}>
+          <nav aria-label="Main navigation" style={{ display: 'flex', gap: theme.spacing[4], alignItems: 'center' }}>
             <Link href="/contractors" style={{
               textDecoration: 'none',
               color: theme.colors.textSecondary,
@@ -70,12 +70,12 @@ export function PublicLayout({ children }: PublicLayoutProps) {
             }}>
               Get Started
             </Link>
-          </div>
+          </nav>
         </div>
       </header>
 
       {/* Main Content */}
-      <main style={{ flex: 1 }}>
+      <main id="main-content" style={{ flex: 1 }}>
         {children}
       </main>
     </div>

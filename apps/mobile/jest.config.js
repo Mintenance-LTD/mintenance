@@ -74,10 +74,10 @@ module.exports = {
   // Coverage thresholds - raised to enforce meaningful coverage
   coverageThreshold: {
     global: {
-      branches: 50,
-      functions: 60,
-      lines: 55,
-      statements: 55,
+      branches: 65,
+      functions: 70,
+      lines: 70,
+      statements: 70,
     },
   },
   // Increase test timeout for complex tests

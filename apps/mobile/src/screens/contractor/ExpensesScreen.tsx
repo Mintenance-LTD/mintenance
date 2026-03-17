@@ -60,8 +60,9 @@ export const ExpensesScreen: React.FC = () => {
     queryKey: ['contractor-expenses', user?.id],
     queryFn: async () => {
       if (!user?.id) return { expenses: [], total: 0 };
-      const rows = await mobileApiClient.get<Array<Record<string, unknown>>>('/api/contractor/expenses');
-      const expenses: Expense[] = (rows || []).map((e) => ({
+      const raw = await mobileApiClient.get<unknown>('/api/contractor/expenses');
+      const rows = Array.isArray(raw) ? raw : (raw as Record<string, unknown>)?.expenses || [];
+      const expenses: Expense[] = (rows as Array<Record<string, unknown>>).map((e) => ({
         id: e.id as string,
         description: (e.description as string) || '',
         category: (e.category as string) || 'other',

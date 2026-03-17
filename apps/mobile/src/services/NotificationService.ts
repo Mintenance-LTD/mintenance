@@ -124,6 +124,21 @@ export class NotificationService {
         return null;
       }
 
+      // On Android, attempt to get the native FCM device token first.
+      // This confirms that google-services.json is loaded and Firebase is initialized.
+      if (Platform.OS === 'android') {
+        try {
+          const deviceToken = await Notifications.getDevicePushTokenAsync();
+          logger.info('FCM device token obtained', { type: deviceToken.type });
+          this.addBreadcrumb('FCM device token obtained', 'info', { type: deviceToken.type });
+        } catch (fcmError) {
+          const fcmMsg = fcmError instanceof Error ? fcmError.message : String(fcmError);
+          // Non-fatal: Expo Push still works via Expo's FCM sender key as fallback
+          logger.warn('FCM device token unavailable — using Expo push fallback', { error: fcmMsg });
+          this.addBreadcrumb('FCM device token unavailable (Expo fallback)', 'warning', { error: fcmMsg });
+        }
+      }
+
       const projectId = Constants.expoConfig?.extra?.eas?.projectId;
       if (!projectId) {
         logger.warn('EAS project ID not found in config, using fallback');
@@ -134,7 +149,7 @@ export class NotificationService {
       });
 
       this.expoPushToken = token.data;
-      logger.info('Push notification token obtained', { token: token.data });
+      logger.info('Expo push token obtained', { token: token.data });
       this.addBreadcrumb('Notification Service initialized', 'info', { token: token.data });
 
       if (Platform.OS === 'android') {
@@ -143,9 +158,21 @@ export class NotificationService {
 
       return token.data;
     } catch (error) {
-      logger.error('Failed to initialize push notifications', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      this.addBreadcrumb('Failed to initialize push notifications', 'error', { error: errorMessage });
+      const isFirebaseError =
+        errorMessage.includes('Firebase') ||
+        errorMessage.includes('FCM') ||
+        errorMessage.includes('FirebaseApp') ||
+        errorMessage.includes('not initialized');
+
+      if (isFirebaseError) {
+        logger.warn('Push notifications unavailable — Firebase/FCM not configured. '
+          + 'Ensure google-services.json is provided via EAS Secrets for production builds.', { error: errorMessage });
+        this.addBreadcrumb('Push notifications unavailable (no FCM config)', 'warning', { error: errorMessage });
+      } else {
+        logger.error('Failed to initialize push notifications', error);
+        this.addBreadcrumb('Failed to initialize push notifications', 'error', { error: errorMessage });
+      }
       return null;
     }
   }
@@ -182,8 +209,24 @@ export class NotificationService {
       lightColor: '#F59E0B',
     });
 
+    await Notifications.setNotificationChannelAsync('messages', {
+      name: 'Messages',
+      description: 'Direct messages between homeowners and contractors',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#10B981',
+    });
+
+    await Notifications.setNotificationChannelAsync('payments', {
+      name: 'Payments',
+      description: 'Payment confirmations and escrow updates',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#10B981',
+    });
+
     this.addBreadcrumb('Android notification channels created', 'info', {
-      channels: ['default', 'job-updates', 'bid-notifications', 'meeting-reminders'],
+      channels: ['default', 'job-updates', 'bid-notifications', 'meeting-reminders', 'messages', 'payments'],
     });
   }
 

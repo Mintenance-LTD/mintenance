@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { InternalServerError, BadRequestError } from '@/lib/errors/api-error';
@@ -9,8 +9,10 @@ import { validateRequest } from '@/lib/validation/validator';
 // GET: Fetch all time entries for the contractor
 export const GET = withApiHandler(
   { roles: ['contractor'], csrf: false },
-  async (_request, { user }) => {
-    const { data: entries, error } = await serverSupabase
+  async (request, { user }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
+    const { data: entries, error } = await userDb
       .from('contractor_time_entries')
       .select(`
         id, job_id, task_description, date, start_time, end_time,
@@ -65,12 +67,14 @@ const createEntrySchema = z.object({
 export const POST = withApiHandler(
   { roles: ['contractor'] },
   async (request: NextRequest, { user }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     const validation = await validateRequest(request, createEntrySchema);
     if (validation instanceof NextResponse) return validation;
 
     const d = validation.data;
 
-    const { data: entry, error } = await serverSupabase
+    const { data: entry, error } = await userDb
       .from('contractor_time_entries')
       .insert({
         contractor_id: user.id,
@@ -100,11 +104,13 @@ export const POST = withApiHandler(
 export const DELETE = withApiHandler(
   { roles: ['contractor'] },
   async (request: NextRequest, { user }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     const url = new URL(request.url);
     const id = url.searchParams.get('id');
     if (!id) throw new BadRequestError('Missing time entry id');
 
-    const { data: existing } = await serverSupabase
+    const { data: existing } = await userDb
       .from('contractor_time_entries')
       .select('id')
       .eq('id', id)
@@ -115,7 +121,7 @@ export const DELETE = withApiHandler(
       return NextResponse.json({ error: 'Time entry not found' }, { status: 404 });
     }
 
-    const { error } = await serverSupabase
+    const { error } = await userDb
       .from('contractor_time_entries')
       .delete()
       .eq('id', id)
@@ -134,12 +140,14 @@ export const DELETE = withApiHandler(
 export const PATCH = withApiHandler(
   { roles: ['contractor'] },
   async (request: NextRequest, { user }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     const body = await request.json();
     const { id, ...updates } = body;
 
     if (!id) throw new BadRequestError('Missing time entry id');
 
-    const { data: existing } = await serverSupabase
+    const { data: existing } = await userDb
       .from('contractor_time_entries')
       .select('id')
       .eq('id', id)
@@ -162,7 +170,7 @@ export const PATCH = withApiHandler(
     if (updates.status !== undefined) dbUpdates.status = updates.status;
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
 
-    const { error } = await serverSupabase
+    const { error } = await userDb
       .from('contractor_time_entries')
       .update(dbUpdates)
       .eq('id', id)

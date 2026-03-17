@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 
 interface Conversation {
   id: string;
@@ -151,10 +152,12 @@ export function MessagesConversationSidebar({
               {/* Avatar */}
               <div className="relative flex-shrink-0">
                 {conv.otherUser.avatar ? (
-                  <img
+                  <Image
                     src={conv.otherUser.avatar}
                     alt={conv.otherUser.name}
-                    className="w-12 h-12 rounded-full object-cover"
+                    width={48}
+                    height={48}
+                    className="rounded-full object-cover"
                   />
                 ) : (
                   <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center">

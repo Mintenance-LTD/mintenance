@@ -6,14 +6,51 @@
 
 import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { NotFoundError, BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
 
+/**
+ * GET /api/jobs/:id/review?user_id=...
+ * Check if a user has already reviewed this job.
+ */
+export const GET = withApiHandler(
+  { csrf: false },
+  async (request, { user, params }) => {
+    // Use RLS-enforced client for user-scoped reads; fall back to service role
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
+    const jobId = params.id;
+    // SECURITY: Always use authenticated user's ID. No user_id parameter override (IDOR fix).
+    const userId = user.id;
+
+    const { data: reviews, error: reviewError } = await userDb
+      .from('reviews')
+      .select('id, rating, comment, created_at')
+      .eq('job_id', jobId)
+      .eq('reviewer_id', userId);
+
+    if (reviewError) {
+      logger.error('Failed to fetch reviews', {
+        service: 'reviews',
+        jobId,
+        userId,
+        error: reviewError.message,
+      });
+      return NextResponse.json({ reviews: [] });
+    }
+
+    return NextResponse.json({ reviews: reviews || [] });
+  }
+);
+
 export const POST = withApiHandler(
   { roles: ['homeowner', 'contractor'] },
   async (request, { user, params }) => {
+    // Use RLS-enforced client for user-scoped operations; fall back to service role
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     const jobId = params.id;
     const body = await request.json();
 
@@ -30,7 +67,7 @@ export const POST = withApiHandler(
     }
 
     // Fetch job and verify user is a party to it
-    const { data: job, error } = await serverSupabase
+    const { data: job, error } = await userDb
       .from('jobs')
       .select('id, homeowner_id, contractor_id, status, title')
       .eq('id', jobId)
@@ -55,7 +92,7 @@ export const POST = withApiHandler(
     const revieweeId = isHomeowner ? job.contractor_id : job.homeowner_id;
 
     // Check for duplicate review
-    const { data: existingReview } = await serverSupabase
+    const { data: existingReview } = await userDb
       .from('reviews')
       .select('id')
       .eq('job_id', jobId)
@@ -68,7 +105,7 @@ export const POST = withApiHandler(
     }
 
     // Insert review
-    const { data: review, error: insertError } = await serverSupabase
+    const { data: review, error: insertError } = await userDb
       .from('reviews')
       .insert({
         job_id: jobId,

@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';;
+import Image from 'next/image';
 import { fadeIn, slideInFromBottom } from '@/lib/animations/variants';
 import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
 import { logger } from '@mintenance/shared';
@@ -116,10 +117,12 @@ export function ChatInterface2025(props: ChatInterface2025Props) {
             {/* Avatar */}
             <div className="relative">
               {otherUser.avatar ? (
-                <img
+                <Image
                   src={otherUser.avatar}
                   alt={otherUser.name}
-                  className="w-12 h-12 rounded-full object-cover"
+                  width={48}
+                  height={48}
+                  className="rounded-full object-cover"
                 />
               ) : (
                 <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center">

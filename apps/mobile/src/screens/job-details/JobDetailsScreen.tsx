@@ -68,37 +68,9 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const [withdrawingBid, setWithdrawingBid] = useState(false);
   const { data: bidsData, refetch: refetchBids } = useJobBids(jobId);
 
-  if (viewModel.jobLoading) {
-    return <LoadingSpinner message="Loading job details..." />;
-  }
-
-  if (viewModel.jobError) {
-    return (
-      <ErrorView
-        message="Failed to load job details"
-        onRetry={viewModel.refetchJob}
-      />
-    );
-  }
-
-  if (!viewModel.job) {
-    return (
-      <ErrorView
-        message="Job not found"
-        onRetry={() => navigation.goBack()}
-      />
-    );
-  }
-
   const job = viewModel.job;
-  const photos = job.photos || job.images || [];
-  const hasPhotos = photos.length > 0;
-  const locationStr = typeof job.location === 'string' ? job.location : job.city || '';
-  const budget = job.budget || job.budget_min || 0;
-  const urgency = job.urgency || job.priority || 'medium';
-  const categoryIcon = CATEGORY_ICONS[job.category?.toLowerCase() || ''] || 'construct-outline';
   const isContractor = user?.role === 'contractor';
-  const isOwner = user?.id === job.homeowner_id;
+  const isOwner = user?.id === job?.homeowner_id;
 
   // Find the logged-in contractor's pending bid on this job
   const myPendingBid = isContractor && user?.id
@@ -135,6 +107,35 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
       ]
     );
   }, [myPendingBid, user?.id, refetchBids, viewModel]);
+
+  if (viewModel.jobLoading) {
+    return <LoadingSpinner message="Loading job details..." />;
+  }
+
+  if (viewModel.jobError) {
+    return (
+      <ErrorView
+        message="Failed to load job details"
+        onRetry={viewModel.refetchJob}
+      />
+    );
+  }
+
+  if (!job) {
+    return (
+      <ErrorView
+        message="Job not found"
+        onRetry={() => navigation.goBack()}
+      />
+    );
+  }
+
+  const photos = job.photos || job.images || [];
+  const hasPhotos = photos.length > 0;
+  const locationStr = typeof job.location === 'string' ? job.location : job.city || '';
+  const budget = job.budget || job.budget_min || 0;
+  const urgency = job.urgency || job.priority || 'medium';
+  const categoryIcon = CATEGORY_ICONS[job.category?.toLowerCase() || ''] || 'construct-outline';
 
   const daysAgo = Math.floor(
     (Date.now() - new Date(job.created_at || job.createdAt || Date.now()).getTime()) /

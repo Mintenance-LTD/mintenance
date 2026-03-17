@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { logger, CONTRACT_STATUS } from '@mintenance/shared';
 import { isValidUUID } from '@/lib/validation/uuid';
 import { ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
@@ -9,7 +9,8 @@ import { EmailService } from '@/lib/email-service';
 
 export const POST = withApiHandler(
   {},
-  async (_request, { user, params }) => {
+  async (request, { user, params }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
     const { id: contractId } = params;
 
     // SECURITY: Validate UUID format before database query
@@ -17,8 +18,8 @@ export const POST = withApiHandler(
       throw new BadRequestError('Invalid contract ID format');
     }
 
-    // SECURITY: Fix IDOR - check ownership in query, not after fetch
-    const { data: contract, error: contractError } = await serverSupabase
+    // SECURITY: Fix IDOR - check ownership in query, not after fetch (user-scoped read)
+    const { data: contract, error: contractError } = await userDb
       .from('contracts')
       .select('id, job_id, contractor_id, homeowner_id, status, title, contractor_signed_at, homeowner_signed_at, start_date, end_date')
       .eq('id', contractId)

@@ -1,10 +1,16 @@
 /**
  * Tests for BidManagementService - Bid Management Operations
+ *
+ * The service uses mobileApiClient for submitBid/acceptBid (via web API)
+ * and supabase directly for getBidsByJob/getBidsByContractor (direct DB queries).
  */
 
 import { BidManagementService } from '../BidManagementService';
 import { supabase } from '../../config/supabase';
-import { Bid } from '../../types';
+import { mobileApiClient } from '../../utils/mobileApiClient';
+
+// Auto-mock mobileApiClient (picks up __mocks__/mobileApiClient.ts)
+jest.mock('../../utils/mobileApiClient');
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
@@ -17,12 +23,11 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
-// Mock Supabase
-jest.mock('../../config/supabase', () => ({
-  supabase: {
-    from: jest.fn(),
-  },
-}));
+// Note: supabase is provided by the global mock via moduleNameMapper
+// (src/config/__mocks__/supabase.ts) which includes auth.getSession.
+// Do NOT add an inline jest.mock for config/supabase here.
+
+const mockedApiClient = mobileApiClient as jest.Mocked<typeof mobileApiClient>;
 
 describe('BidManagementService', () => {
   const mockBidData = {
@@ -30,8 +35,8 @@ describe('BidManagementService', () => {
     job_id: 'job-123',
     contractor_id: 'contractor-123',
     amount: 1500,
-    description: 'I can complete this job in 2 weeks',
-    status: 'pending',
+    message: 'I can complete this job in 2 weeks',
+    status: 'pending' as const,
     created_at: '2025-01-15T10:00:00Z',
   };
 
@@ -59,13 +64,10 @@ describe('BidManagementService', () => {
   });
 
   describe('submitBid', () => {
-    it('should submit a bid successfully', async () => {
-      const mockFrom = {
-        insert: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: mockBidData, error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+    it('should submit a bid successfully via API', async () => {
+      mockedApiClient.post.mockResolvedValue({
+        bid: mockBidData,
+      });
 
       const bidData = {
         jobId: 'job-123',
@@ -76,17 +78,14 @@ describe('BidManagementService', () => {
 
       const result = await BidManagementService.submitBid(bidData);
 
-      expect(supabase.from).toHaveBeenCalledWith('bids');
-      expect(mockFrom.insert).toHaveBeenCalledWith([
-        {
-          job_id: 'job-123',
-          contractor_id: 'contractor-123',
-          amount: 1500,
-          description: 'I can complete this job in 2 weeks',
-          status: 'pending',
-          created_at: expect.any(String),
-        },
-      ]);
+      expect(mockedApiClient.post).toHaveBeenCalledWith(
+        '/api/contractor/submit-bid',
+        expect.objectContaining({
+          jobId: 'job-123',
+          bidAmount: 1500,
+          proposalText: 'I can complete this job in 2 weeks',
+        })
+      );
       expect(result).toEqual({
         id: 'bid-123',
         jobId: 'job-123',
@@ -98,14 +97,8 @@ describe('BidManagementService', () => {
       });
     });
 
-    it('should throw error when bid submission fails', async () => {
-      const error = new Error('Database error');
-      const mockFrom = {
-        insert: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: null, error }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+    it('should throw error when API returns no bid', async () => {
+      mockedApiClient.post.mockResolvedValue({});
 
       const bidData = {
         jobId: 'job-123',
@@ -114,46 +107,46 @@ describe('BidManagementService', () => {
         description: 'Test bid',
       };
 
-      await expect(BidManagementService.submitBid(bidData)).rejects.toThrow('Database error');
+      await expect(BidManagementService.submitBid(bidData)).rejects.toThrow(
+        'No bid returned from API'
+      );
     });
 
-    it('should set status to pending by default', async () => {
-      const mockFrom = {
-        insert: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: mockBidData, error: null }),
+    it('should throw error when API call fails', async () => {
+      mockedApiClient.post.mockRejectedValue(new Error('Network error'));
+
+      const bidData = {
+        jobId: 'job-123',
+        contractorId: 'contractor-123',
+        amount: 1500,
+        description: 'Test bid',
       };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+
+      await expect(BidManagementService.submitBid(bidData)).rejects.toThrow('Network error');
+    });
+
+    it('should send correct field mapping to API', async () => {
+      mockedApiClient.post.mockResolvedValue({ bid: mockBidData });
 
       await BidManagementService.submitBid({
         jobId: 'job-123',
         contractorId: 'contractor-123',
         amount: 1500,
         description: 'Test',
+        estimatedDurationDays: 14,
+        proposedStartDate: '2025-02-01',
       });
 
-      const insertCall = mockFrom.insert.mock.calls[0][0][0];
-      expect(insertCall.status).toBe('pending');
-    });
-
-    it('should include timestamp in created_at', async () => {
-      const mockFrom = {
-        insert: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: mockBidData, error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
-
-      await BidManagementService.submitBid({
-        jobId: 'job-123',
-        contractorId: 'contractor-123',
-        amount: 1500,
-        description: 'Test',
-      });
-
-      const insertCall = mockFrom.insert.mock.calls[0][0][0];
-      expect(insertCall.created_at).toBeDefined();
-      expect(typeof insertCall.created_at).toBe('string');
+      expect(mockedApiClient.post).toHaveBeenCalledWith(
+        '/api/contractor/submit-bid',
+        {
+          jobId: 'job-123',
+          bidAmount: 1500,
+          proposalText: 'Test',
+          estimatedDuration: 14,
+          proposedStartDate: '2025-02-01',
+        }
+      );
     });
   });
 
@@ -350,8 +343,9 @@ describe('BidManagementService', () => {
   });
 
   describe('acceptBid', () => {
-    it('should accept a bid and update job status', async () => {
-      const mockBidFrom = {
+    it('should fetch bid via supabase and accept via API', async () => {
+      // acceptBid first fetches bid from supabase, then calls mobileApiClient.post
+      const mockFrom = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         single: jest.fn().mockResolvedValue({
@@ -359,51 +353,20 @@ describe('BidManagementService', () => {
           error: null,
         }),
       };
-
-      const mockUpdateBidFrom = {
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({ error: null }),
-      };
-
-      const mockUpdateJobFrom = {
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({ error: null }),
-      };
-
-      const mockRejectBidsFrom = {
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        neq: jest.fn().mockResolvedValue({ error: null }),
-      };
-
-      (supabase.from as jest.Mock)
-        .mockReturnValueOnce(mockBidFrom) // First call - get bid
-        .mockReturnValueOnce(mockUpdateBidFrom) // Second call - update accepted bid
-        .mockReturnValueOnce(mockUpdateJobFrom) // Third call - update job
-        .mockReturnValueOnce(mockRejectBidsFrom); // Fourth call - reject other bids
+      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.post.mockResolvedValue({});
 
       await BidManagementService.acceptBid('bid-123');
 
-      // Verify bid fetch
-      expect(mockBidFrom.select).toHaveBeenCalledWith('job_id, contractor_id');
-      expect(mockBidFrom.eq).toHaveBeenCalledWith('id', 'bid-123');
+      // Verify supabase bid lookup
+      expect(supabase.from).toHaveBeenCalledWith('bids');
+      expect(mockFrom.select).toHaveBeenCalledWith('job_id, contractor_id');
+      expect(mockFrom.eq).toHaveBeenCalledWith('id', 'bid-123');
 
-      // Verify bid update
-      expect(mockUpdateBidFrom.update).toHaveBeenCalledWith({ status: 'accepted' });
-      expect(mockUpdateBidFrom.eq).toHaveBeenCalledWith('id', 'bid-123');
-
-      // Verify job update
-      expect(mockUpdateJobFrom.update).toHaveBeenCalledWith({
-        status: 'assigned',
-        contractor_id: 'contractor-123',
-        updated_at: expect.any(String),
-      });
-      expect(mockUpdateJobFrom.eq).toHaveBeenCalledWith('id', 'job-123');
-
-      // Verify other bids rejected
-      expect(mockRejectBidsFrom.update).toHaveBeenCalledWith({ status: 'rejected' });
-      expect(mockRejectBidsFrom.eq).toHaveBeenCalledWith('job_id', 'job-123');
-      expect(mockRejectBidsFrom.neq).toHaveBeenCalledWith('id', 'bid-123');
+      // Verify API call
+      expect(mockedApiClient.post).toHaveBeenCalledWith(
+        '/api/jobs/job-123/bids/bid-123/accept'
+      );
     });
 
     it('should throw error when bid not found', async () => {
@@ -433,8 +396,8 @@ describe('BidManagementService', () => {
       );
     });
 
-    it('should throw error when bid update fails', async () => {
-      const mockBidFrom = {
+    it('should throw error when API accept call fails', async () => {
+      const mockFrom = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         single: jest.fn().mockResolvedValue({
@@ -442,85 +405,10 @@ describe('BidManagementService', () => {
           error: null,
         }),
       };
+      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.post.mockRejectedValue(new Error('Accept failed'));
 
-      const error = new Error('Update failed');
-      const mockUpdateBidFrom = {
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({ error }),
-      };
-
-      (supabase.from as jest.Mock)
-        .mockReturnValueOnce(mockBidFrom)
-        .mockReturnValueOnce(mockUpdateBidFrom);
-
-      await expect(BidManagementService.acceptBid('bid-123')).rejects.toThrow('Update failed');
-    });
-
-    it('should throw error when job update fails', async () => {
-      const mockBidFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: { job_id: 'job-123', contractor_id: 'contractor-123' },
-          error: null,
-        }),
-      };
-
-      const mockUpdateBidFrom = {
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({ error: null }),
-      };
-
-      const error = new Error('Job update failed');
-      const mockUpdateJobFrom = {
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({ error }),
-      };
-
-      (supabase.from as jest.Mock)
-        .mockReturnValueOnce(mockBidFrom)
-        .mockReturnValueOnce(mockUpdateBidFrom)
-        .mockReturnValueOnce(mockUpdateJobFrom);
-
-      await expect(BidManagementService.acceptBid('bid-123')).rejects.toThrow('Job update failed');
-    });
-
-    it('should throw error when rejecting other bids fails', async () => {
-      const mockBidFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: { job_id: 'job-123', contractor_id: 'contractor-123' },
-          error: null,
-        }),
-      };
-
-      const mockUpdateBidFrom = {
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({ error: null }),
-      };
-
-      const mockUpdateJobFrom = {
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({ error: null }),
-      };
-
-      const error = new Error('Reject bids failed');
-      const mockRejectBidsFrom = {
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        neq: jest.fn().mockResolvedValue({ error }),
-      };
-
-      (supabase.from as jest.Mock)
-        .mockReturnValueOnce(mockBidFrom)
-        .mockReturnValueOnce(mockUpdateBidFrom)
-        .mockReturnValueOnce(mockUpdateJobFrom)
-        .mockReturnValueOnce(mockRejectBidsFrom);
-
-      await expect(BidManagementService.acceptBid('bid-123')).rejects.toThrow(
-        'Reject bids failed'
-      );
+      await expect(BidManagementService.acceptBid('bid-123')).rejects.toThrow('Accept failed');
     });
   });
 

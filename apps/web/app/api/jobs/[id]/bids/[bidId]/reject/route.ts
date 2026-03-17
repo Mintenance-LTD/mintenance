@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { logger, validateBidTransition, BID_STATUS, type BidStatusValue } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -7,12 +7,13 @@ import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api
 
 export const POST = withApiHandler(
   { roles: ['homeowner'] },
-  async (_request, { user, params }) => {
+  async (request, { user, params }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
     const jobId = params.id;
     const bidId = params.bidId;
 
-    // Verify the job belongs to this homeowner
-    const { data: job, error: jobError } = await serverSupabase
+    // Verify the job belongs to this homeowner (user-scoped read)
+    const { data: job, error: jobError } = await userDb
       .from('jobs')
       .select('homeowner_id')
       .eq('id', jobId)
@@ -30,8 +31,8 @@ export const POST = withApiHandler(
       throw new ForbiddenError('Not authorized to reject bids for this job');
     }
 
-    // Verify the bid exists and belongs to this job
-    const { data: bid, error: bidError } = await serverSupabase
+    // Verify the bid exists and belongs to this job (user-scoped read)
+    const { data: bid, error: bidError } = await userDb
       .from('bids')
       .select('id, job_id, status')
       .eq('id', bidId)

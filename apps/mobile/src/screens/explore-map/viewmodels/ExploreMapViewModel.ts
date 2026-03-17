@@ -44,6 +44,7 @@ export interface JobsMapViewModel {
   jobCount: number;
   locationGranted: boolean;
   hasPanned: boolean;
+  userLocation: { latitude: number; longitude: number } | null;
   handleRegionChange: (region: MapRegion) => void;
   handleSearch: (query: string) => void;
   handleJobSelect: (job: JobMapItem | null) => void;
@@ -299,6 +300,7 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
     jobCount: filteredJobs.length,
     locationGranted,
     hasPanned,
+    userLocation,
     handleRegionChange,
     handleSearch,
     handleJobSelect,

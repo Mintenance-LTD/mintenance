@@ -201,24 +201,21 @@ export async function middleware(request: NextRequest) {
       // The middleware rate limiter runs BEFORE auth, so all users are classified as 'anonymous'.
       // Endpoints with anonymous:0 in rate-limits.ts get auto-blocked. These routes handle
       // their own rate limiting after authentication is verified.
-      const skipMiddlewareRateLimit = pathname === '/api/auth/session-status' ||
-                                       pathname === '/api/auth/extend-session' ||
-                                       pathname.startsWith('/api/notifications') ||
-                                       pathname.startsWith('/api/messages') ||
-                                       pathname.startsWith('/api/payments') ||
-                                       pathname.startsWith('/api/contractors') ||
-                                       pathname.startsWith('/api/jobs') ||
-                                       pathname.startsWith('/api/contractor/') ||
-                                       pathname.startsWith('/api/bids') ||
-                                       pathname.startsWith('/api/user/') ||
-                                       pathname.startsWith('/api/account') ||
-                                       pathname.startsWith('/api/upload') ||
-                                       pathname.startsWith('/api/ai/') ||
-                                       pathname.startsWith('/api/building-surveyor') ||
-                                       pathname.startsWith('/api/admin') ||
-                                       pathname.startsWith('/api/escrow') ||
-                                       pathname.startsWith('/api/properties') ||
-                                       pathname.startsWith('/api/subscriptions');
+      // Exact-match paths that skip middleware rate limiting
+      const RATE_LIMIT_SKIP_EXACT = new Set([
+        '/api/auth/session-status',
+        '/api/auth/extend-session',
+      ]);
+      // Prefix paths — any pathname starting with these skips middleware rate limiting
+      const RATE_LIMIT_SKIP_PREFIXES = [
+        '/api/notifications', '/api/messages', '/api/payments',
+        '/api/contractors', '/api/jobs', '/api/contractor/',
+        '/api/bids', '/api/user/', '/api/account', '/api/upload',
+        '/api/ai/', '/api/building-surveyor', '/api/admin',
+        '/api/escrow', '/api/properties', '/api/subscriptions',
+      ];
+      const skipMiddlewareRateLimit = RATE_LIMIT_SKIP_EXACT.has(pathname) ||
+        RATE_LIMIT_SKIP_PREFIXES.some(prefix => pathname.startsWith(prefix));
 
       // Perform rate limit check (unless explicitly skipped)
       const rateLimitResult = skipMiddlewareRateLimit

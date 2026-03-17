@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { InternalServerError, BadRequestError } from '@/lib/errors/api-error';
@@ -9,8 +9,10 @@ import { validateRequest } from '@/lib/validation/validator';
 // GET: Fetch all expenses for the contractor
 export const GET = withApiHandler(
   { roles: ['contractor'], csrf: false },
-  async (_request, { user }) => {
-    const { data: expenses, error } = await serverSupabase
+  async (request, { user }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
+    const { data: expenses, error } = await userDb
       .from('contractor_expenses')
       .select(`
         id, description, category, amount, date, job_id, payment_method,
@@ -64,12 +66,14 @@ const createExpenseSchema = z.object({
 export const POST = withApiHandler(
   { roles: ['contractor'] },
   async (request: NextRequest, { user }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     const validation = await validateRequest(request, createExpenseSchema);
     if (validation instanceof NextResponse) return validation;
 
     const d = validation.data;
 
-    const { data: expense, error } = await serverSupabase
+    const { data: expense, error } = await userDb
       .from('contractor_expenses')
       .insert({
         contractor_id: user.id,
@@ -99,12 +103,14 @@ export const POST = withApiHandler(
 export const DELETE = withApiHandler(
   { roles: ['contractor'] },
   async (request: NextRequest, { user }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     const url = new URL(request.url);
     const id = url.searchParams.get('id');
     if (!id) throw new BadRequestError('Missing expense id');
 
     // Verify ownership
-    const { data: existing } = await serverSupabase
+    const { data: existing } = await userDb
       .from('contractor_expenses')
       .select('id')
       .eq('id', id)
@@ -115,7 +121,7 @@ export const DELETE = withApiHandler(
       return NextResponse.json({ error: 'Expense not found' }, { status: 404 });
     }
 
-    const { error } = await serverSupabase
+    const { error } = await userDb
       .from('contractor_expenses')
       .delete()
       .eq('id', id)
@@ -134,13 +140,15 @@ export const DELETE = withApiHandler(
 export const PATCH = withApiHandler(
   { roles: ['contractor'] },
   async (request: NextRequest, { user }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     const body = await request.json();
     const { id, ...updates } = body;
 
     if (!id) throw new BadRequestError('Missing expense id');
 
     // Verify ownership
-    const { data: existing } = await serverSupabase
+    const { data: existing } = await userDb
       .from('contractor_expenses')
       .select('id')
       .eq('id', id)
@@ -163,7 +171,7 @@ export const PATCH = withApiHandler(
     if (updates.isBillable !== undefined) dbUpdates.is_billable = updates.isBillable;
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
 
-    const { error } = await serverSupabase
+    const { error } = await userDb
       .from('contractor_expenses')
       .update(dbUpdates)
       .eq('id', id)

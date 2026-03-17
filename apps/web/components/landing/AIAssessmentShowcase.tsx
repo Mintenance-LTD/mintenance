@@ -292,6 +292,8 @@ export function AIAssessmentShowcase() {
 
                             {uploadedImage && !isAnalyzing && !showResults && (
                                 <div className="w-full h-full relative">
+                                    {/* Using <img> intentionally: src is a base64 data URI from FileReader, not a fetchable URL */}
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
                                         src={uploadedImage}
                                         alt="Uploaded damage"

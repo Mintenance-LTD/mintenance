@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 
@@ -103,12 +104,11 @@ export function PhotoGallery(props: PhotoGalleryProps) {
               e.currentTarget.style.boxShadow = 'none';
             }}
           >
-            <img
+            <Image
               src={photo.file_url}
               alt={photo.file_name || `Job photo ${index + 1}`}
+              fill
               style={{
-                width: '100%',
-                height: '100%',
                 objectFit: 'cover',
               }}
             />
@@ -132,6 +132,9 @@ export function PhotoGallery(props: PhotoGalleryProps) {
       {selectedPhotoIndex !== null && (
         <div
           onClick={closeModal}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Photo ${selectedPhotoIndex + 1} of ${safePhotos.length}`}
           style={{
             position: 'fixed',
             top: 0,
@@ -154,12 +157,16 @@ export function PhotoGallery(props: PhotoGalleryProps) {
               maxHeight: '90vh',
             }}
           >
-            <img
+            <Image
               src={safePhotos[selectedPhotoIndex].file_url}
               alt={safePhotos[selectedPhotoIndex].file_name || `Job photo ${selectedPhotoIndex + 1}`}
+              width={1200}
+              height={900}
               style={{
                 maxWidth: '100%',
                 maxHeight: '90vh',
+                width: 'auto',
+                height: 'auto',
                 objectFit: 'contain',
                 borderRadius: theme.borderRadius.lg,
               }}

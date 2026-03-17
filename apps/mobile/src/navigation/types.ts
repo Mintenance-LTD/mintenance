@@ -108,6 +108,7 @@ export type ProfileStackParamList = {
   ContractorVerification: undefined;
   Properties: undefined;
   PropertyDetail: { propertyId: string };
+  EditProperty: { propertyId: string };
   PropertyAssessment: { propertyId?: string; propertyAddress?: string } | undefined;
   AddProperty: undefined;
   VideoCapture: { assessmentId?: string; propertyId?: string } | undefined;

@@ -399,8 +399,8 @@ export async function updateNotificationPreferences(
   userId: string,
   preferences: {
     jobUpdates?: boolean;
-    bidNotifications?: boolean;
-    messages?: boolean;
+    newBids?: boolean;
+    newMessages?: boolean;
     quietHoursEnabled?: boolean;
     quietHoursStart?: string;
     quietHoursEnd?: string;
@@ -414,16 +414,13 @@ export async function updateNotificationPreferences(
     const updatedPrefs = {
       ...currentPrefs,
       jobUpdates: preferences.jobUpdates ?? currentPrefs.jobUpdates,
-      bidNotifications:
-        preferences.bidNotifications ?? currentPrefs.bidNotifications,
-      messages: preferences.messages ?? currentPrefs.messages,
-      quietHours: {
-        enabled:
-          preferences.quietHoursEnabled ?? currentPrefs.quietHours.enabled,
-        start:
-          preferences.quietHoursStart ?? currentPrefs.quietHours.start,
-        end: preferences.quietHoursEnd ?? currentPrefs.quietHours.end,
-      },
+      newBids: preferences.newBids ?? currentPrefs.newBids,
+      newMessages: preferences.newMessages ?? currentPrefs.newMessages,
+      quietHoursEnabled:
+        preferences.quietHoursEnabled ?? currentPrefs.quietHoursEnabled,
+      quietHoursStart:
+        preferences.quietHoursStart ?? currentPrefs.quietHoursStart,
+      quietHoursEnd: preferences.quietHoursEnd ?? currentPrefs.quietHoursEnd,
     };
 
     await NotificationService.updateNotificationPreferences(

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 
 interface DiscoverPhotoCarouselProps {
@@ -21,11 +22,12 @@ export function DiscoverPhotoCarousel({ photos, title, distanceBadge, isNew }: D
 
   return (
     <div className="relative h-48 bg-gray-100 overflow-hidden group">
-      <img
+      <Image
         src={photos[idx]}
-        alt={`${title} – photo ${idx + 1}`}
-        className="w-full h-full object-cover transition-opacity duration-200"
-        onError={e => { (e.target as HTMLImageElement).src = '/placeholder-job.jpg'; }}
+        alt={`${title} -- photo ${idx + 1}`}
+        fill
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        className="object-cover transition-opacity duration-200"
       />
 
       {multi && (

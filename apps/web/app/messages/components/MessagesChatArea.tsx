@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { LoadingSpinner } from '@/components/ui';
 
 interface Conversation {
@@ -76,10 +77,12 @@ export function MessagesChatArea({
       <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-white">
         <div className="flex items-center gap-3">
           {conversation.otherUser.avatar ? (
-            <img
+            <Image
               src={conversation.otherUser.avatar}
               alt={conversation.otherUser.name}
-              className="w-10 h-10 rounded-full object-cover"
+              width={40}
+              height={40}
+              className="rounded-full object-cover"
             />
           ) : (
             <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
@@ -126,10 +129,12 @@ export function MessagesChatArea({
                 {!isCurrentUser && (
                   <div className="w-8 h-8 flex-shrink-0">
                     {conversation.otherUser.avatar ? (
-                      <img
+                      <Image
                         src={conversation.otherUser.avatar}
                         alt={conversation.otherUser.name}
-                        className="w-8 h-8 rounded-full object-cover"
+                        width={32}
+                        height={32}
+                        className="rounded-full object-cover"
                       />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center">

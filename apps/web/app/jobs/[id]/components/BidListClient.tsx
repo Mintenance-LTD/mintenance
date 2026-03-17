@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { theme } from '@/lib/theme';
 import { logger } from '@mintenance/shared';
 import { Icon } from '@/components/ui/Icon';
@@ -220,14 +221,12 @@ export function BidListClient({ bids, jobId }: BidListClientProps) {
                   overflow: 'hidden',
                 }}>
                   {bidContractor?.profile_image_url ? (
-                    <img
+                    <Image
                       src={bidContractor.profile_image_url}
                       alt={contractorName}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                      }}
+                      fill
+                      sizes="56px"
+                      style={{ objectFit: 'cover' }}
                     />
                   ) : (
                     initials

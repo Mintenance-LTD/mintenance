@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -16,6 +16,8 @@ const toggleServiceAreaSchema = z.object({
 export const POST = withApiHandler(
   { roles: ['contractor'] },
   async (request, { user }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     const body = await request.json();
     const validation = toggleServiceAreaSchema.safeParse(body);
     if (!validation.success) {
@@ -24,7 +26,7 @@ export const POST = withApiHandler(
     const { serviceAreaId, isActive } = validation.data;
 
     // Verify service area exists and belongs to contractor
-    const { data: serviceArea, error: areaError } = await serverSupabase
+    const { data: serviceArea, error: areaError } = await userDb
       .from('service_areas')
       .select('id, city, state')
       .eq('id', serviceAreaId)
@@ -35,7 +37,7 @@ export const POST = withApiHandler(
       throw new NotFoundError('Service area not found');
     }
 
-    const { error: updateError } = await serverSupabase
+    const { error: updateError } = await userDb
       .from('service_areas')
       .update({ is_active: isActive })
       .eq('id', serviceAreaId)

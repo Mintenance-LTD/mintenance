@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { theme } from '@/lib/theme';
 import Logo from '../../components/Logo';
 import { Icon } from '@/components/ui/Icon';
 import { notFound } from 'next/navigation';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 
 export const metadata: Metadata = {
   title: 'Contractor Profile | Mintenance',
@@ -13,19 +15,12 @@ export const metadata: Metadata = {
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-async function createClient() {
-  const { serverSupabase } = await import('@/lib/api/supabaseServer');
-  return serverSupabase;
-}
-
 export default async function ContractorPublicProfilePage(props: {
   params: Promise<{ id: string }>;
 }) {
   const params = await props.params;
-  const supabase = await createClient();
-
   // Fetch contractor data
-  const { data: contractor, error } = await supabase
+  const { data: contractor, error } = await serverSupabase
     .from('profiles')
     .select(`
       *,
@@ -41,7 +36,7 @@ export default async function ContractorPublicProfilePage(props: {
   }
 
   // Fetch reviews with proper relationship
-  const { data: reviews } = await supabase
+  const { data: reviews } = await serverSupabase
     .from('reviews')
     .select(`
       *,
@@ -60,7 +55,7 @@ export default async function ContractorPublicProfilePage(props: {
     .limit(10);
 
   // Fetch completed jobs
-  const { data: completedJobs } = await supabase
+  const { data: completedJobs } = await serverSupabase
     .from('jobs')
     .select('id, title, category, photos, completed_at')
     .eq('contractor_id', params.id)
@@ -70,7 +65,7 @@ export default async function ContractorPublicProfilePage(props: {
     .limit(12);
 
   // Fetch contractor posts (portfolio)
-  const { data: posts } = await supabase
+  const { data: posts } = await serverSupabase
     .from('contractor_posts')
     .select('id, title, images, post_type, project_duration, project_cost')
     .eq('contractor_id', params.id)
@@ -443,17 +438,12 @@ export default async function ContractorPublicProfilePage(props: {
                       backgroundColor: theme.colors.backgroundSecondary,
                     }}
                   >
-                    <img
+                    <Image
                       src={post.images[0]}
-                      alt={post.title}
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                      }}
+                      alt={post.title || 'Portfolio image'}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 250px"
+                      style={{ objectFit: 'cover' }}
                     />
                     <div style={{
                       position: 'absolute',

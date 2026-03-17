@@ -132,11 +132,14 @@ export function JobsFilters({
         flexWrap: 'wrap',
       }}>
         {/* Search */}
-        <div style={{
-          flex: 1,
-          minWidth: '280px',
-          position: 'relative',
-        }}>
+        <div
+          style={{
+            flex: 1,
+            minWidth: '280px',
+            position: 'relative',
+          }}
+          role="search"
+        >
           <div style={{
             position: 'absolute',
             left: theme.spacing[3],
@@ -147,8 +150,9 @@ export function JobsFilters({
             <Icon name="search" size={18} color={theme.colors.textTertiary} />
           </div>
           <input
-            type="text"
+            type="search"
             placeholder="Search jobs..."
+            aria-label="Search jobs"
             value={searchQuery}
             onChange={(e) => onSearchQueryChange(e.target.value)}
             style={{
@@ -175,6 +179,8 @@ export function JobsFilters({
         {/* Filter Toggle */}
         <button
           onClick={() => setShowFilters(!showFilters)}
+          aria-expanded={showFilters}
+          aria-label={showFilters ? 'Hide filters' : 'Show filters'}
           style={{
             height: '40px',
             padding: `0 ${theme.spacing[4]}`,
@@ -249,6 +255,7 @@ export function JobsFilters({
             <select
               value={statusFilter}
               onChange={(e) => onStatusFilterChange(e.target.value)}
+              aria-label="Filter by status"
               style={{
                 width: '100%',
                 height: '40px',
@@ -285,6 +292,7 @@ export function JobsFilters({
             <select
               value={priorityFilter}
               onChange={(e) => onPriorityFilterChange(e.target.value)}
+              aria-label="Filter by priority"
               style={{
                 width: '100%',
                 height: '40px',

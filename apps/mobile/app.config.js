@@ -96,6 +96,8 @@ module.exports = {
     slug: "mintenance",
     owner: "mintenance-ltd",
     version: "1.2.4",
+    description: "Property maintenance made simple. Connect homeowners with trusted local contractors for repairs, renovations, and maintenance jobs. Get bids, manage projects, and pay securely.",
+    primaryColor: "#10B981",
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "automatic",
@@ -111,14 +113,26 @@ module.exports = {
       supportsTablet: true,
       bundleIdentifier: "com.mintenance.app",
       buildNumber: "16",
-      googleServicesFile: process.env.GOOGLE_SERVICES_PLIST ? "./apps/mobile/GoogleService-Info.plist" : undefined,
+      // EAS writes GoogleService-Info.plist to the project root during build
+      // Set GOOGLE_SERVICES_PLIST=1 in env (or use EAS Secrets) to enable
+      googleServicesFile: process.env.GOOGLE_SERVICES_PLIST ? "./GoogleService-Info.plist" : undefined,
       infoPlist: {
         NSLocationWhenInUseUsageDescription: "This app needs location access to find nearby contractors and show job locations.",
         ITSAppUsesNonExemptEncryption: false,
         NSCameraUsageDescription: "This app needs camera access to take photos of jobs and upload project images.",
         NSPhotoLibraryUsageDescription: "This app needs photo library access to select images for job posts and project galleries.",
-        NSFaceIDUsageDescription: "This app uses Face ID for secure authentication."
+        NSFaceIDUsageDescription: "This app uses Face ID for secure authentication.",
+        UIBackgroundModes: ["remote-notification"],
       },
+      privacyManifests: {
+        NSPrivacyAccessedAPITypes: [
+          {
+            NSPrivacyAccessedAPIType: "NSPrivacyAccessedAPICategoryUserDefaults",
+            NSPrivacyAccessedAPITypeReasons: ["CA92.1"]
+          }
+        ]
+      },
+      appStoreUrl: "https://apps.apple.com/app/mintenance/id0000000000",
       associatedDomains: ["applinks:mintenance.app", "applinks:www.mintenance.app"]
     },
     android: {
@@ -126,14 +140,17 @@ module.exports = {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#10B981"
       },
-      config: { 
-        googleMaps: { 
-          apiKey: process.env.GOOGLE_MAPS_API_KEY 
-        } 
+      config: {
+        googleMaps: {
+          apiKey: process.env.GOOGLE_MAPS_API_KEY
+        }
       },
       package: "com.mintenance.app",
       versionCode: 16,
-      googleServicesFile: process.env.GOOGLE_SERVICES_JSON ? "./apps/mobile/google-services.json" : undefined,
+      // EAS writes google-services.json to the project root during build
+      // Set GOOGLE_SERVICES_JSON=1 in env (or use EAS Secrets) to enable
+      googleServicesFile: process.env.GOOGLE_SERVICES_JSON ? "./google-services.json" : undefined,
+      playStoreUrl: "https://play.google.com/store/apps/details?id=com.mintenance.app",
       intentFilters: [
         {
           action: "VIEW",
@@ -208,7 +225,11 @@ module.exports = {
       ["expo-notifications", {
         icon: "./assets/notification-icon.png",
         color: "#10B981",
-        defaultChannel: "default"
+        defaultChannel: "default",
+        // FCM v1 is used automatically when google-services.json is present
+        // For Android: requires google-services.json provided via EAS Secrets
+        // For iOS: requires GoogleService-Info.plist + APNs key provided via EAS Secrets
+        enableBackgroundRemoteNotifications: true,
       }],
       ["expo-local-authentication", {
         faceIDPermission: "This app uses Face ID for secure authentication and faster login."
@@ -234,6 +255,11 @@ module.exports = {
       // Both URL and key MUST be provided via environment variables. No defaults to avoid leaks.
       supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
       supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+      // App metadata — used at runtime and by store submission tooling
+      privacyPolicyUrl: "https://mintenance.app/privacy",
+      termsOfServiceUrl: "https://mintenance.app/terms",
+      supportUrl: "https://mintenance.app/support",
+      marketingUrl: "https://mintenance.app",
     }
   }
 };

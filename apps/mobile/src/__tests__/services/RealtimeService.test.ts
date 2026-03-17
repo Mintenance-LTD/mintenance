@@ -306,13 +306,13 @@ describe('RealtimeService', () => {
 
       RealtimeService.subscribeToUserUpdates('user-1', callback);
 
-      expect(supabase.channel).toHaveBeenCalledWith('users:user-1');
+      expect(supabase.channel).toHaveBeenCalledWith('profiles:user-1');
       expect(mockChannel.on).toHaveBeenCalledWith(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'users',
+          table: 'profiles',
           filter: 'id=eq.user-1',
         },
         expect.any(Function)

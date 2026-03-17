@@ -176,7 +176,7 @@ function RegisterForm() {
           <AuthCard>
             {/* Header */}
             <div className="mb-8">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3 tracking-tight">
+              <h2 id="register-heading" className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3 tracking-tight">
                 Create your account
               </h2>
               <p className="text-base text-gray-600">
@@ -189,7 +189,7 @@ function RegisterForm() {
 
             {/* Success Alert */}
             {submitStatus === 'success' && (
-              <Alert className="mb-6 border-green-500 bg-green-50">
+              <Alert className="mb-6 border-green-500 bg-green-50" role="status">
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
                 <AlertTitle className="text-green-800">Registration Successful!</AlertTitle>
                 <AlertDescription className="text-green-700">
@@ -200,7 +200,7 @@ function RegisterForm() {
 
             {/* Error Alert */}
             {submitStatus === 'error' && errorMessage && (
-              <Alert variant="destructive" className="mb-6">
+              <Alert variant="destructive" className="mb-6" role="alert">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Registration Failed</AlertTitle>
                 <AlertDescription>
@@ -220,17 +220,18 @@ function RegisterForm() {
               </Alert>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" aria-labelledby="register-heading">
               {/* Role Selection */}
               <div className="space-y-3">
-                <label className="text-sm font-medium text-gray-700">I am a</label>
+                <label id="role-label" className="text-sm font-medium text-gray-700">I am a</label>
                 <RoleToggle
                   value={selectedRole}
                   onChange={(role) => setValue('role', role)}
                   disabled={isSubmitting}
+                  aria-labelledby="role-label"
                 />
                 {errors.role && (
-                  <p className="text-sm text-red-600">{errors.role.message}</p>
+                  <p className="text-sm text-red-600" role="alert">{errors.role.message}</p>
                 )}
               </div>
 
@@ -308,6 +309,9 @@ function RegisterForm() {
                   type="checkbox"
                   id="acceptTerms"
                   {...register('acceptTerms')}
+                  aria-required="true"
+                  aria-invalid={!!errors.acceptTerms}
+                  aria-describedby={errors.acceptTerms ? 'terms-error' : undefined}
                   className="mt-1 h-4 w-4 text-[#0066CC] focus:ring-[#0066CC] border-gray-300 rounded"
                 />
                 <label htmlFor="acceptTerms" className="text-sm text-gray-700 cursor-pointer">
@@ -322,7 +326,7 @@ function RegisterForm() {
                 </label>
               </div>
               {errors.acceptTerms && (
-                <p className="text-sm text-red-600 -mt-2">{errors.acceptTerms.message}</p>
+                <p id="terms-error" className="text-sm text-red-600 -mt-2" role="alert">{errors.acceptTerms.message}</p>
               )}
 
               {/* Submit Button */}

@@ -50,7 +50,7 @@ export function ContractorCTA() {
                 <div key={benefit.title} className="flex items-start gap-4">
                   <CheckCircleIcon />
                   <div>
-                    <h4 className="text-xl font-bold text-white mb-2">{benefit.title}</h4>
+                    <h3 className="text-xl font-bold text-white mb-2">{benefit.title}</h3>
                     <p className="text-white/70 leading-relaxed">{benefit.description}</p>
                   </div>
                 </div>

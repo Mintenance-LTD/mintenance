@@ -1,0 +1,149 @@
+name: Lighthouse CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: lighthouse-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lighthouse:
+    name: Lighthouse Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20.19.4'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+        timeout-minutes: 10
+
+      - name: Build web app
+        run: npm run build:web
+        env:
+          # Provide dummy env vars so the build succeeds in CI
+          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key-for-ci-build
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_dummy
+          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: dummy
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v12
+        id: lighthouse
+        with:
+          configPath: apps/web/lighthouserc.js
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+      - name: Format Lighthouse results
+        id: format
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const results = ${{ steps.lighthouse.outputs.manifest }};
+            if (!results || !results.length) {
+              core.setOutput('comment', 'Lighthouse CI did not produce results.');
+              return;
+            }
+
+            const average = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
+            const score = (r, cat) => r.summary?.[cat] ?? null;
+            const icon = (s) => s >= 0.9 ? '🟢' : s >= 0.5 ? '🟡' : '🔴';
+
+            const perfScores = results.map(r => score(r, 'performance')).filter(Boolean);
+            const a11yScores = results.map(r => score(r, 'accessibility')).filter(Boolean);
+            const bpScores = results.map(r => score(r, 'best-practices')).filter(Boolean);
+            const seoScores = results.map(r => score(r, 'seo')).filter(Boolean);
+
+            const fmt = (scores) => {
+              if (!scores.length) return 'N/A';
+              const avg = average(scores);
+              return `${icon(avg)} ${Math.round(avg * 100)}`;
+            };
+
+            const reportUrl = results.find(r => r.url)?.url || '';
+
+            let comment = `## Lighthouse Results\n\n`;
+            comment += `| Category | Score |\n`;
+            comment += `|----------|-------|\n`;
+            comment += `| Performance | ${fmt(perfScores)} |\n`;
+            comment += `| Accessibility | ${fmt(a11yScores)} |\n`;
+            comment += `| Best Practices | ${fmt(bpScores)} |\n`;
+            comment += `| SEO | ${fmt(seoScores)} |\n\n`;
+
+            if (results[0]?.url) {
+              comment += `[View full report](${results[0].url})\n`;
+            }
+
+            core.setOutput('comment', comment);
+
+      - name: Post PR comment
+        if: always() && github.event_name == 'pull_request' && steps.format.outputs.comment
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const body = `${{ steps.format.outputs.comment }}`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c =>
+              c.user.type === 'Bot' && c.body?.includes('## Lighthouse Results')
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Check accessibility gate
+        if: always()
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const results = ${{ steps.lighthouse.outputs.manifest }};
+            if (!results || !results.length) {
+              core.warning('No Lighthouse results to check.');
+              return;
+            }
+            const a11yScores = results
+              .map(r => r.summary?.accessibility)
+              .filter(s => s != null);
+            if (!a11yScores.length) {
+              core.warning('No accessibility scores found.');
+              return;
+            }
+            const avgA11y = a11yScores.reduce((a, b) => a + b, 0) / a11yScores.length;
+            if (avgA11y < 0.85) {
+              core.setFailed(
+                `Accessibility score ${Math.round(avgA11y * 100)} is below the 85 threshold.`
+              );
+            } else {
+              core.info(`Accessibility score: ${Math.round(avgA11y * 100)} (pass)`);
+            }

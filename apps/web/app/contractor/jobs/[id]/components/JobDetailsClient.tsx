@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { JobViewTracker } from '@/app/jobs/[id]/components/JobViewTracker';
 import { logger } from '@mintenance/shared';
 import { getCsrfHeaders } from '@/lib/csrf-client';
+import Image from 'next/image';
 import {
   ArrowLeft,
   MapPin,
@@ -342,10 +343,13 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
                 <div className="space-y-4">
                   {/* Main Photo Display */}
                   <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
-                    <img
+                    <Image
                       src={job.photos[selectedPhoto]}
                       alt={`Job photo ${selectedPhoto + 1}`}
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 66vw"
+                      className="object-cover"
+                      priority
                     />
                   </div>
 
@@ -360,10 +364,12 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
                             selectedPhoto === index ? 'border-teal-500' : 'border-transparent hover:border-gray-300'
                           }`}
                         >
-                          <img
+                          <Image
                             src={photo}
                             alt={`Thumbnail ${index + 1}`}
-                            className="w-full h-full object-cover"
+                            fill
+                            sizes="25vw"
+                            className="object-cover"
                           />
                         </button>
                       ))}
@@ -382,10 +388,12 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
                   {homeowner?.profile_image_url ? (
-                    <img
+                    <Image
                       src={homeowner.profile_image_url}
                       alt={`${homeowner.first_name} ${homeowner.last_name}`}
-                      className="w-16 h-16 rounded-full object-cover"
+                      width={64}
+                      height={64}
+                      className="rounded-full object-cover"
                     />
                   ) : (
                     <div className="w-16 h-16 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-full flex items-center justify-center">

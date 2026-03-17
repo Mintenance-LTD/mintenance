@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import type { EscrowTransaction } from '@mintenance/types';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -84,6 +84,9 @@ const mapEscrowRow = (row: EscrowRow): EscrowTransaction => ({
 export const GET = withApiHandler(
   { rateLimit: { maxRequests: 20 } },
   async (request, { user }) => {
+    // Use RLS-enforced client for user-scoped reads; fall back to service role
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     const url = new URL(request.url);
     const parsed = querySchema.safeParse({
       limit: url.searchParams.get('limit') ?? undefined,
@@ -106,7 +109,7 @@ export const GET = withApiHandler(
       cursorIso = new Date(ts).toISOString();
     }
 
-    let query = serverSupabase
+    let query = userDb
       .from('escrow_transactions')
       .select(selectFields)
       .or(`payer_id.eq.${user.id},payee_id.eq.${user.id}`)

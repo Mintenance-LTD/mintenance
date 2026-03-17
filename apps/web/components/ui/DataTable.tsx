@@ -79,6 +79,7 @@ export function DataTable<T extends { id: string | number }>({
 
       <div style={{ overflowX: 'auto' }}>
         <table
+          role="table"
           style={{
             width: '100%',
             borderCollapse: 'collapse',
@@ -113,11 +114,21 @@ export function DataTable<T extends { id: string | number }>({
                 <tr
                   key={item.id}
                   onClick={() => onRowClick?.(item)}
+                  onKeyDown={(e) => {
+                    if (onRowClick && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault();
+                      onRowClick(item);
+                    }
+                  }}
+                  tabIndex={onRowClick ? 0 : undefined}
+                  role={onRowClick ? 'button' : undefined}
                   style={{
                     borderBottom: `1px solid ${theme.colors.border}`,
                     cursor: onRowClick ? 'pointer' : 'default',
                     transition: 'background-color 0.2s',
+                    outline: 'none',
                   }}
+                  className={onRowClick ? 'focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-inset' : undefined}
                   onMouseEnter={(e) => {
                     if (onRowClick) {
                       e.currentTarget.style.backgroundColor =

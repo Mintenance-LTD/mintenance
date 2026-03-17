@@ -20,6 +20,10 @@ export const GET = withApiHandler(
       throw error;
     }
 
-    return NextResponse.json({ count: count || 0 });
+    return NextResponse.json({ count: count || 0 }, {
+      headers: {
+        'Cache-Control': 'private, max-age=120, must-revalidate',
+      },
+    });
   },
 );

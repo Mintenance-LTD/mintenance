@@ -91,7 +91,7 @@ export function JobsTable({ jobs, onRowClick }: JobsTableProps) {
       overflow: 'hidden',
     }}>
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table role="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead style={{
             backgroundColor: theme.colors.backgroundSecondary,
             borderBottom: `1px solid ${theme.colors.border}`,
@@ -102,6 +102,10 @@ export function JobsTable({ jobs, onRowClick }: JobsTableProps) {
             <tr>
               <th
                 onClick={() => handleSort('title')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort('title'); } }}
+                tabIndex={0}
+                role="columnheader"
+                aria-sort={sortBy === 'title' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                 style={{
                   padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
                   textAlign: 'left',
@@ -120,6 +124,10 @@ export function JobsTable({ jobs, onRowClick }: JobsTableProps) {
               </th>
               <th
                 onClick={() => handleSort('customer')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort('customer'); } }}
+                tabIndex={0}
+                role="columnheader"
+                aria-sort={sortBy === 'customer' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                 style={{
                   padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
                   textAlign: 'left',
@@ -138,6 +146,10 @@ export function JobsTable({ jobs, onRowClick }: JobsTableProps) {
               </th>
               <th
                 onClick={() => handleSort('property')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort('property'); } }}
+                tabIndex={0}
+                role="columnheader"
+                aria-sort={sortBy === 'property' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                 style={{
                   padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
                   textAlign: 'left',
@@ -156,6 +168,10 @@ export function JobsTable({ jobs, onRowClick }: JobsTableProps) {
               </th>
               <th
                 onClick={() => handleSort('status')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort('status'); } }}
+                tabIndex={0}
+                role="columnheader"
+                aria-sort={sortBy === 'status' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                 style={{
                   padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
                   textAlign: 'left',
@@ -174,6 +190,10 @@ export function JobsTable({ jobs, onRowClick }: JobsTableProps) {
               </th>
               <th
                 onClick={() => handleSort('assignedTo')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort('assignedTo'); } }}
+                tabIndex={0}
+                role="columnheader"
+                aria-sort={sortBy === 'assignedTo' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                 style={{
                   padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
                   textAlign: 'left',
@@ -192,6 +212,10 @@ export function JobsTable({ jobs, onRowClick }: JobsTableProps) {
               </th>
               <th
                 onClick={() => handleSort('priority')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort('priority'); } }}
+                tabIndex={0}
+                role="columnheader"
+                aria-sort={sortBy === 'priority' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                 style={{
                   padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
                   textAlign: 'left',
@@ -210,6 +234,10 @@ export function JobsTable({ jobs, onRowClick }: JobsTableProps) {
               </th>
               <th
                 onClick={() => handleSort('scheduledDate')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort('scheduledDate'); } }}
+                tabIndex={0}
+                role="columnheader"
+                aria-sort={sortBy === 'scheduledDate' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                 style={{
                   padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
                   textAlign: 'left',
@@ -245,10 +273,20 @@ export function JobsTable({ jobs, onRowClick }: JobsTableProps) {
               <tr
                 key={job.id}
                 onClick={() => onRowClick?.(job)}
+                onKeyDown={(e) => {
+                  if (onRowClick && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    onRowClick(job);
+                  }
+                }}
+                tabIndex={onRowClick ? 0 : undefined}
+                role={onRowClick ? 'row' : undefined}
+                aria-label={`Job: ${job.title}`}
                 style={{
                   borderBottom: index < sortedJobs.length - 1 ? `1px solid ${theme.colors.border}` : 'none',
                   cursor: onRowClick ? 'pointer' : 'default',
                   transition: 'background-color 0.15s',
+                  outline: 'none',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
@@ -331,6 +369,7 @@ export function JobsTable({ jobs, onRowClick }: JobsTableProps) {
                         e.stopPropagation();
                         // Handle view
                       }}
+                      aria-label={`View ${job.title}`}
                       style={{
                         padding: theme.spacing[2],
                         border: 'none',
@@ -349,6 +388,7 @@ export function JobsTable({ jobs, onRowClick }: JobsTableProps) {
                         e.stopPropagation();
                         // Handle more options
                       }}
+                      aria-label={`More options for ${job.title}`}
                       style={{
                         padding: theme.spacing[2],
                         border: 'none',

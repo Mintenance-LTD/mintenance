@@ -181,15 +181,22 @@ export const GET = withApiHandler(
       avgResponseTimeHours,
     });
 
-    return NextResponse.json({
-      activeContractors,
-      activeContractorsGrowth: contractorsGrowth,
-      completedJobs,
-      completedJobsGrowth: jobsGrowth,
-      totalSaved: Math.round(totalSaved),
-      totalSavedGrowth: savedGrowth,
-      avgResponseTimeHours: parseFloat(avgResponseTimeHours.toFixed(1)),
-      responseTimeImprovement,
-    });
+    return NextResponse.json(
+      {
+        activeContractors,
+        activeContractorsGrowth: contractorsGrowth,
+        completedJobs,
+        completedJobsGrowth: jobsGrowth,
+        totalSaved: Math.round(totalSaved),
+        totalSavedGrowth: savedGrowth,
+        avgResponseTimeHours: parseFloat(avgResponseTimeHours.toFixed(1)),
+        responseTimeImprovement,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=600',
+        },
+      },
+    );
   }
 );

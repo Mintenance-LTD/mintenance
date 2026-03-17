@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/api/supabaseServer';
+import { createServerSupabaseClient, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { LearningMatchingService } from '@/lib/services/agents/LearningMatchingService';
 import { PricingAgent } from '@/lib/services/agents/PricingAgent';
 import { logger, validateStatusTransition, validateBidTransition, JOB_STATUS, BID_STATUS, CONTRACT_STATUS, type JobStatus, type BidStatusValue } from '@mintenance/shared';
@@ -21,6 +21,8 @@ interface BidRow {
 export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user, params }) => {
   // Create a fresh Supabase client per request to avoid singleton auth state corruption
   const serverSupabase = createServerSupabaseClient();
+  // RLS-enforced client for user-scoped reads; falls back to service role
+  const userDb = createRequestScopedClient(request) ?? serverSupabase;
 
   const jobId = params.id as string;
   const bidId = params.bidId as string;
@@ -49,8 +51,8 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
     throw new ForbiddenError('Only homeowners can accept bids');
   }
 
-  // Verify the job belongs to this homeowner
-  const { data: job, error: jobError } = await serverSupabase
+  // Verify the job belongs to this homeowner (user-scoped read)
+  const { data: job, error: jobError } = await userDb
     .from('jobs')
     .select('homeowner_id, status')
     .eq('id', jobId)
@@ -72,8 +74,8 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
     throw new ForbiddenError('Not authorized to accept bids for this job');
   }
 
-  // Verify the bid exists and belongs to this job
-  const { data: bidData, error: bidError } = await serverSupabase
+  // Verify the bid exists and belongs to this job (user-scoped read)
+  const { data: bidData, error: bidError } = await userDb
     .from('bids')
     .select('id, job_id, contractor_id, status, amount')
     .eq('id', bidId)

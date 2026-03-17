@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import type { JobDetail } from '@mintenance/types/src/contracts';
 import { getCurrentUserFromCookies, getUserFromRequest } from '@/lib/auth';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { validateStatusTransition, type JobStatus } from '@/lib/job-state-machine';
@@ -78,11 +78,14 @@ const updateJobSchema = z.object({
 
 export const GET = withApiHandler(
   { csrf: false },
-  async (_req, { user, params }) => {
+  async (request, { user, params }) => {
+    // Use RLS-enforced client for user-scoped reads; fall back to service role
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     const { id } = params;
 
     // Explicit column selection to avoid leaking sensitive data
-    const { data, error } = await serverSupabase
+    const { data, error } = await userDb
       .from('jobs')
       .select('id, title, description, status, homeowner_id, contractor_id, category, budget, budget_min, budget_max, priority, location, city, postcode, latitude, longitude, start_date, end_date, flexible_timeline, access_info, requirements, created_at, updated_at')
       .eq('id', id)
@@ -165,10 +168,13 @@ export const GET = withApiHandler(
 export const PUT = withApiHandler(
   { roles: ['homeowner'] },
   async (request, { user, params }) => {
+    // Use RLS-enforced client for user-scoped operations; fall back to service role
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     const { id: jobId } = params;
 
     // Check job ownership and fetch necessary fields for fallback values
-    const { data: existingJob, error: fetchError } = await serverSupabase
+    const { data: existingJob, error: fetchError } = await userDb
       .from('jobs')
       .select('homeowner_id, status, location, title, description, city, postcode')
       .eq('id', jobId)
@@ -338,7 +344,7 @@ export const PUT = withApiHandler(
     }
 
     // Get current job status before update
-    const { data: currentJob } = await serverSupabase
+    const { data: currentJob } = await userDb
       .from('jobs')
       .select('status, title, homeowner_id, contractor_id')
       .eq('id', jobId)
@@ -346,7 +352,7 @@ export const PUT = withApiHandler(
 
     const oldStatus = currentJob?.status || 'posted';
 
-    const { data: updatedJob, error: updateError } = await serverSupabase
+    const { data: updatedJob, error: updateError } = await userDb
       .from('jobs')
       .update(updatePayload)
       .eq('id', jobId)
@@ -388,7 +394,7 @@ export const PUT = withApiHandler(
     // Update job attachments if images changed
     if (payload.images !== undefined) {
       // Delete existing attachments
-      await serverSupabase
+      await userDb
         .from('job_attachments')
         .delete()
         .eq('job_id', jobId)
@@ -403,7 +409,7 @@ export const PUT = withApiHandler(
           uploaded_by: user.id,
         }));
 
-        await serverSupabase
+        await userDb
           .from('job_attachments')
           .insert(attachments);
       }
@@ -457,13 +463,16 @@ export async function PATCH(request: NextRequest, context: Params) {
     }
     const { id } = await context.params;
 
+    // Use RLS-enforced client for user-scoped operations; fall back to service role
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     // Validate and sanitize input using Zod schema
     const patchValidation = await validateRequest(request, updateJobSchema);
     if ('headers' in patchValidation) {
       return patchValidation;
     }
 
-    const { data: existing, error: fetchError } = await serverSupabase
+    const { data: existing, error: fetchError } = await userDb
       .from('jobs')
       .select(jobSelectFields)
       .eq('id', id)
@@ -545,7 +554,7 @@ export async function PATCH(request: NextRequest, context: Params) {
       // Check if budget is being reduced
       if (currentBudget !== null && newBudget < currentBudget) {
         // Check if there are any active bids
-        const { count: bidCount } = await serverSupabase
+        const { count: bidCount } = await userDb
           .from('bids')
           .select('id', { count: 'exact', head: true })
           .eq('job_id', id)
@@ -553,7 +562,7 @@ export async function PATCH(request: NextRequest, context: Params) {
 
         if (bidCount && bidCount > 0) {
           // Check if any bids would exceed the new budget
-          const { data: existingBids } = await serverSupabase
+          const { data: existingBids } = await userDb
             .from('bids')
             .select('amount, contractor_id, status')
             .eq('job_id', id)
@@ -582,7 +591,7 @@ export async function PATCH(request: NextRequest, context: Params) {
       updatePayload.budget = payload.budget;
     }
 
-        const { data, error } = await serverSupabase
+        const { data, error } = await userDb
       .from('jobs')
       .update(updatePayload)
       .eq('id', id)
@@ -640,8 +649,11 @@ export async function DELETE(request: NextRequest, context: Params) {
     }
     const { id } = await context.params;
 
+    // Use RLS-enforced client for user-scoped operations; fall back to service role
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     // Fetch the job to verify ownership and status
-    const { data: existing, error: fetchError } = await serverSupabase
+    const { data: existing, error: fetchError } = await userDb
       .from('jobs')
       .select('id, homeowner_id, status, contractor_id')
       .eq('id', id)
@@ -676,7 +688,7 @@ export async function DELETE(request: NextRequest, context: Params) {
     }
 
     // Block deletion if contract has been accepted by both parties
-    const { data: acceptedContract } = await serverSupabase
+    const { data: acceptedContract } = await userDb
       .from('contracts')
       .select('id')
       .eq('job_id', id)
@@ -692,7 +704,7 @@ export async function DELETE(request: NextRequest, context: Params) {
     // For other statuses, check restrictions
     if (existing.status !== 'posted') {
       // Check if there are accepted bids
-      const { data: acceptedBids } = await serverSupabase
+      const { data: acceptedBids } = await userDb
         .from('bids')
         .select('id')
         .eq('job_id', id)
@@ -715,7 +727,7 @@ export async function DELETE(request: NextRequest, context: Params) {
     }
 
     // Delete the job (cascade will handle related records like bids, attachments, etc.)
-    const { error: deleteError } = await serverSupabase
+    const { error: deleteError } = await userDb
       .from('jobs')
       .delete()
       .eq('id', id);

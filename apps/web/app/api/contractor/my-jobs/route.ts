@@ -55,6 +55,7 @@ function transformJob(job: JobApiResponse) {
     photos: getJobPhotos(job),
     created_at: job.created_at,
     homeowner_id: job.homeowner_id,
+    homeowner: Array.isArray(job.homeowner) ? job.homeowner[0] || null : job.homeowner || null,
     homeowner_name: job.homeowner
       ? Array.isArray(job.homeowner)
         ? `${job.homeowner[0]?.first_name || ''} ${job.homeowner[0]?.last_name || ''}`.trim() || 'Unknown'
@@ -83,6 +84,8 @@ const JOB_SELECT_FIELDS = `
     id,
     first_name,
     last_name,
+    email,
+    phone,
     profile_image_url
   ),
   job_attachments (

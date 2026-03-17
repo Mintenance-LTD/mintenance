@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { theme } from '../../theme';
 
@@ -47,35 +47,24 @@ export const FavoritesScreen: React.FC = () => {
     queryKey: ['favorites', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data: rows, error: err } = await supabase
-        .from('favorites')
-        .select('id, contractor_id, contractor:contractor_id(full_name, trade, rating, review_count, profile_image_url)')
-        .eq('user_id', user.id);
-      if (err) throw new Error(err.message);
-      return (rows || []).map((r: Record<string, unknown>): FavoriteContractor => {
-        const c = r.contractor as Record<string, unknown> | null;
-        return {
-          id: r.id as string,
-          contractor_id: r.contractor_id as string,
-          name: (c?.full_name as string) || 'Unknown',
-          trade: (c?.trade as string) || '',
-          rating: (c?.rating as number) || 0,
-          review_count: (c?.review_count as number) || 0,
-          profile_image_url: c?.profile_image_url as string | undefined,
-        };
-      });
+      const raw = await mobileApiClient.get<unknown>('/api/properties/favorites');
+      const items = Array.isArray(raw) ? raw : (raw as Record<string, unknown>)?.favorites || [];
+      return (items as Record<string, unknown>[]).map((r): FavoriteContractor => ({
+        id: (r.id as string) || '',
+        contractor_id: (r.contractor_id as string) || '',
+        name: (r.name as string) || (r.full_name as string) || 'Unknown',
+        trade: (r.trade as string) || '',
+        rating: (r.rating as number) || 0,
+        review_count: (r.review_count as number) || 0,
+        profile_image_url: r.profile_image_url as string | undefined,
+      }));
     },
     enabled: !!user?.id,
   });
 
   const removeMutation = useMutation({
     mutationFn: async (contractorId: string) => {
-      const { error: err } = await supabase
-        .from('favorites')
-        .delete()
-        .eq('user_id', user?.id || '')
-        .eq('contractor_id', contractorId);
-      if (err) throw new Error(err.message);
+      await mobileApiClient.delete(`/api/properties/favorites?property_id=${contractorId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['favorites'] });

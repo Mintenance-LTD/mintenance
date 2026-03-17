@@ -5,7 +5,6 @@ import MeetingCommunicationPanel from '../../components/MeetingCommunicationPane
 import { MeetingService } from '../../services/MeetingService';
 import { MessagingService } from '../../services/MessagingService';
 
-jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,
   SafeAreaView: ({ children }) => children,

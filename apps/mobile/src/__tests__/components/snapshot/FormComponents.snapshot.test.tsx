@@ -6,7 +6,6 @@ import { Button } from '../../../components/ui/Button/Button';
 import { Checkbox } from '../../../components/ui/Checkbox/Checkbox';
 import { Select } from '../../../components/ui/Select/Select';
 
-jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,
   SafeAreaView: ({ children }) => children,

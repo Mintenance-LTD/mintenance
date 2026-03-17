@@ -71,6 +71,7 @@ export function mapDatabaseToContractorProfile(data: DatabaseContractorProfileRo
     bio: data.bio,
     companyName: data.company_name,
     companyLogo: data.company_logo,
+    businessAddress: data.business_address,
     hourlyRate: data.hourly_rate,
     hourly_rate: data.hourly_rate,
     yearsExperience: data.years_experience,

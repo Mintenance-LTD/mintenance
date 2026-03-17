@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Icon } from '@/components/ui/Icon';
 import { theme } from '@/lib/theme';
 import { logger } from '@mintenance/shared';
@@ -376,14 +377,15 @@ export function IntelligentMatching(props: IntelligentMatchingProps) {
                     fontSize: theme.typography.fontSize.xl,
                     fontWeight: theme.typography.fontWeight.bold,
                     flexShrink: 0,
+                    position: 'relative',
+                    overflow: 'hidden',
                   }}>
                     {contractor.profileImageUrl ? (
-                      <img
+                      <Image
                         src={contractor.profileImageUrl}
                         alt={`${contractor.firstName} ${contractor.lastName}`}
+                        fill
                         style={{
-                          width: '100%',
-                          height: '100%',
                           borderRadius: theme.borderRadius.full,
                           objectFit: 'cover',
                         }}

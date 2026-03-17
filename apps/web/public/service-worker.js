@@ -1,14 +1,13 @@
-import { logger } from '@mintenance/shared';
 /**
  * Service Worker for Mintenance Web App
  * Implements caching strategies for offline support
  */
 
-// Logger utility
+// Logger utility (inline — service workers cannot use ES module imports)
 const logger = {
-  info: (...args) => logger.info('[ServiceWorker]', ...args', [object Object], { service: 'general' }),
-  error: (...args) => logger.error('[ServiceWorker]', ...args', [object Object], { service: 'general' }),
-  warn: (...args) => logger.warn('[ServiceWorker]', ...args', [object Object], { service: 'general' }),
+  info: (...args) => console.info('[ServiceWorker]', ...args),
+  error: (...args) => console.error('[ServiceWorker]', ...args),
+  warn: (...args) => console.warn('[ServiceWorker]', ...args),
 };
 
 const CACHE_VERSION = 'v2';
