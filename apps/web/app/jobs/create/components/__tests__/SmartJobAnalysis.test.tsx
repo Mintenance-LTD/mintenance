@@ -37,6 +37,11 @@ vi.mock('@/components/ui/Icon', () => ({
   Icon: ({ name }: any) => <span data-testid={`icon-${name}`} />
 }));
 
+const mockGetCsrfToken = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/csrf-client', () => ({
+  getCsrfToken: mockGetCsrfToken,
+}));
+
 const mockAnalysisResponse = {
   suggestedCategory: 'plumbing',
   suggestedBudget: { min: 200, max: 400, recommended: 300 },
@@ -62,6 +67,7 @@ describe('SmartJobAnalysis', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
+    mockGetCsrfToken.mockResolvedValue('mock-csrf-token');
   });
 
   afterEach(() => {
@@ -96,7 +102,7 @@ describe('SmartJobAnalysis', () => {
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith('/api/jobs/analyze', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'mock-csrf-token' },
           body: JSON.stringify({
             title: 'Kitchen Repair',
             description: 'Need to fix leaking kitchen sink',
