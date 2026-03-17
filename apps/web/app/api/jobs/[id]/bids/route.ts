@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { BadRequestError, NotFoundError, ForbiddenError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -16,8 +16,11 @@ export const GET = withApiHandler(
       throw new BadRequestError('Job ID is required');
     }
 
+    // Use RLS-enforced client for user-scoped reads; fall back to service role
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     // Verify job exists and belongs to this homeowner
-    const { data: job, error: jobError } = await serverSupabase
+    const { data: job, error: jobError } = await userDb
       .from('jobs')
       .select('id, homeowner_id')
       .eq('id', jobId)
@@ -31,15 +34,19 @@ export const GET = withApiHandler(
       throw new ForbiddenError('Only the job owner can view bids');
     }
 
-    // Fetch bids with contractor profile info
-    const { data: bids, error: bidsError } = await serverSupabase
+    // Apply optional status filter from query params
+    const { searchParams } = new URL(request.url);
+    const statusFilter = searchParams.get('status');
+
+    // Fetch bids with contractor profile and job info
+    let bidsQuery = userDb
       .from('bids')
       .select(`
         id,
         job_id,
         contractor_id,
         amount,
-        message,
+        description,
         status,
         estimated_duration_days,
         materials_included,
@@ -56,10 +63,24 @@ export const GET = withApiHandler(
           bio,
           hourly_rate,
           years_experience
+        ),
+        job:job_id (
+          id,
+          title,
+          category,
+          status,
+          budget
         )
       `)
       .eq('job_id', jobId)
       .order('created_at', { ascending: false });
+
+    // Filter by status if provided (e.g. ?status=pending)
+    if (statusFilter) {
+      bidsQuery = bidsQuery.eq('status', statusFilter);
+    }
+
+    const { data: bids, error: bidsError } = await bidsQuery;
 
     if (bidsError) {
       logger.error('Failed to fetch bids for job', bidsError, {
@@ -100,8 +121,17 @@ export const GET = withApiHandler(
 
     const enrichedBids = (bids ?? []).map((bid: Record<string, unknown>) => {
       const rating = contractorRatings.get(bid.contractor_id as string);
+      const contractor = bid.contractor as Record<string, unknown> | null;
       return {
         ...bid,
+        // Map DB 'description' column to 'message' for client compatibility
+        message: bid.description,
+        // Embed rating data into the contractor object so clients can access contractor.rating
+        contractor: contractor ? {
+          ...contractor,
+          rating: rating?.avgRating ?? null,
+          reviews_count: rating?.reviewCount ?? 0,
+        } : null,
         contractorRating: rating?.avgRating ?? null,
         contractorReviewCount: rating?.reviewCount ?? 0,
       };

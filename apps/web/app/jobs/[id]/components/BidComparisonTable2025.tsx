@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';;
 import { fadeIn, staggerContainer, staggerItem, cardHover } from '@/lib/animations/variants';
 import Link from 'next/link';
+import Image from 'next/image';
 import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
 import { BidSwipeView } from './BidSwipeView';
 
@@ -235,10 +236,12 @@ export function BidComparisonTable2025({
                   {/* Avatar */}
                   <div className="relative flex-shrink-0">
                     {bid.contractor.profile_image_url ? (
-                      <img
+                      <Image
                         src={bid.contractor.profile_image_url}
                         alt={getContractorName(bid)}
-                        className="w-14 h-14 rounded-full object-cover border-2 border-gray-200"
+                        width={56}
+                        height={56}
+                        className="rounded-full object-cover border-2 border-gray-200"
                       />
                     ) : (
                       <div className="w-14 h-14 rounded-full bg-teal-100 flex items-center justify-center border-2 border-gray-200">

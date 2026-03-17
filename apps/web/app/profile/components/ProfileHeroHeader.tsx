@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { User, Mail, Camera, Save, X, Edit, Calendar } from 'lucide-react';
 import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
 
@@ -47,10 +48,12 @@ export function ProfileHeroHeader({
             <div className="relative">
               <div className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-sm border-4 border-white/30 flex items-center justify-center overflow-hidden">
                 {profileImageUrl ? (
-                  <img
+                  <Image
                     src={profileImageUrl}
                     alt={`${firstName} ${lastName}`}
-                    className="w-full h-full object-cover"
+                    fill
+                    sizes="96px"
+                    className="object-cover"
                   />
                 ) : (
                   <User className="w-12 h-12 text-white" />

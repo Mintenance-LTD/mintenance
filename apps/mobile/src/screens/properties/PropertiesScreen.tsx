@@ -45,7 +45,9 @@ const PROPERTY_ICON_COLOR: Record<string, string> = {
 const PropertyCard: React.FC<{
   property: Property;
   onPress: () => void;
-}> = ({ property, onPress }) => {
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
+}> = ({ property, onPress, isFavorite, onToggleFavorite }) => {
   const pType = property.property_type ?? 'other';
   return (
     <TouchableOpacity style={styles.propertyCard} onPress={onPress}>
@@ -61,7 +63,14 @@ const PropertyCard: React.FC<{
             {property.address}
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={20} color={theme.colors.textTertiary} />
+        <TouchableOpacity onPress={onToggleFavorite} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Ionicons
+            name={isFavorite ? 'heart' : 'heart-outline'}
+            size={20}
+            color={isFavorite ? '#EF4444' : theme.colors.textTertiary}
+          />
+        </TouchableOpacity>
+        <Ionicons name="chevron-forward" size={20} color={theme.colors.textTertiary} style={{ marginLeft: 4 }} />
       </View>
       <View style={styles.propertyMeta}>
         <View style={styles.metaItem}>
@@ -94,6 +103,8 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('name');
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
   const { data: properties, isLoading, error, refetch } = useQuery({
     queryKey: ['properties', user?.id],
@@ -112,6 +123,32 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
     placeholderData: (prev: Property[] | undefined) => prev,
   });
 
+  const toggleFavorite = async (propertyId: string) => {
+    const isFav = favoriteIds.has(propertyId);
+    // Optimistic update
+    setFavoriteIds(prev => {
+      const next = new Set(prev);
+      if (isFav) next.delete(propertyId);
+      else next.add(propertyId);
+      return next;
+    });
+    try {
+      if (isFav) {
+        await mobileApiClient.delete(`/api/properties/favorites?property_id=${propertyId}`);
+      } else {
+        await mobileApiClient.post('/api/properties/favorites', { property_id: propertyId });
+      }
+    } catch {
+      // Revert on error
+      setFavoriteIds(prev => {
+        const next = new Set(prev);
+        if (isFav) next.add(propertyId);
+        else next.delete(propertyId);
+        return next;
+      });
+    }
+  };
+
   const handleRefresh = async () => {
     setRefreshing(true);
     await refetch();
@@ -120,18 +157,21 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
 
   const sortedProperties = React.useMemo(() => {
     if (!properties) return [];
-    const sorted = [...properties];
+    let filtered = [...properties];
+    if (showFavoritesOnly) {
+      filtered = filtered.filter(p => favoriteIds.has(p.id));
+    }
     switch (sortBy) {
       case 'name':
-        return sorted.sort((a, b) => (a.property_name || '').localeCompare(b.property_name || ''));
+        return filtered.sort((a, b) => (a.property_name || '').localeCompare(b.property_name || ''));
       case 'date':
-        return sorted.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+        return filtered.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
       case 'type':
-        return sorted.sort((a, b) => (a.property_type || '').localeCompare(b.property_type || ''));
+        return filtered.sort((a, b) => (a.property_type || '').localeCompare(b.property_type || ''));
       default:
-        return sorted;
+        return filtered;
     }
-  }, [properties, sortBy]);
+  }, [properties, sortBy, showFavoritesOnly, favoriteIds]);
 
   if (isLoading) {
     return <LoadingSpinner message="Loading properties..." />;
@@ -155,7 +195,7 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
         }
       />
 
-      {/* Sort options */}
+      {/* Sort & filter options */}
       {properties && properties.length > 1 && (
         <View style={styles.sortRow}>
           {([
@@ -175,6 +215,18 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
               </Text>
             </TouchableOpacity>
           ))}
+          <TouchableOpacity
+            style={[styles.sortChip, showFavoritesOnly && styles.favChipActive]}
+            onPress={() => setShowFavoritesOnly(!showFavoritesOnly)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: showFavoritesOnly }}
+          >
+            <Ionicons
+              name={showFavoritesOnly ? 'heart' : 'heart-outline'}
+              size={14}
+              color={showFavoritesOnly ? '#EF4444' : theme.colors.textSecondary}
+            />
+          </TouchableOpacity>
         </View>
       )}
 
@@ -203,6 +255,8 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
             <PropertyCard
               property={item}
               onPress={() => navigation.navigate('PropertyDetail', { propertyId: item.id })}
+              isFavorite={favoriteIds.has(item.id)}
+              onToggleFavorite={() => toggleFavorite(item.id)}
             />
           )}
           refreshControl={
@@ -336,6 +390,9 @@ const styles = StyleSheet.create({
   },
   sortChipActive: {
     backgroundColor: theme.colors.primary,
+  },
+  favChipActive: {
+    backgroundColor: '#FEE2E2',
   },
   sortChipText: {
     fontSize: 13,

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';;
+import Image from 'next/image';
 import { fadeIn, staggerContainer, staggerItem } from '@/lib/animations/variants';
 import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
 
@@ -211,10 +212,12 @@ export function ConversationList2025({
                       {/* Avatar */}
                       <div className="relative flex-shrink-0">
                         {otherParticipant?.profile_image_url ? (
-                          <img
+                          <Image
                             src={otherParticipant.profile_image_url}
                             alt={otherParticipant.name}
-                            className="w-12 h-12 rounded-full object-cover"
+                            width={48}
+                            height={48}
+                            className="rounded-full object-cover"
                           />
                         ) : (
                           <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center">

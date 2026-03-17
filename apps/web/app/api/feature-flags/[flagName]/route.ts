@@ -29,7 +29,5 @@ export const GET = withApiHandler({ auth: false }, async (_request, { params }) 
   return NextResponse.json({
     flagName,
     enabled,
-    userId: user?.id,
-    userRole: user?.role,
   });
 });

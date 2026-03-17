@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -7,12 +7,13 @@ import { NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 
 export const POST = withApiHandler(
   { roles: ['contractor'] },
-  async (_request, { user, params }) => {
+  async (request, { user, params }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
     const jobId = params.id;
     const bidId = params.bidId;
 
-    // Verify the bid exists, belongs to this contractor, and is still pending
-    const { data: bid, error: bidError } = await serverSupabase
+    // Verify the bid exists, belongs to this contractor, and is still pending (user-scoped read)
+    const { data: bid, error: bidError } = await userDb
       .from('bids')
       .select('id, job_id, contractor_id, status')
       .eq('id', bidId)
@@ -31,8 +32,8 @@ export const POST = withApiHandler(
       throw new BadRequestError(`Cannot withdraw a bid that is already ${bid.status}`);
     }
 
-    // Withdraw the bid
-    const { error: withdrawError } = await serverSupabase
+    // Withdraw the bid (contractor's own bid)
+    const { error: withdrawError } = await userDb
       .from('bids')
       .update({ status: 'withdrawn' })
       .eq('id', bidId);

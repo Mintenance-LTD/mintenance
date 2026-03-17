@@ -30,7 +30,7 @@ class LocalDatabaseService {
     if (!this.db) throw new Error('Database not initialized');
     const tables = [
       `CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, first_name TEXT, last_name TEXT, role TEXT NOT NULL, phone TEXT, profile_image_url TEXT, bio TEXT, rating REAL DEFAULT 0, total_jobs_completed INTEGER DEFAULT 0, is_available BOOLEAN DEFAULT TRUE, latitude REAL, longitude REAL, address TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, synced_at TEXT, is_dirty BOOLEAN DEFAULT FALSE)`,
-      `CREATE TABLE IF NOT EXISTS jobs (id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT NOT NULL, location TEXT NOT NULL, homeowner_id TEXT NOT NULL, contractor_id TEXT, status TEXT NOT NULL DEFAULT 'posted', budget REAL NOT NULL, category TEXT, subcategory TEXT, priority TEXT DEFAULT 'medium', photos TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, synced_at TEXT, is_dirty BOOLEAN DEFAULT FALSE)`,
+      `CREATE TABLE IF NOT EXISTS jobs (id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT, location TEXT, homeowner_id TEXT, contractor_id TEXT, status TEXT NOT NULL DEFAULT 'posted', budget REAL, category TEXT, subcategory TEXT, priority TEXT DEFAULT 'medium', photos TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, synced_at TEXT, is_dirty BOOLEAN DEFAULT FALSE)`,
       `CREATE TABLE IF NOT EXISTS messages (id TEXT PRIMARY KEY, job_id TEXT, sender_id TEXT NOT NULL, receiver_id TEXT, message_text TEXT, message_type TEXT DEFAULT 'text', attachment_url TEXT, read BOOLEAN DEFAULT FALSE, created_at TEXT NOT NULL, synced_at TEXT, is_dirty BOOLEAN DEFAULT FALSE)`,
       `CREATE TABLE IF NOT EXISTS bids (id TEXT PRIMARY KEY, job_id TEXT NOT NULL, contractor_id TEXT NOT NULL, amount REAL NOT NULL, description TEXT NOT NULL, status TEXT DEFAULT 'pending', created_at TEXT NOT NULL, updated_at TEXT, synced_at TEXT, is_dirty BOOLEAN DEFAULT FALSE)`,
       `CREATE TABLE IF NOT EXISTS sync_metadata (table_name TEXT PRIMARY KEY, last_sync_timestamp INTEGER NOT NULL DEFAULT 0, record_count INTEGER DEFAULT 0, is_dirty BOOLEAN DEFAULT FALSE)`,
@@ -74,6 +74,25 @@ class LocalDatabaseService {
         await this.db.execAsync('DROP TABLE IF EXISTS messages_backup').catch(() => {});
       }
     }
+    // Migration: make jobs columns nullable (homeowner_id, description, location, budget)
+    const jobsInfo = await this.db.getAllAsync<{ name: string; notnull: number }>('PRAGMA table_info(jobs)');
+    const homeownerCol = jobsInfo.find((col) => col.name === 'homeowner_id');
+    if (homeownerCol?.notnull === 1) {
+      try {
+        await this.db.execAsync('ALTER TABLE jobs RENAME TO jobs_backup');
+        await this.db.execAsync(`CREATE TABLE jobs (id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT, location TEXT, homeowner_id TEXT, contractor_id TEXT, status TEXT NOT NULL DEFAULT 'posted', budget REAL, category TEXT, subcategory TEXT, priority TEXT DEFAULT 'medium', photos TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, synced_at TEXT, is_dirty BOOLEAN DEFAULT FALSE)`);
+        await this.db.execAsync('INSERT OR IGNORE INTO jobs SELECT * FROM jobs_backup');
+        await this.db.execAsync('DROP TABLE IF EXISTS jobs_backup');
+        await this.db.execAsync('CREATE INDEX IF NOT EXISTS idx_jobs_homeowner ON jobs(homeowner_id)');
+        await this.db.execAsync('CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)');
+        await this.db.execAsync("CREATE INDEX IF NOT EXISTS idx_dirty_jobs ON jobs(is_dirty) WHERE is_dirty = TRUE");
+        logger.info('Database migration applied: jobs columns made nullable');
+      } catch (error) {
+        logger.error('Database migration failed (jobs):', error);
+        await this.db.execAsync('DROP TABLE IF EXISTS jobs_backup').catch(() => {});
+      }
+    }
+
     logger.info('Database migrations completed');
   }
 

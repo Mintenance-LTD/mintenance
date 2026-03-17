@@ -115,7 +115,9 @@ const nextConfig = {
       'recharts',
       'date-fns',
       'react-hook-form',
-      '@tanstack/react-query'
+      '@tanstack/react-query',
+      '@tremor/react',
+      'framer-motion',
     ],
   },
 

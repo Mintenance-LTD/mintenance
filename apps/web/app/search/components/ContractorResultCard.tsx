@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Card } from '@/components/ui';
 import { theme } from '@/lib/theme';
 import type { ContractorProfile, ContractorSkill } from '@mintenance/types';
@@ -34,15 +35,16 @@ export function ContractorResultCard({ contractor, onClick }: ContractorResultCa
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: theme.typography.fontSize['2xl'],
-          flexShrink: 0
+          flexShrink: 0,
+          position: 'relative',
+          overflow: 'hidden'
         }}>
           {contractor.profile_image_url ? (
-            <img
+            <Image
               src={contractor.profile_image_url}
               alt={contractor.first_name}
+              fill
               style={{
-                width: '100%',
-                height: '100%',
                 borderRadius: '50%',
                 objectFit: 'cover'
               }}

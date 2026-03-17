@@ -129,12 +129,16 @@ export class AuthManager {
         // Return fallback user from auth metadata
       }
 
+      // SECURITY: Fallback MUST NOT read role from user_metadata (client-writable).
+      // A malicious user could set role: 'admin' via supabase.auth.updateUser().
+      // Default to 'homeowner' -- the profile trigger should always create the row,
+      // so this fallback should rarely execute.
       const user = userProfile || {
         id: authData.user.id,
         email: authData.user.email || email,
         first_name: authData.user.user_metadata?.first_name || '',
         last_name: authData.user.user_metadata?.last_name || '',
-        role: authData.user.user_metadata?.role || 'homeowner',
+        role: 'homeowner' as const,
         created_at: authData.user.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString(),
         verified: !!authData.user.email_confirmed_at,

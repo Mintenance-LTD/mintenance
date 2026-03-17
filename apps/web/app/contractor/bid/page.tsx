@@ -9,6 +9,7 @@ import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { Briefcase, TrendingUp, Clock, PoundSterling, AlertCircle, ArrowRight, MapPin, User } from 'lucide-react';
+import Image from 'next/image';
 import { logger } from '@mintenance/shared';
 import { DailyRundownBanner } from '@/app/contractor/components/DailyRundownBanner';
 
@@ -199,10 +200,12 @@ export default function ContractorBidsOverviewPage() {
                   <div className="flex-1">
                     <div className="flex items-start gap-4">
                       {bid.jobs?.homeowner?.profile_image_url ? (
-                        <img
+                        <Image
                           src={bid.jobs.homeowner.profile_image_url}
                           alt={`${bid.jobs.homeowner.first_name} ${bid.jobs.homeowner.last_name}`}
-                          className="w-12 h-12 rounded-full object-cover"
+                          width={48}
+                          height={48}
+                          className="rounded-full object-cover"
                         />
                       ) : (
                         <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">

@@ -16,7 +16,6 @@ import { Alert } from 'react-native';
 import { BookingCard } from '../BookingCard';
 import type { Booking } from '../../viewmodels/BookingViewModel';
 
-jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,
   SafeAreaView: ({ children }) => children,

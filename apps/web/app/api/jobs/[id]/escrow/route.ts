@@ -1,14 +1,17 @@
 import { NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 
 export const GET = withApiHandler(
   { csrf: false },
-  async (_request, { user, params }) => {
+  async (request, { user, params }) => {
+    // Use RLS-enforced client for user-scoped reads; fall back to service role
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     const jobId = params.id;
 
-    const { data: job, error: jobError } = await serverSupabase
+    const { data: job, error: jobError } = await userDb
       .from('jobs')
       .select('id, homeowner_id, contractor_id')
       .eq('id', jobId)
@@ -18,11 +21,12 @@ export const GET = withApiHandler(
       throw new NotFoundError('Job not found');
     }
 
-    if (job.homeowner_id !== user.id && job.contractor_id !== user.id) {
+    // Allow homeowner, assigned contractor, or admin
+    if (job.homeowner_id !== user.id && job.contractor_id !== user.id && user.role !== 'admin') {
       throw new ForbiddenError('You do not have permission to access escrow details for this job');
     }
 
-    const { data: escrow, error: escrowError } = await serverSupabase
+    const { data: escrow, error: escrowError } = await userDb
       .from('escrow_transactions')
       .select('id, job_id, status, amount, payment_intent_id, created_at, updated_at')
       .eq('job_id', jobId)
@@ -30,8 +34,9 @@ export const GET = withApiHandler(
       .limit(1)
       .maybeSingle();
 
+    // Return null escrow instead of 404 — job may not have escrow yet
     if (escrowError || !escrow) {
-      throw new NotFoundError('Escrow transaction not found for this job');
+      return NextResponse.json({ escrow: null });
     }
 
     return NextResponse.json({

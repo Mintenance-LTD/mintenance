@@ -1,0 +1,435 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip pre-deploy tests (emergency only)'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: staging-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20.19.4'
+
+jobs:
+  # ============================================================
+  # PRE-DEPLOY QUALITY GATE
+  # ============================================================
+  quality-gate:
+    name: Pre-Deploy Quality Gate
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip_tests }}
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+        timeout-minutes: 10
+
+      - name: Build shared packages
+        run: npm run build:packages
+
+      - name: TypeScript compilation check
+        run: npm run type-check:web
+
+      - name: Lint web
+        run: npm run lint:web
+
+      - name: Run web tests
+        run: npm run test:web -- run
+        timeout-minutes: 15
+
+      - name: Security audit
+        run: npm audit --audit-level high
+        continue-on-error: true
+
+  # ============================================================
+  # DATABASE MIGRATION (STAGING)
+  # ============================================================
+  migrate-staging-db:
+    name: Migrate Staging Database
+    runs-on: ubuntu-latest
+    needs: quality-gate
+    if: always() && (needs.quality-gate.result == 'success' || needs.quality-gate.result == 'skipped')
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Supabase CLI
+        run: npm install -g supabase
+
+      - name: Push migrations to staging Supabase
+        run: npx supabase db push --db-url "${{ secrets.STAGING_SUPABASE_DB_URL }}"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Verify schema sync
+        run: |
+          echo "Verifying staging database schema is in sync..."
+          npx supabase db diff --db-url "${{ secrets.STAGING_SUPABASE_DB_URL }}" --schema public 2>&1 | tee /tmp/schema-diff.txt
+          if [ -s /tmp/schema-diff.txt ] && grep -q "CREATE\|ALTER\|DROP" /tmp/schema-diff.txt; then
+            echo "::warning::Schema drift detected on staging after migration push."
+            cat /tmp/schema-diff.txt
+          else
+            echo "Staging schema is in sync."
+          fi
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+  # ============================================================
+  # DEPLOY WEB TO VERCEL (STAGING)
+  # ============================================================
+  deploy-web-staging:
+    name: Deploy Web to Vercel (Staging)
+    runs-on: ubuntu-latest
+    needs: migrate-staging-db
+    timeout-minutes: 15
+    outputs:
+      deployment-url: ${{ steps.deploy.outputs.deployment-url }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+        timeout-minutes: 10
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Pull Vercel environment (staging)
+        run: |
+          cd apps/web
+          vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Build for staging
+        run: |
+          cd apps/web
+          vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STAGING_STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STAGING_STRIPE_WEBHOOK_SECRET }}
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.STAGING_STRIPE_PUBLISHABLE_KEY }}
+          JWT_SECRET: ${{ secrets.STAGING_JWT_SECRET }}
+          CRON_SECRET: ${{ secrets.STAGING_CRON_SECRET }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.STAGING_URL }}
+          UPSTASH_REDIS_REST_URL: ${{ secrets.STAGING_UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.STAGING_UPSTASH_REDIS_REST_TOKEN }}
+
+      - name: Deploy to Vercel (staging)
+        id: deploy
+        run: |
+          cd apps/web
+          DEPLOY_OUTPUT=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }} 2>&1)
+          echo "$DEPLOY_OUTPUT"
+          DEPLOYMENT_URL=$(echo "$DEPLOY_OUTPUT" | grep -oP 'https://[^\s]+\.vercel\.app' | head -1)
+          if [ -z "$DEPLOYMENT_URL" ]; then
+            DEPLOYMENT_URL="${{ secrets.STAGING_URL }}"
+          fi
+          echo "deployment-url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "Staging deployed to: $DEPLOYMENT_URL"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+  # ============================================================
+  # SMOKE TESTS
+  # ============================================================
+  smoke-tests:
+    name: Post-Deploy Smoke Tests
+    runs-on: ubuntu-latest
+    needs: deploy-web-staging
+    timeout-minutes: 5
+
+    env:
+      STAGING_URL: ${{ needs.deploy-web-staging.outputs.deployment-url || secrets.STAGING_URL }}
+
+    steps:
+      - name: Wait for deployment to stabilise
+        run: sleep 30
+
+      - name: Smoke test - Version endpoint
+        run: |
+          echo "Testing GET $STAGING_URL/api/version ..."
+          RESPONSE=$(curl -sf "$STAGING_URL/api/version" 2>&1) || {
+            echo "::error::Version endpoint failed"
+            exit 1
+          }
+          echo "Response: $RESPONSE"
+          echo "$RESPONSE" | python3 -m json.tool
+          echo "Version endpoint: PASS"
+
+      - name: Smoke test - Health endpoint
+        run: |
+          echo "Testing GET $STAGING_URL/api/health ..."
+          HTTP_CODE=$(curl -s -o /tmp/health.json -w "%{http_code}" "$STAGING_URL/api/health")
+          echo "HTTP status: $HTTP_CODE"
+          cat /tmp/health.json | python3 -m json.tool 2>/dev/null || cat /tmp/health.json
+
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "Health endpoint: PASS (healthy)"
+          elif [ "$HTTP_CODE" = "503" ]; then
+            echo "::error::Health check returned 503 - service unhealthy"
+            exit 1
+          else
+            echo "::warning::Health check returned HTTP $HTTP_CODE - non-critical"
+          fi
+
+      - name: Smoke test - Platform stats endpoint
+        run: |
+          echo "Testing GET $STAGING_URL/api/stats/platform ..."
+          HTTP_CODE=$(curl -s -o /tmp/stats.json -w "%{http_code}" "$STAGING_URL/api/stats/platform")
+          echo "HTTP status: $HTTP_CODE"
+          cat /tmp/stats.json | python3 -m json.tool 2>/dev/null || cat /tmp/stats.json
+
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "Platform stats endpoint: PASS"
+          else
+            echo "::warning::Platform stats returned HTTP $HTTP_CODE"
+          fi
+
+      - name: Smoke test - Auth guard (should return 401)
+        run: |
+          echo "Testing GET $STAGING_URL/api/jobs (unauthenticated, expect 401) ..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$STAGING_URL/api/jobs")
+          echo "HTTP status: $HTTP_CODE"
+
+          if [ "$HTTP_CODE" = "401" ]; then
+            echo "Auth guard: PASS (correctly returned 401)"
+          elif [ "$HTTP_CODE" = "307" ] || [ "$HTTP_CODE" = "302" ]; then
+            echo "Auth guard: PASS (redirected to login)"
+          else
+            echo "::warning::Auth guard returned unexpected HTTP $HTTP_CODE (expected 401 or redirect)"
+          fi
+
+      - name: Smoke test - Static page load
+        run: |
+          echo "Testing GET $STAGING_URL (landing page) ..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -L "$STAGING_URL")
+          echo "HTTP status: $HTTP_CODE"
+
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "Landing page: PASS"
+          else
+            echo "::error::Landing page returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+      - name: Smoke test summary
+        if: always()
+        run: |
+          echo "## Staging Smoke Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployment URL:** $STAGING_URL" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Endpoint | Expected | Result |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| \`/api/version\` | 200 + JSON | Tested |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`/api/health\` | 200 (healthy) | Tested |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`/api/stats/platform\` | 200 + JSON | Tested |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`/api/jobs\` (no auth) | 401 | Tested |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`/\` (landing) | 200 | Tested |" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================
+  # BUILD MOBILE STAGING (EAS)
+  # ============================================================
+  build-mobile-staging:
+    name: Build Mobile (Staging)
+    runs-on: ubuntu-latest
+    needs: quality-gate
+    if: always() && (needs.quality-gate.result == 'success' || needs.quality-gate.result == 'skipped')
+    timeout-minutes: 10
+    env:
+      HAS_EXPO: ${{ secrets.EXPO_TOKEN != '' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Setup Expo
+        if: ${{ env.HAS_EXPO == 'true' }}
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+        timeout-minutes: 10
+
+      - name: Build shared packages
+        run: npm run build:packages
+
+      - name: Trigger EAS staging build (Android)
+        if: ${{ env.HAS_EXPO == 'true' }}
+        working-directory: apps/mobile
+        run: eas build --platform android --profile staging --non-interactive --no-wait
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.STAGING_STRIPE_PUBLISHABLE_KEY }}
+          EXPO_PUBLIC_ENVIRONMENT: staging
+          EXPO_PUBLIC_API_BASE_URL: ${{ secrets.STAGING_URL }}/api
+
+      - name: Mobile staging build status
+        run: |
+          echo "## Mobile Staging Build" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ env.HAS_EXPO }}" = "true" ]; then
+            echo "Staging Android build submitted to EAS." >> $GITHUB_STEP_SUMMARY
+            echo "[View build status on Expo Dashboard](https://expo.dev)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "EXPO_TOKEN not configured. Skipped mobile build." >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ============================================================
+  # NOTIFY
+  # ============================================================
+  notify-deployment:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    needs: [deploy-web-staging, smoke-tests, build-mobile-staging]
+    if: always()
+    env:
+      HAS_SLACK: ${{ secrets.SLACK_WEBHOOK != '' }}
+
+    steps:
+      - name: Determine overall status
+        id: status
+        run: |
+          WEB="${{ needs.deploy-web-staging.result }}"
+          SMOKE="${{ needs.smoke-tests.result }}"
+          MOBILE="${{ needs.build-mobile-staging.result }}"
+
+          if [ "$WEB" = "success" ] && [ "$SMOKE" = "success" ]; then
+            echo "overall=success" >> $GITHUB_OUTPUT
+            echo "emoji=white_check_mark" >> $GITHUB_OUTPUT
+          elif [ "$WEB" = "failure" ] || [ "$SMOKE" = "failure" ]; then
+            echo "overall=failure" >> $GITHUB_OUTPUT
+            echo "emoji=x" >> $GITHUB_OUTPUT
+          else
+            echo "overall=warning" >> $GITHUB_OUTPUT
+            echo "emoji=warning" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Post to Slack
+        if: ${{ env.HAS_SLACK == 'true' }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ steps.status.outputs.overall }}
+          channel: '#mintenance-deployments'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          fields: repo,message,commit,author,ref
+          text: |
+            Staging Deployment: ${{ steps.status.outputs.overall }}
+            URL: ${{ needs.deploy-web-staging.outputs.deployment-url || secrets.STAGING_URL }}
+            Web: ${{ needs.deploy-web-staging.result }}
+            Smoke Tests: ${{ needs.smoke-tests.result }}
+            Mobile Build: ${{ needs.build-mobile-staging.result }}
+
+      - name: Post deployment summary
+        if: always()
+        run: |
+          STAGING_URL="${{ needs.deploy-web-staging.outputs.deployment-url || secrets.STAGING_URL }}"
+          echo "## Staging Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Web Deploy | ${{ needs.deploy-web-staging.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Smoke Tests | ${{ needs.smoke-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Mobile Build | ${{ needs.build-mobile-staging.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Staging URL:** $STAGING_URL" >> $GITHUB_STEP_SUMMARY
+
+      - name: Comment on associated PR
+        if: github.event_name == 'push'
+        uses: actions/github-script@v8
+        continue-on-error: true
+        with:
+          script: |
+            // Find PRs associated with the commit
+            const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+            });
+
+            const stagingUrl = '${{ needs.deploy-web-staging.outputs.deployment-url }}' || '${{ secrets.STAGING_URL }}';
+            const webResult = '${{ needs.deploy-web-staging.result }}';
+            const smokeResult = '${{ needs.smoke-tests.result }}';
+            const mobileResult = '${{ needs.build-mobile-staging.result }}';
+
+            const statusIcon = (s) => s === 'success' ? 'PASS' : s === 'skipped' ? 'SKIP' : 'FAIL';
+
+            const body = `## Staging Deployment
+
+            | Component | Status |
+            |-----------|--------|
+            | Web Deploy | ${statusIcon(webResult)} |
+            | Smoke Tests | ${statusIcon(smokeResult)} |
+            | Mobile Build | ${statusIcon(mobileResult)} |
+
+            **URL:** ${stagingUrl}
+
+            _Deployed from \`develop\` at ${context.sha.substring(0, 7)}_`;
+
+            for (const pr of prs) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: body,
+              });
+            }

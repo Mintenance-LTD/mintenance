@@ -242,9 +242,9 @@ export function JobDetailsProfessional({
                     <Home className="w-6 h-6 text-teal-600" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">
+                    <h3 className="font-semibold text-gray-900 mb-1">
                       {property.property_name}
-                    </h4>
+                    </h3>
                     <p className="text-gray-600">
                       {property.address ? cleanAddress(property.address) : 'Address not available'}
                     </p>

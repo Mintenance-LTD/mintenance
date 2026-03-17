@@ -222,7 +222,7 @@ export default function LoginPage() {
           <AuthCard>
             {/* Header */}
             <div className="mb-8">
-              <h2 className="text-3xl sm:text-4xl font-bold text-[#111827] mb-3 tracking-tight">
+              <h2 id="login-heading" className="text-3xl sm:text-4xl font-bold text-[#111827] mb-3 tracking-tight">
                 Sign in
               </h2>
               <p className="text-base text-[#6B7280]">
@@ -235,7 +235,7 @@ export default function LoginPage() {
 
             {/* Success Alert */}
             {submitStatus === 'success' && (
-              <Alert className="mb-6 border-teal-500 bg-teal-50">
+              <Alert className="mb-6 border-teal-500 bg-teal-50" role="status">
                 <CheckCircle2 className="h-4 w-4 text-teal-600" />
                 <AlertTitle className="text-teal-800">Login Successful!</AlertTitle>
                 <AlertDescription className="text-teal-700">
@@ -246,7 +246,7 @@ export default function LoginPage() {
 
             {/* Error Alert */}
             {submitStatus === 'error' && errorMessage && (
-              <Alert variant="destructive" className="mb-6">
+              <Alert variant="destructive" className="mb-6" role="alert">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Login Failed</AlertTitle>
                 <AlertDescription>
@@ -269,7 +269,7 @@ export default function LoginPage() {
               </Alert>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" aria-labelledby="login-heading">
               {/* Email Input */}
               <AuthInput
                 label="Email address"

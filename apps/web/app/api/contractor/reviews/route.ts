@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { InternalServerError } from '@/lib/errors/api-error';
@@ -9,8 +9,11 @@ import { validateRequest } from '@/lib/validation/validator';
 // GET: Fetch all reviews where the contractor is the reviewee
 export const GET = withApiHandler(
   { roles: ['contractor'], csrf: false },
-  async (_request, { user }) => {
-    const { data: reviews, error } = await serverSupabase
+  async (request, { user }) => {
+    // Use RLS-enforced client for user-scoped reads; fall back to service role
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
+    const { data: reviews, error } = await userDb
       .from('reviews')
       .select(`
         id,
@@ -78,13 +81,16 @@ const responseSchema = z.object({
 export const POST = withApiHandler(
   { roles: ['contractor'] },
   async (request: NextRequest, { user }) => {
+    // Use RLS-enforced client for user-scoped operations; fall back to service role
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     const validation = await validateRequest(request, responseSchema);
     if (validation instanceof NextResponse) return validation;
 
     const { reviewId, response } = validation.data;
 
     // Verify this review belongs to the contractor
-    const { data: review, error: fetchError } = await serverSupabase
+    const { data: review, error: fetchError } = await userDb
       .from('reviews')
       .select('id, reviewee_id, response')
       .eq('id', reviewId)
@@ -102,7 +108,7 @@ export const POST = withApiHandler(
       return NextResponse.json({ error: 'Already responded to this review' }, { status: 400 });
     }
 
-    const { error: updateError } = await serverSupabase
+    const { error: updateError } = await userDb
       .from('reviews')
       .update({ response, updated_at: new Date().toISOString() })
       .eq('id', reviewId);

@@ -227,8 +227,8 @@ export function HomeownerDashboardWithSearch({ data }: HomeownerDashboardWithSea
                           <span className={`
                             px-2 py-1 text-xs font-medium rounded-full
                             ${job.status === 'in_progress' ? 'bg-blue-100 text-blue-700' : ''}
-                            ${job.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : ''}
-                            ${job.status === 'completed' ? 'bg-green-100 text-green-700' : ''}
+                            ${job.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : ''}
+                            ${job.status === 'completed' ? 'bg-green-100 text-green-800' : ''}
                           `}>
                             {job.status.replace('_', ' ')}
                           </span>

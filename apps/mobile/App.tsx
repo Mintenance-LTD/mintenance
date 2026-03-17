@@ -15,6 +15,7 @@ import QueryProvider from './src/providers/QueryProvider';
 import { AnimatedSplash } from './src/components/AnimatedSplash';
 import { ThemeProvider } from './src/design-system/theme';
 import { HapticService } from './src/utils/haptics';
+import { BackgroundSyncService } from './src/services/BackgroundSyncService';
 
 // ============================================================================
 // SPLASH SCREEN - prevent auto-hide so we control when it dismisses
@@ -81,6 +82,8 @@ export default function App(): React.JSX.Element {
           logger.warn('Custom fonts not available, using system fonts', { service: 'app' });
         });
         await HapticService.initialize();
+        // Register background sync for offline queue processing
+        await BackgroundSyncService.register();
       } catch (error) {
         logger.error('Initialization error', error, { service: 'app' });
       } finally {

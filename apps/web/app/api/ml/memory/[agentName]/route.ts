@@ -41,7 +41,7 @@ export const GET = withApiHandler({ auth: false, rateLimit: { maxRequests: 30 } 
  * POST /api/ml/memory/[agentName]
  * Trigger memory update for agent
  */
-export const POST = withApiHandler({ auth: false, rateLimit: { maxRequests: 30 } }, async (request, { params }) => {
+export const POST = withApiHandler({ roles: ['admin'], rateLimit: { maxRequests: 30 } }, async (request, { params }) => {
   const agentName = params.agentName as string;
   const body = await request.json();
   const parsed = memoryUpdateSchema.safeParse(body);

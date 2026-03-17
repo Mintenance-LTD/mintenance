@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { InternalServerError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -21,11 +21,13 @@ const createMeetingSchema = z.object({
 export const POST = withApiHandler(
   { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
   async (request, { user }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     const validation = await validateRequest(request, createMeetingSchema);
     if (validation instanceof NextResponse) return validation;
     const payload = validation.data;
 
-    const { data: meeting, error } = await serverSupabase
+    const { data: meeting, error } = await userDb
       .from('contractor_meetings')
       .insert({
         contractor_id: user.id,

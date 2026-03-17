@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { StatusBadge } from '@/components/ui/figma';
 import { Button } from '@/components/ui/Button';
 import { Eye } from 'lucide-react';
@@ -66,10 +67,12 @@ export function JobTableRow(props: JobTableRowProps) {
         >
           {/* Avatar */}
           {job.homeowner?.profile_image_url ? (
-            <img
+            <Image
               src={job.homeowner.profile_image_url}
               alt={homeownerName}
-              className="w-10 h-10 rounded-full object-cover"
+              width={40}
+              height={40}
+              className="rounded-full object-cover"
             />
           ) : (
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-xs font-semibold text-blue-700">

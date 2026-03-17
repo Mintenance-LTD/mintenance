@@ -48,5 +48,12 @@ export const GET = withApiHandler({ auth: false, rateLimit: false }, async (requ
 
   logger.debug('Session status checked', { service: 'session-status', userId: user.id, timeRemainingMinutes: Math.floor(timeRemainingMs / (60 * 1000)), timeoutType, warningLevel: warnings.shouldWarnCritical ? 'critical' : warnings.shouldWarnSoon ? 'warning' : 'normal' });
 
-  return NextResponse.json({ authenticated: true, userId: user.id, sessionStart, lastActivity, timeRemainingMs, timeRemainingMinutes: Math.floor(timeRemainingMs / (60 * 1000)), timeRemainingSeconds: Math.floor(timeRemainingMs / 1000), expiresAt, timeoutType, warnings, sessionAgeHours: Math.floor((now - sessionStart) / (60 * 60 * 1000)), idleMinutes: Math.floor((now - lastActivity) / (60 * 1000)) });
+  return NextResponse.json(
+    { authenticated: true, userId: user.id, sessionStart, lastActivity, timeRemainingMs, timeRemainingMinutes: Math.floor(timeRemainingMs / (60 * 1000)), timeRemainingSeconds: Math.floor(timeRemainingMs / 1000), expiresAt, timeoutType, warnings, sessionAgeHours: Math.floor((now - sessionStart) / (60 * 60 * 1000)), idleMinutes: Math.floor((now - lastActivity) / (60 * 1000)) },
+    {
+      headers: {
+        'Cache-Control': 'private, max-age=120, must-revalidate',
+      },
+    },
+  );
 });

@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createAnonClient } from '@/lib/api/supabaseServer';
 import { checkPasswordResetRateLimit } from '@/lib/rate-limiter';
 import { logger } from '@mintenance/shared';
 import { isSupabaseConfigured } from '@/lib/supabase';
-import { env } from '@/lib/env';
 import { BadRequestError, RateLimitError, InternalServerError } from '@/lib/errors/api-error';
 import { PasswordValidator, checkPasswordBreach } from '@mintenance/auth';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -93,17 +92,9 @@ export const POST = withApiHandler(
       );
     }
 
-    // Initialize Supabase client using validated environment variables
-    // NOTE: Uses its own client (not serverSupabase) for token-based session
-    const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (!supabaseKey) {
-      logger.error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY', undefined, { service: 'auth' });
-      throw new InternalServerError('Service configuration error. Please contact support.');
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Initialize anon-key Supabase client for token-based session
+    // NOTE: Uses anon client (not serverSupabase) because we need auth.setSession()
+    const supabase = createAnonClient();
 
     // Set the session using the access token
     const { error: sessionError } = await supabase.auth.setSession({

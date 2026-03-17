@@ -3,7 +3,6 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { useOptimizedRenderItem } from '../OptimizedFlatList';
 
-jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,
   SafeAreaView: ({ children }) => children,

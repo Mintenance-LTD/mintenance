@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, use, Suspense, useCallback } from '
 import { useRouter, useSearchParams } from 'next/navigation';
 import { fetchCurrentUser } from '@/lib/auth-client';
 import { theme } from '@/lib/theme';
+import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
 import { MessageBubble } from '@/components/messaging/MessageBubble';
 import { MessageInput } from '@/components/messaging/MessageInput';
@@ -415,14 +416,12 @@ function ChatContent({ params }: ChatPageProps) {
               }}
             >
               {homeownerProfile?.profile_image_url ? (
-                <img
+                <Image
                   src={homeownerProfile.profile_image_url}
                   alt={homeownerProfile?.name || otherUserName || 'Homeowner'}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                  }}
+                  fill
+                  sizes="40px"
+                  style={{ objectFit: 'cover' }}
                 />
               ) : (
                 <span style={{ color: 'white', fontSize: theme.typography.fontSize.lg, fontWeight: theme.typography.fontWeight.bold }}>

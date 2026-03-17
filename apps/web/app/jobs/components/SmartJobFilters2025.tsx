@@ -120,7 +120,9 @@ export function SmartJobFilters2025({ onFilterChange, initialFilters }: SmartJob
             )}
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-expanded={isExpanded}
+              aria-label={isExpanded ? 'Collapse filters' : 'Expand filters'}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
             >
               {prefersReducedMotion ? (
                 <svg
@@ -148,12 +150,13 @@ export function SmartJobFilters2025({ onFilterChange, initialFilters }: SmartJob
         </div>
 
         {/* Search Bar */}
-        <div className="mt-4 relative">
+        <div className="mt-4 relative" role="search">
           <input
-            type="text"
+            type="search"
             placeholder="Search jobs by title or description..."
             value={filters.searchQuery || ''}
             onChange={(e) => updateFilters({ searchQuery: e.target.value || undefined })}
+            aria-label="Search jobs by title or description"
             className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
           />
           <svg
@@ -178,12 +181,14 @@ export function SmartJobFilters2025({ onFilterChange, initialFilters }: SmartJob
             className="border-t border-gray-200"
           >
             {/* Tabs */}
-            <div className="flex items-center gap-2 p-4 bg-gray-50 border-b border-gray-200 overflow-x-auto">
+            <div className="flex items-center gap-2 p-4 bg-gray-50 border-b border-gray-200 overflow-x-auto" role="tablist" aria-label="Filter categories">
               {(['status', 'category', 'budget', 'urgency'] as const).map((tab) => (
                 <button
                   key={tab}
+                  role="tab"
+                  aria-selected={activeTab === tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${
+                  className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${
                     activeTab === tab
                       ? 'bg-teal-600 text-white shadow-sm'
                       : 'bg-white text-gray-700 hover:bg-gray-100'
@@ -195,7 +200,7 @@ export function SmartJobFilters2025({ onFilterChange, initialFilters }: SmartJob
             </div>
 
             {/* Filter Content */}
-            <div className="p-6">
+            <div className="p-6" role="tabpanel" aria-label={`${activeTab} filters`}>
               <AnimatePresence mode="wait">
                 <MotionDiv
                   key={activeTab}

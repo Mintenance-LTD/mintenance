@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useCallback } from 'react';
+import Image from 'next/image';
 
 interface BeforeAfterSliderProps {
   beforeImageUrl: string;
@@ -79,10 +80,12 @@ export function BeforeAfterSlider({
       onTouchEnd={handleTouchEnd}
     >
       {/* After image (full width, bottom layer) */}
-      <img
+      <Image
         src={afterImageUrl}
         alt="After"
-        className="absolute inset-0 w-full h-full object-cover"
+        fill
+        sizes="100vw"
+        className="object-cover"
         draggable={false}
       />
 
@@ -91,10 +94,12 @@ export function BeforeAfterSlider({
         className="absolute inset-0 overflow-hidden"
         style={{ width: `${position}%` }}
       >
-        <img
+        <Image
           src={beforeImageUrl}
           alt="Before"
-          className="absolute inset-0 w-full h-full object-cover"
+          fill
+          sizes="100vw"
+          className="object-cover"
           style={{ minWidth: containerRef.current?.offsetWidth || '100%' }}
           draggable={false}
         />

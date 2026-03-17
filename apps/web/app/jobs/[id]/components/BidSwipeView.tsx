@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { fadeIn } from '@/lib/animations/variants';
 import Link from 'next/link';
+import Image from 'next/image';
 import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
 import { PartyPopper, Star, Lightbulb } from 'lucide-react';
 
@@ -249,10 +250,12 @@ export function BidSwipeView(props: BidSwipeViewProps) {
             {/* Contractor Profile Photo */}
             <div className="flex justify-center mb-6 mt-8">
               {currentBid.contractor.profile_image_url ? (
-                <img
+                <Image
                   src={currentBid.contractor.profile_image_url}
                   alt={getContractorName(currentBid)}
-                  className="w-32 h-32 rounded-full object-cover border-4 border-teal-500 shadow-lg"
+                  width={128}
+                  height={128}
+                  className="rounded-full object-cover border-4 border-teal-500 shadow-lg"
                 />
               ) : (
                 <div className="w-32 h-32 rounded-full bg-teal-100 flex items-center justify-center border-4 border-teal-500 shadow-lg">
@@ -368,11 +371,13 @@ export function BidSwipeView(props: BidSwipeViewProps) {
                 <div className="text-xs text-gray-500 font-semibold mb-2">RECENT WORK</div>
                 <div className="grid grid-cols-3 gap-2">
                   {currentBid.contractor.portfolioImages.slice(0, 6).map((image, idx) => (
-                    <div key={idx} className="aspect-square rounded-lg overflow-hidden">
-                      <img
+                    <div key={idx} className="relative aspect-square rounded-lg overflow-hidden">
+                      <Image
                         src={image.url}
                         alt={image.title || 'Portfolio'}
-                        className="w-full h-full object-cover"
+                        fill
+                        sizes="(max-width: 768px) 33vw, 100px"
+                        className="object-cover"
                       />
                     </div>
                   ))}

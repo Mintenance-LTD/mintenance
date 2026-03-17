@@ -53,13 +53,20 @@ export const GET = withApiHandler({}, async (_request, { user }) => {
         .eq('read', false),
     ]);
 
-  return NextResponse.json({
-    success: true,
-    counts: {
-      messages: messageCount,
-      connections: connectionsResponse.count || 0,
-      quoteRequests: quoteRequestsResponse.count || 0,
-      notifications: notificationsResponse.count || 0,
+  return NextResponse.json(
+    {
+      success: true,
+      counts: {
+        messages: messageCount,
+        connections: connectionsResponse.count || 0,
+        quoteRequests: quoteRequestsResponse.count || 0,
+        notifications: notificationsResponse.count || 0,
+      },
     },
-  });
+    {
+      headers: {
+        'Cache-Control': 'private, max-age=120, must-revalidate',
+      },
+    },
+  );
 });

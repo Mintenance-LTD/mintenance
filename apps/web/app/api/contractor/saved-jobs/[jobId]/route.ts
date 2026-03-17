@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { InternalServerError } from '@/lib/errors/api-error';
@@ -10,11 +10,12 @@ import { InternalServerError } from '@/lib/errors/api-error';
  */
 export const DELETE = withApiHandler(
   { roles: ['contractor'] },
-  async (_request, { user, params }) => {
+  async (request, { user, params }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
     const jobId = params.jobId;
 
     // Delete the saved job
-    const { error: deleteError } = await serverSupabase
+    const { error: deleteError } = await userDb
       .from('saved_jobs')
       .delete()
       .eq('contractor_id', user.id)

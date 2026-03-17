@@ -57,7 +57,11 @@ export default defineConfig({
   },
 
   // Configure projects with different authentication states
+  // In CI, tests run across all major browsers and mobile viewports.
+  // Locally, only Chromium runs by default for faster feedback.
   projects: [
+    // === Chromium (always runs) ===
+
     // Unauthenticated tests (auth flows, public pages)
     {
       name: 'unauthenticated',
@@ -104,15 +108,73 @@ export default defineConfig({
         },
       },
     },
+
+    // Full user journey & regression tests (handle auth internally)
+    {
+      name: 'full-journey',
+      testMatch: /full-user-journey\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+
+    // Critical paths regression suite (handles auth internally per test)
+    {
+      name: 'regression-critical',
+      testMatch: /regression\/critical-paths\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+
+    // Mobile responsive regression suite (fixed mobile viewport)
+    {
+      name: 'regression-mobile',
+      testMatch: /regression\/mobile-responsive\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 375, height: 667 },
+      },
+    },
+
+    // === Cross-browser projects (CI only) ===
+    // Firefox, WebKit, and mobile viewports run only in CI to keep local dev fast.
+
+    ...(process.env.CI
+      ? [
+          // Firefox (Desktop)
+          {
+            name: 'firefox',
+            testMatch: /auth-flow\.spec\.ts|payment-flow\.spec\.ts|job-posting-flow\.spec\.ts/,
+            use: { ...devices['Desktop Firefox'] },
+          },
+
+          // WebKit / Safari (Desktop)
+          {
+            name: 'webkit',
+            testMatch: /auth-flow\.spec\.ts|payment-flow\.spec\.ts|job-posting-flow\.spec\.ts/,
+            use: { ...devices['Desktop Safari'] },
+          },
+
+          // Mobile Chrome (Pixel 5 viewport)
+          {
+            name: 'mobile-chrome',
+            testMatch: /auth-flow\.spec\.ts|payment-flow\.spec\.ts|job-posting-flow\.spec\.ts/,
+            use: { ...devices['Pixel 5'] },
+          },
+
+          // Mobile Safari (iPhone 12 viewport)
+          {
+            name: 'mobile-safari',
+            testMatch: /auth-flow\.spec\.ts|payment-flow\.spec\.ts|job-posting-flow\.spec\.ts/,
+            use: { ...devices['iPhone 12'] },
+          },
+        ]
+      : []),
   ],
 
-  // Run local dev server before starting tests
-  // Disabled for now - start dev server manually with: npm run dev
-  // Uncomment to auto-start server (may take 2+ minutes on first run)
-  // webServer: {
-  //   command: 'npm run dev',
-  //   url: 'http://localhost:3000',
-  //   timeout: 120 * 1000,
-  //   reuseExistingServer: !process.env.CI,
-  // },
+  // Start web server before running tests
+  // CI uses production build (already built in workflow); local dev reuses existing server
+  webServer: {
+    command: process.env.CI ? 'npm run start' : 'npm run dev',
+    url: 'http://localhost:3000',
+    timeout: 120 * 1000,
+    reuseExistingServer: !process.env.CI,
+  },
 });

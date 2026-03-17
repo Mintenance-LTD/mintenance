@@ -7,12 +7,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { logger, JOB_STATUS } from '@mintenance/shared';
 import { BidAcceptanceAgent } from '@/lib/services/agents/BidAcceptanceAgent';
 import { PricingAgent } from '@/lib/services/agents/PricingAgent';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
-import { NotFoundError, BadRequestError } from '@/lib/errors/api-error';
+import { NotFoundError, BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
 import { submitBidSchema, type SubmitBidInput } from './validation';
 import { processBid, getDatabaseErrorMessage } from './bid-processor';
 import { prepareQuoteData, processQuote } from './quote-processor';
@@ -22,6 +22,8 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 export const POST = withApiHandler(
   { roles: ['contractor'] },
   async (request: NextRequest, { user }): Promise<NextResponse> => {
+    // Use RLS-enforced client for user-scoped reads; fall back to service role
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
     // Check subscription requirement
     const { requireSubscriptionForAction, checkSubscriptionLimits } = await import('@/lib/middleware/subscription-check');
     const subscriptionCheck = await requireSubscriptionForAction(request, 'submit_bid');
@@ -149,7 +151,7 @@ export const POST = withApiHandler(
     }
 
     // Check if job exists and is accepting bids (include homeowner details for email)
-    const { data: job, error: jobError } = await serverSupabase
+    const { data: job, error: jobError } = await userDb
       .from('jobs')
       .select(`
         id,
@@ -186,8 +188,18 @@ export const POST = withApiHandler(
       throw new BadRequestError('This job is no longer accepting bids');
     }
 
+    // SECURITY: Prevent homeowners from bidding on their own jobs
+    if (job.homeowner_id === user.id) {
+      logger.warn('Self-bid attempt blocked', {
+        service: 'contractor',
+        jobId: validatedData.jobId,
+        userId: user.id,
+      });
+      throw new ForbiddenError('You cannot bid on your own job');
+    }
+
     // SECURITY FIX: Verify job is not already assigned to a contractor
-    const { data: jobWithContractor } = await serverSupabase
+    const { data: jobWithContractor } = await userDb
       .from('jobs')
       .select('contractor_id')
       .eq('id', validatedData.jobId)
@@ -224,14 +236,14 @@ export const POST = withApiHandler(
       }
 
       // Check if budget might have been reduced after bids were submitted
-      const { count: existingBidCount } = await serverSupabase
+      const { count: existingBidCount } = await userDb
         .from('bids')
         .select('id', { count: 'exact', head: true })
         .eq('job_id', validatedData.jobId)
         .neq('status', 'withdrawn');
 
       if (existingBidCount && existingBidCount > 0) {
-        const { data: existingBids } = await serverSupabase
+        const { data: existingBids } = await userDb
           .from('bids')
           .select('amount, contractor_id, status')
           .eq('job_id', validatedData.jobId)
@@ -403,7 +415,7 @@ export const POST = withApiHandler(
     );
 
     // Get existing quote ID from bid
-    const { data: bidWithQuote } = await serverSupabase
+    const { data: bidWithQuote } = await userDb
       .from('bids')
       .select('quote_id')
       .eq('id', (bid as { id: string }).id)

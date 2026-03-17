@@ -3,7 +3,6 @@ import React from 'react';
 import { render , waitFor} from '../test-utils';
 import { Banner } from '../../components/ui/Banner';
 
-jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,
   SafeAreaView: ({ children }) => children,

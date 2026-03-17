@@ -3,7 +3,6 @@ import React from 'react';
 import { render, fireEvent, act , waitFor} from '../test-utils';
 import { Toast } from '../../components/ui/Toast/Toast';
 
-jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,
   SafeAreaView: ({ children }) => children,

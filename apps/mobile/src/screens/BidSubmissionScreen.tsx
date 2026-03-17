@@ -1,3 +1,9 @@
+/**
+ * BidSubmissionScreen — Redesigned to match web app features
+ *
+ * Includes: earnings breakdown, budget warning, min description length,
+ * required duration & start date, platform fee transparency.
+ */
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -7,9 +13,9 @@ import {
   Alert,
   ScrollView,
   Platform,
+  KeyboardAvoidingView,
+  TextInput,
 } from 'react-native';
-import { Input } from '../components/ui/Input';
-import { Banner } from '../components/ui/Banner';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { JobService } from '../services/JobService';
@@ -22,16 +28,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { DatePicker } from '../components/ui/DatePicker';
 import { theme } from '../theme';
 
-type BidSubmissionScreenRouteProp = RouteProp<
-  JobsStackParamList,
-  'BidSubmission'
->;
+type BidSubmissionScreenRouteProp = RouteProp<JobsStackParamList, 'BidSubmission'>;
 type BidSubmissionScreenNavigationProp = NativeStackNavigationProp<JobsStackParamList, 'BidSubmission'>;
 
 interface Props {
   route: BidSubmissionScreenRouteProp;
   navigation: BidSubmissionScreenNavigationProp;
 }
+
+const PLATFORM_FEE_PERCENT = 5;
+const MIN_DESCRIPTION_LENGTH = 50;
+const MAX_DESCRIPTION_LENGTH = 5000;
 
 const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   const { jobId } = route.params;
@@ -62,6 +69,19 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
+  const bidAmount = parseFloat(amount) || 0;
+  const platformFee = bidAmount * (PLATFORM_FEE_PERCENT / 100);
+  const yourEarnings = bidAmount - platformFee;
+  const isOverBudget = job?.budget != null && bidAmount > job.budget;
+  const descriptionTooShort = description.trim().length > 0 && description.trim().length < MIN_DESCRIPTION_LENGTH;
+
+  const isValid =
+    bidAmount > 0 &&
+    description.trim().length >= MIN_DESCRIPTION_LENGTH &&
+    estimatedDuration.trim().length > 0 &&
+    parseInt(estimatedDuration, 10) > 0 &&
+    proposedStartDate !== null;
+
   const handleSubmit = async () => {
     setFormError(null);
 
@@ -69,15 +89,20 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
       setFormError('Only contractors can submit bids');
       return;
     }
-
-    if (!amount || !description) {
-      setFormError('Please fill in all required fields');
+    if (bidAmount <= 0) {
+      setFormError('Please enter a valid bid amount');
       return;
     }
-
-    const bidAmount = parseFloat(amount);
-    if (isNaN(bidAmount) || bidAmount <= 0) {
-      setFormError('Please enter a valid bid amount');
+    if (description.trim().length < MIN_DESCRIPTION_LENGTH) {
+      setFormError(`Proposal must be at least ${MIN_DESCRIPTION_LENGTH} characters`);
+      return;
+    }
+    if (!estimatedDuration || parseInt(estimatedDuration, 10) <= 0) {
+      setFormError('Please enter an estimated duration');
+      return;
+    }
+    if (!proposedStartDate) {
+      setFormError('Please select a proposed start date');
       return;
     }
 
@@ -87,10 +112,10 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
         jobId,
         contractorId: user.id,
         amount: bidAmount,
-        description,
-        estimatedDurationDays: estimatedDuration ? parseInt(estimatedDuration, 10) : undefined,
+        description: description.trim(),
+        estimatedDurationDays: parseInt(estimatedDuration, 10),
+        proposedStartDate: proposedStartDate.toISOString().split('T')[0],
       });
-
       Alert.alert('Success', 'Your bid has been submitted!', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
@@ -119,148 +144,171 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-          accessibilityRole='button'
-          accessibilityLabel='Go back'
-        >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} accessibilityLabel="Go back">
+          <Ionicons name="arrow-back" size={22} color={theme.colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} accessibilityRole='header'>Submit Bid</Text>
+        <Text style={styles.headerTitle}>Submit Bid</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.content}>
-        <View style={styles.jobInfo}>
-          <View style={styles.jobIconWrap}>
-            <Ionicons name="briefcase-outline" size={18} color="#3B82F6" />
-          </View>
-          <View style={styles.jobInfoContent}>
-            <Text style={styles.jobTitle}>{job.title}</Text>
-            <Text style={styles.jobDescription}>{job.description}</Text>
-            <View style={styles.jobMetaRow}>
-              <Ionicons name="location-outline" size={14} color={theme.colors.textSecondary} />
-              <Text style={styles.jobLocation}>{typeof job.location === 'string' ? job.location : JSON.stringify(job.location)}</Text>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {/* Job Info Card */}
+          <View style={styles.jobCard}>
+            <View style={styles.jobIconWrap}>
+              <Ionicons name="briefcase-outline" size={22} color="#3B82F6" />
             </View>
-            <View style={styles.budgetChip}>
-              <Text style={styles.jobBudget}>Budget: {'\u00A3'}{job.budget}</Text>
+            <View style={styles.jobInfo}>
+              <Text style={styles.jobTitle}>{job.title}</Text>
+              <Text style={styles.jobDescription} numberOfLines={2}>{job.description}</Text>
+              {job.location && typeof job.location === 'string' && (
+                <View style={styles.locationRow}>
+                  <Ionicons name="location-outline" size={13} color={theme.colors.textTertiary} />
+                  <Text style={styles.locationText}>{job.location}</Text>
+                </View>
+              )}
+              {job.budget != null && (
+                <View style={styles.budgetBadge}>
+                  <Text style={styles.budgetText}>Budget: {'\u00A3'}{job.budget.toLocaleString()}</Text>
+                </View>
+              )}
             </View>
           </View>
-        </View>
 
-        <View style={styles.form}>
-          <Banner message={formError ?? ''} variant="error" />
-          <Input
-            label='Your Bid Amount (£) *'
-            placeholder='e.g. 250'
-            value={amount}
-            onChangeText={setAmount}
-            keyboardType='numeric'
-            leftIcon='cash-outline'
-            variant='outline'
-            size='lg'
-            fullWidth
-          />
-          {(() => {
-            const parsed = parseFloat(amount);
-            const budgetMax = job.budget_max ?? job.budget;
-            const budgetMin = job.budget_min;
-            if (!amount || isNaN(parsed)) return null;
-            if (budgetMax && parsed > budgetMax * 1.5) {
-              return (
-                <Text style={styles.bidWarning}>
-                  Your bid (£{parsed.toLocaleString()}) is significantly above the budget
-                  {budgetMax ? ` (£${budgetMax.toLocaleString()})` : ''}
-                </Text>
-              );
-            }
-            if (budgetMin && parsed < budgetMin * 0.5) {
-              return (
-                <Text style={styles.bidWarning}>
-                  Your bid (£{parsed.toLocaleString()}) is much lower than the minimum budget
-                  (£{budgetMin.toLocaleString()})
-                </Text>
-              );
-            }
-            return (
-              <Text style={styles.bidHint}>
-                £{parsed.toLocaleString()} bid
-                {budgetMax ? ` · Budget up to £${budgetMax.toLocaleString()}` : ''}
-              </Text>
-            );
-          })()}
-
-          <Input
-            label='Proposal Description *'
-            placeholder="Describe your approach, timeline, and why you're the right contractor for this job..."
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            numberOfLines={6}
-            maxLength={1000}
-            leftIcon='document-text-outline'
-            variant='outline'
-            size='lg'
-            fullWidth
-          />
-
-          <Input
-            label='Estimated Duration (days)'
-            placeholder='e.g. 3'
-            value={estimatedDuration}
-            onChangeText={setEstimatedDuration}
-            keyboardType='numeric'
-            leftIcon='time-outline'
-            variant='outline'
-            size='lg'
-            fullWidth
-          />
-
-          <DatePicker
-            label='Proposed Start Date'
-            value={proposedStartDate}
-            onChange={setProposedStartDate}
-            minimumDate={new Date()}
-          />
-
-          <View style={styles.tipBox}>
-            <View style={styles.tipHeader}>
-              <View style={styles.tipIconWrap}>
-                <Ionicons name="bulb-outline" size={16} color={theme.colors.accent} />
+          {/* Form */}
+          <View style={styles.formCard}>
+            {/* Bid Amount */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Your Bid Amount *</Text>
+              <View style={styles.currencyRow}>
+                <View style={styles.currencyPrefix}>
+                  <Text style={styles.currencySymbol}>{'\u00A3'}</Text>
+                </View>
+                <TextInput
+                  style={styles.currencyInput}
+                  value={amount}
+                  onChangeText={setAmount}
+                  placeholder="e.g. 250"
+                  placeholderTextColor={theme.colors.textTertiary}
+                  keyboardType="decimal-pad"
+                />
               </View>
-              <Text style={styles.tipTitle}>Bidding Tips</Text>
             </View>
-            <Text style={styles.tipText}>
-              • Be competitive but fair with your pricing
-            </Text>
-            <Text style={styles.tipText}>
-              • Include your timeline and availability
-            </Text>
-            <Text style={styles.tipText}>
-              • Mention relevant experience or certifications
-            </Text>
-            <Text style={styles.tipText}>
-              • Be professional and detailed in your proposal
-            </Text>
-          </View>
-        </View>
-      </ScrollView>
 
-      <View style={styles.footer}>
+            {/* Budget Warning */}
+            {isOverBudget && (
+              <View style={styles.warningBanner}>
+                <Ionicons name="alert-circle" size={16} color="#DC2626" />
+                <Text style={styles.warningText}>
+                  Your bid exceeds the budget by {'\u00A3'}{(bidAmount - (job.budget || 0)).toLocaleString()}
+                </Text>
+              </View>
+            )}
+
+            {/* Earnings Breakdown */}
+            {bidAmount > 0 && (
+              <View style={styles.earningsCard}>
+                <View style={styles.earningsRow}>
+                  <Text style={styles.earningsLabel}>Your bid</Text>
+                  <Text style={styles.earningsValue}>{'\u00A3'}{bidAmount.toFixed(2)}</Text>
+                </View>
+                <View style={styles.earningsRow}>
+                  <Text style={styles.earningsLabel}>Platform fee ({PLATFORM_FEE_PERCENT}%)</Text>
+                  <Text style={[styles.earningsValue, { color: theme.colors.error }]}>-{'\u00A3'}{platformFee.toFixed(2)}</Text>
+                </View>
+                <View style={styles.earningsDivider} />
+                <View style={styles.earningsRow}>
+                  <Text style={styles.earningsTotalLabel}>You earn</Text>
+                  <Text style={styles.earningsTotalValue}>{'\u00A3'}{yourEarnings.toFixed(2)}</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Proposal Description */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Proposal Description *</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={description}
+                onChangeText={setDescription}
+                placeholder="Describe your approach, timeline, and why you're the right contractor for this job..."
+                placeholderTextColor={theme.colors.textTertiary}
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+                maxLength={MAX_DESCRIPTION_LENGTH}
+              />
+              <View style={styles.charCountRow}>
+                <Text style={[
+                  styles.charCount,
+                  descriptionTooShort && styles.charCountError,
+                ]}>
+                  {description.length}/{MAX_DESCRIPTION_LENGTH}
+                  {descriptionTooShort && ` (min ${MIN_DESCRIPTION_LENGTH})`}
+                </Text>
+              </View>
+            </View>
+
+            {/* Duration & Start Date */}
+            <View style={styles.row}>
+              <View style={[styles.fieldGroup, styles.flex]}>
+                <Text style={styles.label}>Duration (days) *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={estimatedDuration}
+                  onChangeText={setEstimatedDuration}
+                  placeholder="e.g. 3"
+                  placeholderTextColor={theme.colors.textTertiary}
+                  keyboardType="number-pad"
+                />
+              </View>
+              <View style={styles.rowSpacer} />
+              <View style={[styles.fieldGroup, styles.flex]}>
+                <Text style={styles.label}>Start Date *</Text>
+                <DatePicker
+                  label="Select date"
+                  value={proposedStartDate}
+                  onChange={setProposedStartDate}
+                  minimumDate={new Date()}
+                />
+              </View>
+            </View>
+          </View>
+
+          {/* Tips */}
+          <View style={styles.tipsCard}>
+            <View style={styles.tipsHeader}>
+              <Ionicons name="bulb-outline" size={18} color="#F59E0B" />
+              <Text style={styles.tipsTitle}>Bidding Tips</Text>
+            </View>
+            <Text style={styles.tipItem}>{'\u2022'} Be competitive but fair with your pricing</Text>
+            <Text style={styles.tipItem}>{'\u2022'} Include your timeline and availability</Text>
+            <Text style={styles.tipItem}>{'\u2022'} Mention relevant experience or certifications</Text>
+            <Text style={styles.tipItem}>{'\u2022'} Be professional and detailed in your proposal</Text>
+          </View>
+
+          {/* Error Banner */}
+          {formError && (
+            <View style={styles.errorBanner}>
+              <Ionicons name="alert-circle" size={16} color="#DC2626" />
+              <Text style={styles.errorText}>{formError}</Text>
+            </View>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      {/* Sticky Footer */}
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <TouchableOpacity
-          style={[
-            styles.submitButton,
-            submitting && styles.submitButtonDisabled,
-          ]}
+          style={[styles.submitButton, (!isValid || submitting) && styles.submitButtonDisabled]}
           onPress={handleSubmit}
-          disabled={submitting}
-          accessibilityRole='button'
-          accessibilityLabel={submitting ? 'Submitting bid' : 'Submit bid'}
-          accessibilityState={{ disabled: submitting }}
+          disabled={!isValid || submitting}
+          accessibilityRole="button"
+          accessibilityLabel="Submit bid"
         >
-          <Ionicons name="send-outline" size={18} color={theme.colors.textInverse} style={{ marginRight: 8 }} />
+          <Ionicons name="send-outline" size={18} color={theme.colors.textInverse} />
           <Text style={styles.submitButtonText}>
             {submitting ? 'Submitting...' : 'Submit Bid'}
           </Text>
@@ -271,187 +319,131 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
-  },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  flex: { flex: 1 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingBottom: 12,
     backgroundColor: theme.colors.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  backBtn: {
+    width: 40, height: 40, borderRadius: 20,
     backgroundColor: theme.colors.backgroundSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-  },
-  content: {
-    flex: 1,
-  },
-  jobInfo: {
-    backgroundColor: theme.colors.surface,
-    padding: 16,
-    marginBottom: 8,
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 16,
-    flexDirection: 'row',
-    gap: 14,
+  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
+  content: { padding: 16, paddingBottom: 32 },
+
+  // Job card
+  jobCard: {
+    flexDirection: 'row', backgroundColor: theme.colors.surface, borderRadius: 16,
+    padding: 16, marginBottom: 16,
     ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
     }),
   },
   jobIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: '#DBEAFE',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 44, height: 44, borderRadius: 14, backgroundColor: '#DBEAFE',
+    alignItems: 'center', justifyContent: 'center', marginRight: 12,
   },
-  jobInfoContent: {
-    flex: 1,
+  jobInfo: { flex: 1 },
+  jobTitle: { fontSize: 17, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 4 },
+  jobDescription: { fontSize: 14, color: theme.colors.textSecondary, lineHeight: 20, marginBottom: 6 },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8 },
+  locationText: { fontSize: 13, color: theme.colors.textTertiary },
+  budgetBadge: {
+    alignSelf: 'flex-start', backgroundColor: theme.colors.primaryLight,
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10,
   },
-  jobTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 6,
-  },
-  jobDescription: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginBottom: 10,
-    lineHeight: 20,
-  },
-  jobMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 8,
-  },
-  jobLocation: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-  },
-  budgetChip: {
-    backgroundColor: theme.colors.primaryLight,
-    alignSelf: 'flex-start',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  jobBudget: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: theme.colors.primary,
-  },
-  form: {
-    backgroundColor: theme.colors.surface,
-    padding: 20,
-    marginHorizontal: 16,
-    borderRadius: 16,
+  budgetText: { fontSize: 13, fontWeight: '700', color: theme.colors.primary },
+
+  // Form
+  formCard: {
+    backgroundColor: theme.colors.surface, borderRadius: 16, padding: 16, marginBottom: 16,
     ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
     }),
   },
-  bidHint: {
-    fontSize: 12,
-    color: theme.colors.textTertiary,
-    marginTop: -4,
-    marginBottom: 8,
+  fieldGroup: { marginBottom: 16 },
+  label: { fontSize: 14, fontWeight: '600', color: theme.colors.textSecondary, marginBottom: 6 },
+  input: {
+    backgroundColor: theme.colors.backgroundSecondary, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 14, fontSize: 15, color: theme.colors.textPrimary,
   },
-  bidWarning: {
-    fontSize: 12,
-    color: theme.colors.accent,
-    marginTop: -4,
-    marginBottom: 8,
+  textArea: { minHeight: 120, paddingTop: 14 },
+  row: { flexDirection: 'row' },
+  rowSpacer: { width: 12 },
+
+  // Currency input
+  currencyRow: { flexDirection: 'row', alignItems: 'stretch' },
+  currencyPrefix: {
+    backgroundColor: theme.colors.backgroundTertiary, borderTopLeftRadius: 12, borderBottomLeftRadius: 12,
+    paddingHorizontal: 14, justifyContent: 'center',
   },
-  tipBox: {
-    backgroundColor: theme.colors.accentLight,
-    padding: 16,
-    borderRadius: 16,
-    marginTop: 20,
-  },
-  tipHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 10,
-  },
-  tipIconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tipTitle: {
-    fontSize: 15,
-    fontWeight: '700',
+  currencySymbol: { fontSize: 18, fontWeight: '700', color: theme.colors.textSecondary },
+  currencyInput: {
+    flex: 1, backgroundColor: theme.colors.backgroundSecondary,
+    borderTopRightRadius: 12, borderBottomRightRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 14, fontSize: 18, fontWeight: '600',
     color: theme.colors.textPrimary,
   },
-  tipText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginBottom: 5,
-    lineHeight: 20,
+
+  // Earnings breakdown
+  earningsCard: {
+    backgroundColor: theme.colors.backgroundSecondary, borderRadius: 12, padding: 14, marginBottom: 16,
   },
+  earningsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  earningsLabel: { fontSize: 14, color: theme.colors.textSecondary },
+  earningsValue: { fontSize: 14, fontWeight: '600', color: theme.colors.textPrimary },
+  earningsDivider: {
+    height: StyleSheet.hairlineWidth, backgroundColor: theme.colors.border, marginVertical: 8,
+  },
+  earningsTotalLabel: { fontSize: 15, fontWeight: '700', color: theme.colors.textPrimary },
+  earningsTotalValue: { fontSize: 15, fontWeight: '700', color: theme.colors.primary },
+
+  // Warning
+  warningBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#FEE2E2', borderRadius: 10, padding: 12, marginBottom: 16,
+  },
+  warningText: { flex: 1, fontSize: 13, color: '#DC2626', fontWeight: '500' },
+
+  // Char count
+  charCountRow: { alignItems: 'flex-end', marginTop: 4 },
+  charCount: { fontSize: 12, color: theme.colors.textTertiary },
+  charCountError: { color: theme.colors.error },
+
+  // Tips
+  tipsCard: {
+    backgroundColor: '#FEF9E7', borderRadius: 16, padding: 16, marginBottom: 16,
+  },
+  tipsHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  tipsTitle: { fontSize: 15, fontWeight: '700', color: theme.colors.textPrimary },
+  tipItem: { fontSize: 14, color: theme.colors.textSecondary, lineHeight: 22, paddingLeft: 4 },
+
+  // Error
+  errorBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#FEE2E2', borderRadius: 10, padding: 12, marginBottom: 16,
+  },
+  errorText: { flex: 1, fontSize: 13, color: '#DC2626', fontWeight: '500' },
+
+  // Footer
   footer: {
-    padding: 16,
-    paddingBottom: 24,
+    paddingHorizontal: 16, paddingTop: 12,
     backgroundColor: theme.colors.surface,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.border,
   },
   submitButton: {
-    height: 52,
-    backgroundColor: theme.colors.textPrimary,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'row',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: theme.colors.textPrimary, borderRadius: 28, paddingVertical: 16,
   },
-  submitButtonDisabled: {
-    opacity: 0.5,
-  },
-  submitButtonText: {
-    color: theme.colors.textInverse,
-    fontSize: 16,
-    fontWeight: '700',
-  },
+  submitButtonDisabled: { opacity: 0.4 },
+  submitButtonText: { color: theme.colors.textInverse, fontSize: 17, fontWeight: '600' },
 });
 
 export default BidSubmissionScreen;

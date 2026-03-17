@@ -7,5 +7,9 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
  */
 export const GET = withApiHandler({ auth: false }, async () => {
   const plans = await SubscriptionService.getAvailablePlans();
-  return NextResponse.json({ plans });
+  return NextResponse.json({ plans }, {
+    headers: {
+      'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=600',
+    },
+  });
 });

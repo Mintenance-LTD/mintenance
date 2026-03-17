@@ -150,13 +150,24 @@ export class PushNotificationService {
         return null;
       }
 
-      const token = await Notifications.getExpoPushTokenAsync();
+      // Use the EAS project ID for Expo Push Token registration
+      const token = await Notifications.getExpoPushTokenAsync({
+        projectId: '1ee95edc-0cc1-4775-b52e-4af46f9e51d0',
+      });
       this.pushToken = token.data;
 
       logger.info('Push token obtained successfully');
       return this.pushToken;
     } catch (error) {
-      logger.error('Failed to get push token', error);
+      const msg = error instanceof Error ? error.message : String(error);
+      const isFirebaseError =
+        msg.includes('Firebase') || msg.includes('FCM') || msg.includes('not initialized');
+      if (isFirebaseError) {
+        logger.warn('FCM not configured — push token unavailable. '
+          + 'Ensure google-services.json is provided for production builds.');
+      } else {
+        logger.error('Failed to get push token', error);
+      }
       return null;
     }
   }

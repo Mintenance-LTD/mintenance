@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { theme } from '@/lib/theme';
 
 interface Review {
@@ -95,13 +96,15 @@ export function ProfileReviews(props: ProfileReviewsProps) {
                     fontWeight: theme.typography.fontWeight.bold,
                     fontSize: theme.typography.fontSize.lg,
                     overflow: 'hidden',
+                    position: 'relative',
                   }}
                 >
                   {review.reviewer?.profile_image_url ? (
-                    <img
+                    <Image
                       src={review.reviewer.profile_image_url}
                       alt={`${review.reviewer?.first_name ?? ''} ${review.reviewer?.last_name ?? ''}`.trim()}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      fill
+                      style={{ objectFit: 'cover' }}
                     />
                   ) : (
                     <>

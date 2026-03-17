@@ -123,7 +123,7 @@ export function BuildingAssessmentDisplay({
         return 'text-orange-600 bg-orange-50';
       case 'moderate':
       case 'medium':
-        return 'text-yellow-600 bg-yellow-50';
+        return 'text-yellow-800 bg-yellow-50';
       case 'minimal':
       case 'early':
       case 'low':

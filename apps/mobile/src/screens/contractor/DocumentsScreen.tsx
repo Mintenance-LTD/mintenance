@@ -3,7 +3,7 @@
  * document cards, category icons, and green upload FAB.
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   Platform,
   StatusBar,
   ScrollView,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -43,6 +44,9 @@ interface Document {
   uploaded_at: string;
   starred: boolean;
   file_size?: number;
+  public_url?: string;
+  is_contract?: boolean;
+  job_id?: string;
 }
 
 type DocFilter = 'all' | 'contracts' | 'photos' | 'certifications' | 'insurance' | 'receipts' | 'templates';
@@ -122,20 +126,23 @@ export const DocumentsScreen: React.FC = () => {
         const raw = await mobileApiClient.get<unknown>('/api/contractor/documents');
         const docs = Array.isArray(raw) ? raw : (raw as Record<string, unknown>)?.documents || [];
         return (docs as Array<{
-          id: string; name: string; category: string; created_at: string; starred: boolean; size_bytes?: number;
+          id: string; name: string; category: string; created_at: string; starred: boolean;
+          size_bytes?: number; public_url?: string; is_contract?: boolean; job_id?: string;
         }>).map((d): Document => ({
           id: d.id, filename: d.name, category: d.category,
           uploaded_at: d.created_at, starred: d.starred, file_size: d.size_bytes,
+          public_url: d.public_url, is_contract: d.is_contract, job_id: d.job_id,
         }));
       }
       // Homeowner: aggregate contracts as virtual documents
       const rawContracts = await mobileApiClient.get<unknown>('/api/contracts?role=homeowner');
       const contracts = Array.isArray(rawContracts) ? rawContracts : (rawContracts as Record<string, unknown>)?.contracts || [];
       return (contracts as Array<{
-        id: string; title: string; status: string; created_at: string;
+        id: string; title: string; status: string; created_at: string; job_id?: string;
       }>).filter((c) => c.status !== 'draft').map((c): Document => ({
         id: c.id, filename: c.title || 'Contract', category: 'contract',
         uploaded_at: c.created_at, starred: false,
+        is_contract: true, job_id: c.job_id,
       }));
     },
     enabled: !!user?.id,
@@ -186,6 +193,35 @@ export const DocumentsScreen: React.FC = () => {
       uploadMutation.mutate({ uri: asset.uri, name: asset.name, mimeType: asset.mimeType || 'application/octet-stream' });
     }
   };
+
+  const handleOpenDocument = useCallback((doc: Document) => {
+    // Contracts: navigate to the job/contract view
+    if (doc.is_contract || doc.category === 'contract' || doc.category === 'contracts') {
+      if (doc.job_id) {
+        (navigation as ReturnType<typeof Object>).navigate('JobsTab', {
+          screen: 'JobDetails',
+          params: { jobId: doc.job_id },
+        });
+      } else {
+        // Contract without job_id: try opening the contract directly
+        (navigation as ReturnType<typeof Object>).navigate('JobsTab', {
+          screen: 'JobDetails',
+          params: { jobId: doc.id },
+        });
+      }
+      return;
+    }
+
+    // Regular documents: open the file URL
+    if (doc.public_url) {
+      Linking.openURL(doc.public_url).catch(() => {
+        Alert.alert('Cannot Open', 'Unable to open this file. The URL may be unavailable.');
+      });
+      return;
+    }
+
+    Alert.alert('No File', 'This document does not have a viewable file attached.');
+  }, [navigation]);
 
   const documents = data || [];
   const filtered = filter === 'all' ? documents : documents.filter((d) => d.category === filter);
@@ -353,7 +389,7 @@ export const DocumentsScreen: React.FC = () => {
           const sizeStr = formatFileSize(item.file_size);
 
           return (
-            <TouchableOpacity style={styles.docCard} activeOpacity={0.9}>
+            <TouchableOpacity style={styles.docCard} activeOpacity={0.7} onPress={() => handleOpenDocument(item)}>
               {/* Color accent bar */}
               <View style={[styles.docAccent, { backgroundColor: docStyle.color }]} />
 
