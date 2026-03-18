@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { ChartSkeleton } from '@/components/ui/ChartSkeleton';
+import type { DashboardMetrics, RevenueData } from './types';
 
 const AreaChart = dynamic(
   () => import('@tremor/react').then((mod) => ({ default: mod.AreaChart })),
@@ -58,46 +59,6 @@ const staggerItem = {
   visible: { opacity: 1, x: 0 },
 };
 
-interface DashboardMetrics {
-  totalUsers: number;
-  totalContractors: number;
-  totalJobs: number;
-  activeSubscriptions: number;
-  mrr: number;
-  pendingVerifications: number;
-  charts?: {
-    userGrowth: Array<{ date: string; users: number; cumulative: number }>;
-    jobGrowth: Array<{ date: string; jobs: number; cumulative: number }>;
-  };
-}
-
-interface RevenueData {
-  revenueMetrics: {
-    totalRevenue: number;
-    platformFees: number;
-    subscriptionRevenue: number;
-    avgJobValue: number;
-  };
-  monthlyRevenue: Array<{
-    month: string;
-    revenue: number;
-    fees: number;
-    subscriptions: number;
-  }>;
-  revenueByCategory: Array<{
-    category: string;
-    count: number;
-    revenue: number;
-  }>;
-  recentTransactions: Array<{
-    id: string;
-    type: string;
-    amount: number;
-    created_at: string;
-    description?: string;
-  }>;
-}
-
 export default function AnalyticsDetailPage() {
   const [dateRange, setDateRange] = useState('30days');
 
@@ -110,9 +71,11 @@ export default function AnalyticsDetailPage() {
 
   const days = daysMap[dateRange] || 30;
   const startDate = useMemo(
+    // eslint-disable-next-line react-hooks/purity
     () => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString(),
     [days]
   );
+  // eslint-disable-next-line react-hooks/purity
   const endDate = useMemo(() => new Date().toISOString(), []);
 
   const { data: metrics, isLoading: metricsLoading } =

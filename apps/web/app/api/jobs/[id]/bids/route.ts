@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
+import {
+  serverSupabase,
+  createRequestScopedClient,
+} from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { BadRequestError, NotFoundError, ForbiddenError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  NotFoundError,
+  ForbiddenError,
+} from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
 /**
@@ -41,7 +48,8 @@ export const GET = withApiHandler(
     // Fetch bids with contractor profile and job info
     let bidsQuery = userDb
       .from('bids')
-      .select(`
+      .select(
+        `
         id,
         job_id,
         contractor_id,
@@ -71,7 +79,8 @@ export const GET = withApiHandler(
           status,
           budget
         )
-      `)
+      `
+      )
       .eq('job_id', jobId)
       .order('created_at', { ascending: false });
 
@@ -96,7 +105,10 @@ export const GET = withApiHandler(
       .map((b: { contractor_id: string }) => b.contractor_id)
       .filter(Boolean);
 
-    let contractorRatings = new Map<string, { avgRating: number; reviewCount: number }>();
+    const contractorRatings = new Map<
+      string,
+      { avgRating: number; reviewCount: number }
+    >();
     if (contractorIds.length > 0) {
       const { data: reviews } = await serverSupabase
         .from('reviews')
@@ -127,11 +139,13 @@ export const GET = withApiHandler(
         // Map DB 'description' column to 'message' for client compatibility
         message: bid.description,
         // Embed rating data into the contractor object so clients can access contractor.rating
-        contractor: contractor ? {
-          ...contractor,
-          rating: rating?.avgRating ?? null,
-          reviews_count: rating?.reviewCount ?? 0,
-        } : null,
+        contractor: contractor
+          ? {
+              ...contractor,
+              rating: rating?.avgRating ?? null,
+              reviews_count: rating?.reviewCount ?? 0,
+            }
+          : null,
         contractorRating: rating?.avgRating ?? null,
         contractorReviewCount: rating?.reviewCount ?? 0,
       };

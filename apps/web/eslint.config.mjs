@@ -52,6 +52,9 @@ const eslintConfig = defineConfig([
 
       // Allow apostrophes in JSX text content (overly noisy in UK English copy)
       'react/no-unescaped-entities': 'off',
+
+      // setMounted(true) in useEffect is a valid SSR hydration guard pattern
+      'react-hooks/set-state-in-effect': 'off',
     },
   },
 
