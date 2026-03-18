@@ -19,6 +19,8 @@ export interface OfflineQueryOptions {
   gcTime?: number;
   enabled?: boolean;
   offlineFirst?: boolean; // Prefer cached data even when online
+  retry?: number | boolean;
+  placeholderData?: unknown;
 }
 
 export interface OfflineMutationOptions<TVariables = unknown, TData = unknown> {

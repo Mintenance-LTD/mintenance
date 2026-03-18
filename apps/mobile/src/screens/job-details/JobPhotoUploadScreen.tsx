@@ -26,7 +26,10 @@ import { JobsStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
 
 type ScreenRouteProp = RouteProp<JobsStackParamList, 'PhotoUpload'>;
-type ScreenNavigationProp = NativeStackNavigationProp<JobsStackParamList, 'PhotoUpload'>;
+type ScreenNavigationProp = NativeStackNavigationProp<
+  JobsStackParamList,
+  'PhotoUpload'
+>;
 
 interface Props {
   route: ScreenRouteProp;
@@ -39,7 +42,10 @@ interface SelectedPhoto {
   uploaded?: boolean;
 }
 
-export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => {
+export const JobPhotoUploadScreen: React.FC<Props> = ({
+  route,
+  navigation,
+}) => {
   const { jobId, photoType } = route.params;
   const insets = useSafeAreaInsets();
   const [photos, setPhotos] = useState<SelectedPhoto[]>([]);
@@ -55,7 +61,10 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
   const pickFromCamera = useCallback(async () => {
     const permissions = await PhotoUploadService.requestPermissions();
     if (!permissions.camera) {
-      Alert.alert('Permission Required', 'Camera access is needed to take photos.');
+      Alert.alert(
+        'Permission Required',
+        'Camera access is needed to take photos.'
+      );
       return;
     }
 
@@ -97,7 +106,8 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
   }, []);
 
   const photosToUpload = photos.filter((p) => !p.uploaded);
-  const hasFailedPhotos = photos.some((p) => !p.uploaded) && photos.some((p) => p.uploaded);
+  const hasFailedPhotos =
+    photos.some((p) => !p.uploaded) && photos.some((p) => p.uploaded);
 
   const handleUpload = useCallback(async () => {
     const pending = photos.filter((p) => !p.uploaded);
@@ -117,9 +127,11 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
 
       const results: Array<{ success: boolean }> = [];
       for (let i = 0; i < assets.length; i++) {
-        setUploadProgress(((i) / assets.length) * 100);
+        setUploadProgress((i / assets.length) * 100);
         try {
-          const result = await uploadFn.call(PhotoUploadService, jobId, [assets[i]]);
+          const result = await uploadFn.call(PhotoUploadService, jobId, [
+            assets[i],
+          ]);
           results.push(...result);
         } catch {
           results.push({ success: false });
@@ -157,17 +169,26 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
             'Upload Complete',
             `${successCount} before photo(s) uploaded. Ready to start the job?`,
             [
-              { text: 'Not Yet', style: 'cancel', onPress: () => navigation.goBack() },
+              {
+                text: 'Not Yet',
+                style: 'cancel',
+                onPress: () => navigation.goBack(),
+              },
               {
                 text: 'Start Job',
                 onPress: async () => {
                   try {
                     await JobService.startJob(jobId);
-                    Alert.alert('Job Started', 'The homeowner has been notified that work has begun.', [
-                      { text: 'OK', onPress: () => navigation.goBack() },
-                    ]);
+                    Alert.alert(
+                      'Job Started',
+                      'The homeowner has been notified that work has begun.',
+                      [{ text: 'OK', onPress: () => navigation.goBack() }]
+                    );
                   } catch (startError) {
-                    const msg = startError instanceof Error ? startError.message : 'Failed to start job';
+                    const msg =
+                      startError instanceof Error
+                        ? startError.message
+                        : 'Failed to start job';
                     Alert.alert('Could Not Start Job', msg, [
                       { text: 'OK', onPress: () => navigation.goBack() },
                     ]);
@@ -177,12 +198,8 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
             ]
           );
         } else {
-          // Auto-trigger job completion per spec Phase 8
-          try {
-            await JobService.completeJob(jobId);
-          } catch {
-            // Non-critical: backend may auto-complete via photo webhook
-          }
+          // Job completion is auto-triggered by the backend on after-photo upload (Phase 8 spec).
+          // No manual completeJob() call here — avoids race condition with the webhook.
           Alert.alert(
             'Job Completed',
             `${successCount} after photo(s) uploaded. The homeowner has been notified to review your work.`,
@@ -191,7 +208,10 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
         }
       }
     } catch {
-      Alert.alert('Upload Failed', 'Failed to upload photos. Please try again.');
+      Alert.alert(
+        'Upload Failed',
+        'Failed to upload photos. Please try again.'
+      );
     } finally {
       setUploading(false);
     }
@@ -204,10 +224,14 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityRole='button'
+          accessibilityLabel='Go back'
         >
-          <Ionicons name="arrow-back" size={22} color={theme.colors.textPrimary} />
+          <Ionicons
+            name='arrow-back'
+            size={22}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
         <View style={styles.headerText}>
           <Text style={styles.headerTitle}>{title}</Text>
@@ -241,7 +265,11 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
               <Image source={{ uri: photo.uri }} style={styles.photoImage} />
               {photo.uploaded && (
                 <View style={styles.uploadedBadge}>
-                  <Ionicons name="checkmark-circle" size={28} color={theme.colors.primary} />
+                  <Ionicons
+                    name='checkmark-circle'
+                    size={28}
+                    color={theme.colors.primary}
+                  />
                 </View>
               )}
               {!photo.uploaded && (
@@ -250,7 +278,11 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
                   onPress={() => removePhoto(index)}
                   accessibilityLabel={`Remove photo ${index + 1}`}
                 >
-                  <Ionicons name="close-circle" size={28} color={theme.colors.error} />
+                  <Ionicons
+                    name='close-circle'
+                    size={28}
+                    color={theme.colors.error}
+                  />
                 </TouchableOpacity>
               )}
             </View>
@@ -260,18 +292,26 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
           <TouchableOpacity
             style={styles.addPhotoButton}
             onPress={pickFromCamera}
-            accessibilityLabel="Take a photo"
+            accessibilityLabel='Take a photo'
           >
-            <Ionicons name="camera" size={32} color={theme.colors.textPrimary} />
+            <Ionicons
+              name='camera'
+              size={32}
+              color={theme.colors.textPrimary}
+            />
             <Text style={styles.addPhotoText}>Camera</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.addPhotoButton}
             onPress={pickFromGallery}
-            accessibilityLabel="Choose from gallery"
+            accessibilityLabel='Choose from gallery'
           >
-            <Ionicons name="images" size={32} color={theme.colors.textPrimary} />
+            <Ionicons
+              name='images'
+              size={32}
+              color={theme.colors.textPrimary}
+            />
             <Text style={styles.addPhotoText}>Gallery</Text>
           </TouchableOpacity>
         </View>
@@ -283,26 +323,50 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
       </ScrollView>
 
       {/* Bottom CTA */}
-      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+      <View
+        style={[
+          styles.bottomBar,
+          { paddingBottom: Math.max(insets.bottom, 20) },
+        ]}
+      >
         <TouchableOpacity
-          style={[styles.uploadButton, (uploading || photosToUpload.length === 0) && styles.uploadButtonDisabled]}
+          style={[
+            styles.uploadButton,
+            (uploading || photosToUpload.length === 0) &&
+              styles.uploadButtonDisabled,
+          ]}
           onPress={handleUpload}
           disabled={uploading || photosToUpload.length === 0}
-          accessibilityRole="button"
+          accessibilityRole='button'
           accessibilityLabel={uploading ? 'Uploading photos' : 'Upload photos'}
         >
           {uploading ? (
             <View style={styles.uploadProgressContainer}>
               <Text style={styles.uploadButtonText}>
-                Uploading {Math.min(Math.round((uploadProgress / 100) * photosToUpload.length) + 1, photosToUpload.length)} of {photosToUpload.length}...
+                Uploading{' '}
+                {Math.min(
+                  Math.round((uploadProgress / 100) * photosToUpload.length) +
+                    1,
+                  photosToUpload.length
+                )}{' '}
+                of {photosToUpload.length}...
               </Text>
               <View style={styles.progressBarTrack}>
-                <View style={[styles.progressBarFill, { width: `${uploadProgress}%` }]} />
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    { width: `${uploadProgress}%` },
+                  ]}
+                />
               </View>
             </View>
           ) : (
             <>
-              <Ionicons name={hasFailedPhotos ? 'refresh' : 'cloud-upload'} size={20} color={theme.colors.textInverse} />
+              <Ionicons
+                name={hasFailedPhotos ? 'refresh' : 'cloud-upload'}
+                size={20}
+                color={theme.colors.textInverse}
+              />
               <Text style={styles.uploadButtonText}>
                 {hasFailedPhotos
                   ? `Retry ${photosToUpload.length} Failed Photo${photosToUpload.length !== 1 ? 's' : ''}`
@@ -368,7 +432,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     alignItems: 'flex-start',
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -442,7 +511,12 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: theme.colors.border,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.08, shadowRadius: 12 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+      },
       android: { elevation: 8 },
     }),
   },

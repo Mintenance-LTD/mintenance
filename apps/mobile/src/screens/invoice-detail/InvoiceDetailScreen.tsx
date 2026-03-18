@@ -18,12 +18,12 @@ import { useToast } from '../../components/ui/Toast';
 import { FinancialManagementService } from '../../services/contractor-business';
 import type { Invoice } from '../../services/contractor-business/types';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
-import type { JobsStackParamList } from '../../navigation/types';
+import type { ProfileStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
 
 interface InvoiceDetailScreenProps {
-  navigation: NativeStackNavigationProp<JobsStackParamList, 'InvoiceDetail'>;
-  route: RouteProp<JobsStackParamList, 'InvoiceDetail'>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'InvoiceDetail'>;
+  route: RouteProp<ProfileStackParamList, 'InvoiceDetail'>;
 }
 
 const STATUS_COLORS: Record<string, string> = {

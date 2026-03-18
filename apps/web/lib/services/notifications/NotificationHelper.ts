@@ -1,6 +1,6 @@
 /**
  * Notification Helper
- * 
+ *
  * Centralized helper functions for creating notifications
  * Following Single Responsibility Principle - only handles notification creation logic
  */
@@ -33,7 +33,8 @@ export async function notifyJobStatusChange(
   params: JobStatusNotificationParams
 ): Promise<void> {
   try {
-    const { jobId, jobTitle, oldStatus, newStatus, homeownerId, contractorId } = params;
+    const { jobId, jobTitle, oldStatus, newStatus, homeownerId, contractorId } =
+      params;
 
     // Determine notification recipients and messages based on status transition
     const notifications: Array<{
@@ -167,10 +168,13 @@ export async function notifyJobStatusChange(
  * Create notification for payment events
  */
 export async function notifyPaymentEvent(
-  params: PaymentNotificationParams & { eventType: 'received' | 'released' | 'required' | 'failed' }
+  params: PaymentNotificationParams & {
+    eventType: 'received' | 'released' | 'required' | 'failed';
+  }
 ): Promise<void> {
   try {
-    const { userId, jobId, jobTitle, amount, eventType, transactionId } = params;
+    const { userId, jobId, jobTitle, amount, eventType, transactionId } =
+      params;
 
     const formattedAmount = `£${amount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -184,14 +188,18 @@ export async function notifyPaymentEvent(
         title = 'Payment Received 💰';
         message = `You've received ${formattedAmount} for "${jobTitle}". Funds are held in escrow.`;
         type = 'payment_received';
-        actionUrl = transactionId ? `/payments/${transactionId}` : `/jobs/${jobId}`;
+        actionUrl = transactionId
+          ? `/payments/${transactionId}`
+          : `/jobs/${jobId}`;
         break;
 
       case 'released':
         title = 'Payment Released 🎉';
         message = `${formattedAmount} has been released from escrow for "${jobTitle}". Funds are now available.`;
         type = 'payment_released';
-        actionUrl = transactionId ? `/payments/${transactionId}` : `/jobs/${jobId}`;
+        actionUrl = transactionId
+          ? `/payments/${transactionId}`
+          : `/jobs/${jobId}`;
         break;
 
       case 'required':
@@ -246,14 +254,17 @@ export async function notifyJobScheduled(
   contractorId?: string | null
 ): Promise<void> {
   try {
-    const scheduledDateFormatted = new Date(scheduledDate).toLocaleDateString('en-GB', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const scheduledDateFormatted = new Date(scheduledDate).toLocaleDateString(
+      'en-GB',
+      {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }
+    );
 
     const notifications: Array<{
       user_id: string;
@@ -364,6 +375,82 @@ export async function notifyBidRejected(
     });
   } catch (error) {
     logger.error('Error in notifyBidRejected', error, {
+      service: 'NotificationHelper',
+      jobId,
+      contractorId,
+    });
+  }
+}
+
+/**
+ * Create notification when a contract party signs
+ */
+export async function notifyContractSigned(
+  jobId: string,
+  jobTitle: string,
+  signerRole: 'homeowner' | 'contractor',
+  homeownerId: string,
+  contractorId: string
+): Promise<void> {
+  try {
+    // Notify the OTHER party that signing has occurred
+    const recipientId = signerRole === 'homeowner' ? contractorId : homeownerId;
+    const recipientPath =
+      signerRole === 'homeowner'
+        ? `/contractor/jobs/${jobId}`
+        : `/jobs/${jobId}`;
+    const signerLabel =
+      signerRole === 'homeowner' ? 'The homeowner' : 'The contractor';
+
+    await NotificationService.createNotification({
+      userId: recipientId,
+      type: 'contract_signed',
+      title: 'Contract Signed',
+      message: `${signerLabel} has signed the contract for "${jobTitle}". Please review and add your signature.`,
+      actionUrl: recipientPath,
+    }).catch((error) => {
+      logger.error('Failed to create contract signed notification', error, {
+        service: 'NotificationHelper',
+        jobId,
+        recipientId,
+      });
+    });
+  } catch (error) {
+    logger.error('Error in notifyContractSigned', error, {
+      service: 'NotificationHelper',
+      jobId,
+    });
+  }
+}
+
+/**
+ * Create notification when a homeowner requests changes after job completion
+ */
+export async function notifyChangesRequested(
+  jobId: string,
+  jobTitle: string,
+  contractorId: string,
+  comments: string
+): Promise<void> {
+  try {
+    const truncated =
+      comments.length > 120 ? `${comments.slice(0, 117)}…` : comments;
+
+    await NotificationService.createNotification({
+      userId: contractorId,
+      type: 'changes_requested',
+      title: 'Changes Requested',
+      message: `The homeowner has requested changes for "${jobTitle}": ${truncated}`,
+      actionUrl: `/contractor/jobs/${jobId}`,
+    }).catch((error) => {
+      logger.error('Failed to create changes requested notification', error, {
+        service: 'NotificationHelper',
+        jobId,
+        contractorId,
+      });
+    });
+  } catch (error) {
+    logger.error('Error in notifyChangesRequested', error, {
       service: 'NotificationHelper',
       jobId,
       contractorId,

@@ -35,6 +35,7 @@ vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
     from: (...args: unknown[]) => mocks.supabaseFrom(...args),
   },
+  createRequestScopedClient: () => null, // falls back to serverSupabase in route
 }));
 
 vi.mock('@/lib/csrf', () => ({ requireCSRF: mocks.requireCSRF }));

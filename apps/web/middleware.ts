@@ -62,9 +62,14 @@ export async function middleware(request: NextRequest) {
   // IMPORTANT: Public route check MUST happen before ConfigManager to ensure
   // login, CSRF, session-status, and diag routes work even if config fails
   const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password', '/about', '/contact', '/privacy', '/terms', '/help', '/logout', '/careers', '/press', '/safety', '/cookies', '/faq', '/blog', '/pricing', '/how-it-works', '/ai-search', '/try-mint-ai'];
-  const publicApiRoutes = ['/api/csrf', '/api/auth/login', '/api/auth/register', '/api/auth/forgot-password', '/api/auth/reset-password', '/api/auth/verify-email', '/api/auth/session-status', '/api/stats/platform', '/api/diag', '/api/building-surveyor/demo', '/api/building-surveyor/demo-feedback',
+  // SECURITY: Exact-match API routes — no sub-path access allowed
+  const publicApiRoutesExact = new Set([
+    '/api/csrf', '/api/stats/platform', '/api/diag',
+    '/api/building-surveyor/demo', '/api/building-surveyor/demo-feedback',
     '/api/csp-report', // Browser-generated CSP violation reports: no auth, no CSRF (browser controls headers)
-  ];
+  ]);
+  // Prefix-match API routes — sub-paths are intentionally allowed (e.g. /api/auth/login/callback)
+  const publicApiRoutesPrefixed = ['/api/auth/'];
   const adminAuthRoutes = ['/admin/login', '/admin/register', '/admin/forgot-password'];
   // SECURITY: Only allow UUID-formatted contractor profile paths as public
   // This prevents /contractor/dashboard-enhanced, /contractor/settings, etc. from bypassing auth
@@ -73,7 +78,8 @@ export async function middleware(request: NextRequest) {
   const isPublicContractorsPage = false;
   const isPublicRoute = pathname === '/' ||
     publicRoutes.some(route => pathname === route || pathname.startsWith(route + '/')) ||
-    publicApiRoutes.some(route => pathname === route || pathname.startsWith(route + '/')) ||
+    publicApiRoutesExact.has(pathname) ||
+    publicApiRoutesPrefixed.some(prefix => pathname.startsWith(prefix)) ||
     isPublicContractorProfile ||
     isPublicContractorsPage ||
     adminAuthRoutes.includes(pathname);
@@ -82,6 +88,12 @@ export async function middleware(request: NextRequest) {
   if (isPublicRoute) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-pathname', pathname);
+
+    // SECURITY: Generate nonce for public routes too (same as authenticated routes)
+    // Prevents XSS via inline script injection on login/register pages
+    const publicNonce = crypto.randomUUID().replace(/-/g, '');
+    requestHeaders.set('x-csp-nonce', publicNonce);
+
     const response = NextResponse.next({ request: { headers: requestHeaders } });
 
     // Generate or refresh CSRF token (always set to ensure httpOnly:false is applied)
@@ -97,12 +109,10 @@ export async function middleware(request: NextRequest) {
       maxAge: 24 * 60 * 60, // 24 hours
     });
 
-    // Set CSP for public routes — using 'unsafe-inline' only for styles (required by Next.js)
-    // Scripts use 'strict-dynamic' with hash-based allowlisting via Next.js
     if (!isDevelopment) {
       response.headers.set('Content-Security-Policy', [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com",
+        `script-src 'self' 'nonce-${publicNonce}' https://js.stripe.com https://maps.googleapis.com`,
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
         "font-src 'self' data: https://fonts.gstatic.com",

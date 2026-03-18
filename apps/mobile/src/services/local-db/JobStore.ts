@@ -28,8 +28,8 @@ export async function saveJob(
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   const location = typeof job.location === 'string' ? job.location : (job.location ? JSON.stringify(job.location) : '');
-  const homeownerId = job.homeowner_id || (job as Record<string, unknown>).homeownerId as string || null;
-  const contractorId = job.contractor_id ?? (job as Record<string, unknown>).contractorId as string ?? null;
+  const homeownerId = job.homeowner_id || (job as unknown as Record<string, unknown>).homeownerId as string || null;
+  const contractorId = job.contractor_id ?? (job as unknown as Record<string, unknown>).contractorId as string ?? null;
   const params: (string | number | null)[] = [
     job.id, job.title || '', job.description || '', location, homeownerId,
     contractorId, job.status, job.budget ?? null, job.category ?? null,

@@ -8,22 +8,28 @@ export const paymentIntentSchema = z.object({
   amount: z
     .number()
     .positive('Amount must be positive')
-    .max(10000, "Amount exceeds maximum (£10,000)")
+    .max(10000, 'Amount exceeds maximum (£10,000)')
     .transform((val) => Math.round(val * 100) / 100),
   currency: z.enum(['gbp', 'eur', 'usd']).default('gbp'),
   jobId: z.string().uuid('Invalid job ID'),
   contractorId: z.string().uuid('Invalid contractor ID'),
-  metadata: z.object({ description: z.string().max(500).optional() }).optional(),
+  metadata: z
+    .object({ description: z.string().max(500).optional() })
+    .optional(),
 });
 
 export const paymentMethodSchema = z.object({
   userId: z.string().uuid('Invalid user ID'),
-  paymentMethodId: z.string().regex(/^pm_[a-zA-Z0-9]+$/, 'Invalid payment method ID'),
+  paymentMethodId: z
+    .string()
+    .regex(/^pm_[a-zA-Z0-9]+$/, 'Invalid payment method ID'),
   isDefault: z.boolean().default(false),
 });
 
 export const refundSchema = z.object({
-  paymentIntentId: z.string().regex(/^pi_[a-zA-Z0-9]+$/, 'Invalid payment intent ID'),
+  paymentIntentId: z
+    .string()
+    .regex(/^pi_[a-zA-Z0-9]+$/, 'Invalid payment intent ID'),
   amount: z.number().positive('Amount must be positive').optional(),
   reason: z.string().max(500, 'Reason too long').optional(),
 });
@@ -32,6 +38,7 @@ export const refundSchema = z.object({
 export const releaseEscrowSchema = z.object({
   escrowTransactionId: z.string().uuid('Invalid escrow transaction ID'),
   releaseReason: z.enum(['job_completed', 'dispute_resolved', 'timeout']),
+  adminJustification: z.string().max(500).optional(),
 });
 
 export const refundRequestSchema = z.object({
@@ -43,7 +50,14 @@ export const refundRequestSchema = z.object({
 
 // Subscription Schemas
 export const createSubscriptionSchema = z.object({
-  planType: z.enum(['free', 'basic', 'professional', 'enterprise', 'landlord', 'agency']),
+  planType: z.enum([
+    'free',
+    'basic',
+    'professional',
+    'enterprise',
+    'landlord',
+    'agency',
+  ]),
   billingCycle: z.enum(['monthly', 'yearly']).optional(),
 });
 

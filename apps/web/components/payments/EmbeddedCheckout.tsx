@@ -2,10 +2,15 @@
 
 import type { JSX } from 'react';
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { loadStripe } from '@stripe/stripe-js';
-import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
+import {
+  EmbeddedCheckoutProvider,
+  EmbeddedCheckout,
+} from '@stripe/react-stripe-js';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 // Initialize Stripe promise
 let stripePromise: ReturnType<typeof loadStripe> | null = null;
@@ -31,13 +36,14 @@ interface EmbeddedCheckoutProps {
   bidId?: string;
   contractorId?: string;
   quantity?: number;
+  successUrl?: string;
   onSuccess?: () => void;
   onError?: (error: string) => void;
 }
 
 /**
  * Embedded Stripe Checkout Component
- * 
+ *
  * Displays Stripe's embedded checkout form directly on your page.
  * Use this for one-time payments with a Price ID.
  */
@@ -47,9 +53,11 @@ export function EmbeddedCheckoutComponent({
   bidId,
   contractorId,
   quantity = 1,
+  successUrl,
   onSuccess,
   onError,
 }: EmbeddedCheckoutProps): JSX.Element {
+  const router = useRouter();
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,12 +65,15 @@ export function EmbeddedCheckoutComponent({
   useEffect(() => {
     async function fetchClientSecret(): Promise<void> {
       // Check if Stripe is available in test environment
-      const isTestMode = process.env.NODE_ENV === 'test' || process.env.PLAYWRIGHT_TEST;
+      const isTestMode =
+        process.env.NODE_ENV === 'test' || process.env.PLAYWRIGHT_TEST;
       const hasStripeKey = !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
       if (isTestMode && !hasStripeKey) {
         // Test mode without Stripe keys - show helpful message
-        setError('Stripe Test Mode: Configure NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY and STRIPE_SECRET_KEY to test payment flow');
+        setError(
+          'Stripe Test Mode: Configure NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY and STRIPE_SECRET_KEY to test payment flow'
+        );
         setIsLoading(false);
         return;
       }
@@ -72,9 +83,14 @@ export function EmbeddedCheckoutComponent({
         setError(null);
 
         // Fetch fresh CSRF token before payment mutation
-        const csrfRes = await fetch('/api/csrf', { method: 'GET', credentials: 'include' });
-        const { token: csrfToken } = csrfRes.ok ? await csrfRes.json() : { token: '' };
-        if (csrfToken) await new Promise(r => setTimeout(r, 50));
+        const csrfRes = await fetch('/api/csrf', {
+          method: 'GET',
+          credentials: 'include',
+        });
+        const { token: csrfToken } = csrfRes.ok
+          ? await csrfRes.json()
+          : { token: '' };
+        if (csrfToken) await new Promise((r) => setTimeout(r, 50));
 
         const response = await fetch('/api/payments/embedded-checkout', {
           method: 'POST',
@@ -94,13 +110,16 @@ export function EmbeddedCheckoutComponent({
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || 'Failed to create checkout session');
+          throw new Error(
+            errorData.error || 'Failed to create checkout session'
+          );
         }
 
         const data = await response.json();
         setClientSecret(data.clientSecret);
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+        const errorMessage =
+          err instanceof Error ? err.message : 'An unexpected error occurred';
         setError(errorMessage);
         onError?.(errorMessage);
       } finally {
@@ -113,17 +132,19 @@ export function EmbeddedCheckoutComponent({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2 text-sm text-muted-foreground">Loading checkout...</span>
+      <div className='flex items-center justify-center p-8'>
+        <Loader2 className='h-8 w-8 animate-spin text-primary' />
+        <span className='ml-2 text-sm text-muted-foreground'>
+          Loading checkout...
+        </span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
+      <Alert variant='destructive'>
+        <AlertCircle className='h-4 w-4' />
         <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
@@ -132,28 +153,29 @@ export function EmbeddedCheckoutComponent({
   if (!clientSecret) {
     return (
       <Alert>
-        <AlertCircle className="h-4 w-4" />
+        <AlertCircle className='h-4 w-4' />
         <AlertDescription>No checkout session available</AlertDescription>
       </Alert>
     );
   }
 
+  const handleComplete = () => {
+    toast.success('Payment successful! Your escrow is now secured.');
+    onSuccess?.();
+    const destination = successUrl ?? (jobId ? `/jobs/${jobId}` : '/dashboard');
+    router.push(destination);
+  };
+
   const options = {
     clientSecret,
-    onComplete: () => {
-      onSuccess?.();
-    },
+    onComplete: handleComplete,
   };
 
   return (
-    <div className="w-full">
-      <EmbeddedCheckoutProvider
-        stripe={getStripe()}
-        options={options}
-      >
+    <div className='w-full'>
+      <EmbeddedCheckoutProvider stripe={getStripe()} options={options}>
         <EmbeddedCheckout />
       </EmbeddedCheckoutProvider>
     </div>
   );
 }
-

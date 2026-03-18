@@ -71,7 +71,7 @@ const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
       setCategory(job.category ?? '');
       setPriority((job.priority as 'low' | 'medium' | 'high') ?? 'medium');
       setBudget(job.budget != null ? String(job.budget) : '');
-      setLocation(job.location ?? '');
+      setLocation(typeof job.location === 'string' ? job.location : (job.location ? JSON.stringify(job.location) : ''));
     } catch (error) {
       logger.error('Failed to fetch job for editing', error);
       setErrorMessage(

@@ -20,6 +20,8 @@ const VALID_CATEGORIES = [
   'plumbing', 'electrical', 'hvac', 'general', 'appliance', 'landscaping',
   'roofing', 'painting', 'carpentry', 'cleaning', 'flooring', 'tiling',
   'plastering', 'guttering', 'fencing', 'damp', 'pest_control', 'other',
+  // Added from frontend JOB_CATEGORIES (constants.ts) to fix validation mismatch
+  'heating', 'gardening', 'handyman',
 ] as const;
 
 const createJobSchema = z.object({

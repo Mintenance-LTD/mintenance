@@ -16,11 +16,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../components/ui/Toast';
 import { FinancialManagementService } from '../../services/contractor-business';
 import type { InvoiceLineItem } from '../../services/contractor-business/types';
-import type { JobsStackParamList } from '../../navigation/types';
+import type { ProfileStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
 
 interface CreateInvoiceScreenProps {
-  navigation: NativeStackNavigationProp<JobsStackParamList, 'CreateInvoice'>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'CreateInvoice'>;
 }
 
 interface LineItemDraft {

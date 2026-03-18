@@ -19,7 +19,7 @@ interface NotificationsModule {
   }) => void;
   getPermissionsAsync: () => Promise<{ status: string }>;
   requestPermissionsAsync: () => Promise<{ status: string }>;
-  getExpoPushTokenAsync: () => Promise<{ data: string }>;
+  getExpoPushTokenAsync: (options?: { projectId?: string }) => Promise<{ data: string }>;
   scheduleNotificationAsync: (options: {
     content: { title: string; body: string; data: Record<string, unknown> };
     trigger: { seconds?: number; date?: Date } | null;

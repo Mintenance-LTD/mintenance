@@ -543,7 +543,7 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
                 style={styles.quoteFullBtn}
                 onPress={() => {
                   setShowQuoteModal(false);
-                  navigation.navigate('CreateQuote' as never, { jobId } as never);
+                  (navigation as { navigate: (screen: string, params?: Record<string, unknown>) => void }).navigate('CreateQuote', { jobId });
                 }}
               >
                 <Ionicons name="document-text-outline" size={16} color={theme.colors.textPrimary} />

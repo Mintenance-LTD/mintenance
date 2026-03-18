@@ -27,6 +27,9 @@ const eslintConfig = defineConfig([
       // Warn on any types (upgrade to error after fixing existing issues)
       '@typescript-eslint/no-explicit-any': 'warn',
 
+      // Ignore args/vars prefixed with _ (standard TypeScript idiom for unused params)
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+
       // Prevent usage of @ts-ignore without description
       '@typescript-eslint/ban-ts-comment': [
         'error',

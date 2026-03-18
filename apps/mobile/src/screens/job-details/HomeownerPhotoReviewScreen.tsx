@@ -9,13 +9,10 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
-  TextInput,
   Alert,
-  Platform,
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,12 +20,15 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
-import { BeforeAfterSlider } from '../../components/BeforeAfterSlider';
+import { JobService } from '../../services/JobService';
+import { PhotoUploadService } from '../../services/PhotoUploadService';
 import type { JobsStackParamList } from '../../navigation/types';
 import { logger } from '../../utils/logger';
 import { theme } from '../../theme';
+import { styles } from './photoReviewStyles';
+import { BeforeAfterSliderView } from './components/BeforeAfterSliderView';
+import { PhotoReviewControls } from './components/PhotoReviewControls';
 
 type PhotoReviewRouteProp = RouteProp<JobsStackParamList, 'PhotoReview'>;
 
@@ -55,43 +55,50 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
     try {
       setLoading(true);
 
-      // Fetch job title
-      const { data: jobRow } = await supabase
-        .from('jobs')
-        .select('title')
-        .eq('id', jobId)
-        .single();
-      if (jobRow?.title) setJobTitle(jobRow.title as string);
+      const [jobData, photos] = await Promise.all([
+        JobService.getJobById(jobId),
+        PhotoUploadService.getJobPhotos(jobId),
+      ]);
+      if (jobData?.title) setJobTitle(jobData.title);
 
-      // Fetch before and after photos
-      const { data: photoRows, error: photosErr } = await supabase
-        .from('job_photos_metadata')
-        .select('id, photo_url, photo_type, created_at')
-        .eq('job_id', jobId)
-        .in('photo_type', ['before', 'after'])
-        .order('created_at', { ascending: true });
-      if (photosErr) throw new Error(photosErr.message);
-      const photos = (photoRows || []) as Array<{ id: string; photo_url: string; photo_type: string; created_at: string }>;
-
-      // Pair before and after photos
-      const beforePhotos = (photos || []).filter(p => p.photo_type === 'before');
-      const afterPhotos = (photos || []).filter(p => p.photo_type === 'after');
+      const beforePhotos = (photos || []).filter(
+        (p) => p.photo_type === 'before'
+      );
+      const afterPhotos = (photos || []).filter(
+        (p) => p.photo_type === 'after'
+      );
 
       const pairs: PhotoPair[] = [];
       const pairCount = Math.min(beforePhotos.length, afterPhotos.length);
       for (let i = 0; i < pairCount; i++) {
         pairs.push({
-          before: { url: beforePhotos[i].photo_url, id: beforePhotos[i].id, timestamp: beforePhotos[i].created_at },
-          after: { url: afterPhotos[i].photo_url, id: afterPhotos[i].id, timestamp: afterPhotos[i].created_at },
+          before: {
+            url: beforePhotos[i].photo_url,
+            id: beforePhotos[i].id,
+            timestamp: beforePhotos[i].created_at,
+          },
+          after: {
+            url: afterPhotos[i].photo_url,
+            id: afterPhotos[i].id,
+            timestamp: afterPhotos[i].created_at,
+          },
         });
       }
 
-      // Also add unpaired after photos (useful if more after than before)
+      // Add unpaired after photos reusing the first before photo as context
       for (let i = pairCount; i < afterPhotos.length; i++) {
         if (beforePhotos.length > 0) {
           pairs.push({
-            before: { url: beforePhotos[0].photo_url, id: beforePhotos[0].id, timestamp: beforePhotos[0].created_at },
-            after: { url: afterPhotos[i].photo_url, id: afterPhotos[i].id, timestamp: afterPhotos[i].created_at },
+            before: {
+              url: beforePhotos[0].photo_url,
+              id: beforePhotos[0].id,
+              timestamp: beforePhotos[0].created_at,
+            },
+            after: {
+              url: afterPhotos[i].photo_url,
+              id: afterPhotos[i].id,
+              timestamp: afterPhotos[i].created_at,
+            },
           });
         }
       }
@@ -112,17 +119,18 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
   const handleApprove = async () => {
     if (!user?.id || submitting) return;
     setSubmitting(true);
-
     try {
       await mobileApiClient.post(`/api/jobs/${jobId}/confirm-completion`, {});
-
       Alert.alert(
         'Work Approved',
         'Payment will be released to the contractor. Thank you!',
         [{ text: 'Done', onPress: () => navigation.goBack() }]
       );
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to approve. Please try again.';
+      const msg =
+        err instanceof Error
+          ? err.message
+          : 'Failed to approve. Please try again.';
       Alert.alert('Error', msg);
     } finally {
       setSubmitting(false);
@@ -132,30 +140,36 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
   const handleRequestChanges = async () => {
     if (!user?.id || submitting || !changesComment.trim()) return;
     setSubmitting(true);
-
     try {
       await mobileApiClient.post(`/api/jobs/${jobId}/request-changes`, {
         comments: changesComment.trim(),
       });
-
       Alert.alert(
         'Changes Requested',
         'The contractor has been notified and will review your feedback.',
         [{ text: 'Done', onPress: () => navigation.goBack() }]
       );
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to submit. Please try again.';
+      const msg =
+        err instanceof Error
+          ? err.message
+          : 'Failed to submit. Please try again.';
       Alert.alert('Error', msg);
     } finally {
       setSubmitting(false);
     }
   };
 
+  const handleCancelChanges = () => {
+    setShowChangesForm(false);
+    setChangesComment('');
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={theme.colors.textPrimary} />
+          <ActivityIndicator size='large' color={theme.colors.textPrimary} />
           <Text style={styles.loadingText}>Loading photos...</Text>
         </View>
       </SafeAreaView>
@@ -166,38 +180,65 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} accessibilityRole="button">
-            <Ionicons name="arrow-back" size={22} color={theme.colors.textPrimary} />
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            accessibilityRole='button'
+          >
+            <Ionicons
+              name='arrow-back'
+              size={22}
+              color={theme.colors.textPrimary}
+            />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Review Work</Text>
           <View style={{ width: 44 }} />
         </View>
         <View style={styles.centered}>
           <View style={styles.emptyIconWrap}>
-            <Ionicons name="images-outline" size={32} color={theme.colors.textTertiary} />
+            <Ionicons
+              name='images-outline'
+              size={32}
+              color={theme.colors.textTertiary}
+            />
           </View>
           <Text style={styles.emptyTitle}>No Photos Available</Text>
           <Text style={styles.emptySubtitle}>
-            Photos will appear here once the contractor uploads before and after photos.
+            Photos will appear here once the contractor uploads before and after
+            photos.
           </Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  const currentPair = photoPairs[activePairIndex];
-
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
+      <StatusBar
+        barStyle='dark-content'
+        backgroundColor={theme.colors.backgroundSecondary}
+      />
+
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={22} color={theme.colors.textPrimary} />
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          accessibilityRole='button'
+        >
+          <Ionicons
+            name='arrow-back'
+            size={22}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Review Work</Text>
-          {jobTitle ? <Text style={styles.headerSubtitle} numberOfLines={1}>{jobTitle}</Text> : null}
+          {jobTitle ? (
+            <Text style={styles.headerSubtitle} numberOfLines={1}>
+              {jobTitle}
+            </Text>
+          ) : null}
         </View>
         <Text style={styles.photoCount}>
           {activePairIndex + 1}/{photoPairs.length}
@@ -207,387 +248,44 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps='handled'
       >
-        {/* Before/After Slider */}
-        <View style={styles.sliderContainer}>
-          <BeforeAfterSlider
-            beforeUrl={currentPair.before.url}
-            afterUrl={currentPair.after.url}
-            height={320}
-          />
-          {/* Photo Timestamps */}
-          {(currentPair.before.timestamp || currentPair.after.timestamp) && (
-            <View style={styles.timestampRow}>
-              {currentPair.before.timestamp && (
-                <View style={styles.timestampBadge}>
-                  <Ionicons name="camera-outline" size={12} color={theme.colors.textTertiary} />
-                  <Text style={styles.timestampText}>
-                    Before: {new Date(currentPair.before.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                  </Text>
-                </View>
-              )}
-              {currentPair.after.timestamp && (
-                <View style={styles.timestampBadge}>
-                  <Ionicons name="checkmark-circle-outline" size={12} color={theme.colors.textTertiary} />
-                  <Text style={styles.timestampText}>
-                    After: {new Date(currentPair.after.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
-        </View>
+        <BeforeAfterSliderView
+          photoPairs={photoPairs}
+          activePairIndex={activePairIndex}
+          onSelectPair={setActivePairIndex}
+        />
 
-        {/* Photo Pair Thumbnails */}
-        {photoPairs.length > 1 && (
-          <ScrollView
-            horizontal
-            style={styles.thumbnailRow}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.thumbnailContent}
-          >
-            {photoPairs.map((pair, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.thumbnail,
-                  index === activePairIndex && styles.thumbnailActive,
-                ]}
-                onPress={() => setActivePairIndex(index)}
-                accessibilityRole="button"
-                accessibilityLabel={`Photo pair ${index + 1} of ${photoPairs.length}`}
-              >
-                <Text style={styles.thumbnailText}>{index + 1}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
-
-        {/* Instructions */}
-        <View style={styles.instructions}>
-          <Ionicons name="information-circle-outline" size={20} color={theme.colors.textTertiary} />
-          <Text style={styles.instructionsText}>
-            Drag the slider to compare before and after photos. Approve if satisfied, or request changes.
-          </Text>
-        </View>
-
-        {/* Changes Form */}
+        {/* Changes Form (rendered inside scroll so it's above the keyboard) */}
         {showChangesForm && (
-          <View style={styles.changesForm}>
-            <Text style={styles.changesLabel}>What changes are needed?</Text>
-            <TextInput
-              style={styles.changesInput}
-              value={changesComment}
-              onChangeText={setChangesComment}
-              placeholder="Describe what needs to be fixed or improved..."
-              placeholderTextColor={theme.colors.textTertiary}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-              accessibilityLabel="Changes needed description"
-            />
-            <View style={styles.changesActions}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => {
-                  setShowChangesForm(false);
-                  setChangesComment('');
-                }}
-                accessibilityRole="button"
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.submitButton, !changesComment.trim() && styles.buttonDisabled]}
-                onPress={handleRequestChanges}
-                disabled={!changesComment.trim() || submitting}
-                accessibilityRole="button"
-                accessibilityLabel="Submit change request"
-              >
-                {submitting ? (
-                  <ActivityIndicator size="small" color={theme.colors.textInverse} />
-                ) : (
-                  <Text style={styles.submitButtonText}>Send to Contractor</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
+          <PhotoReviewControls
+            showChangesForm
+            changesComment={changesComment}
+            submitting={submitting}
+            onShowChangesForm={() => setShowChangesForm(true)}
+            onCancelChanges={handleCancelChanges}
+            onChangesCommentChange={setChangesComment}
+            onApprove={handleApprove}
+            onRequestChanges={handleRequestChanges}
+          />
         )}
       </ScrollView>
 
-      {/* Action Buttons */}
+      {/* Action Buttons (fixed footer, hidden while changes form is open) */}
       {!showChangesForm && (
-        <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={styles.requestChangesButton}
-            onPress={() => setShowChangesForm(true)}
-            disabled={submitting}
-            accessibilityRole="button"
-            accessibilityLabel="Request changes to the work"
-          >
-            <Ionicons name="create-outline" size={20} color={theme.colors.textSecondary} />
-            <Text style={styles.requestChangesText}>Request Changes</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.approveButton}
-            onPress={handleApprove}
-            disabled={submitting}
-            accessibilityRole="button"
-            accessibilityLabel="Approve the completed work"
-          >
-            {submitting ? (
-              <ActivityIndicator size="small" color={theme.colors.textInverse} />
-            ) : (
-              <>
-                <Ionicons name="checkmark-circle" size={20} color={theme.colors.textInverse} />
-                <Text style={styles.approveButtonText}>Approve Work</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
+        <PhotoReviewControls
+          showChangesForm={false}
+          changesComment={changesComment}
+          submitting={submitting}
+          onShowChangesForm={() => setShowChangesForm(true)}
+          onCancelChanges={handleCancelChanges}
+          onChangesCommentChange={setChangesComment}
+          onApprove={handleApprove}
+          onRequestChanges={handleRequestChanges}
+        />
       )}
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: theme.colors.backgroundSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-    marginHorizontal: 12,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    marginTop: 2,
-  },
-  photoCount: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
-  },
-  content: {
-    flex: 1,
-  },
-  sliderContainer: {
-    paddingTop: 16,
-  },
-  timestampRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    marginTop: 8,
-    gap: 8,
-  },
-  timestampBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: 6,
-  },
-  timestampText: {
-    fontSize: 11,
-    color: theme.colors.textTertiary,
-    fontWeight: '500',
-  },
-  thumbnailRow: {
-    marginTop: 12,
-  },
-  thumbnailContent: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  thumbnail: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: theme.colors.backgroundSecondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  thumbnailActive: {
-    borderColor: theme.colors.textPrimary,
-    backgroundColor: theme.colors.border,
-  },
-  thumbnailText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-  },
-  instructions: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    marginHorizontal: 16,
-    marginTop: 16,
-    padding: 12,
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: 12,
-  },
-  instructionsText: {
-    flex: 1,
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    lineHeight: 20,
-  },
-  changesForm: {
-    margin: 16,
-    padding: 16,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
-      android: { elevation: 2 },
-    }),
-  },
-  changesLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-    marginBottom: 12,
-  },
-  changesInput: {
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 15,
-    color: theme.colors.textPrimary,
-    minHeight: 100,
-  },
-  changesActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-    marginTop: 12,
-  },
-  cancelButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  cancelButtonText: {
-    fontSize: 15,
-    color: theme.colors.textSecondary,
-    fontWeight: '600',
-  },
-  submitButton: {
-    backgroundColor: theme.colors.textPrimary,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 28,
-  },
-  submitButtonText: {
-    fontSize: 15,
-    color: theme.colors.textInverse,
-    fontWeight: '600',
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
-  },
-  requestChangesButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 28,
-    backgroundColor: theme.colors.backgroundSecondary,
-  },
-  requestChangesText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-  },
-  approveButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 28,
-    backgroundColor: theme.colors.primary,
-  },
-  approveButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: theme.colors.textInverse,
-  },
-  emptyIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: theme.colors.backgroundSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  emptyTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginTop: 16,
-  },
-  emptySubtitle: {
-    fontSize: 15,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 22,
-  },
-});
 
 export default HomeownerPhotoReviewScreen;

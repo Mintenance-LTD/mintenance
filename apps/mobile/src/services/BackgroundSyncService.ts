@@ -1,4 +1,6 @@
+// @ts-expect-error -- expo-task-manager types don't resolve in monorepo tsc; works at runtime via Metro
 import * as TaskManager from 'expo-task-manager';
+// @ts-expect-error -- expo-background-fetch types don't resolve in monorepo tsc; works at runtime via Metro
 import * as BackgroundFetch from 'expo-background-fetch';
 import NetInfo from '@react-native-community/netinfo';
 import { logger } from '../utils/logger';
