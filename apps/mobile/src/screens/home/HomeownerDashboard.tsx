@@ -66,10 +66,10 @@ export const HomeownerDashboard: React.FC = () => {
 
   // Bids query
   const { data: recentBids = [], isLoading: bidsLoading } = useQuery({
-    queryKey: ['homeownerBids', activeJobIds.slice(0, 5).join(',')],
+    queryKey: ['homeownerBids', activeJobIds.slice(0, 10).join(',')],
     queryFn: async () => {
       const bids = await BidService.getBidsByJobs(
-        activeJobIds.slice(0, 5),
+        activeJobIds.slice(0, 10),
         'pending'
       ).catch((err: unknown) => {
         logger.warn('Failed to fetch bids for jobs', {
@@ -130,7 +130,10 @@ export const HomeownerDashboard: React.FC = () => {
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['homeownerJobs', user?.id] });
-    queryClient.invalidateQueries({ queryKey: ['homeownerBids'] });
+    queryClient.invalidateQueries({
+      queryKey: ['homeownerBids'],
+      exact: false,
+    });
     queryClient.invalidateQueries({ queryKey: ['appointments', user?.id] });
   };
 
