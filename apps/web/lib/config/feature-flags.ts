@@ -107,9 +107,8 @@ export class FeatureFlagService {
         ) => LDClient;
         try {
           // @ts-expect-error -- optional dependency, not installed in all environments
-          const ld = await import(
-            /* webpackIgnore: true */ 'launchdarkly-js-client-sdk'
-          );
+          // prettier-ignore
+          const ld = await import(/* webpackIgnore: true */ 'launchdarkly-js-client-sdk');
           initialize = ld.initialize;
         } catch {
           logger.warn(
