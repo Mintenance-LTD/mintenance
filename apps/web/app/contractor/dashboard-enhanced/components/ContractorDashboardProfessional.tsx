@@ -104,7 +104,6 @@ export function ContractorDashboardProfessional(
   >('month');
 
   // Compute chart data based on selected period
-  // eslint-disable-next-line react-compiler/react-compiler
   const chartData = React.useMemo(() => {
     if (!progressTrendData || progressTrendData.length === 0) return [];
 

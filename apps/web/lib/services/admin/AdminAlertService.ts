@@ -75,7 +75,7 @@ export class AdminAlertService {
    *    Severity: high
    */
   private static async checkOverdueEscrows(
-    alerts: AdminAlert[],
+    alerts: AdminAlert[]
   ): Promise<number> {
     let skipped = 0;
     const fourteenDaysAgo = new Date();
@@ -107,7 +107,7 @@ export class AdminAlertService {
 
       const daysHeld = Math.floor(
         (Date.now() - new Date(escrow.created_at).getTime()) /
-          (1000 * 60 * 60 * 24),
+          (1000 * 60 * 60 * 24)
       );
 
       alerts.push({
@@ -134,9 +134,9 @@ export class AdminAlertService {
    *    Severity: medium
    */
   private static async checkUnverifiedContractors(
-    alerts: AdminAlert[],
+    alerts: AdminAlert[]
   ): Promise<number> {
-    let skipped = 0;
+    const skipped = 0;
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -171,7 +171,7 @@ export class AdminAlertService {
 
     const daysSinceOldest = Math.floor(
       (Date.now() - new Date(contractors[0].created_at).getTime()) /
-        (1000 * 60 * 60 * 24),
+        (1000 * 60 * 60 * 24)
     );
 
     alerts.push({
@@ -196,7 +196,7 @@ export class AdminAlertService {
    *    Severity: high
    */
   private static async checkHighValuePayments(
-    alerts: AdminAlert[],
+    alerts: AdminAlert[]
   ): Promise<number> {
     let skipped = 0;
     const oneDayAgo = new Date();
@@ -253,10 +253,8 @@ export class AdminAlertService {
    *    any progress.
    *    Severity: low
    */
-  private static async checkStaleJobs(
-    alerts: AdminAlert[],
-  ): Promise<number> {
-    let skipped = 0;
+  private static async checkStaleJobs(alerts: AdminAlert[]): Promise<number> {
+    const skipped = 0;
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -289,7 +287,7 @@ export class AdminAlertService {
 
     const daysSinceOldest = Math.floor(
       (Date.now() - new Date(staleJobs[0].updated_at).getTime()) /
-        (1000 * 60 * 60 * 24),
+        (1000 * 60 * 60 * 24)
     );
 
     alerts.push({
@@ -314,7 +312,7 @@ export class AdminAlertService {
    *    Severity: critical
    */
   private static async checkFailedPayments(
-    alerts: AdminAlert[],
+    alerts: AdminAlert[]
   ): Promise<number> {
     let skipped = 0;
     const oneDayAgo = new Date();
@@ -440,9 +438,7 @@ export class AdminAlertService {
   /**
    * Insert notification rows for every admin user for each alert.
    */
-  private static async broadcastToAdmins(
-    alerts: AdminAlert[],
-  ): Promise<void> {
+  private static async broadcastToAdmins(alerts: AdminAlert[]): Promise<void> {
     const adminIds = await this.getAdminUserIds();
 
     if (adminIds.length === 0) {
@@ -465,7 +461,7 @@ export class AdminAlertService {
           ...alert.metadata,
         },
         created_at: new Date().toISOString(),
-      })),
+      }))
     );
 
     // Insert in batches of 100 to stay within Supabase payload limits

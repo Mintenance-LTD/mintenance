@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { theme } from '@/lib/theme';
 
 interface SearchFiltersProps {
@@ -13,11 +14,15 @@ interface SearchFiltersProps {
   };
 }
 
-export function SearchFilters({ skills, cities, currentFilters }: SearchFiltersProps) {
+export function SearchFilters({
+  skills,
+  cities,
+  currentFilters,
+}: SearchFiltersProps) {
   return (
     <form
-      method="get"
-      action="/contractors"
+      method='get'
+      action='/contractors'
       style={{
         backgroundColor: theme.colors.surface,
         borderRadius: theme.borderRadius.lg,
@@ -26,24 +31,28 @@ export function SearchFilters({ skills, cities, currentFilters }: SearchFiltersP
         border: `1px solid ${theme.colors.border}`,
       }}
     >
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: theme.spacing[4],
-      }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: theme.spacing[4],
+        }}
+      >
         {/* Skill Filter */}
         <div>
-          <label style={{
-            display: 'block',
-            fontSize: theme.typography.fontSize.sm,
-            fontWeight: theme.typography.fontWeight.medium,
-            color: theme.colors.text,
-            marginBottom: theme.spacing[2],
-          }}>
+          <label
+            style={{
+              display: 'block',
+              fontSize: theme.typography.fontSize.sm,
+              fontWeight: theme.typography.fontWeight.medium,
+              color: theme.colors.text,
+              marginBottom: theme.spacing[2],
+            }}
+          >
             Skill
           </label>
           <select
-            name="skill"
+            name='skill'
             defaultValue={currentFilters.skill || ''}
             onChange={(e) => e.currentTarget.form?.requestSubmit()}
             style={{
@@ -57,7 +66,7 @@ export function SearchFilters({ skills, cities, currentFilters }: SearchFiltersP
               cursor: 'pointer',
             }}
           >
-            <option value="">All Skills</option>
+            <option value=''>All Skills</option>
             {skills.map((skill) => (
               <option key={skill} value={skill}>
                 {skill}
@@ -68,17 +77,19 @@ export function SearchFilters({ skills, cities, currentFilters }: SearchFiltersP
 
         {/* Location Filter */}
         <div>
-          <label style={{
-            display: 'block',
-            fontSize: theme.typography.fontSize.sm,
-            fontWeight: theme.typography.fontWeight.medium,
-            color: theme.colors.text,
-            marginBottom: theme.spacing[2],
-          }}>
+          <label
+            style={{
+              display: 'block',
+              fontSize: theme.typography.fontSize.sm,
+              fontWeight: theme.typography.fontWeight.medium,
+              color: theme.colors.text,
+              marginBottom: theme.spacing[2],
+            }}
+          >
             Location
           </label>
           <select
-            name="location"
+            name='location'
             defaultValue={currentFilters.location || ''}
             onChange={(e) => e.currentTarget.form?.requestSubmit()}
             style={{
@@ -92,7 +103,7 @@ export function SearchFilters({ skills, cities, currentFilters }: SearchFiltersP
               cursor: 'pointer',
             }}
           >
-            <option value="">All Locations</option>
+            <option value=''>All Locations</option>
             {cities.map((city) => (
               <option key={city} value={city}>
                 {city}
@@ -103,17 +114,19 @@ export function SearchFilters({ skills, cities, currentFilters }: SearchFiltersP
 
         {/* Min Rating Filter */}
         <div>
-          <label style={{
-            display: 'block',
-            fontSize: theme.typography.fontSize.sm,
-            fontWeight: theme.typography.fontWeight.medium,
-            color: theme.colors.text,
-            marginBottom: theme.spacing[2],
-          }}>
+          <label
+            style={{
+              display: 'block',
+              fontSize: theme.typography.fontSize.sm,
+              fontWeight: theme.typography.fontWeight.medium,
+              color: theme.colors.text,
+              marginBottom: theme.spacing[2],
+            }}
+          >
             Minimum Rating
           </label>
           <select
-            name="minRating"
+            name='minRating'
             defaultValue={currentFilters.minRating || ''}
             onChange={(e) => e.currentTarget.form?.requestSubmit()}
             style={{
@@ -127,19 +140,21 @@ export function SearchFilters({ skills, cities, currentFilters }: SearchFiltersP
               cursor: 'pointer',
             }}
           >
-            <option value="">Any Rating</option>
-            <option value="4.5">4.5+ Stars</option>
-            <option value="4.0">4.0+ Stars</option>
-            <option value="3.5">3.5+ Stars</option>
-            <option value="3.0">3.0+ Stars</option>
+            <option value=''>Any Rating</option>
+            <option value='4.5'>4.5+ Stars</option>
+            <option value='4.0'>4.0+ Stars</option>
+            <option value='3.5'>3.5+ Stars</option>
+            <option value='3.0'>3.0+ Stars</option>
           </select>
         </div>
       </div>
 
       {/* Clear Filters Button */}
-      {(currentFilters.skill || currentFilters.location || currentFilters.minRating) && (
-        <a
-          href="/contractors"
+      {(currentFilters.skill ||
+        currentFilters.location ||
+        currentFilters.minRating) && (
+        <Link
+          href='/contractors'
           style={{
             display: 'inline-block',
             marginTop: theme.spacing[4],
@@ -155,7 +170,7 @@ export function SearchFilters({ skills, cities, currentFilters }: SearchFiltersP
           }}
         >
           Clear All Filters
-        </a>
+        </Link>
       )}
     </form>
   );

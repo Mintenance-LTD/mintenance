@@ -141,11 +141,24 @@ const ICON_NAME_MAP: Readonly<Record<string, keyof typeof LucideIcons>> = {
  */
 const CUSTOM_ICONS: Readonly<Record<string, JSX.Element>> = {
   mintLeaf: (
-    <g strokeLinecap="round" strokeLinejoin="round" fill="currentColor">
-      <path d="M12 2C9.5 2 7.5 4 7.5 6.5c0 2.5 2 4.5 4.5 4.5s4.5-2 4.5-4.5c0-2.5-2-4.5-4.5-4.5z" />
-      <path stroke="currentColor" strokeWidth="1.5" d="M12 2v10M9 6.5h6M10 4.5c1 1 3 3 3 3M14 4.5c-1 1-3 3-3 3" />
-      <path stroke="currentColor" strokeWidth="1" d="M7.5 6.5l0.5-0.3M8 7.5l0.5-0.3M8.5 8.5l0.5-0.3M16.5 6.5l-0.5-0.3M16 7.5l-0.5-0.3M15.5 8.5l-0.5-0.3" />
-      <path d="M12 12.5l0 1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <g strokeLinecap='round' strokeLinejoin='round' fill='currentColor'>
+      <path d='M12 2C9.5 2 7.5 4 7.5 6.5c0 2.5 2 4.5 4.5 4.5s4.5-2 4.5-4.5c0-2.5-2-4.5-4.5-4.5z' />
+      <path
+        stroke='currentColor'
+        strokeWidth='1.5'
+        d='M12 2v10M9 6.5h6M10 4.5c1 1 3 3 3 3M14 4.5c-1 1-3 3-3 3'
+      />
+      <path
+        stroke='currentColor'
+        strokeWidth='1'
+        d='M7.5 6.5l0.5-0.3M8 7.5l0.5-0.3M8.5 8.5l0.5-0.3M16.5 6.5l-0.5-0.3M16 7.5l-0.5-0.3M15.5 8.5l-0.5-0.3'
+      />
+      <path
+        d='M12 12.5l0 1.5'
+        stroke='currentColor'
+        strokeWidth='2'
+        strokeLinecap='round'
+      />
     </g>
   ),
 } as const;
@@ -165,7 +178,10 @@ function getLucideIcon(iconName: string): LucideIcon | null {
 
   if (!mappedName) {
     // Log missing icon in development to help debug
-    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    if (
+      typeof window !== 'undefined' &&
+      process.env.NODE_ENV === 'development'
+    ) {
       logger.warn(`Icon "${iconName}" not found in ICON_NAME_MAP`);
     }
     return null;
@@ -174,20 +190,25 @@ function getLucideIcon(iconName: string): LucideIcon | null {
   const IconComponent = LucideIcons[mappedName];
   if (!IconComponent) {
     // Log missing Lucide icon in development
-    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    if (
+      typeof window !== 'undefined' &&
+      process.env.NODE_ENV === 'development'
+    ) {
       logger.warn(`Lucide icon "${mappedName}" not found in lucide-react`, {
-        availableIcons: Object.keys(LucideIcons).slice(0, 10)
+        availableIcons: Object.keys(LucideIcons).slice(0, 10),
       });
     }
     return null;
   }
 
-  return typeof IconComponent === 'function' ? (IconComponent as LucideIcon) : null;
+  return typeof IconComponent === 'function'
+    ? (IconComponent as LucideIcon)
+    : null;
 }
 
 /**
  * Icon Component - Migrated to Lucide React
- * 
+ *
  * Usage:
  * <Icon name="home" size={20} color="currentColor" />
  * <Icon name="starFilled" size={24} className="text-yellow-500" />
@@ -202,30 +223,50 @@ export function Icon({
 }: IconProps): JSX.Element | null {
   // Ensure name is always a string and trim whitespace
   const trimmedName = String(name || '').trim();
-
-  if (!trimmedName) {
-    return null;
-  }
-
   const normalizedName = trimmedName.toLowerCase();
 
   // Memoize icon resolution to ensure consistent rendering
   // Use deterministic resolution order to prevent server/client mismatches
   const iconData = useMemo(() => {
+    if (!trimmedName) {
+      return {
+        type: 'fallback' as const,
+        icon: LucideIcons.Info as LucideIcon,
+        key: 'fallback-empty',
+      };
+    }
+
     // Check for custom icons first (e.g., mintLeaf) - exact match then lowercase
-    const customIcon = CUSTOM_ICONS[trimmedName] || CUSTOM_ICONS[normalizedName];
+    const customIcon =
+      CUSTOM_ICONS[trimmedName] || CUSTOM_ICONS[normalizedName];
     if (customIcon) {
-      return { type: 'custom' as const, icon: customIcon, key: `custom-${trimmedName}` };
+      return {
+        type: 'custom' as const,
+        icon: customIcon,
+        key: `custom-${trimmedName}`,
+      };
     }
 
     // Try to get Lucide icon - exact match then lowercase
     const IconComponent = getLucideIcon(trimmedName);
     if (!IconComponent) {
-      return { type: 'fallback' as const, icon: LucideIcons.Info as LucideIcon, key: `fallback-${trimmedName}` };
+      return {
+        type: 'fallback' as const,
+        icon: LucideIcons.Info as LucideIcon,
+        key: `fallback-${trimmedName}`,
+      };
     }
 
-    return { type: 'lucide' as const, icon: IconComponent, key: `lucide-${trimmedName}` };
+    return {
+      type: 'lucide' as const,
+      icon: IconComponent,
+      key: `lucide-${trimmedName}`,
+    };
   }, [trimmedName, normalizedName]);
+
+  if (!trimmedName) {
+    return null;
+  }
 
   // Handle custom icons
   if (iconData.type === 'custom') {
@@ -236,15 +277,15 @@ export function Icon({
         style={{ display: 'contents' }}
       >
         <svg
-          xmlns="http://www.w3.org/2000/svg"
+          xmlns='http://www.w3.org/2000/svg'
           width={size}
           height={size}
-          viewBox="0 0 24 24"
-          fill="none"
+          viewBox='0 0 24 24'
+          fill='none'
           stroke={color}
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          strokeWidth='2'
+          strokeLinecap='round'
+          strokeLinejoin='round'
           className={className}
           style={style}
           aria-hidden={title ? undefined : 'true'}
@@ -281,7 +322,7 @@ export function Icon({
         color={color}
         className={className}
         style={style}
-        fill={isBookmarkOutline ? 'none' : (isFilled ? color : 'none')}
+        fill={isBookmarkOutline ? 'none' : isFilled ? color : 'none'}
         aria-label={title}
         aria-hidden={title ? undefined : 'true'}
         role={title ? 'img' : undefined}

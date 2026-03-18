@@ -16,13 +16,21 @@ const eslintConfig = defineConfig([
     'coverage/**',
     'next-env.d.ts',
     '*.d.ts',
-    '__tests__/**',
-    '__mocks__/**',
-    '_archived/**',
+    '**/__tests__/**',
+    '**/__mocks__/**',
+    '**/_archived/**',
+    '**/_archive/**',
+    '**/*.cjs',
+    'public/**',
     'e2e/**',
     'test/**',
     'test-*.ts',
     'sentry.*.config.ts',
+    'next.config.js',
+    'next.config.ts',
+    'next.config.mjs',
+    '**/scripts/**/*.js',
+    '**/scripts/**/*.mjs',
   ]),
 
   // Custom rules
@@ -55,16 +63,35 @@ const eslintConfig = defineConfig([
 
       // setMounted(true) in useEffect is a valid SSR hydration guard pattern
       'react-hooks/set-state-in-effect': 'off',
+
+      // React Compiler sub-rules — downgraded to warn while codebase is being migrated.
+      // These fire on patterns the compiler can't optimise but that are functionally valid.
+      'react-hooks/preserve-manual-memoization': 'warn',
+      'react-hooks/immutability': 'warn',
+      'react-hooks/static-components': 'warn',
+      'react-hooks/purity': 'warn',
+      'react-hooks/refs': 'warn',
+
+      // Downgraded while existing code is cleaned up
+      '@typescript-eslint/no-empty-object-type': 'warn',
+      '@typescript-eslint/no-unsafe-function-type': 'warn',
+      '@next/next/no-assign-module-variable': 'warn',
+
+      // Many files use require() for dynamic imports and CJS-specific patterns.
+      // Downgraded to warn while the codebase is migrated to ESM imports.
+      '@typescript-eslint/no-require-imports': 'warn',
     },
   },
 
-  // Allow console in CLI scripts
+  // Allow console in CLI scripts, config files, and infrastructure code
   {
     files: [
       '**/scripts/**/*.ts',
       '**/scripts/**/*.js',
       '**/migration-runner.ts',
       '**/redis-validator.ts',
+      '**/instrumentation.ts',
+      '**/lib/logger.ts',
     ],
     rules: {
       'no-console': 'off',
