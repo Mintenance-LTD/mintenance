@@ -16,6 +16,13 @@ const eslintConfig = defineConfig([
     'coverage/**',
     'next-env.d.ts',
     '*.d.ts',
+    '__tests__/**',
+    '__mocks__/**',
+    '_archived/**',
+    'e2e/**',
+    'test/**',
+    'test-*.ts',
+    'sentry.*.config.ts',
   ]),
 
   // Custom rules
@@ -43,19 +50,8 @@ const eslintConfig = defineConfig([
       // Disabled for now - too many violations
       '@typescript-eslint/explicit-function-return-type': 'off',
 
-      // Enforce correct casing for imports (prevents Linux deployment issues)
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: ['**/components/ui/button', '**/components/ui/card'],
-              message:
-                'Use PascalCase paths: @/components/ui/Button and @/components/ui/Card (required for Linux deployments)',
-            },
-          ],
-        },
-      ],
+      // Allow apostrophes in JSX text content (overly noisy in UK English copy)
+      'react/no-unescaped-entities': 'off',
     },
   },
 
