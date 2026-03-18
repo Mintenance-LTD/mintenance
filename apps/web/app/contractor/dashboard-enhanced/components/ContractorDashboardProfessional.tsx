@@ -4,12 +4,11 @@ import React, { useState } from 'react';
 import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPageWrapper';
 import { formatMoney } from '@/lib/utils/currency';
 import Link from 'next/link';
+import { ProfessionalRevenueChart } from './ProfessionalRevenueChart';
+import { ProfessionalJobsTable } from './ProfessionalJobsTable';
 import {
   TrendingUp,
   TrendingDown,
-  Briefcase,
-  Target,
-  Eye,
   PoundSterling,
   CheckCircle,
   AlertCircle,
@@ -93,13 +92,19 @@ interface ContractorDashboardProfessionalProps {
   };
 }
 
-export function ContractorDashboardProfessional(props: ContractorDashboardProfessionalProps) {
+export function ContractorDashboardProfessional(
+  props: ContractorDashboardProfessionalProps
+) {
   const { data } = props || {};
-  const { contractor, metrics, progressTrendData, recentJobs, availableJobs } = data || {};
+  const { contractor, metrics, progressTrendData, recentJobs, availableJobs } =
+    data || {};
 
-  const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'quarter'>('month');
+  const [selectedPeriod, setSelectedPeriod] = useState<
+    'week' | 'month' | 'quarter'
+  >('month');
 
   // Compute chart data based on selected period
+  // eslint-disable-next-line react-compiler/react-compiler
   const chartData = React.useMemo(() => {
     if (!progressTrendData || progressTrendData.length === 0) return [];
 
@@ -110,19 +115,39 @@ export function ContractorDashboardProfessional(props: ContractorDashboardProfes
       const weeklyRevenue = Math.round(lastMonth.revenue / 4);
       const weeklyJobs = Math.max(1, Math.round(lastMonth.jobs / 4));
       return [
-        { month: 'Week 1', jobs: weeklyJobs, completed: Math.round(lastMonth.completed / 4), revenue: weeklyRevenue },
-        { month: 'Week 2', jobs: weeklyJobs, completed: Math.round(lastMonth.completed / 4), revenue: Math.round(weeklyRevenue * 1.1) },
-        { month: 'Week 3', jobs: weeklyJobs, completed: Math.round(lastMonth.completed / 4), revenue: Math.round(weeklyRevenue * 0.9) },
-        { month: 'Week 4', jobs: weeklyJobs, completed: Math.round(lastMonth.completed / 4), revenue: weeklyRevenue },
+        {
+          month: 'Week 1',
+          jobs: weeklyJobs,
+          completed: Math.round(lastMonth.completed / 4),
+          revenue: weeklyRevenue,
+        },
+        {
+          month: 'Week 2',
+          jobs: weeklyJobs,
+          completed: Math.round(lastMonth.completed / 4),
+          revenue: Math.round(weeklyRevenue * 1.1),
+        },
+        {
+          month: 'Week 3',
+          jobs: weeklyJobs,
+          completed: Math.round(lastMonth.completed / 4),
+          revenue: Math.round(weeklyRevenue * 0.9),
+        },
+        {
+          month: 'Week 4',
+          jobs: weeklyJobs,
+          completed: Math.round(lastMonth.completed / 4),
+          revenue: weeklyRevenue,
+        },
       ];
     }
 
     if (selectedPeriod === 'quarter') {
       // Aggregate monthly data into quarters
-      const data = [...progressTrendData];
+      const entries = [...progressTrendData];
       const quarters: typeof progressTrendData = [];
-      for (let i = 0; i < data.length; i += 3) {
-        const chunk = data.slice(i, i + 3);
+      for (let i = 0; i < entries.length; i += 3) {
+        const chunk = entries.slice(i, i + 3);
         const quarterNum = Math.floor(i / 3) + 1;
         quarters.push({
           month: `Q${quarterNum}`,
@@ -138,11 +163,12 @@ export function ContractorDashboardProfessional(props: ContractorDashboardProfes
     return progressTrendData.slice(-6);
   }, [progressTrendData, selectedPeriod]);
 
-  const periodSubtitle = selectedPeriod === 'week'
-    ? 'Weekly breakdown of current month'
-    : selectedPeriod === 'quarter'
-      ? 'Quarterly performance overview'
-      : 'Performance across last 6 months';
+  const periodSubtitle =
+    selectedPeriod === 'week'
+      ? 'Weekly breakdown of current month'
+      : selectedPeriod === 'quarter'
+        ? 'Quarterly performance overview'
+        : 'Performance across last 6 months';
 
   // Early return if no data
   if (!data || !contractor || !metrics) {
@@ -154,356 +180,205 @@ export function ContractorDashboardProfessional(props: ContractorDashboardProfes
 
   // Quick actions
   const quickActions = [
-    { icon: Search,       label: 'Find Jobs',    href: '/contractor/jobs-near-you' },
-    { icon: FileText,     label: 'Create Quote', href: '/contractor/quotes/create' },
-    { icon: Upload,       label: 'Upload Work',  href: '/contractor/portfolio' },
-    { icon: MessageSquare,label: 'Messages',     href: '/contractor/messages' },
+    { icon: Search, label: 'Find Jobs', href: '/contractor/jobs-near-you' },
+    {
+      icon: FileText,
+      label: 'Create Quote',
+      href: '/contractor/quotes/create',
+    },
+    { icon: Upload, label: 'Upload Work', href: '/contractor/portfolio' },
+    { icon: MessageSquare, label: 'Messages', href: '/contractor/messages' },
   ];
-
-  // Status badge styling
-  const getStatusStyle = (status: string) => {
-    const styles = {
-      completed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      in_progress: 'bg-blue-50 text-blue-700 border-blue-200',
-      assigned: 'bg-purple-50 text-purple-700 border-purple-200',
-      posted: 'bg-gray-50 text-gray-700 border-gray-200',
-    };
-    return styles[status as keyof typeof styles] || styles.posted;
-  };
-
-  const formatStatus = (status: string) => {
-    return status.replace('_', ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-  };
 
   return (
     <ContractorPageWrapper>
-      <div className="space-y-8 pb-12">
+      <div className='space-y-8 pb-12'>
         {/* Professional Welcome Section - Birch Inspired */}
-        <section className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl p-8 md:p-10 text-white shadow-2xl relative overflow-hidden">
+        <section className='bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl p-8 md:p-10 text-white shadow-2xl relative overflow-hidden'>
           {/* Subtle background pattern */}
-          <div className="absolute inset-0 opacity-5">
-            <div className="absolute inset-0" style={{
-              backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
-              backgroundSize: '40px 40px',
-            }} />
+          <div className='absolute inset-0 opacity-5'>
+            <div
+              className='absolute inset-0'
+              style={{
+                backgroundImage:
+                  'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+                backgroundSize: '40px 40px',
+              }}
+            />
           </div>
 
-          <div className="relative z-10">
-            <div className="flex items-start justify-between mb-8">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-                    Welcome back, {contractor.company || contractor.name.split(' ')[0]}
+          <div className='relative z-10'>
+            <div className='flex items-start justify-between mb-8'>
+              <div className='flex-1'>
+                <div className='flex items-center gap-3 mb-2'>
+                  <h1 className='text-3xl md:text-4xl font-bold tracking-tight'>
+                    Welcome back,{' '}
+                    {contractor.company || contractor.name.split(' ')[0]}
                   </h1>
                   {contractor.avatar && (
-                    <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-white/20 shadow-xl">
+                    <div className='w-14 h-14 rounded-2xl overflow-hidden border-2 border-white/20 shadow-xl'>
                       <Image
                         src={contractor.avatar}
                         alt={contractor.company || contractor.name}
                         width={56}
                         height={56}
-                        className="object-cover"
+                        className='object-cover'
                       />
                     </div>
                   )}
                 </div>
                 {contractor.location && (
-                  <p className="text-slate-300 text-lg mb-1">{contractor.location}</p>
+                  <p className='text-slate-300 text-lg mb-1'>
+                    {contractor.location}
+                  </p>
                 )}
-                <p className="text-slate-400 text-sm">{contractor.location}</p>
+                <p className='text-slate-400 text-sm'>{contractor.location}</p>
               </div>
             </div>
 
             {/* Quick Stats Inline */}
-            <div className="grid grid-cols-3 gap-6">
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10">
-                <div className="text-2xl md:text-3xl font-bold mb-1">
+            <div className='grid grid-cols-3 gap-6'>
+              <div className='bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10'>
+                <div className='text-2xl md:text-3xl font-bold mb-1'>
                   {Math.round(metrics.completionRate)}%
                 </div>
-                <div className="text-slate-300 text-sm">Completion Rate</div>
+                <div className='text-slate-300 text-sm'>Completion Rate</div>
               </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10">
-                <div className="text-2xl md:text-3xl font-bold mb-1">
+              <div className='bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10'>
+                <div className='text-2xl md:text-3xl font-bold mb-1'>
                   {metrics.activeJobs}
                 </div>
-                <div className="text-slate-300 text-sm">Active Jobs</div>
+                <div className='text-slate-300 text-sm'>Active Jobs</div>
               </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10">
-                <div className="text-2xl md:text-3xl font-bold mb-1">
+              <div className='bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10'>
+                <div className='text-2xl md:text-3xl font-bold mb-1'>
                   {metrics.pendingBids}
                 </div>
-                <div className="text-slate-300 text-sm">Pending Bids</div>
+                <div className='text-slate-300 text-sm'>Pending Bids</div>
               </div>
             </div>
           </div>
         </section>
 
         {/* KPI Cards - Revealbot Inspired with Bold Stats */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <section className='grid grid-cols-1 md:grid-cols-2 gap-6'>
           {/* Revenue Card - Navy/Gold */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition-all duration-300">
-            <div className="flex items-start justify-between mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl flex items-center justify-center">
-                <PoundSterling className="w-6 h-6 text-amber-400" />
+          <div className='bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition-all duration-300'>
+            <div className='flex items-start justify-between mb-4'>
+              <div className='w-12 h-12 bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl flex items-center justify-center'>
+                <PoundSterling className='w-6 h-6 text-amber-400' />
               </div>
               {metrics.revenueChange >= 0 ? (
-                <div className="flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold">
-                  <TrendingUp className="w-3.5 h-3.5" />
+                <div className='flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold'>
+                  <TrendingUp className='w-3.5 h-3.5' />
                   {metrics.revenueChange}%
                 </div>
               ) : (
-                <div className="flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-700 rounded-lg text-xs font-bold">
-                  <TrendingDown className="w-3.5 h-3.5" />
+                <div className='flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-700 rounded-lg text-xs font-bold'>
+                  <TrendingDown className='w-3.5 h-3.5' />
                   {Math.abs(metrics.revenueChange)}%
                 </div>
               )}
             </div>
-            <div className="mb-1">
-              <div className="text-3xl font-bold text-slate-900 mb-1">
+            <div className='mb-1'>
+              <div className='text-3xl font-bold text-slate-900 mb-1'>
                 {formatMoney(thisMonthRevenue, 'GBP')}
               </div>
-              <div className="text-sm text-slate-600 font-medium">This month revenue</div>
+              <div className='text-sm text-slate-600 font-medium'>
+                This month revenue
+              </div>
             </div>
-            <div className="mt-4 pt-4 border-t border-slate-100">
-              <div className="text-xs text-slate-500">Total: {formatMoney(metrics.totalRevenue, 'GBP')}</div>
+            <div className='mt-4 pt-4 border-t border-slate-100'>
+              <div className='text-xs text-slate-500'>
+                Total: {formatMoney(metrics.totalRevenue, 'GBP')}
+              </div>
             </div>
           </div>
 
           {/* Completed Jobs - Mint */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition-all duration-300">
-            <div className="flex items-start justify-between mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-white" />
+          <div className='bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition-all duration-300'>
+            <div className='flex items-start justify-between mb-4'>
+              <div className='w-12 h-12 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center'>
+                <CheckCircle className='w-6 h-6 text-white' />
               </div>
-              <div className="px-2.5 py-1 bg-teal-50 text-teal-700 rounded-lg text-xs font-bold">
+              <div className='px-2.5 py-1 bg-teal-50 text-teal-700 rounded-lg text-xs font-bold'>
                 {Math.round(metrics.completionRate)}% rate
               </div>
             </div>
-            <div className="mb-1">
-              <div className="text-3xl font-bold text-slate-900 mb-1">
+            <div className='mb-1'>
+              <div className='text-3xl font-bold text-slate-900 mb-1'>
                 {metrics.completedJobs}
               </div>
-              <div className="text-sm text-slate-600 font-medium">Jobs completed</div>
-            </div>
-            <div className="mt-4 pt-4 border-t border-slate-100">
-              <div className="text-xs text-slate-500">Active: {metrics.activeJobs}</div>
-            </div>
-          </div>
-
-        </section>
-
-        {/* Revenue Chart Section - Revealbot Style */}
-        <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="p-6 border-b border-slate-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900 mb-1">Revenue Overview</h2>
-                <p className="text-sm text-slate-600">{periodSubtitle}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                {(['week', 'month', 'quarter'] as const).map((period) => (
-                  <button
-                    key={period}
-                    onClick={() => setSelectedPeriod(period)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
-                      selectedPeriod === period
-                        ? 'bg-slate-900 text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    {period.charAt(0).toUpperCase() + period.slice(1)}
-                  </button>
-                ))}
+              <div className='text-sm text-slate-600 font-medium'>
+                Jobs completed
               </div>
             </div>
-          </div>
-
-          <div className="p-6">
-            {/* Clean bar chart */}
-            <div className="space-y-5">
-              {chartData.map((item, idx) => {
-                const maxRevenue = Math.max(...chartData.map(d => d.revenue), 1);
-                const percentage = (item.revenue / maxRevenue) * 100;
-
-                return (
-                  <div key={item.month}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-bold text-slate-700 w-16">{item.month}</span>
-                        <span className="text-xs text-slate-500">{item.jobs} jobs</span>
-                      </div>
-                      <span className="text-sm font-bold text-slate-900">
-                        £{item.revenue.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-                      <div
-                        className="bg-gradient-to-r from-teal-500 to-teal-600 h-3 rounded-full transition-all duration-1000 ease-out relative"
-                        style={{ width: `${percentage}%` }}
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-t from-white/20 to-transparent" />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Summary Stats */}
-            <div className="grid grid-cols-3 gap-6 mt-8 pt-6 border-t border-slate-200">
-              <div>
-                <div className="text-2xl font-bold text-slate-900 mb-1">
-                  {formatMoney(metrics.totalRevenue, 'GBP')}
-                </div>
-                <div className="text-xs font-medium text-slate-600 uppercase tracking-wide">Total Revenue</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-slate-900 mb-1">
-                  {metrics.completedJobs}
-                </div>
-                <div className="text-xs font-medium text-slate-600 uppercase tracking-wide">Completed Jobs</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-slate-900 mb-1">
-                  {formatMoney(metrics.totalRevenue / (metrics.completedJobs || 1), 'GBP')}
-                </div>
-                <div className="text-xs font-medium text-slate-600 uppercase tracking-wide">Avg Job Value</div>
+            <div className='mt-4 pt-4 border-t border-slate-100'>
+              <div className='text-xs text-slate-500'>
+                Active: {metrics.activeJobs}
               </div>
             </div>
           </div>
         </section>
 
-        {/* Professional Data Table - Active Jobs */}
-        <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="p-6 border-b border-slate-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900 mb-1">Active Jobs</h2>
-                <p className="text-sm text-slate-600">Manage your ongoing projects</p>
-              </div>
-              <Link
-                href="/contractor/jobs"
-                className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors"
-              >
-                View All
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-          </div>
+        {/* Revenue Chart Section */}
+        <ProfessionalRevenueChart
+          chartData={chartData}
+          metrics={metrics}
+          selectedPeriod={selectedPeriod}
+          periodSubtitle={periodSubtitle}
+          onPeriodChange={setSelectedPeriod}
+        />
 
-          {recentJobs.length === 0 ? (
-            <div className="p-12 text-center">
-              <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Briefcase className="w-8 h-8 text-slate-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">No active jobs</h3>
-              <p className="text-slate-600 mb-6 text-sm">Start bidding to see your jobs here</p>
-              <Link
-                href="/contractor/jobs-near-you"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-colors"
-              >
-                Browse Jobs
-                <Search className="w-4 h-4" />
-              </Link>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="text-left py-3 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                      Job
-                    </th>
-                    <th className="text-left py-3 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="text-right py-3 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                      Budget
-                    </th>
-                    <th className="text-right py-3 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider w-20">
-
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {recentJobs.map((job) => (
-                    <tr
-                      key={job.id}
-                      className="hover:bg-slate-50 transition-colors cursor-pointer"
-                      onClick={() => window.location.href = `/contractor/jobs/${job.id}`}
-                    >
-                      <td className="py-4 px-6">
-                        <div className="font-semibold text-slate-900 text-sm">{job.title}</div>
-                        <div className="text-xs text-slate-400 mt-0.5">
-                          {[job.homeowner, job.category].filter(Boolean).join(' · ')}
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold border ${getStatusStyle(job.status)}`}>
-                          {formatStatus(job.status)}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6 text-right">
-                        <div className="text-sm font-semibold text-slate-900">
-                          {formatMoney(job.budget, 'GBP')}
-                        </div>
-                      </td>
-                      <td className="py-4 px-6 text-right">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.location.href = `/contractor/jobs/${job.id}`;
-                          }}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-teal-600 hover:text-teal-700 transition-colors"
-                        >
-                          View
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
+        {/* Active Jobs Table */}
+        <ProfessionalJobsTable recentJobs={recentJobs} />
 
         {/* Available Opportunities */}
         {availableJobs && availableJobs.length > 0 && (
-          <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="p-6 border-b border-slate-200">
-              <div className="flex items-center justify-between">
+          <section className='bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden'>
+            <div className='p-6 border-b border-slate-200'>
+              <div className='flex items-center justify-between'>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900 mb-1">Available Opportunities</h2>
-                  <p className="text-sm text-slate-600">New jobs you can bid on</p>
+                  <h2 className='text-xl font-bold text-slate-900 mb-1'>
+                    Available Opportunities
+                  </h2>
+                  <p className='text-sm text-slate-600'>
+                    New jobs you can bid on
+                  </p>
                 </div>
                 <Link
-                  href="/contractor/jobs-near-you"
-                  className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-xl text-sm font-semibold hover:bg-teal-700 transition-colors"
+                  href='/contractor/jobs-near-you'
+                  className='flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-xl text-sm font-semibold hover:bg-teal-700 transition-colors'
                 >
                   Browse All
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className='w-4 h-4' />
                 </Link>
               </div>
             </div>
-            <div className="divide-y divide-slate-100">
+            <div className='divide-y divide-slate-100'>
               {availableJobs.slice(0, 5).map((job) => (
                 <Link
                   key={job.id}
                   href={`/contractor/bid/${job.id}/details`}
-                  className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
+                  className='flex items-center justify-between p-4 hover:bg-slate-50 transition-colors'
                 >
-                  <div className="flex-1">
-                    <div className="font-semibold text-slate-900">{job.title}</div>
-                    <div className="text-sm text-slate-500 mt-1">
-                      {job.category && <span className="capitalize">{job.category}</span>}
+                  <div className='flex-1'>
+                    <div className='font-semibold text-slate-900'>
+                      {job.title}
+                    </div>
+                    <div className='text-sm text-slate-500 mt-1'>
+                      {job.category && (
+                        <span className='capitalize'>{job.category}</span>
+                      )}
                       {job.category && job.homeowner && ' · '}
                       {job.homeowner}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm font-bold text-slate-900">{formatMoney(job.budget, 'GBP')}</div>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                  <div className='text-right'>
+                    <div className='text-sm font-bold text-slate-900'>
+                      {formatMoney(job.budget, 'GBP')}
+                    </div>
+                    <span className='inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200'>
                       Open
                     </span>
                   </div>
@@ -514,20 +389,22 @@ export function ContractorDashboardProfessional(props: ContractorDashboardProfes
         )}
 
         {/* Quick Actions Grid */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <section className='grid grid-cols-2 lg:grid-cols-4 gap-4'>
           {quickActions.map((action) => (
             <Link
               key={action.label}
               href={action.href}
-              className="group bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+              className='group bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200'
             >
-              <div className="w-10 h-10 bg-teal-50 rounded-xl flex items-center justify-center mb-3 group-hover:bg-teal-100 transition-colors">
-                <action.icon className="w-5 h-5 text-teal-600" />
+              <div className='w-10 h-10 bg-teal-50 rounded-xl flex items-center justify-center mb-3 group-hover:bg-teal-100 transition-colors'>
+                <action.icon className='w-5 h-5 text-teal-600' />
               </div>
-              <h3 className="text-sm font-semibold text-slate-900 mb-0.5">{action.label}</h3>
-              <div className="flex items-center gap-1 text-xs text-slate-400">
+              <h3 className='text-sm font-semibold text-slate-900 mb-0.5'>
+                {action.label}
+              </h3>
+              <div className='flex items-center gap-1 text-xs text-slate-400'>
                 <span>Go to</span>
-                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                <ArrowRight className='w-3 h-3 group-hover:translate-x-0.5 transition-transform' />
               </div>
             </Link>
           ))}
@@ -535,59 +412,71 @@ export function ContractorDashboardProfessional(props: ContractorDashboardProfes
 
         {/* AI Agent Automation Summary */}
         <section>
-            <Link
-            href="/contractor/settings?section=automation"
-            className="group bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-lg transition-all duration-300 block"
+          <Link
+            href='/contractor/settings?section=automation'
+            className='group bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-lg transition-all duration-300 block'
           >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <Bot className="w-6 h-6 text-white" />
+            <div className='flex items-center justify-between mb-4'>
+              <div className='flex items-center gap-3'>
+                <div className='w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center'>
+                  <Bot className='w-6 h-6 text-white' />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-900">AI Agent Automation</h3>
-                  <p className="text-sm text-slate-500">Control how AI agents assist you</p>
+                  <h3 className='text-lg font-semibold text-slate-900'>
+                    AI Agent Automation
+                  </h3>
+                  <p className='text-sm text-slate-500'>
+                    Control how AI agents assist you
+                  </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-indigo-600 group-hover:text-indigo-700">
-                <span className="text-sm font-medium">Manage</span>
-                <Settings className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
+              <div className='flex items-center gap-2 text-indigo-600 group-hover:text-indigo-700'>
+                <span className='text-sm font-medium'>Manage</span>
+                <Settings className='w-4 h-4 group-hover:rotate-90 transition-transform duration-300' />
               </div>
             </div>
-            <p className="text-sm text-slate-600">
-              Configure automation levels, bid acceptance, smart pricing, and more in your settings.
+            <p className='text-sm text-slate-600'>
+              Configure automation levels, bid acceptance, smart pricing, and
+              more in your settings.
             </p>
           </Link>
         </section>
 
         {/* Recent Activity Feed */}
-        <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="p-6 border-b border-slate-200">
-            <div className="flex items-center gap-2">
-              <Activity className="w-5 h-5 text-slate-700" />
-              <h2 className="text-xl font-bold text-slate-900">Recent Activity</h2>
+        <section className='bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden'>
+          <div className='p-6 border-b border-slate-200'>
+            <div className='flex items-center gap-2'>
+              <Activity className='w-5 h-5 text-slate-700' />
+              <h2 className='text-xl font-bold text-slate-900'>
+                Recent Activity
+              </h2>
             </div>
           </div>
 
-          <div className="divide-y divide-slate-100">
+          <div className='divide-y divide-slate-100'>
             {data.notifications.slice(0, 5).map((notification) => (
               <div
                 key={notification.id}
-                className="p-6 hover:bg-slate-50 transition-colors"
+                className='p-6 hover:bg-slate-50 transition-colors'
               >
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 bg-teal-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <AlertCircle className="w-5 h-5 text-teal-600" />
+                <div className='flex items-start gap-4'>
+                  <div className='w-10 h-10 bg-teal-100 rounded-xl flex items-center justify-center flex-shrink-0'>
+                    <AlertCircle className='w-5 h-5 text-teal-600' />
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-slate-900 mb-1">{notification.message}</p>
-                    <p className="text-xs text-slate-500">
-                      {new Date(notification.timestamp).toLocaleString('en-GB', {
-                        day: 'numeric',
-                        month: 'short',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                  <div className='flex-1'>
+                    <p className='text-sm text-slate-900 mb-1'>
+                      {notification.message}
+                    </p>
+                    <p className='text-xs text-slate-500'>
+                      {new Date(notification.timestamp).toLocaleString(
+                        'en-GB',
+                        {
+                          day: 'numeric',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        }
+                      )}
                     </p>
                   </div>
                 </div>
@@ -595,10 +484,10 @@ export function ContractorDashboardProfessional(props: ContractorDashboardProfes
             ))}
           </div>
 
-          <div className="p-4 bg-slate-50 text-center">
+          <div className='p-4 bg-slate-50 text-center'>
             <Link
-              href="/contractor/notifications"
-              className="text-sm font-semibold text-slate-700 hover:text-slate-900 transition-colors"
+              href='/contractor/notifications'
+              className='text-sm font-semibold text-slate-700 hover:text-slate-900 transition-colors'
             >
               View All Notifications
             </Link>

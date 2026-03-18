@@ -75,7 +75,6 @@ export default function AnalyticsDetailPage() {
     () => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString(),
     [days]
   );
-  // eslint-disable-next-line react-hooks/purity
   const endDate = useMemo(() => new Date().toISOString(), []);
 
   const { data: metrics, isLoading: metricsLoading } =
