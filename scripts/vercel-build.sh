@@ -4,6 +4,7 @@ echo "=== Mintenance Build ==="
 echo "=== Building shared packages ==="
 npm run build --workspace=packages/shared --if-present
 npm run build --workspace=packages/types --if-present
+npm run build --workspace=packages/design-tokens --if-present
 npm run build --workspace=packages/security --if-present
 npm run build --workspace=packages/shared-ui --if-present
 echo "=== Copying public assets for Vercel ==="
