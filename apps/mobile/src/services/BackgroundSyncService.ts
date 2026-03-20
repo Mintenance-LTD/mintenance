@@ -1,6 +1,4 @@
-// @ts-expect-error -- expo-task-manager types don't resolve in monorepo tsc; works at runtime via Metro
 import * as TaskManager from 'expo-task-manager';
-// @ts-expect-error -- expo-background-fetch types don't resolve in monorepo tsc; works at runtime via Metro
 import * as BackgroundFetch from 'expo-background-fetch';
 import NetInfo from '@react-native-community/netinfo';
 import { logger } from '../utils/logger';
@@ -69,8 +67,8 @@ export class BackgroundSyncService {
 
       await BackgroundFetch.registerTaskAsync(BACKGROUND_SYNC_TASK, {
         minimumInterval: 15 * 60, // 15 minutes (minimum on iOS)
-        stopOnTerminate: false,   // Android: continue after app killed
-        startOnBoot: true,        // Android: start on device boot
+        stopOnTerminate: false, // Android: continue after app killed
+        startOnBoot: true, // Android: start on device boot
       });
 
       this.registered = true;
@@ -85,7 +83,8 @@ export class BackgroundSyncService {
    */
   static async unregister(): Promise<void> {
     try {
-      const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_SYNC_TASK);
+      const isRegistered =
+        await TaskManager.isTaskRegisteredAsync(BACKGROUND_SYNC_TASK);
       if (isRegistered) {
         await BackgroundFetch.unregisterTaskAsync(BACKGROUND_SYNC_TASK);
         this.registered = false;

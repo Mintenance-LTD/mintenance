@@ -46,6 +46,7 @@
     "@expo/vector-icons": "^15.0.3",
     "@mintenance/ai-core": "file:../../packages/ai-core",
     "@mintenance/api-client": "file:../../packages/api-client",
+    "@mintenance/data-access": "file:../../packages/data-access",
     "@mintenance/api-contracts": "file:../../packages/api-contracts",
     "@mintenance/design-tokens": "file:../../packages/design-tokens",
     "@mintenance/security": "file:../../packages/security",
@@ -126,7 +127,7 @@
     "jest-circus": "~29.7.0",
     "jest-expo": "~54.0.0",
     "react-native-worklets-core": "^1.6.2",
-    "react-test-renderer": "19.2.3",
+    "react-test-renderer": "19.1.0",
     "typescript": "~5.9.0"
   },
   "overrides": {

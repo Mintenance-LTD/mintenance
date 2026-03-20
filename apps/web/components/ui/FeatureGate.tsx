@@ -1,7 +1,10 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { useFeatureAccess, type FeatureAccessResult } from '@/hooks/useFeatureAccess';
+import {
+  useFeatureAccess,
+  type FeatureAccessResult,
+} from '@/hooks/useFeatureAccess';
 import { Paywall, PaywallBanner } from './Paywall';
 import { type SubscriptionTier } from '@/lib/feature-access-config';
 
@@ -112,15 +115,6 @@ export function FeatureGate(props: FeatureGateProps) {
 
   const accessResult = checkAccess(featureId);
 
-  // Track usage on mount if enabled and has access
-  React.useEffect(() => {
-    if (trackUsage && accessResult.hasAccess && !hasTrackedUsage) {
-      trackUsageBase(featureId).then(() => {
-        setHasTrackedUsage(true);
-      });
-    }
-  }, [trackUsage, accessResult.hasAccess, hasTrackedUsage, featureId, trackUsageBase]);
-
   // Handle access denied
   const handleAccessDenied = useCallback(() => {
     if (onAccessDenied) {
@@ -132,6 +126,25 @@ export function FeatureGate(props: FeatureGateProps) {
     }
   }, [accessResult, onAccessDenied, mode]);
 
+  // Track usage on mount if enabled and has access; trigger access denied handler when no access
+  React.useEffect(() => {
+    if (trackUsage && accessResult.hasAccess && !hasTrackedUsage) {
+      trackUsageBase(featureId).then(() => {
+        setHasTrackedUsage(true);
+      });
+    } else if (!loading && !accessResult.hasAccess) {
+      handleAccessDenied();
+    }
+  }, [
+    trackUsage,
+    accessResult.hasAccess,
+    hasTrackedUsage,
+    featureId,
+    trackUsageBase,
+    loading,
+    handleAccessDenied,
+  ]);
+
   // Show loading state
   if (loading) {
     if (loadingComponent) {
@@ -139,15 +152,13 @@ export function FeatureGate(props: FeatureGateProps) {
     }
 
     return (
-      <div className="flex items-center justify-center p-12">
-        <div className="flex flex-col items-center gap-3">
-          <div className="relative">
-            <div className="w-12 h-12 border-4 border-gray-200 rounded-full" />
-            <div className="absolute inset-0 w-12 h-12 border-4 border-primary-600 rounded-full border-t-transparent animate-spin" />
+      <div className='flex items-center justify-center p-12'>
+        <div className='flex flex-col items-center gap-3'>
+          <div className='relative'>
+            <div className='w-12 h-12 border-4 border-gray-200 rounded-full' />
+            <div className='absolute inset-0 w-12 h-12 border-4 border-primary-600 rounded-full border-t-transparent animate-spin' />
           </div>
-          <p className="text-sm font-[500] text-gray-600">
-            Checking access...
-          </p>
+          <p className='text-sm font-[500] text-gray-600'>Checking access...</p>
         </div>
       </div>
     );
@@ -157,11 +168,6 @@ export function FeatureGate(props: FeatureGateProps) {
   if (accessResult.hasAccess) {
     return <>{children}</>;
   }
-
-  // User doesn't have access
-  React.useEffect(() => {
-    handleAccessDenied();
-  }, [handleAccessDenied]);
 
   // Custom fallback provided
   if (fallback) {
@@ -179,7 +185,9 @@ export function FeatureGate(props: FeatureGateProps) {
       <PaywallBanner
         feature={accessResult.feature}
         currentTier={tier}
-        onUpgrade={onUpgrade ? () => onUpgrade(accessResult.upgradeTiers[0]) : undefined}
+        onUpgrade={
+          onUpgrade ? () => onUpgrade(accessResult.upgradeTiers[0]) : undefined
+        }
       />
     );
   }
@@ -204,27 +212,27 @@ export function FeatureGate(props: FeatureGateProps) {
   }
 
   return (
-    <div className="flex items-center justify-center p-12">
-      <div className="text-center max-w-md">
-        <div className="mb-4 p-4 bg-gray-100 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
+    <div className='flex items-center justify-center p-12'>
+      <div className='text-center max-w-md'>
+        <div className='mb-4 p-4 bg-gray-100 rounded-full w-16 h-16 mx-auto flex items-center justify-center'>
           <svg
-            className="w-8 h-8 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+            className='w-8 h-8 text-gray-400'
+            fill='none'
+            viewBox='0 0 24 24'
+            stroke='currentColor'
           >
             <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
+              strokeLinecap='round'
+              strokeLinejoin='round'
               strokeWidth={2}
-              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              d='M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'
             />
           </svg>
         </div>
-        <h3 className="text-lg font-[600] text-gray-900 mb-2">
+        <h3 className='text-lg font-[600] text-gray-900 mb-2'>
           Feature Not Available
         </h3>
-        <p className="text-sm text-gray-600">
+        <p className='text-sm text-gray-600'>
           This feature is not available on your current plan.
         </p>
       </div>
@@ -300,11 +308,7 @@ export function FeatureButton({
 
   return (
     <>
-      <button
-        {...props}
-        onClick={handleClick}
-        disabled={disabled || loading}
-      >
+      <button {...props} onClick={handleClick} disabled={disabled || loading}>
         {children}
       </button>
 
@@ -337,7 +341,10 @@ interface FeatureBadgeProps {
   showOnAvailable?: boolean;
 }
 
-export function FeatureBadge({ featureId, showOnAvailable = false }: FeatureBadgeProps) {
+export function FeatureBadge({
+  featureId,
+  showOnAvailable = false,
+}: FeatureBadgeProps) {
   const { hasAccess: checkAccess, tier } = useFeatureAccess();
   const accessResult = checkAccess(featureId);
 
@@ -371,25 +378,29 @@ export function FeatureBadge({ featureId, showOnAvailable = false }: FeatureBadg
     >
       {accessResult.hasAccess ? (
         <>
-          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+          <svg className='w-3 h-3' fill='currentColor' viewBox='0 0 20 20'>
             <path
-              fillRule="evenodd"
-              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-              clipRule="evenodd"
+              fillRule='evenodd'
+              d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z'
+              clipRule='evenodd'
             />
           </svg>
           <span>Available</span>
         </>
       ) : (
         <>
-          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+          <svg className='w-3 h-3' fill='currentColor' viewBox='0 0 20 20'>
             <path
-              fillRule="evenodd"
-              d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-              clipRule="evenodd"
+              fillRule='evenodd'
+              d='M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z'
+              clipRule='evenodd'
             />
           </svg>
-          <span>{firstUpgradeTier.charAt(0).toUpperCase() + firstUpgradeTier.slice(1)}+</span>
+          <span>
+            {firstUpgradeTier.charAt(0).toUpperCase() +
+              firstUpgradeTier.slice(1)}
+            +
+          </span>
         </>
       )}
     </span>

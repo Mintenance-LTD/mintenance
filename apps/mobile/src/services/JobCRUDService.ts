@@ -270,6 +270,32 @@ export class JobCRUDService {
     await mobileApiClient.post(`/api/jobs/${jobId}/complete`);
   }
 
+  /**
+   * Homeowner confirms job completion (approves work).
+   * Routes through web API to trigger escrow release, notifications, and emails.
+   */
+  static async confirmJobCompletion(
+    jobId: string
+  ): Promise<{ success: boolean; message: string }> {
+    return mobileApiClient.post<{ success: boolean; message: string }>(
+      `/api/jobs/${jobId}/confirm-completion`
+    );
+  }
+
+  /**
+   * Homeowner requests changes on completed job.
+   * Routes through web API to notify contractor.
+   */
+  static async requestJobChanges(
+    jobId: string,
+    comments: string
+  ): Promise<{ success: boolean; message: string }> {
+    return mobileApiClient.post<{ success: boolean; message: string }>(
+      `/api/jobs/${jobId}/request-changes`,
+      { comments }
+    );
+  }
+
   static async getContractByJobId(
     jobId: string
   ): Promise<Record<string, unknown> | null> {

@@ -2,7 +2,6 @@ import { supabase } from '../config/supabase';
 import { User } from '@mintenance/types';
 import { logger } from '../utils/logger';
 
-// Database row interfaces for type safety
 interface DatabaseJobRow {
   id: string;
   status: string;
@@ -14,7 +13,6 @@ interface DatabaseJobRow {
   title?: string;
   location?: string;
 }
-
 interface DatabaseReviewRow {
   rating: number;
   comment: string;
@@ -24,7 +22,6 @@ interface DatabaseReviewRow {
     last_name?: string;
   };
 }
-
 interface DatabaseUserRow {
   id: string;
   email: string;
@@ -41,11 +38,9 @@ interface DatabaseUserRow {
   rating?: number;
   contractor_skills?: DatabaseSkillRow[];
 }
-
 interface DatabaseSkillRow {
   skill_name: string;
 }
-
 interface DatabaseTodaysJobRow {
   id: string;
   title: string;
@@ -56,7 +51,6 @@ interface DatabaseTodaysJobRow {
     last_name?: string;
   };
 }
-
 interface DatabaseContractorRow {
   id: string;
   first_name: string;
@@ -66,7 +60,6 @@ interface DatabaseContractorRow {
   phone?: string;
   contractor_skills?: DatabaseSkillRow[];
 }
-
 export interface ScheduledJob {
   time: string;
   client: string;
@@ -74,7 +67,6 @@ export interface ScheduledJob {
   type: string;
   jobId: string;
 }
-
 export interface ContractorStats {
   activeJobs: number;
   monthlyEarnings: number;
@@ -88,7 +80,6 @@ export interface ContractorStats {
   nextAppointment?: ScheduledJob;
   todaysJobs: ScheduledJob[];
 }
-
 export interface UserProfile extends User {
   skills?: { skillName: string }[];
   reviews?: {
@@ -101,99 +92,27 @@ export interface UserProfile extends User {
 }
 
 export class UserService {
-  /**
-   * Get comprehensive contractor statistics from real database
-   */
   static async getContractorStats(
     contractorId: string
   ): Promise<ContractorStats> {
     try {
-      // Get contractor's jobs statistics
-      const { data: jobs, error: jobsError } = await supabase
-        .from('jobs')
-        .select('id, status, budget, created_at, updated_at, homeowner_id')
-        .eq('contractor_id', contractorId);
+      // Use shared query from @mintenance/data-access for consistent computation
+      // (same logic as web API — eliminates mobile vs server computation divergence)
+      const { fetchContractorStats } = await import('@mintenance/data-access');
+      const stats = await fetchContractorStats(supabase, contractorId);
 
-      if (jobsError) throw jobsError;
-
-      const typedJobs = (jobs || []) as DatabaseJobRow[];
-
-      // Get contractor's ratings
-      const { data: reviews, error: reviewsError } = await supabase
-        .from('reviews')
-        .select('rating')
-        .eq('reviewed_id', contractorId);
-
-      if (reviewsError) throw reviewsError;
-
-      const typedReviews = (reviews || []) as DatabaseReviewRow[];
-
-      // Get today's scheduled appointments
-      const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-      const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).toISOString();
-
-      const { data: todaysJobs, error: todaysError } = await supabase
-        .from('jobs')
-        .select(
-          `
-          id, title, location, scheduled_start_date,
-          homeowner:homeowner_id (
-            first_name, last_name
-          )
-        `
-        )
-        .eq('contractor_id', contractorId)
-        .in('status', ['assigned', 'in_progress'])
-        .gte('scheduled_start_date', todayStart)
-        .lte('scheduled_start_date', todayEnd)
-        .order('scheduled_start_date', { ascending: true });
-
-      if (todaysError) throw todaysError;
-
-      const typedTodaysJobs = (todaysJobs || []) as DatabaseTodaysJobRow[];
-
-      // Calculate statistics
-      const activeJobs = typedJobs.filter((job) =>
-        ['assigned', 'in_progress'].includes(job.status)
-      ).length;
-
-      const completedJobs = typedJobs.filter(
-        (job) => job.status === 'completed'
-      ).length;
-
-      // Calculate monthly earnings (current month)
-      const currentMonth = new Date().getMonth();
-      const currentYear = new Date().getFullYear();
-      const monthlyEarnings = typedJobs
-        .filter((job) => {
-          const jobDate = new Date(job.updated_at);
-          return (
-            job.status === 'completed' &&
-            jobDate.getMonth() === currentMonth &&
-            jobDate.getFullYear() === currentYear
-          );
-        })
-        .reduce((total, job) => total + Number(job.budget || 0), 0);
-
-      // Calculate average rating
-      const avgRating =
-        typedReviews.length > 0
-          ? typedReviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) /
-            typedReviews.length
-          : 0;
-
-      // Response time (estimated from rating until real message tracking is available)
+      // Estimate response time from rating (until real message tracking)
       const responseTime =
-        avgRating >= 4.5 ? '< 1h' : avgRating >= 4.0 ? '< 2h' : '< 4h';
+        stats.avgRating >= 4.5
+          ? '< 1h'
+          : stats.avgRating >= 4.0
+            ? '< 2h'
+            : '< 4h';
 
-      // Success rate calculation
-      const totalJobs = typedJobs.length;
-      const successRate =
-        totalJobs > 0 ? Math.round((completedJobs / totalJobs) * 100) : 0;
-
-      // Map today's scheduled jobs
-      const scheduledJobs: ScheduledJob[] = typedTodaysJobs.map((job) => ({
+      // Map today's scheduled jobs to the mobile format
+      const scheduledJobs: ScheduledJob[] = (
+        stats.todaysAppointments as DatabaseTodaysJobRow[]
+      ).map((job) => ({
         time: new Date(job.scheduled_start_date).toLocaleTimeString('en-US', {
           hour: 'numeric',
           minute: '2-digit',
@@ -207,15 +126,15 @@ export class UserService {
       }));
 
       return {
-        activeJobs,
-        monthlyEarnings: Math.round(monthlyEarnings),
-        rating: Math.round(avgRating * 10) / 10,
-        completedJobs,
-        totalJobs: typedJobs.length,
-        totalJobsCompleted: completedJobs,
+        activeJobs: stats.activeJobs,
+        monthlyEarnings: Math.round(stats.monthlyEarnings),
+        rating: stats.avgRating,
+        completedJobs: stats.completedJobs,
+        totalJobs: stats.activeJobs + stats.completedJobs,
+        totalJobsCompleted: stats.completedJobs,
         responseTime,
-        successRate,
-        todaysAppointments: typedTodaysJobs.length,
+        successRate: stats.successRate,
+        todaysAppointments: scheduledJobs.length,
         nextAppointment: scheduledJobs[0],
         todaysJobs: scheduledJobs,
       };

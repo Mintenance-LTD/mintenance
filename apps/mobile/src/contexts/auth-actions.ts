@@ -1,5 +1,6 @@
 import { AuthService } from '../services/AuthService';
 import { NotificationService } from '../services/NotificationService';
+import { supabase } from '../config/supabase';
 import type { User } from '@mintenance/types';
 import { handleError } from '../utils/errorHandler';
 import { logger } from '../utils/logger';
@@ -51,14 +52,38 @@ export const restoreSession = async (
     const persistedSession = await loadSessionFromSecureStore();
 
     if (persistedSession) {
-      dispatch.setSession(persistedSession as AuthSession);
+      const typedSession = persistedSession as AuthSession;
+      dispatch.setSession(typedSession);
       logger.info('[AUTH] Using persisted session');
 
-      const accessToken = (persistedSession as AuthSession)?.access_token;
+      // CRITICAL: Restore session to the Supabase client so that
+      // supabase.auth.getSession() returns the persisted session.
+      // Without this, getAuthToken() in mobileApiClient returns null
+      // and every API call fails with 401.
+      if (typedSession.access_token && typedSession.refresh_token) {
+        const { error: setSessionError } = await supabase.auth.setSession({
+          access_token: typedSession.access_token,
+          refresh_token: typedSession.refresh_token,
+        });
+        if (setSessionError) {
+          logger.warn(
+            '[AUTH] Failed to restore session to Supabase client, will try refresh',
+            {
+              error: setSessionError.message,
+            }
+          );
+        } else {
+          logger.info('[AUTH] Session restored to Supabase client');
+        }
+      }
+
+      const accessToken = typedSession?.access_token;
       if (accessToken && isTokenExpiredOrExpiring(accessToken)) {
         logger.info('[AUTH] Token expired or expiring soon, refreshing...');
         try {
-          const refreshedData = await AuthService.refreshToken() as { session?: AuthSession } | null;
+          const refreshedData = (await AuthService.refreshToken()) as {
+            session?: AuthSession;
+          } | null;
           if (refreshedData?.session) {
             dispatch.setSession(refreshedData.session);
             await saveSessionToSecureStore(refreshedData.session);
@@ -83,7 +108,8 @@ export const restoreSession = async (
     dispatch.setUser(currentUser);
     setUserContext(currentUser);
 
-    const activeSession = await AuthService.getCurrentSession() as AuthSession | null;
+    const activeSession =
+      (await AuthService.getCurrentSession()) as AuthSession | null;
     if (activeSession) {
       dispatch.setSession(activeSession);
       await saveSessionToSecureStore(activeSession);
@@ -104,7 +130,11 @@ export const performSignIn = async (
   email: string,
   password: string,
   dispatch: AuthStateDispatch,
-  biometricAuth: { biometricAvailable: boolean; isBiometricEnabled: () => Promise<boolean>; promptEnableBiometric: (user: User, session: AuthSession) => void }
+  biometricAuth: {
+    biometricAvailable: boolean;
+    isBiometricEnabled: () => Promise<boolean>;
+    promptEnableBiometric: (user: User, session: AuthSession) => void;
+  }
 ): Promise<void> => {
   dispatch.setLoading(true);
   trackUserAction('auth.sign_in_attempt', { email });
@@ -116,15 +146,19 @@ export const performSignIn = async (
       'auth'
     );
 
-    const signedInUser = result?.user ?? await AuthService.getCurrentUser();
-    const authSession = (result?.session ?? await AuthService.getCurrentSession()) as AuthSession | null;
+    const signedInUser = result?.user ?? (await AuthService.getCurrentUser());
+    const authSession = (result?.session ??
+      (await AuthService.getCurrentSession())) as AuthSession | null;
 
     dispatch.setUser(signedInUser);
     setUserContext(signedInUser);
     dispatch.setSession(authSession);
 
     if (signedInUser) {
-      trackUserAction('auth.sign_in_success', { userId: signedInUser.id, role: signedInUser.role });
+      trackUserAction('auth.sign_in_success', {
+        userId: signedInUser.id,
+        role: signedInUser.role,
+      });
       addBreadcrumb(`User signed in: ${signedInUser.email}`, 'auth');
       initializePushNotifications(signedInUser.id);
 
@@ -138,7 +172,10 @@ export const performSignIn = async (
       }
     }
   } catch (error) {
-    trackUserAction('auth.sign_in_failed', { email, error: (error as Error).message });
+    trackUserAction('auth.sign_in_failed', {
+      email,
+      error: (error as Error).message,
+    });
     throw error;
   } finally {
     dispatch.setLoading(false);
@@ -150,7 +187,10 @@ export const performSignUp = async (
   password: string,
   userData: SignUpUserData,
   dispatch: AuthStateDispatch,
-  biometricAuth: { biometricAvailable: boolean; promptEnableBiometric: (user: User, session: AuthSession) => void }
+  biometricAuth: {
+    biometricAvailable: boolean;
+    promptEnableBiometric: (user: User, session: AuthSession) => void;
+  }
 ): Promise<void> => {
   dispatch.setLoading(true);
   trackUserAction('auth.sign_up_attempt', { email, role: userData.role });
@@ -163,13 +203,17 @@ export const performSignUp = async (
     );
 
     const newUser = await AuthService.getCurrentUser();
-    const authSession = await AuthService.getCurrentSession() as AuthSession | null;
+    const authSession =
+      (await AuthService.getCurrentSession()) as AuthSession | null;
     dispatch.setUser(newUser);
     setUserContext(newUser);
     dispatch.setSession(authSession);
 
     if (newUser) {
-      trackUserAction('auth.sign_up_success', { userId: newUser.id, role: newUser.role });
+      trackUserAction('auth.sign_up_success', {
+        userId: newUser.id,
+        role: newUser.role,
+      });
       addBreadcrumb(`New user registered: ${newUser.email}`, 'auth');
 
       if (
@@ -183,7 +227,11 @@ export const performSignUp = async (
       }
     }
   } catch (error) {
-    trackUserAction('auth.sign_up_failed', { email, role: userData.role, error: (error as Error).message });
+    trackUserAction('auth.sign_up_failed', {
+      email,
+      role: userData.role,
+      error: (error as Error).message,
+    });
     throw error;
   } finally {
     dispatch.setLoading(false);

@@ -11,12 +11,12 @@ export async function getJobMessages(
   offset = 0
 ): Promise<Message[]> {
   try {
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*, sender:users!messages_sender_id_fkey(first_name, last_name, role)')
-      .eq('job_id', jobId)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    // Use shared query from @mintenance/data-access for consistent select columns
+    const { fetchJobMessages } = await import('@mintenance/data-access');
+    const { data, error } = await fetchJobMessages(supabase, jobId, {
+      limit,
+      offset,
+    });
 
     if (error) throw error;
     return (data as DatabaseMessageRow[]).map(formatMessage).reverse();
@@ -27,7 +27,9 @@ export async function getJobMessages(
 }
 
 /** Fetch all message threads (conversations) for a user. */
-export async function getUserMessageThreads(userId: string): Promise<MessageThread[]> {
+export async function getUserMessageThreads(
+  userId: string
+): Promise<MessageThread[]> {
   try {
     const { data: jobs, error: jobsError } = await supabase
       .from('jobs')
@@ -39,11 +41,22 @@ export async function getUserMessageThreads(userId: string): Promise<MessageThre
     if (jobsError) throw jobsError;
 
     const threads: MessageThread[] = await Promise.all(
-      (jobs as unknown as { id: string; title: string; homeowner_id: string; contractor_id: string | null; homeowner: Record<string, unknown> | null; contractor: Record<string, unknown> | null }[]).map(async (job) => {
+      (
+        jobs as unknown as {
+          id: string;
+          title: string;
+          homeowner_id: string;
+          contractor_id: string | null;
+          homeowner: Record<string, unknown> | null;
+          contractor: Record<string, unknown> | null;
+        }[]
+      ).map(async (job) => {
         const [lastMessageResult, unreadResult] = await Promise.all([
           supabase
             .from('messages')
-            .select('id, job_id, sender_id, receiver_id, message_text, message_type, attachment_url, read, created_at, sender:users!messages_sender_id_fkey(first_name, last_name, role)')
+            .select(
+              'id, job_id, sender_id, receiver_id, message_text, message_type, attachment_url, read, created_at, sender:users!messages_sender_id_fkey(first_name, last_name, role)'
+            )
             .eq('job_id', job.id)
             .order('created_at', { ascending: false })
             .limit(1),
@@ -68,12 +81,16 @@ export async function getUserMessageThreads(userId: string): Promise<MessageThre
               name: `${job.homeowner?.first_name || ''} ${job.homeowner?.last_name || ''}`.trim(),
               role: String(job.homeowner?.role || 'homeowner'),
             },
-            job.contractor ? {
-              id: String(job.contractor_id || ''),
-              name: `${job.contractor?.first_name || ''} ${job.contractor?.last_name || ''}`.trim(),
-              role: String(job.contractor?.role || 'contractor'),
-            } : null,
-          ].filter((p): p is { id: string; name: string; role: string } => p !== null),
+            job.contractor
+              ? {
+                  id: String(job.contractor_id || ''),
+                  name: `${job.contractor?.first_name || ''} ${job.contractor?.last_name || ''}`.trim(),
+                  role: String(job.contractor?.role || 'contractor'),
+                }
+              : null,
+          ].filter(
+            (p): p is { id: string; name: string; role: string } => p !== null
+          ),
         };
       })
     );
@@ -97,7 +114,9 @@ export async function searchJobMessages(
 ): Promise<Message[]> {
   try {
     if (!isValidSearchTerm(searchTerm)) {
-      logger.warn('Invalid search term rejected:', { searchTerm: searchTerm.substring(0, 50) });
+      logger.warn('Invalid search term rejected:', {
+        searchTerm: searchTerm.substring(0, 50),
+      });
       return [];
     }
     const sanitizedSearchTerm = sanitizeForSQL(searchTerm);
@@ -105,7 +124,9 @@ export async function searchJobMessages(
 
     const { data, error } = await supabase
       .from('messages')
-      .select('*, sender:users!messages_sender_id_fkey(first_name, last_name, role)')
+      .select(
+        '*, sender:users!messages_sender_id_fkey(first_name, last_name, role)'
+      )
       .eq('job_id', jobId)
       .ilike('message_text', `%${sanitizedSearchTerm}%`)
       .order('created_at', { ascending: false })
@@ -124,9 +145,16 @@ export async function getVideoCallMessages(jobId: string): Promise<Message[]> {
   try {
     const { data, error } = await supabase
       .from('messages')
-      .select('*, sender:users!messages_sender_id_fkey(first_name, last_name, role)')
+      .select(
+        '*, sender:users!messages_sender_id_fkey(first_name, last_name, role)'
+      )
       .eq('job_id', jobId)
-      .in('message_type', ['video_call_invitation', 'video_call_started', 'video_call_ended', 'video_call_missed'])
+      .in('message_type', [
+        'video_call_invitation',
+        'video_call_started',
+        'video_call_ended',
+        'video_call_missed',
+      ])
       .order('created_at', { ascending: false });
 
     if (error) throw error;

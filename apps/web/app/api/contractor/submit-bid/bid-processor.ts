@@ -1,6 +1,6 @@
 /**
  * Bid Processing Logic
- * 
+ *
  * Handles bid creation, updates, and database operations.
  * Extracted from route.ts to improve maintainability.
  */
@@ -12,16 +12,16 @@ import type { SubmitBidInput } from './validation';
 interface BidPayload {
   job_id: string;
   contractor_id: string;
-  amount: number; // Actual database column name
-  description: string; // Actual database column name
+  amount: number;
+  description: string;
+  message: string; // Canonical column — kept in sync with description
   status: 'pending';
   competitiveness_score?: number;
   pricing_recommendation_id?: string;
   suggested_price_range?: Record<string, number>;
   was_price_recommended?: boolean;
-  // NOTE: These fields may not exist in all database schemas - removed to avoid schema errors
-  // estimated_duration?: number;
-  // proposed_start_date?: string;
+  estimated_duration_days?: number;
+  proposed_start_date?: string;
   updated_at: string;
 }
 
@@ -108,7 +108,7 @@ export async function updateBid(
     estimatedDuration: payloadRecord.estimated_duration,
     proposedStartDate: payloadRecord.proposed_start_date,
   });
-  
+
   const { data: updatedBid, error: updateError } = await serverSupabase
     .from('bids')
     .update(payload)
@@ -171,7 +171,10 @@ export async function processBid(
 
   if (existingBid) {
     // Update existing bid
-    const { bid, error: updateError } = await updateBid(existingBid.id, bidPayload);
+    const { bid, error: updateError } = await updateBid(
+      existingBid.id,
+      bidPayload
+    );
 
     if (updateError) {
       logger.error('Failed to update bid', {
@@ -179,7 +182,8 @@ export async function processBid(
         contractorId,
         jobId: validatedData.jobId,
         bidId: existingBid.id,
-        error: updateError instanceof Error ? updateError.message : 'Unknown error',
+        error:
+          updateError instanceof Error ? updateError.message : 'Unknown error',
       });
       throw new Error('Unable to update your bid. Please try again.');
     }
@@ -215,7 +219,12 @@ export async function processBid(
         return { bid: raceBid, isUpdate: true };
       } else {
         // Handle other insert errors
-        const dbError = error as { code?: string; message?: string; details?: string; hint?: string };
+        const dbError = error as {
+          code?: string;
+          message?: string;
+          details?: string;
+          hint?: string;
+        };
         const errorInfo = {
           service: 'contractor',
           contractorId,
@@ -225,18 +234,27 @@ export async function processBid(
           errorDetails: dbError.details,
           errorHint: dbError.hint,
           payloadKeys: Object.keys(bidPayload),
-          payloadEstimatedDuration: (bidPayload as unknown as Record<string, unknown>).estimated_duration,
-          payloadProposedStartDate: (bidPayload as unknown as Record<string, unknown>).proposed_start_date,
+          payloadEstimatedDuration: (
+            bidPayload as unknown as Record<string, unknown>
+          ).estimated_duration,
+          payloadProposedStartDate: (
+            bidPayload as unknown as Record<string, unknown>
+          ).proposed_start_date,
         };
 
-        logger.error('[BID_CREATE] Failed to create bid in database - full error details', {
-          ...errorInfo,
-          fullError: error,
-        });
+        logger.error(
+          '[BID_CREATE] Failed to create bid in database - full error details',
+          {
+            ...errorInfo,
+            fullError: error,
+          }
+        );
 
         // Preserve the original error so it can be properly handled upstream
         const preservedError = Object.assign(
-          new Error('Unable to submit bid due to a database error. Please try again or contact support.'),
+          new Error(
+            'Unable to submit bid due to a database error. Please try again or contact support.'
+          ),
           { code: dbError.code, details: dbError.details, hint: dbError.hint }
         );
         throw preservedError;
@@ -250,7 +268,10 @@ export async function processBid(
 /**
  * Get error message for database errors
  */
-export function getDatabaseErrorMessage(error: { code?: string; message?: string }): string {
+export function getDatabaseErrorMessage(error: {
+  code?: string;
+  message?: string;
+}): string {
   const messageLower = (error.message || '').toLowerCase();
 
   if (error.code === '23503') {
@@ -278,4 +299,3 @@ export function getDatabaseErrorMessage(error: { code?: string; message?: string
 
   return 'Unable to submit bid due to a database error. Please try again or contact support.';
 }
-

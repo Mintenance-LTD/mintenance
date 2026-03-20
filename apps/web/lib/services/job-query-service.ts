@@ -73,9 +73,13 @@ const jobSelectFields = `
   homeowner:profiles!homeowner_id(id,first_name,last_name,email,profile_image_url),
   contractor:profiles!contractor_id(id,first_name,last_name,email),
   bids(count)
-`.replace(/\s+/g, ' ').trim();
+`
+  .replace(/\s+/g, ' ')
+  .trim();
 
-const mapRowToJobSummary = (row: JobRow): JobSummary & {
+const mapRowToJobSummary = (
+  row: JobRow
+): JobSummary & {
   homeownerName?: string;
   contractorName?: string;
   category?: string;
@@ -88,8 +92,12 @@ const mapRowToJobSummary = (row: JobRow): JobSummary & {
   status: (row.status as JobSummary['status']) ?? 'posted',
   createdAt: row.created_at,
   updatedAt: row.updated_at,
-  homeownerName: row.homeowner ? `${row.homeowner.first_name} ${row.homeowner.last_name}` : undefined,
-  contractorName: row.contractor ? `${row.contractor.first_name} ${row.contractor.last_name}` : undefined,
+  homeownerName: row.homeowner
+    ? `${row.homeowner.first_name} ${row.homeowner.last_name}`
+    : undefined,
+  contractorName: row.contractor
+    ? `${row.contractor.first_name} ${row.contractor.last_name}`
+    : undefined,
   category: row.category ?? undefined,
   budget: row.budget ?? undefined,
   location: row.location ?? undefined,
@@ -127,24 +135,33 @@ export class JobQueryService {
     user: Pick<User, 'id' | 'role'>,
     params: JobListParams
   ): Promise<{
-    items: (JobSummary & { photos?: string[]; view_count?: number; ai_assessment?: AIAssessmentData | null })[];
+    items: (JobSummary & {
+      photos?: string[];
+      view_count?: number;
+      ai_assessment?: AIAssessmentData | null;
+    })[];
     nextCursor?: string;
   }> {
     const query = this.buildJobQuery(user, params.status, params.propertyId);
-    const { rows, nextCursor } = await this.fetchJobs(query, params.limit, params.cursor);
+    const { rows, nextCursor } = await this.fetchJobs(
+      query,
+      params.limit,
+      params.cursor
+    );
 
-    const jobIds = rows.map(row => row.id);
-    const [attachmentsByJobId, viewCountsByJobId, assessmentsByJobId] = await Promise.all([
-      this.fetchAttachments(jobIds),
-      this.fetchViewCounts(jobIds),
-      this.fetchAssessments(jobIds),
-    ]);
+    const jobIds = rows.map((row) => row.id);
+    const [attachmentsByJobId, viewCountsByJobId, assessmentsByJobId] =
+      await Promise.all([
+        this.fetchAttachments(jobIds),
+        this.fetchViewCounts(jobIds),
+        this.fetchAssessments(jobIds),
+      ]);
 
-    const items = rows.map(row => {
+    const items = rows.map((row) => {
       const jobAttachments = attachmentsByJobId.get(row.id) || [];
       const photos = jobAttachments
-        .filter(att => att.file_type === 'image')
-        .map(att => att.file_url);
+        .filter((att) => att.file_type === 'image')
+        .map((att) => att.file_url);
       const viewCount = viewCountsByJobId.get(row.id) || 0;
       const jobSummary = mapRowToJobSummary(row);
       const aiAssessment = assessmentsByJobId.get(row.id) || null;
@@ -161,25 +178,34 @@ export class JobQueryService {
       service: 'jobs',
       userId: user.id,
       jobCount: items.length,
-      hasMore: Boolean(nextCursor)
+      hasMore: Boolean(nextCursor),
     });
 
     return { items, nextCursor };
   }
 
-  private buildJobQuery(user: Pick<User, 'id' | 'role'>, status?: string[], propertyId?: string) {
-    let query = serverSupabase
-      .from('jobs')
-      .select(jobSelectFields);
+  private buildJobQuery(
+    user: Pick<User, 'id' | 'role'>,
+    status?: string[],
+    propertyId?: string
+  ) {
+    let query = serverSupabase.from('jobs').select(jobSelectFields);
 
-    const isContractorViewingAvailableJobs = user.role === 'contractor' && status?.includes('posted');
+    const isContractorViewingAvailableJobs =
+      user.role === 'contractor' && status?.includes('posted');
     if (isContractorViewingAvailableJobs) {
-      query = query
-        .eq('status', 'posted')
-        .is('contractor_id', null);
+      query = query.eq('status', 'posted').is('contractor_id', null);
+    } else if (user.role === 'homeowner') {
+      query = query.eq('homeowner_id', user.id);
+
+      if (status?.length) {
+        query = query.in('status', status);
+      }
     } else {
-      query = query
-        .or(`homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`);
+      // contractor or admin: see jobs they own or are assigned to
+      query = query.or(
+        `homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`
+      );
 
       if (status?.length) {
         query = query.in('status', status);
@@ -199,7 +225,10 @@ export class JobQueryService {
     cursor?: string
   ): Promise<{ rows: JobRow[]; nextCursor?: string }> {
     type QueryBuilder = {
-      order: (column: string, options?: { ascending?: boolean }) => QueryBuilder;
+      order: (
+        column: string,
+        options?: { ascending?: boolean }
+      ) => QueryBuilder;
       limit: (count: number) => QueryBuilder;
       lt: (column: string, value: string) => QueryBuilder;
     };
@@ -214,7 +243,10 @@ export class JobQueryService {
       pagedQuery = pagedQuery.lt('created_at', cursor);
     }
 
-    const { data: jobsData, error } = await (pagedQuery as unknown as Promise<{ data: JobRow[] | null; error: unknown }>);
+    const { data: jobsData, error } = await (pagedQuery as unknown as Promise<{
+      data: JobRow[] | null;
+      error: unknown;
+    }>);
     if (error || !jobsData) {
       logger.error('Failed to load jobs', error, { service: 'jobs' });
       throw error || new Error('Failed to load jobs');
@@ -223,12 +255,16 @@ export class JobQueryService {
     const rows = jobsData as unknown as JobRow[];
     const hasMore = rows.length > limit;
     const limitedRows = rows.slice(0, limit);
-    const nextCursor = hasMore ? limitedRows[limitedRows.length - 1]?.created_at ?? undefined : undefined;
+    const nextCursor = hasMore
+      ? (limitedRows[limitedRows.length - 1]?.created_at ?? undefined)
+      : undefined;
 
     return { rows: limitedRows, nextCursor };
   }
 
-  private async fetchAttachments(jobIds: string[]): Promise<Map<string, JobAttachment[]>> {
+  private async fetchAttachments(
+    jobIds: string[]
+  ): Promise<Map<string, JobAttachment[]>> {
     const attachmentsByJobId = new Map<string, JobAttachment[]>();
     if (jobIds.length === 0) {
       return attachmentsByJobId;
@@ -240,20 +276,24 @@ export class JobQueryService {
       .in('job_id', jobIds)
       .eq('file_type', 'image');
 
-    (data ?? []).forEach((att: { job_id: string; file_url: string; file_type: string }) => {
-      if (!attachmentsByJobId.has(att.job_id)) {
-        attachmentsByJobId.set(att.job_id, []);
+    (data ?? []).forEach(
+      (att: { job_id: string; file_url: string; file_type: string }) => {
+        if (!attachmentsByJobId.has(att.job_id)) {
+          attachmentsByJobId.set(att.job_id, []);
+        }
+        attachmentsByJobId.get(att.job_id)!.push({
+          file_url: att.file_url,
+          file_type: att.file_type,
+        });
       }
-      attachmentsByJobId.get(att.job_id)!.push({
-        file_url: att.file_url,
-        file_type: att.file_type,
-      });
-    });
+    );
 
     return attachmentsByJobId;
   }
 
-  private async fetchViewCounts(jobIds: string[]): Promise<Map<string, number>> {
+  private async fetchViewCounts(
+    jobIds: string[]
+  ): Promise<Map<string, number>> {
     const viewCountsByJobId = new Map<string, number>();
     if (jobIds.length === 0) {
       return viewCountsByJobId;
@@ -269,11 +309,15 @@ export class JobQueryService {
       viewCountsMap.set(view.job_id, (viewCountsMap.get(view.job_id) || 0) + 1);
     });
 
-    viewCountsMap.forEach((count, job_id) => viewCountsByJobId.set(job_id, count));
+    viewCountsMap.forEach((count, job_id) =>
+      viewCountsByJobId.set(job_id, count)
+    );
     return viewCountsByJobId;
   }
 
-  private async fetchAssessments(jobIds: string[]): Promise<Map<string, AIAssessmentData>> {
+  private async fetchAssessments(
+    jobIds: string[]
+  ): Promise<Map<string, AIAssessmentData>> {
     const assessmentsByJobId = new Map<string, AIAssessmentData>();
     if (jobIds.length === 0) {
       return assessmentsByJobId;
@@ -291,7 +335,9 @@ export class JobQueryService {
 
       const { data } = await serverSupabase
         .from('building_assessments')
-        .select('id, job_id, severity, damage_type, confidence, urgency, assessment_data, created_at')
+        .select(
+          'id, job_id, severity, damage_type, confidence, urgency, assessment_data, created_at'
+        )
         .in('job_id', jobIds)
         .order('created_at', { ascending: false });
 
@@ -299,17 +345,27 @@ export class JobQueryService {
         if (assessment.job_id && !assessmentsByJobId.has(assessment.job_id)) {
           assessmentsByJobId.set(assessment.job_id, {
             id: assessment.id,
-            severity: (assessment.severity as 'early' | 'midway' | 'full') || 'midway',
+            severity:
+              (assessment.severity as 'early' | 'midway' | 'full') || 'midway',
             damage_type: assessment.damage_type || '',
             confidence: assessment.confidence || 0,
-            urgency: (assessment.urgency as 'immediate' | 'urgent' | 'soon' | 'planned' | 'monitor') || 'monitor',
+            urgency:
+              (assessment.urgency as
+                | 'immediate'
+                | 'urgent'
+                | 'soon'
+                | 'planned'
+                | 'monitor') || 'monitor',
             assessment_data: assessment.assessment_data,
             created_at: assessment.created_at,
           });
         }
       });
     } catch (error) {
-      logger.debug('Building assessments not available (migration may be pending)', { error });
+      logger.debug(
+        'Building assessments not available (migration may be pending)',
+        { error }
+      );
     }
 
     return assessmentsByJobId;

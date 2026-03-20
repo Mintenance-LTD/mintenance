@@ -3,7 +3,8 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Sign In | Mintenance',
-  description: 'Sign in to your Mintenance account to manage projects, message contractors, and track home maintenance.',
+  description:
+    'Sign in to your Mintenance account to manage projects, message contractors, and track home maintenance.',
 };
 
 export default function LoginLayout({
@@ -11,5 +12,15 @@ export default function LoginLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <Suspense>{children}</Suspense>;
+  return (
+    <Suspense
+      fallback={
+        <div className='min-h-screen flex items-center justify-center bg-[#F9FAFB]'>
+          <div className='animate-spin h-10 w-10 border-4 border-teal-500 border-t-transparent rounded-full' />
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
+  );
 }

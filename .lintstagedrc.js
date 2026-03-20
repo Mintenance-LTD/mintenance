@@ -26,7 +26,7 @@ module.exports = {
   ],
 
   // Package files - verify dependencies
-  'package.json': [
-    'npm run build:packages || true',
-  ],
+  // Use a function to prevent lint-staged from appending file paths to the command,
+  // which would break 'tsc -p tsconfig.json' with TS5042 when files are passed as args.
+  'package.json': () => 'npm run build:packages',
 };
