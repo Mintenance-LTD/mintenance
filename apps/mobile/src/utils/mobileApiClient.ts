@@ -13,13 +13,42 @@ export const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
 /**
- * Get authentication token from Supabase session
+ * Get authentication token from Supabase session.
+ * Falls back to SecureStore if the Supabase client session is null
+ * (common after app restart before restoreSession completes).
  */
 async function getAuthToken(): Promise<string | null> {
   const {
     data: { session },
   } = await supabase.auth.getSession();
-  return session?.access_token || null;
+
+  if (session?.access_token) {
+    return session.access_token;
+  }
+
+  // Fallback: if Supabase client hasn't been hydrated yet, try SecureStore
+  try {
+    const SecureStore = await import('expo-secure-store');
+    const sessionJson = await SecureStore.getItemAsync('mintenance_session');
+    if (sessionJson) {
+      const persisted = JSON.parse(sessionJson);
+      if (persisted?.access_token && persisted?.refresh_token) {
+        // Restore to Supabase client for future calls
+        await supabase.auth.setSession({
+          access_token: persisted.access_token,
+          refresh_token: persisted.refresh_token,
+        });
+        logger.info(
+          '[AUTH] getAuthToken fallback: restored session from SecureStore'
+        );
+        return persisted.access_token;
+      }
+    }
+  } catch {
+    // SecureStore may not be available in all environments
+  }
+
+  return null;
 }
 
 /**
