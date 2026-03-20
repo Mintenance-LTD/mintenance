@@ -1,7 +1,10 @@
 import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
 import { apiRequest } from './apiHelper';
-import type { CreatePaymentIntentResponse, CreateSetupIntentResponse } from './types';
+import type {
+  CreatePaymentIntentResponse,
+  CreateSetupIntentResponse,
+} from './types';
 
 /** Retry API calls on transient network/server errors with exponential backoff. */
 async function withRetry<T>(
@@ -15,9 +18,15 @@ async function withRetry<T>(
       return await operation();
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
-      if (!isTransientError(lastError) || attempt === maxAttempts) throw lastError;
-      await new Promise((r) => setTimeout(r, delayMs * Math.pow(2, attempt - 1)));
-      logger.warn('PaymentIntentService', `Retry attempt ${attempt}: ${lastError.message}`);
+      if (!isTransientError(lastError) || attempt === maxAttempts)
+        throw lastError;
+      await new Promise((r) =>
+        setTimeout(r, delayMs * Math.pow(2, attempt - 1))
+      );
+      logger.warn(
+        'PaymentIntentService',
+        `Retry attempt ${attempt}: ${lastError.message}`
+      );
     }
   }
   throw lastError!;
@@ -26,8 +35,11 @@ async function withRetry<T>(
 function isTransientError(error: Error): boolean {
   const msg = error.message.toLowerCase();
   return (
-    msg.includes('network') || msg.includes('timeout') ||
-    msg.includes('502') || msg.includes('503') || msg.includes('429')
+    msg.includes('network') ||
+    msg.includes('timeout') ||
+    msg.includes('502') ||
+    msg.includes('503') ||
+    msg.includes('429')
   );
 }
 
@@ -44,16 +56,16 @@ export class PaymentIntentService {
     if (!Number.isFinite(amount) || amount <= 0) {
       throw new Error('Amount must be greater than 0');
     }
-    if (amount > 10000) {
-      throw new Error('Amount cannot exceed £10,000');
+    if (amount > 100000) {
+      throw new Error('Amount cannot exceed £100,000');
     }
 
     try {
       const data = await withRetry(() =>
-        apiRequest<{ clientSecret: string }>(
-          '/api/payments/create-intent',
-          { method: 'POST', body: { amount, jobId, contractorId } }
-        )
+        apiRequest<{ clientSecret: string }>('/api/payments/create-intent', {
+          method: 'POST',
+          body: { amount, jobId, contractorId },
+        })
       );
       return { client_secret: data.clientSecret };
     } catch (error) {
@@ -78,7 +90,9 @@ export class PaymentIntentService {
         .single();
 
       if (contractError || !contract) {
-        throw new Error('Contract must be signed by both parties before payment');
+        throw new Error(
+          'Contract must be signed by both parties before payment'
+        );
       }
 
       const data = await apiRequest<{ clientSecret: string }>(
@@ -89,7 +103,10 @@ export class PaymentIntentService {
       return { clientSecret: data.clientSecret };
     } catch (error) {
       logger.error('Failed to create payment intent', { error, jobId, amount });
-      return { error: error instanceof Error ? error.message : 'Failed to create payment' };
+      return {
+        error:
+          error instanceof Error ? error.message : 'Failed to create payment',
+      };
     }
   }
 
@@ -108,7 +125,12 @@ export class PaymentIntentService {
       return { setupIntentClientSecret: data.clientSecret };
     } catch (error) {
       logger.error('Failed to create setup intent', { error });
-      return { error: error instanceof Error ? error.message : 'Failed to setup payment method' };
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to setup payment method',
+      };
     }
   }
 }

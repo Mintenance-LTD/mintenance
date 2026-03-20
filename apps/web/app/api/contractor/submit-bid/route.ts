@@ -7,12 +7,23 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
+import {
+  serverSupabase,
+  createRequestScopedClient,
+} from '@/lib/api/supabaseServer';
 import { logger, JOB_STATUS } from '@mintenance/shared';
 import { BidAcceptanceAgent } from '@/lib/services/agents/BidAcceptanceAgent';
 import { PricingAgent } from '@/lib/services/agents/PricingAgent';
-import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
-import { NotFoundError, BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
+import {
+  getIdempotencyKeyFromRequest,
+  checkIdempotency,
+  storeIdempotencyResult,
+} from '@/lib/idempotency';
+import {
+  NotFoundError,
+  BadRequestError,
+  ForbiddenError,
+} from '@/lib/errors/api-error';
 import { submitBidSchema, type SubmitBidInput } from './validation';
 import { processBid, getDatabaseErrorMessage } from './bid-processor';
 import { prepareQuoteData, processQuote } from './quote-processor';
@@ -25,8 +36,12 @@ export const POST = withApiHandler(
     // Use RLS-enforced client for user-scoped reads; fall back to service role
     const userDb = createRequestScopedClient(request) ?? serverSupabase;
     // Check subscription requirement
-    const { requireSubscriptionForAction, checkSubscriptionLimits } = await import('@/lib/middleware/subscription-check');
-    const subscriptionCheck = await requireSubscriptionForAction(request, 'submit_bid');
+    const { requireSubscriptionForAction, checkSubscriptionLimits } =
+      await import('@/lib/middleware/subscription-check');
+    const subscriptionCheck = await requireSubscriptionForAction(
+      request,
+      'submit_bid'
+    );
     if (subscriptionCheck) {
       return subscriptionCheck;
     }
@@ -37,7 +52,9 @@ export const POST = withApiHandler(
       return NextResponse.json(
         {
           error: 'Bid limit reached',
-          message: limitResult.reason || 'You have reached your monthly bid limit. Upgrade to submit more bids.',
+          message:
+            limitResult.reason ||
+            'You have reached your monthly bid limit. Upgrade to submit more bids.',
         },
         { status: 402 }
       );
@@ -50,10 +67,14 @@ export const POST = withApiHandler(
     } catch (parseError) {
       logger.warn('Invalid JSON in bid submission request', {
         service: 'contractor',
-        error: parseError instanceof Error ? parseError.message : 'Unknown error'
+        error:
+          parseError instanceof Error ? parseError.message : 'Unknown error',
       });
       return NextResponse.json(
-        { error: 'Invalid request format. Please ensure the request body is valid JSON.' },
+        {
+          error:
+            'Invalid request format. Please ensure the request body is valid JSON.',
+        },
         { status: 400 }
       );
     }
@@ -63,17 +84,28 @@ export const POST = withApiHandler(
       request,
       'submit_bid',
       user.id,
-      typeof body === 'object' && body !== null && 'jobId' in body ? String(body.jobId) : ''
+      typeof body === 'object' && body !== null && 'jobId' in body
+        ? String(body.jobId)
+        : ''
     );
 
-    const idempotencyCheck = await checkIdempotency(idempotencyKey, 'submit_bid');
+    const idempotencyCheck = await checkIdempotency(
+      idempotencyKey,
+      'submit_bid'
+    );
     if (idempotencyCheck?.isDuplicate && idempotencyCheck.cachedResult) {
-      logger.info('Duplicate bid submission detected, returning cached result', {
-        service: 'contractor',
-        idempotencyKey,
-        userId: user.id,
-        jobId: typeof body === 'object' && body !== null && 'jobId' in body ? String(body.jobId) : '',
-      });
+      logger.info(
+        'Duplicate bid submission detected, returning cached result',
+        {
+          service: 'contractor',
+          idempotencyKey,
+          userId: user.id,
+          jobId:
+            typeof body === 'object' && body !== null && 'jobId' in body
+              ? String(body.jobId)
+              : '',
+        }
+      );
       return NextResponse.json(idempotencyCheck.cachedResult);
     }
 
@@ -86,7 +118,10 @@ export const POST = withApiHandler(
       bodyEstimatedDurationType: typeof bodyData.estimatedDuration,
       jobId: bodyData.jobId,
       bidAmount: bodyData.bidAmount,
-      proposalTextLength: typeof bodyData.proposalText === 'string' ? bodyData.proposalText.length : 0,
+      proposalTextLength:
+        typeof bodyData.proposalText === 'string'
+          ? bodyData.proposalText.length
+          : 0,
     });
 
     let validatedData: SubmitBidInput;
@@ -101,7 +136,7 @@ export const POST = withApiHandler(
     } catch (validationError) {
       if (validationError instanceof z.ZodError) {
         // Format validation errors for better client feedback
-        const errorMessages = validationError.issues.map(issue => {
+        const errorMessages = validationError.issues.map((issue) => {
           const path = issue.path.join('.');
           return `${path}: ${issue.message}`;
         });
@@ -115,7 +150,10 @@ export const POST = withApiHandler(
           bodyEstimatedDurationType: typeof bodyData.estimatedDuration,
           jobId: bodyData.jobId,
           bidAmount: bodyData.bidAmount,
-          proposalTextLength: typeof bodyData.proposalText === 'string' ? bodyData.proposalText.length : 0,
+          proposalTextLength:
+            typeof bodyData.proposalText === 'string'
+              ? bodyData.proposalText.length
+              : 0,
         });
 
         // Return first error message in a user-friendly format
@@ -124,16 +162,19 @@ export const POST = withApiHandler(
         if (firstError) {
           if (firstError.path.includes('proposalText')) {
             if (firstError.code === 'too_small') {
-              userMessage = 'Proposal description must be at least 50 characters';
+              userMessage =
+                'Proposal description must be at least 50 characters';
             } else if (firstError.code === 'too_big') {
-              userMessage = 'Proposal description cannot exceed 5000 characters';
+              userMessage =
+                'Proposal description cannot exceed 5000 characters';
             }
           } else if (firstError.path.includes('bidAmount')) {
             userMessage = 'Bid amount must be a positive number';
           } else if (firstError.path.includes('jobId')) {
             userMessage = 'Invalid job ID';
           } else if (firstError.path.includes('estimatedDuration')) {
-            userMessage = 'Estimated duration must be a positive number (in days)';
+            userMessage =
+              'Estimated duration must be a positive number (in days)';
           } else if (firstError.path.includes('proposedStartDate')) {
             userMessage = 'Proposed start date must be in YYYY-MM-DD format';
           } else {
@@ -141,11 +182,14 @@ export const POST = withApiHandler(
           }
         }
 
-        return NextResponse.json({
-          error: userMessage,
-          details: validationError.issues,
-          errorMessages,
-        }, { status: 400 });
+        return NextResponse.json(
+          {
+            error: userMessage,
+            details: validationError.issues,
+            errorMessages,
+          },
+          { status: 400 }
+        );
       }
       throw validationError;
     }
@@ -153,7 +197,8 @@ export const POST = withApiHandler(
     // Check if job exists and is accepting bids (include homeowner details for email)
     const { data: job, error: jobError } = await userDb
       .from('jobs')
-      .select(`
+      .select(
+        `
         id,
         title,
         status,
@@ -165,7 +210,8 @@ export const POST = withApiHandler(
           first_name,
           last_name
         )
-      `)
+      `
+      )
       .eq('id', validatedData.jobId)
       .single();
 
@@ -173,7 +219,7 @@ export const POST = withApiHandler(
       logger.warn('Bid submitted for non-existent job', {
         service: 'contractor',
         jobId: validatedData.jobId,
-        contractorId: user.id
+        contractorId: user.id,
       });
       throw new NotFoundError('Job not found');
     }
@@ -183,7 +229,7 @@ export const POST = withApiHandler(
       logger.warn('Bid submitted for closed job', {
         service: 'contractor',
         jobId: validatedData.jobId,
-        jobStatus: job.status
+        jobStatus: job.status,
       });
       throw new BadRequestError('This job is no longer accepting bids');
     }
@@ -210,11 +256,14 @@ export const POST = withApiHandler(
         service: 'contractor',
         jobId: validatedData.jobId,
         assignedContractor: jobWithContractor.contractor_id,
-        attemptingContractor: user.id
+        attemptingContractor: user.id,
       });
-      return NextResponse.json({
-        error: 'This job has already been assigned to a contractor'
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: 'This job has already been assigned to a contractor',
+        },
+        { status: 400 }
+      );
     }
 
     // Validate bid amount doesn't exceed job budget
@@ -228,11 +277,14 @@ export const POST = withApiHandler(
           jobId: validatedData.jobId,
           bidAmount: validatedData.bidAmount,
           jobBudget: job.budget,
-          contractorId: user.id
+          contractorId: user.id,
         });
-        return NextResponse.json({
-          error: `Bid amount (£${validatedData.bidAmount.toFixed(2)}) cannot exceed job budget (£${job.budget.toFixed(2)})`
-        }, { status: 400 });
+        return NextResponse.json(
+          {
+            error: `Bid amount (£${validatedData.bidAmount.toFixed(2)}) cannot exceed job budget (£${job.budget.toFixed(2)})`,
+          },
+          { status: 400 }
+        );
       }
 
       // Check if budget might have been reduced after bids were submitted
@@ -249,19 +301,28 @@ export const POST = withApiHandler(
           .eq('job_id', validatedData.jobId)
           .neq('status', 'withdrawn');
 
-        const budgetReduced = existingBids?.some((bid: { amount: number | null; contractor_id: string; status: string }) => {
-          const bidAmount = bid.amount || 0;
-          const bidAmountCents = Math.round(bidAmount * 100);
-          return bidAmountCents > budgetCents;
-        });
+        const budgetReduced = existingBids?.some(
+          (bid: {
+            amount: number | null;
+            contractor_id: string;
+            status: string;
+          }) => {
+            const bidAmount = bid.amount || 0;
+            const bidAmountCents = Math.round(bidAmount * 100);
+            return bidAmountCents > budgetCents;
+          }
+        );
 
         if (budgetReduced) {
-          logger.warn('Budget appears to have been reduced after bids were submitted', {
-            service: 'contractor',
-            jobId: validatedData.jobId,
-            currentBudget: job.budget,
-            existingBidCount,
-          });
+          logger.warn(
+            'Budget appears to have been reduced after bids were submitted',
+            {
+              service: 'contractor',
+              jobId: validatedData.jobId,
+              currentBudget: job.budget,
+              existingBidCount,
+            }
+          );
         }
       }
     }
@@ -295,22 +356,30 @@ export const POST = withApiHandler(
     }
 
     // Prepare the bid payload
-    // NOTE: Actual database columns are 'amount' and 'description' (used consistently throughout codebase)
+    const proposalText = (validatedData.proposalText || '').trim();
     const bidPayload = {
       job_id: validatedData.jobId,
       contractor_id: user.id,
-      amount: validatedData.bidAmount, // Database column is 'amount'
-      description: (validatedData.proposalText || '').trim(), // Database column is 'description'
+      amount: validatedData.bidAmount,
+      description: proposalText,
+      message: proposalText, // Keep both columns in sync (canonical column is 'message')
       status: 'pending' as const,
       competitiveness_score: competitivenessScore,
       pricing_recommendation_id: pricingRecommendationId,
       suggested_price_range: suggestedPriceRange,
       was_price_recommended: pricingRecommendation
-        ? Math.abs(validatedData.bidAmount - pricingRecommendation.recommendedOptimalPrice) < 0.01
+        ? Math.abs(
+            validatedData.bidAmount -
+              pricingRecommendation.recommendedOptimalPrice
+          ) < 0.01
         : false,
-      // NOTE: estimated_duration and proposed_start_date columns may not exist in all database schemas
-      // Only include them if explicitly needed - for now, omitting to avoid schema errors
-      // TODO: Verify database schema and add migration if these columns are required
+      // Columns confirmed to exist via migration 20260320000001
+      ...(validatedData.estimatedDuration !== undefined && {
+        estimated_duration_days: validatedData.estimatedDuration,
+      }),
+      ...(validatedData.proposedStartDate && {
+        proposed_start_date: validatedData.proposedStartDate,
+      }),
       updated_at: new Date().toISOString(),
     };
 
@@ -347,8 +416,14 @@ export const POST = withApiHandler(
         hasBidId: bid && typeof bid === 'object' && 'id' in bid,
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const dbError = error as { code?: string; message?: string; details?: string; hint?: string };
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      const dbError = error as {
+        code?: string;
+        message?: string;
+        details?: string;
+        hint?: string;
+      };
 
       // Log the actual database error details
       logger.error('[BID_SUBMIT] processBid failed', {
@@ -372,18 +447,21 @@ export const POST = withApiHandler(
           actualErrorCode: dbError.code,
           actualErrorMessage: dbError.message,
         });
-        return NextResponse.json({
-          error: userMessage,
-          // Include actual error details in development for debugging
-          ...(process.env.NODE_ENV === 'development' && {
-            debug: {
-              code: dbError.code,
-              message: dbError.message,
-              details: dbError.details,
-              hint: dbError.hint,
-            }
-          })
-        }, { status: 400 });
+        return NextResponse.json(
+          {
+            error: userMessage,
+            // Include actual error details in development for debugging
+            ...(process.env.NODE_ENV === 'development' && {
+              debug: {
+                code: dbError.code,
+                message: dbError.message,
+                details: dbError.details,
+                hint: dbError.hint,
+              },
+            }),
+          },
+          { status: 400 }
+        );
       }
 
       // Re-throw if it's not a database error
@@ -400,9 +478,12 @@ export const POST = withApiHandler(
     }
 
     // Process quote creation or update
-    const homeowner = Array.isArray(job.homeowner) ? job.homeowner[0] : job.homeowner;
+    const homeowner = Array.isArray(job.homeowner)
+      ? job.homeowner[0]
+      : job.homeowner;
     const homeownerName = homeowner
-      ? `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim() || 'Client'
+      ? `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim() ||
+        'Client'
       : 'Client';
     const homeownerEmail = homeowner?.email || '';
 
@@ -423,7 +504,11 @@ export const POST = withApiHandler(
 
     const existingQuoteId = bidWithQuote?.quote_id || null;
 
-    await processQuote(quotePayload, existingQuoteId, (bid as { id: string }).id);
+    await processQuote(
+      quotePayload,
+      existingQuoteId,
+      (bid as { id: string }).id
+    );
 
     // Send notifications (only for new bids, not updates)
     await sendBidNotifications(
@@ -439,7 +524,7 @@ export const POST = withApiHandler(
       bidId: (bid as { id: string }).id,
       contractorId: user.id,
       jobId: validatedData.jobId,
-      bidAmount: validatedData.bidAmount
+      bidAmount: validatedData.bidAmount,
     });
 
     // Trigger auto-accept evaluation asynchronously (fire-and-forget)
@@ -474,8 +559,8 @@ export const POST = withApiHandler(
         jobId: validatedData.jobId,
         bidAmount: validatedData.bidAmount,
         status: (bid as { status?: string }).status || 'pending',
-        createdAt: (bid as { created_at?: string }).created_at
-      }
+        createdAt: (bid as { created_at?: string }).created_at,
+      },
     };
 
     // Store idempotency result for future duplicate requests
