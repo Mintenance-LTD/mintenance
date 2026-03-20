@@ -1,3 +1,6 @@
+// State machines — canonical lifecycle transitions for all entities
+export * from './state-machines';
+
 // Shared utilities and helpers
 export { logger } from './logger';
 export { formatDate, formatCurrency, formatPhone } from './formatters';

@@ -152,7 +152,7 @@ const BiometricSettings: React.FC = () => {
             true: theme.colors.textPrimary,
           }}
           thumbColor={
-            isEnabled ? '#FFFFFF' : theme.colors.textTertiary
+            isEnabled ? theme.colors.surface : theme.colors.textTertiary
           }
           accessibilityLabel='Enable biometric sign-in'
           accessibilityRole='switch'

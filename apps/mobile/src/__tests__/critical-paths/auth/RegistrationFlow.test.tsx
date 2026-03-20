@@ -5,7 +5,6 @@ import { render, fireEvent, waitFor } from '../../test-utils';
 import { AuthService } from '../../../services/AuthService';
 import { RegisterScreen } from '../../../screens/RegisterScreen';
 
-jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),

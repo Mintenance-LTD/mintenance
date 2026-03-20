@@ -43,13 +43,16 @@ export class BidManagementService {
     amount: number;
     description: string;
     estimatedDurationDays?: number;
+    proposedStartDate?: string;
   }): Promise<Bid> {
     // Route through web API for server-side validation, subscription checks, and notifications
+    // Field names must match backend validation schema (validation.ts)
     const response = await mobileApiClient.post<{ bid: DatabaseBidsRow }>('/api/contractor/submit-bid', {
-      job_id: bidData.jobId,
-      amount: bidData.amount,
-      message: bidData.description,
-      estimated_duration_days: bidData.estimatedDurationDays,
+      jobId: bidData.jobId,
+      bidAmount: bidData.amount,
+      proposalText: bidData.description,
+      estimatedDuration: bidData.estimatedDurationDays,
+      proposedStartDate: bidData.proposedStartDate,
     });
 
     if (!response.bid) {

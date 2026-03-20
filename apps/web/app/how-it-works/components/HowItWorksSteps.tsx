@@ -67,7 +67,7 @@ const homeownerSteps = [
     title: 'Review & Release',
     description: 'Once satisfied, release payment and leave a review. Your feedback helps other homeowners.',
     icon: Star,
-    color: 'bg-yellow-100 text-yellow-600',
+    color: 'bg-yellow-100 text-yellow-700',
   },
 ];
 
@@ -112,7 +112,7 @@ const contractorSteps = [
     title: 'Get Paid Fast',
     description: 'Receive secure payments directly to your account. Build your reputation with 5-star reviews.',
     icon: CreditCard,
-    color: 'bg-yellow-100 text-yellow-600',
+    color: 'bg-yellow-100 text-yellow-700',
   },
 ];
 

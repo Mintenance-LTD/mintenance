@@ -6,7 +6,7 @@
 
 import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { validateStatusTransition, type JobStatus } from '@/lib/job-state-machine';
 import { notifyJobStatusChange } from '@/lib/services/notifications/NotificationHelper';
 import { EmailService } from '@/lib/email-service';
@@ -16,10 +16,11 @@ import { NotFoundError, BadRequestError, ForbiddenError } from '@/lib/errors/api
 export const POST = withApiHandler(
   { roles: ['contractor'] },
   async (request, { user, params }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
     const jobId = params.id;
 
-    // 1. Fetch job
-    const { data: job, error } = await serverSupabase
+    // 1. Fetch job (user-scoped read)
+    const { data: job, error } = await userDb
       .from('jobs')
       .select('id, contractor_id, homeowner_id, status, title')
       .eq('id', jobId)
@@ -37,8 +38,8 @@ export const POST = withApiHandler(
     // 3. Validate state transition (assigned → in_progress)
     validateStatusTransition(job.status as JobStatus, 'in_progress');
 
-    // 4. Verify contract is signed by both parties
-    const { data: contract } = await serverSupabase
+    // 4. Verify contract is signed by both parties (user-scoped read)
+    const { data: contract } = await userDb
       .from('contracts')
       .select('id, status')
       .eq('job_id', jobId)
@@ -52,8 +53,8 @@ export const POST = withApiHandler(
       );
     }
 
-    // 5. Verify escrow payment is funded
-    const { data: escrow } = await serverSupabase
+    // 5. Verify escrow payment is funded (user-scoped read)
+    const { data: escrow } = await userDb
       .from('escrow_transactions')
       .select('id, status')
       .eq('job_id', jobId)
@@ -67,8 +68,8 @@ export const POST = withApiHandler(
       );
     }
 
-    // 6. Check at least 1 before photo exists
-    const { count } = await serverSupabase
+    // 6. Check at least 1 before photo exists (user-scoped read)
+    const { count } = await userDb
       .from('job_photos_metadata')
       .select('id', { count: 'exact', head: true })
       .eq('job_id', jobId)

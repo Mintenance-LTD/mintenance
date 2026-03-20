@@ -497,7 +497,7 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
               <Ionicons
                 name={audioEnabled ? 'mic' : 'mic-off'}
                 size={24}
-                color={audioEnabled ? '#FFFFFF' : theme.colors.error}
+                color={audioEnabled ? theme.colors.surface : theme.colors.error}
               />
             </TouchableOpacity>
 
@@ -508,7 +508,7 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
               <Ionicons
                 name={videoEnabled ? 'videocam' : 'videocam-off'}
                 size={24}
-                color={videoEnabled ? '#FFFFFF' : theme.colors.error}
+                color={videoEnabled ? theme.colors.surface : theme.colors.error}
               />
             </TouchableOpacity>
 

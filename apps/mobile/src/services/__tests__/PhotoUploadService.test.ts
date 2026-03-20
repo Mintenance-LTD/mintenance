@@ -1,4 +1,7 @@
-import PhotoUploadService from '../PhotoUploadService';
+import { PhotoUploadService } from '../PhotoUploadService';
+
+// Auto-mock mobileApiClient (picks up __mocks__/mobileApiClient.ts)
+jest.mock('../../utils/mobileApiClient');
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
@@ -12,10 +15,10 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }));
 
 describe('PhotoUploadService', () => {
-  let service: PhotoUploadService;
+  let service: typeof PhotoUploadService;
 
   beforeEach(() => {
-    service = PhotoUploadService /* checking export */;
+    service = PhotoUploadService;
     jest.clearAllMocks();
   });
 

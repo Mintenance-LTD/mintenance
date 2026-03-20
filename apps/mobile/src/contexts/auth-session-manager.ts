@@ -33,7 +33,25 @@ export const isTokenExpiredOrExpiring = (accessToken: string): boolean => {
 };
 
 /**
+ * Extract only the essential fields from a session to keep SecureStore
+ * values under the 2 KB limit (full JWTs can exceed 2048 bytes).
+ */
+const extractEssentialSession = (sessionData: unknown): Record<string, unknown> | null => {
+  if (!sessionData || typeof sessionData !== 'object') return null;
+  const s = sessionData as Record<string, unknown>;
+  return {
+    access_token: s.access_token,
+    refresh_token: s.refresh_token,
+    token_type: s.token_type,
+    expires_in: s.expires_in,
+    expires_at: s.expires_at,
+  };
+};
+
+/**
  * Persist a session object to SecureStore with an expiry timestamp.
+ * Only the essential token fields are stored to stay within
+ * SecureStore's 2048-byte value limit.
  */
 export const saveSessionToSecureStore = async (
   sessionData: unknown
@@ -41,9 +59,12 @@ export const saveSessionToSecureStore = async (
   try {
     if (!sessionData) return;
 
+    const essential = extractEssentialSession(sessionData);
+    if (!essential) return;
+
     await SecureStore.setItemAsync(
       SESSION_KEY,
-      JSON.stringify(sessionData)
+      JSON.stringify(essential)
     );
 
     const expiryTime = Date.now() + SESSION_DURATION_MS;

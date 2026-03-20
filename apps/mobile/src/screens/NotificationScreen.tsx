@@ -53,9 +53,17 @@ function formatRelativeTime(timestamp: string): string {
 const ICON_COLORS: Record<string, { icon: string; bg: string }> = {
   job_update:        { icon: '#3B82F6', bg: '#DBEAFE' },
   bid_received:      { icon: theme.colors.primary, bg: theme.colors.primaryLight },
+  bid_accepted:      { icon: theme.colors.primary, bg: theme.colors.primaryLight },
+  contract_created:  { icon: '#8B5CF6', bg: '#EDE9FE' },
+  contract_accepted: { icon: theme.colors.primary, bg: theme.colors.primaryLight },
   meeting_scheduled: { icon: '#8B5CF6', bg: '#EDE9FE' },
   payment_received:  { icon: theme.colors.accent, bg: theme.colors.accentLight },
   message_received:  { icon: '#06B6D4', bg: '#CFFAFE' },
+  new_message:       { icon: '#06B6D4', bg: '#CFFAFE' },
+  new_job:           { icon: '#3B82F6', bg: '#DBEAFE' },
+  job_posted:        { icon: '#3B82F6', bg: '#DBEAFE' },
+  job_completed:     { icon: theme.colors.primary, bg: theme.colors.primaryLight },
+  escrow_released:   { icon: theme.colors.accent, bg: theme.colors.accentLight },
   quote_sent:        { icon: '#EC4899', bg: '#FCE7F3' },
   system:            { icon: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary },
 };
@@ -64,6 +72,14 @@ const getIconName = (type: NotificationData['type']): keyof typeof Ionicons.glyp
   switch (type) {
     case 'job_update': return 'briefcase-outline';
     case 'bid_received': return 'cash-outline';
+    case 'bid_accepted' as NotificationData['type']: return 'checkmark-circle-outline';
+    case 'contract_created' as NotificationData['type']: return 'document-outline';
+    case 'contract_accepted' as NotificationData['type']: return 'shield-checkmark-outline';
+    case 'new_job' as NotificationData['type']: return 'briefcase-outline';
+    case 'new_message' as NotificationData['type']: return 'chatbubble-outline';
+    case 'job_posted' as NotificationData['type']: return 'add-circle-outline';
+    case 'job_completed' as NotificationData['type']: return 'checkmark-done-outline';
+    case 'escrow_released' as NotificationData['type']: return 'wallet-outline';
     case 'meeting_scheduled': return 'calendar-outline';
     case 'payment_received': return 'card-outline';
     case 'message_received': return 'chatbubble-outline';
@@ -79,25 +95,32 @@ const filterNotifications = (notifications: NotificationData[], tab: FilterTab):
       return notifications.filter(n => !n.read);
     case 'jobs':
       return notifications.filter(n =>
-        ['job_update', 'bid_received', 'quote_sent'].includes(n.type)
+        ['job_update', 'bid_received', 'quote_sent', 'new_job', 'job_posted', 'job_completed', 'bid_accepted', 'contract_created', 'contract_accepted'].includes(n.type)
       );
     case 'payments':
-      return notifications.filter(n => n.type === 'payment_received');
+      return notifications.filter(n =>
+        ['payment_received', 'escrow_released'].includes(n.type)
+      );
     case 'messages':
       return notifications.filter(n =>
-        ['message_received', 'meeting_scheduled'].includes(n.type)
+        ['message_received', 'meeting_scheduled', 'new_message'].includes(n.type)
       );
     default:
       return notifications;
   }
 };
 
+function stripEmoji(text: string): string {
+  return text.replace(/[\u{1F600}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{FE00}-\u{FE0F}]|[\u{1F000}-\u{1FFFF}]|[\u200D]|[\u{E0020}-\u{E007F}]/gu, '').trim();
+}
+
 interface CompactNotificationProps {
   notification: NotificationData;
   onPress: () => void;
+  onMarkRead?: () => void;
 }
 
-const CompactNotification: React.FC<CompactNotificationProps> = ({ notification, onPress }) => {
+const CompactNotification: React.FC<CompactNotificationProps> = ({ notification, onPress, onMarkRead }) => {
   const colors = ICON_COLORS[notification.type] || ICON_COLORS.system;
   return (
     <TouchableOpacity
@@ -113,12 +136,23 @@ const CompactNotification: React.FC<CompactNotificationProps> = ({ notification,
       <View style={styles.notifContent}>
         <View style={styles.notifHeader}>
           <Text style={[styles.notifTitle, !notification.read && styles.notifTitleUnread]} numberOfLines={1}>
-            {notification.title}
+            {stripEmoji(notification.title)}
           </Text>
           <Text style={styles.notifTime}>{formatRelativeTime(notification.createdAt)}</Text>
         </View>
         <Text style={styles.notifBody} numberOfLines={2}>{notification.body}</Text>
       </View>
+      {!notification.read && (
+        <TouchableOpacity
+          style={styles.markReadBtn}
+          onPress={(e) => { e.stopPropagation(); onMarkRead?.(); }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel="Mark as read"
+        >
+          <Ionicons name="checkmark" size={14} color={theme.colors.primary} />
+        </TouchableOpacity>
+      )}
     </TouchableOpacity>
   );
 };
@@ -322,6 +356,7 @@ export const NotificationScreen: React.FC = () => {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.tabsWrapper}
         contentContainerStyle={styles.tabsRow}
       >
         {FILTER_TABS.map((tab) => {
@@ -367,6 +402,11 @@ export const NotificationScreen: React.FC = () => {
             <CompactNotification
               notification={item}
               onPress={() => handleNotificationPress(item)}
+              onMarkRead={() => {
+                NotificationService.markAsRead(item.id);
+                setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, read: true } : n));
+                setUnreadCount(prev => Math.max(0, prev - 1));
+              }}
             />
           )}
           refreshControl={
@@ -443,14 +483,16 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 24,
   },
+  tabsWrapper: {
+    backgroundColor: theme.colors.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
+  },
   tabsRow: {
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 12,
     gap: 8,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
   },
   tab: {
     paddingHorizontal: 16,
@@ -459,7 +501,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.backgroundSecondary,
   },
   tabActive: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: theme.colors.primary,
   },
   tabText: {
     fontSize: 13,
@@ -489,9 +531,20 @@ const styles = StyleSheet.create({
     }),
   },
   notifCardUnread: {
-    backgroundColor: '#F0FDF9',
+    backgroundColor: '#F0FDF4',
     borderLeftWidth: 3,
     borderLeftColor: theme.colors.primary,
+  },
+  markReadBtn: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   iconCircle: {
     width: 42,

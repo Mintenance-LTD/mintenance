@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useToast } from '../../components/ui/Toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { useAuth } from '../../contexts/AuthContext';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
@@ -57,8 +57,7 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
 
     setLoading(true);
     try {
-      const { error: err } = await supabase.from('time_entries').insert({
-        contractor_id: user.id,
+      await mobileApiClient.post('/api/contractor/time-tracking', {
         task_description: taskDescription.trim(),
         duration_minutes: Math.round(parseFloat(hours) * 60),
         hourly_rate: parseFloat(hourlyRate) || 0,
@@ -66,7 +65,6 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
         date,
         start_time: startTime,
       });
-      if (err) throw new Error(err.message);
       queryClient.invalidateQueries({ queryKey: ['contractor-time-tracking'] });
       toast.success('Time entry added', `${hours}h logged successfully`);
       navigation.goBack();

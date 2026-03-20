@@ -17,13 +17,18 @@ export function ProgressBar({ currentStep, steps }: ProgressBarProps) {
       <div className="flex items-center justify-between mb-4">
         {steps.map((step, index) => (
           <React.Fragment key={step.id}>
-            <div className="flex items-center">
+            <div
+              className="flex items-center"
+              aria-label={`Step ${step.id}: ${step.label}`}
+              aria-current={currentStep === step.id ? 'step' : undefined}
+            >
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors ${
                   currentStep >= step.id
                     ? 'bg-teal-600 text-white'
                     : 'bg-gray-200 text-gray-400'
                 }`}
+                aria-hidden="true"
               >
                 {step.id}
               </div>

@@ -1,0 +1,25 @@
+{
+  "name": "@mintenance/data-access",
+  "version": "1.0.0",
+  "description": "Shared Supabase query definitions for consistent data access across web and mobile",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@mintenance/types": "file:../types",
+    "@supabase/supabase-js": "^2"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

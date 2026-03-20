@@ -25,7 +25,6 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { mobileApiClient } from '../../utils/mobileApiClient';
-import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { HapticService } from '../../utils/haptics';
 import { JobsStackParamList } from '../../navigation/types';
@@ -75,27 +74,27 @@ export const ContractPreparationScreen: React.FC<Props> = ({ route, navigation }
         if (!user?.id) return;
 
         const [verificationRes, profileRes, contractsRes] = await Promise.allSettled([
-          supabase.from('contractor_verifications').select('company_name, license_number').eq('contractor_id', user.id).single(),
-          supabase.from('contractor_profiles').select('insurance_provider, insurance_policy_number').eq('user_id', user.id).single(),
-          supabase.from('contracts').select('id, amount, title, description').eq('job_id', jobId).limit(1),
+          mobileApiClient.get<Record<string, unknown>>('/api/contractor/verification'),
+          mobileApiClient.get<Record<string, unknown>>('/api/contractor/profile'),
+          mobileApiClient.get<Array<Record<string, unknown>>>(`/api/contracts?job_id=${jobId}`),
         ]);
 
         if (cancelled) return;
 
-        if (verificationRes.status === 'fulfilled' && verificationRes.value?.data) {
-          const v = verificationRes.value.data as Record<string, unknown>;
+        if (verificationRes.status === 'fulfilled' && verificationRes.value) {
+          const v = verificationRes.value;
           if (v.company_name) setCompanyName(v.company_name as string);
           if (v.license_number) setLicenseRegistration(v.license_number as string);
         }
 
-        if (profileRes.status === 'fulfilled' && profileRes.value?.data) {
-          const p = profileRes.value.data as Record<string, unknown>;
+        if (profileRes.status === 'fulfilled' && profileRes.value) {
+          const p = profileRes.value;
           if (p.insurance_provider) setInsuranceProvider(p.insurance_provider as string);
           if (p.insurance_policy_number) setInsurancePolicyNumber(p.insurance_policy_number as string);
         }
 
-        if (contractsRes.status === 'fulfilled' && contractsRes.value?.data?.[0]) {
-          const c = contractsRes.value.data[0] as Record<string, unknown>;
+        if (contractsRes.status === 'fulfilled' && Array.isArray(contractsRes.value) && contractsRes.value[0]) {
+          const c = contractsRes.value[0];
           if (c.amount) setAmount(String(c.amount));
           if (c.title) setTitle(c.title as string);
           if (c.description) setDescription(c.description as string);

@@ -55,7 +55,7 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
 
-  transpilePackages: ['@mintenance/auth', '@mintenance/shared', '@mintenance/types', '@mintenance/shared-ui', '@mintenance/design-tokens', '@mintenance/ai-core', '@hookform/resolvers'],
+  transpilePackages: ['@mintenance/auth', '@mintenance/shared', '@mintenance/types', '@mintenance/shared-ui', '@mintenance/design-tokens', '@mintenance/ai-core', '@mintenance/api-contracts', '@hookform/resolvers'],
 
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -115,7 +115,9 @@ const nextConfig = {
       'recharts',
       'date-fns',
       'react-hook-form',
-      '@tanstack/react-query'
+      '@tanstack/react-query',
+      '@tremor/react',
+      'framer-motion',
     ],
   },
 
@@ -155,6 +157,7 @@ const nextConfig = {
       '@mintenance/auth': path.resolve(__dirname, '../../packages/auth/src/index.ts'),
       '@mintenance/shared-ui': path.resolve(__dirname, '../../packages/shared-ui/src/index.ts'),
       '@mintenance/design-tokens': path.resolve(__dirname, '../../packages/design-tokens/src/index.ts'),
+      '@mintenance/api-contracts': path.resolve(__dirname, '../../packages/api-contracts/src/index.ts'),
       '@mintenance/ai-core': path.resolve(__dirname, '../../packages/ai-core/src/index.ts'),
       'react-native': false,
       'react-native$': false,

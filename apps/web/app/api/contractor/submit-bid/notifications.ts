@@ -5,9 +5,9 @@
  * Extracted from route.ts to improve maintainability.
  */
 
-import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { EmailService } from '@/lib/email-service';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { getAppUrl } from '@/lib/env';
 import type { SubmitBidInput } from './validation';
 
@@ -76,44 +76,24 @@ export async function createBidNotification(
   validatedData: SubmitBidInput
 ): Promise<void> {
   try {
-    logger.info('Creating notification for homeowner', {
+    const contractorName = `${contractor.first_name || ''} ${contractor.last_name || ''}`.trim() || contractor.email;
+
+    // Use NotificationService which handles DB insert + push notification + delivery logic
+    await NotificationService.createNotification({
+      userId: homeowner.id,
+      title: 'New Bid Received',
+      message: `${contractorName} has submitted a bid of £${validatedData.bidAmount.toFixed(2)} for your job "${job.title}"`,
+      type: 'bid_received',
+      actionUrl: `/jobs/${validatedData.jobId}`,
+    });
+
+    logger.info('Bid notification created for homeowner (DB + push)', {
       service: 'contractor',
       homeownerId: homeowner.id,
       jobId: validatedData.jobId,
-      jobTitle: job.title,
-      bidAmount: validatedData.bidAmount,
     });
-
-    const contractorName = `${contractor.first_name || ''} ${contractor.last_name || ''}`.trim() || contractor.email;
-
-    const { error: notificationError } = await serverSupabase
-      .from('notifications')
-      .insert({
-        user_id: homeowner.id,
-        title: 'New Bid Received',
-        message: `${contractorName} has submitted a bid of £${validatedData.bidAmount.toFixed(2)} for your job "${job.title}"`,
-        type: 'bid_received',
-        read: false,
-        action_url: `/jobs/${validatedData.jobId}`,
-        created_at: new Date().toISOString(),
-      });
-
-    if (notificationError) {
-      logger.error('Failed to create bid notification', {
-        service: 'contractor',
-        homeownerId: homeowner.id,
-        error: notificationError.message,
-        errorDetails: notificationError,
-      });
-    } else {
-      logger.info('Bid notification created for homeowner', {
-        service: 'contractor',
-        homeownerId: homeowner.id,
-        jobId: validatedData.jobId,
-      });
-    }
   } catch (notificationError) {
-    logger.error('Unexpected error creating notification', {
+    logger.error('Failed to create bid notification', {
       service: 'contractor',
       homeownerId: homeowner.id,
       error: notificationError instanceof Error ? notificationError.message : 'Unknown error',

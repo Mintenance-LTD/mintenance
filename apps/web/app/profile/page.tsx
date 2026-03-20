@@ -1,7 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { User as UserIcon, Shield, Bell, Globe, Loader2, ArrowLeft } from 'lucide-react';
+import {
+  User as UserIcon,
+  Shield,
+  Bell,
+  Globe,
+  Loader2,
+  ArrowLeft,
+} from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
@@ -20,7 +27,9 @@ export default function ProfilePage2025() {
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('profile');
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>(
+    {}
+  );
 
   const [userData, setUserData] = useState({
     firstName: '',
@@ -44,7 +53,10 @@ export default function ProfilePage2025() {
         lastName: user.last_name || user.lastName || '',
         email: user.email || '',
         phone: user.phone || '',
-        address: (user as typeof user & { address?: string }).address || user.location || '',
+        address:
+          (user as typeof user & { address?: string }).address ||
+          user.location ||
+          '',
         postcode: (user as typeof user & { postcode?: string }).postcode || '',
         city: user.city || '',
         country: user.country || '',
@@ -56,10 +68,27 @@ export default function ProfilePage2025() {
   }, [user]);
 
   const [securitySettings, setSecuritySettings] = useState({
-    twoFactorEnabled: true,
+    twoFactorEnabled: false,
     loginNotifications: true,
-    lastPasswordChange: '2025-01-15',
+    lastPasswordChange: '',
   });
+
+  // Fetch real MFA status — replaces hardcoded defaults
+  useEffect(() => {
+    if (!user) return;
+    fetch('/api/auth/mfa/status')
+      .then((res) => (res.ok ? res.json() : Promise.reject(res)))
+      .then((data) => {
+        setSecuritySettings((prev) => ({
+          ...prev,
+          twoFactorEnabled: data?.data?.enabled ?? false,
+          lastPasswordChange: data?.data?.lastPasswordChange ?? '',
+        }));
+      })
+      .catch(() => {
+        // Non-critical: keep defaults if fetch fails
+      });
+  }, [user]);
 
   const [notificationSettings, setNotificationSettings] = useState({
     emailNotifications: true,
@@ -82,19 +111,23 @@ export default function ProfilePage2025() {
     switch (field) {
       case 'firstName':
         if (!value.trim()) return 'First name is required';
-        if (value.trim().length < 2) return 'First name must be at least 2 characters';
+        if (value.trim().length < 2)
+          return 'First name must be at least 2 characters';
         return undefined;
       case 'lastName':
         if (!value.trim()) return 'Last name is required';
-        if (value.trim().length < 2) return 'Last name must be at least 2 characters';
+        if (value.trim().length < 2)
+          return 'Last name must be at least 2 characters';
         return undefined;
       case 'email':
         if (!value.trim()) return 'Email is required';
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Please enter a valid email address';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+          return 'Please enter a valid email address';
         return undefined;
       case 'phone':
         if (!value.trim()) return 'Phone number is required';
-        if (!/^\+?[\d\s-()]+$/.test(value)) return 'Please enter a valid phone number';
+        if (!/^\+?[\d\s-()]+$/.test(value))
+          return 'Please enter a valid phone number';
         return undefined;
       case 'postcode':
         if (!value.trim()) return 'Postcode is required';
@@ -107,39 +140,49 @@ export default function ProfilePage2025() {
 
   const handleFieldBlur = (field: string) => {
     if (!isEditing) return;
-    setTouchedFields(prev => ({ ...prev, [field]: true }));
+    setTouchedFields((prev) => ({ ...prev, [field]: true }));
     const value = userData[field as keyof typeof userData];
     const error = validateField(field, String(value));
-    setErrors(prev => {
+    setErrors((prev) => {
       const newErrors = { ...prev };
-      if (error) { newErrors[field] = error; }
-      else { delete newErrors[field]; }
+      if (error) {
+        newErrors[field] = error;
+      } else {
+        delete newErrors[field];
+      }
       return newErrors;
     });
   };
 
   const handleFieldChange = (field: string, value: string) => {
-    setUserData(prev => ({ ...prev, [field]: value }));
+    setUserData((prev) => ({ ...prev, [field]: value }));
     if (touchedFields[field] && isEditing) {
       const error = validateField(field, value);
-      setErrors(prev => {
+      setErrors((prev) => {
         const newErrors = { ...prev };
-        if (error) { newErrors[field] = error; }
-        else { delete newErrors[field]; }
+        if (error) {
+          newErrors[field] = error;
+        } else {
+          delete newErrors[field];
+        }
         return newErrors;
       });
     }
   };
 
   const isFieldValid = (field: string): boolean => {
-    return touchedFields[field] && !errors[field] && Boolean(userData[field as keyof typeof userData]);
+    return (
+      touchedFields[field] &&
+      !errors[field] &&
+      Boolean(userData[field as keyof typeof userData])
+    );
   };
 
   const handleSave = useCallback(async () => {
     const requiredFields = ['firstName', 'lastName', 'email', 'phone'];
     const newErrors: Record<string, string> = {};
     const newTouchedFields: Record<string, boolean> = {};
-    requiredFields.forEach(field => {
+    requiredFields.forEach((field) => {
       newTouchedFields[field] = true;
       const value = userData[field as keyof typeof userData];
       const error = validateField(field, String(value));
@@ -148,7 +191,9 @@ export default function ProfilePage2025() {
     setTouchedFields(newTouchedFields);
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) {
-      toast.error(`Please fix ${Object.keys(newErrors).length} validation error${Object.keys(newErrors).length > 1 ? 's' : ''}`);
+      toast.error(
+        `Please fix ${Object.keys(newErrors).length} validation error${Object.keys(newErrors).length > 1 ? 's' : ''}`
+      );
       return;
     }
 
@@ -177,7 +222,9 @@ export default function ProfilePage2025() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error?.message || body.error || 'Failed to update profile');
+        throw new Error(
+          body.error?.message || body.error || 'Failed to update profile'
+        );
       }
 
       setIsEditing(false);
@@ -186,7 +233,9 @@ export default function ProfilePage2025() {
       toast.success('Profile updated successfully!');
       refresh();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update profile');
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to update profile'
+      );
     } finally {
       setIsSaving(false);
     }
@@ -199,7 +248,11 @@ export default function ProfilePage2025() {
     toast('Changes cancelled');
   };
 
-  const tabs: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  const tabs: {
+    id: TabId;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }[] = [
     { id: 'profile', label: 'Profile', icon: UserIcon },
     { id: 'security', label: 'Security', icon: Shield },
     { id: 'notifications', label: 'Notifications', icon: Bell },
@@ -208,32 +261,41 @@ export default function ProfilePage2025() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 via-white to-emerald-50">
-        <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
+      <div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 via-white to-emerald-50'>
+        <Loader2 className='w-8 h-8 animate-spin text-teal-600' />
       </div>
     );
   }
 
   if (userError || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 via-white to-emerald-50">
-        <div className="text-center">
-          <p className="text-gray-600 mb-4">Unable to load profile. Please sign in.</p>
-          <a href="/login" className="text-teal-600 hover:text-teal-700 font-medium">Sign In</a>
+      <div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 via-white to-emerald-50'>
+        <div className='text-center'>
+          <p className='text-gray-600 mb-4'>
+            Unable to load profile. Please sign in.
+          </p>
+          <a
+            href='/login'
+            className='text-teal-600 hover:text-teal-700 font-medium'
+          >
+            Sign In
+          </a>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-emerald-50">
+    <div className='min-h-screen bg-gradient-to-br from-teal-50 via-white to-emerald-50'>
       {/* Back to Dashboard */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4'>
         <Link
-          href={user.role === 'contractor' ? '/contractor/dashboard' : '/dashboard'}
-          className="inline-flex items-center gap-1.5 text-sm text-teal-600 hover:text-teal-700 font-medium transition-colors"
+          href={
+            user.role === 'contractor' ? '/contractor/dashboard' : '/dashboard'
+          }
+          className='inline-flex items-center gap-1.5 text-sm text-teal-600 hover:text-teal-700 font-medium transition-colors'
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className='w-4 h-4' />
           Back to Dashboard
         </Link>
       </div>
@@ -254,15 +316,15 @@ export default function ProfilePage2025() {
         }}
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
         {/* Tabs */}
         <MotionDiv
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 mb-8"
+          className='bg-white rounded-xl shadow-sm border border-gray-200 p-2 mb-8'
         >
-          <div className="flex gap-2">
+          <div className='flex gap-2'>
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
@@ -275,7 +337,7 @@ export default function ProfilePage2025() {
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                  <Icon className="w-5 h-5" />
+                  <Icon className='w-5 h-5' />
                   {tab.label}
                 </button>
               );

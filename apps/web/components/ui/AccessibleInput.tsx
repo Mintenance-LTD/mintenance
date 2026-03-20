@@ -1,6 +1,10 @@
 'use client';
 
-import React, { forwardRef, InputHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import React, {
+  forwardRef,
+  InputHTMLAttributes,
+  TextareaHTMLAttributes,
+} from 'react';
 import { cn } from '@/lib/utils';
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 
@@ -28,7 +32,10 @@ export interface AccessibleInputProps extends InputHTMLAttributes<HTMLInputEleme
  * - Includes helper text and character count
  * - Maintains proper ARIA attributes
  */
-export const AccessibleInput = forwardRef<HTMLInputElement, AccessibleInputProps>(
+export const AccessibleInput = forwardRef<
+  HTMLInputElement,
+  AccessibleInputProps
+>(
   (
     {
       label,
@@ -51,7 +58,8 @@ export const AccessibleInput = forwardRef<HTMLInputElement, AccessibleInputProps
     ref
   ) => {
     // Generate unique IDs for accessibility
-    const inputId = id || React.useId();
+    const generatedInputId = React.useId();
+    const inputId = id || generatedInputId;
     const errorId = `${inputId}-error`;
     const helperId = `${inputId}-helper`;
     const countId = `${inputId}-count`;
@@ -62,7 +70,9 @@ export const AccessibleInput = forwardRef<HTMLInputElement, AccessibleInputProps
       error && errorId,
       helperText && helperId,
       characterCount && countId,
-    ].filter(Boolean).join(' ');
+    ]
+      .filter(Boolean)
+      .join(' ');
 
     // Determine aria-invalid state
     const isInvalid = ariaInvalid !== undefined ? ariaInvalid : !!error;
@@ -76,11 +86,19 @@ export const AccessibleInput = forwardRef<HTMLInputElement, AccessibleInputProps
 
       // Border styles
       'border',
-      error ? 'border-red-500' : success ? 'border-green-500' : 'border-gray-300',
+      error
+        ? 'border-red-500'
+        : success
+          ? 'border-green-500'
+          : 'border-gray-300',
 
       // Focus styles (WCAG 2.4.7)
       'focus:outline-none focus:ring-2 focus:ring-offset-2',
-      error ? 'focus:ring-red-500' : success ? 'focus:ring-green-500' : 'focus:ring-[#0066CC]',
+      error
+        ? 'focus:ring-red-500'
+        : success
+          ? 'focus:ring-green-500'
+          : 'focus:ring-[#0066CC]',
 
       // Disabled styles
       'disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed',
@@ -93,7 +111,7 @@ export const AccessibleInput = forwardRef<HTMLInputElement, AccessibleInputProps
     );
 
     return (
-      <div className="space-y-1">
+      <div className='space-y-1'>
         {/* Label */}
         <label
           htmlFor={inputId}
@@ -104,18 +122,18 @@ export const AccessibleInput = forwardRef<HTMLInputElement, AccessibleInputProps
         >
           {label}
           {showRequiredIndicator && required && (
-            <span className="ml-1 text-red-500" aria-label="required">
+            <span className='ml-1 text-red-500' aria-label='required'>
               *
             </span>
           )}
         </label>
 
         {/* Input container */}
-        <div className="relative">
+        <div className='relative'>
           {/* Icon */}
           {icon && (
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span className="text-gray-400" aria-hidden="true">
+            <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+              <span className='text-gray-400' aria-hidden='true'>
                 {icon}
               </span>
             </div>
@@ -137,11 +155,17 @@ export const AccessibleInput = forwardRef<HTMLInputElement, AccessibleInputProps
 
           {/* Status icon */}
           {(error || success) && (
-            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+            <div className='absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none'>
               {error ? (
-                <AlertCircle className="h-5 w-5 text-red-500" aria-hidden="true" />
+                <AlertCircle
+                  className='h-5 w-5 text-red-500'
+                  aria-hidden='true'
+                />
               ) : success ? (
-                <CheckCircle2 className="h-5 w-5 text-green-500" aria-hidden="true" />
+                <CheckCircle2
+                  className='h-5 w-5 text-green-500'
+                  aria-hidden='true'
+                />
               ) : null}
             </div>
           )}
@@ -149,7 +173,7 @@ export const AccessibleInput = forwardRef<HTMLInputElement, AccessibleInputProps
 
         {/* Helper text */}
         {helperText && !error && (
-          <p id={helperId} className="text-sm text-gray-500">
+          <p id={helperId} className='text-sm text-gray-500'>
             {helperText}
           </p>
         )}
@@ -158,9 +182,9 @@ export const AccessibleInput = forwardRef<HTMLInputElement, AccessibleInputProps
         {error && (
           <p
             id={errorId}
-            className="text-sm text-red-600"
-            role="alert"
-            aria-live="polite"
+            className='text-sm text-red-600'
+            role='alert'
+            aria-live='polite'
           >
             {error}
           </p>
@@ -176,8 +200,8 @@ export const AccessibleInput = forwardRef<HTMLInputElement, AccessibleInputProps
                 ? 'text-red-600'
                 : 'text-gray-500'
             )}
-            aria-live="polite"
-            aria-atomic="true"
+            aria-live='polite'
+            aria-atomic='true'
           >
             {characterCount.current}/{characterCount.max} characters
           </p>
@@ -206,7 +230,10 @@ export interface AccessibleTextareaProps extends TextareaHTMLAttributes<HTMLText
 /**
  * Accessible textarea component
  */
-export const AccessibleTextarea = forwardRef<HTMLTextAreaElement, AccessibleTextareaProps>(
+export const AccessibleTextarea = forwardRef<
+  HTMLTextAreaElement,
+  AccessibleTextareaProps
+>(
   (
     {
       label,
@@ -226,7 +253,8 @@ export const AccessibleTextarea = forwardRef<HTMLTextAreaElement, AccessibleText
     ref
   ) => {
     // Generate unique IDs
-    const textareaId = id || React.useId();
+    const generatedTextareaId = React.useId();
+    const textareaId = id || generatedTextareaId;
     const errorId = `${textareaId}-error`;
     const helperId = `${textareaId}-helper`;
     const countId = `${textareaId}-count`;
@@ -236,7 +264,9 @@ export const AccessibleTextarea = forwardRef<HTMLTextAreaElement, AccessibleText
       error && errorId,
       helperText && helperId,
       characterCount && countId,
-    ].filter(Boolean).join(' ');
+    ]
+      .filter(Boolean)
+      .join(' ');
 
     // Base textarea styles
     const textareaStyles = cn(
@@ -247,11 +277,19 @@ export const AccessibleTextarea = forwardRef<HTMLTextAreaElement, AccessibleText
 
       // Border styles
       'border',
-      error ? 'border-red-500' : success ? 'border-green-500' : 'border-gray-300',
+      error
+        ? 'border-red-500'
+        : success
+          ? 'border-green-500'
+          : 'border-gray-300',
 
       // Focus styles
       'focus:outline-none focus:ring-2 focus:ring-offset-2',
-      error ? 'focus:ring-red-500' : success ? 'focus:ring-green-500' : 'focus:ring-[#0066CC]',
+      error
+        ? 'focus:ring-red-500'
+        : success
+          ? 'focus:ring-green-500'
+          : 'focus:ring-[#0066CC]',
 
       // Disabled styles
       'disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed',
@@ -264,7 +302,7 @@ export const AccessibleTextarea = forwardRef<HTMLTextAreaElement, AccessibleText
     );
 
     return (
-      <div className="space-y-1">
+      <div className='space-y-1'>
         {/* Label */}
         <label
           htmlFor={textareaId}
@@ -275,7 +313,7 @@ export const AccessibleTextarea = forwardRef<HTMLTextAreaElement, AccessibleText
         >
           {label}
           {showRequiredIndicator && required && (
-            <span className="ml-1 text-red-500" aria-label="required">
+            <span className='ml-1 text-red-500' aria-label='required'>
               *
             </span>
           )}
@@ -297,7 +335,7 @@ export const AccessibleTextarea = forwardRef<HTMLTextAreaElement, AccessibleText
 
         {/* Helper text */}
         {helperText && !error && (
-          <p id={helperId} className="text-sm text-gray-500">
+          <p id={helperId} className='text-sm text-gray-500'>
             {helperText}
           </p>
         )}
@@ -306,9 +344,9 @@ export const AccessibleTextarea = forwardRef<HTMLTextAreaElement, AccessibleText
         {error && (
           <p
             id={errorId}
-            className="text-sm text-red-600"
-            role="alert"
-            aria-live="polite"
+            className='text-sm text-red-600'
+            role='alert'
+            aria-live='polite'
           >
             {error}
           </p>
@@ -324,8 +362,8 @@ export const AccessibleTextarea = forwardRef<HTMLTextAreaElement, AccessibleText
                 ? 'text-red-600'
                 : 'text-gray-500'
             )}
-            aria-live="polite"
-            aria-atomic="true"
+            aria-live='polite'
+            aria-atomic='true'
           >
             {characterCount.current}/{characterCount.max} characters
           </p>
@@ -354,7 +392,10 @@ export interface AccessibleSelectProps extends React.SelectHTMLAttributes<HTMLSe
   placeholder?: string;
 }
 
-export const AccessibleSelect = forwardRef<HTMLSelectElement, AccessibleSelectProps>(
+export const AccessibleSelect = forwardRef<
+  HTMLSelectElement,
+  AccessibleSelectProps
+>(
   (
     {
       label,
@@ -372,14 +413,14 @@ export const AccessibleSelect = forwardRef<HTMLSelectElement, AccessibleSelectPr
     },
     ref
   ) => {
-    const selectId = id || React.useId();
+    const generatedSelectId = React.useId();
+    const selectId = id || generatedSelectId;
     const errorId = `${selectId}-error`;
     const helperId = `${selectId}-helper`;
 
-    const describedByIds = [
-      error && errorId,
-      helperText && helperId,
-    ].filter(Boolean).join(' ');
+    const describedByIds = [error && errorId, helperText && helperId]
+      .filter(Boolean)
+      .join(' ');
 
     const selectStyles = cn(
       'w-full px-3 py-2 rounded-md',
@@ -393,7 +434,7 @@ export const AccessibleSelect = forwardRef<HTMLSelectElement, AccessibleSelectPr
     );
 
     return (
-      <div className="space-y-1">
+      <div className='space-y-1'>
         <label
           htmlFor={selectId}
           className={cn(
@@ -403,7 +444,7 @@ export const AccessibleSelect = forwardRef<HTMLSelectElement, AccessibleSelectPr
         >
           {label}
           {showRequiredIndicator && required && (
-            <span className="ml-1 text-red-500" aria-label="required">
+            <span className='ml-1 text-red-500' aria-label='required'>
               *
             </span>
           )}
@@ -419,10 +460,10 @@ export const AccessibleSelect = forwardRef<HTMLSelectElement, AccessibleSelectPr
           aria-invalid={!!error}
           aria-describedby={describedByIds || undefined}
           aria-errormessage={error ? errorId : undefined}
-          defaultValue=""
+          defaultValue=''
           {...props}
         >
-          <option value="" disabled>
+          <option value='' disabled>
             {placeholder}
           </option>
           {options.map((option) => (
@@ -437,7 +478,7 @@ export const AccessibleSelect = forwardRef<HTMLSelectElement, AccessibleSelectPr
         </select>
 
         {helperText && !error && (
-          <p id={helperId} className="text-sm text-gray-500">
+          <p id={helperId} className='text-sm text-gray-500'>
             {helperText}
           </p>
         )}
@@ -445,9 +486,9 @@ export const AccessibleSelect = forwardRef<HTMLSelectElement, AccessibleSelectPr
         {error && (
           <p
             id={errorId}
-            className="text-sm text-red-600"
-            role="alert"
-            aria-live="polite"
+            className='text-sm text-red-600'
+            role='alert'
+            aria-live='polite'
           >
             {error}
           </p>

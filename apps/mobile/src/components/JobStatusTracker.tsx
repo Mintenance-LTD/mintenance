@@ -245,7 +245,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
                 <Ionicons
                   name={config.icon}
                   size={16}
-                  color={isActive || isPassed ? '#FFFFFF' : theme.colors.textTertiary}
+                  color={isActive || isPassed ? theme.colors.surface : theme.colors.textTertiary}
                 />
               </View>
               <Text

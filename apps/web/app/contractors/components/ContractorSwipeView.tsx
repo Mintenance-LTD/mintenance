@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { Heart, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ContractorData {
@@ -94,16 +95,18 @@ export function ContractorSwipeView({
         {/* Portfolio/Avatar */}
         <div className="relative h-80 bg-gray-100">
           {currentContractor.portfolio && currentContractor.portfolio.length > 0 ? (
-            <img
+            <Image
               src={currentContractor.portfolio[0]}
               alt={currentContractor.name}
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
             />
           ) : currentContractor.avatar ? (
-            <img
+            <Image
               src={currentContractor.avatar}
               alt={currentContractor.name}
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-teal-100 to-teal-200">

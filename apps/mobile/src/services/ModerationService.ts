@@ -1,4 +1,4 @@
-import { supabase } from '../config/supabase';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import type { ContractorPost, ContractorPostComment, ContractorPostType } from '../types/standardized';
 import { logger } from '../utils/logger';
 
@@ -57,15 +57,11 @@ export class ModerationService {
     reason: string
   ): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('contractor_posts')
-        .update({
-          is_flagged: true,
-          flagged_reason: reason,
-        })
-        .eq('id', postId);
-
-      if (error) throw error;
+      await mobileApiClient.patch(`/api/contractor/posts/${postId}/flag`, {
+        is_flagged: true,
+        flagged_reason: reason,
+        reported_by: reportedBy,
+      });
 
       // Log the report
       await this.logModerationAction(
@@ -86,14 +82,11 @@ export class ModerationService {
     reason: string
   ): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('contractor_post_comments')
-        .update({
-          is_flagged: true,
-        })
-        .eq('id', commentId);
-
-      if (error) throw error;
+      await mobileApiClient.patch(`/api/contractor/posts/comments/${commentId}/flag`, {
+        is_flagged: true,
+        reported_by: reportedBy,
+        reason,
+      });
 
       // Log the report
       await this.logModerationAction(
@@ -111,27 +104,12 @@ export class ModerationService {
   // Get flagged content for moderation
   static async getFlaggedPosts(): Promise<ContractorPost[]> {
     try {
-      const { data: posts, error } = await supabase
-        .from('contractor_posts')
-        .select(
-          `
-          *,
-          contractor:contractor_id (
-            id,
-            first_name,
-            last_name,
-            email
-          )
-        `
-        )
-        .eq('is_flagged', true)
-        .eq('is_active', true)
-        .order('updated_at', { ascending: false });
-
-      if (error) throw error;
+      const posts = await mobileApiClient.get<DatabasePostRow[]>(
+        `/api/contractor/posts?is_flagged=true&is_active=true&order=updated_at.desc`
+      );
 
       return (
-        (posts as unknown as DatabasePostRow[])?.map((post) => ({
+        (posts || []).map((post) => ({
           id: post.id,
           type: post.post_type as ContractorPostType,
           contractorId: post.contractor_id,
@@ -177,7 +155,7 @@ export class ModerationService {
                 createdAt: '',
               }
             : undefined,
-        })) || []
+        }))
       ) as unknown as ContractorPost[];
     } catch (error) {
       logger.error('Error fetching flagged posts:', error);
@@ -188,17 +166,13 @@ export class ModerationService {
   // Moderation actions
   static async approvePost(postId: string, moderatorId: string): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('contractor_posts')
-        .update({
-          is_flagged: false,
-          flagged_reason: null,
-          moderated_at: new Date().toISOString(),
-          moderated_by: moderatorId,
-        })
-        .eq('id', postId);
-
-      if (error) throw error;
+      await mobileApiClient.patch(`/api/contractor/posts/${postId}/moderate`, {
+        is_flagged: false,
+        flagged_reason: null,
+        moderated_at: new Date().toISOString(),
+        moderated_by: moderatorId,
+        action: 'approve',
+      });
 
       await this.logModerationAction('post_approved', postId, moderatorId);
     } catch (error) {
@@ -213,17 +187,13 @@ export class ModerationService {
     reason: string
   ): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('contractor_posts')
-        .update({
-          is_active: false,
-          moderated_at: new Date().toISOString(),
-          moderated_by: moderatorId,
-          flagged_reason: reason,
-        })
-        .eq('id', postId);
-
-      if (error) throw error;
+      await mobileApiClient.patch(`/api/contractor/posts/${postId}/moderate`, {
+        is_active: false,
+        moderated_at: new Date().toISOString(),
+        moderated_by: moderatorId,
+        flagged_reason: reason,
+        action: 'remove',
+      });
 
       await this.logModerationAction(
         'post_removed',
@@ -380,13 +350,11 @@ export class ModerationService {
     removedPosts: number;
   }> {
     try {
-      const { data, error } = await supabase
-        .from('contractor_posts')
-        .select('is_active, is_flagged');
+      const data = await mobileApiClient.get<DatabaseStatsRow[]>(
+        `/api/contractor/posts/stats`
+      );
 
-      if (error) throw error;
-
-      const stats = data?.reduce(
+      const stats = (data || []).reduce(
         (
           acc: {
             totalPosts: number;
@@ -408,12 +376,7 @@ export class ModerationService {
           flaggedPosts: 0,
           removedPosts: 0,
         }
-      ) || {
-        totalPosts: 0,
-        activePosts: 0,
-        flaggedPosts: 0,
-        removedPosts: 0,
-      };
+      );
 
       return stats;
     } catch (error) {

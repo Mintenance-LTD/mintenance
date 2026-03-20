@@ -103,7 +103,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           <Ionicons
             name="calendar-outline"
             size={18}
-            color={isInCall ? '#B0B0B0' : theme.colors.textSecondary}
+            color={isInCall ? theme.colors.textTertiary : theme.colors.textSecondary}
           />
         </TouchableOpacity>
         <TouchableOpacity
@@ -116,7 +116,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           <Ionicons
             name="videocam"
             size={18}
-            color={isInCall ? '#B0B0B0' : theme.colors.primary}
+            color={isInCall ? theme.colors.textTertiary : theme.colors.primary}
           />
         </TouchableOpacity>
         <TouchableOpacity

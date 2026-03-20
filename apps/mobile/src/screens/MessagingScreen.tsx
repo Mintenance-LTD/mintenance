@@ -43,6 +43,7 @@ import { MessagingLoading, MessagingError, MessagingEmpty } from './messaging/co
 import { useVideoCall } from './messaging/hooks/useVideoCall';
 import { getDateKey, getDateLabel } from './messaging/utils';
 import { supabase } from '../config/supabase';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
 
@@ -78,7 +79,7 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
     isLoading: loading,
     error,
   } = useJobMessages(jobId);
-  const messages = (rawMessages ?? []) as Message[];
+  const messages = (Array.isArray(rawMessages) ? rawMessages : []) as Message[];
   const sendMessageMutation = useSendMessage();
   const markAsReadMutation = useMarkMessagesAsRead();
   const queryClient = useQueryClient();
@@ -329,16 +330,14 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
     }
     setQuoteSending(true);
     try {
-      // Insert quote into quotes table
-      const { error: quoteError } = await supabase.from('quotes').insert({
-        contractor_id: user.id,
+      // Insert quote via API
+      await mobileApiClient.post('/api/contractor/quotes', {
         job_id: jobId,
         client_name: otherUserName,
         total_amount: amount,
         status: 'sent',
         notes: quoteDescription.trim() || null,
       });
-      if (quoteError) throw quoteError;
 
       // Send a message with the quote details
       const quoteMsg = `💰 Quote sent: £${amount.toFixed(2)}${quoteDescription.trim() ? `\n${quoteDescription.trim()}` : ''}`;
@@ -544,7 +543,7 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
                 style={styles.quoteFullBtn}
                 onPress={() => {
                   setShowQuoteModal(false);
-                  navigation.navigate('CreateQuote' as never, { jobId } as never);
+                  (navigation as { navigate: (screen: string, params?: Record<string, unknown>) => void }).navigate('CreateQuote', { jobId });
                 }}
               >
                 <Ionicons name="document-text-outline" size={16} color={theme.colors.textPrimary} />

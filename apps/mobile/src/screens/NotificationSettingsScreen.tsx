@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '../components/ui/Button';
-import { supabase } from '../config/supabase';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import { useAuth } from '../contexts/AuthContext';
 import { theme } from '../theme';
 
@@ -103,13 +103,11 @@ const NotificationSettingsScreen: React.FC = () => {
   const loadSettings = async () => {
     if (!user?.id) return;
     try {
-      const { data: row } = await supabase
-        .from('notification_preferences')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-      if (row) {
-        setSettings((prev) => ({ ...prev, ...row }));
+      const response = await mobileApiClient.get<{ preferences: typeof settings }>(
+        '/api/users/notification-preferences'
+      );
+      if (response?.preferences) {
+        setSettings((prev) => ({ ...prev, ...response.preferences }));
       }
     } catch {
       // Use defaults if no saved preferences
@@ -202,10 +200,7 @@ const NotificationSettingsScreen: React.FC = () => {
     }
     setSaving(true);
     try {
-      const { error: err } = await supabase
-        .from('notification_preferences')
-        .upsert({ user_id: user.id, ...settings }, { onConflict: 'user_id' });
-      if (err) throw err;
+      await mobileApiClient.patch('/api/users/notification-preferences', settings);
       Alert.alert('Success', 'Notification settings updated!');
       navigation.goBack();
     } catch {
@@ -251,7 +246,7 @@ const NotificationSettingsScreen: React.FC = () => {
             <Ionicons
               name={iconConfig.name}
               size={18}
-              color={disabled ? '#B0B0B0' : iconConfig.color}
+              color={disabled ? theme.colors.textTertiary : iconConfig.color}
             />
           </View>
           <View style={styles.settingInfo}>
@@ -269,9 +264,9 @@ const NotificationSettingsScreen: React.FC = () => {
           disabled={disabled}
           trackColor={{
             false: theme.colors.border,
-            true: disabled ? '#B0B0B0' : theme.colors.primary,
+            true: disabled ? theme.colors.textTertiary : theme.colors.primary,
           }}
-          thumbColor='#FFFFFF'
+          thumbColor={theme.colors.surface}
         />
       </View>
     );

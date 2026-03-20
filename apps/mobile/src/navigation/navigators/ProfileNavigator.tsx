@@ -6,14 +6,15 @@ import type { ProfileStackParamList } from "../types";
 import {
   SafeProfileScreen, SafeEditProfileScreen, SafeNotificationSettingsScreen,
   SafePaymentMethodsScreen, SafeAddPaymentMethodScreen, SafeHelpCenterScreen,
-  SafePropertiesScreen, SafePropertyDetailScreen, SafePropertyAssessmentScreen,
+  SafePropertiesScreen, SafePropertyDetailScreen, SafeEditPropertyScreen, SafePropertyAssessmentScreen,
   SafeVideoCaptureScreen, SafeVideoProcessingStatusScreen, SafeJobPhotoUploadScreen,
   SafeAddPropertyScreen, SafePaymentHistoryScreen, SafeSubscriptionScreen,
   SafeFinancialsScreen, SafeSettingsHubScreen, SafeBookingStatusScreen,
   SafeInsuranceScreen, SafeTeamScreen, SafeMarketingScreen, SafeMarketInsightsScreen,
-  SafeSocialScreen, SafeConnectionsScreen, SafeTrainingScreen,
+  SafeConnectionsScreen, SafeTrainingScreen,
   SafeFavoritesScreen, SafeDiscoverScreen,
   SafeMFASecurityScreen, SafeDataExportScreen, SafeDeleteAccountScreen,
+  SafeEscrowDashboardScreen,
 } from "./profile/ProfileAccountNavigator";
 
 // Business-related screen wrappers
@@ -55,6 +56,7 @@ export const ProfileNavigator = () => {
       <ProfileStack.Screen name="ContractorVerification" component={SafeContractorVerificationScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="Properties" component={SafePropertiesScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="PropertyDetail" component={SafePropertyDetailScreen} options={{ headerShown: false }} />
+      <ProfileStack.Screen name="EditProperty" component={SafeEditPropertyScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="PropertyAssessment" component={SafePropertyAssessmentScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="VideoCapture" component={SafeVideoCaptureScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="VideoProcessingStatus" component={SafeVideoProcessingStatusScreen} options={{ headerShown: false }} />
@@ -79,7 +81,7 @@ export const ProfileNavigator = () => {
       <ProfileStack.Screen name="Team" component={SafeTeamScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="Marketing" component={SafeMarketingScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="MarketInsights" component={SafeMarketInsightsScreen} options={{ headerShown: false }} />
-      <ProfileStack.Screen name="Social" component={SafeSocialScreen} options={{ headerShown: false }} />
+      {/* Social: ARCHIVED - social feature removed */}
       <ProfileStack.Screen name="Connections" component={SafeConnectionsScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="Training" component={SafeTrainingScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="Favorites" component={SafeFavoritesScreen} options={{ headerShown: false }} />
@@ -87,6 +89,8 @@ export const ProfileNavigator = () => {
       <ProfileStack.Screen name="MFASecurity" component={SafeMFASecurityScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="DataExport" component={SafeDataExportScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="DeleteAccount" component={SafeDeleteAccountScreen} options={{ headerShown: false }} />
+      {/* PortfolioGallery: ARCHIVED - portfolio feature removed */}
+      <ProfileStack.Screen name="EscrowDashboard" component={SafeEscrowDashboardScreen} options={{ headerShown: false }} />
     </ProfileStack.Navigator>
   );
 };

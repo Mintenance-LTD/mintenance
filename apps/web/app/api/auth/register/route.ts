@@ -13,9 +13,9 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
  * Register a new user account with password breach checking.
  */
 export const POST = withApiHandler(
-  { auth: false, rateLimit: false },
+  { auth: false, rateLimit: { maxRequests: 5, windowMs: 900_000 } },
   async (request) => {
-    // Custom rate limiting (use same limiter as login for consistency)
+    // Additional defense-in-depth rate limiting via dedicated login limiter
     const rateLimitResult = await checkLoginRateLimit(request);
 
     if (!rateLimitResult.allowed) {

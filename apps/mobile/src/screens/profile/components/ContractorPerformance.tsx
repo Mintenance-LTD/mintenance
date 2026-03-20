@@ -96,11 +96,11 @@ interface VerificationItemProps {
 
 const VerificationItem: React.FC<VerificationItemProps> = ({ label, icon, verified }) => (
   <View style={styles.verificationRow} accessibilityLabel={`${label}: ${verified ? 'verified' : 'not verified'}`}>
-    <View style={[styles.verifyIcon, { backgroundColor: verified ? '#D1FAE5' : theme.colors.backgroundSecondary }]}>
+    <View style={[styles.verifyIcon, { backgroundColor: verified ? theme.colors.primaryLight : theme.colors.backgroundSecondary }]}>
       <Ionicons name={icon} size={15} color={verified ? theme.colors.primary : theme.colors.textTertiary} />
     </View>
     <Text style={styles.verificationText}>{label}</Text>
-    <View style={[styles.verifyBadge, { backgroundColor: verified ? '#D1FAE5' : theme.colors.backgroundSecondary }]}>
+    <View style={[styles.verifyBadge, { backgroundColor: verified ? theme.colors.primaryLight : theme.colors.backgroundSecondary }]}>
       <Text style={[styles.verifyBadgeText, { color: verified ? theme.colors.primary : theme.colors.textTertiary }]}>
         {verified ? 'Verified' : 'Pending'}
       </Text>

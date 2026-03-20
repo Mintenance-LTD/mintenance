@@ -9,7 +9,7 @@
 export { QuickQuoteWidget } from './QuickQuoteWidget';
 export { CustomerTestimonials } from './CustomerTestimonials';
 export { AIAssessmentShowcase } from './AIAssessmentShowcase';
-export { LiveActivityFeed } from './LiveActivityFeed';
+// LiveActivityFeed: ARCHIVED - social feature, see apps/web/_archived/components/LiveActivityFeed.tsx
 export { UrgencyBanner } from './UrgencyBanner';
 
 // Landing page sections

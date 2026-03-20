@@ -150,7 +150,8 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
 
   return (
     <div
-      role="alert"
+      role={toast.type === 'error' ? 'alert' : 'status'}
+      aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
       style={{
         backgroundColor: config.bgColor,
         border: `2px solid ${config.borderColor}`,

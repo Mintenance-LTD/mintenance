@@ -1,21 +1,21 @@
-import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { logger } from '../../utils/logger';
 import type { EmailAnalytics, TemplateVariable } from './types';
 
 export async function getAvailableVariables(): Promise<TemplateVariable[]> {
   try {
-    const { data, error } = await supabase.from('template_variables').select('*')
-      .order('variable_category', { ascending: true }).order('variable_name', { ascending: true });
-    if (error) throw error;
+    const data = await mobileApiClient.get<TemplateVariable[]>(
+      `/api/email/templates/variables`
+    );
     return data || [];
   } catch (error) { logger.error('Error fetching template variables:', error); throw error; }
 }
 
 export async function getVariablesByCategory(category: TemplateVariable['variable_category']): Promise<TemplateVariable[]> {
   try {
-    const { data, error } = await supabase.from('template_variables').select('*')
-      .eq('variable_category', category).order('variable_name', { ascending: true });
-    if (error) throw error;
+    const data = await mobileApiClient.get<TemplateVariable[]>(
+      `/api/email/templates/variables?category=${category}`
+    );
     return data || [];
   } catch (error) { logger.error('Error fetching variables by category:', error); throw error; }
 }
@@ -24,12 +24,10 @@ export async function getEmailAnalytics(
   contractorId: string, periodStart: string, periodEnd: string, templateId?: string
 ): Promise<EmailAnalytics | null> {
   try {
-    let query = supabase.from('email_analytics').select('*')
-      .eq('contractor_id', contractorId).eq('period_start', periodStart).eq('period_end', periodEnd);
-    if (templateId) query = query.eq('template_id', templateId);
-    const { data, error } = await query.single();
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    let url = `/api/email/history/analytics?contractor_id=${contractorId}&period_start=${periodStart}&period_end=${periodEnd}`;
+    if (templateId) url += `&template_id=${templateId}`;
+    const data = await mobileApiClient.get<EmailAnalytics>(url);
+    return data || null;
   } catch (error) { logger.error('Error fetching email analytics:', error); return null; }
 }
 
@@ -37,23 +35,24 @@ export async function generateAnalyticsReport(
   contractorId: string, periodStart: string, periodEnd: string
 ): Promise<{ summary: EmailAnalytics; by_template: (EmailAnalytics & { template_name: string })[]; by_category: { category: string; metrics: EmailAnalytics }[] }> {
   try {
-    const { data: history, error } = await supabase.from('email_history').select('*')
-      .eq('contractor_id', contractorId).gte('sent_at', periodStart).lte('sent_at', periodEnd);
-    if (error) throw error;
+    const history = await mobileApiClient.get<Record<string, unknown>[]>(
+      `/api/email/history?contractor_id=${contractorId}&sent_after=${periodStart}&sent_before=${periodEnd}`
+    );
 
-    const totalSent = history?.length || 0;
-    const delivered = history?.filter((h: Record<string, unknown>) => h.status === 'delivered').length || 0;
-    const opened = history?.filter((h: Record<string, unknown>) => (h.open_count as number) > 0).length || 0;
-    const clicked = history?.filter((h: Record<string, unknown>) => (h.click_count as number) > 0).length || 0;
-    const bounced = history?.filter((h: Record<string, unknown>) => h.status === 'bounced').length || 0;
+    const records = history || [];
+    const totalSent = records.length;
+    const delivered = records.filter((h) => h.status === 'delivered').length;
+    const opened = records.filter((h) => (h.open_count as number) > 0).length;
+    const clicked = records.filter((h) => (h.click_count as number) > 0).length;
+    const bounced = records.filter((h) => h.status === 'bounced').length;
 
     const summary: EmailAnalytics = {
       id: '', contractor_id: contractorId, period_start: periodStart, period_end: periodEnd,
       emails_sent: totalSent, emails_delivered: delivered, emails_bounced: bounced, emails_failed: 0,
       unique_opens: opened,
-      total_opens: history?.reduce((sum: number, h: Record<string, unknown>) => sum + (h.open_count as number), 0) || 0,
+      total_opens: records.reduce((sum: number, h) => sum + ((h.open_count as number) || 0), 0),
       unique_clicks: clicked,
-      total_clicks: history?.reduce((sum: number, h: Record<string, unknown>) => sum + (h.click_count as number), 0) || 0,
+      total_clicks: records.reduce((sum: number, h) => sum + ((h.click_count as number) || 0), 0),
       unsubscribes: 0, complaints: 0,
       delivery_rate: totalSent > 0 ? (delivered / totalSent) * 100 : 0,
       open_rate: delivered > 0 ? (opened / delivered) * 100 : 0,

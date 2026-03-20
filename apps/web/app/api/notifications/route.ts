@@ -1,22 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { logger } from '@mintenance/shared';
 import { validateRequest } from '@/lib/validation/validator';
 import { notificationEngagementSchema } from '@/lib/validation/schemas';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { z } from 'zod';
+
+const createNotificationSchema = z.object({
+  user_id: z.string().uuid(),
+  type: z.string().min(1).max(100),
+  title: z.string().min(1).max(300),
+  message: z.string().min(1).max(2000),
+  action_url: z.string().max(500).optional(),
+});
 
 export const GET = withApiHandler(
   { rateLimit: { maxRequests: 120 }, csrf: false },
-  async (_request, { user }) => {
+  async (request, { user }) => {
     const userId = user.id;
+
+    // Use RLS-enforced client for user-scoped reads; fall back to service role
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
 
     // Calculate date 24 hours ago
     const twentyFourHoursAgo = new Date();
     twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
 
     // Fetch notifications from database
-    const { data: allUserNotifications, error: fetchError } = await serverSupabase
+    const { data: allUserNotifications, error: fetchError } = await userDb
       .from('notifications')
       .select('id, type, title, message, read, created_at, action_url, user_id')
       .eq('user_id', userId)
@@ -125,7 +137,7 @@ export const GET = withApiHandler(
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-    const { data: viewedQuotes } = await serverSupabase
+    const { data: viewedQuotes } = await userDb
       .from('contractor_quotes')
       .select('id, quote_number, client_name, viewed_at, title')
       .eq('contractor_id', userId)
@@ -165,7 +177,7 @@ export const GET = withApiHandler(
     const oneMonthAgo = new Date();
     oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
 
-    const { data: acceptedQuotes } = await serverSupabase
+    const { data: acceptedQuotes } = await userDb
       .from('contractor_quotes')
       .select('id, quote_number, client_name, accepted_at, title, total_amount')
       .eq('contractor_id', userId)
@@ -192,7 +204,7 @@ export const GET = withApiHandler(
     }
 
     // 3. Unread Messages - Messages received in the last 30 days
-    const { data: userThreads } = await serverSupabase
+    const { data: userThreads } = await userDb
       .from('message_threads')
       .select('id, job_id')
       .contains('participant_ids', [userId]);
@@ -215,7 +227,7 @@ export const GET = withApiHandler(
 
     let unreadMessages: MessageRecord[] | null = null;
     if (userThreadIds.length > 0) {
-      const { data } = await serverSupabase
+      const { data } = await userDb
         .from('messages')
         .select('id, created_at, content, sender_id, thread_id, read_by')
         .in('thread_id', userThreadIds)
@@ -280,7 +292,7 @@ export const GET = withApiHandler(
     tomorrow.setDate(tomorrow.getDate() + 1);
     const now = new Date();
 
-    const { data: upcomingJobs } = await serverSupabase
+    const { data: upcomingJobs } = await userDb
       .from('jobs')
       .select('id, title, scheduled_start_date, status')
       .eq('contractor_id', userId)
@@ -333,6 +345,9 @@ export const GET = withApiHandler(
 export const PATCH = withApiHandler(
   { rateLimit: { maxRequests: 120 } },
   async (request, { user }) => {
+    // Use RLS-enforced client for user-scoped writes; fall back to service role
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     // Validate and sanitize input using Zod schema
     const validation = await validateRequest(request, notificationEngagementSchema);
     if (validation instanceof NextResponse) return validation;
@@ -342,7 +357,7 @@ export const PATCH = withApiHandler(
 
     // Update notification read status if opened/clicked
     if (action === 'opened' || action === 'clicked') {
-      await serverSupabase
+      await userDb
         .from('notifications')
         .update({ read: true })
         .eq('id', notificationId)
@@ -357,5 +372,42 @@ export const PATCH = withApiHandler(
     });
 
     return NextResponse.json({ success: true });
+  },
+);
+
+/**
+ * Create a notification (POST endpoint)
+ */
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 60 } },
+  async (request, { user }) => {
+    const validation = await validateRequest(request, createNotificationSchema);
+    if (validation instanceof NextResponse) return validation;
+    const { data: payload } = validation;
+
+    const { data, error } = await serverSupabase
+      .from('notifications')
+      .insert([{
+        user_id: payload.user_id,
+        type: payload.type,
+        title: payload.title,
+        message: payload.message,
+        action_url: payload.action_url,
+        read: false,
+        created_at: new Date().toISOString(),
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      logger.error('Error creating notification', error, {
+        service: 'notifications',
+        userId: user.id,
+        targetUserId: payload.user_id,
+      });
+      throw error;
+    }
+
+    return NextResponse.json({ data }, { status: 201 });
   },
 );

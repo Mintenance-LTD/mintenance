@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
+import { logger, CONTRACT_STATUS } from '@mintenance/shared';
 import { isValidUUID } from '@/lib/validation/uuid';
 import { ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -35,7 +35,7 @@ export const POST = withApiHandler(
     }
 
     // Only allow rejecting contracts pending homeowner signature
-    if (contract.status !== 'pending_homeowner') {
+    if (contract.status !== CONTRACT_STATUS.PENDING_HOMEOWNER) {
       throw new BadRequestError('Contract can only be sent back when it is awaiting your signature');
     }
 
@@ -43,7 +43,7 @@ export const POST = withApiHandler(
     const { data: updatedContract, error: updateError } = await serverSupabase
       .from('contracts')
       .update({
-        status: 'draft',
+        status: CONTRACT_STATUS.DRAFT,
         homeowner_signed_at: null,
         updated_at: new Date().toISOString(),
       })

@@ -27,6 +27,13 @@ jest.mock('react-native-reanimated', () => {
   return Reanimated;
 });
 
+// Mock react-native-worklets to prevent NativeWorkletsModule error
+jest.mock('react-native-worklets', () => ({
+  createWorklet: jest.fn(),
+  defaultContext: {},
+  Worklets: { createRunInContextFn: jest.fn() },
+}), { virtual: true });
+
 // Mock React Native Localize
 jest.mock('react-native-localize', () => ({
   getLocales: jest.fn(() => [

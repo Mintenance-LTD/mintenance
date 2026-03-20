@@ -146,22 +146,32 @@ export const BidReviewScreen: React.FC = () => {
 
   const renderBidCard = (bid: Bid) => {
     const contractor = bid.contractor;
+    const avatarUri = contractor?.profile_picture || contractor?.profile_image_url;
+    const truncatedBio = contractor?.bio
+      ? contractor.bio.length > 100
+        ? `${contractor.bio.slice(0, 100)}...`
+        : contractor.bio
+      : null;
+
     return (
       <View style={styles.bidCard}>
         <ScrollView style={styles.cardScroll} showsVerticalScrollIndicator={false}>
           {/* Contractor Header */}
           <View style={styles.contractorHeader}>
-            {contractor?.profile_picture ? (
-              <Image source={{ uri: contractor.profile_picture }} style={styles.avatar} />
+            {avatarUri ? (
+              <Image source={{ uri: avatarUri }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Ionicons name="person" size={32} color={theme.colors.textSecondary} />
+                <Ionicons name="person-circle-outline" size={48} color={theme.colors.textSecondary} />
               </View>
             )}
             <View style={styles.contractorInfo}>
               <Text style={styles.contractorName}>
                 {contractor ? `${contractor.first_name} ${contractor.last_name}` : 'Contractor'}
               </Text>
+              {contractor?.company_name ? (
+                <Text style={styles.companyName}>{contractor.company_name}</Text>
+              ) : null}
               {contractor?.rating != null && (
                 <View style={styles.ratingRow}>
                   <View style={styles.stars}>{renderStars(contractor.rating)}</View>
@@ -170,14 +180,43 @@ export const BidReviewScreen: React.FC = () => {
                   </Text>
                 </View>
               )}
+              {contractor?.city ? (
+                <View style={styles.locationRow}>
+                  <Ionicons name="location-outline" size={13} color={theme.colors.textTertiary} />
+                  <Text style={styles.locationText}>{contractor.city}</Text>
+                </View>
+              ) : null}
             </View>
           </View>
+
+          {/* Bio Snippet */}
+          {truncatedBio ? (
+            <Text style={styles.bioText}>{truncatedBio}</Text>
+          ) : null}
 
           {/* Bid Amount */}
           <View style={styles.amountSection}>
             <Text style={styles.amountLabel}>Bid Amount</Text>
             <Text style={styles.amountValue}>£{bid.amount.toLocaleString()}</Text>
           </View>
+
+          {/* Contractor Stats Row */}
+          {(contractor?.hourly_rate != null || contractor?.years_experience != null) && (
+            <View style={styles.statsRow}>
+              {contractor?.hourly_rate != null && (
+                <View style={styles.statChip}>
+                  <Ionicons name="cash-outline" size={14} color={theme.colors.primary} />
+                  <Text style={styles.statText}>£{contractor.hourly_rate}/hr</Text>
+                </View>
+              )}
+              {contractor?.years_experience != null && (
+                <View style={styles.statChip}>
+                  <Ionicons name="construct-outline" size={14} color={theme.colors.accent} />
+                  <Text style={styles.statText}>{contractor.years_experience} yrs exp</Text>
+                </View>
+              )}
+            </View>
+          )}
 
           {/* Estimated Duration */}
           {bid.estimated_duration && (
@@ -479,6 +518,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: theme.colors.textPrimary,
+    marginBottom: 2,
+  },
+  companyName: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
     marginBottom: 4,
   },
   ratingRow: {
@@ -491,6 +535,42 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 13,
+    color: theme.colors.textSecondary,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginTop: 4,
+  },
+  locationText: {
+    fontSize: 13,
+    color: theme.colors.textTertiary,
+  },
+  bioText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: 16,
+    fontStyle: 'italic',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  statChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: theme.colors.backgroundSecondary,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  statText: {
+    fontSize: 13,
+    fontWeight: '600',
     color: theme.colors.textSecondary,
   },
   amountSection: {

@@ -160,11 +160,7 @@ jobs:
         run: |
           PROFILE="${{ needs.pre-build-checks.outputs.build-profile }}"
 
-          if [ "$PROFILE" = "production" ]; then
-            eas build --platform android --profile stable --non-interactive --no-wait
-          else
-            eas build --platform android --profile $PROFILE --non-interactive --no-wait
-          fi
+          eas build --platform android --profile $PROFILE --non-interactive --no-wait
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}

@@ -1,18 +1,60 @@
-// @ts-expect-error web-vitals package is not installed - will be resolved when package is added
-import { onCLS, onFID, onFCP, onLCP, onTTFB, onINP } from 'web-vitals';
+/**
+ * Web Vitals reporting utilities.
+ *
+ * This module processes Core Web Vitals metrics captured by
+ * `useReportWebVitals` from `next/web-vitals` (see WebVitalsMonitor).
+ *
+ * No standalone `web-vitals` package is needed -- Next.js bundles it
+ * internally and exposes the hook.
+ */
 import { logger } from '@mintenance/shared';
 
-const vitalsUrl = 'https://vitals.vercel-analytics.com/v1/vitals';
+/** Shape of a Web Vital metric reported by Next.js */
+export interface WebVitalMetric {
+  /** Metric name (CLS, FID, FCP, LCP, TTFB, INP) */
+  name: string;
+  /** Metric value */
+  value: number;
+  /** Delta since last report */
+  delta?: number;
+  /** Unique metric id */
+  id: string;
+  /** Rating: good, needs-improvement, poor */
+  rating?: string;
+}
 
-function sendToAnalytics(metric: { name: string; value: number; delta?: number; id: string }) {
+/**
+ * Thresholds for "poor" Core Web Vitals scores.
+ * Based on https://web.dev/vitals/#core-web-vitals-thresholds
+ */
+const POOR_THRESHOLDS: Record<string, number> = {
+  FCP: 1800,  // First Contentful Paint (ms)
+  LCP: 2500,  // Largest Contentful Paint (ms)
+  CLS: 0.1,   // Cumulative Layout Shift (unitless)
+  FID: 100,   // First Input Delay (ms)
+  TTFB: 600,  // Time to First Byte (ms)
+  INP: 200,   // Interaction to Next Paint (ms)
+};
+
+/**
+ * Send a metric to the Vercel Analytics endpoint (production only).
+ * Falls back to `fetch` when `navigator.sendBeacon` is unavailable.
+ */
+function sendToAnalyticsEndpoint(metric: WebVitalMetric): void {
+  const analyticsId = process.env.NEXT_PUBLIC_ANALYTICS_ID;
+  if (!analyticsId) return;
+
+  const vitalsUrl = 'https://vitals.vercel-analytics.com/v1/vitals';
   const body = JSON.stringify({
-    dsn: process.env.NEXT_PUBLIC_ANALYTICS_ID,
+    dsn: analyticsId,
     id: metric.id,
     page: window.location.pathname,
     href: window.location.href,
     event_name: metric.name,
     value: metric.value.toString(),
-    speed: (navigator as Navigator & { connection?: { effectiveType?: string } }).connection?.effectiveType || '',
+    speed:
+      (navigator as Navigator & { connection?: { effectiveType?: string } })
+        .connection?.effectiveType || '',
   });
 
   if (navigator.sendBeacon) {
@@ -27,62 +69,57 @@ function sendToAnalytics(metric: { name: string; value: number; delta?: number; 
   }
 }
 
-export function reportWebVitals(metric: { name: string; value: number; delta?: number; id: string }) {
-  // Log to console in development
-  if (process.env.NODE_ENV === 'development') {
-    ;
-  }
+/**
+ * Log metric to the browser console during development.
+ * Uses colour-coded labels for quick visual scanning.
+ */
+function logMetricToConsole(metric: WebVitalMetric): void {
+  const threshold = POOR_THRESHOLDS[metric.name];
+  const isPoor = threshold !== undefined && metric.value > threshold;
+  const colour = isPoor ? '#ef4444' : '#22c55e';
+  const label = isPoor ? 'POOR' : 'GOOD';
 
-  // Send to analytics
-  sendToAnalytics(metric);
+  // eslint-disable-next-line no-console -- intentional dev-only diagnostic output
+  console.log(
+    `%c[Web Vitals] ${metric.name}: ${metric.value.toFixed(2)} (${label})`,
+    `color: ${colour}; font-weight: bold;`,
+  );
+}
 
-  // Report to performance monitoring service
-  switch (metric.name) {
-    case 'FCP':
-      // First Contentful Paint
-      if (metric.value > 1800) {
-        logger.warn('Poor FCP detected', { value: metric.value, service: 'web-vitals' });
-      }
-      break;
-    case 'LCP':
-      // Largest Contentful Paint
-      if (metric.value > 2500) {
-        logger.warn('Poor LCP detected', { value: metric.value, service: 'web-vitals' });
-      }
-      break;
-    case 'CLS':
-      // Cumulative Layout Shift
-      if (metric.value > 0.1) {
-        logger.warn('Poor CLS detected', { value: metric.value, service: 'web-vitals' });
-      }
-      break;
-    case 'FID':
-      // First Input Delay
-      if (metric.value > 100) {
-        logger.warn('Poor FID detected', { value: metric.value, service: 'web-vitals' });
-      }
-      break;
-    case 'TTFB':
-      // Time to First Byte
-      if (metric.value > 600) {
-        logger.warn('Poor TTFB detected', { value: metric.value, service: 'web-vitals' });
-      }
-      break;
-    case 'INP':
-      // Interaction to Next Paint
-      if (metric.value > 200) {
-        logger.warn('Poor INP detected', { value: metric.value, service: 'web-vitals' });
-      }
-      break;
+/**
+ * Warn via the structured logger when a metric exceeds its "poor" threshold.
+ * This fires in all environments so production issues surface in log aggregation.
+ */
+function warnOnPoorMetric(metric: WebVitalMetric): void {
+  const threshold = POOR_THRESHOLDS[metric.name];
+  if (threshold === undefined) return;
+
+  if (metric.value > threshold) {
+    logger.warn(`Poor ${metric.name} detected`, {
+      name: metric.name,
+      value: metric.value,
+      threshold,
+      page: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
+      service: 'web-vitals',
+    });
   }
 }
 
-// Initialize monitoring
-export function initWebVitals() {
-  onCLS(sendToAnalytics);
-  onFID(sendToAnalytics);
-  onFCP(sendToAnalytics);
-  onLCP(sendToAnalytics);
-  onTTFB(sendToAnalytics);
-  onINP(sendToAnalytics);
+/**
+ * Central handler called for every Web Vital metric.
+ * Used as the callback for `useReportWebVitals` in WebVitalsMonitor.
+ */
+export function reportWebVitals(metric: WebVitalMetric): void {
+  // 1. Dev console output
+  if (process.env.NODE_ENV === 'development') {
+    logMetricToConsole(metric);
+  }
+
+  // 2. Structured logger warning for poor scores (all envs)
+  warnOnPoorMetric(metric);
+
+  // 3. Vercel Analytics endpoint (production with NEXT_PUBLIC_ANALYTICS_ID)
+  if (process.env.NODE_ENV === 'production') {
+    sendToAnalyticsEndpoint(metric);
+  }
 }

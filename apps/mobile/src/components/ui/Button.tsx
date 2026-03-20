@@ -42,7 +42,7 @@ export interface ButtonProps {
 }
 
 const VARIANT_STYLES: Record<ButtonVariant, { backgroundColor: string; color: string; borderColor: string }> = {
-  primary: { backgroundColor: theme.colors.textPrimary, color: theme.colors.textInverse, borderColor: 'transparent' },
+  primary: { backgroundColor: theme.colors.primary, color: theme.colors.textInverse, borderColor: 'transparent' },
   secondary: { backgroundColor: theme.colors.backgroundSecondary, color: theme.colors.textPrimary, borderColor: theme.colors.border },
   outline: { backgroundColor: 'transparent', color: theme.colors.textPrimary, borderColor: theme.colors.border },
   tertiary: { backgroundColor: 'transparent', color: '#3B82F6', borderColor: 'transparent' },
@@ -69,7 +69,7 @@ export const Button: React.FC<ButtonProps> = ({
   testID,
 }) => {
   const variantStyles = VARIANT_STYLES[variant];
-  const backgroundColor = disabled ? '#B0B0B0' : variantStyles.backgroundColor;
+  const backgroundColor = disabled ? theme.colors.textTertiary : variantStyles.backgroundColor;
   const borderColor = variantStyles.borderColor;
   const color = variantStyles.color;
   const isTertiary = variant === 'tertiary';

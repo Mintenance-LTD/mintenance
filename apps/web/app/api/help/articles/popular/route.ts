@@ -39,5 +39,9 @@ export const GET = withApiHandler({ auth: false }, async () => {
     .sort((a, b) => b.viewCount - a.viewCount)
     .slice(0, 6);
 
-  return NextResponse.json({ articles: popularArticles });
+  return NextResponse.json({ articles: popularArticles }, {
+    headers: {
+      'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=600',
+    },
+  });
 });

@@ -1,16 +1,19 @@
 import { NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 
 export const POST = withApiHandler(
   { rateLimit: { maxRequests: 60 } },
-  async (_request, { user, params }) => {
+  async (request, { user, params }) => {
     const { id } = params;
 
+    // Use RLS-enforced client for user-scoped operations; fall back to service role
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     // Verify notification belongs to user
-    const { data: notification, error: fetchError } = await serverSupabase
+    const { data: notification, error: fetchError } = await userDb
       .from('notifications')
       .select('id, user_id')
       .eq('id', id)
@@ -25,7 +28,7 @@ export const POST = withApiHandler(
     }
 
     // Mark as read
-    const { error: updateError } = await serverSupabase
+    const { error: updateError } = await userDb
       .from('notifications')
       .update({ read: true })
       .eq('id', id);

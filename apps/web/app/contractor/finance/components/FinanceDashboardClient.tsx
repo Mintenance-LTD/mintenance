@@ -29,11 +29,23 @@ interface FinanceDashboardClientProps {
   };
 }
 
-const PERIODS: Array<'week' | 'month' | 'quarter' | 'year'> = ['week', 'month', 'quarter', 'year'];
+const PERIODS: Array<'week' | 'month' | 'quarter' | 'year'> = [
+  'week',
+  'month',
+  'quarter',
+  'year',
+];
 
 export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
   const { financialData } = props || {};
-  const [selectedPeriod, setSelectedPeriod] = useState<(typeof PERIODS)[number]>('month');
+  const [selectedPeriod, setSelectedPeriod] =
+    useState<(typeof PERIODS)[number]>('month');
+
+  const revenueProjection = useMemo(() => {
+    if (!financialData?.jobs?.length) return 0;
+    const jobRate = financialData.totalRevenue / financialData.jobs.length;
+    return jobRate * 12;
+  }, [financialData?.totalRevenue, financialData?.jobs?.length]);
 
   // Early return if required data is missing
   if (!financialData || !financialData.payments || !financialData.jobs) {
@@ -44,12 +56,6 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
     ? financialData.totalRevenue / financialData.completedJobs
     : 0;
 
-  const revenueProjection = useMemo(() => {
-    if (!financialData.jobs.length) return 0;
-    const jobRate = financialData.totalRevenue / financialData.jobs.length;
-    return jobRate * 12;
-  }, [financialData.totalRevenue, financialData.jobs.length]);
-
   // Calculate month-over-month trend
   const thisMonth = new Date();
   thisMonth.setDate(1);
@@ -59,12 +65,14 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
   lastMonth.setMonth(lastMonth.getMonth() - 1);
 
   const thisMonthRevenue = financialData.payments
-    .filter(p => p.status === 'completed' && new Date(p.created_at) >= thisMonth)
+    .filter(
+      (p) => p.status === 'completed' && new Date(p.created_at) >= thisMonth
+    )
     .reduce((sum, p) => sum + parseFloat(p.amount), 0);
 
   const lastMonthRevenue = financialData.payments
     .filter(
-      p =>
+      (p) =>
         p.status === 'completed' &&
         new Date(p.created_at) >= lastMonth &&
         new Date(p.created_at) < thisMonth
@@ -72,10 +80,12 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
     .reduce((sum, p) => sum + parseFloat(p.amount), 0);
 
   const revenueChange =
-    lastMonthRevenue > 0 ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 : 0;
+    lastMonthRevenue > 0
+      ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
+      : 0;
 
   // Payment columns for DataTable
-  const paymentColumns: Column<typeof financialData.payments[0]>[] = [
+  const paymentColumns: Column<(typeof financialData.payments)[0]>[] = [
     {
       key: 'created_at',
       label: 'Date',
@@ -99,7 +109,10 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
         <span
           style={{
             fontWeight: theme.typography.fontWeight.semibold,
-            color: payment.status === 'completed' ? theme.colors.success : theme.colors.textPrimary,
+            color:
+              payment.status === 'completed'
+                ? theme.colors.success
+                : theme.colors.textPrimary,
           }}
         >
           £{parseFloat(payment.amount).toFixed(2)}
@@ -110,12 +123,14 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
       key: 'status',
       label: 'Status',
       align: 'center' as const,
-      render: (payment) => <StatusBadge status={payment.status as BadgeStatus} size="sm" />,
+      render: (payment) => (
+        <StatusBadge status={payment.status as BadgeStatus} size='sm' />
+      ),
     },
   ];
 
   // Job columns for DataTable
-  const jobColumns: Column<typeof financialData.jobs[0]>[] = [
+  const jobColumns: Column<(typeof financialData.jobs)[0]>[] = [
     {
       key: 'title',
       label: 'Job Title',
@@ -138,7 +153,9 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
       key: 'status',
       label: 'Status',
       align: 'center' as const,
-      render: (job) => <StatusBadge status={job.status as BadgeStatus} size="sm" />,
+      render: (job) => (
+        <StatusBadge status={job.status as BadgeStatus} size='sm' />
+      ),
     },
     {
       key: 'price',
@@ -149,7 +166,13 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: theme.spacing[6],
+      }}
+    >
       {/* Header */}
       <header
         style={{
@@ -181,7 +204,13 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
             Track cash flow, payments, and financial performance
           </p>
         </div>
-        <div style={{ display: 'flex', gap: theme.spacing[2], alignItems: 'center' }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: theme.spacing[2],
+            alignItems: 'center',
+          }}
+        >
           {PERIODS.map((period) => {
             const isActive = selectedPeriod === period;
             return (
@@ -189,8 +218,8 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
                 key={period}
                 onClick={() => setSelectedPeriod(period)}
                 variant={isActive ? 'primary' : 'ghost'}
-                size="sm"
-                className="capitalize"
+                size='sm'
+                className='capitalize'
               >
                 {period}
               </Button>
@@ -208,13 +237,13 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
         }}
       >
         <Card.Metric
-          label="Total Revenue"
+          label='Total Revenue'
           value={`£${financialData.totalRevenue.toLocaleString('en-GB', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           })}`}
           subtitle={`${financialData.completedJobs} completed jobs`}
-          icon="currencyPound"
+          icon='currencyPound'
           trend={{
             direction: revenueChange >= 0 ? 'up' : 'down',
             value: `${Math.abs(revenueChange).toFixed(1)}%`,
@@ -224,35 +253,35 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
         />
 
         <Card.Metric
-          label="Pending Payments"
+          label='Pending Payments'
           value={`£${financialData.pendingPayments.toLocaleString('en-GB', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           })}`}
-          subtitle="Awaiting release"
-          icon="clock"
-          color="#F59E0B"
+          subtitle='Awaiting release'
+          icon='clock'
+          color='#F59E0B'
         />
 
         <Card.Metric
-          label="Average Job Value"
+          label='Average Job Value'
           value={`£${avgJobValue.toLocaleString('en-GB', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           })}`}
-          subtitle="Per completed job"
-          icon="briefcase"
+          subtitle='Per completed job'
+          icon='briefcase'
           color={theme.colors.primary}
         />
 
         <Card.Metric
-          label="Annual Projection"
+          label='Annual Projection'
           value={`£${revenueProjection.toLocaleString('en-GB', {
             minimumFractionDigits: 0,
             maximumFractionDigits: 0,
           })}`}
-          subtitle="At current pace"
-          icon="chart"
+          subtitle='At current pace'
+          icon='chart'
           color={theme.colors.info}
         />
       </section>
@@ -261,10 +290,10 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
       <DataTable
         data={financialData.payments.slice(0, 10)}
         columns={paymentColumns}
-        title="Recent Payments"
-        emptyMessage="No payments received yet"
+        title='Recent Payments'
+        emptyMessage='No payments received yet'
         actions={
-          <Button variant="ghost" size="sm">
+          <Button variant='ghost' size='sm'>
             View All
           </Button>
         }
@@ -274,10 +303,10 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
       <DataTable
         data={financialData.jobs.slice(0, 10)}
         columns={jobColumns}
-        title="Recent Completed Jobs"
-        emptyMessage="No completed jobs yet"
+        title='Recent Completed Jobs'
+        emptyMessage='No completed jobs yet'
         actions={
-          <Button variant="ghost" size="sm">
+          <Button variant='ghost' size='sm'>
             View All Jobs
           </Button>
         }

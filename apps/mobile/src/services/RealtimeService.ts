@@ -39,7 +39,7 @@ interface DatabaseBidRow {
   [key: string]: unknown;
 }
 
-interface DatabaseUserRow {
+interface DatabaseProfileRow {
   id: string;
   first_name?: string;
   last_name?: string;
@@ -83,7 +83,7 @@ export class RealtimeService {
     return typeof s.removeChannel !== 'function' || typeof s.getChannels !== 'function';
   }
 
-  private static topic(kind: 'messages' | 'jobs' | 'job' | 'bids' | 'users', id: string): string {
+  private static topic(kind: 'messages' | 'jobs' | 'job' | 'bids' | 'profiles', id: string): string {
     if (this.isSimpleMode()) {
       switch (kind) {
         case 'messages':
@@ -92,9 +92,9 @@ export class RealtimeService {
           return `job:id=eq.${id}`;
         case 'bids':
           return `bids:job_id=eq.${id}`;
-        case 'users':
+        case 'profiles':
           // Not used in simple tests
-          return `users:id=eq.${id}`;
+          return `profiles:id=eq.${id}`;
         default:
           return `${kind}:${id}`;
       }
@@ -107,8 +107,8 @@ export class RealtimeService {
         return `jobs:${id}`;
       case 'bids':
         return `bids:${id}`;
-      case 'users':
-        return `users:${id}`;
+      case 'profiles':
+        return `profiles:${id}`;
       default:
         return `${kind}:${id}`;
     }
@@ -272,23 +272,23 @@ export class RealtimeService {
   }
 
   static subscribeToUserUpdates(userId: string, callback: (user: unknown) => void): () => void {
-    const topic = this.topic('users', userId);
+    const topic = this.topic('profiles', userId);
     const client = supabase as unknown as SupabaseClient;
     const channel = client.channel(topic) as RealtimeChannel & ChannelState;
 
     channel.on?.(
       'postgres_changes',
-      { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${userId}` },
+      { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` },
       (payload: unknown) => {
-        const realtimePayload = payload as RealtimePayload<DatabaseUserRow>;
+        const realtimePayload = payload as RealtimePayload<DatabaseProfileRow>;
         const row = realtimePayload.new;
         const user = this.isSimpleMode()
           ? row
           : {
-              ...(row as DatabaseUserRow),
-              firstName: (row as DatabaseUserRow)?.first_name,
-              lastName: (row as DatabaseUserRow)?.last_name,
-              isAvailable: (row as DatabaseUserRow)?.is_available,
+              ...(row as DatabaseProfileRow),
+              firstName: (row as DatabaseProfileRow)?.first_name,
+              lastName: (row as DatabaseProfileRow)?.last_name,
+              isAvailable: (row as DatabaseProfileRow)?.is_available,
             };
         try {
           callback(user);
@@ -296,7 +296,7 @@ export class RealtimeService {
       }
     );
 
-    this.attachStatusHandler(channel, this.topic('users', userId));
+    this.attachStatusHandler(channel, this.topic('profiles', userId));
     this._subscriptions.push(channel);
     return () => {
       try {
@@ -457,7 +457,7 @@ export class RealtimeService {
   static unsubscribeFromUserUpdates(userId: string): void {
     try {
       const client = supabase as unknown as SupabaseClient;
-      const channel = client.channel(this.topic('users', userId));
+      const channel = client.channel(this.topic('profiles', userId));
       client.removeChannel?.(channel);
     } catch {}
   }

@@ -93,7 +93,11 @@ export class ApiClient {
           });
           // Don't retry on client errors (4xx)
           if (response.status >= 400 && response.status < 500) {
-            logError(error, `API Request failed: ${url}`);
+            // 403/404 are often expected (e.g., no escrow/reviews for a job,
+            // or contractor viewing homeowner-only escrow) — don't log as error
+            if (response.status !== 403 && response.status !== 404) {
+              logError(error, `API Request failed: ${url}`);
+            }
             throw error;
           }
           // Retry on server errors (5xx) or network errors

@@ -223,9 +223,9 @@ const AdvancedSearchFilters: React.FC<AdvancedSearchFiltersProps> = ({
                     radius: Math.round(value),
                   })
                 }
-                minimumTrackTintColor="#222222"
-                maximumTrackTintColor="#F7F7F7"
-                thumbTintColor="#222222"
+                minimumTrackTintColor={theme.colors.textPrimary}
+                maximumTrackTintColor={theme.colors.backgroundSecondary}
+                thumbTintColor={theme.colors.textPrimary}
               />
               <View style={styles.sliderLabels}>
                 <Text style={styles.sliderLabelText}>5 mi</Text>

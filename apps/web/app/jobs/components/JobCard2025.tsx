@@ -3,6 +3,7 @@
 import React from 'react';
 import { cardHover } from '@/lib/animations/variants';
 import Link from 'next/link';
+import Image from 'next/image';
 import { MotionArticle, MotionDiv } from '@/components/ui/MotionDiv';
 import { JobCardQuickActions } from './JobCardQuickActions';
 import { cleanAddress } from '@/lib/utils/location';
@@ -200,10 +201,12 @@ export const JobCard2025 = React.memo(function JobCard2025({
         {/* Image Section */}
         {job.photos && job.photos.length > 0 ? (
           <div className={`relative bg-gray-100 ${viewMode === 'list' ? 'w-48 h-full' : 'h-48'}`}>
-            <img
+            <Image
               src={job.photos[0]}
               alt={job.title}
-              className="w-full h-full object-cover"
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="object-cover"
             />
 
             {/* AI Assessment Badge Overlay */}

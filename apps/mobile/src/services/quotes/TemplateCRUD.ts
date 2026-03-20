@@ -1,5 +1,6 @@
 import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { QuoteTemplate, QuoteLineItemTemplate, CreateQuoteTemplateData } from './types';
 
 export async function createQuoteTemplate(
@@ -7,38 +8,24 @@ export async function createQuoteTemplate(
   templateData: CreateQuoteTemplateData
 ): Promise<QuoteTemplate> {
   try {
-    const { data: template, error: templateError } = await supabase
-      .from('quote_templates')
-      .insert({
-        contractor_id: contractorId,
-        template_name: templateData.template_name,
+    const response = await mobileApiClient.post<{ template: QuoteTemplate }>(
+      '/api/contractor/quote-templates',
+      {
+        name: templateData.template_name,
         description: templateData.description,
-        default_markup_percentage: templateData.default_markup_percentage,
-        default_discount_percentage: templateData.default_discount_percentage,
-        terms_and_conditions: templateData.terms_and_conditions,
-        is_active: true,
-        usage_count: 0,
-      })
-      .select()
-      .single();
+        line_items: templateData.line_items?.map((item) => ({
+          description: item.item_description,
+          quantity: item.default_quantity,
+          unit_price: item.unit_price,
+          unit: item.unit,
+          category: item.category,
+        })),
+        terms: templateData.terms_and_conditions,
+        notes: null,
+      }
+    );
 
-    if (templateError) throw templateError;
-
-    if (templateData.line_items && templateData.line_items.length > 0) {
-      const lineItems = templateData.line_items.map((item, index) => ({
-        template_id: template.id,
-        ...item,
-        sort_order: index + 1,
-      }));
-
-      const { error: lineItemsError } = await supabase
-        .from('quote_line_item_templates')
-        .insert(lineItems);
-
-      if (lineItemsError) throw lineItemsError;
-    }
-
-    return template;
+    return response.template;
   } catch (error) {
     logger.error('Error creating quote template', error, { service: 'quote-builder' });
     throw new Error('Failed to create quote template');
@@ -47,15 +34,11 @@ export async function createQuoteTemplate(
 
 export async function getQuoteTemplates(contractorId: string): Promise<QuoteTemplate[]> {
   try {
-    const { data, error } = await supabase
-      .from('quote_templates')
-      .select('*')
-      .eq('contractor_id', contractorId)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false });
+    const response = await mobileApiClient.get<{ templates: QuoteTemplate[] }>(
+      '/api/contractor/quote-templates'
+    );
 
-    if (error) throw error;
-    return data || [];
+    return response.templates || [];
   } catch (error) {
     logger.error('Error fetching quote templates', error, { service: 'quote-builder' });
     throw new Error('Failed to fetch quote templates');
@@ -100,22 +83,17 @@ export async function updateQuoteTemplate(
   templateData: Partial<CreateQuoteTemplateData>
 ): Promise<QuoteTemplate> {
   try {
-    const { data, error } = await supabase
-      .from('quote_templates')
-      .update({
-        template_name: templateData.template_name,
+    const response = await mobileApiClient.put<{ template: QuoteTemplate }>(
+      `/api/contractor/quote-templates/${templateId}`,
+      {
+        name: templateData.template_name,
         description: templateData.description,
-        default_markup_percentage: templateData.default_markup_percentage,
-        default_discount_percentage: templateData.default_discount_percentage,
-        terms_and_conditions: templateData.terms_and_conditions,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', templateId)
-      .select()
-      .single();
+        terms: templateData.terms_and_conditions,
+        notes: null,
+      }
+    );
 
-    if (error) throw error;
-    return data;
+    return response.template;
   } catch (error) {
     logger.error('Error updating quote template', error, { service: 'quote-builder' });
     throw new Error('Failed to update quote template');
@@ -124,12 +102,7 @@ export async function updateQuoteTemplate(
 
 export async function deleteQuoteTemplate(templateId: string): Promise<void> {
   try {
-    const { error } = await supabase
-      .from('quote_templates')
-      .update({ is_active: false })
-      .eq('id', templateId);
-
-    if (error) throw error;
+    await mobileApiClient.delete(`/api/contractor/quote-templates/${templateId}`);
   } catch (error) {
     logger.error('Error deleting quote template', error, { service: 'quote-builder' });
     throw new Error('Failed to delete quote template');

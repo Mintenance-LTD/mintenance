@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import Stripe from 'https://esm.sh/stripe@12.18.0';
 import { handleCorsPreflight, createCorsResponse } from '../_shared/cors.ts';
 import { verifyAuth, AuthError, unauthorizedResponse } from '../_shared/auth.ts';
@@ -18,6 +19,28 @@ serve(async (req) => {
     if (!paymentIntentId) throw new Error('paymentIntentId is required');
     if (typeof amount !== 'number' || amount <= 0) throw new Error('Valid amount is required');
 
+    // SECURITY: Verify the authenticated user is authorized for this refund
+    // Only the job homeowner (payer) or an admin can trigger refunds
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') || '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+    );
+
+    const { data: transaction } = await supabase
+      .from('escrow_transactions')
+      .select('payer_id, payee_id, job_id')
+      .eq('payment_intent_id', paymentIntentId)
+      .single();
+
+    if (!transaction) {
+      throw new Error('Transaction not found for this payment intent');
+    }
+
+    // Only the payer (homeowner) or an admin can request a refund
+    if (authUser.userId !== transaction.payer_id && authUser.role !== 'admin') {
+      return unauthorizedResponse(req, 'Not authorized to request a refund for this payment');
+    }
+
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
     });
@@ -25,7 +48,7 @@ serve(async (req) => {
     const refund = await stripe.refunds.create({
       payment_intent: paymentIntentId,
       amount: Math.round(amount * 100), // dollars -> cents
-      reason: (reason as any) || undefined,
+      reason: reason || undefined,
     });
 
     return createCorsResponse(

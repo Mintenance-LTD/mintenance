@@ -149,7 +149,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           ]}>
             <View style={styles.documentRow}>
               <View style={[styles.documentIcon, isFromCurrentUser ? styles.documentIconSent : styles.documentIconReceived]}>
-                <Ionicons name="document-text" size={20} color={isFromCurrentUser ? '#FFFFFF' : theme.colors.primary} />
+                <Ionicons name="document-text" size={20} color={isFromCurrentUser ? theme.colors.textInverse : theme.colors.primary} />
               </View>
               <View style={styles.documentInfo}>
                 <Text style={[styles.documentName, isFromCurrentUser ? styles.currentUserText : styles.otherUserText]} numberOfLines={2}>{docName}</Text>
@@ -162,7 +162,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               accessibilityRole="link"
               accessibilityLabel={`View document: ${docName}`}
             >
-              <Ionicons name="open-outline" size={14} color={isFromCurrentUser ? '#FFFFFF' : theme.colors.primary} />
+              <Ionicons name="open-outline" size={14} color={isFromCurrentUser ? theme.colors.textInverse : theme.colors.primary} />
               <Text style={[styles.viewDocText, isFromCurrentUser ? { color: theme.colors.textInverse } : { color: theme.colors.primary }]}>View Document</Text>
             </TouchableOpacity>
             <View style={styles.metaRow}>
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   dateLine: {
     flex: 1,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: theme.colors.border,
   },
   dateText: {
     fontSize: 12,

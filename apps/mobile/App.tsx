@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Font from 'expo-font';
 import * as Sentry from '@sentry/react-native';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import { logger } from './src/utils/logger';
@@ -14,6 +15,7 @@ import QueryProvider from './src/providers/QueryProvider';
 import { AnimatedSplash } from './src/components/AnimatedSplash';
 import { ThemeProvider } from './src/design-system/theme';
 import { HapticService } from './src/utils/haptics';
+import { BackgroundSyncService } from './src/services/BackgroundSyncService';
 
 // ============================================================================
 // SPLASH SCREEN - prevent auto-hide so we control when it dismisses
@@ -70,7 +72,18 @@ export default function App(): React.JSX.Element {
     const initialize = async (): Promise<void> => {
       try {
         logger.info('Mintenance app initializing', { service: 'app' });
+        // Load Inter font to match web app branding (falls back to System if unavailable)
+        await Font.loadAsync({
+          'Inter-Regular': require('./assets/fonts/Inter-Regular.ttf'),
+          'Inter-Medium': require('./assets/fonts/Inter-Medium.ttf'),
+          'Inter-SemiBold': require('./assets/fonts/Inter-SemiBold.ttf'),
+          'Inter-Bold': require('./assets/fonts/Inter-Bold.ttf'),
+        }).catch(() => {
+          logger.warn('Custom fonts not available, using system fonts', { service: 'app' });
+        });
         await HapticService.initialize();
+        // Register background sync for offline queue processing
+        await BackgroundSyncService.register();
       } catch (error) {
         logger.error('Initialization error', error, { service: 'app' });
       } finally {

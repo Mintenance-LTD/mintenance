@@ -2,6 +2,7 @@
 
 import React, { ReactNode, useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
@@ -177,6 +178,7 @@ export function ProfessionalContractorLayout({
           { label: 'Finance', href: '/contractor/finance', icon: PoundSterling },
           { label: 'Invoices', href: '/contractor/invoices', icon: Receipt },
           { label: 'Expenses', href: '/contractor/expenses', icon: CreditCard },
+          { label: 'Tax Info', href: '/contractor/tax-info/dashboard', icon: FileText },
           { label: 'Subscription', href: '/contractor/subscription', icon: BarChart3 },
         ],
       },
@@ -306,19 +308,21 @@ export function ProfessionalContractorLayout({
           {/* Logo */}
           <div className="h-16 flex items-center justify-between px-6 border-b border-gray-200">
             <Link href="/contractor/dashboard-enhanced" className="flex items-center gap-3">
-              <img
+              <Image
                 src="/assets/icon.png"
                 alt="Mintenance"
-                className="w-8 h-8"
+                width={32}
+                height={32}
               />
               <span className="text-gray-900 font-semibold text-lg">Mintenance</span>
             </Link>
             {isMobile && (
               <button
                 onClick={() => setIsMobileOpen(false)}
-                className="lg:hidden text-gray-500 hover:text-gray-900"
+                aria-label="Close navigation menu"
+                className="lg:hidden text-gray-500 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded-lg p-1"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5" aria-hidden="true" />
               </button>
             )}
           </div>
@@ -446,10 +450,12 @@ export function ProfessionalContractorLayout({
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-all"
               >
                 {contractor?.profile_image_url ? (
-                  <img
+                  <Image
                     src={contractor.profile_image_url}
                     alt={contractorFullName}
-                    className="w-9 h-9 rounded-full object-cover"
+                    width={36}
+                    height={36}
+                    className="rounded-full object-cover"
                   />
                 ) : (
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center">
@@ -557,8 +563,12 @@ export function ProfessionalContractorLayout({
               {userId ? (
                 <NotificationDropdown userId={userId} />
               ) : (
-                <button className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-not-allowed opacity-50">
-                  <Bell className="w-5 h-5 text-gray-600" />
+                <button
+                  className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-not-allowed opacity-50"
+                  aria-label="Notifications (unavailable)"
+                  disabled
+                >
+                  <Bell className="w-5 h-5 text-gray-600" aria-hidden="true" />
                 </button>
               )}
 
@@ -566,14 +576,19 @@ export function ProfessionalContractorLayout({
               <div className="hidden lg:block relative" id="header-user-menu">
                 <button
                   onClick={() => setShowHeaderUserMenu(!showHeaderUserMenu)}
-                  className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                  onKeyDown={(e) => { if (e.key === 'Escape') setShowHeaderUserMenu(false); }}
+                  aria-expanded={showHeaderUserMenu}
+                  aria-haspopup="menu"
+                  className="flex items-center gap-2 hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded-full"
                   aria-label="User menu"
                 >
                   {contractor?.profile_image_url ? (
-                    <img
+                    <Image
                       src={contractor.profile_image_url}
                       alt={contractorFullName}
-                      className="w-9 h-9 rounded-full object-cover border-2 border-gray-200 hover:border-teal-500 transition-colors"
+                      width={36}
+                      height={36}
+                      className="rounded-full object-cover border-2 border-gray-200 hover:border-teal-500 transition-colors"
                     />
                   ) : (
                     <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center border-2 border-gray-200 hover:border-teal-400 transition-colors">

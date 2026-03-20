@@ -24,6 +24,10 @@ npm run type-check -w @mintenance/web --silent || {
   echo "❌ TypeScript errors in web app"
   exit 1
 }
+npm run type-check -w @mintenance/mobile --silent || {
+  echo "❌ TypeScript errors in mobile app"
+  exit 1
+}
 
 # Linting staged files
 echo "🔧 Linting staged files..."
@@ -72,10 +76,14 @@ if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
   exit 1
 fi
 
-# Check for large files
+# Check for large files (excludes auto-generated lock files which can legitimately be large)
 echo "📦 Checking file sizes..."
 MAX_SIZE=500000 # 500KB
 for FILE in $(git diff --cached --name-only); do
+  # Skip lock files — they are auto-generated and not subject to size limits
+  case "$FILE" in
+    *package-lock.json|*yarn.lock|*pnpm-lock.yaml) continue ;;
+  esac
   if [ -f "$FILE" ]; then
     SIZE=$(wc -c < "$FILE")
     if [ $SIZE -gt $MAX_SIZE ]; then

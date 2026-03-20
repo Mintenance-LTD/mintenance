@@ -4,7 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { validateRequest } from '@/lib/validation/validator';
 import { createInvoiceSchema, updateInvoiceSchema } from '@/lib/validation/schemas';
@@ -57,13 +57,16 @@ async function sendInvoiceEmail(invoice: Record<string, unknown>, contractor: Re
 export const GET = withApiHandler(
   { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
   async (request, { user }) => {
+    // Use RLS-enforced client for user-scoped reads; fall back to service role
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const jobId = searchParams.get('jobId');
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    let query = serverSupabase
+    let query = userDb
       .from('invoices')
       .select('*', { count: 'exact' })
       .eq('contractor_id', user.id)
@@ -101,6 +104,8 @@ export const GET = withApiHandler(
 export const POST = withApiHandler(
   { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
   async (request, { user }) => {
+    // Use RLS-enforced client for user-scoped operations; fall back to service role
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
     // Validate and sanitize input using Zod schema
     const invoiceValidation = await validateRequest(request, createInvoiceSchema);
     if (invoiceValidation instanceof NextResponse) return invoiceValidation;
@@ -146,7 +151,7 @@ export const POST = withApiHandler(
     };
 
     // Create invoice in database
-    const { data: invoice, error } = await serverSupabase
+    const { data: invoice, error } = await userDb
       .from('invoices')
       .insert(invoiceData)
       .select()
@@ -215,6 +220,9 @@ export const POST = withApiHandler(
 export const PATCH = withApiHandler(
   { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
   async (request, { user }) => {
+    // Use RLS-enforced client for user-scoped operations; fall back to service role
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     const { searchParams } = new URL(request.url);
     const invoiceId = searchParams.get('id');
 
@@ -228,7 +236,7 @@ export const PATCH = withApiHandler(
     const validatedPatchData = patchValidation.data;
 
     // Check if invoice belongs to contractor
-    const { data: existingInvoice } = await serverSupabase
+    const { data: existingInvoice } = await userDb
       .from('invoices')
       .select('contractor_id, status')
       .eq('id', invoiceId)
@@ -259,7 +267,7 @@ export const PATCH = withApiHandler(
     }
 
     // Update invoice
-    const { data: invoice, error } = await serverSupabase
+    const { data: invoice, error } = await userDb
       .from('invoices')
       .update(updateData)
       .eq('id', invoiceId)
@@ -286,13 +294,16 @@ export const PATCH = withApiHandler(
 export const DELETE = withApiHandler(
   { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
   async (request, { user }) => {
+    // Use RLS-enforced client for user-scoped operations; fall back to service role
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     const { searchParams } = new URL(request.url);
     const invoiceId = searchParams.get('id');
     if (!invoiceId) {
       throw new BadRequestError('Invoice ID is required');
     }
 
-    const { data: existing } = await serverSupabase
+    const { data: existing } = await userDb
       .from('invoices')
       .select('id, contractor_id, status')
       .eq('id', invoiceId)
@@ -307,7 +318,7 @@ export const DELETE = withApiHandler(
       throw new BadRequestError('Cannot delete paid invoices');
     }
 
-    const { error } = await serverSupabase
+    const { error } = await userDb
       .from('invoices')
       .delete()
       .eq('id', invoiceId)

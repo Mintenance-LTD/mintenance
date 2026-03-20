@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
@@ -23,12 +23,14 @@ const manageSkillsSchema = z.object({
 export const POST = withApiHandler(
   { roles: ['contractor'] },
   async (request, { user }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     const validation = await validateRequest(request, manageSkillsSchema);
     if (validation instanceof NextResponse) return validation;
     const { skills } = validation.data;
 
     // Delete all existing skills
-    const { error: deleteError } = await serverSupabase
+    const { error: deleteError } = await userDb
       .from('contractor_skills')
       .delete()
       .eq('contractor_id', user.id);
@@ -53,7 +55,7 @@ export const POST = withApiHandler(
       return { contractor_id: user.id, skill_name: skill.skill_name, skill_icon: skill.skill_icon };
     });
 
-    const { data, error: insertError } = await serverSupabase
+    const { data, error: insertError } = await userDb
       .from('contractor_skills')
       .insert(skillsData)
       .select();

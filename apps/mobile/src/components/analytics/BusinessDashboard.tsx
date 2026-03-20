@@ -48,7 +48,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
   value,
   change,
   trend = 'neutral',
-  color = '#222222',
+  color = theme.colors.textPrimary,
 }) => {
   const trendColor = trend === 'up' ? theme.colors.primary : trend === 'down' ? theme.colors.error : theme.colors.textSecondary;
 

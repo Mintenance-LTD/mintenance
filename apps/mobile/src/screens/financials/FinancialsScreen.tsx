@@ -62,9 +62,9 @@ export const FinancialsScreen: React.FC = () => {
     queryFn: async () => {
       if (!user?.id) throw new Error('Not authenticated');
       const { data: rows, error: err } = await supabase
-        .from('escrow_payments')
-        .select('id, amount, status, created_at, category, jobs(title)')
-        .eq('homeowner_id', user.id)
+        .from('escrow_transactions')
+        .select('id, amount, status, created_at, description, job:job_id(title)')
+        .eq('payer_id', user.id)
         .order('created_at', { ascending: false })
         .limit(50);
       if (err) throw new Error(err.message);
@@ -74,13 +74,13 @@ export const FinancialsScreen: React.FC = () => {
         amount: (r.amount as number) || 0,
         status: r.status as string || 'pending',
         created_at: r.created_at as string,
-        job_title: (r.jobs as Record<string, unknown>)?.title as string | undefined,
-        category: r.category as string | undefined,
+        job_title: (r.job as Record<string, unknown>)?.title as string | undefined,
+        category: r.description as string | undefined,
       }));
 
       // Fetch subscription from profile
       const { data: subRow } = await supabase
-        .from('user_subscriptions')
+        .from('subscriptions')
         .select('plan_type, status')
         .eq('user_id', user.id)
         .single();
@@ -317,7 +317,7 @@ export const FinancialsScreen: React.FC = () => {
               activeOpacity={0.7}
             >
               <View style={styles.subscriptionLeft}>
-                <View style={[styles.subscriptionIcon, { backgroundColor: data.subscription.status === 'active' ? '#D1FAE5' : theme.colors.accentLight }]}>
+                <View style={[styles.subscriptionIcon, { backgroundColor: data.subscription.status === 'active' ? theme.colors.primaryLight : theme.colors.accentLight }]}>
                   <Ionicons
                     name={data.subscription.status === 'active' ? 'shield-checkmark' : 'shield-outline'}
                     size={20}

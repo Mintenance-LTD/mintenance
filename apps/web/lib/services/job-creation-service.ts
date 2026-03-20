@@ -80,6 +80,26 @@ export class JobCreationService {
     await this.validatePropertyOwnership(user.id, payload);
 
     const insertPayload = this.buildInsertPayload(user, payload);
+
+    // Server-side geocoding: if location text provided but no coordinates,
+    // geocode the address so the job appears at the correct map position
+    if (insertPayload.location && !insertPayload.latitude && !insertPayload.longitude) {
+      try {
+        const coords = await this.geocodeAddress(insertPayload.location);
+        if (coords) {
+          insertPayload.latitude = coords.latitude;
+          insertPayload.longitude = coords.longitude;
+        }
+      } catch (geoError) {
+        // Non-fatal: job is still created, just without coordinates
+        logger.warn('Failed to geocode job location', {
+          service: 'job-creation',
+          location: insertPayload.location,
+          error: geoError instanceof Error ? geoError.message : String(geoError),
+        });
+      }
+    }
+
     const jobRow = await this.insertJob(user.id, insertPayload);
 
     await this.updateSeriousBuyerScore(user.id, jobRow.id, payload);
@@ -372,5 +392,45 @@ export class JobCreationService {
         error: attachErr,
       });
     }
+  }
+
+  /**
+   * Geocode a location string to lat/lng using Google Maps API.
+   * Returns null if geocoding fails or API key is not configured.
+   */
+  private async geocodeAddress(address: string): Promise<{ latitude: number; longitude: number } | null> {
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      logger.warn('GOOGLE_MAPS_API_KEY not configured — skipping geocoding', { service: 'job-creation' });
+      return null;
+    }
+
+    const encodedAddress = encodeURIComponent(address.trim());
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}`;
+
+    const response = await fetch(url, {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(5000),
+    });
+
+    const data = await response.json();
+
+    if (data.status === 'OK' && data.results?.[0]?.geometry?.location) {
+      const { lat, lng } = data.results[0].geometry.location;
+      logger.info('Job location geocoded', {
+        service: 'job-creation',
+        address,
+        lat,
+        lng,
+      });
+      return { latitude: lat, longitude: lng };
+    }
+
+    logger.warn('Geocoding returned no results', {
+      service: 'job-creation',
+      address,
+      status: data.status,
+    });
+    return null;
   }
 }

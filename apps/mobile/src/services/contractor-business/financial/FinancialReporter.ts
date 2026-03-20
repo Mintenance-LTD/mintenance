@@ -1,7 +1,18 @@
-import { supabase } from '../../../config/supabase';
+import { mobileApiClient } from '../../../utils/mobileApiClient';
 import { ServiceErrorHandler } from '../../../utils/serviceErrorHandler';
 import type { DatabaseInvoiceRow, DatabaseExpenseRow } from './types';
 import type { FinancialSummary } from '../types';
+
+/** Safely extract array from API response that may be wrapped (e.g. { invoices: [...] }) or raw */
+function extractArray<T>(response: unknown): T[] {
+  if (Array.isArray(response)) return response;
+  if (response && typeof response === 'object') {
+    const values = Object.values(response as Record<string, unknown>);
+    const arr = values.find(v => Array.isArray(v));
+    if (arr) return arr as T[];
+  }
+  return [];
+}
 
 export function calculateDueDate(paymentTerms: string): string {
   const daysMap: Record<string, number> = {
@@ -28,26 +39,21 @@ export async function calculateFinancialTotals(
     ServiceErrorHandler.validateRequired(periodStart, 'Period start', context);
     ServiceErrorHandler.validateRequired(periodEnd, 'Period end', context);
 
-    const { data: paidInvoices, error: invoiceError } = await supabase
-      .from('invoices').select('total_amount')
-      .eq('contractor_id', contractorId).eq('status', 'paid')
-      .gte('paid_date', periodStart).lte('paid_date', periodEnd);
-    if (invoiceError) throw ServiceErrorHandler.handleDatabaseError(invoiceError, context);
+    const paidInvoices = await mobileApiClient.get<Pick<DatabaseInvoiceRow, 'total_amount'>[]>(
+      `/api/contractor/invoices?status=paid&period_start=${periodStart}&period_end=${periodEnd}`
+    );
 
-    const { data: expenses, error: expenseError } = await supabase
-      .from('expenses').select('amount')
-      .eq('contractor_id', contractorId)
-      .gte('date', periodStart).lte('date', periodEnd);
-    if (expenseError) throw ServiceErrorHandler.handleDatabaseError(expenseError, context);
+    const expenses = await mobileApiClient.get<Pick<DatabaseExpenseRow, 'amount'>[]>(
+      `/api/contractor/expenses?period_start=${periodStart}&period_end=${periodEnd}`
+    );
 
-    const { data: outstandingInvoices, error: outstandingError } = await supabase
-      .from('invoices').select('total_amount, due_date')
-      .eq('contractor_id', contractorId).in('status', ['sent', 'overdue']);
-    if (outstandingError) throw ServiceErrorHandler.handleDatabaseError(outstandingError, context);
+    const outstandingInvoices = await mobileApiClient.get<Pick<DatabaseInvoiceRow, 'total_amount' | 'due_date'>[]>(
+      `/api/contractor/invoices?status=sent,overdue`
+    );
 
-    const typedPaid = (paidInvoices || []) as Pick<DatabaseInvoiceRow, 'total_amount'>[];
-    const typedExp = (expenses || []) as Pick<DatabaseExpenseRow, 'amount'>[];
-    const typedOut = (outstandingInvoices || []) as Pick<DatabaseInvoiceRow, 'total_amount' | 'due_date'>[];
+    const typedPaid = extractArray<Pick<DatabaseInvoiceRow, 'total_amount'>>(paidInvoices);
+    const typedExp = extractArray<Pick<DatabaseExpenseRow, 'amount'>>(expenses);
+    const typedOut = extractArray<Pick<DatabaseInvoiceRow, 'total_amount' | 'due_date'>>(outstandingInvoices);
 
     const totalRevenue = typedPaid.reduce((sum, inv) => sum + inv.total_amount, 0);
     const totalExpenses = typedExp.reduce((sum, exp) => sum + exp.amount, 0);
@@ -74,12 +80,12 @@ async function getMonthlyRevenue(contractorId: string, months: number): Promise<
     endDate.setMonth(endDate.getMonth() + 1);
     endDate.setDate(0);
 
-    const { data: invoices } = await supabase.from('invoices').select('total_amount')
-      .eq('contractor_id', contractorId).eq('status', 'paid')
-      .gte('paid_date', startDate.toISOString()).lte('paid_date', endDate.toISOString());
+    const response = await mobileApiClient.get<{ invoices: Pick<DatabaseInvoiceRow, 'total_amount'>[] } | Pick<DatabaseInvoiceRow, 'total_amount'>[]>(
+      `/api/contractor/invoices?status=paid&period_start=${startDate.toISOString()}&period_end=${endDate.toISOString()}`
+    );
+    const invoices = Array.isArray(response) ? response : (response as { invoices: Pick<DatabaseInvoiceRow, 'total_amount'>[] }).invoices || [];
 
-    const typed = (invoices || []) as Pick<DatabaseInvoiceRow, 'total_amount'>[];
-    results.push(typed.reduce((sum, inv) => sum + (inv.total_amount || 0), 0));
+    results.push(invoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0));
   }
   return results;
 }
@@ -96,11 +102,15 @@ function projectYearlyRevenue(monthlyRevenue: number[]): number {
 }
 
 async function getInvoicesSummary(contractorId: string): Promise<{ outstandingInvoices: number; overdueAmount: number }> {
-  const { data: invoices, error } = await supabase.from('invoices')
-    .select('total_amount, due_date, status')
-    .eq('contractor_id', contractorId).in('status', ['sent', 'overdue']);
-  if (error) return { outstandingInvoices: 0, overdueAmount: 0 };
-  const typed = (invoices || []) as Pick<DatabaseInvoiceRow, 'total_amount' | 'due_date' | 'status'>[];
+  let typed: Pick<DatabaseInvoiceRow, 'total_amount' | 'due_date' | 'status'>[];
+  try {
+    const raw = await mobileApiClient.get<unknown>(
+      `/api/contractor/invoices?status=sent,overdue`
+    );
+    typed = extractArray<Pick<DatabaseInvoiceRow, 'total_amount' | 'due_date' | 'status'>>(raw);
+  } catch {
+    return { outstandingInvoices: 0, overdueAmount: 0 };
+  }
   return {
     outstandingInvoices: typed.reduce((s, inv) => s + inv.total_amount, 0),
     overdueAmount: typed.filter((inv) => new Date(inv.due_date) < new Date() && inv.status !== 'paid')
@@ -120,18 +130,18 @@ async function getProfitTrends(contractorId: string, months: number) {
     const start = startDate.toISOString();
     const end = endDate.toISOString();
 
-    const [invoiceRes, expenseRes] = await Promise.all([
-      supabase.from('invoices').select('total_amount')
-        .eq('contractor_id', contractorId).eq('status', 'paid')
-        .gte('paid_date', start).lte('paid_date', end),
-      supabase.from('expenses').select('amount')
-        .eq('contractor_id', contractorId)
-        .gte('date', start).lte('date', end),
+    const [invoiceData, expenseData] = await Promise.all([
+      mobileApiClient.get<Pick<DatabaseInvoiceRow, 'total_amount'>[]>(
+        `/api/contractor/invoices?status=paid&period_start=${start}&period_end=${end}`
+      ),
+      mobileApiClient.get<Pick<DatabaseExpenseRow, 'amount'>[]>(
+        `/api/contractor/expenses?period_start=${start}&period_end=${end}`
+      ),
     ]);
 
-    const revenue = ((invoiceRes.data || []) as Pick<DatabaseInvoiceRow, 'total_amount'>[])
+    const revenue = extractArray<Pick<DatabaseInvoiceRow, 'total_amount'>>(invoiceData)
       .reduce((s, inv) => s + (inv.total_amount || 0), 0);
-    const expenses = ((expenseRes.data || []) as Pick<DatabaseExpenseRow, 'amount'>[])
+    const expenses = extractArray<Pick<DatabaseExpenseRow, 'amount'>>(expenseData)
       .reduce((s, exp) => s + (exp.amount || 0), 0);
 
     trends.push({
@@ -148,18 +158,20 @@ async function calculateTaxObligations(contractorId: string): Promise<number> {
   // Calculate estimated tax from current tax year income (Apr-Mar UK tax year)
   const now = new Date();
   const taxYearStart = new Date(now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1, 3, 6);
-  const { data: invoices } = await supabase.from('invoices').select('total_amount')
-    .eq('contractor_id', contractorId).eq('status', 'paid')
-    .gte('paid_date', taxYearStart.toISOString());
-  const { data: expenses } = await supabase.from('expenses').select('amount')
-    .eq('contractor_id', contractorId)
-    .gte('date', taxYearStart.toISOString());
+  const [invoices, expenses] = await Promise.all([
+    mobileApiClient.get<Pick<DatabaseInvoiceRow, 'total_amount'>[]>(
+      `/api/contractor/invoices?status=paid&period_start=${taxYearStart.toISOString()}`
+    ),
+    mobileApiClient.get<Pick<DatabaseExpenseRow, 'amount'>[]>(
+      `/api/contractor/expenses?period_start=${taxYearStart.toISOString()}`
+    ),
+  ]);
 
-  const totalIncome = ((invoices || []) as Pick<DatabaseInvoiceRow, 'total_amount'>[])
+  const totalIncome = extractArray<Pick<DatabaseInvoiceRow, 'total_amount'>>(invoices)
     .reduce((s, inv) => s + (inv.total_amount || 0), 0);
-  const totalExpenses = ((expenses || []) as Pick<DatabaseExpenseRow, 'amount'>[])
+  const totalExpensesAmt = extractArray<Pick<DatabaseExpenseRow, 'amount'>>(expenses)
     .reduce((s, exp) => s + (exp.amount || 0), 0);
-  const taxableProfit = Math.max(0, totalIncome - totalExpenses);
+  const taxableProfit = Math.max(0, totalIncome - totalExpensesAmt);
 
   // UK self-employed: ~20% basic rate estimate (simplified)
   return Math.round(taxableProfit * 0.2);
@@ -170,26 +182,27 @@ async function generateCashFlowForecast(contractorId: string, weeks: number) {
   const lookbackStart = new Date();
   lookbackStart.setDate(lookbackStart.getDate() - 84); // 12 weeks
 
-  const [invoiceRes, expenseRes, pendingRes] = await Promise.all([
-    supabase.from('invoices').select('total_amount')
-      .eq('contractor_id', contractorId).eq('status', 'paid')
-      .gte('paid_date', lookbackStart.toISOString()),
-    supabase.from('expenses').select('amount')
-      .eq('contractor_id', contractorId)
-      .gte('date', lookbackStart.toISOString()),
-    supabase.from('invoices').select('total_amount, due_date')
-      .eq('contractor_id', contractorId).in('status', ['sent', 'overdue']),
+  const [paidInvoiceData, expenseData, pendingData] = await Promise.all([
+    mobileApiClient.get<Pick<DatabaseInvoiceRow, 'total_amount'>[]>(
+      `/api/contractor/invoices?status=paid&period_start=${lookbackStart.toISOString()}`
+    ),
+    mobileApiClient.get<Pick<DatabaseExpenseRow, 'amount'>[]>(
+      `/api/contractor/expenses?period_start=${lookbackStart.toISOString()}`
+    ),
+    mobileApiClient.get<Pick<DatabaseInvoiceRow, 'total_amount' | 'due_date'>[]>(
+      `/api/contractor/invoices?status=sent,overdue`
+    ),
   ]);
 
-  const totalIncome = ((invoiceRes.data || []) as Pick<DatabaseInvoiceRow, 'total_amount'>[])
+  const totalIncome = extractArray<Pick<DatabaseInvoiceRow, 'total_amount'>>(paidInvoiceData)
     .reduce((s, inv) => s + (inv.total_amount || 0), 0);
-  const totalExpenses = ((expenseRes.data || []) as Pick<DatabaseExpenseRow, 'amount'>[])
+  const totalExpenses = extractArray<Pick<DatabaseExpenseRow, 'amount'>>(expenseData)
     .reduce((s, exp) => s + (exp.amount || 0), 0);
   const avgWeeklyIncome = Math.round(totalIncome / 12);
   const avgWeeklyExpenses = Math.round(totalExpenses / 12);
 
   // Map pending invoices to their due weeks
-  const pendingInvoices = (pendingRes.data || []) as Pick<DatabaseInvoiceRow, 'total_amount' | 'due_date'>[];
+  const pendingInvoices = extractArray<Pick<DatabaseInvoiceRow, 'total_amount' | 'due_date'>>(pendingData);
 
   return Array.from({ length: weeks }, (_, i) => {
     const weekStart = new Date();

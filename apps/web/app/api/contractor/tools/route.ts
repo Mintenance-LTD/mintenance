@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { InternalServerError, BadRequestError } from '@/lib/errors/api-error';
@@ -9,8 +9,10 @@ import { validateRequest } from '@/lib/validation/validator';
 // GET: Fetch all tools for the contractor
 export const GET = withApiHandler(
   { roles: ['contractor'], csrf: false },
-  async (_request, { user }) => {
-    const { data: tools, error } = await serverSupabase
+  async (request, { user }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
+    const { data: tools, error } = await userDb
       .from('contractor_tools')
       .select('*')
       .eq('contractor_id', user.id)
@@ -66,12 +68,14 @@ const createToolSchema = z.object({
 export const POST = withApiHandler(
   { roles: ['contractor'] },
   async (request: NextRequest, { user }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     const validation = await validateRequest(request, createToolSchema);
     if (validation instanceof NextResponse) return validation;
 
     const d = validation.data;
 
-    const { data: tool, error } = await serverSupabase
+    const { data: tool, error } = await userDb
       .from('contractor_tools')
       .insert({
         contractor_id: user.id,
@@ -105,11 +109,13 @@ export const POST = withApiHandler(
 export const DELETE = withApiHandler(
   { roles: ['contractor'] },
   async (request: NextRequest, { user }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     const url = new URL(request.url);
     const id = url.searchParams.get('id');
     if (!id) throw new BadRequestError('Missing tool id');
 
-    const { data: existing } = await serverSupabase
+    const { data: existing } = await userDb
       .from('contractor_tools')
       .select('id')
       .eq('id', id)
@@ -120,7 +126,7 @@ export const DELETE = withApiHandler(
       return NextResponse.json({ error: 'Tool not found' }, { status: 404 });
     }
 
-    const { error } = await serverSupabase
+    const { error } = await userDb
       .from('contractor_tools')
       .delete()
       .eq('id', id)
@@ -139,12 +145,14 @@ export const DELETE = withApiHandler(
 export const PATCH = withApiHandler(
   { roles: ['contractor'] },
   async (request: NextRequest, { user }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
     const body = await request.json();
     const { id, ...updates } = body;
 
     if (!id) throw new BadRequestError('Missing tool id');
 
-    const { data: existing } = await serverSupabase
+    const { data: existing } = await userDb
       .from('contractor_tools')
       .select('id')
       .eq('id', id)
@@ -172,7 +180,7 @@ export const PATCH = withApiHandler(
     if (updates.warrantyExpiry !== undefined) dbUpdates.warranty_expiry = updates.warrantyExpiry;
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
 
-    const { error } = await serverSupabase
+    const { error } = await userDb
       .from('contractor_tools')
       .update(dbUpdates)
       .eq('id', id)

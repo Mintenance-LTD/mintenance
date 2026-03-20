@@ -21,44 +21,20 @@
     "noUncheckedIndexedAccess": false,
     "exactOptionalPropertyTypes": false,
     "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "@mintenance/types": [
-        "../../packages/types/src"
-      ],
-      "@mintenance/shared": [
-        "../../packages/shared/src"
-      ],
-      "@mintenance/shared/*": [
-        "../../packages/shared/src/*"
-      ],
-      "@mintenance/design-tokens": [
-        "../../packages/design-tokens/src"
-      ],
-      "@mintenance/api-client": [
-        "../../packages/api-client/src"
-      ],
-      "@mintenance/ai-core": [
-        "../../packages/ai-core/src"
-      ],
-      "@mintenance/security": [
-        "../../packages/security/src"
-      ],
-      "@mintenance/shared-ui": [
-        "../../packages/shared-ui/src"
-      ],
-      "@mintenance/auth": [
-        "../../packages/auth/src"
-      ]
+      "@/*": ["./src/*"],
+      "@mintenance/types": ["../../packages/types/src"],
+      "@mintenance/shared": ["../../packages/shared/src"],
+      "@mintenance/shared/*": ["../../packages/shared/src/*"],
+      "@mintenance/design-tokens": ["../../packages/design-tokens/src"],
+      "@mintenance/api-client": ["../../packages/api-client/src"],
+      "@mintenance/ai-core": ["../../packages/ai-core/src"],
+      "@mintenance/security": ["../../packages/security/src"],
+      "@mintenance/shared-ui": ["../../packages/shared-ui/src"],
+      "@mintenance/auth": ["../../packages/auth/src"],
+      "@mintenance/data-access": ["../../packages/data-access/src"]
     }
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "**/*.js",
-    "**/*.jsx"
-  ],
+  "include": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
   "exclude": [
     "node_modules",
     "coverage",
@@ -71,7 +47,9 @@
     "**/*.spec.ts",
     "**/*.spec.tsx",
     "scripts/**/*.js",
-    "*.js"
+    "*.js",
+    "src/_archived",
+    "e2e"
   ],
   "references": [
     {

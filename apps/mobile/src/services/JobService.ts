@@ -108,6 +108,7 @@ export class JobService {
     amount: number;
     description: string;
     estimatedDurationDays?: number;
+    proposedStartDate?: string;
   }): Promise<Bid> {
     return BidManagementService.submitBid(bidData);
   }

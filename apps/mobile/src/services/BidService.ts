@@ -1,4 +1,3 @@
-import { supabase } from '../config/supabase';
 import { mobileApiClient } from '../utils/mobileApiClient';
 import { BidManagementService } from './BidManagementService';
 
@@ -25,6 +24,12 @@ export interface Bid extends BidData {
     rating?: number;
     reviews_count?: number;
     profile_picture?: string;
+    company_name?: string;
+    city?: string;
+    bio?: string;
+    hourly_rate?: number;
+    years_experience?: number;
+    profile_image_url?: string;
   };
   job?: {
     id: string;
@@ -40,7 +45,6 @@ export interface Bid extends BidData {
 
 export class BidService {
   static async createBid(bidData: BidData): Promise<Bid> {
-    // Client-side validation for quick UX feedback
     if (bidData.amount <= 0) {
       throw new Error('Bid amount must be greater than 0');
     }
@@ -48,7 +52,6 @@ export class BidService {
       throw new Error('Bid message is required');
     }
 
-    // Delegate to BidManagementService which routes through web API
     const result = await BidManagementService.submitBid({
       jobId: bidData.job_id,
       contractorId: bidData.contractor_id,
@@ -56,7 +59,6 @@ export class BidService {
       description: bidData.message,
     });
 
-    // Return in BidService's Bid format
     return {
       ...bidData,
       id: result.id,
@@ -67,214 +69,102 @@ export class BidService {
   }
 
   static async getBidsByJob(jobId: string, status?: string): Promise<Bid[]> {
-    let query = supabase
-      .from('bids')
-      .select(
-        `
-        *,
-        contractor:contractor_id (
-          id,
-          first_name,
-          last_name,
-          email,
-          rating,
-          reviews_count,
-          profile_picture
-        )
-      `
-      )
-      .eq('job_id', jobId);
-
-    if (status) {
-      query = query.eq('status', status);
-    }
-
-    const { data, error } = await query.order('created_at', {
-      ascending: false,
-    });
-
-    if (error) throw error;
-    return data || [];
+    const params = new URLSearchParams();
+    if (status) params.set('status', status);
+    const query = params.toString();
+    const url = `/api/jobs/${jobId}/bids${query ? `?${query}` : ''}`;
+    const response = await mobileApiClient.get<{ bids: Bid[] }>(url);
+    return response.bids || [];
   }
 
-  /** Batch fetch bids for multiple jobs in a single query (avoids N+1). */
   static async getBidsByJobs(jobIds: string[], status?: string): Promise<Bid[]> {
     if (jobIds.length === 0) return [];
-    let query = supabase
-      .from('bids')
-      .select(
-        `*,
-        contractor:contractor_id (
-          id, first_name, last_name, email, rating, reviews_count, profile_picture
-        ),
-        job:job_id (
-          id, title, description, budget, category, status, location, created_at
-        )`
-      )
-      .in('job_id', jobIds);
-    if (status) {
-      query = query.eq('status', status);
-    }
-    const { data, error } = await query.order('created_at', { ascending: false });
-    if (error) throw error;
-    return data || [];
+    // Fetch bids for each job in parallel via the API
+    const results = await Promise.all(
+      jobIds.map((jobId) => BidService.getBidsByJob(jobId, status))
+    );
+    return results.flat().sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
   }
 
   static async getBidsByContractor(contractorId: string): Promise<Bid[]> {
-    const { data, error } = await supabase
-      .from('bids')
-      .select(
-        `
-        *,
-        job:job_id (
-          id,
-          title,
-          description,
-          budget,
-          category,
-          status,
-          location,
-          created_at
-        )
-      `
-      )
-      .eq('contractor_id', contractorId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data || [];
+    const response = await mobileApiClient.get<{ bids: Bid[] }>(
+      `/api/contractor/bids?contractorId=${contractorId}`
+    );
+    return response.bids || [];
   }
 
-  static async acceptBid(bidId: string, homeownerId: string): Promise<Bid> {
-    // Fetch the bid to get job_id for the API URL
-    const { data: bid, error: fetchError } = await supabase
-      .from('bids')
-      .select('*, job:job_id (homeowner_id)')
-      .eq('id', bidId)
-      .single();
-
-    if (fetchError) throw fetchError;
+  static async acceptBid(bidId: string, _homeownerId: string): Promise<Bid> {
+    // Fetch bid details via API to get job_id
+    const bidResponse = await mobileApiClient.get<{ bids: Bid[] }>(
+      `/api/contractor/bids?bidId=${bidId}`
+    );
+    const bid = bidResponse.bids?.[0];
     if (!bid) throw new Error('Bid not found');
 
-    if (bid.job.homeowner_id !== homeownerId) {
-      throw new Error('Not authorized to accept this bid');
-    }
-
-    // Route through web API to ensure contract, message thread, and notifications are created
-    await mobileApiClient.post(`/api/jobs/${bid.job_id}/bids/${bidId}/accept`);
-
-    // Return the updated bid data
-    const { data: updatedBid, error: refetchError } = await supabase
-      .from('bids')
-      .select('*')
-      .eq('id', bidId)
-      .single();
-
-    if (refetchError) throw refetchError;
-    return updatedBid;
+    // Accept via API (creates contract, message thread, notifications)
+    const response = await mobileApiClient.post<{ bid: Bid }>(
+      `/api/jobs/${bid.job_id}/bids/${bidId}/accept`
+    );
+    return response.bid;
   }
 
   static async rejectBid(
     bidId: string,
-    homeownerId: string,
+    _homeownerId: string,
     reason?: string
   ): Promise<Bid> {
-    // Verify authorization
-    const { data: bid } = await supabase
-      .from('bids')
-      .select(
-        `
-        *,
-        job:job_id (homeowner_id)
-      `
-      )
-      .eq('id', bidId)
-      .single();
+    // Fetch bid to get job_id
+    const bidResponse = await mobileApiClient.get<{ bids: Bid[] }>(
+      `/api/contractor/bids?bidId=${bidId}`
+    );
+    const bid = bidResponse.bids?.[0];
+    if (!bid) throw new Error('Bid not found');
 
-    if (bid?.job.homeowner_id !== homeownerId) {
-      throw new Error('Not authorized to reject this bid');
-    }
-
-    const { data, error } = await supabase
-      .from('bids')
-      .update({
-        status: 'rejected',
-        rejection_reason: reason,
-      })
-      .eq('id', bidId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    const response = await mobileApiClient.post<{ bid: Bid }>(
+      `/api/jobs/${bid.job_id}/bids/${bidId}/reject`,
+      { reason }
+    );
+    return response.bid;
   }
 
-  static async withdrawBid(bidId: string, contractorId: string): Promise<void> {
-    // Verify authorization
-    const { data: bid } = await supabase
-      .from('bids')
-      .select('contractor_id, status')
-      .eq('id', bidId)
-      .single();
+  static async withdrawBid(bidId: string, _contractorId: string): Promise<void> {
+    // Fetch bid to get job_id
+    const bidResponse = await mobileApiClient.get<{ bids: Bid[] }>(
+      `/api/contractor/bids?bidId=${bidId}`
+    );
+    const bid = bidResponse.bids?.[0];
+    if (!bid) throw new Error('Bid not found');
 
-    if (bid?.contractor_id !== contractorId) {
-      throw new Error('Not authorized to withdraw this bid');
-    }
-
-    if (bid.status === 'accepted') {
-      throw new Error('Cannot withdraw an accepted bid');
-    }
-
-    const { error } = await supabase.from('bids').delete().eq('id', bidId);
-
-    if (error) throw error;
+    await mobileApiClient.post(`/api/jobs/${bid.job_id}/bids/${bidId}/withdraw`);
   }
 
   static async updateBid(
     bidId: string,
-    contractorId: string,
+    _contractorId: string,
     updates: Partial<
-      Pick<
-        BidData,
-        'amount' | 'message' | 'estimated_duration' | 'availability'
-      >
+      Pick<BidData, 'amount' | 'message' | 'estimated_duration' | 'availability'>
     >
   ): Promise<Bid> {
-    // Verify authorization
-    const { data: bid } = await supabase
-      .from('bids')
-      .select('contractor_id, status')
-      .eq('id', bidId)
-      .single();
+    // Fetch bid to get job_id
+    const bidResponse = await mobileApiClient.get<{ bids: Bid[] }>(
+      `/api/contractor/bids?bidId=${bidId}`
+    );
+    const bid = bidResponse.bids?.[0];
+    if (!bid) throw new Error('Bid not found');
 
-    if (bid?.contractor_id !== contractorId) {
-      throw new Error('Not authorized to update this bid');
-    }
-
-    if (bid.status !== 'pending') {
-      throw new Error('Cannot update a bid that is not pending');
-    }
-
-    const { data, error } = await supabase
-      .from('bids')
-      .update(updates)
-      .eq('id', bidId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    const response = await mobileApiClient.patch<{ bid: Bid }>(
+      `/api/jobs/${bid.job_id}/bids/${bidId}`,
+      updates
+    );
+    return response.bid;
   }
 
   static async getBidStatistics(jobId: string): Promise<void> {
-    const { data, error } = await supabase.functions.invoke(
-      'get-bid-statistics',
-      {
-        body: { jobId },
-      }
+    const data = await mobileApiClient.get<void>(
+      `/api/jobs/${jobId}/bid-statistics`
     );
-
-    if (error) throw error;
     return data;
   }
 }

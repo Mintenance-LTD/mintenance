@@ -1,6 +1,6 @@
 /**
  * Mobile API Client Helper
- * 
+ *
  * Creates a configured API client instance for mobile app with automatic
  * authentication token handling.
  */
@@ -9,14 +9,46 @@ import { ApiClient, RequestOptions, IApiError } from '@mintenance/api-client';
 import { supabase } from '../config/supabase';
 import { logger } from './logger';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+export const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
 /**
- * Get authentication token from Supabase session
+ * Get authentication token from Supabase session.
+ * Falls back to SecureStore if the Supabase client session is null
+ * (common after app restart before restoreSession completes).
  */
 async function getAuthToken(): Promise<string | null> {
-  const { data: { session } } = await supabase.auth.getSession();
-  return session?.access_token || null;
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (session?.access_token) {
+    return session.access_token;
+  }
+
+  // Fallback: if Supabase client hasn't been hydrated yet, try SecureStore
+  try {
+    const SecureStore = await import('expo-secure-store');
+    const sessionJson = await SecureStore.getItemAsync('mintenance_session');
+    if (sessionJson) {
+      const persisted = JSON.parse(sessionJson);
+      if (persisted?.access_token && persisted?.refresh_token) {
+        // Restore to Supabase client for future calls
+        await supabase.auth.setSession({
+          access_token: persisted.access_token,
+          refresh_token: persisted.refresh_token,
+        });
+        logger.info(
+          '[AUTH] getAuthToken fallback: restored session from SecureStore'
+        );
+        return persisted.access_token;
+      }
+    }
+  } catch {
+    // SecureStore may not be available in all environments
+  }
+
+  return null;
 }
 
 /**
@@ -42,7 +74,10 @@ class MobileApiClient extends ApiClient {
    * Override request to automatically add auth token and handle 401 with refresh.
    * Uses a queue to prevent concurrent refresh attempts (race condition fix).
    */
-  protected async request<T>(url: string, options: RequestOptions = {}): Promise<T> {
+  protected async request<T>(
+    url: string,
+    options: RequestOptions = {}
+  ): Promise<T> {
     const token = await getAuthToken();
 
     const headers = {
@@ -61,7 +96,10 @@ class MobileApiClient extends ApiClient {
           ...options.headers,
           Authorization: `Bearer ${newToken}`,
         };
-        return await super.request<T>(url, { ...options, headers: retryHeaders });
+        return await super.request<T>(url, {
+          ...options,
+          headers: retryHeaders,
+        });
       }
       throw error;
     }
@@ -137,7 +175,11 @@ class MobileApiClient extends ApiClient {
   /**
    * POST request with auto auth
    */
-  async post<T>(url: string, data?: unknown, options?: RequestOptions): Promise<T> {
+  async post<T>(
+    url: string,
+    data?: unknown,
+    options?: RequestOptions
+  ): Promise<T> {
     return this.request<T>(url, {
       ...options,
       method: 'POST',
@@ -148,7 +190,11 @@ class MobileApiClient extends ApiClient {
   /**
    * PUT request with auto auth
    */
-  async put<T>(url: string, data?: unknown, options?: RequestOptions): Promise<T> {
+  async put<T>(
+    url: string,
+    data?: unknown,
+    options?: RequestOptions
+  ): Promise<T> {
     return this.request<T>(url, {
       ...options,
       method: 'PUT',
@@ -159,7 +205,11 @@ class MobileApiClient extends ApiClient {
   /**
    * PATCH request with auto auth
    */
-  async patch<T>(url: string, data?: unknown, options?: RequestOptions): Promise<T> {
+  async patch<T>(
+    url: string,
+    data?: unknown,
+    options?: RequestOptions
+  ): Promise<T> {
     return this.request<T>(url, {
       ...options,
       method: 'PATCH',
@@ -179,4 +229,3 @@ class MobileApiClient extends ApiClient {
  * Default mobile API client instance
  */
 export const mobileApiClient = new MobileApiClient();
-

@@ -8,6 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { logger } from '../utils/logger';
 import { mobileApiClient } from '../utils/mobileApiClient';
+import { supabase } from '../config/supabase';
 import { parseError, getUserFriendlyMessage } from '@mintenance/api-client';
 
 export interface PhotoMetadata {
@@ -39,7 +40,8 @@ export class PhotoUploadService {
     location: boolean;
   }> {
     const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
-    const locationPermission = await Location.requestForegroundPermissionsAsync();
+    const locationPermission =
+      await Location.requestForegroundPermissionsAsync();
 
     return {
       camera: cameraPermission.granted,
@@ -68,7 +70,12 @@ export class PhotoUploadService {
         };
 
         const ext = photo.uri.split('.').pop()?.toLowerCase();
-        const mimeType = ext === 'png' ? 'image/png' : ext === 'heic' ? 'image/heic' : 'image/jpeg';
+        const mimeType =
+          ext === 'png'
+            ? 'image/png'
+            : ext === 'heic'
+              ? 'image/heic'
+              : 'image/jpeg';
         const formData = new FormData();
         formData.append('photo', {
           uri: photo.uri,
@@ -79,10 +86,10 @@ export class PhotoUploadService {
 
         let response: { photoId?: string; url?: string };
         try {
-          response = await mobileApiClient.postFormData<{ photoId?: string; url?: string }>(
-            `/api/jobs/${jobId}/photos/before`,
-            formData
-          );
+          response = await mobileApiClient.postFormData<{
+            photoId?: string;
+            url?: string;
+          }>(`/api/jobs/${jobId}/photos/before`, formData);
         } catch (uploadError) {
           const apiError = parseError(uploadError);
           results.push({
@@ -132,7 +139,12 @@ export class PhotoUploadService {
         };
 
         const ext = photo.uri.split('.').pop()?.toLowerCase();
-        const mimeType = ext === 'png' ? 'image/png' : ext === 'heic' ? 'image/heic' : 'image/jpeg';
+        const mimeType =
+          ext === 'png'
+            ? 'image/png'
+            : ext === 'heic'
+              ? 'image/heic'
+              : 'image/jpeg';
         const formData = new FormData();
         formData.append('photo', {
           uri: photo.uri,
@@ -143,10 +155,10 @@ export class PhotoUploadService {
 
         let data: { photoId?: string; url?: string };
         try {
-          data = await mobileApiClient.postFormData<{ photoId?: string; url?: string }>(
-            `/api/jobs/${jobId}/photos/after`,
-            formData
-          );
+          data = await mobileApiClient.postFormData<{
+            photoId?: string;
+            url?: string;
+          }>(`/api/jobs/${jobId}/photos/after`, formData);
         } catch (uploadError) {
           const apiError = parseError(uploadError);
           results.push({
@@ -199,10 +211,10 @@ export class PhotoUploadService {
       } as unknown as Blob);
       formData.append('metadata', JSON.stringify(metadata));
 
-      const data = await mobileApiClient.postFormData<{ photoId?: string; url?: string }>(
-        `/api/jobs/${jobId}/photos/video`,
-        formData
-      );
+      const data = await mobileApiClient.postFormData<{
+        photoId?: string;
+        url?: string;
+      }>(`/api/jobs/${jobId}/photos/video`, formData);
 
       return {
         success: true,
@@ -225,7 +237,9 @@ export class PhotoUploadService {
    */
   static async verifyPhotos(escrowId: string): Promise<void> {
     try {
-      await mobileApiClient.post(`/api/escrow/${escrowId}/verify-photos-enhanced`);
+      await mobileApiClient.post(
+        `/api/escrow/${escrowId}/verify-photos-enhanced`
+      );
     } catch (error) {
       const apiError = parseError(error);
       logger.error('Error verifying photos', { error: apiError, escrowId });
@@ -236,10 +250,13 @@ export class PhotoUploadService {
   /**
    * Get current location
    */
-  private static async getCurrentLocation(): Promise<{
-    latitude: number;
-    longitude: number;
-  } | undefined> {
+  private static async getCurrentLocation(): Promise<
+    | {
+        latitude: number;
+        longitude: number;
+      }
+    | undefined
+  > {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
@@ -274,7 +291,7 @@ export class PhotoUploadService {
     if (!width || !height) return 'low';
 
     const megapixels = (width * height) / 1_000_000;
-    if (megapixels < 1) return 'low';  // minimum resolution gate
+    if (megapixels < 1) return 'low'; // minimum resolution gate
 
     if (fileSize) {
       // bytes/pixel: sharp/well-exposed JPEG ≈ 0.15–0.30, blurry/dark ≈ 0.05–0.12
@@ -344,5 +361,29 @@ export class PhotoUploadService {
 
     return result.assets[0] || null;
   }
-}
 
+  static async getJobPhotos(
+    jobId: string
+  ): Promise<
+    Array<{
+      id: string;
+      photo_url: string;
+      photo_type: string;
+      created_at: string;
+    }>
+  > {
+    const { data, error } = await supabase
+      .from('job_photos_metadata')
+      .select('id, photo_url, photo_type, created_at')
+      .eq('job_id', jobId)
+      .in('photo_type', ['before', 'after'])
+      .order('created_at', { ascending: true });
+    if (error) throw new Error(error.message);
+    return (data || []) as Array<{
+      id: string;
+      photo_url: string;
+      photo_type: string;
+      created_at: string;
+    }>;
+  }
+}

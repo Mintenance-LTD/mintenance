@@ -186,6 +186,6 @@ const styles = StyleSheet.create({
     }),
   },
   sendButtonInactive: {
-    backgroundColor: '#E0E0E0',
+    backgroundColor: theme.colors.border,
   },
 });

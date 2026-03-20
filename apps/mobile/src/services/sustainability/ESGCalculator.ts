@@ -1,5 +1,5 @@
-import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import type {
   ESGScore,
   GreenCertification,
@@ -82,17 +82,25 @@ export class ESGCalculator {
   }
 
   async getContractorSustainabilityMetrics(contractorId: string): Promise<SustainabilityMetrics> {
-    const { data, error } = await supabase.from('sustainability_metrics').select('*').eq('entity_id', contractorId).eq('entity_type', 'contractor').order('created_at', { ascending: false }).limit(1).single();
-    if (error) {
+    try {
+      const response = await mobileApiClient.get<{ metrics: SustainabilityMetrics }>(
+        `/api/contractor/esg-score?contractorId=${encodeURIComponent(contractorId)}&type=sustainability_metrics`
+      );
+      return response.metrics;
+    } catch {
       return { id: '', entity_id: contractorId, entity_type: 'contractor', carbon_footprint_kg: 50, water_usage_liters: 100, waste_generated_kg: 25, energy_usage_kwh: 40, renewable_energy_percentage: 25, local_sourcing_percentage: 60, recycled_materials_percentage: 30, transportation_emissions_kg: 15, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
     }
-    return data;
   }
 
   async getContractorCertifications(contractorId: string): Promise<GreenCertification[]> {
-    const { data, error } = await supabase.from('green_certifications').select('*').eq('contractor_id', contractorId).eq('verification_status', 'verified');
-    if (error) return [];
-    return data || [];
+    try {
+      const response = await mobileApiClient.get<{ certifications: GreenCertification[] }>(
+        `/api/contractor/esg-score?contractorId=${encodeURIComponent(contractorId)}&type=certifications`
+      );
+      return response.certifications || [];
+    } catch {
+      return [];
+    }
   }
 
   async getContractorJobHistory(_contractorId: string): Promise<JobHistoryMetrics> {
@@ -104,7 +112,19 @@ export class ESGCalculator {
   }
 
   private async storeESGScore(contractorId: string, esgScore: ESGScore): Promise<void> {
-    const { error } = await supabase.from('contractor_esg_scores').upsert({ contractor_id: contractorId, overall_esg_score: esgScore.overall_score, environmental_score: esgScore.environmental_score, social_score: esgScore.social_score, governance_score: esgScore.governance_score, certification_level: esgScore.certification_level, last_calculated: esgScore.last_calculated, updated_at: new Date().toISOString() });
-    if (error) logger.error('Failed to store ESG score', error);
+    try {
+      await mobileApiClient.post('/api/contractor/esg-score', {
+        environmental_score: esgScore.environmental_score,
+        social_score: esgScore.social_score,
+        governance_score: esgScore.governance_score,
+        total_score: esgScore.overall_score,
+        breakdown: {
+          certification_level: esgScore.certification_level,
+          last_calculated: esgScore.last_calculated,
+        },
+      });
+    } catch (error) {
+      logger.error('Failed to store ESG score', error);
+    }
   }
 }

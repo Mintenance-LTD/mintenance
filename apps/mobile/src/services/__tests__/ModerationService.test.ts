@@ -1,4 +1,7 @@
-import ModerationService from '../ModerationService';
+import { ModerationService } from '../ModerationService';
+
+// Auto-mock mobileApiClient (picks up __mocks__/mobileApiClient.ts)
+jest.mock('../../utils/mobileApiClient');
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
@@ -12,10 +15,10 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }));
 
 describe('ModerationService', () => {
-  let service: ModerationService;
+  let service: typeof ModerationService;
 
   beforeEach(() => {
-    service = ModerationService /* checking export */;
+    service = ModerationService;
     jest.clearAllMocks();
   });
 

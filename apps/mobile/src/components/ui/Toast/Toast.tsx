@@ -168,7 +168,7 @@ export const Toast: React.FC<ToastProps> = ({
             onPress={() => { haptics.medium(); action.onPress(); hide(); }}
             style={[styles.actionButton, { backgroundColor: action.style === 'primary' ? theme.colors.textPrimary : 'transparent', borderColor: action.style === 'destructive' ? theme.colors.error : colors.icon }]}
           >
-            <Text style={[styles.actionText, { color: action.style === 'primary' ? '#FFFFFF' : action.style === 'destructive' ? '#991B1B' : colors.text }]}>{action.label}</Text>
+            <Text style={[styles.actionText, { color: action.style === 'primary' ? theme.colors.surface : action.style === 'destructive' ? '#991B1B' : colors.text }]}>{action.label}</Text>
           </TouchableOpacity>
         )}
         {!action && preset !== 'minimal' && (

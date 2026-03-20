@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { theme } from '@/lib/theme';
 import { logger } from '@mintenance/shared';
 import { Icon } from '@/components/ui/Icon';
@@ -186,14 +187,14 @@ export function ContractorViewersList(props: ContractorViewersListProps) {
                   color: 'white',
                   flexShrink: 0,
                   overflow: 'hidden',
+                  position: 'relative',
                 }}>
                   {contractor?.profile_image_url ? (
-                    <img
+                    <Image
                       src={contractor.profile_image_url}
                       alt={contractorName}
+                      fill
                       style={{
-                        width: '100%',
-                        height: '100%',
                         objectFit: 'cover',
                       }}
                     />

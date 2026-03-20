@@ -148,20 +148,20 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
       if (!user?.id) return [];
       const { data: rows, error: err } = await supabase
         .from('appointments')
-        .select('id, job_id, title, date, time_start, time_end, type, status, location, jobs(title)')
+        .select('id, job_id, title, appointment_date, start_time, end_time, location_type, status, location_address, jobs(title)')
         .eq('contractor_id', user.id)
-        .order('date', { ascending: true });
+        .order('appointment_date', { ascending: true });
       if (err) throw new Error(err.message);
       return (rows || []).map((a: Record<string, unknown>): ScheduleItem => ({
         id: a.id as string,
         job_id: (a.job_id as string) || (a.id as string),
         job_title: (a.jobs as Record<string, unknown>)?.title as string || (a.title as string) || 'Untitled',
-        date: a.date as string,
-        time_start: a.time_start as string || '09:00',
-        time_end: a.time_end as string | undefined,
-        type: (['job', 'meeting', 'deadline'].includes(a.type as string) ? a.type : 'meeting') as ScheduleItem['type'],
+        date: a.appointment_date as string,
+        time_start: a.start_time as string || '09:00',
+        time_end: a.end_time as string | undefined,
+        type: (['onsite', 'remote', 'phone'].includes(a.location_type as string) ? 'meeting' : 'meeting') as ScheduleItem['type'],
         status: a.status as string || 'scheduled',
-        address: a.location as string | undefined,
+        address: a.location_address as string | undefined,
       }));
     },
     enabled: !!user?.id,

@@ -3,7 +3,6 @@ import React from 'react';
 import { render, waitFor, fireEvent } from '../test-utils';
 import BusinessDashboard from '../BusinessDashboard';
 
-jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,
   SafeAreaView: ({ children }) => children,

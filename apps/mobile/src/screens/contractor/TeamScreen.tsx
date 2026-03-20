@@ -85,7 +85,7 @@ export const TeamScreen: React.FC = () => {
                 <Text style={styles.phone}>{item.phone}</Text>
               </View>
             </View>
-            <View style={[styles.statusDot, { backgroundColor: item.status === 'active' ? '#059669' : theme.colors.textTertiary }]} />
+            <View style={[styles.statusDot, { backgroundColor: item.status === 'active' ? theme.colors.primaryDark : theme.colors.textTertiary }]} />
           </View>
         )}
       />

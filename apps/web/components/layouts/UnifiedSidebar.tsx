@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -709,10 +710,12 @@ export function UnifiedSidebar(props: UnifiedSidebarProps) {
                     <div className="border-t border-slate-700 p-4">
                         <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
                             {userInfo.avatar ? (
-                                <img
+                                <Image
                                     src={userInfo.avatar}
                                     alt={userInfo.name}
-                                    className="w-10 h-10 rounded-full flex-shrink-0"
+                                    width={40}
+                                    height={40}
+                                    className="rounded-full flex-shrink-0"
                                 />
                             ) : (
                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-teal-500 flex items-center justify-center flex-shrink-0">

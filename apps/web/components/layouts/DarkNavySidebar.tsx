@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
     Home,
@@ -82,7 +83,7 @@ export function DarkNavySidebar({ userInfo }: DarkNavySidebarProps) {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 overflow-y-auto py-4">
+            <nav aria-label="Main navigation" className="flex-1 overflow-y-auto py-4">
                 {navItems.map((item) => (
                     <div key={item.label}>
                         {item.children ? (
@@ -121,6 +122,7 @@ export function DarkNavySidebar({ userInfo }: DarkNavySidebarProps) {
                         ) : (
                             <Link
                                 href={item.href}
+                                aria-current={isActive(item.href) ? 'page' : undefined}
                                 className={`flex items-center gap-3 px-6 py-3 text-sm transition-colors ${isActive(item.href)
                                         ? 'text-teal-400 bg-slate-800'
                                         : 'text-slate-400 hover:text-white hover:bg-slate-800'
@@ -144,10 +146,12 @@ export function DarkNavySidebar({ userInfo }: DarkNavySidebarProps) {
                 <div className="border-t border-slate-700 p-4">
                     <div className="flex items-center gap-3">
                         {userInfo.avatar ? (
-                            <img
+                            <Image
                                 src={userInfo.avatar}
                                 alt={userInfo.name}
-                                className="w-10 h-10 rounded-full"
+                                width={40}
+                                height={40}
+                                className="rounded-full"
                             />
                         ) : (
                             <div className="w-10 h-10 rounded-full bg-teal-500 flex items-center justify-center">
@@ -170,14 +174,14 @@ export function DarkNavySidebar({ userInfo }: DarkNavySidebarProps) {
 
             {/* Bottom Icons */}
             <div className="border-t border-slate-700 p-4 flex items-center justify-around">
-                <button className="text-slate-400 hover:text-white transition-colors">
-                    <Bell className="w-5 h-5" />
+                <button aria-label="Notifications" className="text-slate-400 hover:text-white transition-colors">
+                    <Bell className="w-5 h-5" aria-hidden="true" />
                 </button>
-                <button className="text-slate-400 hover:text-white transition-colors">
-                    <HelpCircle className="w-5 h-5" />
+                <button aria-label="Help" className="text-slate-400 hover:text-white transition-colors">
+                    <HelpCircle className="w-5 h-5" aria-hidden="true" />
                 </button>
-                <button className="text-slate-400 hover:text-white transition-colors">
-                    <Settings className="w-5 h-5" />
+                <button aria-label="Settings" className="text-slate-400 hover:text-white transition-colors">
+                    <Settings className="w-5 h-5" aria-hidden="true" />
                 </button>
             </div>
         </div>

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { ConflictError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
@@ -30,6 +30,9 @@ interface PropertyInsertData {
  * Rate limit is per-user so one user cannot exhaust the bucket for others (e.g. same IP/localhost).
  */
 export const GET = withApiHandler({ rateLimit: false }, async (request, { user }) => {
+  // Use RLS-enforced client for user-scoped reads; fall back to service role
+  const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
   // Per-user rate limit: 60 GETs per minute per user (avoids 429 on quick-create when session + properties load)
   const rateLimitResult = await rateLimiter.checkRateLimit({
     identifier: `properties:get:${user.id}`,
@@ -52,7 +55,7 @@ export const GET = withApiHandler({ rateLimit: false }, async (request, { user }
     );
   }
 
-  const { data: properties, error } = await serverSupabase
+  const { data: properties, error } = await userDb
     .from('properties')
     .select('id, property_name, address, property_type, is_primary, photos, city, postcode, bedrooms, bathrooms, created_at, updated_at')
     .eq('owner_id', user.id)
@@ -77,6 +80,9 @@ export const GET = withApiHandler({ rateLimit: false }, async (request, { user }
  * POST /api/properties
  */
 export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user }) => {
+  // Use RLS-enforced client for user-scoped operations; fall back to service role
+  const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
   // Enforce property count limit based on subscription tier
   if (user.role === 'homeowner') {
     // Check early access first, then subscription
@@ -84,7 +90,7 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
     const limit = getFeatureLimit('HOMEOWNER_PROPERTY_LIMIT', 'homeowner', tier);
 
     if (typeof limit === 'number') {
-      const { count } = await serverSupabase
+      const { count } = await userDb
         .from('properties')
         .select('id', { count: 'exact', head: true })
         .eq('owner_id', user.id);
@@ -132,7 +138,7 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
 
   // If setting as primary, unset all other primary properties for this user
   if (is_primary) {
-    await serverSupabase
+    await userDb
       .from('properties')
       .update({ is_primary: false })
       .eq('owner_id', user.id)
@@ -159,7 +165,7 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
     insertData.photos = body.photos;
   }
 
-  const { data: property, error: createError } = await serverSupabase
+  const { data: property, error: createError } = await userDb
     .from('properties')
     .insert(insertData)
     .select()

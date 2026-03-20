@@ -94,7 +94,7 @@ export const SettingsHubScreen: React.FC = () => {
       activeOpacity={0.7}
     >
       <View style={styles.rowLeft}>
-        <View style={[styles.iconChip, { backgroundColor: item.iconBg ?? '#F7F7F7' }]}>
+        <View style={[styles.iconChip, { backgroundColor: item.iconBg ?? theme.colors.backgroundSecondary }]}>
           <Ionicons
             name={item.icon as 'settings'}
             size={17}

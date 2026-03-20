@@ -11,7 +11,7 @@ interface LoadingScreenProps {
 }
 
 export const LoadingScreen: React.FC<LoadingScreenProps> = ({
-  message = 'Loading...', size = 'large', color = '#222222', fullScreen = true, overlay = false,
+  message = 'Loading...', size = 'large', color = theme.colors.textPrimary, fullScreen = true, overlay = false,
 }) => (
   <View style={[styles.container, fullScreen && styles.fullScreen, overlay && styles.overlay]}>
     <ActivityIndicator size={size} color={color} />
@@ -20,12 +20,12 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
 );
 
 export const LoadingIndicator: React.FC<{ size?: 'small' | 'large'; color?: string; style?: ViewStyle }> = ({
-  size = 'small', color = '#222222', style,
+  size = 'small', color = theme.colors.textPrimary, style,
 }) => <ActivityIndicator size={size} color={color} style={style} />;
 
 export const LoadingButton: React.FC<{
   loading: boolean; onPress: () => void; title: string; style?: ViewStyle; textStyle?: TextStyle; loadingColor?: string; disabled?: boolean;
-}> = ({ loading, onPress, title, style, textStyle, loadingColor = '#FFFFFF', disabled = false }) => (
+}> = ({ loading, onPress, title, style, textStyle, loadingColor = theme.colors.surface, disabled = false }) => (
   <View style={[styles.button, style, (loading || disabled) && styles.buttonDisabled]}>
     {loading ? <ActivityIndicator size="small" color={loadingColor} /> : <Text style={[styles.buttonText, textStyle]}>{title}</Text>}
   </View>

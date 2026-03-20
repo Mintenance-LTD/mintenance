@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { BadRequestError } from '@/lib/errors/api-error';
 import {
@@ -56,8 +56,11 @@ export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (req
 
   const fetchLimit = Math.min(limit * 3, 150);
 
+  // Use RLS-enforced client for user-scoped reads; fall back to service role
+  const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
   // Get jobs where user is homeowner or contractor
-  const { data: jobsData, error: jobsError } = await serverSupabase
+  const { data: jobsData, error: jobsError } = await userDb
     .from('jobs')
     .select(`
       id,
@@ -88,7 +91,7 @@ export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (req
   const jobIds = jobRows.map((job) => job.id);
 
   // Get message_threads for these jobs to find thread IDs
-  const { data: messageThreadsData } = await serverSupabase
+  const { data: messageThreadsData } = await userDb
     .from('message_threads')
     .select('id, job_id, last_message_at')
     .in('job_id', jobIds);
@@ -113,7 +116,7 @@ export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (req
   if (jobIds.length > 0) {
     const messageLimit = Math.min(Math.max(jobIds.length * 5, limit), 500);
 
-    const { data: messageData, error: messageError } = await serverSupabase
+    const { data: messageData, error: messageError } = await userDb
       .from('messages')
       .select('id, job_id, sender_id, content, message_type, created_at')
       .in('job_id', jobIds)
@@ -145,7 +148,7 @@ export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (req
   // Calculate unread counts using read boolean (actual DB schema)
   const unreadCounts = new Map<string, number>();
   if (jobIds.length > 0) {
-    const { data: unreadData, error: unreadError } = await serverSupabase
+    const { data: unreadData, error: unreadError } = await userDb
       .from('messages')
       .select('id, job_id, sender_id, read')
       .in('job_id', jobIds)

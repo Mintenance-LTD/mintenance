@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -21,10 +21,11 @@ const certificationUpdateSchema = z.object({
  */
 export const GET = withApiHandler(
   { roles: ['contractor'], csrf: false },
-  async (_request, { user, params }) => {
+  async (request, { user, params }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
     const { id } = params;
 
-    const { data: certification, error } = await serverSupabase
+    const { data: certification, error } = await userDb
       .from('contractor_certifications')
       .select('id, name, issuer, issue_date, expiry_date, credential_id, document_url, is_verified, category, contractor_id, created_at')
       .eq('id', id)
@@ -46,6 +47,7 @@ export const GET = withApiHandler(
 export const PUT = withApiHandler(
   { roles: ['contractor'] },
   async (request: NextRequest, { user, params }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
     const { id } = params;
     const body = await request.json();
     const validation = certificationUpdateSchema.safeParse(body);
@@ -55,7 +57,7 @@ export const PUT = withApiHandler(
     const validatedData = validation.data;
 
     // Verify the certification belongs to the user
-    const { data: existingCert, error: checkError } = await serverSupabase
+    const { data: existingCert, error: checkError } = await userDb
       .from('contractor_certifications')
       .select('id')
       .eq('id', id)
@@ -76,7 +78,7 @@ export const PUT = withApiHandler(
     if (validatedData.documentUrl !== undefined) updateData.document_url = validatedData.documentUrl;
     if (validatedData.category !== undefined) updateData.category = validatedData.category;
 
-    const { data: certification, error } = await serverSupabase
+    const { data: certification, error } = await userDb
       .from('contractor_certifications')
       .update(updateData)
       .eq('id', id)
@@ -109,11 +111,12 @@ export const PUT = withApiHandler(
  */
 export const DELETE = withApiHandler(
   { roles: ['contractor'] },
-  async (_request, { user, params }) => {
+  async (request, { user, params }) => {
+    const userDb = createRequestScopedClient(request) ?? serverSupabase;
     const { id } = params;
 
     // Verify the certification belongs to the user
-    const { data: existingCert, error: checkError } = await serverSupabase
+    const { data: existingCert, error: checkError } = await userDb
       .from('contractor_certifications')
       .select('id')
       .eq('id', id)
@@ -124,7 +127,7 @@ export const DELETE = withApiHandler(
       throw new NotFoundError('Certification not found');
     }
 
-    const { error } = await serverSupabase
+    const { error } = await userDb
       .from('contractor_certifications')
       .delete()
       .eq('id', id)

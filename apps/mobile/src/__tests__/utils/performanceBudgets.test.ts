@@ -56,7 +56,6 @@ jest.mock('../../utils/codeSplitting', () => ({
 }));
 
 // Mock React Native components
-jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
 
 describe('PerformanceBudgetManager', () => {
   let budgetManager: PerformanceBudgetManager;

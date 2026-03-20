@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { logger } from '@mintenance/shared';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
@@ -118,12 +119,12 @@ export function HomeownerProfileDropdown(props: HomeownerProfileDropdownProps) {
         }}
       >
         {profileImageUrl ? (
-          <img
+          <Image
             src={profileImageUrl}
             alt={userName}
+            width={40}
+            height={40}
             style={{
-              width: '40px',
-              height: '40px',
               objectFit: 'cover',
               borderRadius: '50%',
               border: '2px solid #475569',

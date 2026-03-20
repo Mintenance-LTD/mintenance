@@ -48,12 +48,9 @@ export function CRMDashboardClient(props: CRMDashboardClientProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<FilterKey>('all');
 
-  // Early return if required data is missing
-  if (!clients || !analytics) {
-    return null;
-  }
-
+  // useMemo must be before any early return (Rules of Hooks)
   const filteredClients = useMemo(() => {
+    if (!clients) return [];
     return clients.filter((client) => {
       // Search filter
       const search = searchQuery.toLowerCase();
@@ -81,6 +78,11 @@ export function CRMDashboardClient(props: CRMDashboardClientProps) {
       return true;
     });
   }, [clients, searchQuery, selectedFilter]);
+
+  // Early return after all hooks
+  if (!clients || !analytics) {
+    return null;
+  }
 
   // Client columns for DataTable
   const clientColumns: Column<Client>[] = [
@@ -124,7 +126,7 @@ export function CRMDashboardClient(props: CRMDashboardClientProps) {
       align: 'center' as const,
       render: (client) =>
         client.active_jobs > 0 ? (
-          <StatusBadge status="in_progress" size="sm" />
+          <StatusBadge status='in_progress' size='sm' />
         ) : (
           <span style={{ color: theme.colors.textSecondary }}>-</span>
         ),
@@ -157,7 +159,13 @@ export function CRMDashboardClient(props: CRMDashboardClientProps) {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: theme.spacing[6],
+      }}
+    >
       {/* Header */}
       <header
         style={{
@@ -186,7 +194,8 @@ export function CRMDashboardClient(props: CRMDashboardClientProps) {
               fontSize: theme.typography.fontSize.sm,
             }}
           >
-            Track relationships, identify opportunities, and maximize lifetime value
+            Track relationships, identify opportunities, and maximize lifetime
+            value
           </p>
         </div>
       </header>
@@ -200,34 +209,34 @@ export function CRMDashboardClient(props: CRMDashboardClientProps) {
         }}
       >
         <Card.Metric
-          label="Total Clients"
+          label='Total Clients'
           value={analytics.total_clients.toString()}
-          subtitle="In your network"
-          icon="users"
+          subtitle='In your network'
+          icon='users'
           color={theme.colors.primary}
         />
 
         <Card.Metric
-          label="New This Month"
+          label='New This Month'
           value={analytics.new_clients_this_month.toString()}
-          subtitle="Recently added"
-          icon="plus"
+          subtitle='Recently added'
+          icon='plus'
           color={theme.colors.success}
         />
 
         <Card.Metric
-          label="Repeat Clients"
+          label='Repeat Clients'
           value={analytics.repeat_clients.toString()}
           subtitle={`${analytics.total_clients > 0 ? Math.round((analytics.repeat_clients / analytics.total_clients) * 100) : 0}% return rate`}
-          icon="briefcase"
-          color="#F59E0B"
+          icon='briefcase'
+          color='#F59E0B'
         />
 
         <Card.Metric
-          label="Avg Lifetime Value"
+          label='Avg Lifetime Value'
           value={`£${analytics.client_lifetime_value.toFixed(2)}`}
-          subtitle="Per client"
-          icon="currencyPound"
+          subtitle='Per client'
+          icon='currencyPound'
           color={theme.colors.info}
         />
       </section>
@@ -242,23 +251,25 @@ export function CRMDashboardClient(props: CRMDashboardClientProps) {
         }}
       >
         <Input
-          type="text"
-          placeholder="Search clients by name or email..."
+          type='text'
+          placeholder='Search clients by name or email...'
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1 min-w-[300px]"
+          className='flex-1 min-w-[300px]'
         />
 
-        <div style={{ display: 'flex', gap: theme.spacing[2], flexWrap: 'wrap' }}>
+        <div
+          style={{ display: 'flex', gap: theme.spacing[2], flexWrap: 'wrap' }}
+        >
           {FILTERS.map((filter) => {
             const isActive = selectedFilter === filter.key;
             return (
               <Button
                 key={filter.key}
                 variant={isActive ? 'primary' : 'outline'}
-                size="sm"
+                size='sm'
                 onClick={() => setSelectedFilter(filter.key)}
-                className="rounded-xl capitalize"
+                className='rounded-xl capitalize'
               >
                 {filter.label}
               </Button>

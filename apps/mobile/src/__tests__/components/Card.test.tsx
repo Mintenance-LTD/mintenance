@@ -4,7 +4,6 @@ import { render , waitFor} from '../test-utils';
 import { Text, View } from 'react-native';
 import { Card } from '../../components/ui/Card';
 
-jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,
   SafeAreaView: ({ children }) => children,

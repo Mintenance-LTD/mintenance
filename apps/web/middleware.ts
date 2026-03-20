@@ -62,9 +62,14 @@ export async function middleware(request: NextRequest) {
   // IMPORTANT: Public route check MUST happen before ConfigManager to ensure
   // login, CSRF, session-status, and diag routes work even if config fails
   const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password', '/about', '/contact', '/privacy', '/terms', '/help', '/logout', '/careers', '/press', '/safety', '/cookies', '/faq', '/blog', '/pricing', '/how-it-works', '/ai-search', '/try-mint-ai'];
-  const publicApiRoutes = ['/api/csrf', '/api/auth/login', '/api/auth/register', '/api/auth/forgot-password', '/api/auth/reset-password', '/api/auth/verify-email', '/api/auth/session-status', '/api/stats/platform', '/api/diag', '/api/building-surveyor/demo', '/api/building-surveyor/demo-feedback',
+  // SECURITY: Exact-match API routes — no sub-path access allowed
+  const publicApiRoutesExact = new Set([
+    '/api/csrf', '/api/stats/platform', '/api/diag',
+    '/api/building-surveyor/demo', '/api/building-surveyor/demo-feedback',
     '/api/csp-report', // Browser-generated CSP violation reports: no auth, no CSRF (browser controls headers)
-  ];
+  ]);
+  // Prefix-match API routes — sub-paths are intentionally allowed (e.g. /api/auth/login/callback)
+  const publicApiRoutesPrefixed = ['/api/auth/'];
   const adminAuthRoutes = ['/admin/login', '/admin/register', '/admin/forgot-password'];
   // SECURITY: Only allow UUID-formatted contractor profile paths as public
   // This prevents /contractor/dashboard-enhanced, /contractor/settings, etc. from bypassing auth
@@ -73,7 +78,8 @@ export async function middleware(request: NextRequest) {
   const isPublicContractorsPage = false;
   const isPublicRoute = pathname === '/' ||
     publicRoutes.some(route => pathname === route || pathname.startsWith(route + '/')) ||
-    publicApiRoutes.some(route => pathname === route || pathname.startsWith(route + '/')) ||
+    publicApiRoutesExact.has(pathname) ||
+    publicApiRoutesPrefixed.some(prefix => pathname.startsWith(prefix)) ||
     isPublicContractorProfile ||
     isPublicContractorsPage ||
     adminAuthRoutes.includes(pathname);
@@ -82,6 +88,12 @@ export async function middleware(request: NextRequest) {
   if (isPublicRoute) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-pathname', pathname);
+
+    // SECURITY: Generate nonce for public routes too (same as authenticated routes)
+    // Prevents XSS via inline script injection on login/register pages
+    const publicNonce = crypto.randomUUID().replace(/-/g, '');
+    requestHeaders.set('x-csp-nonce', publicNonce);
+
     const response = NextResponse.next({ request: { headers: requestHeaders } });
 
     // Generate or refresh CSRF token (always set to ensure httpOnly:false is applied)
@@ -97,17 +109,15 @@ export async function middleware(request: NextRequest) {
       maxAge: 24 * 60 * 60, // 24 hours
     });
 
-    // Set CSP for public routes — using 'unsafe-inline' only for styles (required by Next.js)
-    // Scripts use 'strict-dynamic' with hash-based allowlisting via Next.js
     if (!isDevelopment) {
       response.headers.set('Content-Security-Policy', [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com",
+        "script-src 'self' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com https://vercel.live",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
         "font-src 'self' data: https://fonts.gstatic.com",
-        "connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com",
-        "frame-src https://js.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://www.openstreetmap.org",
+        "connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com https://vercel.live wss://ws-us3.pusher.com",
+        "frame-src https://js.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://www.openstreetmap.org https://vercel.live",
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self'",
@@ -201,24 +211,21 @@ export async function middleware(request: NextRequest) {
       // The middleware rate limiter runs BEFORE auth, so all users are classified as 'anonymous'.
       // Endpoints with anonymous:0 in rate-limits.ts get auto-blocked. These routes handle
       // their own rate limiting after authentication is verified.
-      const skipMiddlewareRateLimit = pathname === '/api/auth/session-status' ||
-                                       pathname === '/api/auth/extend-session' ||
-                                       pathname.startsWith('/api/notifications') ||
-                                       pathname.startsWith('/api/messages') ||
-                                       pathname.startsWith('/api/payments') ||
-                                       pathname.startsWith('/api/contractors') ||
-                                       pathname.startsWith('/api/jobs') ||
-                                       pathname.startsWith('/api/contractor/') ||
-                                       pathname.startsWith('/api/bids') ||
-                                       pathname.startsWith('/api/user/') ||
-                                       pathname.startsWith('/api/account') ||
-                                       pathname.startsWith('/api/upload') ||
-                                       pathname.startsWith('/api/ai/') ||
-                                       pathname.startsWith('/api/building-surveyor') ||
-                                       pathname.startsWith('/api/admin') ||
-                                       pathname.startsWith('/api/escrow') ||
-                                       pathname.startsWith('/api/properties') ||
-                                       pathname.startsWith('/api/subscriptions');
+      // Exact-match paths that skip middleware rate limiting
+      const RATE_LIMIT_SKIP_EXACT = new Set([
+        '/api/auth/session-status',
+        '/api/auth/extend-session',
+      ]);
+      // Prefix paths — any pathname starting with these skips middleware rate limiting
+      const RATE_LIMIT_SKIP_PREFIXES = [
+        '/api/notifications', '/api/messages', '/api/payments',
+        '/api/contractors', '/api/jobs', '/api/contractor/',
+        '/api/bids', '/api/user/', '/api/account', '/api/upload',
+        '/api/ai/', '/api/building-surveyor', '/api/admin',
+        '/api/escrow', '/api/properties', '/api/subscriptions',
+      ];
+      const skipMiddlewareRateLimit = RATE_LIMIT_SKIP_EXACT.has(pathname) ||
+        RATE_LIMIT_SKIP_PREFIXES.some(prefix => pathname.startsWith(prefix));
 
       // Perform rate limit check (unless explicitly skipped)
       const rateLimitResult = skipMiddlewareRateLimit
@@ -604,17 +611,18 @@ export async function middleware(request: NextRequest) {
     // Set CSP header with nonce — localhost only allowed in development
     const connectSrc = isDevelopment
       ? "connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com http://localhost:* http://127.0.0.1:* ws: wss:"
-      : "connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com wss:";
-    // Enforced CSP: 'unsafe-inline' removed from script-src for XSS protection.
-    // Styles still allow 'unsafe-inline' as Next.js injects inline styles.
+      : "connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com https://vercel.live wss: wss://ws-us3.pusher.com";
+    // CSP: 'unsafe-inline' required because Next.js generates inline scripts for
+    // hydration/chunking that cannot receive nonces. Nonce-only CSP is tracked in
+    // Content-Security-Policy-Report-Only below for future migration.
     const cspHeader = [
       "default-src 'self'",
-      `script-src 'self' 'nonce-${nonce}' https://js.stripe.com https://maps.googleapis.com`,
+      `script-src 'self' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com https://vercel.live`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
       "font-src 'self' data: https://fonts.gstatic.com",
       connectSrc,
-      "frame-src https://js.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://www.openstreetmap.org",
+      "frame-src https://js.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://www.openstreetmap.org https://vercel.live",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",

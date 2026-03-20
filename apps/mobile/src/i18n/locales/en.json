@@ -49,7 +49,12 @@
     "dontHaveAccount": "Don't have an account? Sign Up",
     "emailPlaceholder": "Enter your email address",
     "passwordPlaceholder": "Enter your password",
-    "confirmPasswordPlaceholder": "Re-enter your password"
+    "confirmPasswordPlaceholder": "Re-enter your password",
+    "emailHint": "Please enter your email address to sign in",
+    "passwordHint": "Please enter your password to sign in",
+    "forgotPasswordHint": "Double tap to reset your password",
+    "signUpForAccount": "Sign up for new account",
+    "signUpHint": "Double tap to create a new account"
   },
   "roles": {
     "homeowner": "Homeowner",
@@ -218,7 +223,11 @@
     "suggestions": "Suggestions",
     "advancedFilters": "Advanced Filters",
     "applyFilters": "Apply Filters",
-    "clearFilters": "Clear Filters"
+    "clearFilters": "Clear Filters",
+    "searchInput": "Search input",
+    "searchHint": "Enter search terms and tap search",
+    "filters": "Filters",
+    "filtersHint": "Open search filters"
   },
   "filters": {
     "filters": "Filters",

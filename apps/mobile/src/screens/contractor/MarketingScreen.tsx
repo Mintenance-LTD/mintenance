@@ -92,7 +92,7 @@ export const MarketingScreen: React.FC = () => {
                   <Text style={styles.statValue}>{s.value}</Text>
                   <Text style={styles.statLabel}>{s.label}</Text>
                   {s.trend !== undefined && (
-                    <Text style={[styles.trend, { color: s.trend >= 0 ? '#059669' : '#DC2626' }]}>
+                    <Text style={[styles.trend, { color: s.trend >= 0 ? theme.colors.primaryDark : theme.colors.error }]}>
                       {s.trend >= 0 ? '+' : ''}{s.trend}%
                     </Text>
                   )}

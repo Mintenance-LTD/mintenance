@@ -506,8 +506,17 @@ export async function getCurrentUserFromBearerToken(
       return null;
     }
 
-    // Extract user info from Supabase user metadata
-    const role = user.user_metadata?.role || 'homeowner';
+    // SECURITY: Read role from profiles table, NOT user_metadata (which is client-writable).
+    // A malicious user could call supabase.auth.updateUser({ data: { role: 'admin' } })
+    // to escalate privileges if we trusted user_metadata. See middleware.ts for same pattern.
+    const { data: profile } = await serverSupabase
+      .from('profiles')
+      .select('role, first_name, last_name')
+      .eq('id', user.id)
+      .single();
+
+    // Default to 'homeowner' if profile query fails -- never default to 'admin'
+    const role = profile?.role || 'homeowner';
     if (!['homeowner', 'contractor', 'admin'].includes(role)) {
       return null;
     }
@@ -516,8 +525,8 @@ export async function getCurrentUserFromBearerToken(
       id: user.id,
       email: user.email || '',
       role: role as 'homeowner' | 'contractor' | 'admin',
-      first_name: user.user_metadata?.first_name || '',
-      last_name: user.user_metadata?.last_name || '',
+      first_name: profile?.first_name || user.user_metadata?.first_name || '',
+      last_name: profile?.last_name || user.user_metadata?.last_name || '',
     };
   } catch (error) {
     logger.error('Failed to get user from Bearer token', error);

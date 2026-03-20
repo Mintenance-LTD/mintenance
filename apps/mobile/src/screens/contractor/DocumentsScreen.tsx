@@ -3,7 +3,7 @@
  * document cards, category icons, and green upload FAB.
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   Platform,
   StatusBar,
   ScrollView,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -29,6 +30,7 @@ try {
 }
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { theme } from '../../theme';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -42,6 +44,9 @@ interface Document {
   uploaded_at: string;
   starred: boolean;
   file_size?: number;
+  public_url?: string;
+  is_contract?: boolean;
+  job_id?: string;
 }
 
 type DocFilter = 'all' | 'contracts' | 'photos' | 'certifications' | 'insurance' | 'receipts' | 'templates';
@@ -118,27 +123,26 @@ export const DocumentsScreen: React.FC = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       if (isContractor) {
-        const { data: docs, error: err } = await supabase
-          .from('contractor_documents')
-          .select('id, name, category, created_at, starred, size_bytes')
-          .eq('contractor_id', user.id)
-          .order('created_at', { ascending: false });
-        if (err) throw err;
-        return (docs || []).map((d): Document => ({
+        const raw = await mobileApiClient.get<unknown>('/api/contractor/documents');
+        const docs = Array.isArray(raw) ? raw : (raw as Record<string, unknown>)?.documents || [];
+        return (docs as Array<{
+          id: string; name: string; category: string; created_at: string; starred: boolean;
+          size_bytes?: number; public_url?: string; is_contract?: boolean; job_id?: string;
+        }>).map((d): Document => ({
           id: d.id, filename: d.name, category: d.category,
           uploaded_at: d.created_at, starred: d.starred, file_size: d.size_bytes,
+          public_url: d.public_url, is_contract: d.is_contract, job_id: d.job_id,
         }));
       }
-      // Homeowner: aggregate contracts + bids as virtual documents
-      const { data: contracts, error: cErr } = await supabase
-        .from('contracts')
-        .select('id, title, status, created_at')
-        .eq('homeowner_id', user.id)
-        .neq('status', 'draft');
-      if (cErr) throw cErr;
-      return (contracts || []).map((c): Document => ({
+      // Homeowner: aggregate contracts as virtual documents
+      const rawContracts = await mobileApiClient.get<unknown>('/api/contracts?role=homeowner');
+      const contracts = Array.isArray(rawContracts) ? rawContracts : (rawContracts as Record<string, unknown>)?.contracts || [];
+      return (contracts as Array<{
+        id: string; title: string; status: string; created_at: string; job_id?: string;
+      }>).filter((c) => c.status !== 'draft').map((c): Document => ({
         id: c.id, filename: c.title || 'Contract', category: 'contract',
         uploaded_at: c.created_at, starred: false,
+        is_contract: true, job_id: c.job_id,
       }));
     },
     enabled: !!user?.id,
@@ -155,8 +159,7 @@ export const DocumentsScreen: React.FC = () => {
       if (uploadErr) throw new Error(uploadErr.message);
       const { data: urlData } = supabase.storage.from('contractor-documents').getPublicUrl(filePath);
       const ext = file.name.split('.').pop()?.toLowerCase() || 'unknown';
-      const { error: insertErr } = await supabase.from('contractor_documents').insert({
-        contractor_id: user?.id,
+      await mobileApiClient.post('/api/contractor/documents', {
         name: file.name,
         file_type: ext,
         public_url: urlData.publicUrl,
@@ -164,7 +167,6 @@ export const DocumentsScreen: React.FC = () => {
         category: filter === 'all' ? 'other' : filter,
         size_bytes: blob.size,
       });
-      if (insertErr) throw new Error(insertErr.message);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
@@ -175,11 +177,7 @@ export const DocumentsScreen: React.FC = () => {
 
   const toggleStarMutation = useMutation({
     mutationFn: async ({ id, starred }: { id: string; starred: boolean }) => {
-      const { error: err } = await supabase
-        .from('contractor_documents')
-        .update({ starred })
-        .eq('id', id);
-      if (err) throw err;
+      await mobileApiClient.patch(`/api/contractor/documents/${id}`, { starred });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }),
   });
@@ -195,6 +193,35 @@ export const DocumentsScreen: React.FC = () => {
       uploadMutation.mutate({ uri: asset.uri, name: asset.name, mimeType: asset.mimeType || 'application/octet-stream' });
     }
   };
+
+  const handleOpenDocument = useCallback((doc: Document) => {
+    // Contracts: navigate to the job/contract view
+    if (doc.is_contract || doc.category === 'contract' || doc.category === 'contracts') {
+      if (doc.job_id) {
+        (navigation as ReturnType<typeof Object>).navigate('JobsTab', {
+          screen: 'JobDetails',
+          params: { jobId: doc.job_id },
+        });
+      } else {
+        // Contract without job_id: try opening the contract directly
+        (navigation as ReturnType<typeof Object>).navigate('JobsTab', {
+          screen: 'JobDetails',
+          params: { jobId: doc.id },
+        });
+      }
+      return;
+    }
+
+    // Regular documents: open the file URL
+    if (doc.public_url) {
+      Linking.openURL(doc.public_url).catch(() => {
+        Alert.alert('Cannot Open', 'Unable to open this file. The URL may be unavailable.');
+      });
+      return;
+    }
+
+    Alert.alert('No File', 'This document does not have a viewable file attached.');
+  }, [navigation]);
 
   const documents = data || [];
   const filtered = filter === 'all' ? documents : documents.filter((d) => d.category === filter);
@@ -362,7 +389,7 @@ export const DocumentsScreen: React.FC = () => {
           const sizeStr = formatFileSize(item.file_size);
 
           return (
-            <TouchableOpacity style={styles.docCard} activeOpacity={0.9}>
+            <TouchableOpacity style={styles.docCard} activeOpacity={0.7} onPress={() => handleOpenDocument(item)}>
               {/* Color accent bar */}
               <View style={[styles.docAccent, { backgroundColor: docStyle.color }]} />
 

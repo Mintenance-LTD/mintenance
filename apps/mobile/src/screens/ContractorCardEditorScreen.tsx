@@ -61,8 +61,16 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
       setLoading(true);
       const contractorProfile = await ContractorService.getContractorProfile(user.id);
       if (contractorProfile) {
+        // If businessAddress is empty, derive it from the user's profile address
+        let businessAddr = contractorProfile.business_address;
+        if (!businessAddr && user.address) {
+          const parts = [user.address, user.city, user.postcode].filter(Boolean);
+          businessAddr = parts.join(', ');
+        }
+
         setProfile({
           ...contractorProfile,
+          businessAddress: businessAddr || '',
           specialties: contractorProfile.specialties || [],
           portfolioImages: contractorProfile.portfolio_images || [],
           certifications: contractorProfile.certifications || [],
@@ -226,12 +234,26 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Business Address</Text>
+            <View style={styles.labelRow}>
+              <Text style={[styles.inputLabel, { marginBottom: 0 }]}>Business Address</Text>
+              {user?.address && (
+                <TouchableOpacity
+                  onPress={() => {
+                    const parts = [user.address, user.city, user.postcode].filter(Boolean);
+                    setProfile(prev => ({ ...prev, businessAddress: parts.join(', ') }));
+                  }}
+                  style={styles.useProfileBtn}
+                >
+                  <Ionicons name="person-circle-outline" size={14} color={theme.colors.primary} />
+                  <Text style={styles.useProfileBtnText}>Use Profile Address</Text>
+                </TouchableOpacity>
+              )}
+            </View>
             <TextInput
               style={styles.textInput}
               value={profile.businessAddress}
               onChangeText={(text) => setProfile(prev => ({ ...prev, businessAddress: text }))}
-              placeholder="123 Main St, City, State"
+              placeholder="123 Main St, City, Postcode"
               placeholderTextColor={theme.colors.textTertiary}
             />
           </View>
@@ -493,11 +515,31 @@ const styles = StyleSheet.create({
   inputGroup: {
     marginBottom: 16,
   },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
   inputLabel: {
     fontSize: 14,
     fontWeight: '600',
     color: theme.colors.textPrimary,
     marginBottom: 8,
+  },
+  useProfileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: theme.colors.primaryLight || '#EFF6FF',
+  },
+  useProfileBtnText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: theme.colors.primary,
   },
   textInput: {
     backgroundColor: theme.colors.backgroundSecondary,

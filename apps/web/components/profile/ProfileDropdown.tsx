@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { logger } from '@mintenance/shared';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
@@ -110,14 +111,12 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
         }}
       >
         {profileImageUrl ? (
-          <img
+          <Image
             src={profileImageUrl}
             alt={contractorName}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-            }}
+            fill
+            sizes="44px"
+            style={{ objectFit: 'cover' }}
           />
         ) : (
           <span

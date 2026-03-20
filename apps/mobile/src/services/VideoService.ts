@@ -8,7 +8,7 @@ import * as FileSystem from 'expo-file-system';
 import { logger } from '@mintenance/shared';
 import { Platform } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
-import { supabase } from '../config/supabase';
+import { mobileApiClient } from '../utils/mobileApiClient';
 
 // Types
 export interface VideoMetadata {
@@ -264,30 +264,24 @@ class VideoService {
       const fileName = `${assessmentId}_${Date.now()}.mp4`;
       const storagePath = `assessments/${assessmentId}/videos/${fileName}`;
 
-      logger.info('Uploading video to Supabase', { storagePath, size: videoData.size });
+      logger.info('Uploading video via API', { storagePath, size: videoData.size });
 
-      // Upload to Supabase storage
-      const { data, error } = await supabase.storage
-        .from('assessment-videos')
-        .upload(storagePath, videoData, {
-          contentType: 'video/mp4',
-          upsert: false
-        });
+      // Upload via API endpoint
+      const formData = new FormData();
+      formData.append('file', videoData, fileName);
+      formData.append('path', storagePath);
+      formData.append('assessmentId', assessmentId);
 
-      if (error) {
-        throw error;
-      }
+      const uploadResult = await mobileApiClient.postFormData<{ url: string; path: string }>(
+        `/api/assessments/videos/upload`,
+        formData
+      );
 
-      // Get public URL
-      const { data: publicData } = (supabase.storage
-        .from('assessment-videos') as unknown as { getPublicUrl: (path: string) => { data: { publicUrl: string } } })
-        .getPublicUrl(storagePath);
-
-      logger.info('Video uploaded successfully', { url: publicData.publicUrl });
+      logger.info('Video uploaded successfully', { url: uploadResult.url });
 
       return {
-        url: publicData.publicUrl,
-        path: storagePath
+        url: uploadResult.url,
+        path: uploadResult.path,
       };
     } catch (error) {
       logger.error('Video upload failed', { error });

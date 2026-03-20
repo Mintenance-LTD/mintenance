@@ -226,7 +226,7 @@ export function useOptimizedRenderItem<T>(
 // Helper to create memoized item separators
 export function useItemSeparator(
   height: number = 1,
-  color: string = '#EBEBEB'
+  color: string = theme.colors.border
 ): React.ComponentType<Record<string, never>> {
   return useMemo(
     () =>
