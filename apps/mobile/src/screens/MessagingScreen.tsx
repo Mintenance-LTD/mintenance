@@ -99,9 +99,11 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
   }, [messages]);
 
   const scrollToEnd = useCallback(() => {
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 100);
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 150);
+    });
   }, []);
 
   const sendMessageAsync = useCallback(async (params: {
@@ -294,17 +296,20 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
     const path = `messages/${jobId}/${Date.now()}.${ext}`;
 
     try {
-      const response = await fetch(asset.uri);
-      const blob = await response.blob();
-      const { error: uploadError } = await supabase.storage
-        .from('job-photos')
-        .upload(path, blob, { contentType: `image/${ext}` });
+      const formData = new FormData();
+      formData.append('file', {
+        uri: asset.uri,
+        name: `${Date.now()}.${ext}`,
+        type: `image/${ext}`,
+      } as unknown as Blob);
+      formData.append('job_id', jobId);
 
-      if (uploadError) throw uploadError;
+      const uploadResponse = await mobileApiClient.postFormData<{ url: string; public_url?: string }>(
+        '/api/jobs/upload-photos',
+        formData
+      );
 
-      const { data: urlData } = supabase.storage
-        .from('job-photos')
-        .getPublicUrl(path);
+      const imageUrl = uploadResponse.public_url ?? uploadResponse.url;
 
       await sendMessageMutation.mutateAsync({
         jobId,
@@ -312,7 +317,7 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
         messageText: '',
         senderId: user.id,
         messageType: 'image',
-        attachmentUrl: urlData.publicUrl,
+        attachmentUrl: imageUrl,
       });
       scrollToEnd();
     } catch (err) {
@@ -385,7 +390,7 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
         <KeyboardAvoidingView
           style={styles.keyboardContainer}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
         >
           <ChatHeader
             otherUserName={otherUserName}

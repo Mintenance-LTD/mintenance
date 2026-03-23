@@ -25,7 +25,7 @@ import { LoadingSpinner, ErrorView } from '../components/shared';
 import { NotificationService, NotificationData } from '../services/NotificationService';
 import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
-import { theme } from '../theme';
+import { theme, gradients, semanticBg } from '../theme';
 
 type FilterTab = 'all' | 'unread' | 'jobs' | 'payments' | 'messages';
 
@@ -325,7 +325,7 @@ export const NotificationScreen: React.FC = () => {
     <View style={styles.container}>
       {/* Hero Header */}
       <LinearGradient
-        colors={['#064E3B', '#059669', '#10B981']}
+        colors={gradients.heroGreen}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.heroHeader, { paddingTop: insets.top + 12 }]}
@@ -518,8 +518,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     backgroundColor: theme.colors.surface,
-    borderRadius: 16,
+    borderRadius: 12,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
@@ -531,17 +533,17 @@ const styles = StyleSheet.create({
     }),
   },
   notifCardUnread: {
-    backgroundColor: '#F0FDF4',
+    backgroundColor: theme.colors.primaryLight,
     borderLeftWidth: 3,
     borderLeftColor: theme.colors.primary,
   },
   markReadBtn: {
     position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    top: 6,
+    right: 6,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',

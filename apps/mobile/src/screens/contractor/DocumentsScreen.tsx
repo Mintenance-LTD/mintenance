@@ -29,9 +29,9 @@ try {
   // Package not installed
 }
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../config/supabase';
+// supabase import removed — all operations now route through mobileApiClient
 import { mobileApiClient } from '../../utils/mobileApiClient';
-import { theme } from '../../theme';
+import { theme, gradients } from '../../theme';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES & CONSTANTS
@@ -150,23 +150,18 @@ export const DocumentsScreen: React.FC = () => {
 
   const uploadMutation = useMutation({
     mutationFn: async (file: { uri: string; name: string; mimeType: string }) => {
-      const filePath = `${user?.id}/${Date.now()}_${file.name}`;
-      const response = await fetch(file.uri);
-      const blob = await response.blob();
-      const { error: uploadErr } = await supabase.storage
-        .from('contractor-documents')
-        .upload(filePath, blob, { contentType: file.mimeType });
-      if (uploadErr) throw new Error(uploadErr.message);
-      const { data: urlData } = supabase.storage.from('contractor-documents').getPublicUrl(filePath);
       const ext = file.name.split('.').pop()?.toLowerCase() || 'unknown';
-      await mobileApiClient.post('/api/contractor/documents', {
+      const formData = new FormData();
+      formData.append('file', {
+        uri: file.uri,
         name: file.name,
-        file_type: ext,
-        public_url: urlData.publicUrl,
-        storage_path: filePath,
-        category: filter === 'all' ? 'other' : filter,
-        size_bytes: blob.size,
-      });
+        type: file.mimeType,
+      } as unknown as Blob);
+      formData.append('name', file.name);
+      formData.append('file_type', ext);
+      formData.append('category', filter === 'all' ? 'other' : filter);
+
+      await mobileApiClient.postFormData('/api/contractor/documents', formData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
@@ -264,7 +259,7 @@ export const DocumentsScreen: React.FC = () => {
           <View>
             {/* Full-bleed gradient hero */}
             <LinearGradient
-              colors={['#064E3B', '#059669', '#10B981']}
+              colors={gradients.heroGreen}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={[styles.hero, { paddingTop: insets.top + 12 }]}

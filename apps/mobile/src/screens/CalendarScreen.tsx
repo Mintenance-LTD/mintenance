@@ -24,7 +24,7 @@ import type { ProfileStackParamList } from '../navigation/types';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../config/supabase';
-import { theme } from '../theme';
+import { theme, gradients } from '../theme';
 
 interface ScheduleItem {
   id: string;
@@ -217,7 +217,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
 
       {/* ── Green Gradient Hero ── */}
-      <LinearGradient colors={['#064E3B', '#059669', '#10B981']} style={styles.hero}>
+      <LinearGradient colors={gradients.heroGreen} style={styles.hero}>
         {/* Decorative circles */}
         <View style={[styles.decorCircle, styles.decorCircle1]} />
         <View style={[styles.decorCircle, styles.decorCircle2]} />

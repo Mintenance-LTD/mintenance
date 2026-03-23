@@ -19,7 +19,7 @@ import { LoadingSpinner, ErrorView } from '../../components/shared';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import type { ProfileStackParamList } from '../../navigation/types';
-import { theme } from '../../theme';
+import { theme, gradients } from '../../theme';
 
 interface PaymentRecord {
   id: string;
@@ -163,7 +163,7 @@ export const FinancialsScreen: React.FC = () => {
       >
         {/* Full-Bleed Gradient Hero — extends to very top */}
         <LinearGradient
-          colors={['#064E3B', '#059669', '#10B981']}
+          colors={gradients.heroGreen}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.hero}
