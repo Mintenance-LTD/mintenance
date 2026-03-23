@@ -50,10 +50,12 @@ export interface SessionMonitorState {
  *
  * @returns Session monitor state and extension function
  */
-export function useSessionMonitor() {
+export function useSessionMonitor({
+  enabled = true,
+}: { enabled?: boolean } = {}) {
   const [state, setState] = useState<SessionMonitorState>({
     status: null,
-    isLoading: true,
+    isLoading: !enabled,
     isExtending: false,
     error: null,
     hasShownWarning: false,
@@ -79,30 +81,39 @@ export function useSessionMonitor() {
       if (response.status === 429) {
         // Rate limited — stop the current interval so we don't keep hammering the endpoint
         // and schedule a restart after 2 minutes (2× the 60 s rate-limit window).
-        logger.warn('Session status rate limit exceeded — backing off for 2 minutes', { service: 'useSessionMonitor' });
-        setState(prev => ({ ...prev, error: 'Too many requests. Polling paused for 2 minutes.' }));
+        logger.warn(
+          'Session status rate limit exceeded — backing off for 2 minutes',
+          { service: 'useSessionMonitor' }
+        );
+        setState((prev) => ({
+          ...prev,
+          error: 'Too many requests. Polling paused for 2 minutes.',
+        }));
 
         if (pollIntervalRef.current) {
           clearInterval(pollIntervalRef.current);
           pollIntervalRef.current = null;
         }
 
-        setTimeout(() => {
-          const pollIntervalSeconds = parseInt(
-            process.env.NEXT_PUBLIC_SESSION_POLL_INTERVAL_SECONDS || '60'
-          );
-          setState(prev => ({ ...prev, error: null }));
-          pollIntervalRef.current = setInterval(() => {
-            if (isVisibleRef.current) fetchSessionStatus();
-          }, pollIntervalSeconds * 1000);
-        }, 2 * 60 * 1000); // 2-minute back-off
+        setTimeout(
+          () => {
+            const pollIntervalSeconds = parseInt(
+              process.env.NEXT_PUBLIC_SESSION_POLL_INTERVAL_SECONDS || '60'
+            );
+            setState((prev) => ({ ...prev, error: null }));
+            pollIntervalRef.current = setInterval(() => {
+              if (isVisibleRef.current) fetchSessionStatus();
+            }, pollIntervalSeconds * 1000);
+          },
+          2 * 60 * 1000
+        ); // 2-minute back-off
 
         return;
       }
 
       if (!response.ok) {
         // Not authenticated or error
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           status: {
             authenticated: false,
@@ -117,7 +128,8 @@ export function useSessionMonitor() {
             },
           },
           isLoading: false,
-          error: response.status === 401 ? null : 'Failed to fetch session status',
+          error:
+            response.status === 401 ? null : 'Failed to fetch session status',
         }));
 
         // Stop polling when not authenticated (login/register pages)
@@ -135,7 +147,7 @@ export function useSessionMonitor() {
       }
       const data: SessionStatus = await response.json();
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         status: data,
         isLoading: false,
@@ -148,10 +160,11 @@ export function useSessionMonitor() {
         shouldWarnSoon: data.warnings.shouldWarnSoon,
         shouldWarnCritical: data.warnings.shouldWarnCritical,
       });
-
     } catch (error) {
-      logger.error('Failed to fetch session status', error, { service: 'useSessionMonitor' });
-      setState(prev => ({
+      logger.error('Failed to fetch session status', error, {
+        service: 'useSessionMonitor',
+      });
+      setState((prev) => ({
         ...prev,
         isLoading: false,
         error: 'Network error. Session monitoring unavailable.',
@@ -163,7 +176,7 @@ export function useSessionMonitor() {
    * Extend user session by refreshing tokens
    */
   const extendSession = useCallback(async (): Promise<boolean> => {
-    setState(prev => ({ ...prev, isExtending: true }));
+    setState((prev) => ({ ...prev, isExtending: true }));
 
     try {
       const response = await fetch('/api/auth/extend-session', {
@@ -187,7 +200,7 @@ export function useSessionMonitor() {
           error: data.error,
         });
 
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           isExtending: false,
           error: errorMessage,
@@ -197,7 +210,7 @@ export function useSessionMonitor() {
       }
 
       // Extension successful - reset warning flags and fetch fresh status
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isExtending: false,
         hasShownWarning: false,
@@ -215,11 +228,12 @@ export function useSessionMonitor() {
       await fetchSessionStatus();
 
       return true;
-
     } catch (error) {
-      logger.error('Session extension failed', error, { service: 'useSessionMonitor' });
+      logger.error('Session extension failed', error, {
+        service: 'useSessionMonitor',
+      });
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isExtending: false,
         error: 'Failed to extend session. Please try again.',
@@ -233,10 +247,11 @@ export function useSessionMonitor() {
    * Mark that warning has been shown (prevents duplicates)
    */
   const markWarningShown = useCallback((type: 'warning' | 'critical') => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       hasShownWarning: type === 'warning' ? true : prev.hasShownWarning,
-      hasShownCriticalWarning: type === 'critical' ? true : prev.hasShownCriticalWarning,
+      hasShownCriticalWarning:
+        type === 'critical' ? true : prev.hasShownCriticalWarning,
     }));
   }, []);
 
@@ -244,6 +259,9 @@ export function useSessionMonitor() {
    * Setup polling interval
    */
   useEffect(() => {
+    // Skip polling entirely on public pages (coming-soon, login, etc.)
+    if (!enabled) return;
+
     // Get poll interval from environment or default to 60 seconds
     const pollIntervalSeconds = parseInt(
       process.env.NEXT_PUBLIC_SESSION_POLL_INTERVAL_SECONDS || '60'
@@ -267,12 +285,14 @@ export function useSessionMonitor() {
         clearInterval(pollIntervalRef.current);
       }
     };
-  }, [fetchSessionStatus]);
+  }, [fetchSessionStatus, enabled]);
 
   /**
    * Pause polling when tab is hidden (performance optimization)
    */
   useEffect(() => {
+    if (!enabled) return;
+
     const handleVisibilityChange = () => {
       isVisibleRef.current = !document.hidden;
 
@@ -287,7 +307,7 @@ export function useSessionMonitor() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [fetchSessionStatus]);
+  }, [fetchSessionStatus, enabled]);
 
   return {
     ...state,

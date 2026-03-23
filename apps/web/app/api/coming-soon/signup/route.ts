@@ -10,7 +10,7 @@ const signupSchema = z.object({
 });
 
 export const POST = withApiHandler(
-  { auth: false, rateLimit: { maxRequests: 5 } },
+  { auth: false, csrf: false, rateLimit: { maxRequests: 5 } },
   async (request) => {
     const body = await request.json();
     const parsed = signupSchema.safeParse(body);
@@ -32,7 +32,9 @@ export const POST = withApiHandler(
       );
 
     if (error) {
-      logger.error('Failed to save coming soon signup', error, { service: 'coming-soon' });
+      logger.error('Failed to save coming soon signup', error, {
+        service: 'coming-soon',
+      });
       return NextResponse.json(
         { error: 'Failed to save your signup. Please try again.' },
         { status: 500 }

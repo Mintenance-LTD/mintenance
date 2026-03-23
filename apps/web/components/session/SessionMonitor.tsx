@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useSessionMonitor } from '@/hooks/useSessionMonitor';
 
 /**
@@ -15,11 +15,20 @@ import { useSessionMonitor } from '@/hooks/useSessionMonitor';
  * - Provides "Extend Session" action
  * - Automatically redirects to login on session expiry
  * - Respects feature flags for gradual rollout
+ * - Skips monitoring on public pages (coming-soon, login, register)
  *
  * Usage: Add once to root layout for app-wide monitoring
  */
 export function SessionMonitor() {
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Skip session monitoring on public pages where there is no session
+  const isPublicPage =
+    pathname?.startsWith('/coming-soon') ||
+    pathname?.startsWith('/login') ||
+    pathname?.startsWith('/register');
+
   const {
     status,
     isExtending,
@@ -27,7 +36,7 @@ export function SessionMonitor() {
     hasShownCriticalWarning,
     extendSession,
     markWarningShown,
-  } = useSessionMonitor();
+  } = useSessionMonitor({ enabled: !isPublicPage });
 
   const [showCriticalModal, setShowCriticalModal] = useState(false);
 
@@ -42,9 +51,11 @@ export function SessionMonitor() {
       // (In production, you'd use your existing Toast system here)
       const minutes = status.timeRemainingMinutes || 0;
 
-      if (window.confirm(
-        `Your session will expire in ${minutes} minutes due to inactivity.\n\nClick OK to extend your session, or Cancel to logout.`
-      )) {
+      if (
+        window.confirm(
+          `Your session will expire in ${minutes} minutes due to inactivity.\n\nClick OK to extend your session, or Cancel to logout.`
+        )
+      ) {
         extendSession();
       }
 
@@ -107,7 +118,9 @@ export function SessionMonitor() {
             boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
           }}
         >
-          <h2 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: 600 }}>
+          <h2
+            style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: 600 }}
+          >
             Session Expiring Soon
           </h2>
 
@@ -116,10 +129,13 @@ export function SessionMonitor() {
           </p>
 
           <p style={{ margin: '0 0 24px 0', color: '#666' }}>
-            Click "Stay Logged In" to continue working, or "Log Out" to end your session.
+            Click "Stay Logged In" to continue working, or "Log Out" to end your
+            session.
           </p>
 
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+          <div
+            style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}
+          >
             <button
               onClick={handleLogout}
               disabled={isExtending}
