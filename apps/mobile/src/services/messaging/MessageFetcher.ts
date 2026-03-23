@@ -1,104 +1,105 @@
 import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
-import { sanitizeForSQL, isValidSearchTerm } from '../../utils/sqlSanitization';
-import { formatMessage } from './MessageHelpers';
-import type { DatabaseMessageRow, Message, MessageThread } from './types';
+import { isValidSearchTerm } from '../../utils/sqlSanitization';
+import type { Message, MessageThread, DatabaseMessageRow } from './types';
 
-/** Fetch paginated messages for a job conversation. */
+/** Map a database row to the camelCase Message interface. */
+function mapRowToMessage(row: DatabaseMessageRow): Message {
+  return {
+    id: row.id,
+    jobId: row.job_id,
+    senderId: row.sender_id,
+    receiverId: row.receiver_id,
+    messageText: row.message_text || row.content || '',
+    messageType: (row.message_type || 'text') as Message['messageType'],
+    attachmentUrl: row.attachment_url,
+    read: row.read ?? false,
+    createdAt: row.created_at,
+    callId: row.call_id,
+    callDuration: row.call_duration,
+    senderName: row.sender
+      ? `${row.sender.first_name || ''} ${row.sender.last_name || ''}`.trim()
+      : undefined,
+    senderRole: row.sender?.role,
+  };
+}
+
+/** Fetch paginated messages for a job conversation via direct Supabase query. */
 export async function getJobMessages(
   jobId: string,
   limit = 50,
   offset = 0
 ): Promise<Message[]> {
   try {
-    // Use shared query from @mintenance/data-access for consistent select columns
-    const { fetchJobMessages } = await import('@mintenance/data-access');
-    const { data, error } = await fetchJobMessages(supabase, jobId, {
-      limit,
-      offset,
-    });
+    const { data, error } = await supabase
+      .from('messages')
+      .select(
+        '*, sender:profiles!messages_sender_id_fkey(id, first_name, last_name, role, profile_image_url)'
+      )
+      .eq('job_id', jobId)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
-    if (error) throw error;
-    return (data as DatabaseMessageRow[]).map(formatMessage).reverse();
+    if (error) {
+      logger.error('Error fetching messages:', error.message);
+      throw new Error(error.message);
+    }
+
+    return (data ?? []).map((row: DatabaseMessageRow) => mapRowToMessage(row));
   } catch (error) {
     logger.error('Error fetching messages:', error);
     throw error;
   }
 }
 
-/** Fetch all message threads (conversations) for a user. */
+/** Fetch all message threads (conversations) for a user via direct Supabase query. */
 export async function getUserMessageThreads(
   userId: string
 ): Promise<MessageThread[]> {
   try {
-    const { data: jobs, error: jobsError } = await supabase
-      .from('jobs')
-      .select(
-        'id, title, homeowner_id, contractor_id, homeowner:users!jobs_homeowner_id_fkey(first_name, last_name, role), contractor:users!jobs_contractor_id_fkey(first_name, last_name, role)'
-      )
-      .or(`homeowner_id.eq.${userId},contractor_id.eq.${userId}`);
+    const { data, error } = await supabase
+      .from('message_threads')
+      .select('*, messages(id, message_text, created_at, sender_id, read)')
+      .contains('participant_ids', [userId])
+      .order('updated_at', { ascending: false });
 
-    if (jobsError) throw jobsError;
+    if (error) {
+      logger.error('Error fetching message threads:', error.message);
+      throw new Error(error.message);
+    }
 
-    const threads: MessageThread[] = await Promise.all(
-      (
-        jobs as unknown as {
-          id: string;
-          title: string;
-          homeowner_id: string;
-          contractor_id: string | null;
-          homeowner: Record<string, unknown> | null;
-          contractor: Record<string, unknown> | null;
-        }[]
-      ).map(async (job) => {
-        const [lastMessageResult, unreadResult] = await Promise.all([
-          supabase
-            .from('messages')
-            .select(
-              'id, job_id, sender_id, receiver_id, message_text, message_type, attachment_url, read, created_at, sender:users!messages_sender_id_fkey(first_name, last_name, role)'
-            )
-            .eq('job_id', job.id)
-            .order('created_at', { ascending: false })
-            .limit(1),
-          supabase
-            .from('messages')
-            .select('id', { count: 'exact', head: true })
-            .eq('job_id', job.id)
-            .eq('receiver_id', userId)
-            .eq('read', false),
-        ]);
+    // Map database rows to MessageThread interface
+    return (data ?? []).map((row: Record<string, unknown>) => {
+      const messages = (row.messages as Record<string, unknown>[]) ?? [];
+      const lastMsg = messages[0];
+      const unread = messages.filter(
+        (m: Record<string, unknown>) => m.sender_id !== userId && !m.read
+      ).length;
 
-        return {
-          jobId: job.id,
-          jobTitle: job.title,
-          lastMessage: lastMessageResult.data?.[0]
-            ? formatMessage(lastMessageResult.data[0] as DatabaseMessageRow)
-            : undefined,
-          unreadCount: unreadResult.count ?? 0,
-          participants: [
-            {
-              id: job.homeowner_id,
-              name: `${job.homeowner?.first_name || ''} ${job.homeowner?.last_name || ''}`.trim(),
-              role: String(job.homeowner?.role || 'homeowner'),
-            },
-            job.contractor
-              ? {
-                  id: String(job.contractor_id || ''),
-                  name: `${job.contractor?.first_name || ''} ${job.contractor?.last_name || ''}`.trim(),
-                  role: String(job.contractor?.role || 'contractor'),
-                }
-              : null,
-          ].filter(
-            (p): p is { id: string; name: string; role: string } => p !== null
-          ),
-        };
-      })
-    );
-
-    return threads.sort((a, b) => {
-      const aTime = a.lastMessage?.createdAt || '0';
-      const bTime = b.lastMessage?.createdAt || '0';
-      return bTime.localeCompare(aTime);
+      return {
+        jobId: row.job_id as string,
+        jobTitle: (row.job_title as string) || '',
+        lastMessage: lastMsg
+          ? {
+              id: lastMsg.id as string,
+              jobId: row.job_id as string,
+              senderId: lastMsg.sender_id as string,
+              receiverId: '',
+              messageText: (lastMsg.message_text as string) || '',
+              messageType: 'text' as const,
+              read: (lastMsg.read as boolean) ?? false,
+              createdAt: lastMsg.created_at as string,
+            }
+          : undefined,
+        unreadCount: unread,
+        participants: ((row.participant_ids as string[]) ?? []).map(
+          (pid: string) => ({
+            id: pid,
+            name: '',
+            role: '',
+          })
+        ),
+      } as MessageThread;
     });
   } catch (error) {
     logger.error('Error fetching message threads:', error);
@@ -110,7 +111,7 @@ export async function getUserMessageThreads(
 export async function searchJobMessages(
   jobId: string,
   searchTerm: string,
-  limit = 20
+  _limit = 20
 ): Promise<Message[]> {
   try {
     if (!isValidSearchTerm(searchTerm)) {
@@ -119,21 +120,13 @@ export async function searchJobMessages(
       });
       return [];
     }
-    const sanitizedSearchTerm = sanitizeForSQL(searchTerm);
-    if (!sanitizedSearchTerm) return [];
 
-    const { data, error } = await supabase
-      .from('messages')
-      .select(
-        '*, sender:users!messages_sender_id_fkey(first_name, last_name, role)'
-      )
-      .eq('job_id', jobId)
-      .ilike('message_text', `%${sanitizedSearchTerm}%`)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (error) throw error;
-    return (data as DatabaseMessageRow[]).map(formatMessage);
+    // Fetch all messages and filter client-side
+    const messages = await getJobMessages(jobId);
+    const term = searchTerm.toLowerCase();
+    return messages.filter((m) =>
+      (m.messageText || '').toLowerCase().includes(term)
+    );
   } catch (error) {
     logger.error('Error searching messages:', error);
     throw error;
@@ -143,29 +136,21 @@ export async function searchJobMessages(
 /** Fetch all video-call-related messages for a job. */
 export async function getVideoCallMessages(jobId: string): Promise<Message[]> {
   try {
-    const { data, error } = await supabase
-      .from('messages')
-      .select(
-        '*, sender:users!messages_sender_id_fkey(first_name, last_name, role)'
-      )
-      .eq('job_id', jobId)
-      .in('message_type', [
-        'video_call_invitation',
-        'video_call_started',
-        'video_call_ended',
-        'video_call_missed',
-      ])
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return (data as DatabaseMessageRow[]).map(formatMessage);
+    const messages = await getJobMessages(jobId);
+    const videoTypes = [
+      'video_call_invitation',
+      'video_call_started',
+      'video_call_ended',
+      'video_call_missed',
+    ];
+    return messages.filter((m) => videoTypes.includes(m.messageType || ''));
   } catch (error) {
     logger.error('Error fetching video call messages:', error);
     throw error;
   }
 }
 
-/** Get total unread message count for a user. */
+/** Get total unread message count for a user via direct Supabase query. */
 export async function getUnreadMessageCount(userId: string): Promise<number> {
   try {
     const { count, error } = await supabase
@@ -174,7 +159,11 @@ export async function getUnreadMessageCount(userId: string): Promise<number> {
       .eq('receiver_id', userId)
       .eq('read', false);
 
-    if (error) throw error;
+    if (error) {
+      logger.error('Error getting unread message count:', error.message);
+      throw new Error(error.message);
+    }
+
     return count || 0;
   } catch (error) {
     logger.error('Error getting unread message count:', error);

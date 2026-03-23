@@ -1,26 +1,35 @@
-import { supabase } from '../../config/supabase';
 import { ContractorProfile } from '@mintenance/types';
+import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { mapDatabaseToContractorProfile } from './ContractorHelpers';
 import type { DatabaseContractorProfileRow, DatabaseError } from './types';
 
-/** Fetch a contractor's extended profile by user ID. */
-export async function getContractorProfile(userId: string): Promise<DatabaseContractorProfileRow | null> {
+/** Fetch a contractor's extended profile by user ID via direct Supabase query. */
+export async function getContractorProfile(
+  userId: string
+): Promise<DatabaseContractorProfileRow | null> {
   try {
     const { data, error } = await supabase
       .from('contractor_profiles')
-      .select('*, user:user_id (first_name, last_name, email)')
+      .select(
+        '*, user:profiles!contractor_profiles_user_id_fkey(id, first_name, last_name, email, phone, profile_image_url)'
+      )
       .eq('user_id', userId)
       .single();
 
     if (error) {
-      const dbError = error as DatabaseError;
-      if (dbError.code === 'PGRST116') return null;
+      // PGRST116 = no rows found, treat as not found
+      if (error.code === 'PGRST116') return null;
+      logger.error('Error fetching contractor profile:', error.message);
+      throw new Error(error.message);
     }
-    if (!data) return null;
+
+    if (!data || !(data as DatabaseContractorProfileRow).user_id) return null;
     return data as DatabaseContractorProfileRow;
   } catch (error) {
+    const pgError = error as { code?: string };
+    if (pgError.code === 'PGRST116') return null;
     throw error;
   }
 }
@@ -31,26 +40,26 @@ export async function updateContractorProfile(
   profileData: Partial<ContractorProfile>
 ): Promise<ContractorProfile> {
   try {
-    const response = await mobileApiClient.post<{ profile: DatabaseContractorProfileRow }>(
-      '/api/contractor/update-profile',
-      {
-        bio: profileData.bio,
-        profile_image_url: profileData.profile_image_url,
-        latitude: profileData.latitude,
-        longitude: profileData.longitude,
-        company_name: profileData.companyName,
-        company_logo: profileData.companyLogo,
-        business_address: profileData.businessAddress,
-        hourly_rate: profileData.hourly_rate || profileData.hourlyRate,
-        years_experience: profileData.years_experience || profileData.yearsExperience,
-        service_radius: profileData.serviceRadius,
-        availability: profileData.availability,
-        portfolio_images: profileData.portfolioImages,
-        specialties: profileData.specialties,
-        certifications: profileData.certifications,
-        license_number: profileData.license_number || profileData.licenseNumber,
-      }
-    );
+    const response = await mobileApiClient.post<{
+      profile: DatabaseContractorProfileRow;
+    }>('/api/contractor/update-profile', {
+      bio: profileData.bio,
+      profile_image_url: profileData.profile_image_url,
+      latitude: profileData.latitude,
+      longitude: profileData.longitude,
+      company_name: profileData.companyName,
+      company_logo: profileData.companyLogo,
+      business_address: profileData.businessAddress,
+      hourly_rate: profileData.hourly_rate || profileData.hourlyRate,
+      years_experience:
+        profileData.years_experience || profileData.yearsExperience,
+      service_radius: profileData.serviceRadius,
+      availability: profileData.availability,
+      portfolio_images: profileData.portfolioImages,
+      specialties: profileData.specialties,
+      certifications: profileData.certifications,
+      license_number: profileData.license_number || profileData.licenseNumber,
+    });
 
     logger.info('Contractor profile updated successfully');
     return mapDatabaseToContractorProfile(response.profile);
@@ -68,18 +77,23 @@ export async function uploadContractorImage(
 ): Promise<string> {
   try {
     logger.info(`Uploading ${type} image for contractor ${userId}`);
-    const response = await fetch(imageUri);
-    const blob = await response.blob();
     const ext = imageUri.split('.').pop()?.toLowerCase() || 'jpg';
-    const fileName = `contractors/${userId}/${type}_${Date.now()}.${ext}`;
+    const fileName = `${type}_${Date.now()}.${ext}`;
 
-    const { data, error } = await supabase.storage
-      .from('contractor-images')
-      .upload(fileName, blob, { contentType: `image/${ext === 'png' ? 'png' : 'jpeg'}`, upsert: type === 'logo' });
+    const formData = new FormData();
+    formData.append('file', {
+      uri: imageUri,
+      name: fileName,
+      type: `image/${ext === 'png' ? 'png' : 'jpeg'}`,
+    } as unknown as Blob);
+    formData.append('type', type);
 
-    if (error) throw error;
-    const { data: urlData } = supabase.storage.from('contractor-images').getPublicUrl(data.path);
-    return urlData.publicUrl;
+    const response = await mobileApiClient.postFormData<{
+      url: string;
+      public_url?: string;
+    }>('/api/contractor/update-profile', formData);
+
+    return response.public_url ?? response.url;
   } catch (error) {
     logger.error('Error uploading contractor image:', error);
     throw error;

@@ -2,16 +2,16 @@
  * Notification CRUD operations.
  *
  * Extracted from NotificationService.ts to keep it under the 500-line limit.
- * Uses shared queries from @mintenance/data-access for consistency with web.
+ * Read operations use direct Supabase queries; writes use mobileApiClient for server-side orchestration.
  */
 
 import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { logger } from '../../utils/logger';
 import type { NotificationData } from './types';
 
 /**
- * Fetch user notifications with web-consistent filtering.
- * Excludes social types, limits to last 24h OR unread.
+ * Fetch user notifications via direct Supabase query.
  */
 export async function getUserNotifications(
   userId: string,
@@ -19,22 +19,25 @@ export async function getUserNotifications(
   offset: number = 0
 ): Promise<NotificationData[]> {
   try {
-    const { fetchUserNotifications } = await import('@mintenance/data-access');
-    const { data, error } = await fetchUserNotifications(supabase, userId, {
-      limit,
-      offset,
-    });
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
-    if (error) throw error;
+    if (error) {
+      logger.error('Failed to get user notifications', error.message);
+      throw new Error(error.message);
+    }
 
-    // Map from shared query result shape to mobile NotificationData
-    return (data || []).map((row: Record<string, unknown>) => ({
+    return (data ?? []).map((row: Record<string, unknown>) => ({
       id: row.id as string,
       title: row.title as string,
       body: (row.message as string) || '',
       data: row.data,
       type: row.type as string,
-      priority: 'normal' as const,
+      priority: (row.priority as string) || 'normal',
       userId,
       createdAt: row.created_at as string,
       read: row.read as boolean,
@@ -47,21 +50,16 @@ export async function getUserNotifications(
 
 export async function markAsRead(notificationId: string): Promise<void> {
   try {
-    const { markNotificationAsRead } = await import('@mintenance/data-access');
-    const { error } = await markNotificationAsRead(supabase, notificationId);
-    if (error) throw error;
+    await mobileApiClient.post(`/api/notifications/${notificationId}/read`);
   } catch (error) {
     logger.error('Failed to mark notification as read', error);
     throw error;
   }
 }
 
-export async function markAllAsRead(userId: string): Promise<void> {
+export async function markAllAsRead(_userId: string): Promise<void> {
   try {
-    const { markAllNotificationsAsRead } =
-      await import('@mintenance/data-access');
-    const { error } = await markAllNotificationsAsRead(supabase, userId);
-    if (error) throw error;
+    await mobileApiClient.post('/api/notifications/mark-all-read');
   } catch (error) {
     logger.error('Failed to mark all notifications as read', error);
     throw error;
@@ -70,13 +68,17 @@ export async function markAllAsRead(userId: string): Promise<void> {
 
 export async function getUnreadCount(userId: string): Promise<number> {
   try {
-    const { fetchUnreadNotificationCount } =
-      await import('@mintenance/data-access');
-    const { count, error } = await fetchUnreadNotificationCount(
-      supabase,
-      userId
-    );
-    if (error) throw error;
+    const { count, error } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('read', false);
+
+    if (error) {
+      logger.error('Failed to get unread count', error.message);
+      throw new Error(error.message);
+    }
+
     return count || 0;
   } catch (error) {
     logger.error('Failed to get unread count', error);
@@ -88,7 +90,7 @@ export async function saveNotification(
   notification: Omit<NotificationData, 'id' | 'createdAt'>
 ): Promise<void> {
   try {
-    const { error } = await supabase.from('notifications').insert({
+    await mobileApiClient.post('/api/notifications', {
       title: notification.title,
       message: notification.body,
       data: notification.data,
@@ -96,9 +98,7 @@ export async function saveNotification(
       priority: notification.priority,
       user_id: notification.userId,
       read: notification.read,
-      created_at: new Date().toISOString(),
     });
-    if (error) throw error;
   } catch (error) {
     logger.error('Failed to save notification', error);
     throw error;
