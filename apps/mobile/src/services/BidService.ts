@@ -69,30 +69,63 @@ export class BidService {
   }
 
   static async getBidsByJob(jobId: string, status?: string): Promise<Bid[]> {
-    const params = new URLSearchParams();
-    if (status) params.set('status', status);
-    const query = params.toString();
-    const url = `/api/jobs/${jobId}/bids${query ? `?${query}` : ''}`;
-    const response = await mobileApiClient.get<{ bids: Bid[] }>(url);
-    return response.bids || [];
+    const { supabase } = await import('../config/supabase');
+    let query = supabase
+      .from('bids')
+      .select(`
+        id, job_id, contractor_id, amount, description, message, status,
+        estimated_duration_days, materials_included, warranty_months,
+        created_at, updated_at,
+        contractor:profiles!bids_contractor_id_fkey(
+          id, first_name, last_name, email, profile_image_url,
+          company_name, city, bio, hourly_rate, years_experience
+        )
+      `)
+      .eq('job_id', jobId)
+      .order('created_at', { ascending: false });
+    if (status) {
+      query = query.eq('status', status);
+    }
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return (data ?? []) as unknown as Bid[];
   }
 
   static async getBidsByJobs(jobIds: string[], status?: string): Promise<Bid[]> {
     if (jobIds.length === 0) return [];
-    // Fetch bids for each job in parallel via the API
-    const results = await Promise.all(
-      jobIds.map((jobId) => BidService.getBidsByJob(jobId, status))
-    );
-    return results.flat().sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
+    const { supabase } = await import('../config/supabase');
+    let query = supabase
+      .from('bids')
+      .select(`
+        id, job_id, contractor_id, amount, description, message, status,
+        created_at, updated_at,
+        contractor:profiles!bids_contractor_id_fkey(
+          id, first_name, last_name, email, profile_image_url, company_name
+        )
+      `)
+      .in('job_id', jobIds)
+      .order('created_at', { ascending: false });
+    if (status) {
+      query = query.eq('status', status);
+    }
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return (data ?? []) as unknown as Bid[];
   }
 
   static async getBidsByContractor(contractorId: string): Promise<Bid[]> {
-    const response = await mobileApiClient.get<{ bids: Bid[] }>(
-      `/api/contractor/bids?contractorId=${contractorId}`
-    );
-    return response.bids || [];
+    const { supabase } = await import('../config/supabase');
+    const { data, error } = await supabase
+      .from('bids')
+      .select(`
+        id, job_id, contractor_id, amount, description, message, status,
+        created_at, updated_at,
+        job:jobs!bids_job_id_fkey(id, title, category, status, budget, location, created_at)
+      `)
+      .eq('contractor_id', contractorId)
+      .order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as unknown as Bid[];
   }
 
   static async acceptBid(bidId: string, _homeownerId: string): Promise<Bid> {

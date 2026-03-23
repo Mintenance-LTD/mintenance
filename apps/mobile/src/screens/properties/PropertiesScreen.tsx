@@ -18,7 +18,7 @@ import type { ProfileStackParamList } from '../../navigation/types';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
 import type { Property } from '@mintenance/types';
 import { theme } from '../../theme';
 
@@ -110,10 +110,13 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
     queryKey: ['properties', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const response = await mobileApiClient.get<{ properties: Property[] }>(
-        `/api/properties?owner_id=${user.id}`
-      );
-      return response.properties ?? [];
+      const { data, error: queryError } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('owner_id', user.id)
+        .order('created_at', { ascending: false });
+      if (queryError) throw new Error(queryError.message);
+      return (data ?? []) as Property[];
     },
     enabled: !!user?.id,
     retry: 2,
