@@ -2,7 +2,13 @@ import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { trackQuoteInteraction } from './QuoteAnalytics';
-import type { ContractorQuote, QuoteLineItem, CreateQuoteData, UpdateQuoteData, QuoteFilters } from './types';
+import type {
+  ContractorQuote,
+  QuoteLineItem,
+  CreateQuoteData,
+  UpdateQuoteData,
+  QuoteFilters,
+} from './types';
 
 export async function createQuote(
   contractorId: string,
@@ -50,10 +56,16 @@ export async function createQuote(
     try {
       await mobileApiClient.post(
         `/api/contractor/quotes/${quote.id}/analytics`,
-        { interaction_type: 'created', metadata: { contractor_id: contractorId } }
+        {
+          interaction_type: 'created',
+          metadata: { contractor_id: contractorId },
+        }
       );
     } catch (analyticsError) {
-      logger.warn('Failed to create quote analytics', { service: 'quote-builder', error: analyticsError });
+      logger.warn('Failed to create quote analytics', {
+        service: 'quote-builder',
+        error: analyticsError,
+      });
     }
 
     return quote;
@@ -66,51 +78,39 @@ export async function createQuote(
 export async function getQuotes(
   contractorId: string,
   filters?: QuoteFilters,
-  limit: number = 50,
-  offset: number = 0
+  _limit: number = 50,
+  _offset: number = 0
 ): Promise<ContractorQuote[]> {
   try {
     let query = supabase
       .from('contractor_quotes')
       .select('*')
-      .eq('contractor_id', contractorId);
+      .eq('contractor_id', contractorId)
+      .order('created_at', { ascending: false });
 
     if (filters?.status && filters.status.length > 0) {
       query = query.in('status', filters.status);
     }
-    if (filters?.template_id) {
-      query = query.eq('template_id', filters.template_id);
-    }
-    if (filters?.date_range) {
-      query = query
-        .gte('created_at', filters.date_range.start)
-        .lte('created_at', filters.date_range.end);
-    }
-    if (filters?.amount_range) {
-      query = query
-        .gte('total_amount', filters.amount_range.min)
-        .lte('total_amount', filters.amount_range.max);
-    }
-    if (filters?.client_search) {
-      query = query.ilike('client_name', `%${filters.client_search}%`);
-    }
-    if (filters?.project_search) {
-      query = query.ilike('project_title', `%${filters.project_search}%`);
+
+    const { data, error } = await query;
+
+    if (error) {
+      logger.error('Error fetching quotes', error.message, {
+        service: 'quote-builder',
+      });
+      throw new Error(error.message);
     }
 
-    const { data, error } = await query
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (error) throw error;
-    return data || [];
+    return (data ?? []) as unknown as ContractorQuote[];
   } catch (error) {
     logger.error('Error fetching quotes', error, { service: 'quote-builder' });
     throw new Error('Failed to fetch quotes');
   }
 }
 
-export async function getQuote(quoteId: string): Promise<ContractorQuote | null> {
+export async function getQuote(
+  quoteId: string
+): Promise<ContractorQuote | null> {
   try {
     const { data, error } = await supabase
       .from('contractor_quotes')
@@ -118,26 +118,36 @@ export async function getQuote(quoteId: string): Promise<ContractorQuote | null>
       .eq('id', quoteId)
       .single();
 
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      logger.error('Error fetching quote', error.message, {
+        service: 'quote-builder',
+      });
+      throw new Error(error.message);
+    }
+
+    return (data as unknown as ContractorQuote) ?? null;
   } catch (error) {
+    const pgError = error as { code?: string };
+    if (pgError.code === 'PGRST116') return null;
     logger.error('Error fetching quote', error, { service: 'quote-builder' });
     throw new Error('Failed to fetch quote');
   }
 }
 
-export async function getQuoteLineItems(quoteId: string): Promise<QuoteLineItem[]> {
+export async function getQuoteLineItems(
+  quoteId: string
+): Promise<QuoteLineItem[]> {
   try {
-    const { data, error } = await supabase
-      .from('quote_line_items')
-      .select('*')
-      .eq('quote_id', quoteId)
-      .order('sort_order');
-
-    if (error) throw error;
-    return data || [];
+    // Line items are included in the quote response from the API
+    const quote = await getQuote(quoteId);
+    return (
+      (quote as unknown as { line_items?: QuoteLineItem[] })?.line_items || []
+    );
   } catch (error) {
-    logger.error('Error fetching quote line items', error, { service: 'quote-builder' });
+    logger.error('Error fetching quote line items', error, {
+      service: 'quote-builder',
+    });
     throw new Error('Failed to fetch quote line items');
   }
 }
@@ -190,4 +200,3 @@ export async function sendQuote(quoteId: string): Promise<ContractorQuote> {
     throw new Error('Failed to send quote');
   }
 }
-

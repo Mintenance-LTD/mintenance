@@ -12,7 +12,7 @@ import { useFinanceDashboard } from '../hooks/useFinanceDashboard';
 import { useI18n } from '../hooks/useI18n';
 import { SkeletonDashboard } from '../components/ui/LoadingStates';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { theme } from '../theme';
+import { theme, gradients } from '../theme';
 
 interface FinanceDashboardScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList>;
@@ -55,7 +55,7 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
       >
         {/* Full-Bleed Gradient Hero — extends to very top */}
         <LinearGradient
-          colors={['#064E3B', '#059669', '#10B981']}
+          colors={gradients.heroGreen}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.hero}

@@ -24,7 +24,7 @@ import { useI18n } from '../hooks/useI18n';
 import Button from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Banner } from '../components/ui/Banner';
-import { theme } from '../theme';
+import { theme, gradients } from '../theme';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -83,7 +83,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.container} testID="login-screen">
         <FadeIn duration={500}>
         <LinearGradient
-          colors={['#064E3B', '#059669', '#10B981']}
+          colors={gradients.heroGreen}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.header, { paddingTop: insets.top + 24 }]}
@@ -272,7 +272,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#064E3B',
+    backgroundColor: '#134E4A',
   },
   container: {
     flex: 1,

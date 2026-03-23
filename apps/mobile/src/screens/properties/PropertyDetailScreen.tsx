@@ -24,6 +24,7 @@ import {
 } from '../../components/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { Property } from '@mintenance/types';
 import type { ProfileStackParamList } from '../../navigation/types';
@@ -91,10 +92,13 @@ export const PropertyDetailScreen: React.FC<Props> = ({
   } = useQuery({
     queryKey: ['property', propertyId],
     queryFn: async () => {
-      const data = await mobileApiClient.get<Property>(
-        `/api/properties/${propertyId}`
-      );
-      return data;
+      const { data, error: queryError } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('id', propertyId)
+        .single();
+      if (queryError) throw new Error(queryError.message);
+      return data as Property;
     },
     enabled: !!user && !!propertyId,
   });
@@ -102,21 +106,13 @@ export const PropertyDetailScreen: React.FC<Props> = ({
   const { data: jobsData } = useQuery({
     queryKey: ['property-jobs', propertyId],
     queryFn: async () => {
-      try {
-        const rows = await mobileApiClient.get<
-          Array<{
-            id: string;
-            title: string;
-            status: string;
-            budget: number;
-            created_at: string;
-            category?: string;
-          }>
-        >(`/api/properties/${propertyId}/jobs`);
-        return rows || [];
-      } catch {
-        return [];
-      }
+      const { data, error: queryError } = await supabase
+        .from('jobs')
+        .select('id, title, status, budget, created_at, category')
+        .eq('property_id', propertyId)
+        .order('created_at', { ascending: false });
+      if (queryError) return [];
+      return data ?? [];
     },
     enabled: !!user && !!propertyId,
   });

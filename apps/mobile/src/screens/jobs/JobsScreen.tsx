@@ -20,7 +20,7 @@ import { Job } from '@mintenance/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ResponsiveContainer } from '../../components/responsive';
 import { ExploreMapScreen } from '../explore-map/ExploreMapScreen';
-import { theme } from '../../theme';
+import { theme, semanticBg } from '../../theme';
 
 import type { SortMode, FilterStatus, JobStats } from './types';
 import { JobCard } from './JobCard';
@@ -205,7 +205,7 @@ const JobsScreen: React.FC = () => {
 
       {/* Error banner */}
       {isError && (
-        <View style={styles.errorBanner}>
+        <View style={[styles.errorBanner, { backgroundColor: semanticBg.error }]}>
           <Ionicons name="alert-circle" size={18} color={theme.colors.error} />
           <Text style={styles.errorText}>
             {queryError instanceof Error ? queryError.message : 'Failed to load jobs'}
@@ -282,7 +282,6 @@ const styles = StyleSheet.create({
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEE2E2',
     marginHorizontal: 16,
     marginTop: 12,
     padding: 12,

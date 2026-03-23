@@ -10,70 +10,110 @@
 import { Job } from '@mintenance/types';
 import { isValidSearchTerm } from '../utils/sqlSanitization';
 import { logger } from '../utils/logger';
-import { mobileApiClient } from '../utils/mobileApiClient';
+import { supabase } from '../config/supabase';
 import { JobCRUDService } from './JobCRUDService';
 
-/** The web API wraps job arrays in { jobs: [...] } */
-interface JobsApiResponse {
-  jobs: Job[];
-  nextCursor?: string;
-}
+const JOB_LIST_SELECT =
+  'id, title, description, status, category, budget, budget_min, budget_max, location, homeowner_id, contractor_id, latitude, longitude, created_at, updated_at';
 
-/** Safely extract the jobs array from an API response that may be wrapped or raw */
-function extractJobs(response: unknown): Job[] {
-  if (Array.isArray(response)) return response;
-  if (response && typeof response === 'object' && 'jobs' in response) {
-    return (response as JobsApiResponse).jobs || [];
-  }
-  return [];
+/** Fetch image URLs from job_attachments for a list of job IDs and attach as `photos` array. */
+async function enrichJobsWithPhotos(
+  jobs: Record<string, unknown>[]
+): Promise<Job[]> {
+  if (jobs.length === 0) return [];
+  const jobIds = jobs.map((j) => j.id as string);
+  const { data: attachments } = await supabase
+    .from('job_attachments')
+    .select('job_id, file_url')
+    .in('job_id', jobIds)
+    .eq('file_type', 'image');
+
+  const photosByJob = new Map<string, string[]>();
+  (attachments ?? []).forEach((att: { job_id: string; file_url: string }) => {
+    if (!photosByJob.has(att.job_id)) photosByJob.set(att.job_id, []);
+    photosByJob.get(att.job_id)!.push(att.file_url);
+  });
+
+  return jobs.map((j) => ({
+    ...j,
+    photos: photosByJob.get(j.id as string) ?? [],
+  })) as unknown as Job[];
 }
 
 export class JobSearchService {
   static async getJobsByHomeowner(homeownerId: string): Promise<Job[]> {
-    const response = await mobileApiClient.get<JobsApiResponse>(
-      `/api/jobs?homeowner_id=${encodeURIComponent(homeownerId)}&order=created_at&direction=desc`
-    );
-    return extractJobs(response);
+    const { data, error } = await supabase
+      .from('jobs')
+      .select(JOB_LIST_SELECT)
+      .eq('homeowner_id', homeownerId)
+      .order('created_at', { ascending: false });
+    if (error) {
+      logger.error('getJobsByHomeowner failed', { error });
+      throw new Error(error.message);
+    }
+    return enrichJobsWithPhotos((data ?? []) as Record<string, unknown>[]);
   }
 
   static async getUserJobs(userId: string): Promise<Job[]> {
-    const response = await mobileApiClient.get<JobsApiResponse>(
-      `/api/jobs?homeowner_id=${encodeURIComponent(userId)}&order=created_at&direction=desc`
-    );
-    return extractJobs(response);
+    return JobSearchService.getJobsByHomeowner(userId);
   }
 
   static async getAvailableJobs(): Promise<Job[]> {
-    const response = await mobileApiClient.get<JobsApiResponse>(
-      '/api/jobs?status=posted&order=created_at&direction=desc&limit=20'
-    );
-    return extractJobs(response);
+    const { data, error } = await supabase
+      .from('jobs')
+      .select(JOB_LIST_SELECT)
+      .eq('status', 'posted')
+      .is('contractor_id', null)
+      .order('created_at', { ascending: false })
+      .limit(20);
+    if (error) {
+      logger.error('getAvailableJobs failed', { error });
+      throw new Error(error.message);
+    }
+    return enrichJobsWithPhotos((data ?? []) as Record<string, unknown>[]);
   }
 
   static async getJobsByStatus(
     status: Job['status'],
     userId?: string
   ): Promise<Job[]> {
-    let url = `/api/jobs?status=${encodeURIComponent(status)}&order=created_at&direction=desc`;
+    let query = supabase
+      .from('jobs')
+      .select(JOB_LIST_SELECT)
+      .eq('status', status)
+      .order('created_at', { ascending: false });
     if (userId) {
-      url += `&userId=${encodeURIComponent(userId)}`;
+      query = query.or(`homeowner_id.eq.${userId},contractor_id.eq.${userId}`);
     }
-    const response = await mobileApiClient.get<JobsApiResponse>(url);
-    return extractJobs(response);
+    const { data, error } = await query;
+    if (error) {
+      logger.error('getJobsByStatus failed', { error });
+      throw new Error(error.message);
+    }
+    return enrichJobsWithPhotos((data ?? []) as Record<string, unknown>[]);
   }
 
-  static async getJobsByUser(userId: string, role: 'homeowner' | 'contractor'): Promise<Job[]> {
-    const param = role === 'homeowner' ? 'homeowner_id' : 'contractor_id';
-    const response = await mobileApiClient.get<JobsApiResponse>(
-      `/api/jobs?${param}=${encodeURIComponent(userId)}&order=created_at&direction=desc`
-    );
-    return extractJobs(response);
+  static async getJobsByUser(
+    userId: string,
+    role: 'homeowner' | 'contractor'
+  ): Promise<Job[]> {
+    const col = role === 'homeowner' ? 'homeowner_id' : 'contractor_id';
+    const { data, error } = await supabase
+      .from('jobs')
+      .select(JOB_LIST_SELECT)
+      .eq(col, userId)
+      .order('created_at', { ascending: false });
+    if (error) {
+      logger.error('getJobsByUser failed', { error });
+      throw new Error(error.message);
+    }
+    return enrichJobsWithPhotos((data ?? []) as Record<string, unknown>[]);
   }
 
   static async getJobs(arg1?: unknown, arg2?: unknown): Promise<Job[]> {
     let status: Job['status'] | undefined;
-    let limit: number | undefined;
-    let offset: number | undefined;
+    let limit = 20;
+    let offset = 0;
 
     const validStatuses = ['posted', 'assigned', 'in_progress', 'completed'];
     if (typeof arg1 === 'string' && validStatuses.includes(arg1)) {
@@ -86,16 +126,20 @@ export class JobSearchService {
       limit = arg2;
     }
 
-    const params = new URLSearchParams();
-    if (status) params.set('status', status);
-    params.set('order', 'created_at');
-    params.set('direction', 'desc');
-    if (typeof limit === 'number') params.set('limit', String(limit));
-    else params.set('limit', '20');
-    if (typeof offset === 'number') params.set('offset', String(offset));
-
-    const response = await mobileApiClient.get<JobsApiResponse>(`/api/jobs?${params.toString()}`);
-    return extractJobs(response);
+    let query = supabase
+      .from('jobs')
+      .select(JOB_LIST_SELECT)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+    if (status) {
+      query = query.eq('status', status);
+    }
+    const { data, error } = await query;
+    if (error) {
+      logger.error('getJobs failed', { error });
+      throw new Error(error.message);
+    }
+    return enrichJobsWithPhotos((data ?? []) as Record<string, unknown>[]);
   }
 
   static async searchJobs(
@@ -108,17 +152,24 @@ export class JobSearchService {
       return [];
     }
 
-    const params = new URLSearchParams();
-    params.set('search', queryText);
-    params.set('order', 'created_at');
-    params.set('direction', 'desc');
-    params.set('limit', String(limit));
-    if (filters?.category) params.set('category', filters.category);
-    if (filters?.minBudget != null) params.set('minBudget', String(filters.minBudget));
-    if (filters?.maxBudget != null) params.set('maxBudget', String(filters.maxBudget));
+    let query = supabase
+      .from('jobs')
+      .select(JOB_LIST_SELECT)
+      .or(`title.ilike.%${queryText}%,description.ilike.%${queryText}%`)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (filters?.category) query = query.eq('category', filters.category);
+    if (filters?.minBudget != null)
+      query = query.gte('budget', filters.minBudget);
+    if (filters?.maxBudget != null)
+      query = query.lte('budget', filters.maxBudget);
 
-    const response = await mobileApiClient.get<JobsApiResponse>(`/api/jobs?${params.toString()}`);
-    return extractJobs(response);
+    const { data, error } = await query;
+    if (error) {
+      logger.error('searchJobs failed', { error });
+      throw new Error(error.message);
+    }
+    return enrichJobsWithPhotos((data ?? []) as Record<string, unknown>[]);
   }
 
   static async getJob(jobId: string): Promise<Job | null> {

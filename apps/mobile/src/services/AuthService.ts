@@ -13,21 +13,39 @@ function validateEmailFormat(email: string): boolean {
   return EMAIL_REGEX.test(email);
 }
 
-function validatePasswordStrength(password: string): { valid: boolean; message?: string } {
+function validatePasswordStrength(password: string): {
+  valid: boolean;
+  message?: string;
+} {
   if (password.length < 8) {
-    return { valid: false, message: 'Password must be at least 8 characters long' };
+    return {
+      valid: false,
+      message: 'Password must be at least 8 characters long',
+    };
   }
   if (!/(?=.*[a-z])/.test(password)) {
-    return { valid: false, message: 'Password must contain at least one lowercase letter' };
+    return {
+      valid: false,
+      message: 'Password must contain at least one lowercase letter',
+    };
   }
   if (!/(?=.*[A-Z])/.test(password)) {
-    return { valid: false, message: 'Password must contain at least one uppercase letter' };
+    return {
+      valid: false,
+      message: 'Password must contain at least one uppercase letter',
+    };
   }
   if (!/(?=.*\d)/.test(password)) {
-    return { valid: false, message: 'Password must contain at least one number' };
+    return {
+      valid: false,
+      message: 'Password must contain at least one number',
+    };
   }
   if (!/(?=.*[@$!%*?&])/.test(password)) {
-    return { valid: false, message: 'Password must contain at least one special character (@$!%*?&)' };
+    return {
+      valid: false,
+      message: 'Password must contain at least one special character (@$!%*?&)',
+    };
   }
   return { valid: true };
 }
@@ -67,7 +85,9 @@ export class AuthService {
     const result = await ServiceErrorHandler.executeOperation(async () => {
       // Rate limit check
       if (!checkRateLimit('auth_register', userData.email)) {
-        throw new Error('Too many registration attempts. Please try again later.');
+        throw new Error(
+          'Too many registration attempts. Please try again later.'
+        );
       }
 
       // Validation using auth-equivalent validators + ServiceErrorHandler
@@ -75,13 +95,27 @@ export class AuthService {
       if (!validateEmailFormat(userData.email)) {
         throw new Error('Please enter a valid email address');
       }
-      ServiceErrorHandler.validateRequired(userData.password, 'Password', context);
+      ServiceErrorHandler.validateRequired(
+        userData.password,
+        'Password',
+        context
+      );
       const passwordResult = validatePasswordStrength(userData.password);
       if (!passwordResult.valid) {
-        throw new Error(passwordResult.message || 'Password does not meet requirements');
+        throw new Error(
+          passwordResult.message || 'Password does not meet requirements'
+        );
       }
-      ServiceErrorHandler.validateRequired(userData.firstName, 'First name', context);
-      ServiceErrorHandler.validateRequired(userData.lastName, 'Last name', context);
+      ServiceErrorHandler.validateRequired(
+        userData.firstName,
+        'First name',
+        context
+      );
+      ServiceErrorHandler.validateRequired(
+        userData.lastName,
+        'Last name',
+        context
+      );
 
       const { data, error } = await supabase.auth.signUp({
         email: userData.email,
@@ -127,7 +161,9 @@ export class AuthService {
     const result = await ServiceErrorHandler.executeOperation(async () => {
       // Rate limit check (5 attempts per 15 min, matching web API)
       if (!checkRateLimit('auth_login', email)) {
-        throw new Error('Too many login attempts. Please try again in 15 minutes.');
+        throw new Error(
+          'Too many login attempts. Please try again in 15 minutes.'
+        );
       }
 
       // Validation using ServiceErrorHandler
@@ -135,7 +171,10 @@ export class AuthService {
       ServiceErrorHandler.validateEmail(email, context);
       ServiceErrorHandler.validateRequired(password, 'Password', context);
 
-      logger.info('Attempting login with Supabase...', { email: email.replace(/(.{2}).+(@.+)/, '$1***$2'), timestamp: new Date().toISOString() });
+      logger.info('Attempting login with Supabase...', {
+        email: email.replace(/(.{2}).+(@.+)/, '$1***$2'),
+        timestamp: new Date().toISOString(),
+      });
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -146,8 +185,10 @@ export class AuthService {
         logger.error('❌ Supabase auth error:', error);
 
         // Handle specific network errors
-        if (error.message?.toLowerCase().includes('network request failed') ||
-            error.message?.toLowerCase().includes('fetch')) {
+        if (
+          error.message?.toLowerCase().includes('network request failed') ||
+          error.message?.toLowerCase().includes('fetch')
+        ) {
           throw ServiceErrorHandler.handleNetworkError(error, context);
         }
 
@@ -157,51 +198,44 @@ export class AuthService {
       logger.info('✅ Supabase auth successful');
       resetRateLimit('auth_login', email);
 
-      // Get user profile
+      // Get user profile via API for consistent data with web
       if (data.user) {
-        const { data: userProfile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-
-        if (profileError) {
-          logger.warn('Profile fetch error:', profileError);
-          // Return user data from auth even if profile fetch fails
-          const fallbackUser = {
-            id: data.user.id,
-            email: data.user.email || '',
-            first_name: data.user.user_metadata?.first_name || '',
-            last_name: data.user.user_metadata?.last_name || '',
-            role: data.user.user_metadata?.role || 'homeowner',
-            created_at: data.user.created_at || new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            // Computed fields for backward compatibility
-            firstName: data.user.user_metadata?.first_name || '',
-            lastName: data.user.user_metadata?.last_name || '',
-            createdAt: data.user.created_at || new Date().toISOString(),
-          };
-
-          return {
-            user: fallbackUser,
-            session: data.session,
-          };
-        }
-
-        // Add computed fields for backward compatibility
-        const enhancedProfile = userProfile
-          ? {
+        try {
+          const { mobileApiClient } = await import('../utils/mobileApiClient');
+          const profileResponse = await mobileApiClient.get<{
+            user: Record<string, unknown>;
+          }>('/api/users/profile');
+          const userProfile = profileResponse.user;
+          if (userProfile) {
+            const enhancedProfile = {
               ...userProfile,
               firstName: userProfile.first_name,
               lastName: userProfile.last_name,
               createdAt: userProfile.created_at,
-            }
-          : null;
+            } as unknown as User;
+            return { user: enhancedProfile, session: data.session };
+          }
+        } catch (profileError) {
+          logger.warn(
+            'Profile fetch via API failed, using auth metadata fallback:',
+            profileError
+          );
+        }
 
-        return {
-          user: enhancedProfile,
-          session: data.session,
+        // Fallback to auth metadata if API call fails
+        const fallbackUser: User = {
+          id: data.user.id,
+          email: data.user.email || '',
+          first_name: (data.user.user_metadata?.first_name as string) || '',
+          last_name: (data.user.user_metadata?.last_name as string) || '',
+          role: (data.user.user_metadata?.role as User['role']) || 'homeowner',
+          created_at: data.user.created_at || new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          firstName: (data.user.user_metadata?.first_name as string) || '',
+          lastName: (data.user.user_metadata?.last_name as string) || '',
+          createdAt: data.user.created_at || new Date().toISOString(),
         };
+        return { user: fallbackUser, session: data.session };
       }
 
       return data as unknown as { user: User | null; session: Session | null };
@@ -227,41 +261,41 @@ export class AuthService {
 
       if (!session?.user) return null;
 
-      const { data: userProfile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
-
-      if (error) {
-        logger.warn('Profile fetch error:', error);
-        // Return fallback user data from auth metadata
-        return {
-          id: session.user.id,
-          email: session.user.email || '',
-          first_name: session.user.user_metadata?.first_name || '',
-          last_name: session.user.user_metadata?.last_name || '',
-          role: session.user.user_metadata?.role || 'homeowner',
-          created_at: session.user.created_at || new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          // Computed fields for backward compatibility
-          firstName: session.user.user_metadata?.first_name || '',
-          lastName: session.user.user_metadata?.last_name || '',
-          createdAt: session.user.created_at || new Date().toISOString(),
-        };
+      // Fetch profile via API for consistent data with web app
+      try {
+        const { mobileApiClient } = await import('../utils/mobileApiClient');
+        const response = await mobileApiClient.get<{
+          user: Record<string, unknown>;
+        }>('/api/users/profile');
+        const userProfile = response.user;
+        if (userProfile) {
+          return {
+            ...userProfile,
+            firstName: userProfile.first_name,
+            lastName: userProfile.last_name,
+            createdAt: userProfile.created_at,
+          } as User;
+        }
+      } catch (apiError) {
+        logger.warn(
+          'Profile fetch via API failed, using auth metadata fallback:',
+          apiError
+        );
       }
 
-      // Add computed fields for backward compatibility
-      if (userProfile) {
-        return {
-          ...userProfile,
-          firstName: userProfile.first_name,
-          lastName: userProfile.last_name,
-          createdAt: userProfile.created_at,
-        };
-      }
-
-      return userProfile;
+      // Fallback to auth metadata if API call fails
+      return {
+        id: session.user.id,
+        email: session.user.email || '',
+        first_name: session.user.user_metadata?.first_name || '',
+        last_name: session.user.user_metadata?.last_name || '',
+        role: session.user.user_metadata?.role || 'homeowner',
+        created_at: session.user.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        firstName: session.user.user_metadata?.first_name || '',
+        lastName: session.user.user_metadata?.last_name || '',
+        createdAt: session.user.created_at || new Date().toISOString(),
+      };
     } catch (error) {
       logger.error('Error fetching current user:', error);
       return null;
@@ -283,15 +317,13 @@ export class AuthService {
       throw new Error('Invalid email format');
     }
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', userId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    const { mobileApiClient } = await import('../utils/mobileApiClient');
+    const response = await mobileApiClient.put<{ user: User }>(
+      '/api/users/profile',
+      updates
+    );
+    if (!response.user) throw new Error('No user returned from API');
+    return response.user;
   }
 
   static async resetPassword(email: string): Promise<void> {
@@ -317,10 +349,14 @@ export class AuthService {
     }
   }
 
-  static onAuthStateChange(callback: (event: string, session: unknown) => void) {
-    return supabase.auth.onAuthStateChange((event: unknown, session: unknown) => {
-      callback(event as string, session);
-    });
+  static onAuthStateChange(
+    callback: (event: string, session: unknown) => void
+  ) {
+    return supabase.auth.onAuthStateChange(
+      (event: unknown, session: unknown) => {
+        callback(event as string, session);
+      }
+    );
   }
 
   // Validate JWT token with proper signature verification
@@ -401,9 +437,14 @@ export class AuthService {
   static async restoreSessionFromBiometricTokens({
     accessToken,
     refreshToken,
-  }: { accessToken: string; refreshToken: string }): Promise<{ user: User | null; session: Session | null }> {
+  }: {
+    accessToken: string;
+    refreshToken: string;
+  }): Promise<{ user: User | null; session: Session | null }> {
     if (!refreshToken) {
-      throw new Error('We could not restore your session. Please sign in with your password.');
+      throw new Error(
+        'We could not restore your session. Please sign in with your password.'
+      );
     }
 
     try {
@@ -439,17 +480,20 @@ export class AuthService {
           error: tokenValidation.error,
           errorType: tokenValidation.errorType || 'unknown',
           userId: tokenValidation.userId || 'unknown',
-          tokenExpiry: tokenValidation.expiresAt ? new Date(tokenValidation.expiresAt * 1000).toISOString() : 'unknown',
+          tokenExpiry: tokenValidation.expiresAt
+            ? new Date(tokenValidation.expiresAt * 1000).toISOString()
+            : 'unknown',
           currentTime: new Date().toISOString(),
-          service: 'auth'
+          service: 'auth',
         });
 
         // Provide more specific error message based on validation failure
-        const errorMessage = tokenValidation.errorType === 'expired'
-          ? 'Your session has expired. Please sign in again.'
-          : tokenValidation.errorType === 'invalid'
-          ? 'Invalid credentials detected. Please sign in again.'
-          : 'Stored credentials are invalid or expired. Please sign in again.';
+        const errorMessage =
+          tokenValidation.errorType === 'expired'
+            ? 'Your session has expired. Please sign in again.'
+            : tokenValidation.errorType === 'invalid'
+              ? 'Invalid credentials detected. Please sign in again.'
+              : 'Stored credentials are invalid or expired. Please sign in again.';
 
         throw new Error(errorMessage);
       }
@@ -471,7 +515,7 @@ export class AuthService {
         logger.error('User mismatch after biometric session restoration', {
           expectedUserId: tokenValidation.userId,
           actualUserId: user?.id,
-          service: 'auth'
+          service: 'auth',
         });
         throw new Error('Session restoration failed. Please sign in again.');
       }

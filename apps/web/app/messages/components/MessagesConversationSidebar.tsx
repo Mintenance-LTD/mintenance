@@ -80,7 +80,7 @@ export function MessagesConversationSidebar({
   });
 
   return (
-    <div className="w-[30%] border-r border-gray-200 flex flex-col">
+    <div className="w-full md:w-[30%] border-r border-gray-200 flex flex-col">
       {/* Search & Filters */}
       <div className="p-4 border-b border-gray-200">
         <div className="relative mb-3">

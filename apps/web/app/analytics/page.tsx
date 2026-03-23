@@ -155,25 +155,25 @@ export default function AnalyticsPage2025() {
     <HomeownerPageWrapper>
       {/* Hero Header */}
       <MotionDiv
-        className="bg-white border border-gray-200 rounded-xl p-8 mb-6"
+        className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 md:p-8 mb-6"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <div className="flex items-start justify-between gap-8">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-8">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-teal-50 rounded-2xl flex items-center justify-center border border-teal-200">
-              <svg className="w-9 h-9 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-teal-50 rounded-2xl flex items-center justify-center border border-teal-200">
+              <svg className="w-7 h-7 sm:w-9 sm:h-9 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
             </div>
             <div>
-              <h1 className="text-4xl font-bold mb-1 text-gray-900">Analytics & Insights</h1>
-              <p className="text-gray-600 text-lg">Track your spending and project trends</p>
+              <h1 className="text-2xl sm:text-4xl font-bold mb-1 text-gray-900">Analytics & Insights</h1>
+              <p className="text-gray-600 text-sm sm:text-lg">Track your spending and project trends</p>
             </div>
           </div>
 
           {/* Period Selector */}
-          <div className="flex items-center gap-2 bg-gray-100 rounded-xl p-1 border border-gray-200">
+          <div className="flex items-center gap-1 sm:gap-2 bg-gray-100 rounded-xl p-1 border border-gray-200 self-start overflow-x-auto">
             {[
               { label: 'Week', value: 'week' as const },
               { label: 'Month', value: 'month' as const },
@@ -183,7 +183,7 @@ export default function AnalyticsPage2025() {
               <button
                 key={period.value}
                 onClick={() => setSelectedPeriod(period.value)}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                className={`px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base font-medium transition-all whitespace-nowrap ${
                   selectedPeriod === period.value
                     ? 'bg-white text-teal-600 shadow-sm'
                     : 'text-gray-600 hover:bg-gray-50'
@@ -256,7 +256,7 @@ export default function AnalyticsPage2025() {
                 showAnimation={true}
                 showLegend={false}
                 showGridLines={false}
-                className="h-80"
+                className="h-64 sm:h-80"
               />
             </MotionDiv>
 
@@ -275,7 +275,7 @@ export default function AnalyticsPage2025() {
                 colors={['teal', 'emerald', 'cyan', 'sky', 'blue']}
                 valueFormatter={(value) => `£${value.toLocaleString()}`}
                 showAnimation={true}
-                className="h-80"
+                className="h-64 sm:h-80"
               />
             </MotionDiv>
           </div>

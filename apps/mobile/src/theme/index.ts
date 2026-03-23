@@ -47,14 +47,14 @@ const tokens = mobileTokens;
 import { isDarkMode } from './darkModeState';
 export { setDarkModeEnabled } from './darkModeState';
 
-// Light palette — Airbnb warm palette
-// Primary CTA: #10B981 (emerald) appears ONLY on CTAs, active states, success indicators
+// Light palette — aligned with web's teal-600 brand color
+// Primary CTA: #0D9488 (teal-600) appears ONLY on CTAs, active states, success indicators
 // Everything else: #222222 headings, #717171 body, #B0B0B0 tertiary, #EBEBEB borders, #F7F7F7 bg
 const lightColors = {
   ...tokens.colors,
-  primary: '#10B981',       // Airbnb emerald — CTAs & active states only
-  primaryLight: '#D1FAE5',  // light emerald tint
-  primaryDark: '#059669',   // darker emerald for pressed state
+  primary: '#0D9488',       // Teal-600 — matches web brand color
+  primaryLight: '#CCFBF1',  // teal-100 — matches web's bg-teal-100
+  primaryDark: '#0F766E',   // teal-700 — matches web's hover state
   accent: '#F59E0B',
   accentLight: '#FEF3C7',
   ratingGold: '#F59E0B',
@@ -440,9 +440,9 @@ export const getCategoryColor = (category: string) => {
 // Backgrounds: #181818, #222222, #333333 — warm not cool-slate
 const _darkColorsRef: Record<string, string> = {
   ...lightColors,
-  primary: '#34D399',       // brighter emerald for dark bg contrast
-  primaryLight: '#064E3B',
-  primaryDark: '#6EE7B7',
+  primary: '#2DD4BF',       // teal-400 — brighter teal for dark bg contrast
+  primaryLight: '#134E4A',  // teal-900 — dark teal tint
+  primaryDark: '#5EEAD4',   // teal-300 — lighter teal for pressed state
   accent: '#FBBF24',
   accentLight: '#3A2A0A',
   ratingGold: '#FBBF24',
@@ -496,6 +496,31 @@ const darkComponents: typeof theme.components = {
     focused: { borderColor: '#F5F5F5', backgroundColor: '#222222', shadowColor: '#000000', shadowOpacity: 0.2 },
     error: { borderColor: tokens.colors.errorDark, backgroundColor: '#3A1A1A', color: tokens.colors.errorDark },
   },
+};
+
+/**
+ * Gradient presets — reactive to dark mode.
+ * Usage: <LinearGradient colors={theme.gradients.heroGreen} ... />
+ */
+export const gradients = {
+  get heroGreen(): [string, string, string] {
+    return isDarkMode()
+      ? ['#0A2E2A', '#134E4A', '#115E59']
+      : ['#134E4A', '#0D9488', '#14B8A6'];
+  },
+  get heroBlue(): [string, string, string] {
+    return isDarkMode()
+      ? ['#0C1D36', '#1E3A5F', '#1E40AF']
+      : ['#1E40AF', '#3B82F6', '#60A5FA'];
+  },
+};
+
+/** Semantic background tokens for error/success/warning states */
+export const semanticBg = {
+  get error(): string { return isDarkMode() ? '#3A1A1A' : '#FEE2E2'; },
+  get errorIcon(): string { return isDarkMode() ? '#5A2020' : '#FEE2E2'; },
+  get success(): string { return isDarkMode() ? '#0A3324' : '#D1FAE5'; },
+  get warning(): string { return isDarkMode() ? '#3A2A0A' : '#FEF3C7'; },
 };
 
 /** Returns the full theme for the given color scheme */

@@ -22,9 +22,12 @@ interface BookingCardProps {
 }
 
 const STATUS_COLORS: Record<string, { text: string; bg: string }> = {
-  upcoming:  { text: '#3B82F6', bg: '#DBEAFE' },
-  completed: { text: theme.colors.primary, bg: theme.colors.primaryLight },
-  cancelled: { text: theme.colors.error, bg: '#FEE2E2' },
+  upcoming:  { text: '#1D4ED8', bg: '#DBEAFE' },
+  pending:   { text: '#92400E', bg: '#FEF3C7' },
+  completed: { text: '#0F766E', bg: '#CCFBF1' },
+  accepted:  { text: '#0F766E', bg: '#CCFBF1' },
+  cancelled: { text: '#475569', bg: '#F1F5F9' },
+  rejected:  { text: '#991B1B', bg: '#FEE2E2' },
 };
 
 const STATUS_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -157,8 +160,10 @@ export const BookingCard: React.FC<BookingCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     ...Platform.select({
       ios: {
         shadowColor: '#000000',

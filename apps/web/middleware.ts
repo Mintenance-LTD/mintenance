@@ -41,7 +41,7 @@ export async function middleware(request: NextRequest) {
 
   // Coming Soon mode: redirect all traffic to /coming-soon in production
   if (process.env.NEXT_PUBLIC_LAUNCH_MODE === 'coming-soon') {
-    const allowed = ['/coming-soon', '/_next', '/favicon.ico', '/api/coming-soon'];
+    const allowed = ['/coming-soon', '/_next', '/favicon.ico', '/api/'];
     const isAllowed = allowed.some(p => pathname.startsWith(p)) || /\.(png|jpg|jpeg|svg|ico|css|js|woff2?)$/.test(pathname);
     if (!isAllowed) {
       return NextResponse.redirect(new URL('/coming-soon', request.url));

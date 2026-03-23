@@ -109,20 +109,20 @@ export default function ContractorBidsOverviewPage() {
       {/* Daily Rundown Banner - dismissable, shows once per day */}
       <DailyRundownBanner />
       {/* Header */}
-      <div className="bg-white border border-gray-200 rounded-xl p-8 mb-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 md:p-8 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-teal-50 rounded-2xl flex items-center justify-center">
-              <Briefcase className="w-9 h-9 text-teal-600" />
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-teal-50 rounded-2xl flex items-center justify-center">
+              <Briefcase className="w-7 h-7 sm:w-9 sm:h-9 text-teal-600" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">My Bids</h1>
-              <p className="text-gray-600">Track and manage your active bids</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Bids</h1>
+              <p className="text-gray-600 text-sm sm:text-base">Track and manage your active bids</p>
             </div>
           </div>
           <button
             onClick={() => router.push('/contractor/discover')}
-            className="px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-2"
+            className="px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center justify-center gap-2 w-full sm:w-auto"
           >
             Find New Jobs
             <ArrowRight className="w-4 h-4" />
@@ -130,7 +130,7 @@ export default function ContractorBidsOverviewPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="flex items-center gap-3">
               <Briefcase className="w-5 h-5 text-gray-400" />
@@ -191,54 +191,56 @@ export default function ContractorBidsOverviewPage() {
             {activeBids.map((bid) => (
               <MotionDiv
                 key={bid.id}
-                className="border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                className="border border-gray-200 rounded-lg p-4 sm:p-6 hover:shadow-lg transition-shadow cursor-pointer"
                 onClick={() => router.push(`/contractor/bid/${bid.job_id}`)}
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
               >
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <div className="flex-1">
-                    <div className="flex items-start gap-4">
+                    <div className="flex items-start gap-3 sm:gap-4">
                       {bid.jobs?.homeowner?.profile_image_url ? (
                         <Image
                           src={bid.jobs.homeowner.profile_image_url}
                           alt={`${bid.jobs.homeowner.first_name} ${bid.jobs.homeowner.last_name}`}
                           width={48}
                           height={48}
-                          className="rounded-full object-cover"
+                          className="rounded-full object-cover flex-shrink-0"
                         />
                       ) : (
-                        <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                        <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
                           <span className="text-lg font-medium text-gray-600">
                             {bid.jobs?.homeowner?.first_name?.charAt(0) || 'H'}
                           </span>
                         </div>
                       )}
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">
                           {bid.jobs?.title || 'Untitled Job'}
                         </h3>
-                        <p className="text-sm text-gray-600 mb-2">
+                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">
                           {(bid.jobs?.description || '').substring(0, 150)}...
                         </p>
-                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
                           <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {bid.jobs?.location || 'Unknown'}</span>
                           <span className="flex items-center gap-1"><Briefcase className="w-4 h-4" /> {bid.jobs?.category || 'General'}</span>
-                          <span className="flex items-center gap-1"><User className="w-4 h-4" /> {bid.jobs?.homeowner?.first_name} {bid.jobs?.homeowner?.last_name}</span>
+                          <span className="hidden sm:flex items-center gap-1"><User className="w-4 h-4" /> {bid.jobs?.homeowner?.first_name} {bid.jobs?.homeowner?.last_name}</span>
                         </div>
                       </div>
                     </div>
                   </div>
-                  <div className="text-right ml-6">
-                    <div className={`inline-block px-3 py-1 rounded-full text-xs font-medium mb-2 ${getStatusColor(bid.status)}`}>
+                  <div className="flex items-center justify-between sm:block sm:text-right sm:ml-4 border-t sm:border-t-0 pt-3 sm:pt-0 sm:flex-shrink-0">
+                    <div className={`inline-block px-3 py-1 rounded-full text-xs font-medium sm:mb-2 ${getStatusColor(bid.status)}`}>
                       {bid.status.charAt(0).toUpperCase() + bid.status.slice(1)}
                     </div>
-                    <div className="text-sm text-gray-600 mb-1">Your Bid</div>
-                    <div className="text-2xl font-bold text-gray-900">
-                      £{bid.amount.toLocaleString()}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      Budget: £{(bid.jobs?.budget || 0).toLocaleString()}
+                    <div className="text-right">
+                      <div className="text-xs text-gray-600 sm:mb-1">Your Bid</div>
+                      <div className="text-xl sm:text-2xl font-bold text-gray-900">
+                        £{bid.amount.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        Budget: £{(bid.jobs?.budget || 0).toLocaleString()}
+                      </div>
                     </div>
                   </div>
                 </div>

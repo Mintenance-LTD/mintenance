@@ -18,29 +18,52 @@ export const API_BASE_URL =
  * (common after app restart before restoreSession completes).
  */
 async function getAuthToken(): Promise<string | null> {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  // Primary: get token from Supabase client session
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-  if (session?.access_token) {
-    return session.access_token;
+    if (session?.access_token) {
+      return session.access_token;
+    }
+  } catch (e) {
+    logger.warn('[AUTH] getSession() failed', e);
   }
 
-  // Fallback: if Supabase client hasn't been hydrated yet, try SecureStore
+  // Fallback 1: force a fresh session via getUser() (triggers auto-refresh)
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      // getUser succeeded — session was refreshed, get it now
+      const {
+        data: { session: refreshedSession },
+      } = await supabase.auth.getSession();
+      if (refreshedSession?.access_token) {
+        logger.info(
+          '[AUTH] getAuthToken: recovered token via getUser() refresh'
+        );
+        return refreshedSession.access_token;
+      }
+    }
+  } catch {
+    // getUser may fail if no session at all
+  }
+
+  // Fallback 2: load from SecureStore (app restart before restoreSession completes)
   try {
     const SecureStore = await import('expo-secure-store');
     const sessionJson = await SecureStore.getItemAsync('mintenance_session');
     if (sessionJson) {
       const persisted = JSON.parse(sessionJson);
       if (persisted?.access_token && persisted?.refresh_token) {
-        // Restore to Supabase client for future calls
         await supabase.auth.setSession({
           access_token: persisted.access_token,
           refresh_token: persisted.refresh_token,
         });
-        logger.info(
-          '[AUTH] getAuthToken fallback: restored session from SecureStore'
-        );
+        logger.info('[AUTH] getAuthToken: restored from SecureStore');
         return persisted.access_token;
       }
     }
@@ -48,6 +71,7 @@ async function getAuthToken(): Promise<string | null> {
     // SecureStore may not be available in all environments
   }
 
+  logger.warn('[AUTH] getAuthToken: no token available from any source');
   return null;
 }
 

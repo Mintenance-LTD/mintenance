@@ -11,7 +11,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { User } from '@mintenance/types';
-import { theme } from '../../theme';
+import { theme, gradients } from '../../theme';
 
 interface ContractorBannerProps {
   user: User | null;
@@ -41,7 +41,7 @@ export const ContractorBanner: React.FC<ContractorBannerProps> = ({
 
   return (
     <LinearGradient
-      colors={['#064E3B', '#059669', '#10B981']}
+      colors={gradients.heroGreen}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.hero}
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...Platform.select({
       ios: {
-        shadowColor: '#064E3B',
+        shadowColor: '#134E4A',
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.3,
         shadowRadius: 20,

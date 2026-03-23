@@ -25,7 +25,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../config/supabase';
-import { theme } from '../../theme';
+import { theme, gradients } from '../../theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -227,7 +227,7 @@ export const ReportingScreen: React.FC = () => {
       >
         {/* Green Gradient Hero — full bleed behind status bar */}
         <LinearGradient
-          colors={['#064E3B', '#059669', '#10B981']}
+          colors={gradients.heroGreen}
           style={styles.hero}
         >
           {/* Safe area spacing for content only */}
