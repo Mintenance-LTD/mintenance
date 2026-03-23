@@ -15,9 +15,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../../navigation/types';
-import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
+import {
+  ScreenHeader,
+  LoadingSpinner,
+  ErrorView,
+} from '../../components/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { Property } from '@mintenance/types';
 import { theme } from '../../theme';
@@ -52,8 +57,20 @@ const PropertyCard: React.FC<{
   return (
     <TouchableOpacity style={styles.propertyCard} onPress={onPress}>
       <View style={styles.cardHeader}>
-        <View style={[styles.propertyIconWrap, { backgroundColor: PROPERTY_ICON_BG[pType] || theme.colors.backgroundSecondary }]}>
-          <Ionicons name="home-outline" size={20} color={PROPERTY_ICON_COLOR[pType] || theme.colors.textSecondary} />
+        <View
+          style={[
+            styles.propertyIconWrap,
+            {
+              backgroundColor:
+                PROPERTY_ICON_BG[pType] || theme.colors.backgroundSecondary,
+            },
+          ]}
+        >
+          <Ionicons
+            name='home-outline'
+            size={20}
+            color={PROPERTY_ICON_COLOR[pType] || theme.colors.textSecondary}
+          />
         </View>
         <View style={styles.cardHeaderText}>
           <Text style={styles.propertyAddress} numberOfLines={1}>
@@ -63,31 +80,52 @@ const PropertyCard: React.FC<{
             {property.address}
           </Text>
         </View>
-        <TouchableOpacity onPress={onToggleFavorite} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <TouchableOpacity
+          onPress={onToggleFavorite}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons
             name={isFavorite ? 'heart' : 'heart-outline'}
             size={20}
             color={isFavorite ? '#EF4444' : theme.colors.textTertiary}
           />
         </TouchableOpacity>
-        <Ionicons name="chevron-forward" size={20} color={theme.colors.textTertiary} style={{ marginLeft: 4 }} />
+        <Ionicons
+          name='chevron-forward'
+          size={20}
+          color={theme.colors.textTertiary}
+          style={{ marginLeft: 4 }}
+        />
       </View>
       <View style={styles.propertyMeta}>
         <View style={styles.metaItem}>
-          <Ionicons name="business-outline" size={14} color={theme.colors.textSecondary} />
+          <Ionicons
+            name='business-outline'
+            size={14}
+            color={theme.colors.textSecondary}
+          />
           <Text style={styles.metaText}>
-            {(property.property_type ?? '').charAt(0).toUpperCase() + (property.property_type ?? '').slice(1)}
+            {(property.property_type ?? '').charAt(0).toUpperCase() +
+              (property.property_type ?? '').slice(1)}
           </Text>
         </View>
         {property.bedrooms != null && (
           <View style={styles.metaItem}>
-            <Ionicons name="bed-outline" size={14} color={theme.colors.textSecondary} />
+            <Ionicons
+              name='bed-outline'
+              size={14}
+              color={theme.colors.textSecondary}
+            />
             <Text style={styles.metaText}>{property.bedrooms} bed</Text>
           </View>
         )}
         {property.bathrooms != null && (
           <View style={styles.metaItem}>
-            <Ionicons name="water-outline" size={14} color={theme.colors.textSecondary} />
+            <Ionicons
+              name='water-outline'
+              size={14}
+              color={theme.colors.textSecondary}
+            />
             <Text style={styles.metaText}>{property.bathrooms} bath</Text>
           </View>
         )}
@@ -106,14 +144,22 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
-  const { data: properties, isLoading, error, refetch } = useQuery({
+  const {
+    data: properties,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ['properties', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const response = await mobileApiClient.get<{ properties: Property[] }>(
-        `/api/properties?owner_id=${user.id}`
-      );
-      return response.properties ?? [];
+      const { data, error: queryError } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('owner_id', user.id)
+        .order('created_at', { ascending: false });
+      if (queryError) throw new Error(queryError.message);
+      return (data ?? []) as Property[];
     },
     enabled: !!user?.id,
     retry: 2,
@@ -126,7 +172,7 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
   const toggleFavorite = async (propertyId: string) => {
     const isFav = favoriteIds.has(propertyId);
     // Optimistic update
-    setFavoriteIds(prev => {
+    setFavoriteIds((prev) => {
       const next = new Set(prev);
       if (isFav) next.delete(propertyId);
       else next.add(propertyId);
@@ -134,13 +180,17 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
     });
     try {
       if (isFav) {
-        await mobileApiClient.delete(`/api/properties/favorites?property_id=${propertyId}`);
+        await mobileApiClient.delete(
+          `/api/properties/favorites?property_id=${propertyId}`
+        );
       } else {
-        await mobileApiClient.post('/api/properties/favorites', { property_id: propertyId });
+        await mobileApiClient.post('/api/properties/favorites', {
+          property_id: propertyId,
+        });
       }
     } catch {
       // Revert on error
-      setFavoriteIds(prev => {
+      setFavoriteIds((prev) => {
         const next = new Set(prev);
         if (isFav) next.add(propertyId);
         else next.delete(propertyId);
@@ -159,38 +209,57 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
     if (!properties) return [];
     let filtered = [...properties];
     if (showFavoritesOnly) {
-      filtered = filtered.filter(p => favoriteIds.has(p.id));
+      filtered = filtered.filter((p) => favoriteIds.has(p.id));
     }
     switch (sortBy) {
       case 'name':
-        return filtered.sort((a, b) => (a.property_name || '').localeCompare(b.property_name || ''));
+        return filtered.sort((a, b) =>
+          (a.property_name || '').localeCompare(b.property_name || '')
+        );
       case 'date':
-        return filtered.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+        return filtered.sort(
+          (a, b) =>
+            new Date(b.created_at || 0).getTime() -
+            new Date(a.created_at || 0).getTime()
+        );
       case 'type':
-        return filtered.sort((a, b) => (a.property_type || '').localeCompare(b.property_type || ''));
+        return filtered.sort((a, b) =>
+          (a.property_type || '').localeCompare(b.property_type || '')
+        );
       default:
         return filtered;
     }
   }, [properties, sortBy, showFavoritesOnly, favoriteIds]);
 
   if (isLoading) {
-    return <LoadingSpinner message="Loading properties..." />;
+    return <LoadingSpinner message='Loading properties...' />;
   }
 
   if (error) {
-    return <ErrorView message="Failed to load properties" onRetry={() => { refetch(); }} />;
+    return (
+      <ErrorView
+        message='Failed to load properties'
+        onRetry={() => {
+          refetch();
+        }}
+      />
+    );
   }
 
   return (
     <SafeAreaView style={styles.container}>
       <ScreenHeader
-        title="My Properties"
+        title='My Properties'
         rightComponent={
           <TouchableOpacity
             onPress={() => navigation.navigate('AddProperty')}
-            accessibilityLabel="Add property"
+            accessibilityLabel='Add property'
           >
-            <Ionicons name="add-circle-outline" size={24} color={theme.colors.primary} />
+            <Ionicons
+              name='add-circle-outline'
+              size={24}
+              color={theme.colors.primary}
+            />
           </TouchableOpacity>
         }
       />
@@ -198,19 +267,27 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
       {/* Sort & filter options */}
       {properties && properties.length > 1 && (
         <View style={styles.sortRow}>
-          {([
+          {[
             { key: 'name' as SortOption, label: 'Name' },
             { key: 'date' as SortOption, label: 'Date Added' },
             { key: 'type' as SortOption, label: 'Type' },
-          ]).map((opt) => (
+          ].map((opt) => (
             <TouchableOpacity
               key={opt.key}
-              style={[styles.sortChip, sortBy === opt.key && styles.sortChipActive]}
+              style={[
+                styles.sortChip,
+                sortBy === opt.key && styles.sortChipActive,
+              ]}
               onPress={() => setSortBy(opt.key)}
-              accessibilityRole="button"
+              accessibilityRole='button'
               accessibilityState={{ selected: sortBy === opt.key }}
             >
-              <Text style={[styles.sortChipText, sortBy === opt.key && styles.sortChipTextActive]}>
+              <Text
+                style={[
+                  styles.sortChipText,
+                  sortBy === opt.key && styles.sortChipTextActive,
+                ]}
+              >
                 {opt.label}
               </Text>
             </TouchableOpacity>
@@ -218,7 +295,7 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
           <TouchableOpacity
             style={[styles.sortChip, showFavoritesOnly && styles.favChipActive]}
             onPress={() => setShowFavoritesOnly(!showFavoritesOnly)}
-            accessibilityRole="button"
+            accessibilityRole='button'
             accessibilityState={{ selected: showFavoritesOnly }}
           >
             <Ionicons
@@ -233,7 +310,11 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
       {!properties || properties.length === 0 ? (
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconCircle}>
-            <Ionicons name="home-outline" size={32} color={theme.colors.primary} />
+            <Ionicons
+              name='home-outline'
+              size={32}
+              color={theme.colors.primary}
+            />
           </View>
           <Text style={styles.emptyTitle}>No Properties</Text>
           <Text style={styles.emptySubtitle}>
@@ -243,24 +324,31 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
             style={styles.addButton}
             onPress={() => navigation.navigate('AddProperty')}
           >
-            <Ionicons name="add" size={20} color={theme.colors.textInverse} />
+            <Ionicons name='add' size={20} color={theme.colors.textInverse} />
             <Text style={styles.addButtonText}>Add Property</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <FlatList
           data={sortedProperties}
-          keyExtractor={item => item.id}
+          keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <PropertyCard
               property={item}
-              onPress={() => navigation.navigate('PropertyDetail', { propertyId: item.id })}
+              onPress={() =>
+                navigation.navigate('PropertyDetail', { propertyId: item.id })
+              }
               isFavorite={favoriteIds.has(item.id)}
               onToggleFavorite={() => toggleFavorite(item.id)}
             />
           )}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={theme.colors.primary}
+              colors={[theme.colors.primary]}
+            />
           }
           contentContainerStyle={styles.listContainer}
         />
@@ -283,7 +371,12 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -384,7 +477,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: theme.colors.surface,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+      },
       android: { elevation: 1 },
     }),
   },

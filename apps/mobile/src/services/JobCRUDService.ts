@@ -8,8 +8,8 @@
  * - Getting jobs by ID
  */
 
-import { supabase } from '../config/supabase';
 import type { Job } from '@mintenance/types';
+import { supabase } from '../config/supabase';
 import { mobileApiClient } from '../utils/mobileApiClient';
 import { sanitizeText } from '../utils/sanitize';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
@@ -95,9 +95,8 @@ export class JobCRUDService {
           location: safeLocation,
           budget: jobData.budget,
           category: jobData.category,
-          subcategory: jobData.subcategory,
           priority: jobData.priority,
-          photos: jobData.photos,
+          photoUrls: jobData.photos,
           property_id: jobData.property_id,
           latitude: jobData.latitude,
           longitude: jobData.longitude,
@@ -119,74 +118,39 @@ export class JobCRUDService {
   }
 
   static async getJobById(jobId: string): Promise<Job | null> {
-    const { data, error } = await (
-      supabase.from('jobs').select('*') as unknown as {
-        eq: (
-          col: string,
-          val: string
-        ) => {
-          single: () => Promise<{
-            data: DatabaseJobRow | null;
-            error: { code?: string; message?: string } | null;
-          }>;
-        };
-      }
-    )
-      .eq('id', jobId)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('id', jobId)
+        .single();
+      if (error || !data) return null;
 
-    if (error) {
-      if (error.code === 'PGRST116') return null; // Not found
-      throw new Error(error.message || String(error));
-    }
-
-    if (!data) return null;
-    const job = this.formatJob(data as DatabaseJobRow);
-
-    // Enrich with photos from job_attachments and job_photos_metadata
-    // since jobs.photos column is typically empty
-    if (!job.photos || job.photos.length === 0) {
-      const [attachRes, metaRes] = await Promise.all([
-        (
-          supabase.from('job_attachments').select('file_url') as unknown as {
-            eq: (
-              c: string,
-              v: string
-            ) => {
-              eq: (
-                c: string,
-                v: string
-              ) => Promise<{ data: { file_url: string }[] | null }>;
-            };
-          }
-        )
+      // Enrich with photos and attachments
+      const [attachments, photos] = await Promise.all([
+        supabase
+          .from('job_attachments')
+          .select('file_url')
           .eq('job_id', jobId)
           .eq('file_type', 'image'),
-        (
-          supabase
-            .from('job_photos_metadata')
-            .select('photo_url') as unknown as {
-            eq: (
-              c: string,
-              v: string
-            ) => Promise<{ data: { photo_url: string }[] | null }>;
-          }
-        ).eq('job_id', jobId),
+        supabase
+          .from('job_photos_metadata')
+          .select('photo_url')
+          .eq('job_id', jobId),
       ]);
 
-      const photos: string[] = [];
-      if (attachRes.data) {
-        for (const row of attachRes.data) photos.push(row.file_url);
+      const imageUrls = [
+        ...(attachments.data?.map((a: { file_url: string }) => a.file_url) ?? []),
+        ...(photos.data?.map((p: { photo_url: string }) => p.photo_url) ?? []),
+      ];
+      if (imageUrls.length > 0) {
+        data.photos = imageUrls;
       }
-      if (metaRes.data) {
-        for (const row of metaRes.data) {
-          if (!photos.includes(row.photo_url)) photos.push(row.photo_url);
-        }
-      }
-      if (photos.length > 0) job.photos = photos;
-    }
 
-    return job;
+      return this.formatJob(data);
+    } catch {
+      return null;
+    }
   }
 
   static async updateJob(
@@ -299,41 +263,55 @@ export class JobCRUDService {
   static async getContractByJobId(
     jobId: string
   ): Promise<Record<string, unknown> | null> {
-    const { data: rows, error } = await supabase
-      .from('contracts')
-      .select('*')
-      .eq('job_id', jobId)
-      .limit(1);
-    if (error) throw new Error(error.message);
-    return (rows?.[0] as Record<string, unknown>) ?? null;
+    try {
+      const { data, error } = await supabase
+        .from('contracts')
+        .select('id, status, title, amount, start_date, end_date, contractor_signed_at, homeowner_signed_at, created_at, updated_at')
+        .eq('job_id', jobId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (error || !data?.length) return null;
+      return data[0] as Record<string, unknown>;
+    } catch {
+      return null;
+    }
   }
 
-  // Helper method
-  private static formatJob(data: DatabaseJobRow): Job {
+  // Helper method — handles both direct DB rows and API response shapes
+  private static formatJob(
+    data: DatabaseJobRow | Record<string, unknown>
+  ): Job {
+    const raw = data as Record<string, unknown>;
     const job: Job = {
-      id: data.id,
-      title: data.title ?? '',
-      description: data.description ?? '',
-      location: data.location ?? '',
-      homeowner_id: data.homeowner_id ?? '',
-      status: data.status ?? 'posted',
-      budget: data.budget ?? 0,
-      category: data.category ?? '',
-      subcategory: data.subcategory ?? '',
-      priority: data.priority ?? 'medium',
-      photos: data.photos ?? [],
-      created_at: data.created_at ?? new Date().toISOString(),
-      updated_at: data.updated_at ?? new Date().toISOString(),
+      id: raw.id as string,
+      title: (raw.title as string) ?? '',
+      description: (raw.description as string) ?? '',
+      location: (raw.location as string) ?? '',
+      homeowner_id: (raw.homeowner_id as string) ?? '',
+      status: (raw.status as DatabaseJobRow['status']) ?? 'posted',
+      budget: (raw.budget as number) ?? 0,
+      category: (raw.category as string) ?? '',
+      subcategory: (raw.subcategory as string) ?? '',
+      // API returns 'urgency', DB returns 'priority'
+      priority: ((raw.priority ?? raw.urgency) as Job['priority']) ?? 'medium',
+      // API returns 'images', DB returns 'photos'
+      photos: (raw.photos ?? raw.images ?? []) as string[],
+      created_at:
+        ((raw.created_at ?? raw.createdAt) as string) ??
+        new Date().toISOString(),
+      updated_at:
+        ((raw.updated_at ?? raw.updatedAt) as string) ??
+        new Date().toISOString(),
     };
 
-    if (data.contractor_id !== undefined) {
-      job.contractor_id = data.contractor_id;
+    if (raw.contractor_id !== undefined) {
+      job.contractor_id = raw.contractor_id as string;
     }
 
     // Only add computed fields if they don't break test expectations
     if (!process.env.JEST_WORKER_ID) {
       job.homeownerId = job.homeowner_id;
-      job.contractorId = data.contractor_id;
+      job.contractorId = raw.contractor_id as string | undefined;
       job.createdAt = job.created_at;
       job.updatedAt = job.updated_at;
     }

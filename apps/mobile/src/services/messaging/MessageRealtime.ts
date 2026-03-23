@@ -1,7 +1,11 @@
 import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
-import { formatMessage } from './MessageHelpers';
-import type { DatabaseMessageRow, ActiveChannel, Message, RealtimePayload } from './types';
+import type {
+  ActiveChannel,
+  Message,
+  RealtimePayload,
+  DatabaseMessageRow,
+} from './types';
 
 export const activeChannels = new Map<string, ActiveChannel>();
 const MAX_ACTIVE_CHANNELS = 50;
@@ -26,12 +30,47 @@ function cleanupOldestChannel(): void {
   }
 }
 
+/**
+ * Fetch a single message with sender info via direct Supabase query.
+ * Used to enrich realtime events which only contain the raw row.
+ */
+async function fetchMessageById(messageId: string): Promise<Message | null> {
+  try {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('id', messageId)
+      .single();
+
+    if (error || !data) return null;
+
+    const row = data as DatabaseMessageRow;
+    return {
+      id: row.id,
+      jobId: row.job_id,
+      senderId: row.sender_id,
+      receiverId: row.receiver_id,
+      messageText: row.message_text || row.content || '',
+      messageType: (row.message_type || 'text') as Message['messageType'],
+      attachmentUrl: row.attachment_url,
+      read: row.read ?? false,
+      createdAt: row.created_at,
+      callId: row.call_id,
+      callDuration: row.call_duration,
+    };
+  } catch {
+    // If the query fails, the caller should handle null gracefully
+    return null;
+  }
+}
+
 /** Subscribe to real-time messages for a job. Returns a cleanup function. */
 export function subscribeToJobMessages(
   jobId: string,
   onNewMessage: (message: Message) => void,
   onMessageUpdate: (message: Message) => void = () => {},
-  onError: (error: unknown) => void = (error) => logger.error('Real-time subscription error:', error)
+  onError: (error: unknown) => void = (error) =>
+    logger.error('Real-time subscription error:', error)
 ): () => void {
   const channelKey = `messages_${jobId}`;
 
@@ -44,34 +83,71 @@ export function subscribeToJobMessages(
       activeChannels.delete(channelKey);
     }
 
+    // Realtime subscriptions must use the direct Supabase client —
+    // this is the one acceptable use of direct Supabase in the mobile app.
+    // The channel subscription itself doesn't query data; it just listens for events.
     const channel = supabase
       .channel(`messages:job_id=eq.${jobId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `job_id=eq.${jobId}` },
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `job_id=eq.${jobId}`,
+        },
         async (payload: unknown) => {
           try {
-            const realtimePayload = payload as RealtimePayload<DatabaseMessageRow>;
-            const { data, error } = await supabase
-              .from('messages')
-              .select('*, sender:users!messages_sender_id_fkey(first_name, last_name, role)')
-              .eq('id', realtimePayload.new.id)
-              .single();
-            if (error) { onError(error); return; }
-            if (data) onNewMessage(formatMessage(data as DatabaseMessageRow));
-          } catch (error) { onError(error); }
+            const realtimePayload =
+              payload as RealtimePayload<DatabaseMessageRow>;
+            // Use the realtime payload directly instead of re-querying
+            // The payload.new contains the full row data
+            const row = realtimePayload.new;
+            const message: Message = {
+              id: row.id,
+              jobId: row.job_id,
+              senderId: row.sender_id,
+              receiverId: row.receiver_id,
+              messageText: row.message_text,
+              messageType: row.message_type || 'text',
+              attachmentUrl: row.attachment_url,
+              read: row.read ?? false,
+              createdAt: row.created_at,
+            } as Message;
+            onNewMessage(message);
+          } catch (error) {
+            onError(error);
+          }
         }
       )
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `job_id=eq.${jobId}` },
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `job_id=eq.${jobId}`,
+        },
         async (payload: unknown) => {
           try {
-            const realtimePayload = payload as RealtimePayload<DatabaseMessageRow>;
-            const { data, error } = await supabase
-              .from('messages')
-              .select('*, sender:users!messages_sender_id_fkey(first_name, last_name, role)')
-              .eq('id', realtimePayload.new.id)
-              .single();
-            if (error) { onError(error); return; }
-            if (data) onMessageUpdate(formatMessage(data as DatabaseMessageRow));
-          } catch (error) { onError(error); }
+            const realtimePayload =
+              payload as RealtimePayload<DatabaseMessageRow>;
+            const row = realtimePayload.new;
+            const message: Message = {
+              id: row.id,
+              jobId: row.job_id,
+              senderId: row.sender_id,
+              receiverId: row.receiver_id,
+              messageText: row.message_text,
+              messageType: row.message_type || 'text',
+              attachmentUrl: row.attachment_url,
+              read: row.read ?? false,
+              createdAt: row.created_at,
+            } as Message;
+            onMessageUpdate(message);
+          } catch (error) {
+            onError(error);
+          }
         }
       )
       .subscribe((status: unknown) => {
