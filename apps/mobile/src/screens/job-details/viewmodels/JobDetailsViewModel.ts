@@ -14,7 +14,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useJob } from '../../../hooks/useJobs';
 import { AIAnalysisService, AIAnalysis } from '../../../services/AIAnalysisService';
 import UnifiedAIServiceMobile from '../../../services/UnifiedAIServiceMobile';
-import { mobileApiClient } from '../../../utils/mobileApiClient';
+import { supabase } from '../../../config/supabase';
 import type { Job } from '@mintenance/types';
 
 export interface JobDetailsState {
@@ -90,21 +90,21 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
     const fetchCTAData = async () => {
       try {
         const [contractsRes, escrowRes, reviewsRes] = await Promise.allSettled([
-          mobileApiClient.get<{ contracts?: { status: string }[] }>(`/api/contracts?job_id=${jobId}`),
-          mobileApiClient.get<{ escrow?: { status: string } }>(`/api/jobs/${jobId}/escrow`),
-          mobileApiClient.get<{ reviews?: { id: string }[] }>(`/api/jobs/${jobId}/reviews?user_id=${user.id}`),
+          supabase.from('contracts').select('id, status').eq('job_id', jobId).order('created_at', { ascending: false }).limit(1),
+          supabase.from('escrow_transactions').select('id, status').eq('job_id', jobId).order('created_at', { ascending: false }).limit(1),
+          supabase.from('reviews').select('id').eq('job_id', jobId).eq('reviewer_id', user.id).limit(1),
         ]);
 
         if (cancelled) return;
 
-        if (contractsRes.status === 'fulfilled' && contractsRes.value?.contracts?.[0]) {
-          setContractStatus(contractsRes.value.contracts[0].status);
+        if (contractsRes.status === 'fulfilled' && contractsRes.value?.data?.[0]) {
+          setContractStatus(contractsRes.value.data[0].status);
         }
-        if (escrowRes.status === 'fulfilled' && escrowRes.value?.escrow) {
-          setEscrowStatus(escrowRes.value.escrow.status);
+        if (escrowRes.status === 'fulfilled' && escrowRes.value?.data?.[0]) {
+          setEscrowStatus(escrowRes.value.data[0].status);
         }
         if (reviewsRes.status === 'fulfilled') {
-          const reviews = reviewsRes.value?.reviews;
+          const reviews = reviewsRes.value?.data;
           setHasReviewed(Array.isArray(reviews) && reviews.length > 0);
         }
       } catch {
