@@ -16,6 +16,30 @@ import { JobCRUDService } from './JobCRUDService';
 const JOB_LIST_SELECT =
   'id, title, description, status, category, budget, budget_min, budget_max, location, homeowner_id, contractor_id, latitude, longitude, created_at, updated_at';
 
+/** Fetch image URLs from job_attachments for a list of job IDs and attach as `photos` array. */
+async function enrichJobsWithPhotos(
+  jobs: Record<string, unknown>[]
+): Promise<Job[]> {
+  if (jobs.length === 0) return [];
+  const jobIds = jobs.map((j) => j.id as string);
+  const { data: attachments } = await supabase
+    .from('job_attachments')
+    .select('job_id, file_url')
+    .in('job_id', jobIds)
+    .eq('file_type', 'image');
+
+  const photosByJob = new Map<string, string[]>();
+  (attachments ?? []).forEach((att: { job_id: string; file_url: string }) => {
+    if (!photosByJob.has(att.job_id)) photosByJob.set(att.job_id, []);
+    photosByJob.get(att.job_id)!.push(att.file_url);
+  });
+
+  return jobs.map((j) => ({
+    ...j,
+    photos: photosByJob.get(j.id as string) ?? [],
+  })) as unknown as Job[];
+}
+
 export class JobSearchService {
   static async getJobsByHomeowner(homeownerId: string): Promise<Job[]> {
     const { data, error } = await supabase
@@ -27,7 +51,7 @@ export class JobSearchService {
       logger.error('getJobsByHomeowner failed', { error });
       throw new Error(error.message);
     }
-    return (data ?? []) as unknown as Job[];
+    return enrichJobsWithPhotos((data ?? []) as Record<string, unknown>[]);
   }
 
   static async getUserJobs(userId: string): Promise<Job[]> {
@@ -46,7 +70,7 @@ export class JobSearchService {
       logger.error('getAvailableJobs failed', { error });
       throw new Error(error.message);
     }
-    return (data ?? []) as unknown as Job[];
+    return enrichJobsWithPhotos((data ?? []) as Record<string, unknown>[]);
   }
 
   static async getJobsByStatus(
@@ -66,10 +90,13 @@ export class JobSearchService {
       logger.error('getJobsByStatus failed', { error });
       throw new Error(error.message);
     }
-    return (data ?? []) as unknown as Job[];
+    return enrichJobsWithPhotos((data ?? []) as Record<string, unknown>[]);
   }
 
-  static async getJobsByUser(userId: string, role: 'homeowner' | 'contractor'): Promise<Job[]> {
+  static async getJobsByUser(
+    userId: string,
+    role: 'homeowner' | 'contractor'
+  ): Promise<Job[]> {
     const col = role === 'homeowner' ? 'homeowner_id' : 'contractor_id';
     const { data, error } = await supabase
       .from('jobs')
@@ -80,7 +107,7 @@ export class JobSearchService {
       logger.error('getJobsByUser failed', { error });
       throw new Error(error.message);
     }
-    return (data ?? []) as unknown as Job[];
+    return enrichJobsWithPhotos((data ?? []) as Record<string, unknown>[]);
   }
 
   static async getJobs(arg1?: unknown, arg2?: unknown): Promise<Job[]> {
@@ -112,7 +139,7 @@ export class JobSearchService {
       logger.error('getJobs failed', { error });
       throw new Error(error.message);
     }
-    return (data ?? []) as unknown as Job[];
+    return enrichJobsWithPhotos((data ?? []) as Record<string, unknown>[]);
   }
 
   static async searchJobs(
@@ -132,15 +159,17 @@ export class JobSearchService {
       .order('created_at', { ascending: false })
       .limit(limit);
     if (filters?.category) query = query.eq('category', filters.category);
-    if (filters?.minBudget != null) query = query.gte('budget', filters.minBudget);
-    if (filters?.maxBudget != null) query = query.lte('budget', filters.maxBudget);
+    if (filters?.minBudget != null)
+      query = query.gte('budget', filters.minBudget);
+    if (filters?.maxBudget != null)
+      query = query.lte('budget', filters.maxBudget);
 
     const { data, error } = await query;
     if (error) {
       logger.error('searchJobs failed', { error });
       throw new Error(error.message);
     }
-    return (data ?? []) as unknown as Job[];
+    return enrichJobsWithPhotos((data ?? []) as Record<string, unknown>[]);
   }
 
   static async getJob(jobId: string): Promise<Job | null> {
