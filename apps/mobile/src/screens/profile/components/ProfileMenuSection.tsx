@@ -86,8 +86,10 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     ...Platform.select({
       ios: {
         shadowColor: '#000000',

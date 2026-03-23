@@ -21,7 +21,7 @@ import { Button } from '../../components/ui/Button';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient } from '../../utils/mobileApiClient';
-import { theme } from '../../theme';
+import { theme, gradients, semanticBg } from '../../theme';
 
 interface Escrow {
   id: string;
@@ -163,7 +163,15 @@ export const PayoutsScreen: React.FC = () => {
         <Ionicons name="cash-outline" size={28} color={theme.colors.primary} />
       </View>
       <Text style={styles.emptyTitle}>No Payouts Yet</Text>
-      <Text style={styles.emptySubtitle}>Your payout history will appear here</Text>
+      <Text style={styles.emptySubtitle}>Complete jobs with escrow to receive payouts here</Text>
+      <Button
+        variant="primary"
+        size="sm"
+        onPress={() => navigation.goBack()}
+        style={{ marginTop: 16 }}
+      >
+        Browse Jobs
+      </Button>
     </View>
   );
 
@@ -172,7 +180,7 @@ export const PayoutsScreen: React.FC = () => {
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       {/* Green gradient hero */}
       <LinearGradient
-        colors={['#064E3B', '#059669', '#10B981']}
+        colors={gradients.heroGreen}
         style={styles.hero}
       >
         {/* Decorative circles */}
@@ -216,7 +224,7 @@ export const PayoutsScreen: React.FC = () => {
         </View>
       ) : error ? (
         <View style={styles.emptyState}>
-          <View style={[styles.emptyIconWrap, { backgroundColor: '#FEE2E2' }]}>
+          <View style={[styles.emptyIconWrap, { backgroundColor: semanticBg.error }]}>
             <Ionicons name="alert-circle-outline" size={28} color={theme.colors.error} />
           </View>
           <Text style={styles.emptyTitle}>Failed to load</Text>
@@ -255,7 +263,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.06)',
   },
   backButton: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)',
+    width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center', justifyContent: 'center', marginBottom: 14,
   },
   heroTitle: {
@@ -270,7 +278,8 @@ const styles = StyleSheet.create({
   heroStatLabel: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: '500', marginTop: 2 },
   heroDivider: { width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.2)' },
   connectCard: {
-    backgroundColor: theme.colors.surface, borderRadius: 16, padding: 20, marginBottom: 16,
+    backgroundColor: theme.colors.surface, borderRadius: 12, padding: 20, marginBottom: 16,
+    borderWidth: 1, borderColor: theme.colors.border,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
@@ -288,7 +297,8 @@ const styles = StyleSheet.create({
   },
   list: { padding: 16, paddingBottom: 40 },
   escrowRow: {
-    flexDirection: 'row', backgroundColor: theme.colors.surface, borderRadius: 16, marginBottom: 8, overflow: 'hidden',
+    flexDirection: 'row', backgroundColor: theme.colors.surface, borderRadius: 12, marginBottom: 8, overflow: 'hidden',
+    borderWidth: 1, borderColor: theme.colors.border,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },

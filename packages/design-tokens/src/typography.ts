@@ -18,18 +18,18 @@ export const typography = {
     semibold: '600',
     bold: '700',
   },
-  // Font Sizes (in pixels - matching web theme exactly)
+  // Font Sizes (in pixels - aligned with web Tailwind scale)
   fontSize: {
-    xs: 11,    // Web: 11px
-    sm: 13,    // Web: 13px
-    base: 15,  // Web: 15px
-    md: 16,    // Web: 16px
-    lg: 17,    // Web: 17px
-    xl: 19,    // Web: 19px
-    '2xl': 22, // Web: 22px
-    '3xl': 28, // Web: 28px
-    '4xl': 36, // Web: 36px
-    '5xl': 48, // Web: 48px
+    xs: 11,    // Web: text-xs (11px)
+    sm: 13,    // Web: text-sm (13px)
+    base: 15,  // Web: text-base (15px)
+    md: 16,    // Web: text-base+ (16px) — card titles
+    lg: 18,    // Web: text-lg (18px) — section headers
+    xl: 20,    // Web: text-xl (20px)
+    '2xl': 24, // Web: text-2xl (24px) — page subtitles
+    '3xl': 30, // Web: text-3xl (30px) — hero titles
+    '4xl': 36, // Web: text-4xl (36px)
+    '5xl': 48, // Web: text-5xl (48px)
   },
   // Line Heights (as strings for CSS compatibility)
   lineHeight: {

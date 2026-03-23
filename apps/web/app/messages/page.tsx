@@ -277,32 +277,44 @@ function MessagesPageContent() {
       </button>
 
       <div className="h-[calc(100vh-120px)] flex bg-white border border-gray-200 rounded-xl overflow-hidden">
-        {/* Sidebar */}
-        <MessagesConversationSidebar
-          conversations={conversations}
-          selectedConversation={selectedConversation}
-          onSelectConversation={setSelectedConversation}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          filter={filter}
-          onFilterChange={setFilter}
-          loading={loadingConversations}
-        />
+        {/* Sidebar — full-width on mobile, 30% on md+ */}
+        <div className={`${selectedConversation ? 'hidden md:flex' : 'flex'} w-full md:w-auto`}>
+          <MessagesConversationSidebar
+            conversations={conversations}
+            selectedConversation={selectedConversation}
+            onSelectConversation={setSelectedConversation}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            filter={filter}
+            onFilterChange={setFilter}
+            loading={loadingConversations}
+          />
+        </div>
 
-        {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col">
+        {/* Main Chat Area — hidden on mobile when no conversation selected */}
+        <div className={`${selectedConversation ? 'flex' : 'hidden md:flex'} flex-1 flex-col`}>
           {selectedConversation ? (
-            <MessagesChatArea
-              conversation={selectedConversation}
-              messages={messages}
-              currentUserId={user.id}
-              loadingMessages={loadingMessages}
-              messageInput={messageInput}
-              onMessageInputChange={(val: string) => { setMessageInput(val); broadcastTyping(); }}
-              onSendMessage={handleSendMessage}
-              sending={sending}
-              isTyping={isOtherTyping}
-            />
+            <>
+              {/* Mobile back button */}
+              <button
+                onClick={() => setSelectedConversation(null)}
+                className="md:hidden flex items-center gap-2 px-4 py-3 border-b border-gray-200 text-gray-600 hover:text-gray-900"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span className="font-medium text-sm">Back to conversations</span>
+              </button>
+              <MessagesChatArea
+                conversation={selectedConversation}
+                messages={messages}
+                currentUserId={user.id}
+                loadingMessages={loadingMessages}
+                messageInput={messageInput}
+                onMessageInputChange={(val: string) => { setMessageInput(val); broadcastTyping(); }}
+                onSendMessage={handleSendMessage}
+                sending={sending}
+                isTyping={isOtherTyping}
+              />
+            </>
           ) : (
             <MessagesEmptyState />
           )}

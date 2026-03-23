@@ -30,7 +30,7 @@ import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
 import { RecentJobs } from './RecentJobs';
 import { BidsReceived } from './BidsReceived';
-import { theme } from '../../theme';
+import { theme, gradients } from '../../theme';
 import { styles } from './homeownerDashboardStyles';
 import { DashboardProfileMenu } from './components/DashboardProfileMenu';
 import { DashboardAppointmentsSection } from './components/DashboardAppointmentsSection';
@@ -207,7 +207,7 @@ export const HomeownerDashboard: React.FC = () => {
       >
         {/* Full-Bleed Gradient Hero */}
         <LinearGradient
-          colors={['#064E3B', '#059669', '#10B981']}
+          colors={gradients.heroGreen}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.hero}

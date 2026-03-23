@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { theme } from '../../../theme';
+import { theme, gradients } from '../../../theme';
 
 interface ProfileHeaderUser {
   first_name?: string;
@@ -38,9 +38,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate, to
 
   const avatarUri = user?.profile_image_url || user?.avatar_url;
   const isContractor = user?.role === 'contractor';
-  const gradientColors: [string, string, string] = isContractor
-    ? ['#064E3B', '#059669', '#10B981']
-    : ['#064E3B', '#059669', '#10B981'];
+  const gradientColors = gradients.heroGreen;
 
   return (
     <LinearGradient

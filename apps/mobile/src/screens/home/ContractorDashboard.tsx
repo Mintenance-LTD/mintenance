@@ -33,7 +33,7 @@ import type { HeaderMenuItem } from '../../components/navigation/NavigationHeade
 import { QuickActions } from './QuickActions';
 import { StatsSection } from './StatsSection';
 import { ScheduleSection } from './ScheduleSection';
-import { theme } from '../../theme';
+import { theme, gradients, semanticBg } from '../../theme';
 
 const appIcon = require('../../../assets/icon.png');
 
@@ -94,10 +94,10 @@ export const ContractorDashboard: React.FC = () => {
   const menuItems: HeaderMenuItem[] = [
     { label: 'Browse Jobs', subtitle: 'Find new opportunities', icon: 'search', iconColor: theme.colors.primary, iconBg: theme.colors.primaryLight, onPress: openJobsList },
     { label: 'Inbox', subtitle: 'Messages & updates', icon: 'mail', iconColor: '#3B82F6', iconBg: '#DBEAFE', onPress: () => navigation.navigate('MessagingTab', { screen: 'MessagesList' }) },
-    { label: 'Quotes', subtitle: 'Build & send estimates', icon: 'document-text', iconColor: '#8B5CF6', iconBg: '#EDE9FE', onPress: () => navigation.navigate('ProfileTab', { screen: 'QuoteBuilder' }) },
-    { label: 'Invoices', subtitle: 'Manage billing', icon: 'receipt', iconColor: theme.colors.accent, iconBg: theme.colors.accentLight, onPress: () => navigation.navigate('ProfileTab', { screen: 'InvoiceManagement' }) },
-    { label: 'Expenses', subtitle: 'Track costs', icon: 'wallet', iconColor: theme.colors.error, iconBg: '#FEE2E2', onPress: () => navigation.navigate('ProfileTab', { screen: 'Expenses' }) },
-    { label: 'Calendar', subtitle: 'Schedule & plan', icon: 'calendar', iconColor: '#06B6D4', iconBg: '#CFFAFE', onPress: () => navigation.navigate('ProfileTab', { screen: 'Calendar' }) },
+    { label: 'Quotes', subtitle: 'Build & send estimates', icon: 'document-text', iconColor: '#8B5CF6', iconBg: '#EDE9FE', onPress: () => navigation.navigate('BusinessTab', { screen: 'QuoteBuilder' }) },
+    { label: 'Invoices', subtitle: 'Manage billing', icon: 'receipt', iconColor: theme.colors.accent, iconBg: theme.colors.accentLight, onPress: () => navigation.navigate('BusinessTab', { screen: 'InvoiceManagement' }) },
+    { label: 'Expenses', subtitle: 'Track costs', icon: 'wallet', iconColor: theme.colors.error, iconBg: semanticBg.error, onPress: () => navigation.navigate('BusinessTab', { screen: 'Expenses' }) },
+    { label: 'Calendar', subtitle: 'Schedule & plan', icon: 'calendar', iconColor: '#06B6D4', iconBg: '#CFFAFE', onPress: () => navigation.navigate('BusinessTab', { screen: 'Calendar' }) },
     { label: 'Profile & Settings', subtitle: 'Edit your account', icon: 'person-circle', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('ProfileTab' as never) },
   ];
 
@@ -113,7 +113,7 @@ export const ContractorDashboard: React.FC = () => {
   if (isError) {
     return (
       <View style={styles.errorContainer}>
-        <View style={styles.errorIconWrap}>
+        <View style={[styles.errorIconWrap, { backgroundColor: semanticBg.error }]}>
           <Text style={styles.errorEmoji}>!</Text>
         </View>
         <Text style={styles.errorText}>Failed to load dashboard</Text>
@@ -151,7 +151,7 @@ export const ContractorDashboard: React.FC = () => {
       >
         {/* Full-bleed green gradient hero — extends behind status bar */}
         <LinearGradient
-          colors={['#064E3B', '#059669', '#10B981']}
+          colors={gradients.heroGreen}
           style={styles.hero}
         >
           {/* Decorative circles */}
@@ -215,10 +215,14 @@ export const ContractorDashboard: React.FC = () => {
             <QuickActions
               onBrowseJobsPress={openJobsList}
               onInboxPress={() => navigation.navigate('MessagingTab', { screen: 'MessagesList' })}
-              onQuotesPress={() => navigation.navigate('ProfileTab', { screen: 'QuoteBuilder' })}
-              onInvoicesPress={() => navigation.navigate('ProfileTab', { screen: 'InvoiceManagement' })}
-              onExpensesPress={() => navigation.navigate('ProfileTab', { screen: 'Expenses' })}
-              onCalendarPress={() => navigation.navigate('ProfileTab', { screen: 'Calendar' })}
+              onQuotesPress={() => navigation.navigate('BusinessTab', { screen: 'QuoteBuilder' })}
+              onInvoicesPress={() => navigation.navigate('BusinessTab', { screen: 'InvoiceManagement' })}
+              onExpensesPress={() => navigation.navigate('BusinessTab', { screen: 'Expenses' })}
+              onCalendarPress={() => navigation.navigate('BusinessTab', { screen: 'Calendar' })}
+              onCRMPress={() => navigation.navigate('BusinessTab', { screen: 'CRMDashboard' })}
+              onFinancePress={() => navigation.navigate('BusinessTab', { screen: 'FinanceDashboard' })}
+              onTimeTrackingPress={() => navigation.navigate('BusinessTab', { screen: 'TimeTracking' })}
+              onReportingPress={() => navigation.navigate('BusinessTab', { screen: 'Reporting' })}
             />
           </FadeIn>
 
@@ -330,7 +334,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   avatarButton: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.25)',
+    width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.25)',
     justifyContent: 'center', alignItems: 'center',
   },
   avatarText: { color: theme.colors.textInverse, fontSize: 13, fontWeight: '700' },
@@ -351,7 +355,7 @@ const styles = StyleSheet.create({
     flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.backgroundSecondary, padding: 40,
   },
   errorIconWrap: {
-    width: 64, height: 64, borderRadius: 32, backgroundColor: '#FEE2E2',
+    width: 64, height: 64, borderRadius: 32,
     alignItems: 'center', justifyContent: 'center', marginBottom: 16,
   },
   errorEmoji: { fontSize: 28, fontWeight: '700', color: theme.colors.error },
@@ -361,8 +365,9 @@ const styles = StyleSheet.create({
   bottomSpacer: { height: 40 },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)' },
   dropdownCard: {
-    position: 'absolute', right: 12, width: 260, backgroundColor: theme.colors.surface, borderRadius: 16,
+    position: 'absolute', right: 12, width: 260, backgroundColor: theme.colors.surface, borderRadius: 12,
     overflow: 'hidden', maxHeight: 420,
+    borderWidth: 1, borderColor: theme.colors.border,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24 },
       android: { elevation: 12 },

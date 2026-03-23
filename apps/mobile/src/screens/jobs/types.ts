@@ -46,10 +46,15 @@ export const CATEGORY_COLORS: Record<string, { icon: string; bg: string; text: s
 };
 
 export const STATUS_STYLES: Record<string, { label: string; bg: string; text: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  posted:      { label: 'Posted', bg: theme.colors.accentLight, text: theme.colors.accent, icon: 'megaphone' },
-  assigned:    { label: 'Assigned', bg: '#DBEAFE', text: '#3B82F6', icon: 'person-add' },
-  in_progress: { label: 'In Progress', bg: theme.colors.primaryLight, text: theme.colors.primary, icon: 'hammer' },
-  completed:   { label: 'Completed', bg: theme.colors.backgroundTertiary, text: theme.colors.textSecondary, icon: 'checkmark-circle' },
+  posted:      { label: 'Posted', bg: '#DBEAFE', text: '#1D4ED8', icon: 'megaphone' },
+  pending:     { label: 'Pending', bg: '#FEF3C7', text: '#92400E', icon: 'hourglass' },
+  assigned:    { label: 'Assigned', bg: '#EDE9FE', text: '#5B21B6', icon: 'person-add' },
+  in_progress: { label: 'In Progress', bg: '#DBEAFE', text: '#1D4ED8', icon: 'hammer' },
+  completed:   { label: 'Completed', bg: '#CCFBF1', text: '#0F766E', icon: 'checkmark-circle' },
+  accepted:    { label: 'Accepted', bg: '#CCFBF1', text: '#0F766E', icon: 'checkmark-circle' },
+  rejected:    { label: 'Rejected', bg: '#FEE2E2', text: '#991B1B', icon: 'close-circle' },
+  cancelled:   { label: 'Cancelled', bg: '#F1F5F9', text: '#475569', icon: 'close-circle' },
+  draft:       { label: 'Draft', bg: '#F1F5F9', text: '#475569', icon: 'document' },
 };
 
 export const EMPTY_MESSAGES: Record<FilterStatus, { title: string; desc: string }> = {

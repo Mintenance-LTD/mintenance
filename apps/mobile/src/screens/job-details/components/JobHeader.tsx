@@ -15,12 +15,15 @@ interface JobHeaderProps {
 }
 
 const STATUS_STYLES: Record<string, { color: string; bg: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  completed:   { color: theme.colors.primary, bg: theme.colors.primaryLight, icon: 'checkmark-circle' },
-  in_progress: { color: theme.colors.accent, bg: theme.colors.accentLight, icon: 'time' },
-  pending:     { color: '#3B82F6', bg: '#DBEAFE', icon: 'hourglass' },
-  posted:      { color: '#3B82F6', bg: '#DBEAFE', icon: 'hourglass' },
-  assigned:    { color: '#8B5CF6', bg: '#EDE9FE', icon: 'person' },
-  cancelled:   { color: theme.colors.error, bg: '#FEE2E2', icon: 'close-circle' },
+  posted:      { color: '#1D4ED8', bg: '#DBEAFE', icon: 'hourglass' },
+  pending:     { color: '#92400E', bg: '#FEF3C7', icon: 'hourglass' },
+  assigned:    { color: '#5B21B6', bg: '#EDE9FE', icon: 'person' },
+  in_progress: { color: '#1D4ED8', bg: '#DBEAFE', icon: 'time' },
+  completed:   { color: '#0F766E', bg: '#CCFBF1', icon: 'checkmark-circle' },
+  accepted:    { color: '#0F766E', bg: '#CCFBF1', icon: 'checkmark-circle' },
+  rejected:    { color: '#991B1B', bg: '#FEE2E2', icon: 'close-circle' },
+  cancelled:   { color: '#475569', bg: '#F1F5F9', icon: 'close-circle' },
+  draft:       { color: '#475569', bg: '#F1F5F9', icon: 'document' },
 };
 
 export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {

@@ -76,12 +76,18 @@ export const colors = {
   priorityMedium: '#F59E0B',
   priorityLow: '#10B981',
   priorityUrgent: '#DC2626',
-  // Status Colors
+  // Status Colors — text/icon color
   statusPosted: '#3B82F6', // Blue
   statusAssigned: '#F59E0B', // Amber
   statusInProgress: '#8B5CF6', // Purple
-  statusCompleted: '#10B981', // Emerald
+  statusCompleted: '#0D9488', // Teal (aligned with primary)
   statusCancelled: '#64748B', // Slate
+  // Status Background Colors — light tint for badges
+  statusPostedBg: '#DBEAFE', // Blue-100
+  statusAssignedBg: '#FEF3C7', // Amber-100
+  statusInProgressBg: '#EDE9FE', // Violet-100
+  statusCompletedBg: '#CCFBF1', // Teal-100
+  statusCancelledBg: '#F1F5F9', // Slate-100
   // Special purpose colors
   ratingGold: '#F59E0B', // Matches Accent
   // Category Colors (Vibrant but professional)
@@ -95,3 +101,22 @@ export const colors = {
   painting: '#F97316', // Orange
 } as const;
 export type Colors = typeof colors;
+
+/**
+ * Shared status color map — used by both web and mobile for consistent badge colors.
+ * Each status has: bg (light tint), text (dark text/icon color), label (display name).
+ */
+export const STATUS_COLORS = {
+  posted:      { bg: '#DBEAFE', text: '#1D4ED8', label: 'Posted' },
+  pending:     { bg: '#FEF3C7', text: '#92400E', label: 'Pending' },
+  assigned:    { bg: '#EDE9FE', text: '#5B21B6', label: 'Assigned' },
+  in_progress: { bg: '#DBEAFE', text: '#1D4ED8', label: 'In Progress' },
+  completed:   { bg: '#CCFBF1', text: '#0F766E', label: 'Completed' },
+  accepted:    { bg: '#CCFBF1', text: '#0F766E', label: 'Accepted' },
+  rejected:    { bg: '#FEE2E2', text: '#991B1B', label: 'Rejected' },
+  cancelled:   { bg: '#F1F5F9', text: '#475569', label: 'Cancelled' },
+  draft:       { bg: '#F1F5F9', text: '#475569', label: 'Draft' },
+  held:        { bg: '#FEF3C7', text: '#92400E', label: 'Held' },
+  released:    { bg: '#CCFBF1', text: '#0F766E', label: 'Released' },
+} as const;
+export type StatusKey = keyof typeof STATUS_COLORS;

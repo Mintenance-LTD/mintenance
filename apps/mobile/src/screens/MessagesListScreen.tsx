@@ -310,7 +310,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     marginHorizontal: 12,
     marginTop: 8,
-    borderRadius: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
