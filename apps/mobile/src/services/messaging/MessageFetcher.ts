@@ -31,10 +31,11 @@ export async function getJobMessages(
   offset = 0
 ): Promise<Message[]> {
   try {
+    // Messages table uses 'content' column (not 'message_text')
     const { data, error } = await supabase
       .from('messages')
       .select(
-        '*, sender:profiles!messages_sender_id_fkey(id, first_name, last_name, role, profile_image_url)'
+        'id, job_id, sender_id, receiver_id, content, message_type, attachment_url, read, created_at, sender:profiles!messages_sender_id_fkey(id, first_name, last_name, role, profile_image_url)'
       )
       .eq('job_id', jobId)
       .order('created_at', { ascending: false })
@@ -45,7 +46,14 @@ export async function getJobMessages(
       throw new Error(error.message);
     }
 
-    return (data ?? []).map((row: DatabaseMessageRow) => mapRowToMessage(row));
+    return (data ?? []).map((row: Record<string, unknown>) => {
+      // Supabase FK join returns sender as array — unwrap to single object
+      const sender = Array.isArray(row.sender) ? row.sender[0] : row.sender;
+      return mapRowToMessage({
+        ...row,
+        sender,
+      } as unknown as DatabaseMessageRow);
+    });
   } catch (error) {
     logger.error('Error fetching messages:', error);
     throw error;
@@ -57,9 +65,12 @@ export async function getUserMessageThreads(
   userId: string
 ): Promise<MessageThread[]> {
   try {
-    const { data, error } = await supabase
+    // 1. Get all threads the user participates in, join with jobs for title
+    const { data: threads, error } = await supabase
       .from('message_threads')
-      .select('*, messages(id, message_text, created_at, sender_id, read)')
+      .select(
+        'id, job_id, participant_ids, updated_at, job:jobs!message_threads_job_id_fkey(id, title)'
+      )
       .contains('participant_ids', [userId])
       .order('updated_at', { ascending: false });
 
@@ -68,30 +79,63 @@ export async function getUserMessageThreads(
       throw new Error(error.message);
     }
 
-    // Map database rows to MessageThread interface
-    return (data ?? []).map((row: Record<string, unknown>) => {
-      const messages = (row.messages as Record<string, unknown>[]) ?? [];
-      const lastMsg = messages[0];
-      const unread = messages.filter(
-        (m: Record<string, unknown>) => m.sender_id !== userId && !m.read
-      ).length;
+    if (!threads || threads.length === 0) return [];
+
+    // 2. For each thread, get the last message and unread count via job_id
+    const jobIds = threads.map(
+      (t: Record<string, unknown>) => t.job_id as string
+    );
+
+    // Get last message per job (batch query)
+    const { data: lastMessages } = await supabase
+      .from('messages')
+      .select('id, job_id, sender_id, content, read, created_at')
+      .in('job_id', jobIds)
+      .order('created_at', { ascending: false });
+
+    // Get unread counts per job for this user
+    const { data: unreadData } = await supabase
+      .from('messages')
+      .select('job_id')
+      .in('job_id', jobIds)
+      .eq('receiver_id', userId)
+      .eq('read', false);
+
+    // Build lookup maps
+    const lastMsgByJob = new Map<string, Record<string, unknown>>();
+    (lastMessages ?? []).forEach((msg: Record<string, unknown>) => {
+      const jid = msg.job_id as string;
+      if (!lastMsgByJob.has(jid)) lastMsgByJob.set(jid, msg);
+    });
+
+    const unreadByJob = new Map<string, number>();
+    (unreadData ?? []).forEach((row: Record<string, unknown>) => {
+      const jid = row.job_id as string;
+      unreadByJob.set(jid, (unreadByJob.get(jid) || 0) + 1);
+    });
+
+    // 3. Map to MessageThread interface
+    return threads.map((row: Record<string, unknown>) => {
+      const jobId = row.job_id as string;
+      const job = row.job as Record<string, unknown> | null;
+      const lastMsg = lastMsgByJob.get(jobId);
 
       return {
-        jobId: row.job_id as string,
-        jobTitle: (row.job_title as string) || '',
+        jobId,
+        jobTitle: (job?.title as string) || '',
         lastMessage: lastMsg
           ? {
               id: lastMsg.id as string,
-              jobId: row.job_id as string,
+              jobId,
               senderId: lastMsg.sender_id as string,
               receiverId: '',
-              messageText: (lastMsg.message_text as string) || '',
+              messageText: (lastMsg.content as string) || '',
               messageType: 'text' as const,
               read: (lastMsg.read as boolean) ?? false,
               createdAt: lastMsg.created_at as string,
             }
           : undefined,
-        unreadCount: unread,
+        unreadCount: unreadByJob.get(jobId) || 0,
         participants: ((row.participant_ids as string[]) ?? []).map(
           (pid: string) => ({
             id: pid,
