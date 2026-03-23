@@ -13,6 +13,7 @@ import {
   Alert,
   TextInput,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -20,6 +21,8 @@ import VideoListItem from '../../components/video/VideoListItem';
 import VideoService from '../../services/VideoService';
 import { logger } from '@mintenance/shared';
 import { theme } from '../../theme';
+import { supabase } from '../../config/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 import { AssessmentStep, AssessmentVideo, AssessmentResults } from './types';
 import { AssessmentHeader } from './components/AssessmentHeader';
 import { ProgressBar } from './components/ProgressBar';
@@ -28,7 +31,10 @@ import { AIInsightsCard } from './components/AIInsightsCard';
 import { QuickActions, TipsCard } from './components/QuickActions';
 
 interface Props {
-  navigation: { navigate: (screen: string, params?: Record<string, unknown>) => void; goBack: () => void };
+  navigation: {
+    navigate: (screen: string, params?: Record<string, unknown>) => void;
+    goBack: () => void;
+  };
   route: {
     params?: {
       propertyId?: string;
@@ -80,16 +86,23 @@ const INITIAL_STEPS: AssessmentStep[] = [
   },
 ];
 
-export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route }) => {
+export const PropertyAssessmentScreen: React.FC<Props> = ({
+  navigation,
+  route,
+}) => {
   const { propertyId, propertyAddress } = route.params || {};
+  const { user } = useAuth();
 
   const [assessmentId] = useState(`assessment_${Date.now()}`);
-  const [assessmentSteps, setAssessmentSteps] = useState<AssessmentStep[]>(INITIAL_STEPS);
+  const [assessmentSteps, setAssessmentSteps] =
+    useState<AssessmentStep[]>(INITIAL_STEPS);
   const [capturedVideos, setCapturedVideos] = useState<AssessmentVideo[]>([]);
-  const [assessmentResults, setAssessmentResults] = useState<AssessmentResults | null>(null);
+  const [assessmentResults, setAssessmentResults] =
+    useState<AssessmentResults | null>(null);
   const [showNotes, setShowNotes] = useState(false);
   const [manualNotes, setManualNotes] = useState('');
   const [showReview, setShowReview] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     let isCancelled = false;
@@ -102,12 +115,17 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
     };
 
     loadVideos();
-    return () => { isCancelled = true; };
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
-  const updateStepStatus = (stepId: string, status: AssessmentStep['status']) => {
-    setAssessmentSteps(steps =>
-      steps.map(step => (step.id === stepId ? { ...step, status } : step))
+  const updateStepStatus = (
+    stepId: string,
+    status: AssessmentStep['status']
+  ) => {
+    setAssessmentSteps((steps) =>
+      steps.map((step) => (step.id === stepId ? { ...step, status } : step))
     );
   };
 
@@ -116,7 +134,11 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
   };
 
   const handleVideoPress = (video: AssessmentVideo) => {
-    navigation.navigate('VideoProcessingStatus', { videoId: video.id, assessmentId, propertyId });
+    navigation.navigate('VideoProcessingStatus', {
+      videoId: video.id,
+      assessmentId,
+      propertyId,
+    });
   };
 
   const handleRetryVideo = async (_videoId: string) => {
@@ -134,10 +156,13 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
         handleStartVideoCapture();
         break;
       case 'photos':
-        navigation.navigate('PhotoUpload', { jobId: assessmentId, photoType: 'before' });
+        navigation.navigate('PhotoUpload', {
+          jobId: assessmentId,
+          photoType: 'before',
+        });
         break;
       case 'manual_notes':
-        setShowNotes(prev => !prev);
+        setShowNotes((prev) => !prev);
         updateStepStatus('manual_notes', 'in_progress');
         break;
       case 'review':
@@ -148,13 +173,13 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
 
   const handleReviewAssessment = () => {
     const incompleteRequired = assessmentSteps.filter(
-      step => step.required && step.status !== 'completed'
+      (step) => step.required && step.status !== 'completed'
     );
 
     if (incompleteRequired.length > 0) {
       Alert.alert(
         'Incomplete Assessment',
-        `Please complete the following steps: ${incompleteRequired.map(s => s.title).join(', ')}`,
+        `Please complete the following steps: ${incompleteRequired.map((s) => s.title).join(', ')}`
       );
       return;
     }
@@ -162,8 +187,95 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
     setShowReview(true);
   };
 
+  const handleSubmitAssessment = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
+    try {
+      if (!user?.id) {
+        Alert.alert('Error', 'You must be logged in to submit an assessment.');
+        return;
+      }
+
+      // Collect photo URLs from captured videos (thumbnails) and any uploaded photos
+      const photoUrls: string[] = capturedVideos
+        .filter((v) => v.thumbnailUri)
+        .map((v) => v.thumbnailUri!);
+
+      // Build assessment data payload
+      const assessmentData = {
+        steps_completed: assessmentSteps
+          .filter((s) => s.status === 'completed')
+          .map((s) => s.id),
+        manual_notes: manualNotes || null,
+        video_count: capturedVideos.length,
+        photo_count: photoUrls.length,
+        property_address: propertyAddress || null,
+        submitted_from: 'mobile_app',
+        submitted_at: new Date().toISOString(),
+      };
+
+      // Insert into building_assessments table
+      const { data: assessment, error: insertError } = await supabase
+        .from('building_assessments')
+        .insert({
+          user_id: user.id,
+          property_id: propertyId || null,
+          domain: 'building',
+          assessment_data: assessmentData,
+          validation_status: 'pending',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single();
+
+      if (insertError) {
+        logger.error('Failed to save assessment', { error: insertError });
+        Alert.alert('Error', 'Failed to save assessment. Please try again.');
+        return;
+      }
+
+      // If we have photo URLs, save them as assessment images
+      if (photoUrls.length > 0 && assessment?.id) {
+        const imageInserts = photoUrls.map((url) => ({
+          assessment_id: assessment.id,
+          image_url: url,
+          image_type: 'walkthrough',
+          created_at: new Date().toISOString(),
+        }));
+
+        await supabase.from('assessment_images').insert(imageInserts);
+      }
+
+      logger.info('Assessment submitted successfully', {
+        assessmentId: assessment?.id,
+        propertyId,
+        userId: user.id,
+      });
+
+      Alert.alert(
+        'Assessment Submitted',
+        'Your property assessment has been saved and will be reviewed.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
+    } catch (error) {
+      logger.error('Assessment submission failed', { error });
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const progressPercentage = Math.round(
-    (assessmentSteps.filter(s => s.status === 'completed').length / assessmentSteps.length) * 100
+    (assessmentSteps.filter((s) => s.status === 'completed').length /
+      assessmentSteps.length) *
+      100
   );
 
   return (
@@ -174,7 +286,10 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
       />
       <ProgressBar percentage={progressPercentage} />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.stepsSection}>
           <Text style={styles.sectionTitle}>Assessment Steps</Text>
           {assessmentSteps.map((step) => (
@@ -191,13 +306,25 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Captured Videos</Text>
               <TouchableOpacity onPress={handleStartVideoCapture}>
-                <Icon name="add-circle" size={24} color={theme.colors.textSecondary} />
+                <Icon
+                  name='add-circle'
+                  size={24}
+                  color={theme.colors.textSecondary}
+                />
               </TouchableOpacity>
             </View>
-            {capturedVideos.map(video => (
+            {capturedVideos.map((video) => (
               <VideoListItem
                 key={video.id}
-                video={{ ...video, createdAt: '', duration: video.duration ?? 0 } as unknown as React.ComponentProps<typeof VideoListItem>['video']}
+                video={
+                  {
+                    ...video,
+                    createdAt: '',
+                    duration: video.duration ?? 0,
+                  } as unknown as React.ComponentProps<
+                    typeof VideoListItem
+                  >['video']
+                }
                 onPress={() => handleVideoPress(video)}
                 onRetry={
                   video.status === 'failed'
@@ -226,7 +353,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
               style={styles.notesInput}
               multiline
               numberOfLines={5}
-              placeholder="Add your observations, context, or notes about the property..."
+              placeholder='Add your observations, context, or notes about the property...'
               placeholderTextColor={theme.colors.textTertiary}
               value={manualNotes}
               onChangeText={(text) => {
@@ -237,7 +364,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
                   updateStepStatus('manual_notes', 'in_progress');
                 }
               }}
-              textAlignVertical="top"
+              textAlignVertical='top'
             />
           </View>
         )}
@@ -248,7 +375,9 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
             <Text style={styles.sectionTitle}>Assessment Summary</Text>
             <View style={styles.reviewRow}>
               <Text style={styles.reviewLabel}>Property</Text>
-              <Text style={styles.reviewValue}>{propertyAddress || 'Not specified'}</Text>
+              <Text style={styles.reviewValue}>
+                {propertyAddress || 'Not specified'}
+              </Text>
             </View>
             <View style={styles.reviewRow}>
               <Text style={styles.reviewLabel}>Videos captured</Text>
@@ -256,17 +385,26 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
             </View>
             <View style={styles.reviewRow}>
               <Text style={styles.reviewLabel}>Notes</Text>
-              <Text style={styles.reviewValue}>{manualNotes ? 'Added' : 'None'}</Text>
+              <Text style={styles.reviewValue}>
+                {manualNotes ? 'Added' : 'None'}
+              </Text>
             </View>
             <View style={styles.reviewRow}>
               <Text style={styles.reviewLabel}>Progress</Text>
-              <Text style={styles.reviewValue}>{progressPercentage}% complete</Text>
+              <Text style={styles.reviewValue}>
+                {progressPercentage}% complete
+              </Text>
             </View>
             <TouchableOpacity
-              style={styles.submitButton}
-              onPress={() => Alert.alert('Submit', 'Assessment submitted successfully!')}
+              style={[styles.submitButton, isSubmitting && { opacity: 0.6 }]}
+              onPress={handleSubmitAssessment}
+              disabled={isSubmitting}
             >
-              <Text style={styles.submitButtonText}>Submit Assessment</Text>
+              {isSubmitting ? (
+                <ActivityIndicator color={theme.colors.textInverse} />
+              ) : (
+                <Text style={styles.submitButtonText}>Submit Assessment</Text>
+              )}
             </TouchableOpacity>
           </View>
         )}
@@ -310,7 +448,12 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 24,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -328,7 +471,12 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 24,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
