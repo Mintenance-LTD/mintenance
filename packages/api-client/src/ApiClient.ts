@@ -1,10 +1,16 @@
 /**
  * HTTP API Client
- * 
+ *
  * Unified HTTP client for web API endpoints with consistent error handling,
  * retry logic, and request/response interceptors.
  */
-import { parseError, logError, ApiError, NetworkError, IApiError } from './ErrorHandler';
+import {
+  parseError,
+  logError,
+  ApiError,
+  NetworkError,
+  IApiError,
+} from './ErrorHandler';
 export interface ApiClientConfig {
   baseURL?: string;
   timeout?: number;
@@ -24,7 +30,11 @@ export class ApiClient {
   private retryDelay: number;
   private defaultHeaders: Record<string, string>;
   constructor(config: ApiClientConfig = {}) {
-    this.baseURL = config.baseURL || (typeof window !== 'undefined' && window.location ? window.location.origin : '');
+    this.baseURL =
+      config.baseURL ||
+      (typeof window !== 'undefined' && window.location
+        ? window.location.origin
+        : '');
     this.timeout = config.timeout || 30000; // 30 seconds
     this.defaultRetries = config.retries || 3;
     this.retryDelay = config.retryDelay || 1000; // 1 second
@@ -80,8 +90,18 @@ export class ApiClient {
           ...fetchOptions,
           headers,
           signal: controller.signal,
+          redirect: 'manual', // Don't follow redirects — treat 3xx as errors (catches middleware 307s)
         });
         clearTimeout(timeoutId);
+        // Treat redirects (307/302) as 401 auth failures — middleware redirects
+        // unauthenticated API requests to login page instead of returning JSON
+        if (response.status >= 300 && response.status < 400) {
+          throw parseError({
+            message: 'Authentication required (redirected to login)',
+            code: 'UNAUTHORIZED',
+            statusCode: 401,
+          });
+        }
         // Handle non-OK responses
         if (!response.ok) {
           const errorData = await this.parseErrorResponse(response);
@@ -121,7 +141,11 @@ export class ApiClient {
           throw new NetworkError('Request timeout', error);
         }
         // Don't retry on client errors
-        if (parsedError.type !== 'NETWORK' && parsedError.statusCode && parsedError.statusCode < 500) {
+        if (
+          parsedError.type !== 'NETWORK' &&
+          parsedError.statusCode &&
+          parsedError.statusCode < 500
+        ) {
           logError(parsedError, `API Request failed: ${url}`);
           throw parsedError;
         }
@@ -135,7 +159,10 @@ export class ApiClient {
     }
     // All retries exhausted
     if (lastError) {
-      logError(lastError, `API Request failed after ${retries} retries: ${url}`);
+      logError(
+        lastError,
+        `API Request failed after ${retries} retries: ${url}`
+      );
       throw lastError;
     }
     throw new NetworkError('Request failed after retries');
@@ -176,7 +203,11 @@ export class ApiClient {
   /**
    * POST request
    */
-  async post<T>(url: string, data?: unknown, options?: RequestOptions): Promise<T> {
+  async post<T>(
+    url: string,
+    data?: unknown,
+    options?: RequestOptions
+  ): Promise<T> {
     return this.request<T>(url, {
       ...options,
       method: 'POST',
@@ -186,7 +217,11 @@ export class ApiClient {
   /**
    * PUT request
    */
-  async put<T>(url: string, data?: unknown, options?: RequestOptions): Promise<T> {
+  async put<T>(
+    url: string,
+    data?: unknown,
+    options?: RequestOptions
+  ): Promise<T> {
     return this.request<T>(url, {
       ...options,
       method: 'PUT',
@@ -196,7 +231,11 @@ export class ApiClient {
   /**
    * PATCH request
    */
-  async patch<T>(url: string, data?: unknown, options?: RequestOptions): Promise<T> {
+  async patch<T>(
+    url: string,
+    data?: unknown,
+    options?: RequestOptions
+  ): Promise<T> {
     return this.request<T>(url, {
       ...options,
       method: 'PATCH',

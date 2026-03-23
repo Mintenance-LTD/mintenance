@@ -32,12 +32,14 @@ import { StickyBottomCTA } from '../../components/ui/StickyBottomCTA';
 import { ContractorAssignment } from '../../components/ContractorAssignment';
 import { AIAnalysisCard, JobLifecycleStepper } from './components';
 import { ContractorLocationSection } from './components/ContractorLocationSection';
+import { HomeownerLocationRequest } from './components/HomeownerLocationRequest';
 import { useAuth } from '../../contexts/AuthContext';
 import { JobsStackParamList } from '../../navigation/types';
 import type { Job } from '@mintenance/types';
 import { theme } from '../../theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const IMAGE_CAROUSEL_HEIGHT = Math.round(SCREEN_WIDTH * 0.75);
 
 type JobDetailsScreenRouteProp = RouteProp<JobsStackParamList, 'JobDetails'>;
 type JobDetailsScreenNavigationProp = NativeStackNavigationProp<JobsStackParamList, 'JobDetails'>;
@@ -153,7 +155,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         {hasPhotos ? (
           <ImageCarousel
             images={photos}
-            height={320}
+            height={IMAGE_CAROUSEL_HEIGHT}
             width={SCREEN_WIDTH}
             showDots
             gradientOverlay
@@ -365,6 +367,16 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             <View style={styles.divider} />
             <View style={styles.sectionPadded}>
               <ContractorLocationSection jobId={job.id} />
+            </View>
+          </>
+        )}
+
+        {/* 10b. Homeowner: Request contractor location */}
+        {isOwner && job.status === 'in_progress' && job.contractor_id && (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.sectionPadded}>
+              <HomeownerLocationRequest jobId={job.id} />
             </View>
           </>
         )}
@@ -605,7 +617,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   placeholderHero: {
-    height: 240,
+    height: Math.round(Dimensions.get('window').width * 0.6),
     backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -710,8 +722,10 @@ const styles = StyleSheet.create({
   // ── Pricing ──
   pricingCard: {
     backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   pricingMain: {
     marginBottom: 12,

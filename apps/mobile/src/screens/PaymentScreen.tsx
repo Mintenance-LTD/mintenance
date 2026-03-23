@@ -13,6 +13,7 @@ import {
   StyleSheet,
   ScrollView,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -68,6 +69,11 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
     <SafeAreaView style={styles.container}>
       <ScreenHeader title="Payment" onBackPress={() => navigation.goBack()} />
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <PaymentSummaryCard
           jobTitle={jobTitle}
@@ -124,6 +130,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
           </Text>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
 
       <View style={styles.paymentButtonContainer}>
         <TouchableOpacity

@@ -5,8 +5,9 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { Booking } from './BookingStatusScreen';
 import { BookingCard } from './BookingCard';
 import { theme } from '../../theme';
@@ -19,6 +20,28 @@ interface BookingListProps {
   onShare: (booking: Booking) => void;
   onViewDetails: (booking: Booking) => void;
 }
+
+const EmptyBookingsState = () => {
+  const navigation = useNavigation();
+  return (
+    <View style={styles.emptyContainer}>
+      <View style={styles.emptyIconWrap}>
+        <Ionicons name="calendar-outline" size={32} color={theme.colors.textSecondary} accessible={false} />
+      </View>
+      <Text style={styles.emptyTitle}>No bookings found</Text>
+      <Text style={styles.emptySubtitle}>
+        Your bookings will appear here once you schedule services
+      </Text>
+      <TouchableOpacity
+        style={styles.emptyCta}
+        onPress={() => navigation.navigate('HomeTab' as never)}
+        accessibilityRole="button"
+      >
+        <Text style={styles.emptyCtaText}>Find Services</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 export const BookingList: React.FC<BookingListProps> = ({
   bookings,
@@ -49,15 +72,7 @@ export const BookingList: React.FC<BookingListProps> = ({
         bookings.length === 0 && styles.emptyContentContainer,
       ]}
       ListEmptyComponent={
-        <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconWrap}>
-            <Ionicons name="calendar-outline" size={32} color={theme.colors.textSecondary} accessible={false} />
-          </View>
-          <Text style={styles.emptyTitle}>No bookings found</Text>
-          <Text style={styles.emptySubtitle}>
-            Your bookings will appear here once you have them
-          </Text>
-        </View>
+        <EmptyBookingsState />
       }
     />
   );
@@ -100,5 +115,17 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  emptyCta: {
+    marginTop: 20,
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  emptyCtaText: {
+    color: theme.colors.textInverse,
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

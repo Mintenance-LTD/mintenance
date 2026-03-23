@@ -9,7 +9,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { theme, gradients } from '../../../theme';
 
 interface ProfileHeaderProps {
   name: string;
@@ -43,7 +43,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     <View>
       {/* Full-bleed gradient hero */}
       <LinearGradient
-        colors={['#064E3B', '#059669', '#10B981']}
+        colors={gradients.heroGreen}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.hero, { paddingTop: topInset + 12 }]}

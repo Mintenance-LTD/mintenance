@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
   },
   systemText: {
     fontSize: 13,
-    color: '#064E3B',
+    color: '#134E4A',
     fontWeight: '500',
     maxWidth: '80%',
   },

@@ -354,16 +354,25 @@ const ProfileScreen: React.FC = () => {
             )}
 
             {user?.role === 'contractor' && (
-              <>
-                <ProfileMenuSection
-                  title='Business & Finance'
-                  items={businessMenuItems}
-                />
-                <ProfileMenuSection
-                  title='Contractor Tools'
-                  items={contractorToolsMenuItems}
-                />
-              </>
+              <ProfileMenuSection
+                title='Quick Access'
+                items={[
+                  {
+                    label: 'Business Tools',
+                    icon: 'briefcase-outline',
+                    iconColor: theme.colors.primary,
+                    iconBg: theme.colors.primaryLight,
+                    onPress: () => navigation.navigate('BusinessTab' as never),
+                  },
+                  {
+                    label: 'Verification',
+                    icon: 'shield-checkmark-outline',
+                    iconColor: '#3B82F6',
+                    iconBg: '#DBEAFE',
+                    onPress: () => navigation.navigate('ContractorVerification'),
+                  },
+                ]}
+              />
             )}
 
             <ProfileMenuSection title='Support' items={supportMenuItems} />

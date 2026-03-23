@@ -18,7 +18,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Badge } from '../../components/ui/Badge';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { useAuth } from '../../contexts/AuthContext';
-import { theme } from '../../theme';
+import { theme, gradients } from '../../theme';
 
 interface TimeEntry {
   id: string;
@@ -80,7 +80,7 @@ export const TimeTrackingScreen: React.FC = () => {
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       {/* Green gradient hero */}
       <LinearGradient
-        colors={['#064E3B', '#059669', '#10B981']}
+        colors={gradients.heroGreen}
         style={styles.hero}
       >
         <View style={styles.decorCircle1} />

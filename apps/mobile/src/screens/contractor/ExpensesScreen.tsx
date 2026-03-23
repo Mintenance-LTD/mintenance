@@ -12,6 +12,7 @@ import {
   Animated,
   Platform,
   StatusBar,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -157,6 +158,11 @@ export const ExpensesScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
       <ScreenHeader title="Expenses" showBack onBack={() => navigation.goBack()} />
 
       {/* Stats */}
@@ -260,6 +266,7 @@ export const ExpensesScreen: React.FC = () => {
           <Ionicons name="add" size={28} color={theme.colors.textInverse} />
         </TouchableOpacity>
       )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -268,7 +275,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   statsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8 },
   statCard: {
-    flex: 1, backgroundColor: theme.colors.surface, borderRadius: 16, paddingVertical: 14, paddingHorizontal: 10, alignItems: 'center',
+    flex: 1, backgroundColor: theme.colors.surface, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 10, alignItems: 'center',
+    borderWidth: 1, borderColor: theme.colors.border,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
@@ -294,7 +302,8 @@ const styles = StyleSheet.create({
   formActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
   list: { paddingHorizontal: 16, paddingBottom: 80 },
   expenseRow: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surface, borderRadius: 16, padding: 14, marginBottom: 8,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surface, borderRadius: 12, padding: 14, marginBottom: 8,
+    borderWidth: 1, borderColor: theme.colors.border,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },

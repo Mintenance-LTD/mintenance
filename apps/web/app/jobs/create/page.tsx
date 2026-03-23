@@ -308,7 +308,7 @@ export default function CreateJobPage2025() {
             <ProgressBar currentStep={currentStep} steps={STEPS} />
 
             {/* Main Card */}
-            <div className="bg-white rounded-xl border border-gray-200 p-8 mb-6" data-testid="job-create-form">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 md:p-8 mb-6" data-testid="job-create-form">
               {currentStep === 1 && (
                 <DetailsStep
                   formData={formData}
