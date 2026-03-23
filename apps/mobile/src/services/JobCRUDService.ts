@@ -9,6 +9,7 @@
  */
 
 import type { Job } from '@mintenance/types';
+import { supabase } from '../config/supabase';
 import { mobileApiClient } from '../utils/mobileApiClient';
 import { sanitizeText } from '../utils/sanitize';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
