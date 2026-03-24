@@ -150,14 +150,18 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
 
         // 2. Fall back to real-time AI analysis if photos exist (any role)
         if (job.photos && job.photos.length > 0 && !isCancelled) {
-          const analysis = await AIAnalysisService.analyzeJobPhotos(job);
-          if (!isCancelled) {
-            setAiAnalysis(analysis);
+          try {
+            const analysis = await AIAnalysisService.analyzeJobPhotos(job);
+            if (!isCancelled) {
+              setAiAnalysis(analysis);
+            }
+          } catch {
+            // AI analysis is optional — silently fail if API is unavailable
           }
         }
       } catch (error) {
         if (!isCancelled) {
-          logger.error('Failed to load AI analysis:', error);
+          logger.warn('AI analysis unavailable:', error);
         }
       } finally {
         if (!isCancelled) {
