@@ -136,10 +136,6 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const hasPhotos = photos.length > 0;
   const locationStr = typeof job.location === 'string' ? job.location : job.city || '';
   const budget = job.budget || job.budget_min || 0;
-
-  // Use accepted bid amount for payment (not budget estimate)
-  const acceptedBid = bidsArray.find((b: { status?: string; amount?: number }) => b.status === 'accepted');
-  const paymentAmount = acceptedBid?.amount || budget;
   const urgency = job.urgency || job.priority || 'medium';
   const categoryIcon = CATEGORY_ICONS[job.category?.toLowerCase() || ''] || 'construct-outline';
 
@@ -552,15 +548,18 @@ function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation
     );
   }
 
-  if (isOwner && job.status === 'assigned' && contractStatus === 'accepted' && escrowStatus !== 'held' && paymentAmount > 0) {
+  if (isOwner && job.status === 'assigned' && contractStatus === 'accepted' && escrowStatus !== 'held' && budget > 0) {
+    // Use accepted bid amount for payment instead of budget estimate
+    const acceptedBid = bidsArray.find((b: { status?: string; amount?: number }) => b.status === 'accepted');
+    const amount = acceptedBid?.amount || budget;
     return (
       <StickyBottomCTA
-        price={paymentAmount}
+        price={amount}
         priceLabel="Bid amount"
         buttonText="Pay Now"
         onPress={() => navigation.navigate('JobPayment', {
           jobId: job.id,
-          amount: paymentAmount,
+          amount,
           contractorId: job.contractor_id || '',
         })}
         secondaryText="Secure payment in escrow"
