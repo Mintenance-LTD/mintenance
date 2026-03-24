@@ -114,17 +114,32 @@ const JobsScreen: React.FC = () => {
   }, [allJobs]);
 
   // -- Filter counts (homeowner) --
+  // -- Contractor: fetch jobs with pending bids --
+  const { data: bidPendingJobs = [] } = useQuery<Job[]>({
+    queryKey: ['contractorBidJobs', user?.id],
+    queryFn: async () => {
+      const { BidService } = await import('../../services/BidService');
+      const bids = await BidService.getBidsByContractor(user!.id);
+      const pendingBids = bids.filter((b: { status?: string }) => b.status === 'pending');
+      return pendingBids.map((b: { job?: Job }) => b.job).filter(Boolean) as Job[];
+    },
+    enabled: !!user && isContractor,
+  });
+
   const filterCounts = useMemo(() => {
-    const counts: Record<FilterStatus, number> = { all: allJobs.length, posted: 0, assigned: 0, in_progress: 0, completed: 0 };
+    const counts: Record<FilterStatus, number> = { all: allJobs.length, posted: 0, assigned: 0, in_progress: 0, completed: 0, bid: bidPendingJobs.length };
     allJobs.forEach((j) => { const s = j.status as FilterStatus; if (s in counts) counts[s]++; });
     return counts;
-  }, [allJobs]);
+  }, [allJobs, bidPendingJobs]);
 
   // -- Sort & filter --
   const filteredJobs = useMemo(() => {
     let data = [...allJobs];
 
-    if (!isContractor && selectedFilter !== 'all') {
+    // Filter by status tab
+    if (selectedFilter === 'bid' && isContractor) {
+      data = bidPendingJobs;
+    } else if (selectedFilter !== 'all') {
       data = data.filter((j) => j.status === selectedFilter);
     }
 

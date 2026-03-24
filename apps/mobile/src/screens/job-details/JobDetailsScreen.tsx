@@ -522,26 +522,41 @@ function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation
     );
   }
 
-  if (isAssignedContractor && job.status === 'assigned' && contractStatus === 'draft') {
+  // Contractor stages matching web app workflow:
+  // 1. contract_preparing: no contract or draft → "Prepare Contract"
+  if (isAssignedContractor && job.status === 'assigned' && (!contractStatus || contractStatus === 'draft' || contractStatus === 'pending_contractor')) {
     return (
       <StickyBottomCTA
         buttonText="Prepare Contract"
         onPress={() => navigation.navigate('ContractPreparation', { jobId: job.id, jobTitle: job.title })}
-        secondaryText="Fill in contract terms for homeowner"
+        secondaryText="Create contract with your business details and terms"
       />
     );
   }
 
-  if (isAssignedContractor && job.status === 'assigned' && contractStatus && contractStatus !== 'draft' && contractStatus !== 'accepted') {
+  // 2. contract_pending: contractor needs to sign → "Sign Contract"
+  if (isAssignedContractor && job.status === 'assigned' && contractStatus === 'pending_homeowner') {
     return (
       <StickyBottomCTA
-        buttonText="View Contract"
+        buttonText="Waiting for Homeowner"
         onPress={() => navigation.navigate('ContractView', { jobId: job.id })}
-        secondaryText="Review and sign contract"
+        secondaryText="Homeowner needs to review and sign"
       />
     );
   }
 
+  // 3. awaiting_payment: both signed, waiting for escrow → "Waiting for Payment"
+  if (isAssignedContractor && job.status === 'assigned' && contractStatus === 'accepted' && escrowStatus !== 'held') {
+    return (
+      <StickyBottomCTA
+        buttonText="Waiting for Payment"
+        onPress={() => navigation.navigate('ContractView', { jobId: job.id })}
+        secondaryText="Homeowner needs to deposit payment into escrow"
+      />
+    );
+  }
+
+  // 4. ready_to_start: escrow held → "Upload Before Photos"
   if (isAssignedContractor && job.status === 'assigned' && contractStatus === 'accepted' && escrowStatus === 'held') {
     return (
       <StickyBottomCTA
