@@ -104,12 +104,13 @@ export async function getUserMessageThreads(
       (t: Record<string, unknown>) => t.job_id as string
     );
 
-    // Get last message per job (batch query)
+    // Get recent messages per job (limited to avoid OOM on large threads)
     const { data: lastMessages } = await supabase
       .from('messages')
       .select('id, job_id, sender_id, content, read, created_at')
       .in('job_id', jobIds)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(jobIds.length * 2);
 
     // Get unread counts per job for this user
     const { data: unreadData } = await supabase

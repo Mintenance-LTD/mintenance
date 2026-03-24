@@ -46,7 +46,7 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = memo(({
 
   const renderImage = useCallback(({ item, index }: { item: string; index: number }) => (
     <TouchableOpacity activeOpacity={onImagePress ? 0.9 : 1} onPress={() => onImagePress?.(index)} disabled={!onImagePress} style={{ width: carouselWidth, height }}>
-      <OptimizedImage source={{ uri: item }} style={{ width: carouselWidth, height }} contentFit="cover" priority={index === 0 ? 'high' : 'low'} cachePolicy="memory-disk" testID={`${testID}-image-${index}`} />
+      <OptimizedImage source={{ uri: item }} style={{ width: carouselWidth, height }} contentFit="cover" priority={index === 0 ? 'high' : 'low'} cachePolicy="memory-disk" quality="low" testID={`${testID}-image-${index}`} />
     </TouchableOpacity>
   ), [carouselWidth, height, onImagePress, testID]);
 

@@ -8,23 +8,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-const STATUS_COLORS: Record<string, string> = {
-  posted: '#1D4ED8',
-  pending: '#92400E',
-  assigned: '#5B21B6',
-  in_progress: '#1D4ED8',
-  completed: '#0F766E',
-  accepted: '#0F766E',
-  rejected: '#991B1B',
-  cancelled: '#475569',
-  draft: '#475569',
-};
-function getStatusColor(status: string): string {
-  return STATUS_COLORS[status] || theme.colors.textSecondary;
-}
 import { OptimizedImage } from '../../components/optimized/OptimizedImage';
 import { Skeleton } from '../../components/skeletons/Skeleton';
-import { theme } from '../../theme';
+import { theme, getStatusBadge } from '../../theme';
 
 interface RecentJob {
   id: string;
@@ -114,7 +100,7 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ isLoading, jobs, onViewA
 
       {displayJobs.length > 0 ? (
         displayJobs.map((job) => {
-          const statusColor = getStatusColor(job.status || 'posted');
+          const statusBadge = getStatusBadge(job.status || 'posted');
           const photos = job.photos || job.images || [];
           const hasPhoto = photos.length > 0;
           const budget = job.budget || job.budget_min || 0;
@@ -138,6 +124,7 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ isLoading, jobs, onViewA
                     style={styles.heroImage}
                     contentFit="cover"
                     cachePolicy="memory-disk"
+                    quality="low"
                   />
                 ) : (
                   <View style={[styles.placeholderHero, { backgroundColor: catColors.bg }]}>
@@ -172,8 +159,8 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ isLoading, jobs, onViewA
                 )}
 
                 {/* Status badge */}
-                <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-                  <Text style={styles.statusText}>{formatStatus(job.status || 'posted')}</Text>
+                <View style={[styles.statusBadge, { backgroundColor: statusBadge.bg }]}>
+                  <Text style={[styles.statusText, { color: statusBadge.text }]}>{statusBadge.label}</Text>
                 </View>
               </View>
 
