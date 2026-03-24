@@ -310,6 +310,40 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.description}>{job.description}</Text>
         </View>
 
+        {/* 7b. Bids Section (homeowner sees bids on their job) */}
+        {isOwner && bidsArray.length > 0 && (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.sectionPadded}>
+              <Text style={styles.sectionLabel}>Bids ({bidsArray.length})</Text>
+              {(bidsArray as Array<{ id: string; contractor_id?: string; status?: string; amount?: number; description?: string; message?: string; contractor?: { first_name?: string; last_name?: string; company_name?: string; profile_image_url?: string } }>).map((bid) => (
+                <View key={bid.id} style={{ backgroundColor: theme.colors.backgroundSecondary, borderRadius: 12, padding: 12, marginBottom: 8 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary }}>
+                      {bid.contractor?.first_name ? `${bid.contractor.first_name} ${bid.contractor.last_name || ''}`.trim() : bid.contractor?.company_name || 'Contractor'}
+                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 17, fontWeight: '700', color: theme.colors.primary }}>
+                        £{typeof bid.amount === 'number' ? bid.amount.toFixed(2) : bid.amount}
+                      </Text>
+                      <View style={{ marginLeft: 8, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, backgroundColor: bid.status === 'accepted' ? '#D1FAE5' : bid.status === 'rejected' ? '#FEE2E2' : '#FEF3C7' }}>
+                        <Text style={{ fontSize: 11, fontWeight: '600', color: bid.status === 'accepted' ? '#065F46' : bid.status === 'rejected' ? '#991B1B' : '#92400E' }}>
+                          {bid.status === 'accepted' ? 'Accepted' : bid.status === 'rejected' ? 'Rejected' : 'Pending'}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                  {(bid.description || bid.message) && (
+                    <Text style={{ fontSize: 13, color: theme.colors.textSecondary, marginTop: 6 }} numberOfLines={2}>
+                      {bid.description || bid.message}
+                    </Text>
+                  )}
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+
         {/* 8. AI Analysis (if available) */}
         {(viewModel.aiAnalysis || viewModel.aiLoading) && (
           <>
