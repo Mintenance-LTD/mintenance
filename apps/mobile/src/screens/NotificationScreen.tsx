@@ -487,12 +487,16 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border,
+    flexShrink: 0,
+    minHeight: 52,
   },
   tabsRow: {
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 12,
     gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   tab: {
     paddingHorizontal: 16,
