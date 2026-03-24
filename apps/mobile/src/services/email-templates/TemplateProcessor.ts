@@ -1,4 +1,3 @@
-import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
 import type { EmailTemplate } from './types';
 import { getTemplate } from './TemplateCRUD';
@@ -11,31 +10,28 @@ export async function processTemplate(
     const template = await getTemplate(templateId);
     if (!template) throw new Error('Template not found');
 
-    const { data: missingVars } = await supabase.rpc('validate_template_variables', {
-      template_id: templateId, provided_variables: variables,
-    });
-    if (missingVars && missingVars.length > 0) {
+    // Validate required variables locally
+    const templateVars = extractVariablesFromContent(
+      `${template.subject_line} ${template.text_content} ${template.html_content || ''}`
+    );
+    const providedKeys = Object.keys(variables);
+    const missingVars = templateVars.filter((v) => !providedKeys.includes(v));
+    if (missingVars.length > 0) {
       throw new Error(`Missing required variables: ${missingVars.join(', ')}`);
     }
 
-    const { data: processedSubject } = await supabase.rpc('replace_template_variables', {
-      template_content: template.subject_line, variables,
-    });
-    const { data: processedText } = await supabase.rpc('replace_template_variables', {
-      template_content: template.text_content, variables,
-    });
+    // Process templates locally using replaceVariables
+    const processedSubject = replaceVariables(template.subject_line, variables);
+    const processedText = replaceVariables(template.text_content, variables);
 
     let processedHtml: string | undefined;
     if (template.html_content) {
-      const { data: htmlData } = await supabase.rpc('replace_template_variables', {
-        template_content: template.html_content, variables,
-      });
-      processedHtml = htmlData;
+      processedHtml = replaceVariables(template.html_content, variables);
     }
 
     return {
-      subject_line: processedSubject || template.subject_line,
-      text_content: processedText || template.text_content,
+      subject_line: processedSubject,
+      text_content: processedText,
       html_content: processedHtml,
     };
   } catch (error) { logger.error('Error processing template:', error); throw error; }

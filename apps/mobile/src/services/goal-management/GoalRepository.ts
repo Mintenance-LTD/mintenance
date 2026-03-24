@@ -5,6 +5,7 @@
  */
 
 import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import {
   Goal,
   CreateGoalRequest,
@@ -337,10 +338,9 @@ export class GoalRepository {
    * Increment template usage count
    */
   async incrementTemplateUsage(templateId: string): Promise<void> {
-    const { error } = await supabase.rpc('increment_template_usage', {
+    await mobileApiClient.post('/api/email/templates', {
+      action: 'increment_usage',
       template_id: templateId,
     });
-
-    if (error) throw error;
   }
 }

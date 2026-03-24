@@ -51,10 +51,23 @@ export const POST = withApiHandler(
     // Validate bid transition using state machine
     validateBidTransition(bid.status as BidStatusValue, BID_STATUS.REJECTED as BidStatusValue);
 
-    // Reject the bid
+    // Parse optional rejection reason from body
+    let reason: string | undefined;
+    try {
+      const body = await request.json();
+      reason = typeof body?.reason === 'string' ? body.reason.slice(0, 500) : undefined;
+    } catch {
+      // No body or invalid JSON — reason is optional
+    }
+
+    // Reject the bid (with optional reason)
+    const updateData: Record<string, unknown> = { status: BID_STATUS.REJECTED };
+    if (reason) {
+      updateData.rejection_reason = reason;
+    }
     const { error: rejectError } = await serverSupabase
       .from('bids')
-      .update({ status: BID_STATUS.REJECTED })
+      .update(updateData)
       .eq('id', bidId);
 
     if (rejectError) {

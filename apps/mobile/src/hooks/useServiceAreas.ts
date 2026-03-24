@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { logger } from '../utils/logger';
 import { mobileApiClient } from '../utils/mobileApiClient';
+import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { ServiceArea } from '../services/ServiceAreasService';
 
@@ -25,13 +26,12 @@ export const useServiceAreas = () => {
   const loadServiceAreas = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const raw = await mobileApiClient.get<unknown>('/api/contractor/service-areas');
-      const areas = Array.isArray(raw)
-        ? raw
-        : (raw as Record<string, unknown>)?.serviceAreas
-          || (raw as Record<string, unknown>)?.service_areas
-          || [];
-      setServiceAreas(areas as ServiceArea[]);
+      const { data, error } = await supabase
+        .from('contractor_service_areas')
+        .select('*')
+        .eq('contractor_id', user.id);
+      if (error) { logger.error('Error loading service areas', error.message); throw new Error(error.message); }
+      setServiceAreas((data || []) as ServiceArea[]);
     } catch (error) {
       logger.error('Error loading service areas', error);
       Alert.alert('Error', 'Failed to load service areas');

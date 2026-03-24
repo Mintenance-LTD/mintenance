@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ScreenHeader } from '../../components/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { theme } from '../../theme';
 
@@ -42,7 +43,17 @@ export const MFASecurityScreen: React.FC = () => {
 
   const { data: mfaStatus, isLoading } = useQuery<MFAStatus>({
     queryKey: ['mfa-status', user?.id],
-    queryFn: () => mobileApiClient.get('/api/auth/mfa/status'),
+    queryFn: async () => {
+      const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (error) throw new Error(error.message);
+      const factors = (await supabase.auth.mfa.listFactors()).data?.totp || [];
+      const hasTOTP = factors.length > 0;
+      return {
+        enabled: hasTOTP && data.currentLevel === 'aal2',
+        method: hasTOTP ? 'totp' : null,
+        enrolledAt: factors[0]?.created_at || null,
+      } as MFAStatus;
+    },
     enabled: !!user?.id,
   });
 

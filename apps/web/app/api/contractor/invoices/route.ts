@@ -63,6 +63,8 @@ export const GET = withApiHandler(
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const jobId = searchParams.get('jobId');
+    const periodStart = searchParams.get('period_start');
+    const periodEnd = searchParams.get('period_end');
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
@@ -74,11 +76,25 @@ export const GET = withApiHandler(
       .range(offset, offset + limit - 1);
 
     if (status) {
-      query = query.eq('status', status);
+      // Support comma-separated statuses (e.g. "sent,overdue")
+      const statuses = status.split(',').map(s => s.trim()).filter(Boolean);
+      if (statuses.length === 1) {
+        query = query.eq('status', statuses[0]);
+      } else if (statuses.length > 1) {
+        query = query.in('status', statuses);
+      }
     }
 
     if (jobId) {
       query = query.eq('job_id', jobId);
+    }
+
+    if (periodStart) {
+      query = query.gte('created_at', periodStart);
+    }
+
+    if (periodEnd) {
+      query = query.lte('created_at', periodEnd);
     }
 
     const { data: invoices, count, error } = await query;

@@ -23,7 +23,54 @@ const createServiceAreaSchema = z.object({
  */
 export const GET = withApiHandler(
   { roles: ['contractor'], csrf: false },
-  async (_request, { user }) => {
+  async (request, { user }) => {
+    const url = new URL(request.url);
+    const action = url.searchParams.get('action');
+
+    // Location check: is a point inside a specific service area?
+    if (action === 'check') {
+      const areaId = url.searchParams.get('area_id');
+      const lat = parseFloat(url.searchParams.get('lat') || '');
+      const lng = parseFloat(url.searchParams.get('lng') || '');
+      if (!areaId || isNaN(lat) || isNaN(lng)) {
+        return NextResponse.json({ in_area: false });
+      }
+      const { data: area } = await serverSupabase
+        .from('service_areas')
+        .select('center_latitude, center_longitude, radius_km')
+        .eq('id', areaId)
+        .single();
+      if (!area || !area.center_latitude || !area.center_longitude || !area.radius_km) {
+        return NextResponse.json({ in_area: false });
+      }
+      const distance = haversineKm(lat, lng, area.center_latitude, area.center_longitude);
+      return NextResponse.json({ in_area: distance <= area.radius_km });
+    }
+
+    // Find contractors near a location
+    if (action === 'find') {
+      const lat = parseFloat(url.searchParams.get('lat') || '');
+      const lng = parseFloat(url.searchParams.get('lng') || '');
+      const maxDistance = parseFloat(url.searchParams.get('max_distance') || '50');
+      if (isNaN(lat) || isNaN(lng)) {
+        return NextResponse.json({ contractors: [] });
+      }
+      const { data: areas } = await serverSupabase
+        .from('service_areas')
+        .select('contractor_id, center_latitude, center_longitude, radius_km');
+      const nearby = (areas || [])
+        .filter((a: Record<string, unknown>) =>
+          a.center_latitude && a.center_longitude &&
+          haversineKm(lat, lng, a.center_latitude as number, a.center_longitude as number) <= Math.min(a.radius_km as number || maxDistance, maxDistance)
+        )
+        .map((a: Record<string, unknown>) => ({
+          contractor_id: a.contractor_id,
+          distance: haversineKm(lat, lng, a.center_latitude as number, a.center_longitude as number),
+        }));
+      return NextResponse.json({ contractors: nearby });
+    }
+
+    // Default: list all service areas for the contractor
     const { data, error } = await serverSupabase
       .from('service_areas')
       .select('*')
@@ -38,6 +85,17 @@ export const GET = withApiHandler(
     return NextResponse.json({ success: true, data: data || [] });
   }
 );
+
+/** Haversine distance in km between two lat/lng points. */
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 /**
  * POST /api/contractor/service-areas

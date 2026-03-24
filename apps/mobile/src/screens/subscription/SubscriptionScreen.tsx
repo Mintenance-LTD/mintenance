@@ -20,6 +20,7 @@ import { ScreenHeader } from '../../components/shared';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
 import { theme } from '../../theme';
 
 interface SubscriptionPlanFeatures {
@@ -82,30 +83,51 @@ export const SubscriptionScreen: React.FC = () => {
   const { data: status, isLoading: statusLoading, error: statusError, refetch: refetchStatus } = useQuery({
     queryKey: ['subscription-status'],
     queryFn: async () => {
-      const response = await mobileApiClient.get<SubscriptionStatus>('/api/subscriptions/status');
-      return response;
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) throw new Error('Not authenticated');
+      const { data: sub, error } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', authUser.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const role = user?.role || 'homeowner';
+      if (error || !sub) {
+        return { role, subscription: null, trial: null, requiresSubscription: false } as SubscriptionStatus;
+      }
+      return {
+        role,
+        subscription: {
+          planType: sub.plan_type || sub.plan_id,
+          planName: sub.plan_name,
+          status: sub.status,
+          amount: sub.amount,
+          currentPeriodEnd: sub.current_period_end,
+          cancelAtPeriodEnd: sub.cancel_at_period_end,
+        },
+        trial: sub.trial_end ? { active: new Date(sub.trial_end as string) > new Date(), daysRemaining: Math.max(0, Math.ceil((new Date(sub.trial_end as string).getTime() - Date.now()) / 86400000)) } : null,
+        requiresSubscription: false,
+      } as SubscriptionStatus;
     },
   });
 
   const { data: plans, isLoading: plansLoading } = useQuery({
     queryKey: ['subscription-plans'],
     queryFn: async () => {
-      const response = await mobileApiClient.get<{
-        plans: Array<{
-          planType: string;
-          name: string;
-          price: number;
-          currency?: string;
-          features: string[] | SubscriptionPlanFeatures;
-        }>;
-      }>(`/api/subscriptions/plans${user?.role ? `?role=${user.role}` : ''}`);
-      return (response.plans || []).map((p) => ({
-        id: p.planType,
-        name: p.name,
-        price: p.price,
+      const { data, error } = await supabase
+        .from('subscription_plans')
+        .select('*')
+        .eq('is_active', true)
+        .order('price', { ascending: true });
+      if (error) return [];
+      return (data || []).map((p: Record<string, unknown>) => ({
+        id: (p.plan_type as string) || (p.id as string),
+        name: (p.name as string) || '',
+        price: (p.price as number) || 0,
         billingCycle: 'monthly' as const,
-        features: p.features,
-        recommended: p.planType === 'professional',
+        features: (p.features as string[] | SubscriptionPlanFeatures) || [],
+        recommended: (p.plan_type as string) === 'professional',
       }));
     },
   });

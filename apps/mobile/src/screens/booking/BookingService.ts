@@ -7,7 +7,7 @@
 
 import type { User, Job } from '@mintenance/types';
 import { JobService } from '../../services/JobService';
-import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
 import { Booking } from './BookingStatusScreen';
 
@@ -81,8 +81,13 @@ export class BookingService {
   private async getUserInfo(userId: string): Promise<UserProfile | null> {
     try {
       if (!userId) return null;
-      const res = await mobileApiClient.get<{ user: UserProfile }>(`/api/users/${userId}`);
-      return res.user || null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, profile_image_url')
+        .eq('id', userId)
+        .single();
+      if (error) { logger.error('Error getting user info:', error.message); return null; }
+      return data as UserProfile;
     } catch (error) {
       logger.error('Error getting user info:', error);
       return null;

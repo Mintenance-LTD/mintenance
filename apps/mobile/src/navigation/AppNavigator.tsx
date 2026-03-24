@@ -26,6 +26,7 @@ import AuthNavigator from './navigators/AuthNavigator';
 import JobsNavigator from './navigators/JobsNavigator';
 import MessagingNavigator from './navigators/MessagingNavigator';
 import ProfileNavigator from './navigators/ProfileNavigator';
+import BusinessNavigator from './navigators/BusinessNavigator';
 import ModalNavigator from './navigators/ModalNavigator';
 // Import core screens
 import HomeScreen from '../screens/HomeScreen';
@@ -251,6 +252,34 @@ const TabNavigator: React.FC = () => {
           },
         })}
       />
+
+      {user?.role === 'contractor' && (
+        <Tab.Screen
+          name="BusinessTab"
+          component={BusinessNavigator}
+          options={{
+            tabBarLabel: 'Business',
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="briefcase" size={size} color={color} />
+            ),
+            tabBarAccessibilityLabel: 'Business tools tab',
+            tabBarButton: ({ onPress, style, children, ...rest }) => (
+              <TouchableOpacity
+                onPress={(e) => {
+                  handleTabPress('BusinessTab');
+                  onPress?.(e);
+                }}
+                accessibilityRole="tab"
+                accessibilityLabel="Business tools"
+                accessibilityHint="Access invoices, quotes, finance, and other business tools"
+                style={[style as ViewStyle, { minHeight: 44, minWidth: 44 }]}
+              >
+                {children}
+              </TouchableOpacity>
+            ),
+          }}
+        />
+      )}
 
       <Tab.Screen
         name="MessagingTab"

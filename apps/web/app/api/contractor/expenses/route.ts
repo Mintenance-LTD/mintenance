@@ -12,7 +12,12 @@ export const GET = withApiHandler(
   async (request, { user }) => {
     const userDb = createRequestScopedClient(request) ?? serverSupabase;
 
-    const { data: expenses, error } = await userDb
+    const { searchParams } = new URL(request.url);
+    const periodStart = searchParams.get('period_start');
+    const periodEnd = searchParams.get('period_end');
+    const category = searchParams.get('category');
+
+    let query = userDb
       .from('contractor_expenses')
       .select(`
         id, description, category, amount, date, job_id, payment_method,
@@ -21,6 +26,18 @@ export const GET = withApiHandler(
       `)
       .eq('contractor_id', user.id)
       .order('date', { ascending: false });
+
+    if (periodStart) {
+      query = query.gte('date', periodStart);
+    }
+    if (periodEnd) {
+      query = query.lte('date', periodEnd);
+    }
+    if (category) {
+      query = query.eq('category', category);
+    }
+
+    const { data: expenses, error } = await query;
 
     if (error) {
       logger.error('Error fetching expenses', error, { service: 'expenses', userId: user.id });

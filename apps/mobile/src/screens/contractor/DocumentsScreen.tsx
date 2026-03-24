@@ -29,7 +29,7 @@ try {
   // Package not installed
 }
 import { useAuth } from '../../contexts/AuthContext';
-// supabase import removed — all operations now route through mobileApiClient
+import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { theme, gradients } from '../../theme';
 
@@ -123,23 +123,27 @@ export const DocumentsScreen: React.FC = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       if (isContractor) {
-        const raw = await mobileApiClient.get<unknown>('/api/contractor/documents');
-        const docs = Array.isArray(raw) ? raw : (raw as Record<string, unknown>)?.documents || [];
-        return (docs as Array<{
-          id: string; name: string; category: string; created_at: string; starred: boolean;
-          size_bytes?: number; public_url?: string; is_contract?: boolean; job_id?: string;
-        }>).map((d): Document => ({
-          id: d.id, filename: d.name, category: d.category,
-          uploaded_at: d.created_at, starred: d.starred, file_size: d.size_bytes,
-          public_url: d.public_url, is_contract: d.is_contract, job_id: d.job_id,
+        const { data: docs, error } = await supabase
+          .from('contractor_documents')
+          .select('*')
+          .eq('contractor_id', user.id)
+          .order('created_at', { ascending: false });
+        if (error) throw new Error(error.message);
+        return (docs || []).map((d: Record<string, unknown>): Document => ({
+          id: d.id as string, filename: (d.name as string) || (d.filename as string) || '', category: (d.category as string) || 'other',
+          uploaded_at: d.created_at as string, starred: (d.starred as boolean) ?? false, file_size: d.size_bytes as number | undefined,
+          public_url: d.public_url as string | undefined, is_contract: d.is_contract as boolean | undefined, job_id: d.job_id as string | undefined,
         }));
       }
       // Homeowner: aggregate contracts as virtual documents
-      const rawContracts = await mobileApiClient.get<unknown>('/api/contracts?role=homeowner');
-      const contracts = Array.isArray(rawContracts) ? rawContracts : (rawContracts as Record<string, unknown>)?.contracts || [];
-      return (contracts as Array<{
-        id: string; title: string; status: string; created_at: string; job_id?: string;
-      }>).filter((c) => c.status !== 'draft').map((c): Document => ({
+      const { data: contracts, error: contractError } = await supabase
+        .from('contracts')
+        .select('id, title, status, created_at, job_id')
+        .eq('homeowner_id', user.id)
+        .neq('status', 'draft')
+        .order('created_at', { ascending: false });
+      if (contractError) throw new Error(contractError.message);
+      return (contracts || []).map((c: { id: string; title: string; status: string; created_at: string; job_id?: string }): Document => ({
         id: c.id, filename: c.title || 'Contract', category: 'contract',
         uploaded_at: c.created_at, starred: false,
         is_contract: true, job_id: c.job_id,

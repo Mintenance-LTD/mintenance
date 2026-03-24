@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
 import type { SustainabilityMetrics, JobSustainabilityAnalysis, EcoJobRecommendation, ESGScoreRow } from './types';
 import { MaterialAdvisor } from './MaterialAdvisor';
 
@@ -61,10 +61,14 @@ export class JobAnalyzer {
 
   async findGreenContractorsForJob(_category: string, _location: string, minESGScore: number): Promise<string[]> {
     try {
-      const response = await mobileApiClient.get<{ contractors: ESGScoreRow[] }>(
-        `/api/contractor/esg-score?type=green_contractors&minScore=${minESGScore}&limit=10`
-      );
-      return (response.contractors || []).map((item: ESGScoreRow) => item.contractor_id);
+      const { data, error } = await supabase
+        .from('contractor_esg_scores')
+        .select('contractor_id')
+        .gte('total_score', minESGScore)
+        .order('total_score', { ascending: false })
+        .limit(10);
+      if (error || !data) return [];
+      return data.map((item: { contractor_id: string }) => item.contractor_id);
     } catch {
       return [];
     }

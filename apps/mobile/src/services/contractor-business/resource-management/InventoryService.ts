@@ -1,5 +1,6 @@
 import { ServiceErrorHandler } from '../../../utils/serviceErrorHandler';
 import { supabase } from '../../../config/supabase';
+import { mobileApiClient } from '../../../utils/mobileApiClient';
 import { logger } from '../../../utils/logger';
 import {
   type InventoryItem,
@@ -85,13 +86,14 @@ export class InventoryService {
         const quantityDiff = newQuantity - itemRow.quantity;
         const movementType = quantityDiff > 0 ? 'inbound' : 'outbound';
 
-        await supabase.rpc('update_inventory_with_movement', {
-          p_item_id: itemId,
-          p_new_quantity: newQuantity,
-          p_movement_type: movementType,
-          p_movement_quantity: Math.abs(quantityDiff),
-          p_reason: reason,
-          p_reference: reference,
+        await mobileApiClient.post('/api/materials', {
+          action: 'update_inventory',
+          item_id: itemId,
+          new_quantity: newQuantity,
+          movement_type: movementType,
+          movement_quantity: Math.abs(quantityDiff),
+          reason,
+          reference,
         });
 
         await InventoryService.checkLowStockThreshold(itemId);

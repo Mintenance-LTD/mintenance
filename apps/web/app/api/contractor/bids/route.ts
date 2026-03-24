@@ -6,6 +6,7 @@ import { logger } from '@mintenance/shared';
 export const GET = withApiHandler({ roles: ['contractor'], rateLimit: { maxRequests: 30 } }, async (request, { user }) => {
   const { searchParams } = new URL(request.url);
   const statusFilter = searchParams.get('status');
+  const bidIdFilter = searchParams.get('bidId');
 
   let query = serverSupabase
     .from('bids')
@@ -40,6 +41,10 @@ export const GET = withApiHandler({ roles: ['contractor'], rateLimit: { maxReque
     `
     )
     .eq('contractor_id', user.id);
+
+  if (bidIdFilter) {
+    query = query.eq('id', bidIdFilter);
+  }
 
   if (statusFilter) {
     query = query.eq('status', statusFilter);
