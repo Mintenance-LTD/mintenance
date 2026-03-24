@@ -116,33 +116,58 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
     return () => { cancelled = true; };
   }, [job, jobId, user]);
 
-  // REQUEST CANCELLATION FIX: Load AI analysis when job data is available with cleanup
+  // Load AI analysis: first check building_assessments DB, then fall back to real-time analysis
   useEffect(() => {
     let isCancelled = false;
 
     const loadAnalysis = async () => {
-      if (user?.role === 'contractor' && job?.photos && job.photos.length > 0 && !isCancelled) {
-        try {
-          setAiLoading(true);
+      if (!job?.id || !user) return;
+
+      try {
+        setAiLoading(true);
+
+        // 1. Check for stored assessment in building_assessments table
+        const { data: storedAssessment } = await supabase
+          .from('building_assessments')
+          .select('id, damage_type, severity, confidence, urgency, assessment_data, created_at')
+          .eq('job_id', job.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!isCancelled && storedAssessment) {
+          setAiAnalysis({
+            damageType: storedAssessment.damage_type || 'Unknown',
+            severity: storedAssessment.severity || 'unknown',
+            confidence: storedAssessment.confidence || 0,
+            urgency: storedAssessment.urgency || 'monitor',
+            assessmentData: storedAssessment.assessment_data,
+            source: 'database',
+          } as AIAnalysis);
+          setAiLoading(false);
+          return;
+        }
+
+        // 2. Fall back to real-time AI analysis if photos exist (any role)
+        if (job.photos && job.photos.length > 0 && !isCancelled) {
           const analysis = await AIAnalysisService.analyzeJobPhotos(job);
           if (!isCancelled) {
             setAiAnalysis(analysis);
           }
-        } catch (error) {
-          if (!isCancelled) {
-            logger.error('Failed to load AI analysis:', error);
-          }
-        } finally {
-          if (!isCancelled) {
-            setAiLoading(false);
-          }
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          logger.error('Failed to load AI analysis:', error);
+        }
+      } finally {
+        if (!isCancelled) {
+          setAiLoading(false);
         }
       }
     };
 
     loadAnalysis();
 
-    // Cleanup: cancel pending request on unmount
     return () => {
       isCancelled = true;
     };
