@@ -73,31 +73,40 @@ export const ContractPreparationScreen: React.FC<Props> = ({ route, navigation }
       try {
         if (!user?.id) return;
 
-        const [verificationRes, profileRes, contractsRes] = await Promise.allSettled([
-          mobileApiClient.get<Record<string, unknown>>('/api/contractor/verification'),
-          mobileApiClient.get<Record<string, unknown>>('/api/contractor/profile'),
-          mobileApiClient.get<Array<Record<string, unknown>>>(`/api/contracts?job_id=${jobId}`),
+        // Fetch contractor profile, existing contract, and accepted bid — all via direct Supabase
+        const { supabase } = await import('../../config/supabase');
+
+        const [profileRes, contractsRes, bidRes] = await Promise.allSettled([
+          supabase.from('contractor_profiles').select('company_name, license_number, license_type, insurance_provider, insurance_policy_number, business_address, hourly_rate').eq('user_id', user.id).single(),
+          supabase.from('contracts').select('id, amount, title, description, terms').eq('job_id', jobId).order('created_at', { ascending: false }).limit(1),
+          supabase.from('bids').select('amount, description, message, estimated_duration_days').eq('job_id', jobId).eq('contractor_id', user.id).eq('status', 'accepted').limit(1).maybeSingle(),
         ]);
 
         if (cancelled) return;
 
-        if (verificationRes.status === 'fulfilled' && verificationRes.value) {
-          const v = verificationRes.value;
-          if (v.company_name) setCompanyName(v.company_name as string);
-          if (v.license_number) setLicenseRegistration(v.license_number as string);
+        // Auto-fill from contractor profile
+        if (profileRes.status === 'fulfilled' && profileRes.value.data) {
+          const p = profileRes.value.data;
+          if (p.company_name) setCompanyName(p.company_name);
+          if (p.license_number) setLicenseRegistration(p.license_number);
+          if (p.license_type) setLicenseType(p.license_type);
+          if (p.insurance_provider) setInsuranceProvider(p.insurance_provider);
+          if (p.insurance_policy_number) setInsurancePolicyNumber(p.insurance_policy_number);
         }
 
-        if (profileRes.status === 'fulfilled' && profileRes.value) {
-          const p = profileRes.value;
-          if (p.insurance_provider) setInsuranceProvider(p.insurance_provider as string);
-          if (p.insurance_policy_number) setInsurancePolicyNumber(p.insurance_policy_number as string);
-        }
-
-        if (contractsRes.status === 'fulfilled' && Array.isArray(contractsRes.value) && contractsRes.value[0]) {
-          const c = contractsRes.value[0];
+        // Auto-fill from existing contract (if editing)
+        if (contractsRes.status === 'fulfilled' && contractsRes.value.data?.[0]) {
+          const c = contractsRes.value.data[0];
           if (c.amount) setAmount(String(c.amount));
-          if (c.title) setTitle(c.title as string);
-          if (c.description) setDescription(c.description as string);
+          if (c.title) setTitle(c.title);
+          if (c.description) setDescription(c.description);
+        }
+
+        // Auto-fill from accepted bid (amount + description)
+        if (bidRes.status === 'fulfilled' && bidRes.value.data) {
+          const b = bidRes.value.data;
+          if (b.amount && !amount) setAmount(String(b.amount));
+          if ((b.description || b.message) && !description) setDescription(b.description || b.message || '');
         }
       } catch {
         // Non-critical - form still works without pre-fill
