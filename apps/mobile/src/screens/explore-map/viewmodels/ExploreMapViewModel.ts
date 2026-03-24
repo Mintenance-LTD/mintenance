@@ -155,18 +155,28 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
     if (!isMounted.current) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('jobs')
-        .select(`
-          id, title, category, urgency, budget_min, budget_max,
-          latitude, longitude, created_at,
-          homeowner:homeowner_id ( first_name )
-        `)
-        .eq('status', 'posted')
-        .not('latitude', 'is', null)
-        .not('longitude', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      // Fetch posted jobs, then filter out ones this contractor already bid on
+      const [jobsResult, bidsResult] = await Promise.all([
+        supabase
+          .from('jobs')
+          .select(`
+            id, title, category, urgency, budget_min, budget_max,
+            latitude, longitude, created_at,
+            homeowner:homeowner_id ( first_name )
+          `)
+          .eq('status', 'posted')
+          .is('contractor_id', null)
+          .not('latitude', 'is', null)
+          .not('longitude', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(50),
+        user?.id
+          ? supabase.from('bids').select('job_id').eq('contractor_id', user.id)
+          : Promise.resolve({ data: [] as { job_id: string }[], error: null }),
+      ]);
+
+      const { data, error } = jobsResult;
+      const bidJobIds = new Set((bidsResult.data ?? []).map((b: { job_id: string }) => b.job_id));
 
       if (error) {
         logger.error('Error fetching jobs for map', error);
@@ -176,7 +186,10 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
       const refLat = userLocation?.latitude ?? regionRef.current.latitude;
       const refLng = userLocation?.longitude ?? regionRef.current.longitude;
 
-      const mapped: JobMapItem[] = (data || []).map((row: Record<string, unknown>) => {
+      // Exclude jobs contractor already bid on
+      const availableData = (data || []).filter((row: Record<string, unknown>) => !bidJobIds.has(row.id as string));
+
+      const mapped: JobMapItem[] = availableData.map((row: Record<string, unknown>) => {
         const homeowner = row.homeowner as { first_name?: string } | null;
         const lat = row.latitude as number;
         const lng = row.longitude as number;
@@ -220,7 +233,7 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
     } finally {
       if (isMounted.current) setLoading(false);
     }
-  }, [userLocation]); // Only depends on userLocation, not region — prevents re-fetch on every pan
+  }, [userLocation, user?.id]); // Depends on userLocation + user (to filter out own bids)
 
   useEffect(() => {
     fetchJobs();
