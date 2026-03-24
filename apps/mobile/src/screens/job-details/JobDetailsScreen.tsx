@@ -528,10 +528,10 @@ function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation
     );
   }
 
-  if (isOwner && job.status === 'posted' && job.bids && job.bids.length > 0) {
+  if (isOwner && job.status === 'posted' && bidsArray.length > 0) {
     return (
       <StickyBottomCTA
-        buttonText={`View ${job.bids.length} Bid${job.bids.length !== 1 ? 's' : ''}`}
+        buttonText={`View ${bidsArray.length} Bid${bidsArray.length !== 1 ? 's' : ''}`}
         onPress={() => navigation.navigate('BidReview', { jobId: job.id })}
         secondaryText="Review contractor bids"
       />
