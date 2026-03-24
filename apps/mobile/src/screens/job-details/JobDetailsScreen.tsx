@@ -538,10 +538,21 @@ function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation
     );
   }
 
-  if (isOwner && job.status === 'assigned' && contractStatus && contractStatus !== 'accepted') {
+  if (isOwner && job.status === 'assigned' && (contractStatus === 'draft' || contractStatus === 'pending_contractor')) {
     return (
       <StickyBottomCTA
-        buttonText="View Contract"
+        buttonText="Waiting for Contractor"
+        onPress={() => navigation.navigate('ContractView', { jobId: job.id })}
+        secondaryText="Contractor is preparing the contract"
+        disabled
+      />
+    );
+  }
+
+  if (isOwner && job.status === 'assigned' && contractStatus && contractStatus !== 'accepted' && contractStatus !== 'draft' && contractStatus !== 'pending_contractor') {
+    return (
+      <StickyBottomCTA
+        buttonText="View & Sign Contract"
         onPress={() => navigation.navigate('ContractView', { jobId: job.id })}
         secondaryText="Review and sign contract"
       />
