@@ -127,8 +127,13 @@ const JobsScreen: React.FC = () => {
   });
 
   const filterCounts = useMemo(() => {
-    const counts: Record<FilterStatus, number> = { all: allJobs.length, posted: 0, assigned: 0, in_progress: 0, completed: 0, bid: bidPendingJobs.length };
-    allJobs.forEach((j) => { const s = j.status as FilterStatus; if (s in counts) counts[s]++; });
+    const counts: Record<FilterStatus, number> = { all: allJobs.length, posted: 0, assigned: 0, in_progress: 0, completed: 0, bid: bidPendingJobs.length, active: 0 };
+    allJobs.forEach((j) => {
+      const s = j.status as FilterStatus;
+      if (s in counts) counts[s]++;
+      // "active" = assigned + in_progress for contractors
+      if (s === 'in_progress' || s === 'assigned') counts.active++;
+    });
     return counts;
   }, [allJobs, bidPendingJobs]);
 
@@ -139,6 +144,8 @@ const JobsScreen: React.FC = () => {
     // Filter by status tab
     if (selectedFilter === 'bid' && isContractor) {
       data = bidPendingJobs;
+    } else if (selectedFilter === 'active' && isContractor) {
+      data = data.filter((j) => j.status === 'in_progress' || j.status === 'assigned');
     } else if (selectedFilter !== 'all') {
       data = data.filter((j) => j.status === selectedFilter);
     }

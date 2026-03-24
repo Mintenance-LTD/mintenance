@@ -3,7 +3,7 @@ import { Job } from '@mintenance/types';
 import { theme, getStatusBadge } from '../../theme';
 
 export type SortMode = 'for_you' | 'nearest' | 'highest_pay' | 'newest' | 'map';
-export type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed' | 'bid';
+export type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed' | 'bid' | 'active';
 
 export const SORT_TABS: { key: SortMode; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: 'for_you', label: 'For You', icon: 'sparkles' },
@@ -21,10 +21,12 @@ export const HOMEOWNER_TABS: { key: FilterStatus; label: string; icon: keyof typ
   { key: 'completed', label: 'Done', icon: 'checkmark-circle-outline' },
 ];
 
+/** Contractor lifecycle tabs — matches web app's contractor/jobs page */
 export const CONTRACTOR_TABS: { key: FilterStatus; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { key: 'all', label: 'All', icon: 'grid-outline' },
-  { key: 'in_progress', label: 'In Progress', icon: 'flash-outline' },
-  { key: 'bid', label: 'Bids Pending', icon: 'time-outline' },
+  { key: 'all', label: 'All Jobs', icon: 'briefcase-outline' },
+  { key: 'bid', label: 'Bids Sent', icon: 'time-outline' },
+  { key: 'assigned', label: 'Awaiting Contract', icon: 'document-text-outline' },
+  { key: 'active', label: 'In Progress', icon: 'flash-outline' },
   { key: 'completed', label: 'Completed', icon: 'checkmark-circle-outline' },
 ];
 
@@ -78,6 +80,7 @@ export const EMPTY_MESSAGES: Record<FilterStatus, { title: string; desc: string 
   in_progress: { title: 'No Active Jobs', desc: 'Jobs currently being worked on will show up here.' },
   completed:   { title: 'No Completed Jobs', desc: 'Finished jobs and their reviews will appear here.' },
   bid:         { title: 'No Pending Bids', desc: 'Jobs you\'ve bid on will appear here while awaiting homeowner response.' },
+  active:      { title: 'No Active Jobs', desc: 'Jobs you\'re currently working on will appear here.' },
 };
 
 export interface JobStats {
