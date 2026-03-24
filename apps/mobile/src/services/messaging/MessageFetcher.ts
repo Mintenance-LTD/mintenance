@@ -81,7 +81,25 @@ export async function getUserMessageThreads(
 
     if (!threads || threads.length === 0) return [];
 
-    // 2. For each thread, get the last message and unread count via job_id
+    // 2. Fetch participant profiles for names
+    const allParticipantIds = new Set<string>();
+    threads.forEach((t: Record<string, unknown>) => {
+      ((t.participant_ids as string[]) ?? []).forEach((pid) => allParticipantIds.add(pid));
+    });
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, role, profile_image_url')
+      .in('id', Array.from(allParticipantIds));
+    const profileMap = new Map<string, { name: string; role: string; avatar?: string }>();
+    (profiles ?? []).forEach((p: Record<string, unknown>) => {
+      profileMap.set(p.id as string, {
+        name: `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Unknown',
+        role: (p.role as string) || '',
+        avatar: p.profile_image_url as string | undefined,
+      });
+    });
+
+    // 3. For each thread, get the last message and unread count via job_id
     const jobIds = threads.map(
       (t: Record<string, unknown>) => t.job_id as string
     );
@@ -137,11 +155,15 @@ export async function getUserMessageThreads(
           : undefined,
         unreadCount: unreadByJob.get(jobId) || 0,
         participants: ((row.participant_ids as string[]) ?? []).map(
-          (pid: string) => ({
-            id: pid,
-            name: '',
-            role: '',
-          })
+          (pid: string) => {
+            const profile = profileMap.get(pid);
+            return {
+              id: pid,
+              name: profile?.name || '',
+              role: profile?.role || '',
+              avatar: profile?.avatar,
+            };
+          }
         ),
       } as MessageThread;
     });

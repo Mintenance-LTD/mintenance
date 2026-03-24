@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader } from '../../components/shared';
@@ -76,6 +77,7 @@ export const SubscriptionScreen: React.FC = () => {
   const navigation = useNavigation();
   const queryClient = useQueryClient();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const { user } = useAuth();
 
   const { data: status, isLoading: statusLoading, error: statusError, refetch: refetchStatus } = useQuery({
     queryKey: ['subscription-status'],
@@ -96,7 +98,7 @@ export const SubscriptionScreen: React.FC = () => {
           currency?: string;
           features: string[] | SubscriptionPlanFeatures;
         }>;
-      }>('/api/subscriptions/plans');
+      }>(`/api/subscriptions/plans${user?.role ? `?role=${user.role}` : ''}`);
       return (response.plans || []).map((p) => ({
         id: p.planType,
         name: p.name,
