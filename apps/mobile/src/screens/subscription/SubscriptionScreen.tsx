@@ -85,10 +85,13 @@ export const SubscriptionScreen: React.FC = () => {
     queryFn: async () => {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (!authUser) throw new Error('Not authenticated');
+      // Query the correct subscription table based on user role
+      const subTable = role === 'contractor' ? 'contractor_subscriptions' : 'homeowner_subscriptions';
+      const idCol = role === 'contractor' ? 'contractor_id' : 'homeowner_id';
       const { data: sub, error } = await supabase
-        .from('subscriptions')
+        .from(subTable)
         .select('*')
-        .eq('user_id', authUser.id)
+        .eq(idCol, authUser.id)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -112,25 +115,20 @@ export const SubscriptionScreen: React.FC = () => {
     },
   });
 
-  const { data: plans, isLoading: plansLoading } = useQuery({
-    queryKey: ['subscription-plans'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('subscription_plans')
-        .select('*')
-        .eq('is_active', true)
-        .order('price', { ascending: true });
-      if (error) return [];
-      return (data || []).map((p: Record<string, unknown>) => ({
-        id: (p.plan_type as string) || (p.id as string),
-        name: (p.name as string) || '',
-        price: (p.price as number) || 0,
-        billingCycle: 'monthly' as const,
-        features: (p.features as string[] | SubscriptionPlanFeatures) || [],
-        recommended: (p.plan_type as string) === 'professional',
-      }));
-    },
-  });
+  const userRole = user?.role || 'homeowner';
+
+  // Plans are role-specific — no subscription_plans table exists in DB
+  const HOMEOWNER_PLANS: SubscriptionPlan[] = [
+    { id: 'homeowner_basic', name: 'Homeowner Basic', price: 0, billingCycle: 'monthly', features: ['Up to 3 jobs', 'Basic messaging', 'Escrow protection'], recommended: false },
+    { id: 'homeowner_landlord', name: 'Homeowner Landlord', price: 9.99, billingCycle: 'monthly', features: ['Unlimited jobs', 'Portfolio management', 'Priority support', 'Recurring maintenance', 'Compliance tracking'], recommended: true },
+  ];
+  const CONTRACTOR_PLANS: SubscriptionPlan[] = [
+    { id: 'basic', name: 'Basic', price: 29, billingCycle: 'monthly', features: ['Up to 10 bids/month', '5 active jobs', 'Basic profile'], recommended: false },
+    { id: 'professional', name: 'Professional', price: 59, billingCycle: 'monthly', features: ['50 bids/month', 'Unlimited jobs', 'Priority listing', 'Analytics', 'CRM tools'], recommended: true },
+    { id: 'enterprise', name: 'Enterprise', price: 199, billingCycle: 'monthly', features: ['Unlimited bids', 'Priority support', 'Advanced analytics', 'Custom branding', 'API access', 'Team management'], recommended: false },
+  ];
+  const plans = userRole === 'contractor' ? CONTRACTOR_PLANS : HOMEOWNER_PLANS;
+  const plansLoading = false;
 
   const subscribeMutation = useMutation({
     mutationFn: async (planType: string) => {
