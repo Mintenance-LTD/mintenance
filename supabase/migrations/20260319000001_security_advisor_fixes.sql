@@ -51,10 +51,12 @@ CREATE POLICY "checkout_sessions_service"
 
 -- coming_soon_signups: anon can INSERT (sign up), service manages the rest
 DROP POLICY IF EXISTS "Service role manages signups" ON public.coming_soon_signups;
+DROP POLICY IF EXISTS "coming_soon_anon_insert" ON public.coming_soon_signups;
 CREATE POLICY "coming_soon_anon_insert"
   ON public.coming_soon_signups FOR INSERT
   TO anon, authenticated
   WITH CHECK (true);
+DROP POLICY IF EXISTS "coming_soon_service_manage" ON public.coming_soon_signups;
 CREATE POLICY "coming_soon_service_manage"
   ON public.coming_soon_signups FOR ALL
   TO service_role

@@ -19,19 +19,29 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
   }
 
   try {
-    // Fetch all flagged profiles
+    // Fetch flagged profiles (batch limit to prevent memory exhaustion)
     const { data: profiles, error: fetchError } = await serverSupabase
       .from('profiles')
       .select('id, totp_secret')
-      .eq('totp_secret_needs_rotation', true);
+      .eq('totp_secret_needs_rotation', true)
+      .limit(500);
 
     if (fetchError) {
-      logger.error('[MAINTENANCE] Failed to fetch profiles for TOTP rotation', fetchError);
-      return NextResponse.json({ error: 'Failed to fetch profiles' }, { status: 500 });
+      logger.error(
+        '[MAINTENANCE] Failed to fetch profiles for TOTP rotation',
+        fetchError
+      );
+      return NextResponse.json(
+        { error: 'Failed to fetch profiles' },
+        { status: 500 }
+      );
     }
 
     if (!profiles || profiles.length === 0) {
-      return NextResponse.json({ message: 'No profiles require rotation', rotated: 0 });
+      return NextResponse.json({
+        message: 'No profiles require rotation',
+        rotated: 0,
+      });
     }
 
     let rotated = 0;
@@ -54,22 +64,34 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
           .eq('id', profile.id);
 
         if (updateError) {
-          logger.error('[MAINTENANCE] Failed to update TOTP secret for profile', updateError, {
-            profileId: profile.id,
-          });
+          logger.error(
+            '[MAINTENANCE] Failed to update TOTP secret for profile',
+            updateError,
+            {
+              profileId: profile.id,
+            }
+          );
           failed++;
         } else {
           rotated++;
         }
       } catch (encryptErr) {
-        logger.error('[MAINTENANCE] Failed to encrypt TOTP secret for profile', encryptErr, {
-          profileId: profile.id,
-        });
+        logger.error(
+          '[MAINTENANCE] Failed to encrypt TOTP secret for profile',
+          encryptErr,
+          {
+            profileId: profile.id,
+          }
+        );
         failed++;
       }
     }
 
-    logger.info('[MAINTENANCE] TOTP secret rotation complete', { rotated, failed, total: profiles.length });
+    logger.info('[MAINTENANCE] TOTP secret rotation complete', {
+      rotated,
+      failed,
+      total: profiles.length,
+    });
 
     return NextResponse.json({
       message: 'TOTP rotation complete',
@@ -79,6 +101,9 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
     });
   } catch (error) {
     logger.error('[MAINTENANCE] Unexpected error during TOTP rotation', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 };

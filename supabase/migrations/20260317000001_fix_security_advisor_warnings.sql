@@ -36,6 +36,7 @@ DROP POLICY IF EXISTS "service_all_newsletter" ON public.newsletter_subscription
 -- a proper admin-only SELECT policy in its place.
 DROP POLICY IF EXISTS "coming_soon_service_manage" ON public.coming_soon_signups;
 
+DROP POLICY IF EXISTS "coming_soon_admin_select" ON public.coming_soon_signups;
 CREATE POLICY "coming_soon_admin_select" ON public.coming_soon_signups
   FOR SELECT
   USING (
@@ -52,6 +53,7 @@ CREATE POLICY "coming_soon_admin_select" ON public.coming_soon_signups
 -- for other users' notifications. Restrict inserts to own user_id only.
 -- =====================================================
 DROP POLICY IF EXISTS "Service can insert engagement" ON public.notification_engagement;
+DROP POLICY IF EXISTS "users_insert_own_engagement" ON public.notification_engagement;
 
 CREATE POLICY "users_insert_own_engagement" ON public.notification_engagement
   FOR INSERT

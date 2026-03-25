@@ -8,19 +8,26 @@ ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS totp_secret_needs_rotation BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- Flag rows where totp_secret is set but is NOT an encrypted JSON blob
-UPDATE public.profiles
-SET    totp_secret_needs_rotation = TRUE
-WHERE  totp_secret IS NOT NULL
-  AND  totp_secret NOT LIKE '{"ciphertext"%';
-
--- Log count for migration verification
+-- Only run if the totp_secret column actually exists (it may not in all environments)
 DO $$
 DECLARE
-  flagged_count INTEGER;
+  flagged_count INTEGER := 0;
 BEGIN
-  SELECT COUNT(*) INTO flagged_count
-  FROM public.profiles
-  WHERE totp_secret_needs_rotation = TRUE;
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'profiles' AND column_name = 'totp_secret'
+  ) THEN
+    UPDATE public.profiles
+    SET    totp_secret_needs_rotation = TRUE
+    WHERE  totp_secret IS NOT NULL
+      AND  totp_secret NOT LIKE '{"ciphertext"%';
 
-  RAISE NOTICE 'Flagged % profile(s) with plaintext totp_secret for rotation', flagged_count;
+    SELECT COUNT(*) INTO flagged_count
+    FROM public.profiles
+    WHERE totp_secret_needs_rotation = TRUE;
+
+    RAISE NOTICE 'Flagged % profile(s) with plaintext totp_secret for rotation', flagged_count;
+  ELSE
+    RAISE NOTICE 'totp_secret column does not exist — skipping flagging';
+  END IF;
 END $$;
