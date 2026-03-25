@@ -137,13 +137,16 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
 
         if (!isCancelled && storedAssessment) {
           setAiAnalysis({
-            damageType: storedAssessment.damage_type || 'Unknown',
-            severity: storedAssessment.severity || 'unknown',
             confidence: storedAssessment.confidence || 0,
-            urgency: storedAssessment.urgency || 'monitor',
-            assessmentData: storedAssessment.assessment_data,
-            source: 'database',
-          } as AIAnalysis);
+            detectedItems: [storedAssessment.damage_type || 'Unknown'],
+            safetyConcerns: storedAssessment.urgency === 'immediate'
+              ? [{ concern: 'Urgent repair needed', severity: 'High' as const, description: `Severity: ${storedAssessment.severity || 'unknown'}` }]
+              : [],
+            recommendedActions: storedAssessment.assessment_data?.recommended_actions || [],
+            estimatedComplexity: (storedAssessment.severity === 'critical' ? 'High' : storedAssessment.severity === 'moderate' ? 'Medium' : 'Low') as AIAnalysis['estimatedComplexity'],
+            suggestedTools: [],
+            estimatedDuration: storedAssessment.assessment_data?.estimated_duration || 'Unknown',
+          } satisfies AIAnalysis);
           setAiLoading(false);
           return;
         }

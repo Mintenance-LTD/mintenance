@@ -288,20 +288,24 @@ export class ServiceAreasService {
         .select('contractor_id, center_latitude, center_longitude, radius_km, area_name')
         .eq('is_active', true);
       if (error || !data) return [];
-      return data
-        .filter((area: Record<string, unknown>) => {
-          const dist = ServiceAreasService.calculateDistance(
-            latitude, longitude,
-            area.center_latitude as number, area.center_longitude as number
-          );
-          return dist <= Math.max(area.radius_km as number, maxDistance);
-        })
-        .map((area: Record<string, unknown>) => ({
-          contractor_id: area.contractor_id as string,
-          latitude: area.center_latitude as number,
-          longitude: area.center_longitude as number,
-          area_name: area.area_name as string,
-        })) as ContractorLocation[];
+      const results: ContractorLocation[] = [];
+      for (const area of data) {
+        const dist = await ServiceAreasService.calculateDistance(
+          latitude, longitude,
+          (area as Record<string, unknown>).center_latitude as number,
+          (area as Record<string, unknown>).center_longitude as number
+        );
+        if (dist <= Math.max((area as Record<string, unknown>).radius_km as number, maxDistance)) {
+          results.push({
+            contractor_id: (area as Record<string, unknown>).contractor_id as string,
+            area_name: (area as Record<string, unknown>).area_name as string,
+            distance_km: dist,
+            travel_charge: 0,
+            priority_level: dist < 10 ? 1 : dist < 25 ? 2 : 3,
+          });
+        }
+      }
+      return results;
     } catch (error) {
       logger.error('Error finding contractors for location:', error);
       return [];

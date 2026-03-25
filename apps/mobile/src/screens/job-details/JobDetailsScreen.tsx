@@ -427,6 +427,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         contractStatus: viewModel.contractStatus,
         escrowStatus: viewModel.escrowStatus,
         hasReviewed: viewModel.hasReviewed,
+        bidsArray,
       })}
 
       {/* Escrow Explanation Modal */}
@@ -506,9 +507,10 @@ interface CTAContext {
   contractStatus: string | null;
   escrowStatus: string | null;
   hasReviewed: boolean;
+  bidsArray: Array<{ id: string; contractor_id?: string; status?: string; amount?: number }>;
 }
 
-function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation, contractStatus, escrowStatus, hasReviewed }: CTAContext): React.ReactElement | null {
+function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation, contractStatus, escrowStatus, hasReviewed, bidsArray }: CTAContext): React.ReactElement | null {
   const isAssignedContractor = isContractor && job.contractor_id === userId;
 
   if (isContractor && job.status === 'posted') {
