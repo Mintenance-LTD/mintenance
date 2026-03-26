@@ -49,7 +49,7 @@ function getHashConfig(): HashConfig {
   if (isProduction) {
     try {
       // Try to load argon2 if available
-      const argon2 = require('argon2');
+      const argon2 = require(/* webpackIgnore: true */ 'argon2' + '');
       return {
         algorithm: HashAlgorithm.ARGON2ID,
         argon2: {
@@ -86,12 +86,14 @@ export async function hashPassword(password: string): Promise<string> {
   // Validate password strength first
   const validation = validatePasswordStrength(password);
   if (!validation.isValid) {
-    throw new Error(`Password validation failed: ${validation.issues.join(', ')}`);
+    throw new Error(
+      `Password validation failed: ${validation.issues.join(', ')}`
+    );
   }
   try {
     switch (config.algorithm) {
       case HashAlgorithm.ARGON2ID: {
-        const argon2 = require('argon2');
+        const argon2 = require(/* webpackIgnore: true */ 'argon2' + '');
         return await argon2.hash(password, {
           type: argon2.argon2id,
           memoryCost: config.argon2!.memoryCost,
@@ -124,7 +126,10 @@ export async function hashPassword(password: string): Promise<string> {
       }
     }
   } catch (error) {
-    logger.error('Password hashing failed', { error, algorithm: config.algorithm });
+    logger.error('Password hashing failed', {
+      error,
+      algorithm: config.algorithm,
+    });
     // Fallback to bcrypt if other algorithms fail
     const salt = await bcrypt.genSalt(14);
     return `bcrypt$${await bcrypt.hash(password, salt)}`;
@@ -133,7 +138,10 @@ export async function hashPassword(password: string): Promise<string> {
 /**
  * Verify a password against a hash (supports multiple algorithms)
  */
-export async function verifyPassword(password: string, hash: string): Promise<{
+export async function verifyPassword(
+  password: string,
+  hash: string
+): Promise<{
   isValid: boolean;
   needsRehash: boolean;
 }> {
@@ -141,7 +149,7 @@ export async function verifyPassword(password: string, hash: string): Promise<{
     // Detect algorithm from hash format
     if (hash.startsWith('$argon2')) {
       // Native Argon2 format
-      const argon2 = require('argon2');
+      const argon2 = require(/* webpackIgnore: true */ 'argon2' + '');
       const isValid = await argon2.verify(hash, password);
       return { isValid, needsRehash: false };
     }
@@ -151,19 +159,17 @@ export async function verifyPassword(password: string, hash: string): Promise<{
       const salt = Buffer.from(saltBase64, 'base64');
       const storedHash = Buffer.from(hashBase64, 'base64');
       const config = getHashConfig();
-      const derivedKey = crypto.scryptSync(
-        password,
-        salt,
-        storedHash.length,
-        {
-          N: config.scrypt?.cost || 16384,
-          r: config.scrypt?.blockSize || 8,
-          p: config.scrypt?.parallelism || 1,
-        }
-      );
+      const derivedKey = crypto.scryptSync(password, salt, storedHash.length, {
+        N: config.scrypt?.cost || 16384,
+        r: config.scrypt?.blockSize || 8,
+        p: config.scrypt?.parallelism || 1,
+      });
       const isValid = crypto.timingSafeEqual(derivedKey, storedHash);
       // Suggest rehash if not using current algorithm
-      return { isValid, needsRehash: config.algorithm !== HashAlgorithm.SCRYPT };
+      return {
+        isValid,
+        needsRehash: config.algorithm !== HashAlgorithm.SCRYPT,
+      };
     }
     if (hash.startsWith('bcrypt$')) {
       // Custom bcrypt format
@@ -171,8 +177,9 @@ export async function verifyPassword(password: string, hash: string): Promise<{
       const isValid = await bcrypt.compare(password, actualHash);
       // Check if rehash needed (upgrade to stronger algorithm or more rounds)
       const config = getHashConfig();
-      const needsRehash = config.algorithm !== HashAlgorithm.BCRYPT ||
-                         getRoundsFromBcryptHash(actualHash) < (config.bcrypt?.rounds || 14);
+      const needsRehash =
+        config.algorithm !== HashAlgorithm.BCRYPT ||
+        getRoundsFromBcryptHash(actualHash) < (config.bcrypt?.rounds || 14);
       return { isValid, needsRehash };
     }
     // Legacy bcrypt format (no prefix)
@@ -181,7 +188,9 @@ export async function verifyPassword(password: string, hash: string): Promise<{
       return { isValid, needsRehash: true }; // Always suggest rehash for legacy
     }
     // Unknown format
-    logger.error('Unknown password hash format', { hashPrefix: hash.substring(0, 10) });
+    logger.error('Unknown password hash format', {
+      hashPrefix: hash.substring(0, 10),
+    });
     return { isValid: false, needsRehash: false };
   } catch (error) {
     logger.error('Password verification failed', { error });
@@ -228,15 +237,25 @@ export function validatePasswordStrength(password: string): {
   const hasUpper = /[A-Z]/.test(password);
   const hasNumber = /\d/.test(password);
   const hasSpecial = /[^a-zA-Z0-9]/.test(password);
-  const diversity = [hasLower, hasUpper, hasNumber, hasSpecial].filter(Boolean).length;
+  const diversity = [hasLower, hasUpper, hasNumber, hasSpecial].filter(
+    Boolean
+  ).length;
   score += diversity;
   if (diversity < 3) {
     suggestions.push('Use a mix of uppercase, lowercase, numbers, and symbols');
   }
   // Check for common passwords (basic list - in production, use a comprehensive list)
   const commonPasswords = [
-    'password', '12345678', 'qwerty', 'abc123', 'password1',
-    'admin', 'letmein', 'welcome', 'monkey', 'dragon',
+    'password',
+    '12345678',
+    'qwerty',
+    'abc123',
+    'password1',
+    'admin',
+    'letmein',
+    'welcome',
+    'monkey',
+    'dragon',
   ];
   if (commonPasswords.includes(password.toLowerCase())) {
     issues.push('Password is too common');
@@ -248,7 +267,11 @@ export function validatePasswordStrength(password: string): {
     score -= 1;
   }
   // Check for sequential characters
-  if (/(?:abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz|012|123|234|345|456|567|678|789)/i.test(password)) {
+  if (
+    /(?:abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz|012|123|234|345|456|567|678|789)/i.test(
+      password
+    )
+  ) {
     suggestions.push('Avoid sequential characters');
     score -= 1;
   }
@@ -270,7 +293,8 @@ export function validatePasswordStrength(password: string): {
  * Generate a secure random password
  */
 export function generateSecurePassword(length: number = 16): string {
-  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
+  const charset =
+    'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
   const charsetLength = charset.length;
   let password = '';
   // Ensure at least one of each type
@@ -291,7 +315,10 @@ export function generateSecurePassword(length: number = 16): string {
     password += charset[randomIndex];
   }
   // Shuffle the password to avoid predictable patterns
-  return password.split('').sort(() => crypto.randomInt(-1, 2)).join('');
+  return password
+    .split('')
+    .sort(() => crypto.randomInt(-1, 2))
+    .join('');
 }
 /**
  * Check if password has been breached (using Have I Been Pwned API)
@@ -301,16 +328,25 @@ export async function checkPasswordBreach(password: string): Promise<{
   occurrences?: number;
 }> {
   try {
-    const hash = crypto.createHash('sha1').update(password).digest('hex').toUpperCase();
+    const hash = crypto
+      .createHash('sha1')
+      .update(password)
+      .digest('hex')
+      .toUpperCase();
     const prefix = hash.substring(0, 5);
     const suffix = hash.substring(5);
-    const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
-      headers: {
-        'User-Agent': 'Mintenance-Security-Check',
-      },
-    });
+    const response = await fetch(
+      `https://api.pwnedpasswords.com/range/${prefix}`,
+      {
+        headers: {
+          'User-Agent': 'Mintenance-Security-Check',
+        },
+      }
+    );
     if (!response.ok) {
-      logger.warn('Could not check password breach status', { status: response.status });
+      logger.warn('Could not check password breach status', {
+        status: response.status,
+      });
       return { isBreached: false };
     }
     const text = await response.text();
