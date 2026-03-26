@@ -335,7 +335,7 @@ export const GET = withApiHandler(
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
-    return NextResponse.json(allNotifications.slice(0, 20));
+    return NextResponse.json({ notifications: allNotifications.slice(0, 20) });
   },
 );
 

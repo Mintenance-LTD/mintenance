@@ -11,6 +11,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { theme } from '../../theme';
 
@@ -47,17 +48,23 @@ export const FavoritesScreen: React.FC = () => {
     queryKey: ['favorites', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const raw = await mobileApiClient.get<unknown>('/api/properties/favorites');
-      const items = Array.isArray(raw) ? raw : (raw as Record<string, unknown>)?.favorites || [];
-      return (items as Record<string, unknown>[]).map((r): FavoriteContractor => ({
-        id: (r.id as string) || '',
-        contractor_id: (r.contractor_id as string) || '',
-        name: (r.name as string) || (r.full_name as string) || 'Unknown',
-        trade: (r.trade as string) || '',
-        rating: (r.rating as number) || 0,
-        review_count: (r.review_count as number) || 0,
-        profile_image_url: r.profile_image_url as string | undefined,
-      }));
+      const { data, error } = await supabase
+        .from('favorite_contractors')
+        .select('id, contractor_id, profiles:contractor_id(id, first_name, last_name, trade, rating, review_count, profile_image_url)')
+        .eq('user_id', user.id);
+      if (error) throw new Error(error.message);
+      return (data || []).map((r: Record<string, unknown>): FavoriteContractor => {
+        const profile = r.profiles as Record<string, unknown> | null;
+        return {
+          id: (r.id as string) || '',
+          contractor_id: (r.contractor_id as string) || '',
+          name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown' : 'Unknown',
+          trade: (profile?.trade as string) || '',
+          rating: (profile?.rating as number) || 0,
+          review_count: (profile?.review_count as number) || 0,
+          profile_image_url: profile?.profile_image_url as string | undefined,
+        };
+      });
     },
     enabled: !!user?.id,
   });

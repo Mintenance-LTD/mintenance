@@ -18,7 +18,9 @@ const EXPENSE_CATEGORIES = [
   { key: 'other', label: 'Other', icon: 'ellipsis-horizontal-outline' as const, color: '#8B5CF6' },
 ];
 
-const EXPENSE_PERCENTAGES = [45, 25, 15, 10, 5];
+// Expense percentages are computed from real data when available;
+// fallback to empty (no fake data shown)
+const DEFAULT_EXPENSE_PERCENTAGES = [0, 0, 0, 0, 0];
 
 export const ChartSection: React.FC<ChartSectionProps> = ({
   financialData,
@@ -40,7 +42,13 @@ export const ChartSection: React.FC<ChartSectionProps> = ({
     ],
   };
 
-  const totalExpenses = financialData.monthly_revenue.slice(-1)[0] * 0.6 || 1000;
+  // Use real expense data if available, otherwise show zero
+  const realExpenseTotal = financialData.total_expenses ?? 0;
+  const totalExpenses = realExpenseTotal > 0 ? realExpenseTotal : 0;
+  const EXPENSE_PERCENTAGES = financialData.expense_breakdown?.length
+    ? financialData.expense_breakdown.map((e: { percentage: number }) => e.percentage)
+    : DEFAULT_EXPENSE_PERCENTAGES;
+  const hasExpenses = totalExpenses > 0;
 
   return (
     <>
@@ -64,6 +72,18 @@ export const ChartSection: React.FC<ChartSectionProps> = ({
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Expense Breakdown</Text>
 
+        {!hasExpenses ? (
+          <View style={{ alignItems: 'center', paddingVertical: 24 }}>
+            <Ionicons name="receipt-outline" size={40} color={theme.colors.textTertiary} />
+            <Text style={{ color: theme.colors.textSecondary, marginTop: 8, fontSize: 14 }}>
+              No expenses recorded yet
+            </Text>
+            <Text style={{ color: theme.colors.textTertiary, fontSize: 12, marginTop: 4 }}>
+              Track expenses to see your breakdown
+            </Text>
+          </View>
+        ) : (
+        <>
         {/* Donut + legend row */}
         <View style={styles.donutRow}>
           <View style={styles.donutOuter}>
@@ -107,6 +127,8 @@ export const ChartSection: React.FC<ChartSectionProps> = ({
             );
           })}
         </View>
+        </>
+        )}
       </View>
 
       {/* Monthly Profit */}

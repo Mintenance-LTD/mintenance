@@ -10,7 +10,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { Share, Linking, Alert } from 'react-native';
-import { mobileApiClient } from '../../../utils/mobileApiClient';
+import { supabase } from '../../../config/supabase';
 import { logger } from '../../../utils/logger';
 
 export interface Review {
@@ -107,9 +107,28 @@ export const useContractorProfileViewModel = (contractorId?: string): Contractor
     setLoading(true);
     setError(null);
     try {
-      const { contractor: data } = await mobileApiClient.get<{ contractor: ApiContractor }>(
-        `/api/contractors/${contractorId}`
-      );
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, company_name, city, bio, phone, skills, hourly_rate, verified, portfolio_images, rating, total_jobs_completed')
+        .eq('id', contractorId)
+        .single();
+      if (profileError) throw new Error(profileError.message);
+
+      const data: ApiContractor = {
+        id: profileData.id,
+        name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim(),
+        company_name: profileData.company_name,
+        city: profileData.city,
+        bio: profileData.bio,
+        rating: profileData.rating || 0,
+        reviewCount: 0,
+        total_jobs_completed: profileData.total_jobs_completed || 0,
+        skills: profileData.skills,
+        hourly_rate: profileData.hourly_rate,
+        verified: profileData.verified,
+        phone: profileData.phone,
+        portfolio_images: profileData.portfolio_images,
+      };
 
       setContractor({
         id: data.id,
@@ -130,11 +149,14 @@ export const useContractorProfileViewModel = (contractorId?: string): Contractor
 
       // Fetch reviews
       try {
-        const reviewsData = await mobileApiClient.get<{ reviews: ApiReview[] }>(
-          `/api/contractors/${contractorId}/reviews`
-        );
+        const { data: reviewRows, error: reviewError } = await supabase
+          .from('reviews')
+          .select('id, reviewer_name, rating, comment, created_at')
+          .eq('contractor_id', contractorId)
+          .order('created_at', { ascending: false });
+        if (reviewError) throw reviewError;
         setReviews(
-          (reviewsData.reviews || []).map((r) => ({
+          (reviewRows || []).map((r: { id: string; reviewer_name?: string; rating: number; comment?: string; created_at: string }) => ({
             id: r.id,
             reviewerName: r.reviewer_name || 'Anonymous',
             rating: r.rating,
@@ -147,6 +169,7 @@ export const useContractorProfileViewModel = (contractorId?: string): Contractor
             photos: [],
           }))
         );
+        setContractor((prev) => ({ ...prev, reviews: (reviewRows || []).length }));
       } catch (reviewErr) {
         logger.warn('Failed to fetch reviews', reviewErr);
       }

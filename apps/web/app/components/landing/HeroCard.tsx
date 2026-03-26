@@ -51,6 +51,7 @@ export function HeroCard({
 }: HeroCardProps) {
   const prefersReducedMotion = useReducedMotion();
   const [mounted, setMounted] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -79,16 +80,22 @@ export function HeroCard({
         <div className="relative h-[350px] bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-800 overflow-hidden">
           {/* Contractor Image with Overlay */}
           <div className="absolute inset-0">
-            {/* Placeholder for professional contractor photo */}
             <div className="relative w-full h-full bg-gradient-to-br from-teal-600/90 to-emerald-700/90">
-              {/* Using a placeholder service - replace with actual image */}
-              <Image
-                src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&h=350&fit=crop&crop=faces"
-                alt="Professional contractor with mint fresh smile"
-                fill
-                className="object-cover object-top opacity-90"
-                priority
-              />
+              {!imgError && (
+                <Image
+                  src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&h=350&fit=crop&crop=faces"
+                  alt="Professional contractor"
+                  fill
+                  className="object-cover object-top opacity-90"
+                  priority
+                  onError={() => setImgError(true)}
+                />
+              )}
+              {imgError && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Hammer className="w-20 h-20 text-white/30" />
+                </div>
+              )}
             </div>
 
             {/* Gradient overlay for text readability */}

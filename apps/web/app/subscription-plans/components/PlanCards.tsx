@@ -46,10 +46,10 @@ export function PlanCards({ plans, isAnnual }: PlanCardsProps) {
   return (
     <MotionDiv
       variants={staggerContainer}
-      initial="hidden"
-      whileInView="visible"
+      initial='hidden'
+      whileInView='visible'
       viewport={{ once: true }}
-      className="grid grid-cols-1 md:grid-cols-3 gap-8 pb-16"
+      className='grid grid-cols-1 md:grid-cols-3 gap-8 pb-16'
     >
       {plans.map((plan) => {
         const Icon = PLAN_ICONS[plan.id] ?? Star;
@@ -68,14 +68,14 @@ export function PlanCards({ plans, isAnnual }: PlanCardsProps) {
             }`}
           >
             {plan.popular && (
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <span className="bg-gradient-to-r from-teal-600 to-emerald-600 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
+              <div className='absolute -top-4 left-1/2 transform -translate-x-1/2'>
+                <span className='bg-gradient-to-r from-teal-600 to-emerald-600 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg'>
                   MOST POPULAR
                 </span>
               </div>
             )}
 
-            <div className="text-center mb-6">
+            <div className='text-center mb-6'>
               <div
                 className={`inline-flex p-4 rounded-2xl mb-4 ${
                   plan.color === 'teal'
@@ -95,15 +95,20 @@ export function PlanCards({ plans, isAnnual }: PlanCardsProps) {
                   }`}
                 />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h2>
-              <p className="text-gray-600 text-sm mb-4">{plan.description}</p>
-              <div className="flex items-baseline justify-center gap-1">
-                <span className="text-5xl font-bold text-gray-900">£{price}</span>
-                <span className="text-gray-600">/{billingLabel}</span>
+              <h2 className='text-2xl font-bold text-gray-900 mb-2'>
+                {plan.name}
+              </h2>
+              <p className='text-gray-600 text-sm mb-4'>{plan.description}</p>
+              <div className='flex items-baseline justify-center gap-1'>
+                <span className='text-5xl font-bold text-gray-900'>
+                  £{price}
+                </span>
+                <span className='text-gray-600'>/{billingLabel}</span>
               </div>
               {isAnnual && price > 0 && (
-                <p className="text-sm text-emerald-600 font-medium mt-2">
-                  Save £{((plan.price * 12) - plan.priceAnnual).toFixed(0)} per year
+                <p className='text-sm text-emerald-600 font-medium mt-2'>
+                  Save £{(plan.price * 12 - plan.priceAnnual).toFixed(0)} per
+                  year
                 </p>
               )}
             </div>
@@ -112,7 +117,7 @@ export function PlanCards({ plans, isAnnual }: PlanCardsProps) {
               href={
                 plan.id === 'business'
                   ? '/contact?subject=Business%20Plan'
-                  : '/register?type=contractor'
+                  : '/register?role=contractor'
               }
               className={`block w-full py-4 rounded-xl text-center font-semibold mb-6 transition-all ${
                 plan.popular
@@ -123,11 +128,11 @@ export function PlanCards({ plans, isAnnual }: PlanCardsProps) {
               {plan.cta}
             </Link>
 
-            <ul className="space-y-3">
+            <ul className='space-y-3'>
               {plan.features.map((feature, i) => (
-                <li key={i} className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700 text-sm">{feature}</span>
+                <li key={i} className='flex items-start gap-3'>
+                  <Check className='w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5' />
+                  <span className='text-gray-700 text-sm'>{feature}</span>
                 </li>
               ))}
             </ul>

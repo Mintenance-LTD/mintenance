@@ -18,6 +18,10 @@ interface QuickActionsProps {
   onInvoicesPress?: () => void;
   onExpensesPress?: () => void;
   onCalendarPress?: () => void;
+  onCRMPress?: () => void;
+  onFinancePress?: () => void;
+  onTimeTrackingPress?: () => void;
+  onReportingPress?: () => void;
 }
 
 interface ActionItem {
@@ -35,6 +39,10 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
   onInvoicesPress,
   onExpensesPress,
   onCalendarPress,
+  onCRMPress,
+  onFinancePress,
+  onTimeTrackingPress,
+  onReportingPress,
 }) => {
   const haptics = useHaptics();
 
@@ -87,6 +95,42 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
           iconColor: '#06B6D4',
           bgColor: '#CFFAFE',
           onPress: onCalendarPress,
+        }]
+      : []),
+    ...(onCRMPress
+      ? [{
+          label: 'Clients',
+          icon: 'people' as keyof typeof Ionicons.glyphMap,
+          iconColor: '#3B82F6',
+          bgColor: '#DBEAFE',
+          onPress: onCRMPress,
+        }]
+      : []),
+    ...(onFinancePress
+      ? [{
+          label: 'Finance',
+          icon: 'analytics' as keyof typeof Ionicons.glyphMap,
+          iconColor: theme.colors.primary,
+          bgColor: theme.colors.primaryLight,
+          onPress: onFinancePress,
+        }]
+      : []),
+    ...(onTimeTrackingPress
+      ? [{
+          label: 'Time',
+          icon: 'time' as keyof typeof Ionicons.glyphMap,
+          iconColor: '#3B82F6',
+          bgColor: '#DBEAFE',
+          onPress: onTimeTrackingPress,
+        }]
+      : []),
+    ...(onReportingPress
+      ? [{
+          label: 'Reports',
+          icon: 'bar-chart' as keyof typeof Ionicons.glyphMap,
+          iconColor: '#8B5CF6',
+          bgColor: '#EDE9FE',
+          onPress: onReportingPress,
         }]
       : []),
   ];

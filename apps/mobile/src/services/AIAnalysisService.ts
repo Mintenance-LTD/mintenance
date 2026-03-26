@@ -28,9 +28,11 @@ export class AIAnalysisService {
    */
   static async analyzeJobPhotos(job: Job): Promise<AIAnalysis | null> {
     try {
-      // Try web API first for real AI analysis
-      const apiResult = await this.analyzeViaAPI(job);
-      if (apiResult) return apiResult;
+      // Only call web API if job has actual photos to analyze
+      if (job.photos && job.photos.length > 0) {
+        const apiResult = await this.analyzeViaAPI(job);
+        if (apiResult) return apiResult;
+      }
     } catch (err) {
       logger.warn('API analysis unavailable, using local fallback', err);
     }

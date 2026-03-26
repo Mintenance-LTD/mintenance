@@ -10,7 +10,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { Booking } from './BookingStatusScreen';
 import { useHaptics } from '../../utils/haptics';
-import { theme } from '../../theme';
+import { theme, getStatusBadge } from '../../theme';
 
 interface BookingCardProps {
   booking: Booking;
@@ -21,14 +21,12 @@ interface BookingCardProps {
   onViewDetails: (booking: Booking) => void;
 }
 
-const STATUS_COLORS: Record<string, { text: string; bg: string }> = {
-  upcoming:  { text: '#1D4ED8', bg: '#DBEAFE' },
-  pending:   { text: '#92400E', bg: '#FEF3C7' },
-  completed: { text: '#0F766E', bg: '#CCFBF1' },
-  accepted:  { text: '#0F766E', bg: '#CCFBF1' },
-  cancelled: { text: '#475569', bg: '#F1F5F9' },
-  rejected:  { text: '#991B1B', bg: '#FEE2E2' },
-};
+function getBookingStatusColor(status: string): { text: string; bg: string } {
+  // 'upcoming' is a booking-specific status that maps to 'posted' badge colors
+  const key = status === 'upcoming' ? 'posted' : status;
+  const badge = getStatusBadge(key);
+  return { text: badge.text, bg: badge.bg };
+}
 
 const STATUS_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   upcoming: 'time-outline',
@@ -45,7 +43,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({
   onViewDetails,
 }) => {
   const haptics = useHaptics();
-  const statusColor = STATUS_COLORS[booking.status] || { text: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary };
+  const statusColor = getBookingStatusColor(booking.status);
   const statusIcon = STATUS_ICONS[booking.status] || 'help-circle-outline';
 
   return (

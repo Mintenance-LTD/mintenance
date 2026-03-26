@@ -1,8 +1,8 @@
-import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { sanitizeText } from '../../utils/sanitize';
 import { ServiceErrorHandler } from '../../utils/serviceErrorHandler';
 import { checkRateLimit } from '../../middleware/RateLimiter';
-import { formatMessage, formatCallDuration, createMessageNotification as _createMessageNotification } from './MessageHelpers';
+import { formatCallDuration, createMessageNotification as _createMessageNotification } from './MessageHelpers';
 import type { DatabaseMessageRow, Message } from './types';
 
 /**
@@ -43,27 +43,20 @@ export async function sendMessage(
     ServiceErrorHandler.validateRequired(senderId, 'Sender ID', context);
 
     const safeMessageText = sanitizeText(messageText);
-    const { data, error } = await supabase
-      .from('messages')
-      .insert([{
-        job_id: jobId,
-        sender_id: senderId,
-        receiver_id: receiverId,
-        message_text: safeMessageText,
-        message_type: messageType,
-        attachment_url: attachmentUrl,
-        call_id: callId,
-        call_duration: callDuration,
-        read: false,
-        created_at: new Date().toISOString(),
-      }])
-      .select('*, sender:users!messages_sender_id_fkey(first_name, last_name, role)')
-      .single();
 
-    if (error) throw ServiceErrorHandler.handleDatabaseError(error, context);
+    // Route through API — the thread ID is the jobId in this API
+    const response = await mobileApiClient.post<{ message: Message }>(
+      `/api/messages/threads/${jobId}/messages`,
+      {
+        content: safeMessageText,
+        receiverId,
+        messageType: messageType as string,
+        attachments: attachmentUrl ? [attachmentUrl] : undefined,
+      }
+    );
 
-    await messagingInternals.createMessageNotification(data as DatabaseMessageRow, receiverId);
-    return formatMessage(data as DatabaseMessageRow);
+    if (!response.message) throw new Error('No message returned from API');
+    return response.message;
   }, context);
 
   if (!result.success || !result.data) throw new Error('Failed to send message');

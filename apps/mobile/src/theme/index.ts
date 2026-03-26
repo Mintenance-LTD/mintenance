@@ -1,7 +1,7 @@
 // Centralized Theme System for Mintenance Mobile App
 // Uses shared design tokens while preserving mobile-specific functionality
 import { PixelRatio, Dimensions } from 'react-native';
-import { mobileTokens, createNormalize } from '@mintenance/design-tokens';
+import { mobileTokens, createNormalize, STATUS_COLORS } from '@mintenance/design-tokens';
 
 // Dynamic text scaling utilities
 const { width: screenWidth } = Dimensions.get('window');
@@ -150,11 +150,11 @@ export const theme = {
     },
     // Brief-aligned size presets (non-normalized, direct px values)
     briefSizes: {
-      body: 14,
+      body: 15,       // was 14 — aligned with web's text-base (15px)
       bodyLarge: 16,
       secondary: 18,
-      title: 20,
-      headline: 24,
+      title: 22,      // was 20 — closer to web's text-xl (20→22)
+      headline: 26,   // was 24 — closer to web's text-2xl
       display: 32,
       hero: 48,
     },
@@ -216,9 +216,9 @@ export const theme = {
   components: {
     button: {
       primary: {
-        backgroundColor: '#10B981', // emerald CTA
+        backgroundColor: '#0D9488', // teal-600 — matches web brand
         color: '#FFFFFF',
-        borderColor: '#10B981',
+        borderColor: '#0D9488',
       },
       secondary: {
         backgroundColor: 'transparent',
@@ -231,9 +231,9 @@ export const theme = {
         borderColor: 'transparent',
       },
       success: {
-        backgroundColor: '#10B981',
+        backgroundColor: '#0D9488',
         color: '#FFFFFF',
-        borderColor: '#10B981',
+        borderColor: '#0D9488',
       },
       danger: {
         backgroundColor: tokens.colors.error,
@@ -250,13 +250,13 @@ export const theme = {
       default: {
         backgroundColor: '#FFFFFF',
         borderColor: '#EBEBEB',
-        borderWidth: 0,
+        borderWidth: 1,
         borderRadius: 12,
       },
       elevated: {
         backgroundColor: '#FFFFFF',
-        borderColor: 'transparent',
-        borderWidth: 0,
+        borderColor: '#EBEBEB',
+        borderWidth: 1,
       },
       outlined: {
         backgroundColor: 'transparent',
@@ -414,6 +414,16 @@ export const getStatusColor = (status: string) => {
     default:
       return tokens.colors.textSecondary;
   }
+};
+
+/**
+ * Returns { bg, text, label } for any job/bid/escrow status.
+ * Uses the shared STATUS_COLORS from design-tokens for cross-platform consistency.
+ */
+export const getStatusBadge = (status: string) => {
+  const key = status.toLowerCase().replace(/\s+/g, '_');
+  return (STATUS_COLORS as Record<string, { bg: string; text: string; label: string }>)[key]
+    ?? { bg: '#F1F5F9', text: '#475569', label: status };
 };
 
 export const getPriorityColor = (priority: string) => {

@@ -1,12 +1,21 @@
 import { NextResponse } from 'next/server';
 import { authManager } from '@/lib/auth-manager';
-import { checkLoginRateLimit, recordSuccessfulLogin, createRateLimitHeaders } from '@/lib/rate-limiter';
+import {
+  checkLoginRateLimit,
+  recordSuccessfulLogin,
+  createRateLimitHeaders,
+} from '@/lib/rate-limiter';
 import { validateRequest } from '@/lib/validation/validator';
 import { loginSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
 import { MFAService } from '@/lib/mfa/mfa-service';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { UnauthorizedError, BadRequestError, RateLimitError, InternalServerError } from '@/lib/errors/api-error';
+import {
+  UnauthorizedError,
+  BadRequestError,
+  RateLimitError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
 // Route segment config to ensure proper error handling
@@ -27,16 +36,18 @@ export const POST = withApiHandler(
     } catch (rateLimitError) {
       logger.error('Rate limit check failed', rateLimitError, {
         service: 'auth',
-        ip: request.headers.get('x-forwarded-for') || 'unknown'
+        ip: request.headers.get('x-forwarded-for') || 'unknown',
       });
       // Fail closed: deny request when rate limiting is unavailable (security-first)
-      throw new InternalServerError('Rate limiting service unavailable. Please try again later.');
+      throw new InternalServerError(
+        'Rate limiting service unavailable. Please try again later.'
+      );
     }
 
     if (!rateLimitResult.allowed) {
       logger.warn('Login rate limit exceeded', {
         service: 'auth',
-        ip: request.headers.get('x-forwarded-for') || 'unknown'
+        ip: request.headers.get('x-forwarded-for') || 'unknown',
       });
       throw new RateLimitError();
     }
@@ -46,7 +57,9 @@ export const POST = withApiHandler(
     try {
       validation = await validateRequest(request, loginSchema);
     } catch (validationError) {
-      logger.error('Request validation error', validationError, { service: 'auth' });
+      logger.error('Request validation error', validationError, {
+        service: 'auth',
+      });
       throw new BadRequestError('Invalid request format');
     }
 
@@ -60,40 +73,76 @@ export const POST = withApiHandler(
     // Delegate authentication and cookie handling to AuthManager
     let result;
     try {
-      result = await authManager.login({ email, password }, rememberMe || false);
+      result = await authManager.login(
+        { email, password },
+        rememberMe || false
+      );
     } catch (authError) {
-      logger.error('AuthManager login error', authError, { service: 'auth', email });
-      throw new InternalServerError('Authentication service error. Please try again.');
+      logger.error('AuthManager login error', authError, {
+        service: 'auth',
+        email,
+      });
+      throw new InternalServerError(
+        'Authentication service error. Please try again.'
+      );
     }
 
     if (!result.success || !result.user) {
       logger.warn('Login failed', {
         service: 'auth',
         email,
-        reason: result.error
+        reason: result.error,
       });
       throw new UnauthorizedError(result.error || 'Invalid email or password');
     }
 
-    // Check if user has MFA enabled
+    // Check if user has MFA enabled and their role
     const { data: userData } = await serverSupabase
       .from('profiles')
-      .select('mfa_enabled')
+      .select('mfa_enabled, role')
       .eq('id', result.user.id)
       .single();
 
     const mfaEnabled = userData?.mfa_enabled || false;
+    const isAdmin = userData?.role === 'admin';
+
+    // Admin accounts MUST have MFA enabled — block login if not set up
+    if (isAdmin && !mfaEnabled) {
+      logger.warn('Admin login blocked: MFA not configured', {
+        service: 'auth',
+        userId: result.user.id,
+        email: result.user.email,
+      });
+      return NextResponse.json(
+        {
+          requiresMfaSetup: true,
+          message:
+            'Admin accounts require MFA. Please set up two-factor authentication.',
+          setupUrl: '/admin/login?setup-mfa=true',
+        },
+        { status: 403 }
+      );
+    }
 
     // Check for trusted device cookie
     const cookieHeader = request.headers.get('cookie');
-    const trustedDeviceMatch = cookieHeader?.match(/mintenance-trusted-device=([^;]+)/);
+    const trustedDeviceMatch = cookieHeader?.match(
+      /mintenance-trusted-device=([^;]+)/
+    );
     const trustedDeviceToken = trustedDeviceMatch?.[1];
 
     let isTrustedDevice = false;
     if (trustedDeviceToken && mfaEnabled) {
-      const requestIp = request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || undefined;
+      const requestIp =
+        request.headers.get('x-forwarded-for')?.split(',')[0] ||
+        request.headers.get('x-real-ip') ||
+        undefined;
       const requestUa = request.headers.get('user-agent') || undefined;
-      const validatedUserId = await MFAService.validateTrustedDevice(trustedDeviceToken, requestIp, requestUa);
+      const validatedUserId = await MFAService.validateTrustedDevice(
+        trustedDeviceToken,
+        requestIp,
+        requestUa
+      );
       isTrustedDevice = validatedUserId === result.user.id;
 
       if (isTrustedDevice) {
@@ -106,9 +155,10 @@ export const POST = withApiHandler(
 
     // If MFA is enabled and not a trusted device, create pre-MFA session
     if (mfaEnabled && !isTrustedDevice) {
-      const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0] ||
-                        request.headers.get('x-real-ip') ||
-                        undefined;
+      const ipAddress =
+        request.headers.get('x-forwarded-for')?.split(',')[0] ||
+        request.headers.get('x-real-ip') ||
+        undefined;
       const userAgent = request.headers.get('user-agent') || undefined;
 
       const preMfaSession = await MFAService.createPreMFASession(
@@ -138,13 +188,16 @@ export const POST = withApiHandler(
       recordSuccessfulLogin(request);
     } catch (recordError) {
       // Log but don't fail the login if rate limit recording fails
-      logger.warn('Failed to record successful login', { error: recordError, service: 'auth' });
+      logger.warn('Failed to record successful login', {
+        error: recordError,
+        service: 'auth',
+      });
     }
 
     logger.info('User logged in successfully', {
       service: 'auth',
       userId: result.user.id,
-      email: result.user.email
+      email: result.user.email,
     });
 
     // Create response
@@ -157,8 +210,8 @@ export const POST = withApiHandler(
           role: result.user.role,
           firstName: result.user.first_name,
           lastName: result.user.last_name,
-          emailVerified: result.user.verified
-        }
+          emailVerified: result.user.verified,
+        },
       },
       { status: 200 }
     );

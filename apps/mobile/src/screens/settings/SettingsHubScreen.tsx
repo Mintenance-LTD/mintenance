@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
 import { theme, gradients } from '../../theme';
 
 const LEGAL_URLS = {
@@ -56,8 +57,18 @@ export const SettingsHubScreen: React.FC = () => {
     queryKey: ['user-settings', user?.id],
     queryFn: async (): Promise<UserSettings> => {
       if (!user?.id) throw new Error('Not authenticated');
-      const result = await mobileApiClient.get<{ success: boolean; data: UserSettings }>('/api/users/settings');
-      return result.data || {
+      const { data, error } = await supabase
+        .from('user_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      if (error || !data) {
+        return {
+          notifications: { email: true, push: true, sms: false },
+          privacy: { profileVisible: true, shareActivityData: false },
+        };
+      }
+      return (data as unknown as UserSettings) || {
         notifications: { email: true, push: true, sms: false },
         privacy: { profileVisible: true, shareActivityData: false },
       };

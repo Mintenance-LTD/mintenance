@@ -4,7 +4,7 @@ export interface EscrowTransactionRow {
   homeowner_id: string;
   contractor_id: string;
   amount: number;
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | 'disputed';
+  status: 'pending' | 'held' | 'release_pending' | 'released' | 'refunded' | 'processing' | 'completed' | 'failed' | 'disputed';
   stripe_payment_intent_id: string | null;
   stripe_transfer_id: string | null;
   created_at: string;

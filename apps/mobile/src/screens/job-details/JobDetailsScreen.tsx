@@ -310,6 +310,40 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.description}>{job.description}</Text>
         </View>
 
+        {/* 7b. Bids Section (homeowner sees bids on their job) */}
+        {isOwner && bidsArray.length > 0 && (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.sectionPadded}>
+              <Text style={styles.sectionLabel}>Bids ({bidsArray.length})</Text>
+              {(bidsArray as Array<{ id: string; contractor_id?: string; status?: string; amount?: number; description?: string; message?: string; contractor?: { first_name?: string; last_name?: string; company_name?: string; profile_image_url?: string } }>).map((bid) => (
+                <View key={bid.id} style={{ backgroundColor: theme.colors.backgroundSecondary, borderRadius: 12, padding: 12, marginBottom: 8 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary }}>
+                      {bid.contractor?.first_name ? `${bid.contractor.first_name} ${bid.contractor.last_name || ''}`.trim() : bid.contractor?.company_name || 'Contractor'}
+                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 17, fontWeight: '700', color: theme.colors.primary }}>
+                        £{typeof bid.amount === 'number' ? bid.amount.toFixed(2) : bid.amount}
+                      </Text>
+                      <View style={{ marginLeft: 8, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, backgroundColor: bid.status === 'accepted' ? '#D1FAE5' : bid.status === 'rejected' ? '#FEE2E2' : '#FEF3C7' }}>
+                        <Text style={{ fontSize: 11, fontWeight: '600', color: bid.status === 'accepted' ? '#065F46' : bid.status === 'rejected' ? '#991B1B' : '#92400E' }}>
+                          {bid.status === 'accepted' ? 'Accepted' : bid.status === 'rejected' ? 'Rejected' : 'Pending'}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                  {(bid.description || bid.message) && (
+                    <Text style={{ fontSize: 13, color: theme.colors.textSecondary, marginTop: 6 }} numberOfLines={2}>
+                      {bid.description || bid.message}
+                    </Text>
+                  )}
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+
         {/* 8. AI Analysis (if available) */}
         {(viewModel.aiAnalysis || viewModel.aiLoading) && (
           <>
@@ -393,6 +427,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         contractStatus: viewModel.contractStatus,
         escrowStatus: viewModel.escrowStatus,
         hasReviewed: viewModel.hasReviewed,
+        bidsArray,
       })}
 
       {/* Escrow Explanation Modal */}
@@ -472,12 +507,32 @@ interface CTAContext {
   contractStatus: string | null;
   escrowStatus: string | null;
   hasReviewed: boolean;
+  bidsArray: Array<{ id: string; contractor_id?: string; status?: string; amount?: number }>;
 }
 
-function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation, contractStatus, escrowStatus, hasReviewed }: CTAContext): React.ReactElement | null {
+function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation, contractStatus, escrowStatus, hasReviewed, bidsArray }: CTAContext): React.ReactElement | null {
   const isAssignedContractor = isContractor && job.contractor_id === userId;
 
   if (isContractor && job.status === 'posted') {
+    // Check if this contractor already has a bid on this job
+    const myBid = userId
+      ? bidsArray.find((b) => b.contractor_id === userId)
+      : null;
+
+    if (myBid) {
+      // Contractor already bid — show status instead of submit
+      const bidStatus = myBid.status === 'pending' ? 'Pending' : myBid.status === 'accepted' ? 'Accepted' : myBid.status || 'Sent';
+      return (
+        <StickyBottomCTA
+          price={myBid.amount ? myBid.amount : undefined}
+          priceLabel="Your bid"
+          buttonText={`Bid ${bidStatus} — Edit Bid`}
+          onPress={() => navigation.navigate('BidSubmission', { jobId: job.id, existingBidId: myBid.id })}
+          secondaryText="Your bid has been submitted"
+        />
+      );
+    }
+
     return (
       <StickyBottomCTA
         price={budget > 0 ? budget : undefined}
@@ -488,26 +543,41 @@ function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation
     );
   }
 
-  if (isAssignedContractor && job.status === 'assigned' && contractStatus === 'draft') {
+  // Contractor stages matching web app workflow:
+  // 1. contract_preparing: no contract or draft → "Prepare Contract"
+  if (isAssignedContractor && job.status === 'assigned' && (!contractStatus || contractStatus === 'draft' || contractStatus === 'pending_contractor')) {
     return (
       <StickyBottomCTA
         buttonText="Prepare Contract"
         onPress={() => navigation.navigate('ContractPreparation', { jobId: job.id, jobTitle: job.title })}
-        secondaryText="Fill in contract terms for homeowner"
+        secondaryText="Create contract with your business details and terms"
       />
     );
   }
 
-  if (isAssignedContractor && job.status === 'assigned' && contractStatus && contractStatus !== 'draft' && contractStatus !== 'accepted') {
+  // 2. contract_pending: contractor needs to sign → "Sign Contract"
+  if (isAssignedContractor && job.status === 'assigned' && contractStatus === 'pending_homeowner') {
     return (
       <StickyBottomCTA
-        buttonText="View Contract"
+        buttonText="Waiting for Homeowner"
         onPress={() => navigation.navigate('ContractView', { jobId: job.id })}
-        secondaryText="Review and sign contract"
+        secondaryText="Homeowner needs to review and sign"
       />
     );
   }
 
+  // 3. awaiting_payment: both signed, waiting for escrow → "Waiting for Payment"
+  if (isAssignedContractor && job.status === 'assigned' && contractStatus === 'accepted' && escrowStatus !== 'held') {
+    return (
+      <StickyBottomCTA
+        buttonText="Waiting for Payment"
+        onPress={() => navigation.navigate('ContractView', { jobId: job.id })}
+        secondaryText="Homeowner needs to deposit payment into escrow"
+      />
+    );
+  }
+
+  // 4. ready_to_start: escrow held → "Upload Before Photos"
   if (isAssignedContractor && job.status === 'assigned' && contractStatus === 'accepted' && escrowStatus === 'held') {
     return (
       <StickyBottomCTA
@@ -528,20 +598,31 @@ function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation
     );
   }
 
-  if (isOwner && job.status === 'posted' && job.bids && job.bids.length > 0) {
+  if (isOwner && job.status === 'posted' && bidsArray.length > 0) {
     return (
       <StickyBottomCTA
-        buttonText={`View ${job.bids.length} Bid${job.bids.length !== 1 ? 's' : ''}`}
+        buttonText={`View ${bidsArray.length} Bid${bidsArray.length !== 1 ? 's' : ''}`}
         onPress={() => navigation.navigate('BidReview', { jobId: job.id })}
         secondaryText="Review contractor bids"
       />
     );
   }
 
-  if (isOwner && job.status === 'assigned' && contractStatus && contractStatus !== 'accepted') {
+  if (isOwner && job.status === 'assigned' && (contractStatus === 'draft' || contractStatus === 'pending_contractor')) {
     return (
       <StickyBottomCTA
-        buttonText="View Contract"
+        buttonText="Waiting for Contractor"
+        onPress={() => navigation.navigate('ContractView', { jobId: job.id })}
+        secondaryText="Contractor is preparing the contract"
+        disabled
+      />
+    );
+  }
+
+  if (isOwner && job.status === 'assigned' && contractStatus && contractStatus !== 'accepted' && contractStatus !== 'draft' && contractStatus !== 'pending_contractor') {
+    return (
+      <StickyBottomCTA
+        buttonText="View & Sign Contract"
         onPress={() => navigation.navigate('ContractView', { jobId: job.id })}
         secondaryText="Review and sign contract"
       />
@@ -549,14 +630,17 @@ function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation
   }
 
   if (isOwner && job.status === 'assigned' && contractStatus === 'accepted' && escrowStatus !== 'held' && budget > 0) {
+    // Use accepted bid amount for payment instead of budget estimate
+    const acceptedBid = bidsArray.find((b: { status?: string; amount?: number }) => b.status === 'accepted');
+    const amount = acceptedBid?.amount || budget;
     return (
       <StickyBottomCTA
-        price={budget}
-        priceLabel="Contract amount"
+        price={amount}
+        priceLabel="Bid amount"
         buttonText="Pay Now"
         onPress={() => navigation.navigate('JobPayment', {
           jobId: job.id,
-          amount: budget,
+          amount,
           contractorId: job.contractor_id || '',
         })}
         secondaryText="Secure payment in escrow"

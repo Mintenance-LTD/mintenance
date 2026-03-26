@@ -14,6 +14,10 @@ const listQuerySchema = z.object({
   cursor: z.string().optional(),
   status: z.array(z.string()).optional(),
   propertyId: z.string().uuid().optional(),
+  search: z.string().max(200).optional(),
+  category: z.string().optional(),
+  minBudget: z.coerce.number().min(0).optional(),
+  maxBudget: z.coerce.number().min(0).optional(),
 });
 
 const VALID_CATEGORIES = [
@@ -59,21 +63,27 @@ export const GET = withApiHandler(
   { csrf: false },
   async (request: NextRequest, { user }) => {
     const url = new URL(request.url);
+    // Support both array status (web) and single status (mobile)
+    const statusParams = url.searchParams.getAll('status');
     const parsed = listQuerySchema.safeParse({
       limit: url.searchParams.get('limit') ?? undefined,
       cursor: url.searchParams.get('cursor') ?? undefined,
-      status: url.searchParams.getAll('status') ?? undefined,
+      status: statusParams.length > 0 ? statusParams : undefined,
       propertyId: url.searchParams.get('propertyId') ?? undefined,
+      search: url.searchParams.get('search') ?? undefined,
+      category: url.searchParams.get('category') ?? undefined,
+      minBudget: url.searchParams.get('minBudget') ?? undefined,
+      maxBudget: url.searchParams.get('maxBudget') ?? undefined,
     });
 
     if (!parsed.success) {
       throw new BadRequestError('Invalid query parameters');
     }
 
-    const { limit, cursor, status, propertyId } = parsed.data;
+    const { limit, cursor, status, propertyId, search, category, minBudget, maxBudget } = parsed.data;
     const { items, nextCursor } = await JobQueryService.getInstance().listJobs(
       { id: user.id, role: user.role },
-      { limit, cursor, status, propertyId }
+      { limit, cursor, status, propertyId, search, category, minBudget, maxBudget }
     );
 
     return NextResponse.json({ jobs: items, nextCursor });

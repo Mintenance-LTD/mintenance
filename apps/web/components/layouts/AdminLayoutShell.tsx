@@ -27,27 +27,100 @@ interface NavItem {
   icon: string;
   label: string;
   href: string;
+  badge?: 'verifications' | 'escrow';
 }
 
-const adminNav: readonly NavItem[] = Object.freeze([
-  { icon: 'dashboard', label: 'Dashboard', href: '/admin' },
-  { icon: 'trendingUp', label: 'Revenue', href: '/admin/revenue' },
-  { icon: 'users', label: 'Users', href: '/admin/users' },
-  { icon: 'creditCard', label: 'Payment Setup', href: '/admin/contractors/payment-setup' },
-  { icon: 'shield', label: 'Security', href: '/admin/security' },
-  { icon: 'messages', label: 'Communications', href: '/admin/communications' },
-  { icon: 'fileCheck', label: 'Escrow Reviews', href: '/admin/escrow/reviews' },
-  { icon: 'dollarSign', label: 'Fee Management', href: '/admin/payments/fees' },
-  { icon: 'building', label: 'Building Assessments', href: '/admin/building-assessments' },
-  { icon: 'settings', label: 'Settings', href: '/admin/settings' },
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
+
+const adminNavSections: readonly NavSection[] = Object.freeze([
+  {
+    title: '',
+    items: [{ icon: 'dashboard', label: 'Dashboard', href: '/admin' }],
+  },
+  {
+    title: 'Users & Comms',
+    items: [
+      {
+        icon: 'users',
+        label: 'Users',
+        href: '/admin/users',
+        badge: 'verifications',
+      },
+      {
+        icon: 'messages',
+        label: 'Communications',
+        href: '/admin/communications',
+      },
+    ],
+  },
+  {
+    title: 'Finance',
+    items: [
+      { icon: 'trendingUp', label: 'Revenue', href: '/admin/revenue' },
+      { icon: 'chart', label: 'Analytics', href: '/admin/analytics-detail' },
+      {
+        icon: 'fileCheck',
+        label: 'Escrow Reviews',
+        href: '/admin/escrow/reviews',
+        badge: 'escrow',
+      },
+      {
+        icon: 'dollarSign',
+        label: 'Fee Management',
+        href: '/admin/payments/fees',
+      },
+      {
+        icon: 'bank',
+        label: 'Reconciliation',
+        href: '/admin/payments/reconciliation',
+      },
+      {
+        icon: 'creditCard',
+        label: 'Payment Setup',
+        href: '/admin/contractors/payment-setup',
+      },
+      { icon: 'currencyPound', label: 'Tax', href: '/admin/tax' },
+    ],
+  },
+  {
+    title: 'AI & Assessments',
+    items: [
+      {
+        icon: 'building',
+        label: 'Assessments',
+        href: '/admin/building-assessments',
+      },
+      { icon: 'brain', label: 'AI Monitoring', href: '/admin/ai-monitoring' },
+      {
+        icon: 'activity',
+        label: 'Hybrid Inference',
+        href: '/admin/hybrid-inference',
+      },
+    ],
+  },
+  {
+    title: 'Security & Ops',
+    items: [
+      { icon: 'shield', label: 'Security', href: '/admin/security' },
+      { icon: 'clipboard', label: 'Audit Logs', href: '/admin/audit-logs' },
+      {
+        icon: 'refresh',
+        label: 'Migrations',
+        href: '/admin/migration-dashboard',
+      },
+      { icon: 'fileText', label: 'API Docs', href: '/admin/api-documentation' },
+      { icon: 'settings', label: 'Settings', href: '/admin/settings' },
+    ],
+  },
 ]);
 
 export function AdminLayoutShell(props: AdminLayoutShellProps) {
   // Defensive prop destructuring with defaults to prevent test crashes
-  const {
-    children,
-    user = { id: '', email: '', role: 'admin' as const },
-  } = props || {};
+  const { children, user = { id: '', email: '', role: 'admin' as const } } =
+    props || {};
   const pathname = usePathname();
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -60,7 +133,7 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
 
   const handleLogout = async (): Promise<void> => {
     if (isLoggingOut) return;
-    
+
     setIsLoggingOut(true);
     try {
       const sessionManager = SessionManager.getInstance();
@@ -68,14 +141,14 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
       await fetch('/api/auth/logout', {
         method: 'POST',
         headers: {
-          ...await getCsrfHeaders(),
+          ...(await getCsrfHeaders()),
         },
       });
-      router.push('/login');
+      router.push('/admin/login');
       router.refresh();
     } catch (error) {
       logger.error('Logout failed', error);
-      router.push('/login');
+      router.push('/admin/login');
     } finally {
       setIsLoggingOut(false);
     }
@@ -89,27 +162,30 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
     return pathname.startsWith(href);
   };
 
-  const userInitials = user.first_name && user.last_name
-    ? `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase()
-    : user.email.charAt(0).toUpperCase();
+  const userInitials =
+    user.first_name && user.last_name
+      ? `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase()
+      : user.email.charAt(0).toUpperCase();
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      backgroundColor: '#F9FAFB',
-    }}>
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        backgroundColor: '#F9FAFB',
+      }}
+    >
       {/* Skip to content link for keyboard users */}
       <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:z-[9999] focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-white focus:text-purple-700 focus:rounded-lg focus:shadow-lg focus:font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500"
+        href='#main-content'
+        className='sr-only focus:not-sr-only focus:absolute focus:z-[9999] focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-white focus:text-purple-700 focus:rounded-lg focus:shadow-lg focus:font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500'
       >
         Skip to content
       </a>
 
       {/* Sidebar */}
       <aside
-        aria-label="Admin navigation sidebar"
+        aria-label='Admin navigation sidebar'
         style={{
           width: isCollapsed ? '80px' : '280px',
           backgroundColor: '#0C1A33',
@@ -125,152 +201,227 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
         }}
       >
         {/* Logo Section */}
-        <div className={styles.logoSection} style={{
-          padding: theme.spacing[4],
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          minHeight: '64px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3] }}>
+        <div
+          className={styles.logoSection}
+          style={{
+            padding: theme.spacing[4],
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            minHeight: '64px',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing[3],
+            }}
+          >
             <Logo />
             {!isCollapsed && (
-              <span className={styles.logoText} style={{
-                fontSize: theme.typography.fontSize.xl,
-                fontWeight: theme.typography.fontWeight.bold,
-                color: '#3B82F6',
-              }}>
+              <span
+                className={styles.logoText}
+                style={{
+                  fontSize: theme.typography.fontSize.xl,
+                  fontWeight: theme.typography.fontWeight.bold,
+                  color: theme.colors.primary,
+                }}
+              >
                 Mintenance
               </span>
             )}
           </div>
-          {!isCollapsed && (
-            <AdminNotificationBell userId={user.id} />
-          )}
+          {!isCollapsed && <AdminNotificationBell userId={user.id} />}
         </div>
 
         {/* Navigation */}
         <nav
-          aria-label="Admin main navigation"
+          aria-label='Admin main navigation'
           style={{
-          flex: 1,
-          padding: theme.spacing[2],
-          overflowY: 'auto',
-        }}>
-          {adminNav.map((item) => {
-            const active = isActive(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                prefetch={true}
-                aria-current={active ? "page" : undefined}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing[3],
-                  padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                  marginBottom: theme.spacing[1.5],
-                  borderRadius: '12px',
-                  backgroundColor: active ? 'rgba(74, 103, 255, 0.15)' : 'transparent',
-                  borderLeft: active ? `4px solid #4A67FF` : '4px solid transparent',
-                  color: active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.8)',
-                  textDecoration: 'none',
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: active ? 600 : 500,
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  position: 'relative',
-                  cursor: 'pointer',
-                }}
-                onMouseEnter={(e) => {
-                  if (!active) {
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                    e.currentTarget.style.color = '#FFFFFF';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!active) {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = 'rgba(255, 255, 255, 0.8)';
-                  }
-                }}
-              >
-                <div style={{
-                  width: '24px',
-                  height: '24px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  <Icon name={item.icon} size={20} color={active ?  '#4A67FF' : 'rgba(255, 255, 255, 0.8)'} />
-                </div>
-                {!isCollapsed && <span>{item.label}</span>}
-                {active && !isCollapsed && (
-                  <div
-                    aria-hidden="true"
+            flex: 1,
+            padding: theme.spacing[2],
+            overflowY: 'auto',
+          }}
+        >
+          {adminNavSections.map((section) => (
+            <div
+              key={section.title || 'top'}
+              style={{ marginBottom: theme.spacing[2] }}
+            >
+              {section.title && !isCollapsed && (
+                <p
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    color: 'rgba(255, 255, 255, 0.4)',
+                    padding: `${theme.spacing[2]} ${theme.spacing[4]} ${theme.spacing[1]}`,
+                    margin: 0,
+                  }}
+                >
+                  {section.title}
+                </p>
+              )}
+              {isCollapsed && section.title && (
+                <div
+                  style={{
+                    borderTop: '1px solid rgba(255,255,255,0.08)',
+                    margin: `${theme.spacing[1]} ${theme.spacing[3]}`,
+                  }}
+                />
+              )}
+              {section.items.map((item) => {
+                const active = isActive(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    prefetch={true}
+                    aria-current={active ? 'page' : undefined}
                     style={{
-                    position: 'absolute',
-                    right: theme.spacing[4],
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
-                    backgroundColor: '#4A67FF',
-                    boxShadow: '0 0 8px rgba(74, 103, 255, 0.6)',
-                  }} />
-                )}
-              </Link>
-            );
-          })}
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: theme.spacing[3],
+                      padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
+                      marginBottom: '2px',
+                      borderRadius: '10px',
+                      backgroundColor: active
+                        ? `rgba(${parseInt(theme.colors.primary.slice(1, 3), 16)}, ${parseInt(theme.colors.primary.slice(3, 5), 16)}, ${parseInt(theme.colors.primary.slice(5, 7), 16)}, 0.15)`
+                        : 'transparent',
+                      borderLeft: active
+                        ? `3px solid ${theme.colors.primary}`
+                        : '3px solid transparent',
+                      color: active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.7)',
+                      textDecoration: 'none',
+                      fontSize: theme.typography.fontSize.sm,
+                      fontWeight: active ? 600 : 400,
+                      transition: 'all 0.2s ease',
+                      position: 'relative',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!active) {
+                        e.currentTarget.style.backgroundColor =
+                          'rgba(255, 255, 255, 0.06)';
+                        e.currentTarget.style.color = '#FFFFFF';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!active) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color =
+                          'rgba(255, 255, 255, 0.7)';
+                      }
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '22px',
+                        height: '22px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Icon
+                        name={item.icon}
+                        size={18}
+                        color={
+                          active
+                            ? theme.colors.primary
+                            : 'rgba(255, 255, 255, 0.6)'
+                        }
+                      />
+                    </div>
+                    {!isCollapsed && (
+                      <>
+                        <span style={{ flex: 1 }}>{item.label}</span>
+                        {item.badge && (
+                          <span
+                            className='admin-nav-badge'
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              backgroundColor: 'rgba(239, 68, 68, 0.9)',
+                              color: '#fff',
+                              borderRadius: '10px',
+                              padding: '1px 7px',
+                              minWidth: '18px',
+                              textAlign: 'center',
+                              lineHeight: '16px',
+                            }}
+                            data-badge-type={item.badge}
+                          />
+                        )}
+                      </>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* User Section */}
-        <div style={{
-          padding: theme.spacing[4],
-          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing[3],
-            marginBottom: theme.spacing[4],
-          }}>
-            <div
-              aria-hidden="true"
-              style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              backgroundColor: '#3B82F6',
+        <div
+          style={{
+            padding: theme.spacing[4],
+            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+          }}
+        >
+          <div
+            style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              color: '#FFFFFF',
-              fontWeight: theme.typography.fontWeight.bold,
-              fontSize: theme.typography.fontSize.sm,
-            }}>
+              gap: theme.spacing[3],
+              marginBottom: theme.spacing[4],
+            }}
+          >
+            <div
+              aria-hidden='true'
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                backgroundColor: theme.colors.primary,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#FFFFFF',
+                fontWeight: theme.typography.fontWeight.bold,
+                fontSize: theme.typography.fontSize.sm,
+              }}
+            >
               {userInitials}
             </div>
             {!isCollapsed && (
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  color: '#FFFFFF',
-                  margin: 0,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}>
+                <p
+                  style={{
+                    fontSize: theme.typography.fontSize.sm,
+                    fontWeight: theme.typography.fontWeight.semibold,
+                    color: '#FFFFFF',
+                    margin: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   {user.first_name && user.last_name
                     ? `${user.first_name} ${user.last_name}`
                     : user.email}
                 </p>
-                <p style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  color: 'rgba(255, 255, 255, 0.7)',
-                  margin: 0,
-                }}>
+                <p
+                  style={{
+                    fontSize: theme.typography.fontSize.xs,
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    margin: 0,
+                  }}
+                >
                   Admin
                 </p>
               </div>
@@ -279,7 +430,7 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
           <button
             onClick={handleLogout}
             disabled={isLoggingOut}
-            aria-label="Log out of admin panel"
+            aria-label='Log out of admin panel'
             style={{
               width: '100%',
               display: 'flex',
@@ -296,7 +447,7 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
               opacity: isLoggingOut ? 0.5 : 1,
             }}
           >
-            <Icon name="logOut" size={20} color="#FFFFFF" />
+            <Icon name='logOut' size={20} color='#FFFFFF' />
             {!isCollapsed && <span>Log Out</span>}
           </button>
         </div>
@@ -304,17 +455,17 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
 
       {/* Main Content */}
       <main
-        id="main-content"
-        role="main"
+        id='main-content'
+        role='main'
         style={{
-        flex: 1,
-        marginLeft: isCollapsed ? '80px' : '280px',
-        transition: 'margin-left 0.3s ease',
-        minHeight: '100vh',
-      }}>
+          flex: 1,
+          marginLeft: isCollapsed ? '80px' : '280px',
+          transition: 'margin-left 0.3s ease',
+          minHeight: '100vh',
+        }}
+      >
         {children}
       </main>
     </div>
   );
 }
-

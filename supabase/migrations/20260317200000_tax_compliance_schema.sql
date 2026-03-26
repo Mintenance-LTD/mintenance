@@ -300,10 +300,12 @@ CREATE POLICY "service_all_tax_payments" ON public.tax_payment_records
 -- Both exist in the codebase; we use update_updated_at_column() for consistency
 -- with recent migrations (20260303*, 20260225*)
 
+DROP TRIGGER IF EXISTS set_updated_at_contractor_tax_profiles ON public.contractor_tax_profiles;
 CREATE TRIGGER set_updated_at_contractor_tax_profiles
   BEFORE UPDATE ON public.contractor_tax_profiles
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS set_updated_at_tax_year_summaries ON public.tax_year_summaries;
 CREATE TRIGGER set_updated_at_tax_year_summaries
   BEFORE UPDATE ON public.tax_year_summaries
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -375,6 +377,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_tax_payment_record_refresh_summary ON public.tax_payment_records;
 CREATE TRIGGER trg_tax_payment_record_refresh_summary
   AFTER INSERT ON public.tax_payment_records
   FOR EACH ROW EXECUTE FUNCTION public.tax_payment_record_after_insert();

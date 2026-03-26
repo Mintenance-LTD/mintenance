@@ -42,9 +42,10 @@ export function AdminPageHeader(props: AdminPageHeaderProps) {
   if (variant === 'gradient') {
     return (
       <div
-        className="relative overflow-hidden rounded-[16px] p-8 md:p-10 border border-white/10 shadow-[0_8px_24px_rgba(15,23,42,0.25)] mb-10"
+        className='relative overflow-hidden rounded-[16px] p-8 md:p-10 border border-white/10 shadow-[0_8px_24px_rgba(15,23,42,0.25)] mb-10'
         style={{
-          background: 'linear-gradient(135deg, #020617 0%, #0F172A 50%, #1E293B 100%)',
+          background:
+            'linear-gradient(135deg, #020617 0%, #0F172A 50%, #1E293B 100%)',
         }}
       >
         {/* Decorative Elements */}
@@ -75,18 +76,18 @@ export function AdminPageHeader(props: AdminPageHeaderProps) {
           }}
         />
 
-        <div className="relative z-10">
-          <div className="flex items-start justify-between flex-wrap gap-6">
+        <div className='relative z-10'>
+          <div className='flex items-start justify-between flex-wrap gap-6'>
             {/* Greeting Section */}
-            <div className="flex-1 min-w-0">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-2 tracking-tight leading-tight">
+            <div className='flex-1 min-w-0'>
+              <h2 className='text-3xl md:text-4xl font-bold text-white mb-2 tracking-tight leading-tight'>
                 {greeting}, Admin
               </h2>
-              <h1 className="text-xl md:text-2xl font-bold text-white/95 mb-3">
+              <h1 className='text-xl md:text-2xl font-bold text-white/95 mb-3'>
                 {title}
               </h1>
               {subtitle && (
-                <p className="text-sm md:text-base text-white/70 leading-relaxed max-w-2xl">
+                <p className='text-sm md:text-base text-white/70 leading-relaxed max-w-2xl'>
                   {subtitle}
                 </p>
               )}
@@ -94,26 +95,22 @@ export function AdminPageHeader(props: AdminPageHeaderProps) {
 
             {/* Quick Stats - Modern Pills */}
             {quickStats && quickStats.length > 0 && (
-              <div className="flex gap-3 flex-wrap">
+              <div className='flex gap-3 flex-wrap'>
                 {quickStats.map((stat, index) => (
                   <div
                     key={index}
-                    className="px-4 py-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 flex items-center gap-2 transition-all duration-200 hover:bg-white/20"
+                    className='px-4 py-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 flex items-center gap-2 transition-all duration-200 hover:bg-white/20'
                   >
                     {stat.color && (
                       <div
-                        className="w-2 h-2 rounded-full"
+                        className='w-2 h-2 rounded-full'
                         style={{ backgroundColor: stat.color }}
                       />
                     )}
                     {stat.icon && (
-                      <Icon
-                        name={stat.icon}
-                        size={16}
-                        color="#FFFFFF"
-                      />
+                      <Icon name={stat.icon} size={16} color='#FFFFFF' />
                     )}
-                    <span className="text-sm font-semibold text-white">
+                    <span className='text-sm font-semibold text-white'>
                       {stat.value} {stat.label}
                     </span>
                   </div>
@@ -123,9 +120,7 @@ export function AdminPageHeader(props: AdminPageHeaderProps) {
 
             {/* Actions */}
             {actions && (
-              <div className="flex items-center gap-3">
-                {actions}
-              </div>
+              <div className='flex items-center gap-3'>{actions}</div>
             )}
           </div>
         </div>
@@ -147,10 +142,10 @@ export function AdminPageHeader(props: AdminPageHeaderProps) {
       >
         <div style={{ flex: 1, minWidth: '200px' }}>
           <h1
-            className="text-heading-md font-[640] text-gray-900 mb-3 tracking-tighter"
+            className='text-heading-md font-bold text-gray-900 mb-3 tracking-tighter'
             style={{
               fontSize: '40px',
-              fontWeight: 640,
+              fontWeight: 700,
               color: theme.colors.textPrimary,
               marginBottom: subtitle ? theme.spacing[3] : 0,
               letterSpacing: '-0.02em',
@@ -175,7 +170,9 @@ export function AdminPageHeader(props: AdminPageHeaderProps) {
 
         {/* Quick Stats */}
         {quickStats && quickStats.length > 0 && (
-          <div style={{ display: 'flex', gap: theme.spacing[3], flexWrap: 'wrap' }}>
+          <div
+            style={{ display: 'flex', gap: theme.spacing[3], flexWrap: 'wrap' }}
+          >
             {quickStats.map((stat, index) => (
               <div
                 key={index}
@@ -190,11 +187,13 @@ export function AdminPageHeader(props: AdminPageHeaderProps) {
                   transition: 'all 0.2s',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
+                  e.currentTarget.style.backgroundColor =
+                    theme.colors.backgroundTertiary;
                   e.currentTarget.style.transform = 'translateY(-2px)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                  e.currentTarget.style.backgroundColor =
+                    theme.colors.backgroundSecondary;
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
@@ -231,7 +230,13 @@ export function AdminPageHeader(props: AdminPageHeaderProps) {
 
         {/* Actions */}
         {actions && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing[2],
+            }}
+          >
             {actions}
           </div>
         )}
@@ -239,4 +244,3 @@ export function AdminPageHeader(props: AdminPageHeaderProps) {
     </div>
   );
 }
-

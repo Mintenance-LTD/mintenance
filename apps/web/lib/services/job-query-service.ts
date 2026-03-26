@@ -118,6 +118,10 @@ interface JobListParams {
   cursor?: string;
   status?: string[];
   propertyId?: string;
+  search?: string;
+  category?: string;
+  minBudget?: number;
+  maxBudget?: number;
 }
 
 export class JobQueryService {
@@ -142,7 +146,7 @@ export class JobQueryService {
     })[];
     nextCursor?: string;
   }> {
-    const query = this.buildJobQuery(user, params.status, params.propertyId);
+    const query = this.buildJobQuery(user, params.status, params.propertyId, params.search, params.category, params.minBudget, params.maxBudget);
     const { rows, nextCursor } = await this.fetchJobs(
       query,
       params.limit,
@@ -187,7 +191,11 @@ export class JobQueryService {
   private buildJobQuery(
     user: Pick<User, 'id' | 'role'>,
     status?: string[],
-    propertyId?: string
+    propertyId?: string,
+    search?: string,
+    category?: string,
+    minBudget?: number,
+    maxBudget?: number
   ) {
     let query = serverSupabase.from('jobs').select(jobSelectFields);
 
@@ -214,6 +222,22 @@ export class JobQueryService {
 
     if (propertyId) {
       query = query.eq('property_id', propertyId);
+    }
+
+    if (search) {
+      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
+    }
+
+    if (category) {
+      query = query.eq('category', category);
+    }
+
+    if (minBudget !== undefined) {
+      query = query.gte('budget', minBudget);
+    }
+
+    if (maxBudget !== undefined) {
+      query = query.lte('budget', maxBudget);
     }
 
     return query;

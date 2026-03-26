@@ -259,16 +259,15 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({ onBackToList
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
         {/* Back + Search pill row */}
         <View style={styles.searchRow}>
-          {onBackToList && (
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={onBackToList}
-              accessibilityRole="button"
-              accessibilityLabel="Back to list"
-            >
-              <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={onBackToList || (() => navigation.goBack())}
+            accessibilityRole="button"
+            accessibilityLabel="Back to list"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
+          </TouchableOpacity>
           <View style={styles.searchPill}>
             <Ionicons name="search" size={18} color={theme.colors.textPrimary} />
             <View style={styles.searchTextWrap}>

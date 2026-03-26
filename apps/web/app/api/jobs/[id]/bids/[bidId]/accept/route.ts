@@ -157,21 +157,11 @@ export const POST = withApiHandler(
       JOB_STATUS.ASSIGNED as JobStatus
     );
 
-    // Check if another bid is already accepted for this job
-    const { data: existingAccepted } = await serverSupabase
-      .from('bids')
-      .select('id')
-      .eq('job_id', jobId)
-      .eq('status', BID_STATUS.ACCEPTED)
-      .limit(1);
-
-    if (existingAccepted && existingAccepted.length > 0) {
-      throw new ConflictError(
-        'A bid has already been accepted for this job. Please refresh the page.'
-      );
-    }
-
-    // Step 1: Accept this bid
+    // Step 1: Accept this bid (atomic — DB unique index prevents duplicates)
+    // The partial unique index idx_bids_one_accepted_per_job on (job_id)
+    // WHERE status = 'accepted' ensures only one bid per job can be accepted.
+    // If a concurrent request already accepted another bid, this UPDATE will
+    // fail with a unique constraint violation (code 23505).
     const { error: acceptError } = await serverSupabase
       .from('bids')
       .update({
@@ -182,6 +172,12 @@ export const POST = withApiHandler(
       .eq('job_id', jobId);
 
     if (acceptError) {
+      // Postgres unique violation = another bid was accepted concurrently
+      if (acceptError.code === '23505') {
+        throw new ConflictError(
+          'A bid has already been accepted for this job. Please refresh the page.'
+        );
+      }
       logger.error('Failed to accept bid - detailed error', {
         service: 'jobs',
         bidId,

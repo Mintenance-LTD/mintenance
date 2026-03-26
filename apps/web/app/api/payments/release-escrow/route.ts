@@ -27,6 +27,7 @@ import {
   ConflictError,
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { validateEscrowMFA } from './_validation';
 import {
   writeAdminBypassAuditLog,
   checkReleaseConditions,
@@ -39,7 +40,7 @@ import {
 
 export const POST = withApiHandler(
   {
-    roles: ['homeowner', 'admin', 'contractor'],
+    roles: ['homeowner', 'admin'],
     rateLimit: { maxRequests: 20 },
   },
   async (request, { user }) => {
@@ -122,66 +123,13 @@ export const POST = withApiHandler(
     const job = escrowTransaction.jobs;
 
     // MFA requirement check for high-risk escrow releases
-    const { requiresMFA, HighRiskOperation } =
-      await import('@/lib/payments/high-risk-checks');
-    const mfaCheck = await requiresMFA(
-      HighRiskOperation.ESCROW_RELEASE,
+    const mfaResult = await validateEscrowMFA(
+      user.id,
+      escrowTransactionId,
       escrowTransaction.amount,
-      user.id
+      mfaToken
     );
-
-    if (mfaCheck.required) {
-      if (!mfaToken) {
-        logger.warn('MFA required for escrow release but no token provided', {
-          service: 'payments',
-          userId: user.id,
-          escrowTransactionId,
-          amount: escrowTransaction.amount,
-          riskScore: mfaCheck.riskScore,
-        });
-        return NextResponse.json(
-          {
-            error: 'MFA verification required',
-            reason: mfaCheck.reason,
-            riskScore: mfaCheck.riskScore,
-            mfaRequired: true,
-          },
-          { status: 403 }
-        );
-      }
-
-      const { validateMFAForPayment } =
-        await import('@/lib/payments/high-risk-checks');
-      const mfaValidation = await validateMFAForPayment(
-        user.id,
-        mfaToken,
-        HighRiskOperation.ESCROW_RELEASE
-      );
-
-      if (!mfaValidation.valid) {
-        logger.warn('Invalid MFA token for escrow release', {
-          service: 'payments',
-          userId: user.id,
-          escrowTransactionId,
-          amount: escrowTransaction.amount,
-        });
-        return NextResponse.json(
-          {
-            error: 'MFA verification failed',
-            reason: mfaValidation.reason,
-            mfaRequired: true,
-          },
-          { status: 403 }
-        );
-      }
-
-      logger.info('MFA validated successfully for escrow release', {
-        service: 'payments',
-        userId: user.id,
-        escrowTransactionId,
-        amount: escrowTransaction.amount,
-      });
-    }
+    if (mfaResult) return mfaResult;
 
     // SECURITY: For admin operations, verify role from database (not just JWT)
     let isAdminVerified = false;
@@ -197,43 +145,6 @@ export const POST = withApiHandler(
         });
         throw new ForbiddenError('Unauthorized to release this escrow');
       }
-    }
-
-    // SECURITY: Contractors cannot directly trigger escrow release — they request it.
-    if (user.role === 'contractor') {
-      if (job.contractor_id !== user.id) {
-        throw new ForbiddenError('Not authorized for this escrow transaction');
-      }
-      try {
-        const { NotificationService } =
-          await import('@/lib/services/notifications/NotificationService');
-        await NotificationService.createNotification({
-          userId: job.homeowner_id,
-          title: 'Contractor Requested Payment Release',
-          message: `Your contractor has requested payment release for "${job.title || 'your job'}". Please review and approve if the work is complete.`,
-          type: 'payment_release_requested',
-          actionUrl: `/jobs/${job.id}`,
-        });
-      } catch (notifyError) {
-        logger.error(
-          'Failed to notify homeowner of release request',
-          notifyError,
-          {
-            service: 'payments',
-            escrowTransactionId,
-          }
-        );
-      }
-      logger.info('Contractor requested escrow release — notified homeowner', {
-        service: 'payments',
-        contractorId: user.id,
-        homeownerId: job.homeowner_id,
-        escrowTransactionId,
-      });
-      return NextResponse.json(
-        { message: 'Release request sent to homeowner for approval.' },
-        { status: 202 }
-      );
     }
 
     const canRelease =

@@ -1,9 +1,9 @@
 import type { Ionicons } from '@expo/vector-icons';
 import { Job } from '@mintenance/types';
-import { theme } from '../../theme';
+import { theme, getStatusBadge } from '../../theme';
 
 export type SortMode = 'for_you' | 'nearest' | 'highest_pay' | 'newest' | 'map';
-export type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed';
+export type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed' | 'bid' | 'active';
 
 export const SORT_TABS: { key: SortMode; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: 'for_you', label: 'For You', icon: 'sparkles' },
@@ -19,6 +19,15 @@ export const HOMEOWNER_TABS: { key: FilterStatus; label: string; icon: keyof typ
   { key: 'assigned', label: 'Assigned', icon: 'person-add-outline' },
   { key: 'in_progress', label: 'Active', icon: 'hammer-outline' },
   { key: 'completed', label: 'Done', icon: 'checkmark-circle-outline' },
+];
+
+/** Contractor lifecycle tabs — matches web app's contractor/jobs page */
+export const CONTRACTOR_TABS: { key: FilterStatus; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'all', label: 'All Jobs', icon: 'briefcase-outline' },
+  { key: 'bid', label: 'Bids Sent', icon: 'time-outline' },
+  { key: 'assigned', label: 'Awaiting Contract', icon: 'document-text-outline' },
+  { key: 'active', label: 'In Progress', icon: 'flash-outline' },
+  { key: 'completed', label: 'Completed', icon: 'checkmark-circle-outline' },
 ];
 
 export const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -45,17 +54,24 @@ export const CATEGORY_COLORS: Record<string, { icon: string; bg: string; text: s
   general:     { icon: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary, text: theme.colors.textSecondary },
 };
 
-export const STATUS_STYLES: Record<string, { label: string; bg: string; text: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  posted:      { label: 'Posted', bg: '#DBEAFE', text: '#1D4ED8', icon: 'megaphone' },
-  pending:     { label: 'Pending', bg: '#FEF3C7', text: '#92400E', icon: 'hourglass' },
-  assigned:    { label: 'Assigned', bg: '#EDE9FE', text: '#5B21B6', icon: 'person-add' },
-  in_progress: { label: 'In Progress', bg: '#DBEAFE', text: '#1D4ED8', icon: 'hammer' },
-  completed:   { label: 'Completed', bg: '#CCFBF1', text: '#0F766E', icon: 'checkmark-circle' },
-  accepted:    { label: 'Accepted', bg: '#CCFBF1', text: '#0F766E', icon: 'checkmark-circle' },
-  rejected:    { label: 'Rejected', bg: '#FEE2E2', text: '#991B1B', icon: 'close-circle' },
-  cancelled:   { label: 'Cancelled', bg: '#F1F5F9', text: '#475569', icon: 'close-circle' },
-  draft:       { label: 'Draft', bg: '#F1F5F9', text: '#475569', icon: 'document' },
+const STATUS_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  posted: 'megaphone',
+  pending: 'hourglass',
+  assigned: 'person-add',
+  in_progress: 'hammer',
+  completed: 'checkmark-circle',
+  accepted: 'checkmark-circle',
+  rejected: 'close-circle',
+  cancelled: 'close-circle',
+  draft: 'document',
 };
+
+export const STATUS_STYLES: Record<string, { label: string; bg: string; text: string; icon: keyof typeof Ionicons.glyphMap }> = Object.fromEntries(
+  Object.keys(STATUS_ICONS).map((key) => {
+    const badge = getStatusBadge(key);
+    return [key, { label: badge.label, bg: badge.bg, text: badge.text, icon: STATUS_ICONS[key] }];
+  })
+);
 
 export const EMPTY_MESSAGES: Record<FilterStatus, { title: string; desc: string }> = {
   all:         { title: 'No Jobs Yet', desc: 'Post your first maintenance job to get started.' },
@@ -63,6 +79,8 @@ export const EMPTY_MESSAGES: Record<FilterStatus, { title: string; desc: string 
   assigned:    { title: 'No Assigned Jobs', desc: 'Jobs will appear here once you accept a contractor\'s bid.' },
   in_progress: { title: 'No Active Jobs', desc: 'Jobs currently being worked on will show up here.' },
   completed:   { title: 'No Completed Jobs', desc: 'Finished jobs and their reviews will appear here.' },
+  bid:         { title: 'No Pending Bids', desc: 'Jobs you\'ve bid on will appear here while awaiting homeowner response.' },
+  active:      { title: 'No Active Jobs', desc: 'Jobs you\'re currently working on will appear here.' },
 };
 
 export interface JobStats {

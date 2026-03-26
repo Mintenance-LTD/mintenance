@@ -412,7 +412,6 @@ export class AssessmentOrchestrator {
             }
 
             // Optionally enhance with SAM 3 precise segmentation
-            let sam3Segmentation: SAM3SegmentationData | undefined;
             let sam3Result: Awaited<ReturnType<typeof SAM3Service.segmentDamageTypes>> | null = null;
 
             // Get damage type for targeted segmentation
@@ -492,7 +491,7 @@ export class AssessmentOrchestrator {
 
             // Wait for SAM3 segmentation to complete
             const sam3Data = await sam3SegmentationPromise;
-            sam3Segmentation = sam3Data.segmentation;
+            const sam3Segmentation = sam3Data.segmentation;
             sam3Result = sam3Data.result;
 
             const assessment = await this.buildFinalAssessment(

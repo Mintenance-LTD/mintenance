@@ -1,174 +1,204 @@
 /**
- * AIAnalysisCard Component
+ * AIAnalysisCard (Building Assessment Card)
  *
- * Displays AI analysis results for job photos.
+ * Rich display of AI building assessment data matching the web
+ * BuildingAssessmentDisplay. Falls back to simpler view when only
+ * basic AIAnalysis fields are available.
  *
- * @filesize Target: <90 lines
- * @compliance Single Responsibility - AI analysis display
+ * @filesize Target: <300 lines
  */
-
-import React from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, Platform, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { AIAnalysis } from '../../../services/AIAnalysisService';
 import { theme } from '../../../theme';
+import {
+  DamageSection, HomeownerSection, SafetySection,
+  CostSection, InsuranceSection, RepairsSection, UrgencyFooter,
+} from './AssessmentSections';
 
-interface AIAnalysisCardProps {
-  aiAnalysis: AIAnalysis | null;
+interface AssessmentData {
+  damageAssessment?: {
+    damageType: string; severity: string; confidence: number;
+    description: string; detectedItems?: string[];
+  };
+  safetyHazards?: {
+    hasCriticalHazards: boolean; overallSafetyScore: number;
+    hazards: Array<{ type: string; description: string }>;
+  };
+  homeownerExplanation?: { whatIsIt: string; whatToDo: string };
+  contractorAdvice?: {
+    estimatedCost?: { min: number; recommended: number; max: number };
+    estimatedTime?: string;
+    materials?: Array<{ name: string; quantity: string; estimatedCost: number }>;
+    repairNeeded?: string[];
+  };
+  insuranceRisk?: {
+    riskScore: number; premiumImpact: string; mitigationSuggestions?: string[];
+  };
+  urgency?: { urgency: string; recommendedActionTimeline: string };
+}
+
+interface BuildingAssessmentCardProps {
+  aiAnalysis: (AIAnalysis & { assessmentData?: Record<string, unknown>; source?: string }) | null;
   aiLoading: boolean;
 }
 
-export const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({
-  aiAnalysis,
-  aiLoading,
-}) => {
+export const AIAnalysisCard: React.FC<BuildingAssessmentCardProps> = ({ aiAnalysis, aiLoading }) => {
+  const [expanded, setExpanded] = useState(true);
+
   if (aiLoading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={st.container}>
+        <View style={st.header}>
           <Ionicons name="sparkles" size={20} color="#8B5CF6" accessible={false} />
-          <Text style={styles.title} accessibilityRole='header'>AI Analysis</Text>
+          <Text style={st.title} accessibilityRole="header">Building Assessment</Text>
         </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={theme.colors.textPrimary} accessibilityLabel='Analyzing job photos' />
-          <Text style={styles.loadingText}>Analyzing job photos...</Text>
+        <View style={st.loadingRow}>
+          <ActivityIndicator size="small" color={theme.colors.textPrimary} accessibilityLabel="Analyzing job photos" />
+          <Text style={st.loadingText}>Analyzing job photos...</Text>
         </View>
       </View>
     );
   }
 
-  if (!aiAnalysis) {
-    return null;
-  }
+  if (!aiAnalysis) return null;
 
-  // Normalize confidence: if >1, assume it's already a percentage (e.g. 85); otherwise multiply by 100
-  const confidencePercent = Math.min(100, Math.round(
-    aiAnalysis.confidence > 1 ? aiAnalysis.confidence : aiAnalysis.confidence * 100
-  ));
+  const data = aiAnalysis.assessmentData as AssessmentData | undefined;
+  const hasRichData = Boolean(data?.damageAssessment);
+  const rawConf = data?.damageAssessment?.confidence ?? aiAnalysis.confidence;
+  const confPct = Math.min(100, Math.round(rawConf > 1 ? rawConf : rawConf * 100));
 
+  if (!hasRichData) return <LegacyCard aiAnalysis={aiAnalysis} confPct={confPct} />;
+
+  const a = data!;
   return (
-    <View style={styles.container} accessibilityLabel={`AI Analysis: ${aiAnalysis.estimatedComplexity} complexity, estimated ${aiAnalysis.estimatedDuration}, ${confidencePercent}% confidence`}>
-      <View style={styles.header}>
+    <View style={st.container} accessibilityLabel={`Building Assessment: ${confPct}% confidence`}>
+      <TouchableOpacity
+        style={st.header}
+        onPress={() => setExpanded((v) => !v)}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={expanded ? 'Collapse assessment' : 'Expand assessment'}
+      >
         <Ionicons name="sparkles" size={20} color="#8B5CF6" accessible={false} />
-        <Text style={styles.title} accessibilityRole='header'>AI Analysis</Text>
-        <View style={styles.confidenceBadge}>
-          <Text style={styles.confidenceText}>
-            {confidencePercent}% confidence
-          </Text>
+        <Text style={st.title} accessibilityRole="header">Building Assessment</Text>
+        <View style={st.badge}>
+          <Text style={st.badgeText}>{confPct}% confidence</Text>
+        </View>
+        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={theme.colors.textTertiary} />
+      </TouchableOpacity>
+
+      {expanded && (
+        <View style={st.body}>
+          {a.damageAssessment && (
+            <DamageSection
+              damageType={a.damageAssessment.damageType}
+              severity={a.damageAssessment.severity}
+              description={a.damageAssessment.description}
+              detectedItems={a.damageAssessment.detectedItems}
+            />
+          )}
+          {a.homeownerExplanation && (
+            <HomeownerSection whatIsIt={a.homeownerExplanation.whatIsIt} whatToDo={a.homeownerExplanation.whatToDo} />
+          )}
+          {a.safetyHazards?.hasCriticalHazards && (
+            <SafetySection safetyScore={a.safetyHazards.overallSafetyScore} hazards={a.safetyHazards.hazards} />
+          )}
+          {a.contractorAdvice?.estimatedCost && (
+            <CostSection
+              min={a.contractorAdvice.estimatedCost.min}
+              recommended={a.contractorAdvice.estimatedCost.recommended}
+              max={a.contractorAdvice.estimatedCost.max}
+              estimatedTime={a.contractorAdvice.estimatedTime}
+              materials={a.contractorAdvice.materials}
+            />
+          )}
+          {a.insuranceRisk && (
+            <InsuranceSection
+              riskScore={a.insuranceRisk.riskScore}
+              premiumImpact={a.insuranceRisk.premiumImpact}
+              mitigationSuggestions={a.insuranceRisk.mitigationSuggestions}
+            />
+          )}
+          {(a.contractorAdvice?.repairNeeded?.length ?? 0) > 0 && (
+            <RepairsSection repairs={a.contractorAdvice!.repairNeeded!} />
+          )}
+          {a.urgency && (
+            <UrgencyFooter urgency={a.urgency.urgency} timeline={a.urgency.recommendedActionTimeline} />
+          )}
+        </View>
+      )}
+    </View>
+  );
+};
+
+// --- Legacy fallback for basic AIAnalysis (no assessmentData) ---
+
+function LegacyCard({ aiAnalysis, confPct }: { aiAnalysis: AIAnalysis; confPct: number }) {
+  return (
+    <View style={st.container} accessibilityLabel={`AI Analysis: ${aiAnalysis.estimatedComplexity} complexity, ${confPct}% confidence`}>
+      <View style={st.header}>
+        <Ionicons name="sparkles" size={20} color="#8B5CF6" accessible={false} />
+        <Text style={st.title} accessibilityRole="header">AI Analysis</Text>
+        <View style={st.badge}>
+          <Text style={st.badgeText}>{confPct}% confidence</Text>
         </View>
       </View>
-
-      <View style={styles.analysisContent}>
-        <Text style={styles.categoryTitle}>Estimated Complexity</Text>
-        <Text style={styles.categoryValue}>{aiAnalysis.estimatedComplexity}</Text>
-
-        <Text style={styles.categoryTitle}>Estimated Duration</Text>
-        <Text style={styles.categoryValue}>{aiAnalysis.estimatedDuration}</Text>
-
+      <View style={st.body}>
+        <Text style={st.label}>Estimated Complexity</Text>
+        <Text style={st.value}>{aiAnalysis.estimatedComplexity}</Text>
+        <Text style={st.label}>Estimated Duration</Text>
+        <Text style={st.value}>{aiAnalysis.estimatedDuration}</Text>
         {aiAnalysis.suggestedTools && aiAnalysis.suggestedTools.length > 0 && (
           <>
-            <Text style={styles.categoryTitle}>Suggested Tools</Text>
-            <View style={styles.toolsList}>
-              {aiAnalysis.suggestedTools.map((tool: string, index: number) => (
-                <View key={index} style={styles.toolTag}>
-                  <Text style={styles.toolText}>{tool}</Text>
+            <Text style={st.label}>Suggested Tools</Text>
+            <View style={st.chipRow}>
+              {aiAnalysis.suggestedTools.map((tool: string, i: number) => (
+                <View key={i} style={st.chip}>
+                  <Text style={st.chipText}>{tool}</Text>
                 </View>
               ))}
             </View>
           </>
         )}
-
         {aiAnalysis.recommendedActions && aiAnalysis.recommendedActions.length > 0 && (
           <>
-            <Text style={styles.categoryTitle}>Recommended Actions</Text>
-            {aiAnalysis.recommendedActions.map((action: string, index: number) => (
-              <Text key={index} style={styles.notesText}>{action}</Text>
+            <Text style={st.label}>Recommended Actions</Text>
+            {aiAnalysis.recommendedActions.map((action: string, i: number) => (
+              <Text key={i} style={st.actionText}>{action}</Text>
             ))}
           </>
         )}
       </View>
     </View>
   );
-};
+}
 
-const styles = StyleSheet.create({
+// --- Styles ---
+
+const st = StyleSheet.create({
   container: {
     backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
       android: { elevation: 2 },
     }),
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    flex: 1,
-  },
-  confidenceBadge: {
-    backgroundColor: '#8B5CF6',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  confidenceText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.colors.textInverse,
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
-    gap: 8,
-  },
-  loadingText: {
-    fontSize: 15,
-    color: theme.colors.textSecondary,
-  },
-  analysisContent: {
-    gap: 12,
-  },
-  categoryTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: theme.colors.textTertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  categoryValue: {
-    fontSize: 15,
-    color: theme.colors.textPrimary,
-    fontWeight: '500',
-  },
-  toolsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
-  },
-  toolTag: {
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  toolText: {
-    fontSize: 13,
-    color: theme.colors.textPrimary,
-  },
-  notesText: {
-    fontSize: 15,
-    color: theme.colors.textSecondary,
-    lineHeight: 20,
-  },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  title: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary, flex: 1 },
+  badge: { backgroundColor: '#8B5CF6', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
+  badgeText: { fontSize: 12, fontWeight: '600', color: theme.colors.textInverse },
+  loadingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 20, gap: 8 },
+  loadingText: { fontSize: 15, color: theme.colors.textSecondary },
+  body: { marginTop: 4 },
+  label: { fontSize: 12, fontWeight: '700', color: theme.colors.textTertiary, textTransform: 'uppercase', letterSpacing: 0.8, marginTop: 12 },
+  value: { fontSize: 15, color: theme.colors.textPrimary, fontWeight: '500', marginTop: 2 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
+  chip: { backgroundColor: theme.colors.backgroundSecondary, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
+  chipText: { fontSize: 13, color: theme.colors.textPrimary },
+  actionText: { fontSize: 15, color: theme.colors.textSecondary, lineHeight: 20, marginTop: 2 },
 });

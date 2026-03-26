@@ -2,25 +2,24 @@
 
 import React, { useState } from 'react';
 import { logger } from '@mintenance/shared';
-import {
-  Check,
-  X,
-  Star,
-  Zap,
-  Crown,
-  Shield,
-  HelpCircle,
-  TrendingUp,
-  Building2,
-  Users,
-} from 'lucide-react';
+import { Check, X, Shield, HelpCircle, TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { MotionButton, MotionDiv, MotionH1, MotionP } from '@/components/ui/MotionDiv';
+import {
+  MotionButton,
+  MotionDiv,
+  MotionH1,
+  MotionP,
+} from '@/components/ui/MotionDiv';
 import { useRouter } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useCSRF } from '@/lib/hooks/useCSRF';
+import {
+  getHomeownerPlans,
+  getContractorPlans,
+  PRICING_FAQS,
+} from './pricing-plans';
+import type { PricingPlan } from './pricing-plans';
 
-// Animation variants
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 },
@@ -39,210 +38,34 @@ const staggerItem = {
   visible: { opacity: 1, y: 0 },
 };
 
-import type { LucideIcon } from 'lucide-react';
-
-interface PricingPlan {
-  id: string;
-  name: string;
-  icon: LucideIcon;
-  price: number;
-  billingCycle: string;
-  description: string;
-  features: string[];
-  notIncluded?: string[];
-  popular?: boolean;
-  cta: string;
-  color: string;
-}
-
 export function PricingClient() {
   const [isAnnual, setIsAnnual] = useState(false);
-  const [userType, setUserType] = useState<'homeowner' | 'contractor'>('homeowner');
+  const [userType, setUserType] = useState<'homeowner' | 'contractor'>(
+    'homeowner'
+  );
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   const router = useRouter();
   const { user, loading: userLoading } = useCurrentUser();
   const { csrfToken } = useCSRF();
 
-  const homeownerPlans: PricingPlan[] = [
-    {
-      id: 'free',
-      name: 'Free',
-      icon: Star,
-      price: 0,
-      billingCycle: 'forever',
-      description: 'Everything you need for your home',
-      features: [
-        'Post unlimited jobs',
-        'Manage 1 property',
-        'AI-powered pro matching',
-        'View verified pro profiles',
-        'Standard messaging',
-        'Payment protection',
-        'Review system',
-        'AI building assessment',
-      ],
-      notIncluded: [
-        'Compliance dashboard',
-        'Tenant reporting links',
-        'Recurring maintenance',
-      ],
-      cta: 'Get Started Free',
-      color: 'gray',
-    },
-    {
-      id: 'landlord',
-      name: 'Landlord',
-      icon: Building2,
-      price: isAnnual ? 249 : 24.99,
-      billingCycle: isAnnual ? 'year' : 'month',
-      description: 'Complete management for landlords with up to 25 properties',
-      features: [
-        'Everything in Free',
-        'Up to 25 properties',
-        'Compliance dashboard (gas, electrical, EPC)',
-        'Expiry reminders (90/30/7 days)',
-        'One-click renewal job creation',
-        'Tenant reporting links',
-        'Tenant & contact records',
-        'Recurring maintenance scheduling',
-        'Per-property spend analytics',
-        'Priority contractor matching',
-      ],
-      popular: true,
-      cta: 'Start Landlord Plan',
-      color: 'teal',
-    },
-    {
-      id: 'agency',
-      name: 'Agency',
-      icon: Users,
-      price: isAnnual ? 499 : 49.99,
-      billingCycle: isAnnual ? 'year' : 'month',
-      description: 'Multi-user portfolio management for letting agents',
-      features: [
-        'Everything in Landlord',
-        'Unlimited properties',
-        'Team member invites (up to 10)',
-        'Role-based access (admin/manager/viewer)',
-        'Activity audit log',
-        'Bulk job posting',
-        'Bulk compliance export (PDF)',
-        'Year-over-year comparison',
-        'Dedicated support',
-      ],
-      cta: 'Start Agency Plan',
-      color: 'purple',
-    },
-  ];
-
-  const contractorPlans: PricingPlan[] = [
-    {
-      id: 'basic',
-      name: 'Basic',
-      icon: Star,
-      price: 0,
-      billingCycle: 'month',
-      description: 'Get started and build your reputation',
-      features: [
-        'Create business profile',
-        'Bid on 10 jobs per month',
-        '15% platform fee',
-        'Basic messaging',
-        'Review collection',
-        'Payment processing',
-      ],
-      notIncluded: [
-        'Featured listing',
-        'Advanced analytics',
-        'Priority placement',
-      ],
-      cta: 'Start Free',
-      color: 'gray',
-    },
-    {
-      id: 'professional',
-      name: 'Professional',
-      icon: Zap,
-      price: isAnnual ? 290 : 29,
-      billingCycle: isAnnual ? 'year' : 'month',
-      description: 'For growing contractor businesses',
-      features: [
-        'Everything in Basic',
-        'Unlimited job bids',
-        '10% platform fee (33% savings)',
-        'Featured in search results',
-        'Advanced analytics dashboard',
-        'Priority support',
-        'Lead recommendations',
-        'Custom quote templates',
-      ],
-      popular: true,
-      cta: 'Go Professional',
-      color: 'teal',
-    },
-    {
-      id: 'business',
-      name: 'Business',
-      icon: Crown,
-      price: isAnnual ? 990 : 99,
-      billingCycle: isAnnual ? 'year' : 'month',
-      description: 'For established businesses and teams',
-      features: [
-        'Everything in Professional',
-        '7% platform fee (53% savings)',
-        'Top placement in search',
-        'Team member accounts (up to 10)',
-        'Dedicated account manager',
-        'API access',
-        'Custom branding',
-        'White-label invoicing',
-        'Advanced automation tools',
-      ],
-      cta: 'Contact Sales',
-      color: 'purple',
-    },
-  ];
+  const homeownerPlans = getHomeownerPlans(isAnnual);
+  const contractorPlans = getContractorPlans(isAnnual);
 
   const plans = userType === 'homeowner' ? homeownerPlans : contractorPlans;
 
-  const faqs = [
-    {
-      question: 'Can I switch plans at any time?',
-      answer: 'Yes! You can upgrade, downgrade, or cancel your plan at any time. Changes take effect immediately, and we\'ll prorate any charges.',
-    },
-    {
-      question: 'Is there a free trial for premium plans?',
-      answer: 'Yes, we offer a 14-day free trial for all premium plans. No credit card required to start.',
-    },
-    {
-      question: 'What payment methods do you accept?',
-      answer: 'We accept all major credit cards, debit cards, and bank transfers. Payments are processed securely through Stripe.',
-    },
-    {
-      question: 'Are there any hidden fees?',
-      answer: 'No hidden fees. The prices shown are all you pay. Contractors pay a percentage platform fee only when they win a job.',
-    },
-    {
-      question: 'What if I need more than what\'s included?',
-      answer: 'Contact our sales team for custom enterprise plans tailored to your specific needs.',
-    },
-    {
-      question: 'Do you offer refunds?',
-      answer: 'Yes, we offer a 30-day money-back guarantee on all annual plans if you\'re not satisfied.',
-    },
-  ];
+  const faqs = PRICING_FAQS;
 
   const handleSelectPlan = async (planId: string) => {
     if (userType === 'homeowner') {
       if (planId === 'free') {
         toast('Homeowner free plan is ready. Sign up to get started.');
-        router.push('/register?type=homeowner');
+        router.push('/register?role=homeowner');
         return;
       }
 
       if (!user) {
-        router.push('/login?redirect=/pricing?type=homeowner');
+        router.push('/login?redirect=/pricing?role=homeowner');
         return;
       }
 
@@ -271,19 +94,27 @@ export function PricingClient() {
         }
 
         if (result.requiresPayment && result.clientSecret) {
-          const checkoutPath = result.checkoutPath || '/homeowner/subscription/checkout';
-          const subscriptionRef = result.stripeSubscriptionId || result.subscriptionId;
+          const checkoutPath =
+            result.checkoutPath || '/homeowner/subscription/checkout';
+          const subscriptionRef =
+            result.stripeSubscriptionId || result.subscriptionId;
           router.push(
             `${checkoutPath}?clientSecret=${encodeURIComponent(result.clientSecret)}&subscriptionId=${encodeURIComponent(subscriptionRef)}&planType=${encodeURIComponent(planId)}`
           );
           return;
         }
 
-        toast.success(`${planId.charAt(0).toUpperCase() + planId.slice(1)} plan activated.`);
+        toast.success(
+          `${planId.charAt(0).toUpperCase() + planId.slice(1)} plan activated.`
+        );
         router.push('/homeowner/subscription?success=true');
       } catch (error) {
         logger.error('Homeowner subscription creation error:', error);
-        toast.error(error instanceof Error ? error.message : 'Failed to create subscription');
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : 'Failed to create subscription'
+        );
       } finally {
         setLoadingPlan(null);
       }
@@ -300,13 +131,13 @@ export function PricingClient() {
     // Check if user is a contractor
     if (user.role !== 'contractor') {
       toast.error('Subscriptions are only available for contractors');
-      router.push('/register?type=contractor');
+      router.push('/register?role=contractor');
       return;
     }
 
     // Handle free plan
     if (planId === 'free') {
-      toast('You\'re on the free plan! Upgrade anytime for more features.');
+      toast("You're on the free plan! Upgrade anytime for more features.");
       router.push('/contractor/subscription');
       return;
     }
@@ -337,7 +168,8 @@ export function PricingClient() {
       if (response.ok) {
         if (result.requiresPayment && result.clientSecret) {
           // Redirect to checkout page with client secret
-          const subscriptionRef = result.stripeSubscriptionId || result.subscriptionId;
+          const subscriptionRef =
+            result.stripeSubscriptionId || result.subscriptionId;
           router.push(
             `/contractor/subscription/checkout?clientSecret=${encodeURIComponent(result.clientSecret)}&subscriptionId=${encodeURIComponent(subscriptionRef)}&planType=${encodeURIComponent(planId)}`
           );
@@ -368,21 +200,21 @@ export function PricingClient() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-emerald-50">
+    <div className='min-h-screen bg-gradient-to-br from-teal-50 via-white to-emerald-50'>
       {/* Hero Section */}
       <MotionDiv
-        initial="hidden"
-        animate="visible"
+        initial='hidden'
+        animate='visible'
         variants={fadeIn}
-        className="bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 text-white"
+        className='bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 text-white'
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="text-center">
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20'>
+          <div className='text-center'>
             <MotionH1
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="text-4xl md:text-6xl font-bold mb-6"
+              className='text-4xl md:text-6xl font-bold mb-6'
             >
               Simple, Transparent Pricing
             </MotionH1>
@@ -390,21 +222,23 @@ export function PricingClient() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="text-xl md:text-2xl text-teal-100 max-w-3xl mx-auto mb-8"
+              className='text-xl md:text-2xl text-teal-100 max-w-3xl mx-auto mb-8'
             >
-              Choose the plan that works best for you. No hidden fees, cancel anytime.
+              Choose the plan that works best for you. No hidden fees, cancel
+              anytime.
             </MotionP>
 
             {userType === 'homeowner' && (
-              <p className="text-sm md:text-base text-teal-100/95 max-w-3xl mx-auto mb-8">
-                From single homeowners to letting agencies — find the plan that fits your portfolio.
+              <p className='text-sm md:text-base text-teal-100/95 max-w-3xl mx-auto mb-8'>
+                From single homeowners to letting agencies — find the plan that
+                fits your portfolio.
               </p>
             )}
             {userType === 'homeowner' && user?.role === 'homeowner' && (
-              <div className="mb-8">
+              <div className='mb-8'>
                 <button
                   onClick={() => router.push('/homeowner/subscription')}
-                  className="rounded-lg border border-white/40 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20"
+                  className='rounded-lg border border-white/40 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20'
                 >
                   Manage Current Subscription
                 </button>
@@ -416,7 +250,7 @@ export function PricingClient() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="inline-flex w-full max-w-sm bg-white/20 backdrop-blur-sm p-2 rounded-xl mb-8"
+              className='inline-flex w-full max-w-sm bg-white/20 backdrop-blur-sm p-2 rounded-xl mb-8'
             >
               <button
                 onClick={() => setUserType('homeowner')}
@@ -445,14 +279,16 @@ export function PricingClient() {
               <MotionDiv
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex items-center justify-center gap-4"
+                className='flex items-center justify-center gap-4'
               >
-                <span className={`font-medium ${!isAnnual ? 'text-white' : 'text-teal-200'}`}>
+                <span
+                  className={`font-medium ${!isAnnual ? 'text-white' : 'text-teal-200'}`}
+                >
                   Monthly
                 </span>
                 <button
                   onClick={() => setIsAnnual(!isAnnual)}
-                  className="relative inline-flex h-8 w-16 items-center rounded-full bg-white/20"
+                  className='relative inline-flex h-8 w-16 items-center rounded-full bg-white/20'
                 >
                   <span
                     className={`inline-block h-6 w-6 transform rounded-full bg-white transition ${
@@ -460,11 +296,13 @@ export function PricingClient() {
                     }`}
                   />
                 </button>
-                <span className={`font-medium ${isAnnual ? 'text-white' : 'text-teal-200'}`}>
+                <span
+                  className={`font-medium ${isAnnual ? 'text-white' : 'text-teal-200'}`}
+                >
                   Annual
                 </span>
                 {isAnnual && (
-                  <span className="bg-emerald-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                  <span className='bg-emerald-500 text-white px-3 py-1 rounded-full text-sm font-semibold'>
                     Save 17%
                   </span>
                 )}
@@ -475,16 +313,17 @@ export function PricingClient() {
       </MotionDiv>
 
       {/* Pricing Cards */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16'>
         <MotionDiv
           key={userType}
           variants={staggerContainer}
-          initial="hidden"
-          whileInView="visible"
+          initial='hidden'
+          whileInView='visible'
           viewport={{ once: true }}
           className={`grid grid-cols-1 ${
-            plans.length === 2 ? 'md:grid-cols-2 max-w-5xl mx-auto' :
-            'md:grid-cols-3'
+            plans.length === 2
+              ? 'md:grid-cols-2 max-w-5xl mx-auto'
+              : 'md:grid-cols-3'
           } gap-8 mb-16`}
         >
           {plans.map((plan, index) => {
@@ -501,30 +340,42 @@ export function PricingClient() {
                 } p-8 hover:shadow-xl transition-all`}
               >
                 {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-gradient-to-r from-teal-600 to-emerald-600 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
+                  <div className='absolute -top-4 left-1/2 transform -translate-x-1/2'>
+                    <span className='bg-gradient-to-r from-teal-600 to-emerald-600 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg'>
                       MOST POPULAR
                     </span>
                   </div>
                 )}
 
-                <div className="text-center mb-6">
-                  <div className={`inline-flex p-4 rounded-2xl mb-4 ${
-                    plan.color === 'teal' ? 'bg-teal-100' :
-                    plan.color === 'purple' ? 'bg-purple-100' : 'bg-gray-100'
-                  }`}>
-                    <Icon className={`w-8 h-8 ${
-                      plan.color === 'teal' ? 'text-teal-600' :
-                      plan.color === 'purple' ? 'text-purple-600' : 'text-gray-600'
-                    }`} />
+                <div className='text-center mb-6'>
+                  <div
+                    className={`inline-flex p-4 rounded-2xl mb-4 ${
+                      plan.color === 'teal'
+                        ? 'bg-teal-100'
+                        : plan.color === 'purple'
+                          ? 'bg-purple-100'
+                          : 'bg-gray-100'
+                    }`}
+                  >
+                    <Icon
+                      className={`w-8 h-8 ${
+                        plan.color === 'teal'
+                          ? 'text-teal-600'
+                          : plan.color === 'purple'
+                            ? 'text-purple-600'
+                            : 'text-gray-600'
+                      }`}
+                    />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
-                  <p className="text-gray-600 mb-4">{plan.description}</p>
-                  <div className="flex items-baseline justify-center gap-2">
-                    <span className="text-5xl font-bold text-gray-900">
+                  <h3 className='text-2xl font-bold text-gray-900 mb-2'>
+                    {plan.name}
+                  </h3>
+                  <p className='text-gray-600 mb-4'>{plan.description}</p>
+                  <div className='flex items-baseline justify-center gap-2'>
+                    <span className='text-5xl font-bold text-gray-900'>
                       £{plan.price}
                     </span>
-                    <span className="text-gray-600">/ {plan.billingCycle}</span>
+                    <span className='text-gray-600'>/ {plan.billingCycle}</span>
                   </div>
                 </div>
 
@@ -534,9 +385,7 @@ export function PricingClient() {
                   onClick={() => handleSelectPlan(plan.id)}
                   disabled={loadingPlan !== null}
                   className={`w-full py-4 rounded-xl font-semibold mb-6 transition-colors flex items-center justify-center gap-2 ${
-                    loadingPlan !== null
-                      ? 'opacity-50 cursor-not-allowed'
-                      : ''
+                    loadingPlan !== null ? 'opacity-50 cursor-not-allowed' : ''
                   } ${
                     plan.popular
                       ? 'bg-teal-600 text-white hover:bg-teal-700'
@@ -545,7 +394,7 @@ export function PricingClient() {
                 >
                   {loadingPlan === plan.id ? (
                     <>
-                      <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      <div className='w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin' />
                       Processing...
                     </>
                   ) : (
@@ -553,17 +402,17 @@ export function PricingClient() {
                   )}
                 </MotionButton>
 
-                <div className="space-y-3">
+                <div className='space-y-3'>
                   {plan.features.map((feature, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">{feature}</span>
+                    <div key={i} className='flex items-start gap-3'>
+                      <Check className='w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5' />
+                      <span className='text-gray-700'>{feature}</span>
                     </div>
                   ))}
                   {plan.notIncluded?.map((feature, i) => (
-                    <div key={i} className="flex items-start gap-3 opacity-50">
-                      <X className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-500">{feature}</span>
+                    <div key={i} className='flex items-start gap-3 opacity-50'>
+                      <X className='w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5' />
+                      <span className='text-gray-500'>{feature}</span>
                     </div>
                   ))}
                 </div>
@@ -578,26 +427,30 @@ export function PricingClient() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-16"
+            className='bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-16'
           >
-            <h2 className="text-2xl font-bold text-gray-900 text-center mb-8">
+            <h2 className='text-2xl font-bold text-gray-900 text-center mb-8'>
               Platform Fee Comparison
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center p-6 bg-gray-50 rounded-xl">
-                <p className="text-gray-600 mb-2">Basic Plan</p>
-                <p className="text-4xl font-bold text-gray-900 mb-2">15%</p>
-                <p className="text-sm text-gray-600">platform fee per job</p>
+            <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+              <div className='text-center p-6 bg-gray-50 rounded-xl'>
+                <p className='text-gray-600 mb-2'>Basic Plan</p>
+                <p className='text-4xl font-bold text-gray-900 mb-2'>15%</p>
+                <p className='text-sm text-gray-600'>platform fee per job</p>
               </div>
-              <div className="text-center p-6 bg-teal-50 rounded-xl border-2 border-teal-500">
-                <p className="text-teal-600 font-semibold mb-2">Professional Plan</p>
-                <p className="text-4xl font-bold text-teal-600 mb-2">10%</p>
-                <p className="text-sm text-teal-700">Save 33% on fees</p>
+              <div className='text-center p-6 bg-teal-50 rounded-xl border-2 border-teal-500'>
+                <p className='text-teal-600 font-semibold mb-2'>
+                  Professional Plan
+                </p>
+                <p className='text-4xl font-bold text-teal-600 mb-2'>10%</p>
+                <p className='text-sm text-teal-700'>Save 33% on fees</p>
               </div>
-              <div className="text-center p-6 bg-purple-50 rounded-xl">
-                <p className="text-purple-600 font-semibold mb-2">Business Plan</p>
-                <p className="text-4xl font-bold text-purple-600 mb-2">7%</p>
-                <p className="text-sm text-purple-700">Save 53% on fees</p>
+              <div className='text-center p-6 bg-purple-50 rounded-xl'>
+                <p className='text-purple-600 font-semibold mb-2'>
+                  Business Plan
+                </p>
+                <p className='text-4xl font-bold text-purple-600 mb-2'>7%</p>
+                <p className='text-sm text-purple-700'>Save 53% on fees</p>
               </div>
             </div>
           </MotionDiv>
@@ -608,17 +461,19 @@ export function PricingClient() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mb-16"
+          className='mb-16'
         >
-          <div className="text-center mb-12">
-            <HelpCircle className="w-12 h-12 text-teal-600 mx-auto mb-4" />
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+          <div className='text-center mb-12'>
+            <HelpCircle className='w-12 h-12 text-teal-600 mx-auto mb-4' />
+            <h2 className='text-3xl font-bold text-gray-900 mb-4'>
+              Frequently Asked Questions
+            </h2>
+            <p className='text-gray-600 max-w-2xl mx-auto'>
               Have questions about our pricing? We've got answers.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto'>
             {faqs.map((faq, index) => (
               <MotionDiv
                 key={index}
@@ -626,10 +481,10 @@ export function PricingClient() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all"
+                className='bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all'
               >
-                <h3 className="font-bold text-gray-900 mb-2">{faq.question}</h3>
-                <p className="text-gray-600">{faq.answer}</p>
+                <h3 className='font-bold text-gray-900 mb-2'>{faq.question}</h3>
+                <p className='text-gray-600'>{faq.answer}</p>
               </MotionDiv>
             ))}
           </div>
@@ -640,18 +495,18 @@ export function PricingClient() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 rounded-2xl p-12 text-center text-white"
+          className='bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 rounded-2xl p-12 text-center text-white'
         >
-          <Shield className="w-16 h-16 mx-auto mb-6 text-teal-200" />
-          <h2 className="text-3xl font-bold mb-4">Still have questions?</h2>
-          <p className="text-xl text-teal-100 mb-8 max-w-2xl mx-auto">
+          <Shield className='w-16 h-16 mx-auto mb-6 text-teal-200' />
+          <h2 className='text-3xl font-bold mb-4'>Still have questions?</h2>
+          <p className='text-xl text-teal-100 mb-8 max-w-2xl mx-auto'>
             Our team is here to help you find the perfect plan for your needs.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className='flex flex-col sm:flex-row gap-4 justify-center'>
             <MotionButton
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-8 py-4 bg-white text-teal-600 rounded-xl font-semibold hover:shadow-lg transition-shadow"
+              className='px-8 py-4 bg-white text-teal-600 rounded-xl font-semibold hover:shadow-lg transition-shadow'
               onClick={() => router.push('/contact')}
             >
               Contact Sales
@@ -659,7 +514,7 @@ export function PricingClient() {
             <MotionButton
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-8 py-4 bg-teal-700 text-white rounded-xl font-semibold hover:bg-teal-800 transition-colors border-2 border-white/30"
+              className='px-8 py-4 bg-teal-700 text-white rounded-xl font-semibold hover:bg-teal-800 transition-colors border-2 border-white/30'
               onClick={() => router.push('/help')}
             >
               View Documentation
