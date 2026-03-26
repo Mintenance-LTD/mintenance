@@ -27,7 +27,7 @@ export const useServiceAreas = () => {
     if (!user?.id) return;
     try {
       const { data, error } = await supabase
-        .from('contractor_service_areas')
+        .from('service_areas')
         .select('*')
         .eq('contractor_id', user.id);
       if (error) { logger.error('Error loading service areas', error.message); throw new Error(error.message); }

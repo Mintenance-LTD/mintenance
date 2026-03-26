@@ -113,7 +113,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({ navigati
       setError(null);
       const { data, error } = await supabase
         .from('jobs')
-        .select('id, homeowner_id, status, title, created_at, completed_at, budget, final_price, homeowner:profiles!homeowner_id(id, first_name, last_name, email, phone, profile_image_url)')
+        .select('id, homeowner_id, status, title, created_at, completed_at, budget, final_price, homeowner:profiles!jobs_homeowner_id_fkey(id, first_name, last_name, email, phone, profile_image_url)')
         .eq('contractor_id', user.id)
         .order('created_at', { ascending: false });
       if (error) throw new Error(error.message);
