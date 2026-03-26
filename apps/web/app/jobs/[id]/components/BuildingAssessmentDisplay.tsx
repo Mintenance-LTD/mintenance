@@ -199,7 +199,7 @@ export function BuildingAssessmentDisplay({
                 AI Building Assessment
               </h3>
               <p className='text-sm text-gray-500'>
-                Advanced analysis by GPT-4 Vision + YOLO + SAM3
+                Advanced analysis by Mint AI
               </p>
             </div>
           </div>
