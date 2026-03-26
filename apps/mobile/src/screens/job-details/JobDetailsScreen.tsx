@@ -514,6 +514,25 @@ function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation
   const isAssignedContractor = isContractor && job.contractor_id === userId;
 
   if (isContractor && job.status === 'posted') {
+    // Check if this contractor already has a bid on this job
+    const myBid = userId
+      ? bidsArray.find((b) => b.contractor_id === userId)
+      : null;
+
+    if (myBid) {
+      // Contractor already bid — show status instead of submit
+      const bidStatus = myBid.status === 'pending' ? 'Pending' : myBid.status === 'accepted' ? 'Accepted' : myBid.status || 'Sent';
+      return (
+        <StickyBottomCTA
+          price={myBid.amount ? myBid.amount : undefined}
+          priceLabel="Your bid"
+          buttonText={`Bid ${bidStatus} — Edit Bid`}
+          onPress={() => navigation.navigate('BidSubmission', { jobId: job.id, existingBidId: myBid.id })}
+          secondaryText="Your bid has been submitted"
+        />
+      );
+    }
+
     return (
       <StickyBottomCTA
         price={budget > 0 ? budget : undefined}
