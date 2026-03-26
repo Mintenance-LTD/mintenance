@@ -140,7 +140,8 @@ export class JobCRUDService {
       ]);
 
       const imageUrls = [
-        ...(attachments.data?.map((a: { file_url: string }) => a.file_url) ?? []),
+        ...(attachments.data?.map((a: { file_url: string }) => a.file_url) ??
+          []),
         ...(photos.data?.map((p: { photo_url: string }) => p.photo_url) ?? []),
       ];
       if (imageUrls.length > 0) {
@@ -266,7 +267,9 @@ export class JobCRUDService {
     try {
       const { data, error } = await supabase
         .from('contracts')
-        .select('id, status, title, amount, start_date, end_date, contractor_signed_at, homeowner_signed_at, created_at, updated_at')
+        .select(
+          'id, job_id, contractor_id, homeowner_id, status, title, description, amount, start_date, end_date, contractor_signed_at, homeowner_signed_at, terms, created_at, updated_at, contractor:profiles!contractor_id(first_name, last_name, company_name), homeowner:profiles!homeowner_id(first_name, last_name)'
+        )
         .eq('job_id', jobId)
         .order('created_at', { ascending: false })
         .limit(1);

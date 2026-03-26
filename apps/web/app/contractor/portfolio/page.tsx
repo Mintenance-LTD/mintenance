@@ -4,5 +4,5 @@
 import { redirect } from 'next/navigation';
 
 export default function ContractorPortfolioPage() {
-  redirect('/contractor/dashboard');
+  redirect('/contractor/gallery');
 }
