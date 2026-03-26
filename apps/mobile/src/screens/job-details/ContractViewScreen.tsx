@@ -29,6 +29,8 @@ import { theme } from '../../theme';
 import { ContractSignatureSection } from './components/ContractSignatureSection';
 import { ContractTermsView } from './components/ContractTermsView';
 import { ContractRevisionRequest } from './components/ContractRevisionRequest';
+import { ContractPartiesSection } from './components/ContractPartiesSection';
+import { ContractTimeline } from './components/ContractTimeline';
 import { styles } from './contractViewStyles';
 
 type ScreenRouteProp = RouteProp<JobsStackParamList, 'ContractView'>;
@@ -40,6 +42,12 @@ type ScreenNavigationProp = NativeStackNavigationProp<
 interface Props {
   route: ScreenRouteProp;
   navigation: ScreenNavigationProp;
+}
+
+interface ContractParty {
+  first_name?: string;
+  last_name?: string;
+  company_name?: string;
 }
 
 interface Contract {
@@ -57,6 +65,8 @@ interface Contract {
   homeowner_signed_at: string | null;
   terms: Record<string, unknown>;
   created_at: string;
+  contractorName: string;
+  homeownerName: string;
 }
 
 const formatDate = (dateStr: string) =>
@@ -120,26 +130,35 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
       setLoading(true);
       setError(null);
       const row = await JobCRUDService.getContractByJobId(jobId);
-      setContract(
-        row
-          ? {
-              id: row.id as string,
-              job_id: row.job_id as string,
-              contractor_id: row.contractor_id as string,
-              homeowner_id: row.homeowner_id as string,
-              status: row.status as string,
-              title: row.title as string | null,
-              description: row.description as string | null,
-              amount: row.amount as number,
-              start_date: row.start_date as string | null,
-              end_date: row.end_date as string | null,
-              contractor_signed_at: row.contractor_signed_at as string | null,
-              homeowner_signed_at: row.homeowner_signed_at as string | null,
-              terms: (row.terms as Record<string, unknown>) || {},
-              created_at: row.created_at as string,
-            }
-          : null
-      );
+      if (row) {
+        const c = row.contractor as ContractParty | undefined;
+        const h = row.homeowner as ContractParty | undefined;
+        setContract({
+          id: row.id as string,
+          job_id: row.job_id as string,
+          contractor_id: row.contractor_id as string,
+          homeowner_id: row.homeowner_id as string,
+          status: row.status as string,
+          title: row.title as string | null,
+          description: row.description as string | null,
+          amount: row.amount as number,
+          start_date: row.start_date as string | null,
+          end_date: row.end_date as string | null,
+          contractor_signed_at: row.contractor_signed_at as string | null,
+          homeowner_signed_at: row.homeowner_signed_at as string | null,
+          terms: (row.terms as Record<string, unknown>) || {},
+          created_at: row.created_at as string,
+          contractorName:
+            c?.company_name ||
+            [c?.first_name, c?.last_name].filter(Boolean).join(' ') ||
+            'Contractor',
+          homeownerName:
+            [h?.first_name, h?.last_name].filter(Boolean).join(' ') ||
+            'Homeowner',
+        });
+      } else {
+        setContract(null);
+      }
     } catch {
       setError('Failed to load contract');
     } finally {
@@ -239,12 +258,10 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
     !nonSignableStatuses.includes(contract.status) &&
     ((userRole === 'contractor' && !contract.contractor_signed_at) ||
       (userRole === 'homeowner' && !contract.homeowner_signed_at));
-
   const canReject =
     contract !== null &&
     contract.status === 'pending_homeowner' &&
     userRole === 'homeowner';
-
   const showPrepareButton =
     contract?.status === 'draft' && userRole === 'contractor';
   const showSignButton = canSign && contract?.status !== 'draft';
@@ -365,34 +382,56 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         )}
 
-        {/* Amount */}
-        <View style={styles.amountCard}>
-          <Text style={styles.amountLabel}>Contract Amount</Text>
-          <Text style={styles.amountValue}>
-            {'\u00A3'}
-            {Number(contract.amount).toLocaleString()}
-          </Text>
-        </View>
+        {/* Parties */}
+        <ContractPartiesSection
+          contractorName={contract.contractorName}
+          homeownerName={contract.homeownerName}
+        />
 
-        {/* Download PDF Button */}
-        <TouchableOpacity
-          style={styles.downloadPdfButton}
-          onPress={handleViewPdf}
-          accessibilityRole='button'
-          accessibilityLabel='Download contract as PDF'
-        >
-          <Ionicons
-            name='document-text-outline'
-            size={20}
-            color={theme.colors.textSecondary}
-          />
-          <Text style={styles.downloadPdfText}>Download Contract PDF</Text>
-          <Ionicons
-            name='download-outline'
-            size={18}
-            color={theme.colors.textSecondary}
-          />
-        </TouchableOpacity>
+        {/* Amount + Escrow Badge */}
+        <View style={styles.amountCard}>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <View>
+              <Text style={styles.amountLabel}>CONTRACT AMOUNT</Text>
+              <Text style={styles.amountValue}>
+                {'\u00A3'}
+                {Number(contract.amount).toLocaleString()}
+              </Text>
+            </View>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                backgroundColor: theme.colors.primaryLight,
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: 8,
+              }}
+            >
+              <Ionicons
+                name='shield-checkmark'
+                size={14}
+                color={theme.colors.primary}
+              />
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: '700',
+                  color: theme.colors.primary,
+                }}
+              >
+                Escrow Protected
+              </Text>
+            </View>
+          </View>
+        </View>
 
         {/* Title, description, dates, terms */}
         <ContractTermsView
@@ -406,6 +445,14 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
 
         {/* Signatures + accepted banner */}
         <ContractSignatureSection contract={contract} formatDate={formatDate} />
+
+        {/* Timeline */}
+        <ContractTimeline
+          createdAt={contract.created_at}
+          contractorSignedAt={contract.contractor_signed_at}
+          homeownerSignedAt={contract.homeowner_signed_at}
+          status={contract.status}
+        />
 
         {/* Revision request */}
         <ContractRevisionRequest
