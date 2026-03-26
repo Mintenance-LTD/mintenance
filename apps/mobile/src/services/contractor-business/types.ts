@@ -34,6 +34,12 @@ export interface FinancialSummary {
     expenses: number;
     profit: number;
   }[];
+  total_expenses?: number;
+  expense_breakdown?: {
+    category: string;
+    amount: number;
+    percentage: number;
+  }[];
   tax_obligations: number;
   cash_flow_forecast: {
     week: string;

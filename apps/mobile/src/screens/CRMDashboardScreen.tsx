@@ -11,7 +11,7 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { ProfileStackParamList, RootTabParamList } from '../navigation/types';
 import { logger } from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
-import { mobileApiClient } from '../utils/mobileApiClient';
+import { supabase } from '../config/supabase';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import SearchBar from '../components/SearchBar';
 import { theme } from '../theme';
@@ -111,10 +111,16 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({ navigati
     if (!user) return;
     try {
       setError(null);
-      const raw = await mobileApiClient.get<unknown>('/api/contractor/my-jobs');
-      const jobs: JobRecord[] = Array.isArray(raw)
-        ? raw
-        : ((raw as Record<string, unknown>)?.jobs as JobRecord[]) || [];
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('id, homeowner_id, status, title, created_at, completed_at, budget, final_price, homeowner:profiles!jobs_homeowner_id_fkey(id, first_name, last_name, email, phone, profile_image_url)')
+        .eq('contractor_id', user.id)
+        .order('created_at', { ascending: false });
+      if (error) throw new Error(error.message);
+      const jobs: JobRecord[] = (data || []).map((j: Record<string, unknown>) => ({
+        ...j,
+        homeowner: j.homeowner as JobRecord['homeowner'],
+      })) as JobRecord[];
       setClients(deriveClients(jobs));
     } catch (err) {
       logger.error('Error loading CRM data', err);

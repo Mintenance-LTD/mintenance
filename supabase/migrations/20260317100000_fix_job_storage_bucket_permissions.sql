@@ -14,6 +14,7 @@ DROP POLICY IF EXISTS "Authenticated users can upload job photos" ON storage.obj
 -- Create a restrictive policy: user must be the job's homeowner or contractor
 -- The storage path pattern is: Job-storage/{job_id}/...
 -- We extract the job_id from the first folder in the path
+DROP POLICY IF EXISTS "Job participants can upload job photos" ON storage.objects;
 CREATE POLICY "Job participants can upload job photos"
 ON storage.objects FOR INSERT
 TO authenticated

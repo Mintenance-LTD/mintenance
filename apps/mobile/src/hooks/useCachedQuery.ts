@@ -9,6 +9,7 @@ import { CacheService } from '../services/CacheService';
 import { CACHE_TIMES, STALE_TIMES, QUERY_KEYS } from '../config/reactQuery.config';
 import { logger } from '../utils/logger';
 import { mobileApiClient } from '../utils/mobileApiClient';
+import { supabase } from '../config/supabase';
 
 interface CachedQueryOptions<TData> {
   queryKey: QueryKey;
@@ -283,7 +284,14 @@ export const CACHE_PATTERNS = {
 export function useJobsWithCache() {
   return useCachedQuery<Job[]>({
     queryKey: [QUERY_KEYS.JOBS],
-    queryFn: () => mobileApiClient.get('/api/jobs'),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) { logger.error('useJobsWithCache', error.message); throw new Error(error.message); }
+      return (data || []) as Job[];
+    },
     ...CACHE_PATTERNS.DYNAMIC,
   });
 }
@@ -294,7 +302,15 @@ export function useJobsWithCache() {
 export function useContractorProfile(contractorId: string) {
   return useCachedQuery({
     queryKey: [QUERY_KEYS.CONTRACTORS, contractorId],
-    queryFn: () => mobileApiClient.get(`/api/contractors/${contractorId}`),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', contractorId)
+        .single();
+      if (error) { logger.error('useContractorProfile', error.message); throw new Error(error.message); }
+      return data;
+    },
     ...CACHE_PATTERNS.SEMI_STATIC,
     enabled: !!contractorId,
   });

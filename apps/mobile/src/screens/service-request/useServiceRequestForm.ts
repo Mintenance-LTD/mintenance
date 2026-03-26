@@ -6,7 +6,6 @@ import { useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { JobService } from '../../services/JobService';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../config/supabase';
 import { sanitize } from '@mintenance/security';
 import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
 import { LocationService } from '../../services/LocationService';
@@ -152,16 +151,22 @@ export function useServiceRequestForm(onSuccess: () => void) {
     setLoading(true);
     try {
       const uploadedPhotoUrls: string[] = [];
+      const { mobileApiClient } = await import('../../utils/mobileApiClient');
       for (const photoUri of photos) {
-        const fileName = `jobs/${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
-        const response = await fetch(photoUri);
-        const blob = await response.blob();
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('job-photos')
-          .upload(fileName, blob, { contentType: 'image/jpeg' });
-        if (uploadError) throw new Error(`Photo upload failed: ${uploadError.message}`);
-        const { data: urlData } = supabase.storage.from('job-photos').getPublicUrl(uploadData.path);
-        uploadedPhotoUrls.push(urlData.publicUrl);
+        const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
+        const formData = new FormData();
+        formData.append('file', {
+          uri: photoUri,
+          name: fileName,
+          type: 'image/jpeg',
+        } as unknown as Blob);
+
+        const uploadResponse = await mobileApiClient.postFormData<{ url: string; public_url?: string }>(
+          '/api/jobs/upload-photos',
+          formData
+        );
+        const photoUrl = uploadResponse.public_url ?? uploadResponse.url;
+        uploadedPhotoUrls.push(photoUrl);
       }
 
       // Capture device geolocation for contractor proximity matching

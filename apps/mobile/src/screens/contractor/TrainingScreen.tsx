@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { theme } from '../../theme';
 
@@ -40,17 +40,25 @@ export const TrainingScreen: React.FC = () => {
     queryKey: ['contractor-training', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const raw = await mobileApiClient.get<unknown>('/api/contractor/training');
-      const items = Array.isArray(raw) ? raw : (raw as Record<string, unknown>)?.modules || [];
-      return (items as Record<string, unknown>[]).map((m): TrainingModule => ({
-        id: (m.id as string) || '',
-        title: (m.title as string) || '',
-        description: (m.description as string) || '',
-        category: (m.category as string) || 'general',
-        completed: (m.completed as boolean) ?? false,
-        duration_minutes: (m.duration_minutes as number) || 0,
-        url: m.url as string | undefined,
-      }));
+      // Training table may not exist — return empty array gracefully
+      try {
+        const { data, error } = await supabase
+          .from('contractor_training_modules')
+          .select('*')
+          .eq('contractor_id', user.id);
+        if (error) return [];
+        return (data || []).map((m: Record<string, unknown>): TrainingModule => ({
+          id: (m.id as string) || '',
+          title: (m.title as string) || '',
+          description: (m.description as string) || '',
+          category: (m.category as string) || 'general',
+          completed: (m.completed as boolean) ?? false,
+          duration_minutes: (m.duration_minutes as number) || 0,
+          url: m.url as string | undefined,
+        }));
+      } catch {
+        return [];
+      }
     },
     enabled: !!user?.id,
   });

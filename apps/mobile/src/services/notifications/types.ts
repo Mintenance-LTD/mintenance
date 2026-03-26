@@ -33,7 +33,21 @@ export interface NotificationData {
   title: string;
   body: string;
   data?: unknown;
-  type: 'job_update' | 'bid_received' | 'meeting_scheduled' | 'payment_received' | 'message_received' | 'quote_sent' | 'system';
+  type:
+    | 'job_update'
+    | 'bid_received'
+    | 'bid_rejected'
+    | 'meeting_scheduled'
+    | 'payment_received'
+    | 'payment_released'
+    | 'message_received'
+    | 'quote_sent'
+    | 'contract_created'
+    | 'contract_signed'
+    | 'job_completed'
+    | 'job_started'
+    | 'review_requested'
+    | 'system';
   priority: 'low' | 'normal' | 'high';
   userId: string;
   createdAt: string;
@@ -57,7 +71,7 @@ export interface NotificationPreferences {
   productUpdates: boolean;
   quietHoursEnabled: boolean;
   quietHoursStart: string; // HH:MM format
-  quietHoursEnd: string;   // HH:MM format
+  quietHoursEnd: string; // HH:MM format
 }
 
 export interface QueuedNotification {

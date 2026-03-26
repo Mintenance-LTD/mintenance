@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabase';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import { logger } from '../utils/logger';
 
 // =====================================================
@@ -224,21 +225,8 @@ export class ServiceAreasService {
     lat2: number,
     lng2: number
   ): Promise<number> {
-    try {
-      const { data, error } = await supabase.rpc('calculate_distance_km', {
-        lat1,
-        lng1,
-        lat2,
-        lng2,
-      });
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      logger.error('Error calculating distance:', error);
-      // Fallback to JavaScript calculation
-      return this.haversineDistance(lat1, lng1, lat2, lng2);
-    }
+    // Use local haversine calculation — no need for a DB round-trip
+    return this.haversineDistance(lat1, lng1, lat2, lng2);
   }
 
   static haversineDistance(
@@ -272,17 +260,17 @@ export class ServiceAreasService {
     longitude: number
   ): Promise<boolean> {
     try {
-      const { data, error } = await supabase.rpc(
-        'is_location_in_service_area',
-        {
-          p_area_id: areaId,
-          p_latitude: latitude,
-          p_longitude: longitude,
-        }
+      const { data: area, error } = await supabase
+        .from('contractor_service_areas')
+        .select('center_latitude, center_longitude, radius_km')
+        .eq('id', areaId)
+        .single();
+      if (error || !area) return false;
+      const distance = ServiceAreasService.calculateDistance(
+        latitude, longitude,
+        area.center_latitude, area.center_longitude
       );
-
-      if (error) throw error;
-      return data;
+      return distance <= area.radius_km;
     } catch (error) {
       logger.error('Error checking location in service area:', error);
       return false;
@@ -295,17 +283,29 @@ export class ServiceAreasService {
     maxDistance: number = 50
   ): Promise<ContractorLocation[]> {
     try {
-      const { data, error } = await supabase.rpc(
-        'find_contractors_for_location',
-        {
-          p_latitude: latitude,
-          p_longitude: longitude,
-          p_max_distance: maxDistance,
+      const { data, error } = await supabase
+        .from('contractor_service_areas')
+        .select('contractor_id, center_latitude, center_longitude, radius_km, area_name')
+        .eq('is_active', true);
+      if (error || !data) return [];
+      const results: ContractorLocation[] = [];
+      for (const area of data) {
+        const dist = await ServiceAreasService.calculateDistance(
+          latitude, longitude,
+          (area as Record<string, unknown>).center_latitude as number,
+          (area as Record<string, unknown>).center_longitude as number
+        );
+        if (dist <= Math.max((area as Record<string, unknown>).radius_km as number, maxDistance)) {
+          results.push({
+            contractor_id: (area as Record<string, unknown>).contractor_id as string,
+            area_name: (area as Record<string, unknown>).area_name as string,
+            distance_km: dist,
+            travel_charge: 0,
+            priority_level: dist < 10 ? 1 : dist < 25 ? 2 : 3,
+          });
         }
-      );
-
-      if (error) throw error;
-      return data || [];
+      }
+      return results;
     } catch (error) {
       logger.error('Error finding contractors for location:', error);
       return [];

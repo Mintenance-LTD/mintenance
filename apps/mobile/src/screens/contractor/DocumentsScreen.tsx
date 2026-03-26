@@ -29,7 +29,7 @@ try {
   // Package not installed
 }
 import { useAuth } from '../../contexts/AuthContext';
-// supabase import removed — all operations now route through mobileApiClient
+import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { theme, gradients } from '../../theme';
 
@@ -122,28 +122,71 @@ export const DocumentsScreen: React.FC = () => {
     queryKey: ['documents', user?.role, user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
+      const allDocs: Document[] = [];
+      const idCol = isContractor ? 'contractor_id' : 'homeowner_id';
+
+      // 1. Contracts (both roles)
+      const { data: contracts } = await supabase
+        .from('contracts')
+        .select('id, title, status, amount, created_at, job_id')
+        .eq(idCol, user.id)
+        .neq('status', 'draft')
+        .order('created_at', { ascending: false });
+      (contracts || []).forEach((c: Record<string, unknown>) => {
+        const status = c.status as string;
+        const statusLabel = status === 'accepted' ? 'Signed' : status === 'pending_contractor' ? 'Awaiting Contractor' : status === 'pending_homeowner' ? 'Awaiting You' : status;
+        allDocs.push({
+          id: c.id as string,
+          filename: `${(c.title as string) || 'Contract'} (${statusLabel})`,
+          category: 'contract',
+          uploaded_at: c.created_at as string,
+          starred: false,
+          is_contract: true,
+          job_id: c.job_id as string | undefined,
+        });
+      });
+
       if (isContractor) {
-        const raw = await mobileApiClient.get<unknown>('/api/contractor/documents');
-        const docs = Array.isArray(raw) ? raw : (raw as Record<string, unknown>)?.documents || [];
-        return (docs as Array<{
-          id: string; name: string; category: string; created_at: string; starred: boolean;
-          size_bytes?: number; public_url?: string; is_contract?: boolean; job_id?: string;
-        }>).map((d): Document => ({
-          id: d.id, filename: d.name, category: d.category,
-          uploaded_at: d.created_at, starred: d.starred, file_size: d.size_bytes,
-          public_url: d.public_url, is_contract: d.is_contract, job_id: d.job_id,
-        }));
+        // 2. Uploaded documents
+        const { data: docs } = await supabase
+          .from('contractor_documents')
+          .select('*')
+          .eq('contractor_id', user.id)
+          .order('created_at', { ascending: false });
+        (docs || []).forEach((d: Record<string, unknown>) => {
+          allDocs.push({
+            id: d.id as string,
+            filename: (d.name as string) || (d.filename as string) || '',
+            category: (d.category as string) || 'other',
+            uploaded_at: d.created_at as string,
+            starred: (d.starred as boolean) ?? false,
+            file_size: d.size_bytes as number | undefined,
+            public_url: d.public_url as string | undefined,
+            job_id: d.job_id as string | undefined,
+          });
+        });
+
+        // 3. Certifications as documents
+        const { data: certs } = await supabase
+          .from('contractor_certifications')
+          .select('id, certification_name, issuing_body, issue_date, expiry_date, document_url')
+          .eq('contractor_id', user.id)
+          .order('issue_date', { ascending: false });
+        (certs || []).forEach((c: Record<string, unknown>) => {
+          allDocs.push({
+            id: `cert-${c.id as string}`,
+            filename: `${(c.certification_name as string) || 'Certification'} — ${(c.issuing_body as string) || ''}`,
+            category: 'certification',
+            uploaded_at: (c.issue_date as string) || '',
+            starred: false,
+            public_url: c.document_url as string | undefined,
+          });
+        });
       }
-      // Homeowner: aggregate contracts as virtual documents
-      const rawContracts = await mobileApiClient.get<unknown>('/api/contracts?role=homeowner');
-      const contracts = Array.isArray(rawContracts) ? rawContracts : (rawContracts as Record<string, unknown>)?.contracts || [];
-      return (contracts as Array<{
-        id: string; title: string; status: string; created_at: string; job_id?: string;
-      }>).filter((c) => c.status !== 'draft').map((c): Document => ({
-        id: c.id, filename: c.title || 'Contract', category: 'contract',
-        uploaded_at: c.created_at, starred: false,
-        is_contract: true, job_id: c.job_id,
-      }));
+
+      // Sort all by date descending
+      allDocs.sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime());
+      return allDocs;
     },
     enabled: !!user?.id,
   });

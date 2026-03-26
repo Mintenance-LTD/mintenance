@@ -8,26 +8,31 @@ import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Job } from '@mintenance/types';
-import { theme } from '../../../theme';
+import { theme, getStatusBadge } from '../../../theme';
 
 interface JobHeaderProps {
   job: Job;
 }
 
-const STATUS_STYLES: Record<string, { color: string; bg: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  posted:      { color: '#1D4ED8', bg: '#DBEAFE', icon: 'hourglass' },
-  pending:     { color: '#92400E', bg: '#FEF3C7', icon: 'hourglass' },
-  assigned:    { color: '#5B21B6', bg: '#EDE9FE', icon: 'person' },
-  in_progress: { color: '#1D4ED8', bg: '#DBEAFE', icon: 'time' },
-  completed:   { color: '#0F766E', bg: '#CCFBF1', icon: 'checkmark-circle' },
-  accepted:    { color: '#0F766E', bg: '#CCFBF1', icon: 'checkmark-circle' },
-  rejected:    { color: '#991B1B', bg: '#FEE2E2', icon: 'close-circle' },
-  cancelled:   { color: '#475569', bg: '#F1F5F9', icon: 'close-circle' },
-  draft:       { color: '#475569', bg: '#F1F5F9', icon: 'document' },
+const STATUS_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  posted: 'hourglass',
+  pending: 'hourglass',
+  assigned: 'person',
+  in_progress: 'time',
+  completed: 'checkmark-circle',
+  accepted: 'checkmark-circle',
+  rejected: 'close-circle',
+  cancelled: 'close-circle',
+  draft: 'document',
 };
 
 export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
-  const status = STATUS_STYLES[job.status] || { color: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary, icon: 'help-circle' as keyof typeof Ionicons.glyphMap };
+  const badge = getStatusBadge(job.status);
+  const status = {
+    color: badge.text,
+    bg: badge.bg,
+    icon: STATUS_ICONS[job.status] || ('help-circle' as keyof typeof Ionicons.glyphMap),
+  };
 
   return (
     <View style={styles.container}>

@@ -3,6 +3,7 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { supabase } from '../config/supabase';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import { logger } from '../utils/logger';
 import * as sentry from '../config/sentry';
 import * as notificationCrud from './notifications/NotificationCRUD';
@@ -260,14 +261,13 @@ export class NotificationService {
 
   static async savePushToken(userId: string, token: string): Promise<void> {
     try {
-      const { error } = await supabase.from('user_push_tokens').upsert({
+      await mobileApiClient.post('/api/notifications', {
+        action: 'save_push_token',
         user_id: userId,
         push_token: token,
         platform: Platform.OS,
-        updated_at: new Date().toISOString(),
       });
 
-      if (error) throw error;
       logger.info('Push token saved successfully', { userId });
       this.addBreadcrumb('Push token saved', 'info', {
         userId,
@@ -293,13 +293,17 @@ export class NotificationService {
     type: NotificationData['type'] = 'system'
   ): Promise<void> {
     try {
-      const { data: tokenData, error: tokenError } = await supabase
-        .from('user_push_tokens')
-        .select('push_token')
-        .eq('user_id', userId)
-        .single();
+      let pushToken: string | null = null;
+      try {
+        const tokenResponse = await mobileApiClient.get<{ token?: string; push_token?: string }>(
+          `/api/notifications?action=get_push_token&user_id=${encodeURIComponent(userId)}`
+        );
+        pushToken = tokenResponse.push_token ?? tokenResponse.token ?? null;
+      } catch {
+        // Token fetch failed
+      }
 
-      if (tokenError || !tokenData?.push_token) {
+      if (!pushToken) {
         logger.warn('No push token found for user', { userId });
         this.addBreadcrumb('No push token found for user', 'warning', {
           userId,
@@ -326,7 +330,7 @@ export class NotificationService {
           : { type, userId };
 
       const message = {
-        to: tokenData.push_token,
+        to: pushToken,
         sound: 'default' as const,
         title,
         body,

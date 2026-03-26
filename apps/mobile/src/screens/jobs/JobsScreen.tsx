@@ -31,7 +31,8 @@ import { JobsEmptyState } from './JobsEmptyState';
 const JobsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const navigation = useNavigation<NativeStackNavigationProp<JobsStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<JobsStackParamList>>();
   const queryClient = useQueryClient();
 
   const [sortMode, setSortMode] = useState<SortMode>('for_you');
@@ -48,9 +49,11 @@ const JobsScreen: React.FC = () => {
   }, [searchQuery]);
 
   useEffect(() => {
-    AsyncStorage.getItem('saved_jobs').then((v) => {
-      if (v) setSavedJobIds(new Set(JSON.parse(v) as string[]));
-    }).catch(() => {});
+    AsyncStorage.getItem('saved_jobs')
+      .then((v) => {
+        if (v) setSavedJobIds(new Set(JSON.parse(v) as string[]));
+      })
+      .catch(() => {});
   }, []);
 
   const toggleSave = useCallback(async (jobId: string) => {
@@ -58,7 +61,9 @@ const JobsScreen: React.FC = () => {
       const next = new Set(prev);
       if (next.has(jobId)) next.delete(jobId);
       else next.add(jobId);
-      AsyncStorage.setItem('saved_jobs', JSON.stringify([...next])).catch(() => {});
+      AsyncStorage.setItem('saved_jobs', JSON.stringify([...next])).catch(
+        () => {}
+      );
       return next;
     });
   }, []);
@@ -92,10 +97,15 @@ const JobsScreen: React.FC = () => {
     let postedCount = 0;
 
     allJobs.forEach((j) => {
-      const age = (now - new Date(j.created_at || j.createdAt || now).getTime()) / (1000 * 3600 * 24);
+      const age =
+        (now - new Date(j.created_at || j.createdAt || now).getTime()) /
+        (1000 * 3600 * 24);
       if (age < 1) newToday++;
       const b = j.budget || j.budget_min || 0;
-      if (b > 0) { totalBudget += b; budgetCount++; }
+      if (b > 0) {
+        totalBudget += b;
+        budgetCount++;
+      }
       if (j.status === 'in_progress') activeCount++;
       if (j.status === 'completed') completedCount++;
       if (j.status === 'posted') postedCount++;
@@ -114,17 +124,51 @@ const JobsScreen: React.FC = () => {
   }, [allJobs]);
 
   // -- Filter counts (homeowner) --
+  // -- Contractor: fetch jobs with pending bids --
+  const { data: bidPendingJobs = [] } = useQuery<Job[]>({
+    queryKey: ['contractorBidJobs', user?.id],
+    queryFn: async () => {
+      const { BidService } = await import('../../services/BidService');
+      const bids = await BidService.getBidsByContractor(user!.id);
+      const pendingBids = bids.filter((b) => b.status === 'pending');
+      return pendingBids
+        .map((b) => b.job)
+        .filter((j): j is NonNullable<typeof j> => !!j) as unknown as Job[];
+    },
+    enabled: !!user && isContractor,
+  });
+
   const filterCounts = useMemo(() => {
-    const counts: Record<FilterStatus, number> = { all: allJobs.length, posted: 0, assigned: 0, in_progress: 0, completed: 0 };
-    allJobs.forEach((j) => { const s = j.status as FilterStatus; if (s in counts) counts[s]++; });
+    const counts: Record<FilterStatus, number> = {
+      all: allJobs.length,
+      posted: 0,
+      assigned: 0,
+      in_progress: 0,
+      completed: 0,
+      bid: bidPendingJobs.length,
+      active: 0,
+    };
+    allJobs.forEach((j) => {
+      const s = j.status as FilterStatus;
+      if (s in counts) counts[s]++;
+      // "active" = assigned + in_progress for contractors
+      if (s === 'in_progress' || s === 'assigned') counts.active++;
+    });
     return counts;
-  }, [allJobs]);
+  }, [allJobs, bidPendingJobs]);
 
   // -- Sort & filter --
   const filteredJobs = useMemo(() => {
     let data = [...allJobs];
 
-    if (!isContractor && selectedFilter !== 'all') {
+    // Filter by status tab
+    if (selectedFilter === 'bid' && isContractor) {
+      data = bidPendingJobs;
+    } else if (selectedFilter === 'active' && isContractor) {
+      data = data.filter(
+        (j) => j.status === 'in_progress' || j.status === 'assigned'
+      );
+    } else if (selectedFilter !== 'all') {
       data = data.filter((j) => j.status === selectedFilter);
     }
 
@@ -134,31 +178,51 @@ const JobsScreen: React.FC = () => {
         (j) =>
           j.title.toLowerCase().includes(q) ||
           j.description.toLowerCase().includes(q) ||
-          (typeof j.location === 'string' && j.location.toLowerCase().includes(q))
+          (typeof j.location === 'string' &&
+            j.location.toLowerCase().includes(q))
       );
     }
 
     if (isContractor) {
       switch (sortMode) {
         case 'highest_pay':
-          data.sort((a, b) => (b.budget || b.budget_min || 0) - (a.budget || a.budget_min || 0));
+          data.sort(
+            (a, b) =>
+              (b.budget || b.budget_min || 0) - (a.budget || a.budget_min || 0)
+          );
           break;
         case 'newest':
-          data.sort((a, b) => new Date(b.created_at || b.createdAt || 0).getTime() - new Date(a.created_at || a.createdAt || 0).getTime());
+          data.sort(
+            (a, b) =>
+              new Date(b.created_at || b.createdAt || 0).getTime() -
+              new Date(a.created_at || a.createdAt || 0).getTime()
+          );
           break;
         case 'for_you':
         case 'nearest':
         default:
-          data.sort((a, b) => new Date(b.created_at || b.createdAt || 0).getTime() - new Date(a.created_at || a.createdAt || 0).getTime());
+          data.sort(
+            (a, b) =>
+              new Date(b.created_at || b.createdAt || 0).getTime() -
+              new Date(a.created_at || a.createdAt || 0).getTime()
+          );
           break;
       }
     } else {
       data.sort((a, b) => {
-        const statusOrder: Record<string, number> = { in_progress: 0, assigned: 1, posted: 2, completed: 3 };
+        const statusOrder: Record<string, number> = {
+          in_progress: 0,
+          assigned: 1,
+          posted: 2,
+          completed: 3,
+        };
         const aOrder = statusOrder[a.status] ?? 4;
         const bOrder = statusOrder[b.status] ?? 4;
         if (aOrder !== bOrder) return aOrder - bOrder;
-        return new Date(b.created_at || b.createdAt || 0).getTime() - new Date(a.created_at || a.createdAt || 0).getTime();
+        return (
+          new Date(b.created_at || b.createdAt || 0).getTime() -
+          new Date(a.created_at || a.createdAt || 0).getTime()
+        );
       });
     }
 
@@ -205,12 +269,19 @@ const JobsScreen: React.FC = () => {
 
       {/* Error banner */}
       {isError && (
-        <View style={[styles.errorBanner, { backgroundColor: semanticBg.error }]}>
-          <Ionicons name="alert-circle" size={18} color={theme.colors.error} />
+        <View
+          style={[styles.errorBanner, { backgroundColor: semanticBg.error }]}
+        >
+          <Ionicons name='alert-circle' size={18} color={theme.colors.error} />
           <Text style={styles.errorText}>
-            {queryError instanceof Error ? queryError.message : 'Failed to load jobs'}
+            {queryError instanceof Error
+              ? queryError.message
+              : 'Failed to load jobs'}
           </Text>
-          <TouchableOpacity onPress={() => refetch()} accessibilityRole="button">
+          <TouchableOpacity
+            onPress={() => refetch()}
+            accessibilityRole='button'
+          >
             <Text style={styles.retryLinkText}>Retry</Text>
           </TouchableOpacity>
         </View>
@@ -237,12 +308,12 @@ const JobsScreen: React.FC = () => {
 
   return (
     <View style={styles.mainContainer}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle='light-content' />
       <ResponsiveContainer
         maxWidth={{ mobile: undefined, tablet: 768, desktop: 1200 }}
         padding={{ mobile: 0, tablet: 16, desktop: 24 }}
         style={styles.container}
-        testID="jobs-screen"
+        testID='jobs-screen'
       >
         <FlatList
           data={filteredJobs}
@@ -289,7 +360,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   errorText: { flex: 1, fontSize: 14, color: theme.colors.error },
-  retryLinkText: { fontSize: 14, fontWeight: '600', color: theme.colors.textPrimary },
+  retryLinkText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
   resultsRow: {
     paddingHorizontal: 16,
     paddingTop: 12,

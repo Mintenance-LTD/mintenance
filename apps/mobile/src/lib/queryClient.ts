@@ -53,11 +53,11 @@ export const queryClient = new QueryClient({
   mutationCache,
   defaultOptions: {
     queries: {
-      // Stale time - data considered fresh for 5 minutes
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      // Stale time - data considered fresh for 2 minutes
+      staleTime: 2 * 60 * 1000, // 2 minutes
 
-      // Cache time - how long data stays in cache when not used
-      gcTime: 10 * 60 * 1000, // 10 minutes (was cacheTime in v4)
+      // Cache time - how long unused data stays in memory before GC
+      gcTime: 3 * 60 * 1000, // 3 minutes (reduced from 10 to prevent OOM)
 
       // Network mode - for better offline handling
       networkMode: 'offlineFirst',

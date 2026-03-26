@@ -224,7 +224,7 @@ export class AuthManager {
 
       // Use Supabase Auth to create user (unified with mobile app)
       logger.info('Creating user with Supabase Auth', { email: userData.email, service: 'auth' });
-      let { data: authData, error: authError } = await serverSupabase.auth.signUp({
+      const { data: authData, error: initialAuthError } = await serverSupabase.auth.signUp({
         email: userData.email,
         password: userData.password,
         options: {
@@ -238,6 +238,7 @@ export class AuthManager {
           emailRedirectTo: `${getAppUrl()}/auth/callback`,
         },
       });
+      let authError = initialAuthError;
 
       // Handle confirmation email failures by auto-confirming via admin API
       if (authError && authError.message === 'Error sending confirmation email' && authData?.user) {

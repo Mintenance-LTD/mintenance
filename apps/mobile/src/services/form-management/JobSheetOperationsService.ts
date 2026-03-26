@@ -1,4 +1,5 @@
 import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { logger } from '../../utils/logger';
 
 export interface JobSheet {
@@ -106,10 +107,16 @@ export class JobSheetOperationsService {
 
     try {
       // Generate sheet number
-      const { data: sheetNumber } = await supabase.rpc(
-        'generate_job_sheet_number',
-        { contractor_id_param: contractorId }
-      );
+      let sheetNumber: string | null = null;
+      try {
+        const response = await mobileApiClient.post<{ sheet_number: string }>(
+          '/api/contractor/documents',
+          { action: 'generate_sheet_number', contractor_id: contractorId }
+        );
+        sheetNumber = response.sheet_number;
+      } catch {
+        sheetNumber = `JS-${Date.now()}`;
+      }
 
       const { data, error } = await supabase
         .from('job_sheets')
@@ -298,10 +305,16 @@ export class JobSheetOperationsService {
   ): Promise<JobSheet> {
     try {
       // Calculate quality score
-      const { data: qualityScore } = await supabase.rpc(
-        'calculate_quality_score',
-        { sheet_id: sheetId }
-      );
+      let qualityScore: number | null = null;
+      try {
+        const response = await mobileApiClient.post<{ quality_score: number }>(
+          '/api/contractor/documents',
+          { action: 'calculate_quality_score', sheet_id: sheetId }
+        );
+        qualityScore = response.quality_score;
+      } catch {
+        qualityScore = 0;
+      }
 
       const { data, error } = await supabase
         .from('job_sheets')
@@ -378,13 +391,11 @@ export class JobSheetOperationsService {
 
   static async calculateFormCompletionPercentage(sheetId: string): Promise<number> {
     try {
-      const { data, error } = await supabase.rpc(
-        'calculate_form_completion_percentage',
-        { sheet_id: sheetId }
+      const response = await mobileApiClient.post<{ percentage: number }>(
+        '/api/contractor/documents',
+        { action: 'calculate_completion', sheet_id: sheetId }
       );
-
-      if (error) throw error;
-      return data || 0;
+      return response.percentage || 0;
     } catch (error) {
       logger.error('Error calculating form completion percentage', error);
       return 0;

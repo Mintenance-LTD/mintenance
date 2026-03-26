@@ -16,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '../components/ui/Button';
 import { mobileApiClient } from '../utils/mobileApiClient';
+import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { theme } from '../theme';
 
@@ -103,11 +104,13 @@ const NotificationSettingsScreen: React.FC = () => {
   const loadSettings = async () => {
     if (!user?.id) return;
     try {
-      const response = await mobileApiClient.get<{ preferences: typeof settings }>(
-        '/api/users/notification-preferences'
-      );
-      if (response?.preferences) {
-        setSettings((prev) => ({ ...prev, ...response.preferences }));
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      if (!error && data) {
+        setSettings((prev) => ({ ...prev, ...data }));
       }
     } catch {
       // Use defaults if no saved preferences

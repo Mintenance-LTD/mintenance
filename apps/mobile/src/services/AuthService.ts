@@ -198,15 +198,16 @@ export class AuthService {
       logger.info('✅ Supabase auth successful');
       resetRateLimit('auth_login', email);
 
-      // Get user profile via API for consistent data with web
+      // Get user profile directly from Supabase
       if (data.user) {
         try {
-          const { mobileApiClient } = await import('../utils/mobileApiClient');
-          const profileResponse = await mobileApiClient.get<{
-            user: Record<string, unknown>;
-          }>('/api/users/profile');
-          const userProfile = profileResponse.user;
-          if (userProfile) {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.user.id)
+            .single();
+          if (!profileError && profileData) {
+            const userProfile = profileData as Record<string, unknown>;
             const enhancedProfile = {
               ...userProfile,
               firstName: userProfile.first_name,
@@ -217,7 +218,7 @@ export class AuthService {
           }
         } catch (profileError) {
           logger.warn(
-            'Profile fetch via API failed, using auth metadata fallback:',
+            'Profile fetch from Supabase failed, using auth metadata fallback:',
             profileError
           );
         }

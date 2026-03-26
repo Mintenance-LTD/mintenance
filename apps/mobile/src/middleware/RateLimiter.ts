@@ -115,10 +115,13 @@ export function getRemainingAttempts(
   return Math.max(0, config.maxAttempts - bucket.count);
 }
 
-// Clean up expired buckets every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, bucket] of buckets) {
-    if (now > bucket.resetTime) buckets.delete(key);
-  }
-}, 5 * 60 * 1000);
+// Clean up expired buckets every 5 minutes (single interval, guarded against re-import)
+let _cleanupTimer: ReturnType<typeof setInterval> | null = null;
+if (!_cleanupTimer) {
+  _cleanupTimer = setInterval(() => {
+    const now = Date.now();
+    for (const [key, bucket] of buckets) {
+      if (now > bucket.resetTime) buckets.delete(key);
+    }
+  }, 5 * 60 * 1000);
+}

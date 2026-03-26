@@ -13,6 +13,7 @@ BEGIN;
 DROP POLICY IF EXISTS "Users can view their own escrow transactions" ON public.escrow_transactions;
 DROP POLICY IF EXISTS "escrow_payer_select" ON public.escrow_transactions;
 DROP POLICY IF EXISTS "escrow_payee_select" ON public.escrow_transactions;
+DROP POLICY IF EXISTS "escrow_authenticated_select" ON public.escrow_transactions;
 
 -- Homeowners (payer) and contractors (payee) can view their own escrow records
 CREATE POLICY "escrow_authenticated_select"

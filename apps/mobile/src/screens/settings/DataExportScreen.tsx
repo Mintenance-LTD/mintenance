@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ScreenHeader } from '../../components/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { theme } from '../../theme';
 
@@ -52,7 +53,21 @@ export const DataExportScreen: React.FC = () => {
 
   const { data: exports, isLoading } = useQuery<ExportStatus[]>({
     queryKey: ['data-exports', user?.id],
-    queryFn: () => mobileApiClient.get('/api/gdpr/export-data'),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('data_export_requests')
+        .select('id, status, requested_at:created_at, completed_at, download_url')
+        .eq('user_id', user!.id)
+        .order('created_at', { ascending: false });
+      if (error) return [];
+      return (data || []).map((d: Record<string, unknown>) => ({
+        id: d.id as string,
+        status: d.status as ExportStatus['status'],
+        requestedAt: d.requested_at as string,
+        completedAt: d.completed_at as string | null,
+        downloadUrl: d.download_url as string | null,
+      }));
+    },
     enabled: !!user?.id,
   });
 

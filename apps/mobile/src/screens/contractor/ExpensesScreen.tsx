@@ -24,6 +24,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { theme } from '../../theme';
 
@@ -61,9 +62,13 @@ export const ExpensesScreen: React.FC = () => {
     queryKey: ['contractor-expenses', user?.id],
     queryFn: async () => {
       if (!user?.id) return { expenses: [], total: 0 };
-      const raw = await mobileApiClient.get<unknown>('/api/contractor/expenses');
-      const rows = Array.isArray(raw) ? raw : (raw as Record<string, unknown>)?.expenses || [];
-      const expenses: Expense[] = (rows as Array<Record<string, unknown>>).map((e) => ({
+      const { data, error } = await supabase
+        .from('contractor_expenses')
+        .select('*')
+        .eq('contractor_id', user.id)
+        .order('date', { ascending: false });
+      if (error) throw new Error(error.message);
+      const expenses: Expense[] = (data || []).map((e: Record<string, unknown>) => ({
         id: e.id as string,
         description: (e.description as string) || '',
         category: (e.category as string) || 'other',

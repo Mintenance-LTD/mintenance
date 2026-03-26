@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
 import type { SustainabilityMetrics } from './types';
 import { MaterialAdvisor } from './MaterialAdvisor';
 
@@ -25,10 +25,14 @@ export class CarbonTracker {
 
   async getContractorSustainabilityRanking(_location: string, _category?: string): Promise<Record<string, unknown>[]> {
     try {
-      const response = await mobileApiClient.get<{ rankings: Record<string, unknown>[] }>(
-        '/api/contractor/esg-score?type=rankings&minScore=60&limit=20'
-      );
-      return response.rankings || [];
+      const { data, error } = await supabase
+        .from('contractor_esg_scores')
+        .select('*')
+        .gte('total_score', 60)
+        .order('total_score', { ascending: false })
+        .limit(20);
+      if (error || !data) return [];
+      return data as Record<string, unknown>[];
     } catch (error) {
       logger.error('Failed to get sustainability ranking', error);
       return [];
@@ -37,18 +41,23 @@ export class CarbonTracker {
 
   async trackSustainabilityProgress(contractorId: string, timeframe: 'month' | 'quarter' | 'year'): Promise<{ trend: 'improving' | 'declining' | 'stable' | 'insufficient_data' | 'error'; improvement?: number; carbon_reduction_kg?: number; waste_reduction_kg?: number; renewable_increase_percent?: number; timeframe: 'month' | 'quarter' | 'year'; data_points?: number }> {
     try {
-      const params = new URLSearchParams();
-      params.set('contractorId', contractorId);
-      params.set('type', 'progress');
-      params.set('timeframe', timeframe);
-      const response = await mobileApiClient.get<{ metrics: SustainabilityMetrics[] }>(
-        `/api/contractor/esg-score?${params.toString()}`
-      );
-      const data = response.metrics;
-      if (!data || data.length < 2) return { trend: 'insufficient_data', improvement: 0, timeframe };
+      const now = new Date();
+      const startDate = new Date(now);
+      if (timeframe === 'month') startDate.setMonth(now.getMonth() - 1);
+      else if (timeframe === 'quarter') startDate.setMonth(now.getMonth() - 3);
+      else startDate.setFullYear(now.getFullYear() - 1);
 
-      const firstMetric = data[0];
-      const latestMetric = data[data.length - 1];
+      const { data, error } = await supabase
+        .from('sustainability_metrics')
+        .select('*')
+        .eq('entity_id', contractorId)
+        .eq('entity_type', 'contractor')
+        .gte('created_at', startDate.toISOString())
+        .order('created_at', { ascending: true });
+      if (error || !data || data.length < 2) return { trend: 'insufficient_data', improvement: 0, timeframe };
+
+      const firstMetric = data[0] as SustainabilityMetrics;
+      const latestMetric = data[data.length - 1] as SustainabilityMetrics;
       const carbonReduction = firstMetric.carbon_footprint_kg - latestMetric.carbon_footprint_kg;
       return {
         trend: carbonReduction > 0 ? 'improving' : carbonReduction < 0 ? 'declining' : 'stable',

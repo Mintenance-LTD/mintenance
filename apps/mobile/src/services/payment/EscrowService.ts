@@ -1,5 +1,5 @@
-import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { apiRequest } from './apiHelper';
 import type { EscrowTransactionRow } from './types';
 
@@ -10,79 +10,41 @@ export class EscrowService {
     payeeId: string,
     amount: number
   ): Promise<{ id: string; status: string; amount: number }> {
-    const { data, error } = await supabase
-      .from('escrow_transactions')
-      .insert({
-        job_id: jobId,
-        payer_id: payerId,
-        payee_id: payeeId,
-        amount,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(error.message || 'Failed to create escrow transaction');
-    }
-
-    return data as { id: string; status: string; amount: number };
+    return mobileApiClient.post<{ id: string; status: string; amount: number }>(
+      '/api/payments/create-intent',
+      { jobId, payerId, payeeId, amount }
+    );
   }
 
   static async holdPaymentInEscrow(
     transactionId: string,
     paymentIntentId: string
   ): Promise<void> {
-    const { error } = await supabase
-      .from('escrow_transactions')
-      .update({
-        status: 'held',
-        payment_intent_id: paymentIntentId,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', transactionId);
-
-    if (error) {
-      throw new Error(error.message || 'Failed to hold payment in escrow');
-    }
+    await mobileApiClient.post('/api/payments/confirm-intent', {
+      transactionId,
+      paymentIntentId,
+    });
   }
 
   static async releaseEscrowPayment(transactionId: string): Promise<void> {
-    const { data: transaction, error: transactionError } = await supabase
-      .from('escrow_transactions')
-      .select('id, amount, payment_intent_id, job:job_id ( contractor_id )')
-      .eq('id', transactionId)
-      .single();
+    // Get escrow details via API
+    const transaction = await mobileApiClient.get<{
+      id: string;
+      amount: number;
+      payment_intent_id: string;
+      job?: { contractor_id: string };
+    }>(`/api/escrow/${transactionId}/status`);
 
-    if (transactionError || !transaction) {
-      throw new Error(transactionError?.message || 'Escrow transaction not found');
-    }
-
-    const contractorId = (transaction as unknown as Record<string, Record<string, string>>).job?.contractor_id;
+    const contractorId = transaction.job?.contractor_id;
 
     await apiRequest('/api/payments/release-escrow', {
       method: 'POST',
       body: {
         transactionId,
         contractorId,
-        amount: (transaction as Record<string, unknown>).amount,
+        amount: transaction.amount,
       },
     });
-
-    const { error: updateError } = await supabase
-      .from('escrow_transactions')
-      .update({
-        status: 'released',
-        released_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', transactionId);
-
-    if (updateError) {
-      throw new Error(updateError.message || 'Failed to update escrow status');
-    }
   }
 
   static async refundEscrowPayment(transactionId: string): Promise<void> {
@@ -90,19 +52,6 @@ export class EscrowService {
       method: 'POST',
       body: { transactionId },
     });
-
-    const { error: updateError } = await supabase
-      .from('escrow_transactions')
-      .update({
-        status: 'refunded',
-        refunded_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', transactionId);
-
-    if (updateError) {
-      throw new Error(updateError.message || 'Failed to update escrow status');
-    }
   }
 
   static async releaseEscrow(params: {
@@ -111,21 +60,10 @@ export class EscrowService {
     contractorId: string;
     amount: number;
   }): Promise<{ success: boolean; transfer_id?: string }> {
-    const data = await apiRequest<{ success: boolean; transfer_id?: string }>(
+    return apiRequest<{ success: boolean; transfer_id?: string }>(
       '/api/payments/release-escrow',
       { method: 'POST', body: params as unknown as Record<string, unknown> }
     );
-
-    const { error: updateError } = await supabase
-      .from('jobs')
-      .update({ status: 'completed', payment_released: true })
-      .eq('id', params.jobId);
-
-    if (updateError) {
-      throw new Error(updateError.message || 'Failed to update job status');
-    }
-
-    return data as { success: boolean; transfer_id?: string };
   }
 
   static async refundPayment(params: {
@@ -151,39 +89,31 @@ export class EscrowService {
   }
 
   static async getUserPaymentHistory(userId: string): Promise<unknown[]> {
-    const { data, error } = await supabase
-      .from('escrow_transactions')
-      .select(
-        `*, job:job_id ( title ), payer:payer_id ( first_name, last_name ), payee:payee_id ( first_name, last_name )`
-      )
-      .or(`payer_id.eq.${userId},payee_id.eq.${userId}`)
-      .order('created_at', { ascending: false });
-
-    if (error) {
+    try {
+      const response = await mobileApiClient.get<{ payments: unknown[] }>(
+        `/api/payments/history?userId=${encodeURIComponent(userId)}`
+      );
+      return response.payments ?? [];
+    } catch (error) {
       logger.error('Failed to fetch user payment history', { error, userId });
       return [];
     }
-
-    return data || [];
   }
 
   static async getJobEscrowTransactions(jobId: string): Promise<
     (EscrowTransactionRow & { jobId: string })[]
   > {
-    const { data, error } = await supabase
-      .from('escrow_transactions')
-      .select('*')
-      .eq('job_id', jobId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
+    try {
+      const response = await mobileApiClient.get<{ escrow: EscrowTransactionRow[] }>(
+        `/api/jobs/${jobId}/escrow`
+      );
+      return (response.escrow ?? []).map((transaction) => ({
+        ...transaction,
+        jobId: transaction.job_id,
+      }));
+    } catch (error) {
       logger.error('Failed to fetch job escrow transactions', { error, jobId });
       return [];
     }
-
-    return (data || []).map((transaction: EscrowTransactionRow) => ({
-      ...transaction,
-      jobId: transaction.job_id,
-    }));
   }
 }
