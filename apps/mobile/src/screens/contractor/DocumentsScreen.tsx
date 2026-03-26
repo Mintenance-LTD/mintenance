@@ -122,32 +122,71 @@ export const DocumentsScreen: React.FC = () => {
     queryKey: ['documents', user?.role, user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
+      const allDocs: Document[] = [];
+      const idCol = isContractor ? 'contractor_id' : 'homeowner_id';
+
+      // 1. Contracts (both roles)
+      const { data: contracts } = await supabase
+        .from('contracts')
+        .select('id, title, status, amount, created_at, job_id')
+        .eq(idCol, user.id)
+        .neq('status', 'draft')
+        .order('created_at', { ascending: false });
+      (contracts || []).forEach((c: Record<string, unknown>) => {
+        const status = c.status as string;
+        const statusLabel = status === 'accepted' ? 'Signed' : status === 'pending_contractor' ? 'Awaiting Contractor' : status === 'pending_homeowner' ? 'Awaiting You' : status;
+        allDocs.push({
+          id: c.id as string,
+          filename: `${(c.title as string) || 'Contract'} (${statusLabel})`,
+          category: 'contract',
+          uploaded_at: c.created_at as string,
+          starred: false,
+          is_contract: true,
+          job_id: c.job_id as string | undefined,
+        });
+      });
+
       if (isContractor) {
-        const { data: docs, error } = await supabase
+        // 2. Uploaded documents
+        const { data: docs } = await supabase
           .from('contractor_documents')
           .select('*')
           .eq('contractor_id', user.id)
           .order('created_at', { ascending: false });
-        if (error) throw new Error(error.message);
-        return (docs || []).map((d: Record<string, unknown>): Document => ({
-          id: d.id as string, filename: (d.name as string) || (d.filename as string) || '', category: (d.category as string) || 'other',
-          uploaded_at: d.created_at as string, starred: (d.starred as boolean) ?? false, file_size: d.size_bytes as number | undefined,
-          public_url: d.public_url as string | undefined, is_contract: d.is_contract as boolean | undefined, job_id: d.job_id as string | undefined,
-        }));
+        (docs || []).forEach((d: Record<string, unknown>) => {
+          allDocs.push({
+            id: d.id as string,
+            filename: (d.name as string) || (d.filename as string) || '',
+            category: (d.category as string) || 'other',
+            uploaded_at: d.created_at as string,
+            starred: (d.starred as boolean) ?? false,
+            file_size: d.size_bytes as number | undefined,
+            public_url: d.public_url as string | undefined,
+            job_id: d.job_id as string | undefined,
+          });
+        });
+
+        // 3. Certifications as documents
+        const { data: certs } = await supabase
+          .from('contractor_certifications')
+          .select('id, certification_name, issuing_body, issue_date, expiry_date, document_url')
+          .eq('contractor_id', user.id)
+          .order('issue_date', { ascending: false });
+        (certs || []).forEach((c: Record<string, unknown>) => {
+          allDocs.push({
+            id: `cert-${c.id as string}`,
+            filename: `${(c.certification_name as string) || 'Certification'} — ${(c.issuing_body as string) || ''}`,
+            category: 'certification',
+            uploaded_at: (c.issue_date as string) || '',
+            starred: false,
+            public_url: c.document_url as string | undefined,
+          });
+        });
       }
-      // Homeowner: aggregate contracts as virtual documents
-      const { data: contracts, error: contractError } = await supabase
-        .from('contracts')
-        .select('id, title, status, created_at, job_id')
-        .eq('homeowner_id', user.id)
-        .neq('status', 'draft')
-        .order('created_at', { ascending: false });
-      if (contractError) throw new Error(contractError.message);
-      return (contracts || []).map((c: { id: string; title: string; status: string; created_at: string; job_id?: string }): Document => ({
-        id: c.id, filename: c.title || 'Contract', category: 'contract',
-        uploaded_at: c.created_at, starred: false,
-        is_contract: true, job_id: c.job_id,
-      }));
+
+      // Sort all by date descending
+      allDocs.sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime());
+      return allDocs;
     },
     enabled: !!user?.id,
   });
