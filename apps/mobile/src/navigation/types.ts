@@ -54,8 +54,13 @@ export type JobsStackParamList = {
   JobDetails: { jobId: string };
   JobPosting: undefined;
   ExploreMap: undefined;
-  BidSubmission: { jobId: string };
-  JobPayment: { jobId: string; amount: number; contractorId: string; contractorName?: string };
+  BidSubmission: { jobId: string; existingBidId?: string };
+  JobPayment: {
+    jobId: string;
+    amount: number;
+    contractorId: string;
+    contractorName?: string;
+  };
   JobTimeline: { jobId: string };
   Dispute: { jobId: string; jobTitle: string };
   BidReview: { jobId: string };
@@ -63,7 +68,11 @@ export type JobsStackParamList = {
   PhotoUpload: { jobId: string; photoType: 'before' | 'after' };
   ContractView: { jobId: string };
   ContractPreparation: { jobId: string; jobTitle?: string };
-  ReviewSubmission: { jobId: string; contractorName?: string; jobTitle?: string };
+  ReviewSubmission: {
+    jobId: string;
+    contractorName?: string;
+    jobTitle?: string;
+  };
   JobSignOff: { jobId: string };
   JobEdit: { jobId: string };
 };
@@ -110,10 +119,16 @@ export type ProfileStackParamList = {
   Properties: undefined;
   PropertyDetail: { propertyId: string };
   EditProperty: { propertyId: string };
-  PropertyAssessment: { propertyId?: string; propertyAddress?: string } | undefined;
+  PropertyAssessment:
+    | { propertyId?: string; propertyAddress?: string }
+    | undefined;
   AddProperty: undefined;
   VideoCapture: { assessmentId?: string; propertyId?: string } | undefined;
-  VideoProcessingStatus: { videoId: string; assessmentId?: string; propertyId?: string };
+  VideoProcessingStatus: {
+    videoId: string;
+    assessmentId?: string;
+    propertyId?: string;
+  };
   PhotoUpload: { jobId: string; photoType: 'before' | 'after' };
   Calendar: undefined;
   Reviews: undefined;
@@ -138,7 +153,7 @@ export type ProfileStackParamList = {
   // Social: ARCHIVED - social feature removed
   Connections: undefined;
   Training: undefined;
-  PortfolioGallery: undefined;
+  // PortfolioGallery: REMOVED - screen is archived, type entry cleaned up
   EscrowDashboard: undefined;
   // Homeowner/shared feature parity screens
   Favorites: undefined;
@@ -154,7 +169,9 @@ export type ProfileStackParamList = {
 // ============================================================================
 
 export type ModalStackParamList = {
-  ServiceRequest: { propertyId?: string; priority?: 'low' | 'medium' | 'high' } | undefined;
+  ServiceRequest:
+    | { propertyId?: string; priority?: 'low' | 'medium' | 'high' }
+    | undefined;
   CreateQuote: { jobId?: string };
   MeetingSchedule: {
     contractorId: string;

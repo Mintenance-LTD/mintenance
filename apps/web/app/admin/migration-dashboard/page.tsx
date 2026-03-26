@@ -5,7 +5,6 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { logger } from '@mintenance/shared';
-import { createBrowserClient } from '@supabase/ssr';
 interface FeatureFlagStat {
   name: string;
   enabled: boolean;
@@ -38,49 +37,13 @@ export default function MigrationDashboard() {
   const [refreshInterval, setRefreshInterval] = useState(30000); // 30 seconds
   const fetchData = useCallback(async () => {
     try {
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
-      // Fetch feature flag statistics
-      const { data: flagStats, error: flagError } = await supabase
-        .from('feature_flag_stats')
-        .select('*')
-        .order('name');
-      if (!flagError && flagStats) {
-        setFeatureFlags(flagStats);
-      }
-      // Fetch controller usage logs for error rate
-      const { data: logs, error: logsError } = await supabase
-        .from('controller_usage_logs')
-        .select('module, is_new_controller, metadata')
-        .gte(
-          'logged_at',
-          new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-        )
-        .order('logged_at', { ascending: false })
-        .limit(1000);
-      if (!logsError && logs) {
-        // Calculate success/error rates
-        type LogEntry = {
-          is_new_controller: boolean;
-          module: string;
-          metadata?: { error?: unknown };
-        };
-        const typedLogs = logs as LogEntry[];
-        const newControllerLogs = typedLogs.filter((l) => l.is_new_controller);
-        const errorLogs = newControllerLogs.filter(
-          (l) => l.metadata?.error || l.module.includes('fallback')
-        );
-        const errorRate =
-          newControllerLogs.length > 0
-            ? (errorLogs.length / newControllerLogs.length) * 100
-            : 0;
-        setMigrationStats((prev) => ({
-          ...prev,
-          errorRate: parseFloat(errorRate.toFixed(2)),
-          successRate: parseFloat((100 - errorRate).toFixed(2)),
-        }));
+      const res = await fetch('/api/admin/migrations/stats');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.featureFlags) setFeatureFlags(data.featureFlags);
+        if (data.migrationStats) {
+          setMigrationStats((prev) => ({ ...prev, ...data.migrationStats }));
+        }
       }
       setLoading(false);
     } catch (error) {
