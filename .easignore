@@ -3,6 +3,13 @@
 # This reduces upload time and archive size (must be under 2.0 GB)
 
 # ============================================================================
+# IDE / AGENT DIRECTORIES (symlinks cause EPERM errors on Windows)
+# ============================================================================
+.agents/
+.windsurf/
+.claude/
+
+# ============================================================================
 # LARGE DATASET DIRECTORIES (These are the main size contributors)
 # ============================================================================
 yolo_dataset/
