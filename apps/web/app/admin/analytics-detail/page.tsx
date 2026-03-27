@@ -12,6 +12,7 @@ import {
   BarChart3,
   PieChart,
   Loader2,
+  Inbox,
 } from 'lucide-react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { ChartSkeleton } from '@/components/ui/ChartSkeleton';
@@ -285,8 +286,11 @@ export default function AnalyticsDetailPage() {
                     className='h-72'
                   />
                 ) : (
-                  <div className='h-72 flex items-center justify-center text-sm text-gray-400'>
-                    No user growth data available yet
+                  <div className='h-72 flex flex-col items-center justify-center text-center'>
+                    <Users className='w-8 h-8 text-gray-300 mb-2' />
+                    <p className='text-sm text-gray-400'>
+                      No user growth data available yet
+                    </p>
                   </div>
                 )}
               </MotionDiv>
@@ -312,8 +316,11 @@ export default function AnalyticsDetailPage() {
                     className='h-72'
                   />
                 ) : (
-                  <div className='h-72 flex items-center justify-center text-sm text-gray-400'>
-                    No revenue data available yet
+                  <div className='h-72 flex flex-col items-center justify-center text-center'>
+                    <DollarSign className='w-8 h-8 text-gray-300 mb-2' />
+                    <p className='text-sm text-gray-400'>
+                      No revenue data available yet
+                    </p>
                   </div>
                 )}
               </MotionDiv>
@@ -344,8 +351,11 @@ export default function AnalyticsDetailPage() {
                     className='h-72'
                   />
                 ) : (
-                  <div className='h-72 flex items-center justify-center text-sm text-gray-400'>
-                    No category data available yet
+                  <div className='h-72 flex flex-col items-center justify-center text-center'>
+                    <PieChart className='w-8 h-8 text-gray-300 mb-2' />
+                    <p className='text-sm text-gray-400'>
+                      No category data available yet
+                    </p>
                   </div>
                 )}
               </MotionDiv>
@@ -369,8 +379,11 @@ export default function AnalyticsDetailPage() {
                     className='h-72'
                   />
                 ) : (
-                  <div className='h-72 flex items-center justify-center text-sm text-gray-400'>
-                    No job creation data available yet
+                  <div className='h-72 flex flex-col items-center justify-center text-center'>
+                    <BarChart3 className='w-8 h-8 text-gray-300 mb-2' />
+                    <p className='text-sm text-gray-400'>
+                      No job creation data available yet
+                    </p>
                   </div>
                 )}
               </MotionDiv>
@@ -458,9 +471,12 @@ export default function AnalyticsDetailPage() {
                       </div>
                     ))
                   ) : (
-                    <p className='text-sm text-gray-400 text-center py-4'>
-                      No recent transactions
-                    </p>
+                    <div className='flex flex-col items-center justify-center py-6 text-center'>
+                      <Inbox className='w-6 h-6 text-gray-300 mb-2' />
+                      <p className='text-sm text-gray-400'>
+                        No recent transactions
+                      </p>
+                    </div>
                   )}
                 </div>
               </MotionDiv>

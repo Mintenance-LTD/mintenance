@@ -30,8 +30,12 @@ export function transformJobsToEvents(
 
   jobs.forEach((jobWithContract) => {
     const job = jobWithContract;
-    const contractor = Array.isArray(job.contractor) ? job.contractor[0] : job.contractor;
-    const homeowner = Array.isArray(job.homeowner) ? job.homeowner[0] : job.homeowner;
+    const contractor = Array.isArray(job.contractor)
+      ? job.contractor[0]
+      : job.contractor;
+    const homeowner = Array.isArray(job.homeowner)
+      ? job.homeowner[0]
+      : job.homeowner;
     const contractorName = contractor
       ? `${(contractor as { first_name?: string; last_name?: string }).first_name || ''} ${(contractor as { first_name?: string; last_name?: string }).last_name || ''}`.trim()
       : null;
@@ -39,44 +43,21 @@ export function transformJobsToEvents(
       ? `${(homeowner as { first_name?: string; last_name?: string }).first_name || ''} ${(homeowner as { first_name?: string; last_name?: string }).last_name || ''}`.trim()
       : null;
 
-    const postedDate = new Date(job.created_at);
-
-    // Validate dates
-    if (isNaN(postedDate.getTime())) {
-      logger.warn('[EventTransformer] Invalid posted date for job', {
-        jobId: job.id,
-        createdAt: job.created_at,
-      });
-      return; // Skip this job
-    }
-
     const isViewed = viewedJobIds.has(job.id);
     const hasBid = bidJobIds.has(job.id);
 
-    // Only add posted date event if contractor has viewed the job (or if user is homeowner)
-    if (isViewed || userRole === 'homeowner') {
-      // Calculate days since posted
-      const daysSincePosted = Math.floor((new Date().getTime() - postedDate.getTime()) / (1000 * 60 * 60 * 24));
-      const daysText = daysSincePosted === 0 ? 'Today' :
-        daysSincePosted === 1 ? '1 day ago' :
-          `${daysSincePosted} days ago`;
-
-      // Add posted date event (use ISO string for proper serialization)
-      jobEvents.push({
-        id: `job-posted-${job.id}`,
-        title: `Posted: ${job.title || 'Untitled Job'} (${daysText})`,
-        date: postedDate.toISOString(),
-        type: 'job',
-        status: job.status,
-      });
+    // Only show jobs that are actively scheduled (assigned or in progress)
+    // Posted-only jobs are not calendar events
+    if (job.status !== 'assigned' && job.status !== 'in_progress') {
+      return;
     }
 
     // Determine the scheduled date - prefer scheduled_start_date, then contract start_date
     const contract = jobWithContract.contract;
-    const isContractAccepted = contract && (
-      contract.status === 'accepted' ||
-      (contract.contractor_signed_at && contract.homeowner_signed_at)
-    );
+    const isContractAccepted =
+      contract &&
+      (contract.status === 'accepted' ||
+        (contract.contractor_signed_at && contract.homeowner_signed_at));
 
     let scheduledDate: Date | null = null;
     if (job.scheduled_start_date) {
@@ -86,11 +67,14 @@ export function transformJobsToEvents(
     }
 
     // If job has a scheduled date, add scheduled event
-    const shouldShowScheduledEvent = userRole === 'homeowner' ||
-      isViewed ||
-      hasBid;
+    const shouldShowScheduledEvent =
+      userRole === 'homeowner' || isViewed || hasBid;
 
-    if (scheduledDate && !isNaN(scheduledDate.getTime()) && shouldShowScheduledEvent) {
+    if (
+      scheduledDate &&
+      !isNaN(scheduledDate.getTime()) &&
+      shouldShowScheduledEvent
+    ) {
       // Create appropriate title based on user role
       let scheduledTitle = job.title || 'Job';
       if (userRole === 'homeowner' && contractorName) {
@@ -113,7 +97,10 @@ export function transformJobsToEvents(
       // If there's an end date, also add it (optional - for multi-day jobs)
       if (job.scheduled_end_date) {
         const endDate = new Date(job.scheduled_end_date);
-        if (!isNaN(endDate.getTime()) && endDate.getTime() !== scheduledDate.getTime()) {
+        if (
+          !isNaN(endDate.getTime()) &&
+          endDate.getTime() !== scheduledDate.getTime()
+        ) {
           jobEvents.push({
             id: `appointment-end-${job.id}`,
             title: `${scheduledTitle} (End)`,
@@ -124,7 +111,10 @@ export function transformJobsToEvents(
         }
       } else if (contract?.end_date && isContractAccepted) {
         const endDate = new Date(contract.end_date);
-        if (!isNaN(endDate.getTime()) && endDate.getTime() !== scheduledDate.getTime()) {
+        if (
+          !isNaN(endDate.getTime()) &&
+          endDate.getTime() !== scheduledDate.getTime()
+        ) {
           jobEvents.push({
             id: `appointment-end-${job.id}`,
             title: `${scheduledTitle} (End)`,
@@ -143,19 +133,28 @@ export function transformJobsToEvents(
 /**
  * Transform meetings to appointment calendar events
  */
-export function transformMeetingsToEvents(meetings: Meeting[]): CalendarEvent[] {
+export function transformMeetingsToEvents(
+  meetings: Meeting[]
+): CalendarEvent[] {
   const events: CalendarEvent[] = [];
-  
+
   for (const meeting of meetings) {
-    const contractor = Array.isArray(meeting.contractor) ? meeting.contractor[0] : meeting.contractor;
+    const contractor = Array.isArray(meeting.contractor)
+      ? meeting.contractor[0]
+      : meeting.contractor;
     const job = Array.isArray(meeting.job) ? meeting.job[0] : meeting.job;
     const contractorName = contractor
       ? `${(contractor as { first_name?: string; last_name?: string }).first_name || ''} ${(contractor as { first_name?: string; last_name?: string }).last_name || ''}`.trim()
       : 'Contractor';
     const jobTitle = (job as { title?: string } | null)?.title || 'Meeting';
-    const meetingTypeLabel = meeting.meeting_type === 'site_visit' ? 'Site Visit' :
-      meeting.meeting_type === 'consultation' ? 'Consultation' :
-        meeting.meeting_type === 'work_session' ? 'Work Session' : 'Meeting';
+    const meetingTypeLabel =
+      meeting.meeting_type === 'site_visit'
+        ? 'Site Visit'
+        : meeting.meeting_type === 'consultation'
+          ? 'Consultation'
+          : meeting.meeting_type === 'work_session'
+            ? 'Work Session'
+            : 'Meeting';
 
     const meetingDate = new Date(meeting.scheduled_datetime);
     if (isNaN(meetingDate.getTime())) {
@@ -174,7 +173,7 @@ export function transformMeetingsToEvents(meetings: Meeting[]): CalendarEvent[] 
       status: meeting.status,
     });
   }
-  
+
   return events;
 }
 
@@ -185,7 +184,7 @@ export function transformSubscriptionsToEvents(
   subscriptions: SubscriptionWithName[]
 ): CalendarEvent[] {
   const events: CalendarEvent[] = [];
-  
+
   for (const sub of subscriptions) {
     const billingDate = new Date(sub.next_billing_date!);
     if (isNaN(billingDate.getTime())) {
@@ -203,7 +202,7 @@ export function transformSubscriptionsToEvents(
       type: 'maintenance',
     });
   }
-  
+
   return events;
 }
 
@@ -216,11 +215,16 @@ export function combineAndSortEvents(
   maintenanceEvents: CalendarEvent[]
 ): CalendarEvent[] {
   const allEvents = [...jobEvents, ...appointmentEvents, ...maintenanceEvents];
-  
+
   return allEvents.sort((a, b) => {
-    const dateA = typeof a.date === 'string' ? new Date(a.date).getTime() : a.date.getTime();
-    const dateB = typeof b.date === 'string' ? new Date(b.date).getTime() : b.date.getTime();
+    const dateA =
+      typeof a.date === 'string'
+        ? new Date(a.date).getTime()
+        : a.date.getTime();
+    const dateB =
+      typeof b.date === 'string'
+        ? new Date(b.date).getTime()
+        : b.date.getTime();
     return dateA - dateB;
   });
 }
-

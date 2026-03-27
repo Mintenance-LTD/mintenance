@@ -96,6 +96,17 @@ export default function MigrationDashboard() {
             Real-time monitoring of controller migration progress
           </p>
         </div>
+        {/* Context Banner */}
+        <div className='bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6'>
+          <h4 className='text-sm font-medium text-blue-900 mb-1'>
+            What is this?
+          </h4>
+          <p className='text-sm text-blue-700'>
+            This dashboard tracks the migration of legacy API routes to the new
+            standardized handler pattern. This is an internal engineering metric
+            and does not affect platform functionality.
+          </p>
+        </div>
         {/* Overview Stats */}
         <div className='grid grid-cols-1 md:grid-cols-4 gap-6 mb-8'>
           <div className='bg-white rounded-lg shadow p-6'>
