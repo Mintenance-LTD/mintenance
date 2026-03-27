@@ -55,7 +55,16 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
 
-  transpilePackages: ['@mintenance/auth', '@mintenance/shared', '@mintenance/types', '@mintenance/shared-ui', '@mintenance/design-tokens', '@mintenance/ai-core', '@mintenance/api-contracts', '@hookform/resolvers'],
+  transpilePackages: [
+    '@mintenance/auth',
+    '@mintenance/shared',
+    '@mintenance/types',
+    '@mintenance/shared-ui',
+    '@mintenance/design-tokens',
+    '@mintenance/ai-core',
+    '@mintenance/api-contracts',
+    '@hookform/resolvers',
+  ],
 
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -66,7 +75,11 @@ const nextConfig = {
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     remotePatterns: [
-      { protocol: 'https', hostname: '**.supabase.co', pathname: '/storage/v1/object/public/**' },
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
       { protocol: 'https', hostname: 'picsum.photos', pathname: '/**' },
       { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' },
       { protocol: 'https', hostname: 'via.placeholder.com', pathname: '/**' },
@@ -87,7 +100,8 @@ const nextConfig = {
     'puppeteer',
     'puppeteer-core',
     'canvas',
-    'pdf-parse'
+    'pdf-parse',
+    'argon2',
   ],
 
   experimental: {
@@ -150,15 +164,42 @@ const nextConfig = {
     // Subpath aliases must come before bare package aliases (webpack matches first hit)
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@mintenance/ai-core/types': path.resolve(__dirname, '../../packages/ai-core/src/types/index.ts'),
-      '@mintenance/design-tokens/src/unified-tokens': path.resolve(__dirname, '../../packages/design-tokens/src/unified-tokens.ts'),
-      '@mintenance/types': path.resolve(__dirname, '../../packages/types/src/index.ts'),
-      '@mintenance/shared': path.resolve(__dirname, '../../packages/shared/src/index.ts'),
-      '@mintenance/auth': path.resolve(__dirname, '../../packages/auth/src/index.ts'),
-      '@mintenance/shared-ui': path.resolve(__dirname, '../../packages/shared-ui/src/index.ts'),
-      '@mintenance/design-tokens': path.resolve(__dirname, '../../packages/design-tokens/src/index.ts'),
-      '@mintenance/api-contracts': path.resolve(__dirname, '../../packages/api-contracts/src/index.ts'),
-      '@mintenance/ai-core': path.resolve(__dirname, '../../packages/ai-core/src/index.ts'),
+      '@mintenance/ai-core/types': path.resolve(
+        __dirname,
+        '../../packages/ai-core/src/types/index.ts'
+      ),
+      '@mintenance/design-tokens/src/unified-tokens': path.resolve(
+        __dirname,
+        '../../packages/design-tokens/src/unified-tokens.ts'
+      ),
+      '@mintenance/types': path.resolve(
+        __dirname,
+        '../../packages/types/src/index.ts'
+      ),
+      '@mintenance/shared': path.resolve(
+        __dirname,
+        '../../packages/shared/src/index.ts'
+      ),
+      '@mintenance/auth': path.resolve(
+        __dirname,
+        '../../packages/auth/src/index.ts'
+      ),
+      '@mintenance/shared-ui': path.resolve(
+        __dirname,
+        '../../packages/shared-ui/src/index.ts'
+      ),
+      '@mintenance/design-tokens': path.resolve(
+        __dirname,
+        '../../packages/design-tokens/src/index.ts'
+      ),
+      '@mintenance/api-contracts': path.resolve(
+        __dirname,
+        '../../packages/api-contracts/src/index.ts'
+      ),
+      '@mintenance/ai-core': path.resolve(
+        __dirname,
+        '../../packages/ai-core/src/index.ts'
+      ),
       'react-native': false,
       'react-native$': false,
       '@mintenance/shared-ui/dist/components/Card/Card.native': false,
@@ -169,19 +210,30 @@ const nextConfig = {
       '@mintenance/shared-ui/src/components/Button/Button.native': false,
       '@mintenance/shared-ui/src/components/Input/Input.native': false,
       '@mintenance/shared-ui/src/components/Badge/Badge.native': false,
-      '@mintenance/shared-ui/dist/components/Card/Card': '@mintenance/shared-ui/dist/components/Card/Card.web',
-      '@mintenance/shared-ui/dist/components/Button/Button': '@mintenance/shared-ui/dist/components/Button/Button.web',
-      '@mintenance/shared-ui/dist/components/Input/Input': '@mintenance/shared-ui/dist/components/Input/Input.web',
-      '@mintenance/shared-ui/dist/components/Badge/Badge': '@mintenance/shared-ui/dist/components/Badge/Badge.web',
-      '@mintenance/shared-ui/src/components/Card/Card': '@mintenance/shared-ui/src/components/Card/Card.web',
-      '@mintenance/shared-ui/src/components/Button/Button': '@mintenance/shared-ui/src/components/Button/Button.web',
-      '@mintenance/shared-ui/src/components/Input/Input': '@mintenance/shared-ui/src/components/Input/Input.web',
-      '@mintenance/shared-ui/src/components/Badge/Badge': '@mintenance/shared-ui/src/components/Badge/Badge.web',
+      '@mintenance/shared-ui/dist/components/Card/Card':
+        '@mintenance/shared-ui/dist/components/Card/Card.web',
+      '@mintenance/shared-ui/dist/components/Button/Button':
+        '@mintenance/shared-ui/dist/components/Button/Button.web',
+      '@mintenance/shared-ui/dist/components/Input/Input':
+        '@mintenance/shared-ui/dist/components/Input/Input.web',
+      '@mintenance/shared-ui/dist/components/Badge/Badge':
+        '@mintenance/shared-ui/dist/components/Badge/Badge.web',
+      '@mintenance/shared-ui/src/components/Card/Card':
+        '@mintenance/shared-ui/src/components/Card/Card.web',
+      '@mintenance/shared-ui/src/components/Button/Button':
+        '@mintenance/shared-ui/src/components/Button/Button.web',
+      '@mintenance/shared-ui/src/components/Input/Input':
+        '@mintenance/shared-ui/src/components/Input/Input.web',
+      '@mintenance/shared-ui/src/components/Badge/Badge':
+        '@mintenance/shared-ui/src/components/Badge/Badge.web',
     };
 
     config.resolve.extensions = [
-      '.web.js', '.web.jsx', '.web.ts', '.web.tsx',
-      ...config.resolve.extensions.filter(ext => !ext.includes('native')),
+      '.web.js',
+      '.web.jsx',
+      '.web.ts',
+      '.web.tsx',
+      ...config.resolve.extensions.filter((ext) => !ext.includes('native')),
     ];
 
     if (!isServer) {
@@ -203,7 +255,9 @@ const nextConfig = {
     if (isServer) {
       // Externalize onnxruntime-node on server (native module)
       config.externals.push('onnxruntime-node');
-      config.externals.push({ 'onnxruntime-node': 'commonjs onnxruntime-node' });
+      config.externals.push({
+        'onnxruntime-node': 'commonjs onnxruntime-node',
+      });
       // Also externalize onnxruntime-web on server (not needed server-side)
       config.externals.push('onnxruntime-web');
       config.externals.push({ 'onnxruntime-web': 'commonjs onnxruntime-web' });
@@ -213,7 +267,7 @@ const nextConfig = {
       config.externals.push('@google-cloud/aiplatform');
       // Externalize argon2 (optional password hashing library)
       config.externals.push('argon2');
-      config.externals.push({ 'argon2': 'commonjs argon2' });
+      config.externals.push({ argon2: 'commonjs argon2' });
     } else {
       // Client-side: Configure for onnxruntime-web
       config.resolve.alias = {
@@ -222,13 +276,13 @@ const nextConfig = {
         '@google-cloud/vision': false,
         '@google-cloud/storage': false,
         '@google-cloud/aiplatform': false,
-        'argon2': false,
+        argon2: false,
       };
     }
 
     if (!isServer) {
       config.externals.push('jsdom');
-      config.externals.push({ 'jsdom': false });
+      config.externals.push({ jsdom: false });
     }
 
     // Optimize bundle splitting for production
@@ -260,8 +314,10 @@ const nextConfig = {
             // Libraries chunk
             lib: {
               test(module) {
-                return module.size() > 160000 &&
-                  /node_modules[\\/]/.test(module.identifier());
+                return (
+                  module.size() > 160000 &&
+                  /node_modules[\\/]/.test(module.identifier())
+                );
               },
               name(module) {
                 const hash = require('crypto').createHash('sha1');
@@ -295,7 +351,7 @@ const nextConfig = {
     // to avoid webpack configuration errors
     config.cache = {
       type: 'memory',
-      maxGenerations: 1
+      maxGenerations: 1,
     };
 
     const webpack = require('webpack');
@@ -303,15 +359,28 @@ const nextConfig = {
     config.plugins.push(
       new webpack.IgnorePlugin({ resourceRegExp: /^react-native$/ }),
       new webpack.IgnorePlugin({ resourceRegExp: /^react-native\/.*$/ }),
-      new webpack.IgnorePlugin({ resourceRegExp: /\.native\.(js|jsx|ts|tsx|d\.ts)$/ }),
-      new webpack.IgnorePlugin({ resourceRegExp: /Card\.native|Button\.native|Input\.native|Badge\.native/ }),
-      new webpack.IgnorePlugin({ resourceRegExp: /^react-native$/, contextRegExp: /node_modules/ }),
-      ...(!isServer ? [
-        new webpack.IgnorePlugin({ resourceRegExp: /^jsdom$/ }),
-        new webpack.IgnorePlugin({ resourceRegExp: /^jsdom\/.*$/ }),
-        new webpack.IgnorePlugin({ resourceRegExp: /^@google-cloud\/.*$/ }),
-      ] : []),
-      new webpack.IgnorePlugin({ resourceRegExp: /usePlatform/, contextRegExp: /shared-ui/ }),
+      new webpack.IgnorePlugin({
+        resourceRegExp: /\.native\.(js|jsx|ts|tsx|d\.ts)$/,
+      }),
+      new webpack.IgnorePlugin({
+        resourceRegExp:
+          /Card\.native|Button\.native|Input\.native|Badge\.native/,
+      }),
+      new webpack.IgnorePlugin({
+        resourceRegExp: /^react-native$/,
+        contextRegExp: /node_modules/,
+      }),
+      ...(!isServer
+        ? [
+            new webpack.IgnorePlugin({ resourceRegExp: /^jsdom$/ }),
+            new webpack.IgnorePlugin({ resourceRegExp: /^jsdom\/.*$/ }),
+            new webpack.IgnorePlugin({ resourceRegExp: /^@google-cloud\/.*$/ }),
+          ]
+        : []),
+      new webpack.IgnorePlugin({
+        resourceRegExp: /usePlatform/,
+        contextRegExp: /shared-ui/,
+      }),
       new webpack.IgnorePlugin({ resourceRegExp: /react-native\/index\.js$/ })
     );
 
@@ -337,25 +406,64 @@ const nextConfig = {
       { key: 'X-Frame-Options', value: 'DENY' },
       { key: 'X-XSS-Protection', value: '1; mode=block' },
       { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-      { key: 'Permissions-Policy', value: 'geolocation=(), camera=(), microphone=(), payment=(self "https://js.stripe.com")' },
+      {
+        key: 'Permissions-Policy',
+        value:
+          'geolocation=(), camera=(), microphone=(), payment=(self "https://js.stripe.com")',
+      },
     ];
 
     // CSP is handled by middleware.ts (supports nonce for authenticated routes)
     // Only add HSTS here (not CSP) to avoid duplicate/conflicting CSP headers
     if (!isDev) {
-      baseHeaders.push(
-        { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
-      );
+      baseHeaders.push({
+        key: 'Strict-Transport-Security',
+        value: 'max-age=63072000; includeSubDomains; preload',
+      });
     }
 
     return [
       { source: '/:path*', headers: baseHeaders },
       // Only apply immutable caching in production - in dev, files change constantly
       // and a corrupted/truncated cached chunk will break hydration permanently
-      ...(!isDev ? [{ source: '/_next/static/:path*', headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }] }] : []),
-      { source: '/images/:path*', headers: [{ key: 'Cache-Control', value: 'public, max-age=2592000, must-revalidate' }] },
-      { source: '/service-worker.js', headers: [{ key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' }, { key: 'Service-Worker-Allowed', value: '/' }] },
-      { source: '/manifest.json', headers: [{ key: 'Cache-Control', value: 'public, max-age=86400, must-revalidate' }] },
+      ...(!isDev
+        ? [
+            {
+              source: '/_next/static/:path*',
+              headers: [
+                {
+                  key: 'Cache-Control',
+                  value: 'public, max-age=31536000, immutable',
+                },
+              ],
+            },
+          ]
+        : []),
+      {
+        source: '/images/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=2592000, must-revalidate',
+          },
+        ],
+      },
+      {
+        source: '/service-worker.js',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' },
+          { key: 'Service-Worker-Allowed', value: '/' },
+        ],
+      },
+      {
+        source: '/manifest.json',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, must-revalidate',
+          },
+        ],
+      },
     ];
   },
 };
