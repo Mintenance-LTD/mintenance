@@ -67,42 +67,49 @@ export function MessagesConversationSidebar({
   onFilterChange,
   loading,
 }: MessagesConversationSidebarProps) {
-  const filteredConversations = conversations.filter(conv => {
+  const filteredConversations = conversations.filter((conv) => {
     if (filter === 'unread' && conv.unreadCount === 0) return false;
     if (filter === 'archived') return false;
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      return conv.otherUser.name.toLowerCase().includes(query) ||
-             conv.jobTitle?.toLowerCase().includes(query) ||
-             conv.lastMessage.text.toLowerCase().includes(query);
+      return (
+        conv.otherUser.name.toLowerCase().includes(query) ||
+        conv.jobTitle?.toLowerCase().includes(query) ||
+        conv.lastMessage.text.toLowerCase().includes(query)
+      );
     }
     return true;
   });
 
   return (
-    <div className="w-full md:w-[30%] border-r border-gray-200 flex flex-col">
+    <div className='w-full md:w-80 lg:w-96 h-full border-r border-gray-200 flex flex-col'>
       {/* Search & Filters */}
-      <div className="p-4 border-b border-gray-200">
-        <div className="relative mb-3">
+      <div className='p-4 border-b border-gray-200'>
+        <div className='relative mb-3'>
           <input
-            type="text"
-            placeholder="Search conversations..."
+            type='text'
+            placeholder='Search conversations...'
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
+            className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm'
           />
           <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+            className='absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400'
+            fill='none'
+            viewBox='0 0 24 24'
+            stroke='currentColor'
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <path
+              strokeLinecap='round'
+              strokeLinejoin='round'
+              strokeWidth={2}
+              d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'
+            />
           </svg>
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex gap-2">
+        <div className='flex gap-2'>
           {(['all', 'unread', 'archived'] as const).map((filterOption) => (
             <button
               key={filterOption}
@@ -120,25 +127,38 @@ export function MessagesConversationSidebar({
       </div>
 
       {/* Conversation List */}
-      <div className="flex-1 overflow-y-auto">
+      <div className='flex-1 overflow-y-auto'>
         {loading ? (
-          <div className="p-4">
+          <div className='p-4'>
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex items-center gap-3 p-3 mb-2 animate-pulse">
-                <div className="w-12 h-12 bg-gray-200 rounded-full" />
-                <div className="flex-1">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
-                  <div className="h-3 bg-gray-200 rounded w-1/2" />
+              <div
+                key={i}
+                className='flex items-center gap-3 p-3 mb-2 animate-pulse'
+              >
+                <div className='w-12 h-12 bg-gray-200 rounded-full' />
+                <div className='flex-1'>
+                  <div className='h-4 bg-gray-200 rounded w-3/4 mb-2' />
+                  <div className='h-3 bg-gray-200 rounded w-1/2' />
                 </div>
               </div>
             ))}
           </div>
         ) : filteredConversations.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-            <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          <div className='flex flex-col items-center justify-center h-full p-8 text-center'>
+            <svg
+              className='w-16 h-16 text-gray-300 mb-4'
+              fill='none'
+              viewBox='0 0 24 24'
+              stroke='currentColor'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
+              />
             </svg>
-            <p className="text-sm text-gray-500">No conversations found</p>
+            <p className='text-sm text-gray-500'>No conversations found</p>
           </div>
         ) : (
           filteredConversations.map((conv) => (
@@ -150,43 +170,49 @@ export function MessagesConversationSidebar({
               }`}
             >
               {/* Avatar */}
-              <div className="relative flex-shrink-0">
+              <div className='relative flex-shrink-0'>
                 {conv.otherUser.avatar ? (
                   <Image
                     src={conv.otherUser.avatar}
                     alt={conv.otherUser.name}
                     width={48}
                     height={48}
-                    className="rounded-full object-cover"
+                    className='rounded-full object-cover'
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center">
-                    <span className="text-teal-700 font-semibold text-sm">
+                  <div className='w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center'>
+                    <span className='text-teal-700 font-semibold text-sm'>
                       {getInitials(conv.otherUser.name)}
                     </span>
                   </div>
                 )}
                 {conv.unreadCount > 0 && (
-                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-teal-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">{conv.unreadCount}</span>
+                  <div className='absolute -top-1 -right-1 w-5 h-5 bg-teal-600 rounded-full flex items-center justify-center'>
+                    <span className='text-white text-xs font-bold'>
+                      {conv.unreadCount}
+                    </span>
                   </div>
                 )}
               </div>
 
               {/* Content */}
-              <div className="flex-1 min-w-0 text-left">
-                <div className="flex items-baseline justify-between gap-2 mb-0.5">
-                  <h3 className="font-semibold text-sm text-gray-900 truncate">
+              <div className='flex-1 min-w-0 text-left'>
+                <div className='flex items-baseline justify-between gap-2 mb-0.5'>
+                  <h3 className='font-semibold text-sm text-gray-900 truncate'>
                     {conv.otherUser.name}
                   </h3>
-                  <span className="text-xs text-gray-500 flex-shrink-0">
+                  <span className='text-xs text-gray-500 flex-shrink-0'>
                     {formatTime(conv.lastMessage.timestamp)}
                   </span>
                 </div>
                 {conv.jobTitle && (
-                  <p className="text-xs text-teal-600 mb-0.5 truncate">{conv.jobTitle}</p>
+                  <p className='text-xs text-teal-600 mb-0.5 truncate'>
+                    {conv.jobTitle}
+                  </p>
                 )}
-                <p className={`text-sm truncate ${conv.unreadCount > 0 ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
+                <p
+                  className={`text-sm truncate ${conv.unreadCount > 0 ? 'text-gray-900 font-medium' : 'text-gray-600'}`}
+                >
                   {conv.lastMessage.text}
                 </p>
               </div>

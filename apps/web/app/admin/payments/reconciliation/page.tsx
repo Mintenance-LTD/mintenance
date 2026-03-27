@@ -1,9 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { Clock } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 import { theme } from '@/lib/theme';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui';
+import { ReconciliationTable } from './ReconciliationTable';
 
 interface ReconciliationRecord {
   id: string;
@@ -66,46 +69,46 @@ export default function ReconciliationDashboard() {
     }
   };
 
-  const filteredRecords = filter === 'unresolved'
-    ? records.filter(r => !r.resolved)
-    : records;
-
-  const getMismatchBadge = (type: string) => {
-    const colors = {
-      status: { bg: '#fef3c7', text: '#92400e', label: 'Status Mismatch' },
-      amount: { bg: '#fee2e2', text: '#991b1b', label: 'Amount Mismatch' },
-      missing: { bg: '#fce7f3', text: '#9d174d', label: 'Missing in Stripe' },
-    };
-    const c = colors[type as keyof typeof colors] || colors.status;
-    return (
-      <span style={{
-        padding: '2px 8px',
-        borderRadius: 9999,
-        fontSize: 11,
-        fontWeight: 600,
-        backgroundColor: c.bg,
-        color: c.text,
-      }}>
-        {c.label}
-      </span>
-    );
-  };
+  const filteredRecords =
+    filter === 'unresolved' ? records.filter((r) => !r.resolved) : records;
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: theme.spacing[6] }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing[6] }}>
+    <div
+      style={{ maxWidth: 1200, margin: '0 auto', padding: theme.spacing[6] }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: theme.spacing[6],
+        }}
+      >
         <div>
-          <h1 style={{ fontSize: theme.typography.fontSize['2xl'], fontWeight: 700, color: theme.colors.text }}>
+          <h1
+            style={{
+              fontSize: theme.typography.fontSize['2xl'],
+              fontWeight: 700,
+              color: theme.colors.text,
+            }}
+          >
             Payment Reconciliation
           </h1>
-          <p style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary, marginTop: 4 }}>
-            Compare local payment records against Stripe to detect discrepancies.
+          <p
+            style={{
+              fontSize: theme.typography.fontSize.sm,
+              color: theme.colors.textSecondary,
+              marginTop: 4,
+            }}
+          >
+            Compare local payment records against Stripe to detect
+            discrepancies.
           </p>
         </div>
         <Button
           onClick={runReconciliation}
           disabled={running}
-          variant="primary"
+          variant='primary'
         >
           {running ? 'Running...' : 'Run Reconciliation'}
         </Button>
@@ -113,53 +116,168 @@ export default function ReconciliationDashboard() {
 
       {/* Stats Cards */}
       {stats && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: theme.spacing[4], marginBottom: theme.spacing[6] }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: theme.spacing[4],
+            marginBottom: theme.spacing[6],
+          }}
+        >
           <Card>
             <div style={{ padding: theme.spacing[4] }}>
-              <div style={{ fontSize: 12, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: theme.colors.textSecondary,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
                 Total Transactions
               </div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: theme.colors.text, marginTop: 4 }}>
+              <div
+                style={{
+                  fontSize: 28,
+                  fontWeight: 700,
+                  color: theme.colors.text,
+                  marginTop: 4,
+                }}
+              >
                 {stats.total_transactions}
               </div>
             </div>
           </Card>
           <Card>
             <div style={{ padding: theme.spacing[4] }}>
-              <div style={{ fontSize: 12, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: theme.colors.textSecondary,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
                 Mismatches Found
               </div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: stats.mismatches_found > 0 ? '#dc2626' : theme.colors.text, marginTop: 4 }}>
+              <div
+                style={{
+                  fontSize: 28,
+                  fontWeight: 700,
+                  color:
+                    stats.mismatches_found > 0 ? '#dc2626' : theme.colors.text,
+                  marginTop: 4,
+                }}
+              >
                 {stats.mismatches_found}
               </div>
             </div>
           </Card>
           <Card>
             <div style={{ padding: theme.spacing[4] }}>
-              <div style={{ fontSize: 12, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: theme.colors.textSecondary,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
                 Unresolved
               </div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: stats.unresolved_count > 0 ? '#ca8a04' : '#16a34a', marginTop: 4 }}>
+              <div
+                style={{
+                  fontSize: 28,
+                  fontWeight: 700,
+                  color: stats.unresolved_count > 0 ? '#ca8a04' : '#16a34a',
+                  marginTop: 4,
+                }}
+              >
                 {stats.unresolved_count}
               </div>
             </div>
           </Card>
           <Card>
             <div style={{ padding: theme.spacing[4] }}>
-              <div style={{ fontSize: 12, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: theme.colors.textSecondary,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
                 Last Run
               </div>
-              <div style={{ fontSize: 14, fontWeight: 500, color: theme.colors.text, marginTop: 8 }}>
-                {stats.last_run ? new Date(stats.last_run).toLocaleString() : 'Never'}
-              </div>
+              {stats.last_run ? (
+                <div style={{ marginTop: 8 }}>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 500,
+                      color: theme.colors.text,
+                    }}
+                  >
+                    {new Date(stats.last_run).toLocaleString()}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: theme.colors.textSecondary,
+                      marginTop: 2,
+                    }}
+                  >
+                    {formatDistanceToNow(new Date(stats.last_run), {
+                      addSuffix: true,
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    marginTop: 8,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <Clock className='w-4 h-4' style={{ color: '#d97706' }} />
+                  <div>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 500,
+                        color: '#d97706',
+                      }}
+                    >
+                      Not yet run
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: theme.colors.textSecondary,
+                        marginTop: 2,
+                      }}
+                    >
+                      Click &apos;Run Reconciliation&apos; to start
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </Card>
         </div>
       )}
 
       {/* Filter Tabs */}
-      <div style={{ display: 'flex', gap: theme.spacing[2], marginBottom: theme.spacing[4] }}>
-        {(['unresolved', 'all'] as const).map(f => (
+      <div
+        style={{
+          display: 'flex',
+          gap: theme.spacing[2],
+          marginBottom: theme.spacing[4],
+        }}
+      >
+        {(['unresolved', 'all'] as const).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
@@ -167,7 +285,8 @@ export default function ReconciliationDashboard() {
               padding: '6px 16px',
               borderRadius: 8,
               border: '1px solid',
-              borderColor: filter === f ? theme.colors.primary : theme.colors.border,
+              borderColor:
+                filter === f ? theme.colors.primary : theme.colors.border,
               backgroundColor: filter === f ? theme.colors.primary : 'white',
               color: filter === f ? 'white' : theme.colors.text,
               fontSize: 13,
@@ -181,72 +300,11 @@ export default function ReconciliationDashboard() {
       </div>
 
       {/* Records Table */}
-      <Card>
-        {loading ? (
-          <div style={{ padding: theme.spacing[8], display: 'flex', justifyContent: 'center' }}>
-            <div style={{ width: 32, height: 32, border: '4px solid #d1d5db', borderTopColor: '#4b5563', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-          </div>
-        ) : filteredRecords.length === 0 ? (
-          <div style={{ padding: theme.spacing[8], textAlign: 'center', color: theme.colors.textSecondary }}>
-            {filter === 'unresolved'
-              ? 'No unresolved discrepancies. All payments are reconciled.'
-              : 'No reconciliation records found. Run a reconciliation check.'
-            }
-          </div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: `2px solid ${theme.colors.border}` }}>
-                  {['Payment Intent', 'Amount', 'Local Status', 'Stripe Status', 'Mismatch', 'Flagged', 'Status'].map(h => (
-                    <th key={h} style={{
-                      padding: '12px 16px',
-                      textAlign: 'left',
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: theme.colors.textSecondary,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                    }}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRecords.map((record) => (
-                  <tr key={record.id} style={{ borderBottom: `1px solid ${theme.colors.border}` }}>
-                    <td style={{ padding: '12px 16px', fontSize: 13, fontFamily: 'monospace' }}>
-                      {record.payment_intent_id.slice(0, 20)}...
-                    </td>
-                    <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 500 }}>
-                      &pound;{(record.amount / 100).toFixed(2)}
-                    </td>
-                    <td style={{ padding: '12px 16px', fontSize: 13 }}>{record.local_status}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 13 }}>{record.stripe_status || 'N/A'}</td>
-                    <td style={{ padding: '12px 16px' }}>{getMismatchBadge(record.mismatch_type)}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 12, color: theme.colors.textSecondary }}>
-                      {new Date(record.flagged_at).toLocaleDateString()}
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <span style={{
-                        padding: '2px 8px',
-                        borderRadius: 9999,
-                        fontSize: 11,
-                        fontWeight: 600,
-                        backgroundColor: record.resolved ? '#dcfce7' : '#fef9c3',
-                        color: record.resolved ? '#166534' : '#854d0e',
-                      }}>
-                        {record.resolved ? 'Resolved' : 'Pending'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+      <ReconciliationTable
+        records={filteredRecords}
+        loading={loading}
+        filter={filter}
+      />
     </div>
   );
 }

@@ -3,9 +3,20 @@ import { Job } from '@mintenance/types';
 import { theme, getStatusBadge } from '../../theme';
 
 export type SortMode = 'for_you' | 'nearest' | 'highest_pay' | 'newest' | 'map';
-export type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed' | 'bid' | 'active';
+export type FilterStatus =
+  | 'all'
+  | 'posted'
+  | 'assigned'
+  | 'in_progress'
+  | 'completed'
+  | 'bid'
+  | 'active';
 
-export const SORT_TABS: { key: SortMode; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+export const SORT_TABS: {
+  key: SortMode;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
   { key: 'for_you', label: 'For You', icon: 'sparkles' },
   { key: 'nearest', label: 'Nearest', icon: 'navigate' },
   { key: 'highest_pay', label: 'Top Pay', icon: 'trending-up' },
@@ -13,7 +24,11 @@ export const SORT_TABS: { key: SortMode; label: string; icon: keyof typeof Ionic
   { key: 'map', label: 'Map', icon: 'map' },
 ];
 
-export const HOMEOWNER_TABS: { key: FilterStatus; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+export const HOMEOWNER_TABS: {
+  key: FilterStatus;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
   { key: 'all', label: 'All', icon: 'grid-outline' },
   { key: 'posted', label: 'Posted', icon: 'megaphone-outline' },
   { key: 'assigned', label: 'Assigned', icon: 'person-add-outline' },
@@ -22,10 +37,18 @@ export const HOMEOWNER_TABS: { key: FilterStatus; label: string; icon: keyof typ
 ];
 
 /** Contractor lifecycle tabs — matches web app's contractor/jobs page */
-export const CONTRACTOR_TABS: { key: FilterStatus; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+export const CONTRACTOR_TABS: {
+  key: FilterStatus;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
   { key: 'all', label: 'All Jobs', icon: 'briefcase-outline' },
   { key: 'bid', label: 'Bids Sent', icon: 'time-outline' },
-  { key: 'assigned', label: 'Awaiting Contract', icon: 'document-text-outline' },
+  {
+    key: 'assigned',
+    label: 'Awaiting Contract',
+    icon: 'document-text-outline',
+  },
   { key: 'active', label: 'In Progress', icon: 'flash-outline' },
   { key: 'completed', label: 'Completed', icon: 'checkmark-circle-outline' },
 ];
@@ -42,16 +65,43 @@ export const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   general: 'construct-outline',
 };
 
-export const CATEGORY_COLORS: Record<string, { icon: string; bg: string; text: string }> = {
-  plumbing:    { icon: theme.colors.primary, bg: theme.colors.primaryLight, text: theme.colors.primary },
-  electrical:  { icon: theme.colors.accent, bg: theme.colors.accentLight, text: theme.colors.accent },
-  roofing:     { icon: theme.colors.primary, bg: theme.colors.primaryLight, text: theme.colors.primary },
-  painting:    { icon: '#3B82F6', bg: '#DBEAFE', text: '#3B82F6' },
-  carpentry:   { icon: theme.colors.accent, bg: theme.colors.accentLight, text: theme.colors.accent },
-  cleaning:    { icon: '#3B82F6', bg: '#DBEAFE', text: '#3B82F6' },
-  hvac:        { icon: theme.colors.error, bg: '#FEE2E2', text: theme.colors.error },
-  landscaping: { icon: theme.colors.primary, bg: theme.colors.primaryLight, text: theme.colors.primary },
-  general:     { icon: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary, text: theme.colors.textSecondary },
+export const CATEGORY_COLORS: Record<
+  string,
+  { icon: string; bg: string; text: string }
+> = {
+  plumbing: {
+    icon: theme.colors.primary,
+    bg: theme.colors.primaryLight,
+    text: theme.colors.primary,
+  },
+  electrical: {
+    icon: theme.colors.accent,
+    bg: theme.colors.accentLight,
+    text: theme.colors.accent,
+  },
+  roofing: {
+    icon: theme.colors.primary,
+    bg: theme.colors.primaryLight,
+    text: theme.colors.primary,
+  },
+  painting: { icon: '#3B82F6', bg: '#DBEAFE', text: '#3B82F6' },
+  carpentry: {
+    icon: theme.colors.accent,
+    bg: theme.colors.accentLight,
+    text: theme.colors.accent,
+  },
+  cleaning: { icon: '#3B82F6', bg: '#DBEAFE', text: '#3B82F6' },
+  hvac: { icon: theme.colors.error, bg: '#FEE2E2', text: theme.colors.error },
+  landscaping: {
+    icon: theme.colors.primary,
+    bg: theme.colors.primaryLight,
+    text: theme.colors.primary,
+  },
+  general: {
+    icon: theme.colors.textSecondary,
+    bg: theme.colors.backgroundSecondary,
+    text: theme.colors.textSecondary,
+  },
 };
 
 const STATUS_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -66,21 +116,61 @@ const STATUS_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   draft: 'document',
 };
 
-export const STATUS_STYLES: Record<string, { label: string; bg: string; text: string; icon: keyof typeof Ionicons.glyphMap }> = Object.fromEntries(
+export const STATUS_STYLES: Record<
+  string,
+  {
+    label: string;
+    bg: string;
+    text: string;
+    icon: keyof typeof Ionicons.glyphMap;
+  }
+> = Object.fromEntries(
   Object.keys(STATUS_ICONS).map((key) => {
     const badge = getStatusBadge(key);
-    return [key, { label: badge.label, bg: badge.bg, text: badge.text, icon: STATUS_ICONS[key] }];
+    return [
+      key,
+      {
+        label: badge.label,
+        bg: badge.bg,
+        text: badge.text,
+        icon: STATUS_ICONS[key],
+      },
+    ];
   })
 );
 
-export const EMPTY_MESSAGES: Record<FilterStatus, { title: string; desc: string }> = {
-  all:         { title: 'No Jobs Yet', desc: 'Post your first maintenance job to get started.' },
-  posted:      { title: 'No Posted Jobs', desc: 'When you post a job, it will appear here waiting for bids.' },
-  assigned:    { title: 'No Assigned Jobs', desc: 'Jobs will appear here once you accept a contractor\'s bid.' },
-  in_progress: { title: 'No Active Jobs', desc: 'Jobs currently being worked on will show up here.' },
-  completed:   { title: 'No Completed Jobs', desc: 'Finished jobs and their reviews will appear here.' },
-  bid:         { title: 'No Pending Bids', desc: 'Jobs you\'ve bid on will appear here while awaiting homeowner response.' },
-  active:      { title: 'No Active Jobs', desc: 'Jobs you\'re currently working on will appear here.' },
+export const EMPTY_MESSAGES: Record<
+  FilterStatus,
+  { title: string; desc: string }
+> = {
+  all: {
+    title: 'No Jobs Yet',
+    desc: 'Post your first maintenance job to get started.',
+  },
+  posted: {
+    title: 'No Posted Jobs',
+    desc: 'When you post a job, it will appear here waiting for bids.',
+  },
+  assigned: {
+    title: 'No Assigned Jobs',
+    desc: "Jobs will appear here once you accept a contractor's bid.",
+  },
+  in_progress: {
+    title: 'No Active Jobs',
+    desc: 'Jobs currently being worked on will show up here.',
+  },
+  completed: {
+    title: 'No Completed Jobs',
+    desc: 'Finished jobs and their reviews will appear here.',
+  },
+  bid: {
+    title: 'No Pending Bids',
+    desc: "Jobs you've bid on will appear here while awaiting homeowner response.",
+  },
+  active: {
+    title: 'No Active Jobs',
+    desc: "Jobs you're currently working on will appear here.",
+  },
 };
 
 export interface JobStats {
@@ -101,4 +191,5 @@ export interface JobCardProps {
   onBid: () => void;
   bidCount?: number;
   isContractor?: boolean;
+  hasUserBid?: boolean;
 }
