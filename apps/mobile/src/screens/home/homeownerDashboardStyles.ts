@@ -120,60 +120,82 @@ export const styles = StyleSheet.create({
   },
 
   // Greeting inside hero
-  heroGreeting: {
-    fontSize: 28,
+  heroOverline: {
+    fontSize: 10,
     fontWeight: '700',
+    color: 'rgba(255,255,255,0.6)',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    marginBottom: 4,
+    zIndex: 1,
+  },
+  heroGreeting: {
+    fontSize: 32,
+    fontWeight: '800',
     color: theme.colors.textInverse,
-    lineHeight: 34,
-    letterSpacing: -0.5,
+    lineHeight: 38,
+    letterSpacing: -0.8,
     zIndex: 1,
   },
   heroSubtitle: {
-    fontSize: 15,
+    fontSize: 16,
     color: 'rgba(255,255,255,0.7)',
-    marginTop: 4,
-    marginBottom: 20,
+    marginTop: 6,
+    marginBottom: 24,
     zIndex: 1,
   },
 
-  // Stats cards below hero
+  // Stats cards below hero — bento grid
   statsCardsRow: {
     flexDirection: 'row',
     gap: 10,
     paddingHorizontal: 20,
-    marginTop: -20,
+    marginTop: -24,
     marginBottom: 8,
     zIndex: 2,
   },
   statCard: {
     flex: 1,
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderRadius: 16,
+    padding: 16,
+    justifyContent: 'space-between',
+    minHeight: 100,
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 3 },
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.08,
-        shadowRadius: 10,
+        shadowRadius: 12,
       },
       android: { elevation: 3 },
     }),
   },
-  statCardValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    letterSpacing: -0.5,
+  statCardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   statCardLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: theme.colors.textSecondary,
-    fontWeight: '500',
-    marginTop: 2,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  statCardIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statCardValue: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
+    letterSpacing: -1,
+    lineHeight: 36,
   },
 
   mainContent: {
