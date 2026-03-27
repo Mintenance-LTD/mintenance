@@ -35,8 +35,7 @@ END $$;
 
 -- Password reset token expiry cleanup
 CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_expires
-  ON public.password_reset_tokens(expires_at)
-  WHERE used_at IS NULL;
+  ON public.password_reset_tokens(expires_at);
 
 -- =========================================================================
 -- PII RETENTION: Auto-delete old login attempts and security events (P1-13)
