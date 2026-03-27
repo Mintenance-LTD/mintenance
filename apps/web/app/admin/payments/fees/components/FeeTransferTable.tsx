@@ -80,7 +80,7 @@ export function FeeTransferTable({
               backgroundColor: theme.colors.backgroundSecondary,
             }}
           >
-            <th style={thStyle}>
+            <th scope='col' style={thStyle}>
               <input
                 type='checkbox'
                 checked={
@@ -90,23 +90,36 @@ export function FeeTransferTable({
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                   onSelectAll(e.target.checked);
                 }}
+                aria-label='Select all transfers'
               />
             </th>
-            <th style={thStyle}>Job</th>
-            <th style={thStyle}>Contractor</th>
+            <th scope='col' style={thStyle}>
+              Job
+            </th>
+            <th scope='col' style={thStyle}>
+              Contractor
+            </th>
             <th
+              scope='col'
               style={{ padding: theme.spacing.md, textAlign: 'right' as const }}
             >
               Platform Fee
             </th>
             <th
+              scope='col'
               style={{ padding: theme.spacing.md, textAlign: 'right' as const }}
             >
               Net Revenue
             </th>
-            <th style={thStyle}>Status</th>
-            <th style={thStyle}>Created</th>
-            <th style={thStyle}>Actions</th>
+            <th scope='col' style={thStyle}>
+              Status
+            </th>
+            <th scope='col' style={thStyle}>
+              Created
+            </th>
+            <th scope='col' style={thStyle}>
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody>

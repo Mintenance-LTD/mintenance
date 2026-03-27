@@ -140,7 +140,7 @@ export function BuildingAssessmentsClient(
   }, []);
 
   return (
-    <div className='p-8 md:p-10 max-w[1440px] mx-auto bg-slate-50 min-h-screen flex flex-col gap-6'>
+    <div className='p-8 md:p-10 max-w-[1440px] mx-auto bg-slate-50 min-h-screen flex flex-col gap-6'>
       <AdminPageHeader
         title='Building Assessments'
         subtitle={`Review and validate AI building damage assessments for training data collection.${statistics.canAutoValidate ? ' Auto-validation is active for high-confidence assessments.' : ''}`}
