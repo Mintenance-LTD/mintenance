@@ -74,7 +74,7 @@ export default function ReconciliationDashboard() {
 
   return (
     <div
-      style={{ maxWidth: 1200, margin: '0 auto', padding: theme.spacing[6] }}
+      style={{ maxWidth: 1440, margin: '0 auto', padding: theme.spacing[6] }}
     >
       <div
         style={{
@@ -281,6 +281,8 @@ export default function ReconciliationDashboard() {
           <button
             key={f}
             onClick={() => setFilter(f)}
+            aria-label={`Filter ${f === 'unresolved' ? 'unresolved records' : 'all records'}`}
+            aria-pressed={filter === f}
             style={{
               padding: '6px 16px',
               borderRadius: 8,
