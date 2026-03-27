@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { AdminCard } from '@/components/admin/AdminCard';
+import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { logger } from '@mintenance/shared';
 import { JobManagementTable } from './JobManagementTable';
@@ -138,41 +139,41 @@ export function JobManagementClient() {
           gap: theme.spacing[4],
         }}
       >
-        <StatCard
+        <AdminMetricCard
           label='Total Jobs'
-          value={stats.total}
+          value={stats.total.toLocaleString()}
           icon='briefcase'
-          color={theme.colors.primary}
+          iconColor={theme.colors.primary}
         />
-        <StatCard
+        <AdminMetricCard
           label='Active'
-          value={stats.active}
+          value={stats.active.toLocaleString()}
           icon='activity'
-          color='#0D9488'
+          iconColor='#0D9488'
         />
-        <StatCard
+        <AdminMetricCard
           label='Posted'
-          value={stats.posted}
+          value={stats.posted.toLocaleString()}
           icon='clock'
-          color='#1D4ED8'
+          iconColor='#1D4ED8'
         />
-        <StatCard
+        <AdminMetricCard
           label='Assigned'
-          value={stats.assigned}
+          value={stats.assigned.toLocaleString()}
           icon='userCheck'
-          color='#B45309'
+          iconColor='#B45309'
         />
-        <StatCard
+        <AdminMetricCard
           label='Completed'
-          value={stats.completed}
+          value={stats.completed.toLocaleString()}
           icon='check'
-          color='#15803D'
+          iconColor='#15803D'
         />
-        <StatCard
+        <AdminMetricCard
           label='Cancelled'
-          value={stats.cancelled}
+          value={stats.cancelled.toLocaleString()}
           icon='x'
-          color='#B91C1C'
+          iconColor='#B91C1C'
         />
       </div>
 
@@ -245,66 +246,6 @@ export function JobManagementClient() {
 }
 
 // ── Extracted sub-components (kept here as they are small) ─────────
-
-function StatCard({
-  label,
-  value,
-  icon,
-  color,
-}: {
-  label: string;
-  value: number;
-  icon: string;
-  color: string;
-}) {
-  return (
-    <AdminCard hover>
-      <div
-        style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3] }}
-      >
-        <div
-          style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: theme.borderRadius.xl,
-            backgroundColor: `${color}14`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <Icon name={icon} size={22} color={color} />
-        </div>
-        <div>
-          <p
-            style={{
-              fontSize: '24px',
-              fontWeight: 700,
-              color: theme.colors.textPrimary,
-              margin: 0,
-              lineHeight: 1.2,
-            }}
-          >
-            {value.toLocaleString()}
-          </p>
-          <p
-            style={{
-              fontSize: theme.typography.fontSize.xs,
-              color: theme.colors.textSecondary,
-              margin: 0,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              fontWeight: 500,
-            }}
-          >
-            {label}
-          </p>
-        </div>
-      </div>
-    </AdminCard>
-  );
-}
 
 function StatusTabs({
   current,
@@ -397,6 +338,7 @@ function SearchInput({
       <input
         type='text'
         placeholder='Search by job title...'
+        aria-label='Search jobs by title'
         value={value}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           onChange(e.target.value)

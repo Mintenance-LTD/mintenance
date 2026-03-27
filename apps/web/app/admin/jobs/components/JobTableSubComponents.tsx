@@ -21,6 +21,7 @@ export function TableHeader({
 }) {
   return (
     <th
+      scope='col'
       style={{
         textAlign: align,
         padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
@@ -52,8 +53,15 @@ export function SortableHeader({
   align?: 'left' | 'right';
 }) {
   const isActive = currentSort === column;
+  const ariaSortValue = isActive
+    ? currentOrder === 'asc'
+      ? 'ascending'
+      : 'descending'
+    : 'none';
   return (
     <th
+      scope='col'
+      aria-sort={ariaSortValue}
       onClick={() => onSort(column)}
       style={{
         textAlign: align,

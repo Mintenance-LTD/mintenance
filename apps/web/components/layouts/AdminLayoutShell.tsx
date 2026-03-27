@@ -96,7 +96,7 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
         aria-label='Admin navigation sidebar'
         style={{
           width: isCollapsed ? '80px' : '280px',
-          backgroundColor: '#0C1A33',
+          backgroundColor: theme.colors.navy[950],
           color: '#FFFFFF',
           display: 'flex',
           flexDirection: 'column',
