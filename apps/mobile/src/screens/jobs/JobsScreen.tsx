@@ -242,6 +242,12 @@ const JobsScreen: React.FC = () => {
     return <ExploreMapScreen onBackToList={() => setSortMode('for_you')} />;
   }
 
+  // -- Set of job IDs where the contractor has already sent a bid --
+  const bidJobIds = useMemo(
+    () => new Set(bidPendingJobs.map((j) => j.id)),
+    [bidPendingJobs]
+  );
+
   // -- Render job card --
   const renderItem = ({ item }: { item: Job }) => (
     <JobCard
@@ -252,6 +258,7 @@ const JobsScreen: React.FC = () => {
       onBid={() => navigation.navigate('BidSubmission', { jobId: item.id })}
       bidCount={item.bids?.length}
       isContractor={isContractor}
+      hasUserBid={bidJobIds.has(item.id)}
     />
   );
 

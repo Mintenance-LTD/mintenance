@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Icon } from '@/components/ui/Icon';
 import Logo from '@/app/components/Logo';
@@ -11,6 +10,9 @@ import { getCsrfHeaders } from '@/lib/csrf-client';
 import { theme } from '@/lib/theme';
 import styles from './UnifiedSidebar.module.css';
 import { AdminNotificationBell } from '@/components/admin/AdminNotificationBell';
+
+import { adminNavSections } from './adminNavConfig';
+import { AdminNavSection } from './AdminNavItem';
 
 interface AdminLayoutShellProps {
   children: React.ReactNode;
@@ -22,100 +24,6 @@ interface AdminLayoutShellProps {
     last_name?: string;
   };
 }
-
-interface NavItem {
-  icon: string;
-  label: string;
-  href: string;
-  badge?: 'verifications' | 'escrow';
-}
-
-interface NavSection {
-  title: string;
-  items: NavItem[];
-}
-
-const adminNavSections: readonly NavSection[] = Object.freeze([
-  {
-    title: '',
-    items: [{ icon: 'dashboard', label: 'Dashboard', href: '/admin' }],
-  },
-  {
-    title: 'Users & Comms',
-    items: [
-      {
-        icon: 'users',
-        label: 'Users',
-        href: '/admin/users',
-        badge: 'verifications',
-      },
-      {
-        icon: 'messages',
-        label: 'Communications',
-        href: '/admin/communications',
-      },
-    ],
-  },
-  {
-    title: 'Finance',
-    items: [
-      { icon: 'trendingUp', label: 'Revenue', href: '/admin/revenue' },
-      { icon: 'chart', label: 'Analytics', href: '/admin/analytics-detail' },
-      {
-        icon: 'fileCheck',
-        label: 'Escrow Reviews',
-        href: '/admin/escrow/reviews',
-        badge: 'escrow',
-      },
-      {
-        icon: 'dollarSign',
-        label: 'Fee Management',
-        href: '/admin/payments/fees',
-      },
-      {
-        icon: 'bank',
-        label: 'Reconciliation',
-        href: '/admin/payments/reconciliation',
-      },
-      {
-        icon: 'creditCard',
-        label: 'Payment Setup',
-        href: '/admin/contractors/payment-setup',
-      },
-      { icon: 'currencyPound', label: 'Tax', href: '/admin/tax' },
-    ],
-  },
-  {
-    title: 'AI & Assessments',
-    items: [
-      {
-        icon: 'building',
-        label: 'Assessments',
-        href: '/admin/building-assessments',
-      },
-      { icon: 'brain', label: 'AI Monitoring', href: '/admin/ai-monitoring' },
-      {
-        icon: 'activity',
-        label: 'Hybrid Inference',
-        href: '/admin/hybrid-inference',
-      },
-    ],
-  },
-  {
-    title: 'Security & Ops',
-    items: [
-      { icon: 'shield', label: 'Security', href: '/admin/security' },
-      { icon: 'clipboard', label: 'Audit Logs', href: '/admin/audit-logs' },
-      {
-        icon: 'refresh',
-        label: 'Migrations',
-        href: '/admin/migration-dashboard',
-      },
-      { icon: 'fileText', label: 'API Docs', href: '/admin/api-documentation' },
-      { icon: 'settings', label: 'Settings', href: '/admin/settings' },
-    ],
-  },
-]);
 
 export function AdminLayoutShell(props: AdminLayoutShellProps) {
   // Defensive prop destructuring with defaults to prevent test crashes
@@ -233,7 +141,43 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
               </span>
             )}
           </div>
-          {!isCollapsed && <AdminNotificationBell userId={user.id} />}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {!isCollapsed && <AdminNotificationBell userId={user.id} />}
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                border: 'none',
+                color: 'rgba(255, 255, 255, 0.6)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor =
+                  'rgba(255, 255, 255, 0.2)';
+                e.currentTarget.style.color = '#FFFFFF';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor =
+                  'rgba(255, 255, 255, 0.1)';
+                e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)';
+              }}
+            >
+              <Icon
+                name={isCollapsed ? 'chevronRight' : 'chevronLeft'}
+                size={16}
+                color='currentColor'
+              />
+            </button>
+          </div>
         </div>
 
         {/* Navigation */}
@@ -246,123 +190,12 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
           }}
         >
           {adminNavSections.map((section) => (
-            <div
+            <AdminNavSection
               key={section.title || 'top'}
-              style={{ marginBottom: theme.spacing[2] }}
-            >
-              {section.title && !isCollapsed && (
-                <p
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    color: 'rgba(255, 255, 255, 0.4)',
-                    padding: `${theme.spacing[2]} ${theme.spacing[4]} ${theme.spacing[1]}`,
-                    margin: 0,
-                  }}
-                >
-                  {section.title}
-                </p>
-              )}
-              {isCollapsed && section.title && (
-                <div
-                  style={{
-                    borderTop: '1px solid rgba(255,255,255,0.08)',
-                    margin: `${theme.spacing[1]} ${theme.spacing[3]}`,
-                  }}
-                />
-              )}
-              {section.items.map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    prefetch={true}
-                    aria-current={active ? 'page' : undefined}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: theme.spacing[3],
-                      padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                      marginBottom: '2px',
-                      borderRadius: '10px',
-                      backgroundColor: active
-                        ? `rgba(${parseInt(theme.colors.primary.slice(1, 3), 16)}, ${parseInt(theme.colors.primary.slice(3, 5), 16)}, ${parseInt(theme.colors.primary.slice(5, 7), 16)}, 0.15)`
-                        : 'transparent',
-                      borderLeft: active
-                        ? `3px solid ${theme.colors.primary}`
-                        : '3px solid transparent',
-                      color: active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.7)',
-                      textDecoration: 'none',
-                      fontSize: theme.typography.fontSize.sm,
-                      fontWeight: active ? 600 : 400,
-                      transition: 'all 0.2s ease',
-                      position: 'relative',
-                      cursor: 'pointer',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!active) {
-                        e.currentTarget.style.backgroundColor =
-                          'rgba(255, 255, 255, 0.06)';
-                        e.currentTarget.style.color = '#FFFFFF';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!active) {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                        e.currentTarget.style.color =
-                          'rgba(255, 255, 255, 0.7)';
-                      }
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: '22px',
-                        height: '22px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Icon
-                        name={item.icon}
-                        size={18}
-                        color={
-                          active
-                            ? theme.colors.primary
-                            : 'rgba(255, 255, 255, 0.6)'
-                        }
-                      />
-                    </div>
-                    {!isCollapsed && (
-                      <>
-                        <span style={{ flex: 1 }}>{item.label}</span>
-                        {item.badge && (
-                          <span
-                            className='admin-nav-badge'
-                            style={{
-                              fontSize: '11px',
-                              fontWeight: 600,
-                              backgroundColor: 'rgba(239, 68, 68, 0.9)',
-                              color: '#fff',
-                              borderRadius: '10px',
-                              padding: '1px 7px',
-                              minWidth: '18px',
-                              textAlign: 'center',
-                              lineHeight: '16px',
-                            }}
-                            data-badge-type={item.badge}
-                          />
-                        )}
-                      </>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
+              section={section}
+              isCollapsed={isCollapsed}
+              isActive={isActive}
+            />
           ))}
         </nav>
 

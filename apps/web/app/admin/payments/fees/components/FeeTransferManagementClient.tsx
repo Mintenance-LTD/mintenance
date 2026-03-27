@@ -1,22 +1,16 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { CircleDollarSign } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
 import { Icon } from '@/components/ui/Icon';
 import { logger } from '@mintenance/shared';
+import { FeeTransferTable } from './FeeTransferTable';
+import { HoldTransferDialog, ErrorDialog } from './FeeTransferDialogs';
 
 interface FeeTransfer {
   id: string;
@@ -54,14 +48,22 @@ export function FeeTransferManagementClient() {
   const [transfers, setTransfers] = useState<FeeTransfer[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTransfers, setSelectedTransfers] = useState<string[]>([]);
-  const [holdDialog, setHoldDialog] = useState<{ open: boolean; transferId?: string }>({ open: false });
+  const [holdDialog, setHoldDialog] = useState<{
+    open: boolean;
+    transferId?: string;
+  }>({ open: false });
   const [holdReason, setHoldReason] = useState('');
-  const [errorDialog, setErrorDialog] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
+  const [errorDialog, setErrorDialog] = useState<{
+    open: boolean;
+    message: string;
+  }>({ open: false, message: '' });
 
   const fetchPendingTransfers = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/escrow/fee-transfer/pending?limit=100');
+      const response = await fetch(
+        '/api/admin/escrow/fee-transfer/pending?limit=100'
+      );
       if (!response.ok) {
         throw new Error('Failed to fetch pending fee transfers');
       }
@@ -144,7 +146,10 @@ export function FeeTransferManagementClient() {
       setSelectedTransfers([]);
       fetchPendingTransfers();
     } catch (error) {
-      setErrorDialog({ open: true, message: 'Failed to batch release fee transfers' });
+      setErrorDialog({
+        open: true,
+        message: 'Failed to batch release fee transfers',
+      });
     }
   };
 
@@ -180,21 +185,23 @@ export function FeeTransferManagementClient() {
     }
   };
 
-  const pendingCount = transfers.filter(t => t.status === 'pending').length;
-  const heldCount = transfers.filter(t => t.status === 'held').length;
+  const pendingCount = transfers.filter((t) => t.status === 'pending').length;
+  const heldCount = transfers.filter((t) => t.status === 'held').length;
   const totalAmount = transfers.reduce((sum, t) => sum + t.amount, 0);
   const totalNetRevenue = transfers.reduce((sum, t) => sum + t.net_revenue, 0);
 
   return (
-    <div style={{ 
-      padding: theme.spacing[8],
-      maxWidth: '1440px',
-      margin: '0 auto',
-      width: '100%',
-    }}>
+    <div
+      style={{
+        padding: theme.spacing[8],
+        maxWidth: '1440px',
+        margin: '0 auto',
+        width: '100%',
+      }}
+    >
       <AdminPageHeader
-        title="Fee Transfer Management"
-        subtitle="Manage platform fee transfers and holds"
+        title='Fee Transfer Management'
+        subtitle='Manage platform fee transfers and holds'
         quickStats={[
           {
             label: 'pending',
@@ -218,50 +225,62 @@ export function FeeTransferManagementClient() {
       />
 
       {/* Summary Cards */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        gap: theme.spacing[4],
-        marginBottom: theme.spacing[8],
-      }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+          gap: theme.spacing[4],
+          marginBottom: theme.spacing[8],
+        }}
+      >
         <AdminMetricCard
-          label="Pending Transfers"
+          label='Pending Transfers'
           value={pendingCount}
-          icon="clock"
+          icon='clock'
           iconColor={theme.colors.info}
         />
         <AdminMetricCard
-          label="On Hold"
+          label='On Hold'
           value={heldCount}
-          icon="lock"
+          icon='lock'
           iconColor={theme.colors.warning}
         />
         <AdminMetricCard
-          label="Total Amount"
+          label='Total Amount'
           value={formatCurrency(totalAmount)}
-          icon="currencyPound"
+          icon='currencyPound'
           iconColor={theme.colors.success}
         />
         <AdminMetricCard
-          label="Net Revenue"
+          label='Net Revenue'
           value={formatCurrency(totalNetRevenue)}
-          icon="trendingUp"
+          icon='trendingUp'
           iconColor={theme.colors.success}
         />
       </div>
 
       {selectedTransfers.length > 0 && (
-        <Card style={{ marginBottom: theme.spacing[6], padding: theme.spacing[4] }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{
-              fontSize: theme.typography.fontSize.base,
-              fontWeight: theme.typography.fontWeight.medium,
-              color: theme.colors.textPrimary,
-            }}>
+        <Card
+          style={{ marginBottom: theme.spacing[6], padding: theme.spacing[4] }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <span
+              style={{
+                fontSize: theme.typography.fontSize.base,
+                fontWeight: theme.typography.fontWeight.medium,
+                color: theme.colors.textPrimary,
+              }}
+            >
               {selectedTransfers.length} transfer(s) selected
             </span>
-            <Button onClick={handleBatchRelease} variant="primary">
-              <Icon name="checkCircle" size={16} /> Batch Release Selected
+            <Button onClick={handleBatchRelease} variant='primary'>
+              <Icon name='checkCircle' size={16} /> Batch Release Selected
             </Button>
           </div>
         </Card>
@@ -269,177 +288,117 @@ export function FeeTransferManagementClient() {
 
       <Card>
         {loading ? (
-          <div style={{ padding: theme.spacing[8], textAlign: 'center', display: 'flex', justifyContent: 'center' }}>
-            <div style={{ width: 32, height: 32, border: '4px solid #d1d5db', borderTopColor: '#4b5563', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <div
+            style={{
+              padding: theme.spacing[8],
+              textAlign: 'center',
+              display: 'flex',
+              justifyContent: 'center',
+            }}
+          >
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                border: '4px solid #d1d5db',
+                borderTopColor: '#4b5563',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+              }}
+            />
           </div>
         ) : transfers.length === 0 ? (
-          <div style={{ padding: theme.spacing[8], textAlign: 'center', color: theme.colors.textSecondary }}>
-            No pending fee transfers
+          <div
+            style={{
+              padding: '64px 16px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+            }}
+          >
+            <div
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: '50%',
+                backgroundColor: '#f1f5f9',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16,
+              }}
+            >
+              <CircleDollarSign
+                className='w-8 h-8'
+                style={{ color: '#94a3b8' }}
+              />
+            </div>
+            <h3
+              style={{
+                fontSize: 18,
+                fontWeight: 600,
+                color: theme.colors.text,
+                marginBottom: 4,
+              }}
+            >
+              No Pending Transfers
+            </h3>
+            <p
+              style={{
+                fontSize: 14,
+                color: theme.colors.textSecondary,
+                maxWidth: 384,
+              }}
+            >
+              Fee transfers will appear here when escrow payments are released.
+            </p>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: `1px solid ${theme.colors.border}`, backgroundColor: theme.colors.backgroundSecondary }}>
-                  <th style={{ padding: theme.spacing[4], textAlign: 'left', fontSize: theme.typography.fontSize.xs, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textSecondary, textTransform: 'uppercase', backgroundColor: theme.colors.backgroundSecondary }}>
-                    <input
-                      type="checkbox"
-                      checked={selectedTransfers.length === transfers.length && transfers.length > 0}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                        if (e.target.checked) {
-                          setSelectedTransfers(transfers.map((t) => t.id));
-                        } else {
-                          setSelectedTransfers([]);
-                        }
-                      }}
-                    />
-                  </th>
-                  <th style={{ padding: theme.spacing[4], textAlign: 'left', fontSize: theme.typography.fontSize.xs, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textSecondary, textTransform: 'uppercase', backgroundColor: theme.colors.backgroundSecondary }}>Job</th>
-                  <th style={{ padding: theme.spacing[4], textAlign: 'left', fontSize: theme.typography.fontSize.xs, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textSecondary, textTransform: 'uppercase', backgroundColor: theme.colors.backgroundSecondary }}>Contractor</th>
-                  <th style={{ padding: theme.spacing.md, textAlign: 'right' }}>Platform Fee</th>
-                  <th style={{ padding: theme.spacing.md, textAlign: 'right' }}>Net Revenue</th>
-                  <th style={{ padding: theme.spacing[4], textAlign: 'left', fontSize: theme.typography.fontSize.xs, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textSecondary, textTransform: 'uppercase', backgroundColor: theme.colors.backgroundSecondary }}>Status</th>
-                  <th style={{ padding: theme.spacing[4], textAlign: 'left', fontSize: theme.typography.fontSize.xs, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textSecondary, textTransform: 'uppercase', backgroundColor: theme.colors.backgroundSecondary }}>Created</th>
-                  <th style={{ padding: theme.spacing[4], textAlign: 'left', fontSize: theme.typography.fontSize.xs, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textSecondary, textTransform: 'uppercase', backgroundColor: theme.colors.backgroundSecondary }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transfers.map((transfer) => (
-                  <tr 
-                    key={transfer.id} 
-                    style={{ 
-                      borderBottom: `1px solid ${theme.colors.border}`,
-                      transition: 'background-color 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                  >
-                    <td style={{ padding: theme.spacing[4], fontSize: theme.typography.fontSize.base, color: theme.colors.textPrimary }}>
-                      <input
-                        type="checkbox"
-                        checked={selectedTransfers.includes(transfer.id)}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                          if (e.target.checked) {
-                            setSelectedTransfers([...selectedTransfers, transfer.id]);
-                          } else {
-                            setSelectedTransfers(selectedTransfers.filter((id) => id !== transfer.id));
-                          }
-                        }}
-                      />
-                    </td>
-                    <td style={{ padding: theme.spacing[4], fontSize: theme.typography.fontSize.base, color: theme.colors.textPrimary }}>
-                      {transfer.jobs?.title || 'N/A'}
-                    </td>
-                    <td style={{ padding: theme.spacing[4], fontSize: theme.typography.fontSize.base, color: theme.colors.textPrimary }}>
-                      {transfer.users
-                        ? `${transfer.users.first_name} ${transfer.users.last_name}`
-                        : 'N/A'}
-                    </td>
-                    <td style={{ padding: theme.spacing.md, textAlign: 'right' }}>
-                      {formatCurrency(transfer.amount)}
-                    </td>
-                    <td style={{ padding: theme.spacing.md, textAlign: 'right' }}>
-                      {formatCurrency(transfer.net_revenue)}
-                    </td>
-                    <td style={{ padding: theme.spacing[4], fontSize: theme.typography.fontSize.base, color: theme.colors.textPrimary }}>
-                      <span
-                        style={{
-                          padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-                          borderRadius: theme.borderRadius.full,
-                          backgroundColor: `${getStatusColor(transfer.status)}20`,
-                          color: getStatusColor(transfer.status),
-                          fontSize: theme.typography.fontSize.xs,
-                          fontWeight: theme.typography.fontWeight.semibold,
-                          textTransform: 'capitalize',
-                        }}
-                      >
-                        {transfer.status}
-                      </span>
-                    </td>
-                    <td style={{ padding: theme.spacing[4], fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary }}>
-                      {formatDate(transfer.created_at)}
-                    </td>
-                    <td style={{ padding: theme.spacing[4], fontSize: theme.typography.fontSize.base, color: theme.colors.textPrimary }}>
-                      <div style={{ display: 'flex', gap: theme.spacing[2] }}>
-                        {transfer.status === 'held' && (
-                          <Button
-                            size="sm"
-                            variant="primary"
-                            onClick={() => handleReleaseTransfer(transfer.id)}
-                            style={{ fontSize: theme.typography.fontSize.sm }}
-                          >
-                            <Icon name="unlock" size={16} /> Release
-                          </Button>
-                        )}
-                        {transfer.status === 'pending' && (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => setHoldDialog({ open: true, transferId: transfer.id })}
-                            style={{ fontSize: theme.typography.fontSize.sm }}
-                          >
-                            <Icon name="lock" size={16} /> Hold
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <FeeTransferTable
+            transfers={transfers}
+            selectedTransfers={selectedTransfers}
+            onSelectAll={(checked) => {
+              if (checked) {
+                setSelectedTransfers(transfers.map((t) => t.id));
+              } else {
+                setSelectedTransfers([]);
+              }
+            }}
+            onToggleSelect={(id, checked) => {
+              if (checked) {
+                setSelectedTransfers([...selectedTransfers, id]);
+              } else {
+                setSelectedTransfers(
+                  selectedTransfers.filter((tid) => tid !== id)
+                );
+              }
+            }}
+            onHold={(transferId) => setHoldDialog({ open: true, transferId })}
+            onRelease={handleReleaseTransfer}
+            formatCurrency={formatCurrency}
+            formatDate={formatDate}
+            getStatusColor={getStatusColor}
+          />
         )}
       </Card>
 
       {/* Hold Dialog */}
-      <AlertDialog open={holdDialog.open} onOpenChange={(open) => setHoldDialog({ open })}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Hold Fee Transfer</AlertDialogTitle>
-            <AlertDialogDescription>
-              Enter a reason for holding this fee transfer.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div style={{ marginBottom: theme.spacing[4] }}>
-            <textarea
-              value={holdReason}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setHoldReason(e.target.value)}
-              placeholder="Reason for hold..."
-              style={{
-                width: '100%',
-                minHeight: '100px',
-                padding: theme.spacing[3],
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.borderRadius.md,
-              }}
-            />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <Button onClick={handleHoldTransfer} disabled={!holdReason.trim()}>
-              Hold Transfer
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <HoldTransferDialog
+        open={holdDialog.open}
+        holdReason={holdReason}
+        onOpenChange={(open) => setHoldDialog({ open })}
+        onReasonChange={setHoldReason}
+        onConfirm={handleHoldTransfer}
+      />
 
       {/* Error Dialog */}
-      <AlertDialog open={errorDialog.open} onOpenChange={(open) => setErrorDialog({ open, message: '' })}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Error</AlertDialogTitle>
-            <AlertDialogDescription>{errorDialog.message}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button onClick={() => setErrorDialog({ open: false, message: '' })}>Close</Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ErrorDialog
+        open={errorDialog.open}
+        message={errorDialog.message}
+        onClose={() => setErrorDialog({ open: false, message: '' })}
+      />
     </div>
   );
 }
-
