@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { UnifiedSidebar } from '@/components/layouts/UnifiedSidebar';
 import {
   fadeIn,
   staggerContainer,
@@ -138,16 +137,7 @@ export default function AdminDashboardPage2025() {
 
   return (
     <div className='flex min-h-screen bg-gradient-to-br from-gray-50 via-purple-50/30 to-gray-50'>
-      <UnifiedSidebar
-        userRole='admin'
-        userInfo={{
-          name: userDisplayName,
-          email: user?.email || '',
-          avatar: user?.profile_image_url,
-        }}
-      />
-
-      <main className='flex flex-col flex-1 ml-[240px]'>
+      <main className='flex flex-col flex-1'>
         {/* Hero Header */}
         <MotionDiv
           className='bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-500 text-white'

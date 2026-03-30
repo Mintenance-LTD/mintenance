@@ -254,8 +254,12 @@ export function ReconciliationTable({
                       borderRadius: 9999,
                       fontSize: 11,
                       fontWeight: 600,
-                      backgroundColor: record.resolved ? '#dcfce7' : '#fef9c3',
-                      color: record.resolved ? '#166534' : '#854d0e',
+                      backgroundColor: record.resolved
+                        ? '#dcfce7'
+                        : theme.colors.status.warning.bg,
+                      color: record.resolved
+                        ? '#166534'
+                        : theme.colors.status.warning.text,
                     }}
                   >
                     {record.resolved ? 'Resolved' : 'Pending'}

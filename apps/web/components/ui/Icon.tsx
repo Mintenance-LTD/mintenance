@@ -138,6 +138,8 @@ const ICON_NAME_MAP: Readonly<Record<string, keyof typeof LucideIcons>> = {
   rotateCcw: 'RotateCcw',
   pause: 'Pause',
   banknote: 'Banknote',
+  scale: 'Scale',
+  receiptText: 'ReceiptText',
 } as const;
 
 /**

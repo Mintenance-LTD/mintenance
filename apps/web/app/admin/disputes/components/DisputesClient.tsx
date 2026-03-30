@@ -15,6 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 import { logger } from '@mintenance/shared';
 import {
   DisputesTable,
@@ -110,13 +111,7 @@ export function DisputesClient() {
     if (!selectedDispute) return;
     setActionLoading(true);
     try {
-      const csrfRes = await fetch('/api/csrf', {
-        method: 'GET',
-        credentials: 'include',
-      });
-      const { token: csrfToken } = csrfRes.ok
-        ? await csrfRes.json()
-        : { token: '' };
+      const csrfHeaders = await getCsrfHeaders();
 
       const endpoint =
         resolution === 'refund_homeowner'
@@ -141,7 +136,7 @@ export function DisputesClient() {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'x-csrf-token': csrfToken,
+          ...csrfHeaders,
         },
         body: JSON.stringify(body),
       });
@@ -168,20 +163,14 @@ export function DisputesClient() {
   const handleHoldForReview = async (dispute: Dispute) => {
     setActionLoading(true);
     try {
-      const csrfRes = await fetch('/api/csrf', {
-        method: 'GET',
-        credentials: 'include',
-      });
-      const { token: csrfToken } = csrfRes.ok
-        ? await csrfRes.json()
-        : { token: '' };
+      const csrfHeaders = await getCsrfHeaders();
 
       const response = await fetch('/api/admin/escrow/hold', {
         method: 'POST',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'x-csrf-token': csrfToken,
+          ...csrfHeaders,
         },
         body: JSON.stringify({
           escrowId: dispute.id,
