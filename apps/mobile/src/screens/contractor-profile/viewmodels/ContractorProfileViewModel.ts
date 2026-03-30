@@ -54,7 +54,8 @@ export interface ContractorProfileActions {
   refresh: () => Promise<void>;
 }
 
-export interface ContractorProfileViewModel extends ContractorProfileState, ContractorProfileActions {}
+export interface ContractorProfileViewModel
+  extends ContractorProfileState, ContractorProfileActions {}
 
 interface ApiContractor {
   id: string;
@@ -89,9 +90,12 @@ const DEFAULT_CONTRACTOR: ContractorProfileState['contractor'] = {
   reviews: 0,
 };
 
-export const useContractorProfileViewModel = (contractorId?: string): ContractorProfileViewModel => {
+export const useContractorProfileViewModel = (
+  contractorId?: string
+): ContractorProfileViewModel => {
   const [activeTab, setActiveTab] = useState<'photos' | 'reviews'>('photos');
-  const [contractor, setContractor] = useState<ContractorProfileState['contractor']>(DEFAULT_CONTRACTOR);
+  const [contractor, setContractor] =
+    useState<ContractorProfileState['contractor']>(DEFAULT_CONTRACTOR);
   const [photos, setPhotos] = useState<string[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,7 +113,9 @@ export const useContractorProfileViewModel = (contractorId?: string): Contractor
     try {
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, company_name, city, bio, phone, skills, hourly_rate, verified, portfolio_images, rating, total_jobs_completed')
+        .select(
+          'id, first_name, last_name, company_name, city, bio, phone, skills, hourly_rate, verified, portfolio_images, rating, total_jobs_completed'
+        )
         .eq('id', contractorId)
         .single();
       if (profileError) throw new Error(profileError.message);
@@ -156,20 +162,31 @@ export const useContractorProfileViewModel = (contractorId?: string): Contractor
           .order('created_at', { ascending: false });
         if (reviewError) throw reviewError;
         setReviews(
-          (reviewRows || []).map((r: { id: string; reviewer_name?: string; rating: number; comment?: string; created_at: string }) => ({
-            id: r.id,
-            reviewerName: r.reviewer_name || 'Anonymous',
-            rating: r.rating,
-            date: new Date(r.created_at).toLocaleDateString('en-GB', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric',
-            }),
-            comment: r.comment || '',
-            photos: [],
-          }))
+          (reviewRows || []).map(
+            (r: {
+              id: string;
+              reviewer_name?: string;
+              rating: number;
+              comment?: string;
+              created_at: string;
+            }) => ({
+              id: r.id,
+              reviewerName: r.reviewer_name || 'Anonymous',
+              rating: r.rating,
+              date: new Date(r.created_at).toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              }),
+              comment: r.comment || '',
+              photos: [],
+            })
+          )
         );
-        setContractor((prev) => ({ ...prev, reviews: (reviewRows || []).length }));
+        setContractor((prev) => ({
+          ...prev,
+          reviews: (reviewRows || []).length,
+        }));
       } catch (reviewErr) {
         logger.warn('Failed to fetch reviews', reviewErr);
       }
@@ -187,8 +204,10 @@ export const useContractorProfileViewModel = (contractorId?: string): Contractor
   }, [fetchProfile]);
 
   const handleMessage = useCallback(() => {
+    // Messaging requires an accepted bid / assigned job between homeowner and contractor.
+    // The screen container controls visibility of the Message button based on `canMessage`.
+    // Navigation to the messaging thread is handled by the screen when the button is shown.
     logger.info('Message contractor', { contractorId: contractor.id });
-    // Navigation handled by screen container
   }, [contractor.id]);
 
   const handleCall = useCallback(() => {
@@ -197,12 +216,18 @@ export const useContractorProfileViewModel = (contractorId?: string): Contractor
         Alert.alert('Error', 'Unable to make a phone call');
       });
     } else {
-      Alert.alert('No Phone Number', 'This contractor has not provided a phone number.');
+      Alert.alert(
+        'No Phone Number',
+        'This contractor has not provided a phone number.'
+      );
     }
   }, [contractor.phone]);
 
   const handleVideo = useCallback(() => {
-    Alert.alert('Coming Soon', 'Video calls will be available in a future update.');
+    Alert.alert(
+      'Coming Soon',
+      'Video calls will be available in a future update.'
+    );
   }, []);
 
   const handleShare = useCallback(async () => {

@@ -6,7 +6,13 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../theme';
 
@@ -16,9 +22,15 @@ interface ProfileActionButtonsProps {
   onVideo: () => void;
   onShare: () => void;
   onRequestQuote?: () => void;
+  /** When false, the Message button is hidden (requires accepted bid / active job) */
+  canMessage?: boolean;
 }
 
-const SECONDARY_ACTIONS: { icon: keyof typeof Ionicons.glyphMap; label: string; key: string }[] = [
+const SECONDARY_ACTIONS: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  key: string;
+}[] = [
   { icon: 'chatbubble-outline', label: 'Message', key: 'message' },
   { icon: 'call-outline', label: 'Call', key: 'call' },
   { icon: 'videocam-outline', label: 'Video', key: 'video' },
@@ -31,6 +43,7 @@ export const ProfileActionButtons: React.FC<ProfileActionButtonsProps> = ({
   onVideo,
   onShare,
   onRequestQuote,
+  canMessage = true,
 }) => {
   const handlers: Record<string, () => void> = {
     message: onMessage,
@@ -39,6 +52,11 @@ export const ProfileActionButtons: React.FC<ProfileActionButtonsProps> = ({
     share: onShare,
   };
 
+  // Hide the Message action when the user has no accepted bid / active job with this contractor
+  const visibleActions = canMessage
+    ? SECONDARY_ACTIONS
+    : SECONDARY_ACTIONS.filter((a) => a.key !== 'message');
+
   return (
     <View style={styles.container}>
       {/* Primary CTA */}
@@ -46,26 +64,34 @@ export const ProfileActionButtons: React.FC<ProfileActionButtonsProps> = ({
         style={styles.primaryBtn}
         onPress={onRequestQuote || onMessage}
         activeOpacity={0.85}
-        accessibilityRole="button"
-        accessibilityLabel="Request a quote from this contractor"
-        testID="request-quote-button"
+        accessibilityRole='button'
+        accessibilityLabel='Request a quote from this contractor'
+        testID='request-quote-button'
       >
-        <Ionicons name="document-text-outline" size={18} color={theme.colors.textInverse} />
+        <Ionicons
+          name='document-text-outline'
+          size={18}
+          color={theme.colors.textInverse}
+        />
         <Text style={styles.primaryBtnText}>Request a Quote</Text>
       </TouchableOpacity>
 
       {/* Secondary actions — icon circles */}
       <View style={styles.secondaryRow}>
-        {SECONDARY_ACTIONS.map((action) => (
+        {visibleActions.map((action) => (
           <TouchableOpacity
             key={action.key}
             style={styles.secondaryBtn}
             onPress={handlers[action.key]}
             testID={`${action.key}-button`}
-            accessibilityRole="button"
+            accessibilityRole='button'
             accessibilityLabel={action.label}
           >
-            <Ionicons name={action.icon} size={20} color={theme.colors.textPrimary} />
+            <Ionicons
+              name={action.icon}
+              size={20}
+              color={theme.colors.textPrimary}
+            />
             <Text style={styles.secondaryLabel}>{action.label}</Text>
           </TouchableOpacity>
         ))}
@@ -88,7 +114,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 16,
     ...Platform.select({
-      ios: { shadowColor: theme.colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
+      ios: {
+        shadowColor: theme.colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
       android: { elevation: 4 },
     }),
   },
