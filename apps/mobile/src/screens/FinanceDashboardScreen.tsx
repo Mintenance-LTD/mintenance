@@ -153,6 +153,43 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
             <View>
               <Text style={styles.kpiLabel}>Revenue</Text>
               <Text style={styles.kpiValue}>{fmt(totalRevenue)}</Text>
+              {financialData && financialData.quarterly_growth !== 0 && (
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 2,
+                    marginTop: 2,
+                  }}
+                >
+                  <Ionicons
+                    name={
+                      financialData.quarterly_growth > 0
+                        ? 'trending-up'
+                        : 'trending-down'
+                    }
+                    size={12}
+                    color={
+                      financialData.quarterly_growth > 0
+                        ? theme.colors.primary
+                        : theme.colors.error
+                    }
+                  />
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: '600',
+                      color:
+                        financialData.quarterly_growth > 0
+                          ? theme.colors.primary
+                          : theme.colors.error,
+                    }}
+                  >
+                    {financialData.quarterly_growth > 0 ? '+' : ''}
+                    {financialData.quarterly_growth.toFixed(1)}%
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
           <View style={styles.kpiCard}>
