@@ -36,6 +36,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CheckCircle2 } from 'lucide-react';
 import { AdminAnnouncement } from '@/lib/services/admin/AdminCommunicationService';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 import { logger } from '@mintenance/shared';
 
 import { MarkdownEditor } from './MarkdownEditor';
@@ -80,9 +81,11 @@ export function CommunicationsClient({
   const handleCreate = async () => {
     setLoading(true);
     try {
+      const csrfHeaders = await getCsrfHeaders();
       const response = await fetch('/api/admin/announcements', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
         body: JSON.stringify({
           ...formData,
           is_published: false,
@@ -118,9 +121,11 @@ export function CommunicationsClient({
   const handlePublish = async (id: string) => {
     setLoading(true);
     try {
+      const csrfHeaders = await getCsrfHeaders();
       const response = await fetch(`/api/admin/announcements/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
         body: JSON.stringify({ is_published: true }),
       });
 
@@ -156,10 +161,13 @@ export function CommunicationsClient({
 
     setLoading(true);
     try {
+      const csrfHeaders = await getCsrfHeaders();
       const response = await fetch(
         `/api/admin/announcements/${deleteDialog.id}`,
         {
           method: 'DELETE',
+          credentials: 'include',
+          headers: { ...csrfHeaders },
         }
       );
 

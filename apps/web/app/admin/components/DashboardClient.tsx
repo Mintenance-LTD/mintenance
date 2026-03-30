@@ -44,24 +44,42 @@ interface QuickActionCardProps {
   iconColor?: string;
 }
 
-function QuickActionCard({ href, icon, title, description, badgeContent, iconColor = '#0F172A' }: QuickActionCardProps) {
+function QuickActionCard({
+  href,
+  icon,
+  title,
+  description,
+  badgeContent,
+  iconColor = '#0F172A',
+}: QuickActionCardProps) {
   return (
     <Link href={href} className={cn(styles.adminCardLink, 'group h-full')}>
-      <AdminCard className="h-full relative" hover padding="lg">
-        {badgeContent && <div className="absolute top-4 right-4">{badgeContent}</div>}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
-            <Icon name={icon} size={20} color={iconColor} className="text-slate-600" />
+      <AdminCard className='h-full relative' hover padding='lg'>
+        {badgeContent && (
+          <div className='absolute top-4 right-4'>{badgeContent}</div>
+        )}
+        <div className='flex items-center gap-3 mb-4'>
+          <div className='w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center'>
+            <Icon
+              name={icon}
+              size={20}
+              color={iconColor}
+              className='text-slate-600'
+            />
           </div>
-          <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+          <h3 className='text-sm font-semibold text-slate-900'>{title}</h3>
         </div>
-        <p className="text-sm text-slate-500 leading-relaxed">{description}</p>
+        <p className='text-sm text-slate-500 leading-relaxed'>{description}</p>
       </AdminCard>
     </Link>
   );
 }
 
-export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardMetrics }) {
+export function DashboardClient({
+  initialMetrics,
+}: {
+  initialMetrics: DashboardMetrics;
+}) {
   const [metrics, setMetrics] = useState(initialMetrics);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -98,11 +116,11 @@ export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardM
   }, []);
 
   return (
-    <div className="p-8 md:p-10 max-w-[1440px] mx-auto bg-slate-50 min-h-screen space-y-8">
+    <div className='p-8 md:p-10 max-w-[1440px] mx-auto bg-slate-50 min-h-screen space-y-8'>
       <AdminPageHeader
-        title="Admin Dashboard"
-        subtitle="Manage platform operations, revenue, and user activity"
-        variant="gradient"
+        title='Admin Dashboard'
+        subtitle='Manage platform operations, revenue, and user activity'
+        variant='gradient'
         quickStats={[
           {
             label: 'users',
@@ -118,10 +136,20 @@ export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardM
           },
         ]}
         actions={
-          <div className="flex items-center gap-3">
-            {loading && <span role="status" aria-label="Loading metrics"><Icon name="loader" size={20} className="animate-spin" color={theme.colors.white} aria-hidden="true" /></span>}
+          <div className='flex items-center gap-3'>
+            {loading && (
+              <span role='status' aria-label='Loading metrics'>
+                <Icon
+                  name='loader'
+                  size={20}
+                  className='animate-spin'
+                  color={theme.colors.white}
+                  aria-hidden='true'
+                />
+              </span>
+            )}
             {mounted && lastUpdated && (
-              <span className="text-xs text-white/70 font-medium">
+              <span className='text-xs text-white/70 font-medium'>
                 Updated {lastUpdated.toLocaleTimeString('en-GB')}
               </span>
             )}
@@ -130,90 +158,99 @@ export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardM
       />
 
       {/* Metrics Row */}
-      <section className="mt-2" aria-label="Platform metrics" aria-live="polite">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <AdminMetricCard
-          label="Total Users"
-          value={metrics.totalUsers.toLocaleString()}
-          icon="users"
-          iconColor="#4A67FF"
-          onClick={() => window.location.href = '/admin/users'}
-        />
-        <AdminMetricCard
-          label="Contractors"
-          value={metrics.totalContractors.toLocaleString()}
-          icon="briefcase"
-          iconColor="#4A67FF"
-        />
-        <AdminMetricCard
-          label="Total Jobs"
-          value={metrics.totalJobs.toLocaleString()}
-          icon="fileText"
-          iconColor="#4CC38A"
-        />
-        <AdminMetricCard
-          label="Active Subscriptions"
-          value={metrics.activeSubscriptions.toLocaleString()}
-          icon="creditCard"
-          iconColor="#4A67FF"
-        />
-        <AdminMetricCard
-          label="Monthly Recurring Revenue"
-          value={`£${metrics.mrr.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          icon="currencyPound"
-          iconColor="#4CC38A"
-          onClick={() => window.location.href = '/admin/revenue'}
-        />
-        <AdminMetricCard
-          label="Pending Verifications"
-          value={metrics.pendingVerifications.toLocaleString()}
-          icon="clock"
-          iconColor="#F59E0B"
-          onClick={() => window.location.href = '/admin/users?verified=pending'}
-        />
+      <section
+        className='mt-2'
+        aria-label='Platform metrics'
+        aria-live='polite'
+      >
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4'>
+          <AdminMetricCard
+            label='Total Users'
+            value={metrics.totalUsers.toLocaleString()}
+            icon='users'
+            iconColor={theme.colors.adminPrimary}
+            onClick={() => (window.location.href = '/admin/users')}
+          />
+          <AdminMetricCard
+            label='Contractors'
+            value={metrics.totalContractors.toLocaleString()}
+            icon='briefcase'
+            iconColor={theme.colors.adminPrimary}
+          />
+          <AdminMetricCard
+            label='Total Jobs'
+            value={metrics.totalJobs.toLocaleString()}
+            icon='fileText'
+            iconColor='#4CC38A'
+          />
+          <AdminMetricCard
+            label='Active Subscriptions'
+            value={metrics.activeSubscriptions.toLocaleString()}
+            icon='creditCard'
+            iconColor={theme.colors.adminPrimary}
+          />
+          <AdminMetricCard
+            label='Monthly Recurring Revenue'
+            value={`£${metrics.mrr.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            icon='currencyPound'
+            iconColor='#4CC38A'
+            onClick={() => (window.location.href = '/admin/revenue')}
+          />
+          <AdminMetricCard
+            label='Pending Verifications'
+            value={metrics.pendingVerifications.toLocaleString()}
+            icon='clock'
+            iconColor='#F59E0B'
+            onClick={() =>
+              (window.location.href = '/admin/users?verified=pending')
+            }
+          />
         </div>
       </section>
 
       {/* Action Cards Row */}
-      <section aria-label="Quick actions">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <section aria-label='Quick actions'>
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
           <QuickActionCard
-            href="/admin/revenue"
-            icon="trendingUp"
-            title="Revenue Analytics"
-            description="View subscription revenue, MRR, conversion rates, and payment tracking."
-            iconColor="#2563EB"
+            href='/admin/revenue'
+            icon='trendingUp'
+            title='Revenue Analytics'
+            description='View subscription revenue, MRR, conversion rates, and payment tracking.'
+            iconColor='#2563EB'
           />
           <QuickActionCard
-            href="/admin/users"
-            icon="users"
-            title="User Management"
+            href='/admin/users'
+            icon='users'
+            title='User Management'
             description={`Manage users and verify contractors${metrics.pendingVerifications > 0 ? ` (${metrics.pendingVerifications} pending)` : ''}.`}
-            iconColor="#2563EB"
+            iconColor='#2563EB'
             badgeContent={
               metrics.pendingVerifications > 0 ? (
-                <span className="px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-700 font-semibold">
-                  {metrics.pendingVerifications > 9 ? '9+' : metrics.pendingVerifications} pending
+                <span className='px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-700 font-semibold'>
+                  {metrics.pendingVerifications > 9
+                    ? '9+'
+                    : metrics.pendingVerifications}{' '}
+                  pending
                 </span>
               ) : null
             }
           />
           <QuickActionCard
-            href="/admin/security"
-            icon="shield"
-            title="Security Dashboard"
-            description="Monitor security events, threats, and system health."
-            iconColor="#0F172A"
+            href='/admin/security'
+            icon='shield'
+            title='Security Dashboard'
+            description='Monitor security events, threats, and system health.'
+            iconColor='#0F172A'
           />
-          <div className="h-full">
+          <div className='h-full'>
             <ModelVersionHealthCard />
           </div>
         </div>
       </section>
 
       {/* YOLO Learning Status */}
-      <section aria-label="YOLO learning status">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <section aria-label='YOLO learning status'>
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
           <YOLOLearningStatusCard />
         </div>
       </section>
@@ -231,5 +268,3 @@ export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardM
     </div>
   );
 }
-
-

@@ -133,7 +133,7 @@ export function UserManagementTable({
                     height: '16px',
                     borderRadius: '4px',
                     border: '2px solid #CBD5E1',
-                    accentColor: '#4A67FF',
+                    accentColor: theme.colors.adminPrimary,
                   }}
                   className='rounded-md'
                 />
@@ -223,7 +223,7 @@ export function UserManagementTable({
                           width: '40px',
                           height: '40px',
                           borderRadius: '50%',
-                          backgroundColor: '#4A67FF',
+                          backgroundColor: theme.colors.adminPrimary,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',

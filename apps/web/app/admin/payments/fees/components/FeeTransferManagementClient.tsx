@@ -9,6 +9,7 @@ import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
 import { Icon } from '@/components/ui/Icon';
 import { logger } from '@mintenance/shared';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 import { FeeTransferTable } from './FeeTransferTable';
 import { HoldTransferDialog, ErrorDialog } from './FeeTransferDialogs';
 
@@ -90,9 +91,11 @@ export function FeeTransferManagementClient() {
     }
 
     try {
+      const csrfHeaders = await getCsrfHeaders();
       const response = await fetch('/api/admin/escrow/fee-transfer/hold', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
         body: JSON.stringify({
           feeTransferId: holdDialog.transferId,
           reason: holdReason,
@@ -113,9 +116,11 @@ export function FeeTransferManagementClient() {
 
   const handleReleaseTransfer = async (transferId: string) => {
     try {
+      const csrfHeaders = await getCsrfHeaders();
       const response = await fetch('/api/admin/escrow/fee-transfer/release', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
         body: JSON.stringify({ feeTransferId: transferId }),
       });
 
@@ -133,9 +138,11 @@ export function FeeTransferManagementClient() {
     if (selectedTransfers.length === 0) return;
 
     try {
+      const csrfHeaders = await getCsrfHeaders();
       const response = await fetch('/api/admin/escrow/fee-transfer/batch', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
         body: JSON.stringify({ feeTransferIds: selectedTransfers }),
       });
 

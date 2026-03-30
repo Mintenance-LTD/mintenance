@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 
 interface Contractor {
   contractorId: string;
@@ -29,11 +30,16 @@ export function PaymentSetupDashboardClient({ contractors }: Props) {
   const sendReminder = async (contractorId: string) => {
     setSending(contractorId);
     try {
-      const response = await fetch('/api/admin/contractors/send-payment-setup-reminder', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contractorId }),
-      });
+      const csrfHeaders = await getCsrfHeaders();
+      const response = await fetch(
+        '/api/admin/contractors/send-payment-setup-reminder',
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+          body: JSON.stringify({ contractorId }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error('Failed to send reminder');
@@ -47,18 +53,26 @@ export function PaymentSetupDashboardClient({ contractors }: Props) {
     }
   };
 
-  const totalPendingAmount = contractors.reduce((sum, c) => sum + c.totalPendingAmount, 0);
-  const totalPendingEscrows = contractors.reduce((sum, c) => sum + c.pendingEscrows, 0);
+  const totalPendingAmount = contractors.reduce(
+    (sum, c) => sum + c.totalPendingAmount,
+    0
+  );
+  const totalPendingEscrows = contractors.reduce(
+    (sum, c) => sum + c.pendingEscrows,
+    0
+  );
 
   return (
-    <div style={{
-      padding: theme.spacing[8],
-      maxWidth: '1440px',
-      margin: '0 auto',
-      width: '100%',
-    }}>
+    <div
+      style={{
+        padding: theme.spacing[8],
+        maxWidth: '1440px',
+        margin: '0 auto',
+        width: '100%',
+      }}
+    >
       <AdminPageHeader
-        title="Contractors Needing Payment Setup"
+        title='Contractors Needing Payment Setup'
         subtitle="Contractors with pending escrow payments who haven't completed payment account setup"
         quickStats={[
           {
@@ -83,47 +97,58 @@ export function PaymentSetupDashboardClient({ contractors }: Props) {
       />
 
       {/* Summary Cards */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        gap: theme.spacing[4],
-        marginBottom: theme.spacing[8],
-      }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+          gap: theme.spacing[4],
+          marginBottom: theme.spacing[8],
+        }}
+      >
         <AdminMetricCard
-          label="Contractors Needing Setup"
+          label='Contractors Needing Setup'
           value={contractors.length}
-          icon="users"
+          icon='users'
           iconColor={theme.colors.warning}
         />
         <AdminMetricCard
-          label="Total Pending Escrows"
+          label='Total Pending Escrows'
           value={totalPendingEscrows}
-          icon="clock"
-          iconColor="#F59E0B"
+          icon='clock'
+          iconColor='#F59E0B'
         />
         <AdminMetricCard
-          label="Total Pending Amount"
+          label='Total Pending Amount'
           value={`£${totalPendingAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          icon="currencyPound"
+          icon='currencyPound'
           iconColor={theme.colors.success}
         />
       </div>
 
       {contractors.length === 0 ? (
         <Card style={{ padding: theme.spacing[8], textAlign: 'center' }}>
-          <Icon name="checkCircle" size={48} color={theme.colors.success} style={{ marginBottom: theme.spacing[4] }} />
-          <p style={{
-            fontSize: theme.typography.fontSize.lg,
-            fontWeight: theme.typography.fontWeight.medium,
-            color: theme.colors.textPrimary,
-            marginBottom: theme.spacing[2],
-          }}>
+          <Icon
+            name='checkCircle'
+            size={48}
+            color={theme.colors.success}
+            style={{ marginBottom: theme.spacing[4] }}
+          />
+          <p
+            style={{
+              fontSize: theme.typography.fontSize.lg,
+              fontWeight: theme.typography.fontWeight.medium,
+              color: theme.colors.textPrimary,
+              marginBottom: theme.spacing[2],
+            }}
+          >
             All contractors have completed payment setup
           </p>
-          <p style={{
-            fontSize: theme.typography.fontSize.base,
-            color: theme.colors.textSecondary,
-          }}>
+          <p
+            style={{
+              fontSize: theme.typography.fontSize.base,
+              color: theme.colors.textSecondary,
+            }}
+          >
             No action required at this time
           </p>
         </Card>
@@ -132,11 +157,20 @@ export function PaymentSetupDashboardClient({ contractors }: Props) {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  borderBottom: `1px solid ${theme.colors.border}`,
-                }}>
-                  {['Contractor', 'Email', 'Pending Escrows', 'Total Amount', 'Oldest Escrow', 'Actions'].map((header) => (
+                <tr
+                  style={{
+                    backgroundColor: theme.colors.backgroundSecondary,
+                    borderBottom: `1px solid ${theme.colors.border}`,
+                  }}
+                >
+                  {[
+                    'Contractor',
+                    'Email',
+                    'Pending Escrows',
+                    'Total Amount',
+                    'Oldest Escrow',
+                    'Actions',
+                  ].map((header) => (
                     <th
                       key={header}
                       style={{
@@ -163,66 +197,88 @@ export function PaymentSetupDashboardClient({ contractors }: Props) {
                       transition: 'background-color 0.2s',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                      e.currentTarget.style.backgroundColor =
+                        theme.colors.backgroundSecondary;
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = 'transparent';
                     }}
                   >
-                    <td style={{
-                      padding: `${theme.spacing[4]} ${theme.spacing[6]}`,
-                      fontSize: theme.typography.fontSize.base,
-                      fontWeight: theme.typography.fontWeight.medium,
-                      color: theme.colors.textPrimary,
-                    }}>
+                    <td
+                      style={{
+                        padding: `${theme.spacing[4]} ${theme.spacing[6]}`,
+                        fontSize: theme.typography.fontSize.base,
+                        fontWeight: theme.typography.fontWeight.medium,
+                        color: theme.colors.textPrimary,
+                      }}
+                    >
                       {contractor.contractorName}
                     </td>
-                    <td style={{
-                      padding: `${theme.spacing[4]} ${theme.spacing[6]}`,
-                      fontSize: theme.typography.fontSize.base,
-                      color: theme.colors.textSecondary,
-                    }}>
+                    <td
+                      style={{
+                        padding: `${theme.spacing[4]} ${theme.spacing[6]}`,
+                        fontSize: theme.typography.fontSize.base,
+                        color: theme.colors.textSecondary,
+                      }}
+                    >
                       {contractor.contractorEmail}
                     </td>
-                    <td style={{
-                      padding: `${theme.spacing[4]} ${theme.spacing[6]}`,
-                      fontSize: theme.typography.fontSize.base,
-                      color: theme.colors.textPrimary,
-                    }}>
+                    <td
+                      style={{
+                        padding: `${theme.spacing[4]} ${theme.spacing[6]}`,
+                        fontSize: theme.typography.fontSize.base,
+                        color: theme.colors.textPrimary,
+                      }}
+                    >
                       {contractor.pendingEscrows}
                     </td>
-                    <td style={{
-                      padding: `${theme.spacing[4]} ${theme.spacing[6]}`,
-                      fontSize: theme.typography.fontSize.base,
-                      fontWeight: theme.typography.fontWeight.semibold,
-                      color: theme.colors.textPrimary,
-                    }}>
+                    <td
+                      style={{
+                        padding: `${theme.spacing[4]} ${theme.spacing[6]}`,
+                        fontSize: theme.typography.fontSize.base,
+                        fontWeight: theme.typography.fontWeight.semibold,
+                        color: theme.colors.textPrimary,
+                      }}
+                    >
                       £{contractor.totalPendingAmount.toFixed(2)}
                     </td>
-                    <td style={{
-                      padding: `${theme.spacing[4]} ${theme.spacing[6]}`,
-                      fontSize: theme.typography.fontSize.base,
-                      color: theme.colors.textSecondary,
-                    }}>
-                      {format(new Date(contractor.oldestEscrowDate), 'MMM d, yyyy')}
+                    <td
+                      style={{
+                        padding: `${theme.spacing[4]} ${theme.spacing[6]}`,
+                        fontSize: theme.typography.fontSize.base,
+                        color: theme.colors.textSecondary,
+                      }}
+                    >
+                      {format(
+                        new Date(contractor.oldestEscrowDate),
+                        'MMM d, yyyy'
+                      )}
                     </td>
-                    <td style={{
-                      padding: `${theme.spacing[4]} ${theme.spacing[6]}`,
-                    }}>
+                    <td
+                      style={{
+                        padding: `${theme.spacing[4]} ${theme.spacing[6]}`,
+                      }}
+                    >
                       {sent.has(contractor.contractorId) ? (
-                        <span style={{
-                          fontSize: theme.typography.fontSize.sm,
-                          color: theme.colors.success,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: theme.spacing[1],
-                        }}>
-                          <Icon name="checkCircle" size={16} color={theme.colors.success} />
+                        <span
+                          style={{
+                            fontSize: theme.typography.fontSize.sm,
+                            color: theme.colors.success,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: theme.spacing[1],
+                          }}
+                        >
+                          <Icon
+                            name='checkCircle'
+                            size={16}
+                            color={theme.colors.success}
+                          />
                           Reminder sent
                         </span>
                       ) : (
                         <Button
-                          variant="ghost"
+                          variant='ghost'
                           onClick={() => sendReminder(contractor.contractorId)}
                           disabled={sending === contractor.contractorId}
                           style={{
@@ -232,12 +288,16 @@ export function PaymentSetupDashboardClient({ contractors }: Props) {
                         >
                           {sending === contractor.contractorId ? (
                             <>
-                              <Icon name="loader" size={16} className="animate-spin" />
+                              <Icon
+                                name='loader'
+                                size={16}
+                                className='animate-spin'
+                              />
                               Sending...
                             </>
                           ) : (
                             <>
-                              <Icon name="send" size={16} />
+                              <Icon name='send' size={16} />
                               Send Reminder
                             </>
                           )}

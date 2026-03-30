@@ -294,13 +294,13 @@ export function UserDetailClient({ userId }: UserDetailClientProps) {
               : stats.jobsPosted
           }
           icon='briefcase'
-          iconColor='#4A67FF'
+          iconColor={theme.colors.adminPrimary}
         />
         <AdminMetricCard
           label='Completed'
           value={stats.jobsCompleted}
           icon='checkCircle'
-          iconColor='#10B981'
+          iconColor={theme.colors.success}
         />
         {profile.role === 'contractor' && (
           <>
@@ -329,7 +329,7 @@ export function UserDetailClient({ userId }: UserDetailClientProps) {
           label='Total Earned'
           value={formatCurrency(stats.totalEarned)}
           icon='currencyPound'
-          iconColor='#10B981'
+          iconColor={theme.colors.success}
         />
       </div>
 
@@ -351,7 +351,7 @@ export function UserDetailClient({ userId }: UserDetailClientProps) {
                 border: 'none',
                 borderBottom:
                   activeTab === tab.value
-                    ? '2px solid #4A67FF'
+                    ? `2px solid ${theme.colors.adminPrimary}`
                     : '2px solid transparent',
                 backgroundColor: 'transparent',
                 color: activeTab === tab.value ? '#0F172A' : '#64748B',
@@ -377,7 +377,10 @@ export function UserDetailClient({ userId }: UserDetailClientProps) {
                     fontWeight: 600,
                     backgroundColor:
                       activeTab === tab.value ? '#EFF6FF' : '#F1F5F9',
-                    color: activeTab === tab.value ? '#4A67FF' : '#64748B',
+                    color:
+                      activeTab === tab.value
+                        ? theme.colors.adminPrimary
+                        : '#64748B',
                   }}
                 >
                   {tab.count}

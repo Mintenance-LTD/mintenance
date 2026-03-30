@@ -40,7 +40,7 @@ export function DisputesPageHeader({
             label: 'resolved',
             value: stats.resolved,
             icon: 'checkCircle',
-            color: '#10B981',
+            color: theme.colors.success,
           },
           {
             label: 'at risk',
@@ -76,7 +76,7 @@ export function DisputesPageHeader({
           label='Resolved'
           value={stats.resolved}
           icon='checkCircle'
-          iconColor='#10B981'
+          iconColor={theme.colors.success}
         />
         <AdminMetricCard
           label='Amount at Risk'

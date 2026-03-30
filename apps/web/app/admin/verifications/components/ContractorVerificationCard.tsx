@@ -319,14 +319,14 @@ export function ContractorVerificationCard({
                     size={16}
                     color={
                       isInsuranceValid(contractor.insurance_expiry_date)
-                        ? '#10B981'
+                        ? theme.colors.success
                         : '#EF4444'
                     }
                   />
                   <span
                     style={{
                       color: isInsuranceValid(contractor.insurance_expiry_date)
-                        ? '#10B981'
+                        ? theme.colors.success
                         : '#EF4444',
                       fontWeight: theme.typography.fontWeight.medium,
                     }}

@@ -123,7 +123,7 @@ export function VerificationSearchAndFilters({
           style={{
             padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
             backgroundColor: '#D1FAE5',
-            border: '1px solid #10B981',
+            border: `1px solid ${theme.colors.success}`,
             borderRadius: theme.borderRadius.md,
             color: '#065F46',
             fontSize: theme.typography.fontSize.sm,
@@ -132,7 +132,7 @@ export function VerificationSearchAndFilters({
             gap: theme.spacing[2],
           }}
         >
-          <Icon name='checkCircle' size={18} color='#10B981' />
+          <Icon name='checkCircle' size={18} color={theme.colors.success} />
           {successMessage}
         </div>
       )}

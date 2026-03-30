@@ -2,14 +2,22 @@ import React from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 
-type VerificationStatus = 'verified' | 'pending' | 'rejected' | 'not_submitted' | 'not_applicable';
+type VerificationStatus =
+  | 'verified'
+  | 'pending'
+  | 'rejected'
+  | 'not_submitted'
+  | 'not_applicable';
 
 interface VerificationBadgeProps {
   status: VerificationStatus;
   size?: 'sm' | 'md' | 'lg';
 }
 
-export function VerificationBadge({ status, size = 'md' }: VerificationBadgeProps) {
+export function VerificationBadge({
+  status,
+  size = 'md',
+}: VerificationBadgeProps) {
   const sizeMap = {
     sm: { badge: 16, icon: 12 },
     md: { badge: 20, icon: 14 },
@@ -20,9 +28,9 @@ export function VerificationBadge({ status, size = 'md' }: VerificationBadgeProp
 
   const statusConfig = {
     verified: {
-      bgColor: '#10B981',
+      bgColor: theme.colors.success,
       textColor: '#065F46',
-      borderColor: '#10B981',
+      borderColor: theme.colors.success,
       icon: 'checkCircle',
       label: 'Verified',
     },
@@ -60,37 +68,36 @@ export function VerificationBadge({ status, size = 'md' }: VerificationBadgeProp
 
   if (status === 'not_applicable') {
     return (
-      <span style={{
-        fontSize: theme.typography.fontSize.xs,
-        color: config.textColor,
-      }}>
+      <span
+        style={{
+          fontSize: theme.typography.fontSize.xs,
+          color: config.textColor,
+        }}
+      >
         {config.label}
       </span>
     );
   }
 
   return (
-    <div style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: theme.spacing[1],
-      padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
-      backgroundColor: config.bgColor,
-      border: `1px solid ${config.borderColor}`,
-      borderRadius: theme.borderRadius.md,
-      fontSize: theme.typography.fontSize.xs,
-      fontWeight: theme.typography.fontWeight.medium,
-      color: config.textColor,
-    }}>
+    <div
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: theme.spacing[1],
+        padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
+        backgroundColor: config.bgColor,
+        border: `1px solid ${config.borderColor}`,
+        borderRadius: theme.borderRadius.md,
+        fontSize: theme.typography.fontSize.xs,
+        fontWeight: theme.typography.fontWeight.medium,
+        color: config.textColor,
+      }}
+    >
       {config.icon && (
-        <Icon
-          name={config.icon}
-          size={iconSize}
-          color={config.textColor}
-        />
+        <Icon name={config.icon} size={iconSize} color={config.textColor} />
       )}
       <span>{config.label}</span>
     </div>
   );
 }
-

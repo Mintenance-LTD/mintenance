@@ -6,6 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { theme } from '@/lib/theme';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 import { ReconciliationTable } from './ReconciliationTable';
 
 interface ReconciliationRecord {
@@ -60,8 +61,11 @@ export default function ReconciliationDashboard() {
   const runReconciliation = async () => {
     setRunning(true);
     try {
-      await fetch('/api/cron/payment-reconciliation', {
-        headers: { 'x-cron-secret': 'manual-trigger' },
+      const csrfHeaders = await getCsrfHeaders();
+      await fetch('/api/admin/reconciliation', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
       });
       await fetchData();
     } finally {

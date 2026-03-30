@@ -255,7 +255,7 @@ export function AnnouncementCard({
                   marginTop: theme.spacing[2],
                   fontSize: '12px',
                   fontWeight: 600,
-                  color: '#4A67FF',
+                  color: theme.colors.adminPrimary,
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
