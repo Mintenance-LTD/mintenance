@@ -16,6 +16,7 @@ import {
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
 import { logger } from '@mintenance/shared';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 import type {
   Assessment,
   Statistics,
@@ -85,12 +86,13 @@ export function BuildingAssessmentsClient(
   const handleValidate = async (assessmentId: string, validated: boolean) => {
     setLoading(true);
     try {
+      const csrfHeaders = await getCsrfHeaders();
       const response = await fetch(
         `/api/admin/building-assessments/${assessmentId}/validate`,
         {
           method: 'POST',
           credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...csrfHeaders },
           body: JSON.stringify({ validated, notes: validationNotes }),
         }
       );
