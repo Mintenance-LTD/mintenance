@@ -208,9 +208,8 @@ function getLucideIcon(iconName: string): LucideIcon | null {
     return null;
   }
 
-  return typeof IconComponent === 'function'
-    ? (IconComponent as LucideIcon)
-    : null;
+  // Lucide icons may be function components or forwardRef objects
+  return IconComponent ? (IconComponent as LucideIcon) : null;
 }
 
 /**

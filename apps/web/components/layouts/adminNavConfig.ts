@@ -52,7 +52,7 @@ export const adminNavSections: readonly NavSection[] = Object.freeze([
         badge: 'escrow',
       },
       {
-        icon: 'dollarSign',
+        icon: 'banknote',
         label: 'Fee Management',
         href: '/admin/payments/fees',
       },
@@ -71,7 +71,7 @@ export const adminNavSections: readonly NavSection[] = Object.freeze([
         label: 'Payment Setup',
         href: '/admin/contractors/payment-setup',
       },
-      { icon: 'currencyPound', label: 'Tax', href: '/admin/tax' },
+      { icon: 'fileText', label: 'Tax', href: '/admin/tax' },
     ],
   },
   {
