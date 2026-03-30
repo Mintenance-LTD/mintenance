@@ -23,9 +23,7 @@ interface AdminNotificationBellProps {
 
 export function AdminNotificationBell(props: AdminNotificationBellProps) {
   // Defensive prop destructuring with defaults to prevent test crashes
-  const {
-    userId = '',
-  } = props || {};
+  const { userId = '' } = props || {};
 
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
@@ -41,7 +39,10 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -58,8 +59,12 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
   const fetchNotifications = async () => {
     try {
       // Fetch pending verifications count
-      const verificationsRes = await fetch('/api/admin/notifications/pending-verifications');
-      const verificationsData = await verificationsRes.ok ? await verificationsRes.json() : { count: 0 };
+      const verificationsRes = await fetch(
+        '/api/admin/notifications/pending-verifications'
+      );
+      const verificationsData = (await verificationsRes.ok)
+        ? await verificationsRes.json()
+        : { count: 0 };
 
       const newNotifications: AdminNotification[] = [];
 
@@ -76,17 +81,17 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
       }
 
       setNotifications(newNotifications);
-      setUnreadCount(newNotifications.filter(n => !n.read).length);
+      setUnreadCount(newNotifications.filter((n) => !n.read).length);
     } catch (error) {
       logger.error('Error fetching notifications:', error);
     }
   };
 
   const markAsRead = async (notificationId: string) => {
-    setNotifications(prev =>
-      prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
     );
-    setUnreadCount(prev => Math.max(0, prev - 1));
+    setUnreadCount((prev) => Math.max(0, prev - 1));
   };
 
   const getNotificationIcon = (type: AdminNotification['type']) => {
@@ -123,8 +128,8 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
     <div ref={dropdownRef} style={{ position: 'relative' }}>
       {/* Notification Bell Button */}
       <button
-        type="button"
-        aria-label="Admin Notifications"
+        type='button'
+        aria-label='Admin Notifications'
         onClick={() => setIsOpen(!isOpen)}
         style={{
           position: 'relative',
@@ -146,7 +151,7 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
           e.currentTarget.style.backgroundColor = 'transparent';
         }}
       >
-        <Icon name="bell" size={20} color="#FFFFFF" />
+        <Icon name='bell' size={20} color='#FFFFFF' />
         {unreadCount > 0 && (
           <span
             style={{
@@ -183,7 +188,8 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
             maxHeight: '500px',
             backgroundColor: '#FFFFFF',
             borderRadius: theme.borderRadius.lg,
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            boxShadow:
+              '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
             border: `1px solid ${theme.colors.border}`,
             zIndex: 1000,
             overflow: 'hidden',
@@ -192,47 +198,59 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
           }}
         >
           {/* Header */}
-          <div style={{
-            padding: theme.spacing[4],
-            borderBottom: `1px solid ${theme.colors.border}`,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}>
-            <h3 style={{
-              fontSize: theme.typography.fontSize.lg,
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-            }}>
+          <div
+            style={{
+              padding: theme.spacing[4],
+              borderBottom: `1px solid ${theme.colors.border}`,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <h3
+              style={{
+                fontSize: theme.typography.fontSize.lg,
+                fontWeight: theme.typography.fontWeight.bold,
+                color: theme.colors.textPrimary,
+              }}
+            >
               Notifications
             </h3>
             {unreadCount > 0 && (
-              <span style={{
-                fontSize: theme.typography.fontSize.xs,
-                color: theme.colors.textSecondary,
-              }}>
+              <span
+                style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  color: theme.colors.textSecondary,
+                }}
+              >
                 {unreadCount} unread
               </span>
             )}
           </div>
 
           {/* Notifications List */}
-          <div style={{
-            flex: 1,
-            overflowY: 'auto',
-            maxHeight: '400px',
-          }}>
+          <div
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              maxHeight: '400px',
+            }}
+          >
             {notifications.length === 0 ? (
-              <div style={{
-                padding: theme.spacing[8],
-                textAlign: 'center',
-                color: theme.colors.textSecondary,
-              }}>
-                <Icon name="bell" size={48} color={theme.colors.textTertiary} />
-                <p style={{
-                  marginTop: theme.spacing[2],
-                  fontSize: theme.typography.fontSize.sm,
-                }}>
+              <div
+                style={{
+                  padding: theme.spacing[8],
+                  textAlign: 'center',
+                  color: theme.colors.textSecondary,
+                }}
+              >
+                <Icon name='bell' size={48} color={theme.colors.textTertiary} />
+                <p
+                  style={{
+                    marginTop: theme.spacing[2],
+                    fontSize: theme.typography.fontSize.sm,
+                  }}
+                >
                   No notifications
                 </p>
               </div>
@@ -240,10 +258,15 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
               notifications.map((notification) => {
                 const NotificationContent = (
                   <div
+                    role='button'
+                    tabIndex={0}
+                    aria-label={`${notification.read ? '' : 'Unread: '}${notification.title || 'Notification'}`}
                     style={{
                       padding: theme.spacing[4],
                       borderBottom: `1px solid ${theme.colors.border}`,
-                      backgroundColor: notification.read ? '#FFFFFF' : '#F9FAFB',
+                      backgroundColor: notification.read
+                        ? '#FFFFFF'
+                        : '#F9FAFB',
                       cursor: notification.href ? 'pointer' : 'default',
                       transition: 'background-color 0.2s',
                     }}
@@ -251,28 +274,40 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
                       e.currentTarget.style.backgroundColor = '#F3F4F6';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = notification.read ? '#FFFFFF' : '#F9FAFB';
+                      e.currentTarget.style.backgroundColor = notification.read
+                        ? '#FFFFFF'
+                        : '#F9FAFB';
                     }}
                     onClick={() => {
                       if (!notification.read) {
                         markAsRead(notification.id);
                       }
                     }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        if (!notification.read) markAsRead(notification.id);
+                      }
+                    }}
                   >
-                    <div style={{
-                      display: 'flex',
-                      gap: theme.spacing[3],
-                    }}>
-                      <div style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: theme.borderRadius.full,
-                        backgroundColor: `${getNotificationColor(notification.type)}20`,
+                    <div
+                      style={{
                         display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}>
+                        gap: theme.spacing[3],
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: theme.borderRadius.full,
+                          backgroundColor: `${getNotificationColor(notification.type)}20`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
                         <Icon
                           name={getNotificationIcon(notification.type)}
                           size={20}
@@ -280,49 +315,63 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
                         />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'flex-start',
-                          marginBottom: theme.spacing[1],
-                        }}>
-                          <h4 style={{
-                            fontSize: theme.typography.fontSize.sm,
-                            fontWeight: theme.typography.fontWeight.semibold,
-                            color: theme.colors.textPrimary,
-                            margin: 0,
-                          }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            marginBottom: theme.spacing[1],
+                          }}
+                        >
+                          <h4
+                            style={{
+                              fontSize: theme.typography.fontSize.sm,
+                              fontWeight: theme.typography.fontWeight.semibold,
+                              color: theme.colors.textPrimary,
+                              margin: 0,
+                            }}
+                          >
                             {notification.title}
                           </h4>
                           {!notification.read && (
-                            <div style={{
-                              width: '8px',
-                              height: '8px',
-                              borderRadius: '50%',
-                              backgroundColor: '#3B82F6',
-                              flexShrink: 0,
-                              marginLeft: theme.spacing[2],
-                            }} />
+                            <div
+                              aria-hidden='true'
+                              style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                backgroundColor: '#3B82F6',
+                                flexShrink: 0,
+                                marginLeft: theme.spacing[2],
+                              }}
+                            />
                           )}
                         </div>
-                        <p style={{
-                          fontSize: theme.typography.fontSize.xs,
-                          color: theme.colors.textSecondary,
-                          margin: 0,
-                          marginBottom: theme.spacing[1],
-                        }}>
+                        <p
+                          style={{
+                            fontSize: theme.typography.fontSize.xs,
+                            color: theme.colors.textSecondary,
+                            margin: 0,
+                            marginBottom: theme.spacing[1],
+                          }}
+                        >
                           {notification.message}
                         </p>
-                        <span style={{
-                          fontSize: theme.typography.fontSize.xs,
-                          color: theme.colors.textTertiary,
-                        }}>
-                          {new Date(notification.createdAt).toLocaleDateString('en-GB', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
+                        <span
+                          style={{
+                            fontSize: theme.typography.fontSize.xs,
+                            color: theme.colors.textTertiary,
+                          }}
+                        >
+                          {new Date(notification.createdAt).toLocaleDateString(
+                            'en-GB',
+                            {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            }
+                          )}
                         </span>
                       </div>
                     </div>
@@ -350,4 +399,3 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
     </div>
   );
 }
-

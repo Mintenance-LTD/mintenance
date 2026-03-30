@@ -104,40 +104,45 @@ export const GET = withApiHandler(
         );
       }
 
-      // Fetch aggregate stats for summary cards
-      const { data: statsData } = await serverSupabase
-        .from('escrow_transactions')
-        .select('status, amount');
+      // Fetch aggregate stats via separate count queries (avoids loading all rows)
+      const [
+        { count: heldCount, data: heldAmounts },
+        { count: releasePendingCount },
+        { count: refundedCount, data: refundedAmounts },
+        { count: failedCount },
+      ] = await Promise.all([
+        serverSupabase
+          .from('escrow_transactions')
+          .select('amount', { count: 'exact' })
+          .eq('status', 'held'),
+        serverSupabase
+          .from('escrow_transactions')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'release_pending'),
+        serverSupabase
+          .from('escrow_transactions')
+          .select('amount', { count: 'exact' })
+          .eq('status', 'refunded'),
+        serverSupabase
+          .from('escrow_transactions')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'failed'),
+      ]);
 
       const stats = {
-        held_total: 0,
-        held_count: 0,
-        release_pending_count: 0,
-        refunded_total: 0,
-        refunded_count: 0,
-        failed_count: 0,
+        held_total: (heldAmounts ?? []).reduce(
+          (sum, r) => sum + (r.amount || 0),
+          0
+        ),
+        held_count: heldCount ?? 0,
+        release_pending_count: releasePendingCount ?? 0,
+        refunded_total: (refundedAmounts ?? []).reduce(
+          (sum, r) => sum + (r.amount || 0),
+          0
+        ),
+        refunded_count: refundedCount ?? 0,
+        failed_count: failedCount ?? 0,
       };
-
-      if (statsData) {
-        for (const row of statsData) {
-          switch (row.status) {
-            case 'held':
-              stats.held_total += row.amount || 0;
-              stats.held_count += 1;
-              break;
-            case 'release_pending':
-              stats.release_pending_count += 1;
-              break;
-            case 'refunded':
-              stats.refunded_total += row.amount || 0;
-              stats.refunded_count += 1;
-              break;
-            case 'failed':
-              stats.failed_count += 1;
-              break;
-          }
-        }
-      }
 
       return NextResponse.json({
         success: true,

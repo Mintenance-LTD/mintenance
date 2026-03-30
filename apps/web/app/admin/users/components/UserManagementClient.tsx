@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { UserDetailDialog } from './UserDetailDialog';
 import { BulkActionDialog } from './BulkActionDialog';
+import toast from 'react-hot-toast';
 import { UserManagementFilters } from './UserManagementFilters';
 import { UserManagementTable } from './UserManagementTable';
 import type { User, Pagination } from './UserManagementTypes';
@@ -133,7 +134,7 @@ export function UserManagementClient({
         throw new Error(err.error || 'Failed to perform bulk action');
       }
       const result = await response.json();
-      alert(
+      toast.success(
         `Bulk ${action} completed: ${result.results.successful} successful, ${result.results.failed} failed`
       );
       setSelectedUserIds(new Set());
@@ -142,7 +143,7 @@ export function UserManagementClient({
       fetchUsers(pagination.page);
     } catch (error) {
       logger.error('Error performing bulk action:', error);
-      alert(
+      toast.error(
         error instanceof Error ? error.message : 'Failed to perform bulk action'
       );
     } finally {

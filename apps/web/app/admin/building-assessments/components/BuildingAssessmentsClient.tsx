@@ -259,10 +259,10 @@ export function BuildingAssessmentsClient(
                       marginTop: theme.spacing[1],
                     }}
                   >
-                    Need{' '}
-                    {statistics.minValidatedForAutoValidation -
-                      statistics.validated}{' '}
-                    more validated assessments
+                    {statistics.validated >=
+                    statistics.minValidatedForAutoValidation
+                      ? 'Minimum validations met — auto-validation can be enabled'
+                      : `Need ${statistics.minValidatedForAutoValidation - statistics.validated} more validated assessments`}
                   </div>
                 )}
             </div>

@@ -9,7 +9,7 @@ import { logger } from '@mintenance/shared';
  * Creates a notification for the contractor about the result.
  */
 export const PUT = withApiHandler(
-  { roles: ['admin'] },
+  { roles: ['admin'], rateLimit: { maxRequests: 10 } },
   async (request, { user, params }) => {
     const contractorId = params.id;
 

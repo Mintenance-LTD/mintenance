@@ -11,10 +11,15 @@ import { HomeownerPhotoReview } from './components/HomeownerPhotoReview';
 
 export const metadata: Metadata = {
   title: 'Job Details | Mintenance',
-  description: 'View job details, contractor bids, and project status for your maintenance request.',
+  description:
+    'View job details, contractor bids, and project status for your maintenance request.',
 };
 
-export default async function JobDetailPage2025({ params }: { params: Promise<{ id: string }> }) {
+export default async function JobDetailPage2025({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const resolvedParams = await params;
   const user = await getCurrentUserFromCookies();
 
@@ -29,7 +34,9 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
   // Fetch job details
   const { data: job, error: jobError } = await serverSupabase
     .from('jobs')
-    .select('*, scheduled_start_date, scheduled_end_date, scheduled_duration_hours')
+    .select(
+      '*, scheduled_start_date, scheduled_end_date, scheduled_duration_hours'
+    )
     .eq('id', resolvedParams.id)
     .single();
 
@@ -39,27 +46,46 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
   });
 
   if (jobError || !job) {
-    logger.error('JobDetailPage2025 - Job not found', { jobId: resolvedParams.id });
+    logger.error('JobDetailPage2025 - Job not found', {
+      jobId: resolvedParams.id,
+    });
+    redirect('/jobs');
+  }
+
+  // Authorization: only the job owner or admins can view this page
+  if (user.role !== 'admin' && job.homeowner_id !== user.id) {
+    logger.warn('JobDetailPage2025 - Unauthorized access attempt', {
+      jobId: resolvedParams.id,
+      userId: user.id,
+      homeownerId: job.homeowner_id,
+    });
     redirect('/jobs');
   }
 
   // Fetch related data
-  const { data: property } = job.property_id ? await serverSupabase
-    .from('properties')
-    .select('id, property_name, address')
-    .eq('id', job.property_id)
-    .single() : { data: null };
+  const { data: property } = job.property_id
+    ? await serverSupabase
+        .from('properties')
+        .select('id, property_name, address')
+        .eq('id', job.property_id)
+        .single()
+    : { data: null };
 
-  const { data: contractor } = job.contractor_id ? await serverSupabase
-    .from('profiles')
-    .select('id, first_name, last_name, email, phone, profile_image_url, admin_verified, company_name, license_number')
-    .eq('id', job.contractor_id)
-    .single() : { data: null };
+  const { data: contractor } = job.contractor_id
+    ? await serverSupabase
+        .from('profiles')
+        .select(
+          'id, first_name, last_name, email, phone, profile_image_url, admin_verified, company_name, license_number'
+        )
+        .eq('id', job.contractor_id)
+        .single()
+    : { data: null };
 
   // Fetch bids with contractor info and quote line items
   const { data: bids, error: bidsError } = await serverSupabase
     .from('bids')
-    .select(`
+    .select(
+      `
       id,
       amount,
       description,
@@ -82,15 +108,19 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
         id,
         line_items
       )
-    `)
+    `
+    )
     .eq('job_id', resolvedParams.id);
 
   if (bidsError) {
-    logger.error('JobDetailPage2025 - Bids query error', { jobId: resolvedParams.id, error: bidsError.message });
+    logger.error('JobDetailPage2025 - Bids query error', {
+      jobId: resolvedParams.id,
+      error: bidsError.message,
+    });
   }
 
   // Fetch portfolio images in batch
-  const contractorIds = bids?.map(b => b.contractor_id).filter(Boolean) || [];
+  const contractorIds = bids?.map((b) => b.contractor_id).filter(Boolean) || [];
   const portfolioMap = new Map();
   if (contractorIds.length > 0) {
     const { data: portfolioPosts } = await serverSupabase
@@ -103,34 +133,40 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
       .order('created_at', { ascending: false })
       .limit(100);
 
-    portfolioPosts?.forEach(post => {
+    portfolioPosts?.forEach((post) => {
       if (!portfolioMap.has(post.contractor_id)) {
         portfolioMap.set(post.contractor_id, []);
       }
       const images = (post.media_urls || []).map((url: string) => ({
         url,
         title: post.title || 'Previous Work',
-        category: post.project_category || 'General'
+        category: post.project_category || 'General',
       }));
       portfolioMap.get(post.contractor_id).push(...images);
     });
   }
 
   // Process bids
-  const bidsWithContractors = bids ? bids.map((bid) => {
-    const contractor = Array.isArray(bid.contractor) ? bid.contractor[0] : bid.contractor;
-    const portfolioImages = bid.contractor_id ? (portfolioMap.get(bid.contractor_id) || []).slice(0, 12) : [];
+  const bidsWithContractors = bids
+    ? bids.map((bid) => {
+        const contractor = Array.isArray(bid.contractor)
+          ? bid.contractor[0]
+          : bid.contractor;
+        const portfolioImages = bid.contractor_id
+          ? (portfolioMap.get(bid.contractor_id) || []).slice(0, 12)
+          : [];
 
-    // Extract line items from quote if available
-    const quote = Array.isArray(bid.quote) ? bid.quote[0] : bid.quote;
-    const lineItems = quote?.line_items || [];
+        // Extract line items from quote if available
+        const quote = Array.isArray(bid.quote) ? bid.quote[0] : bid.quote;
+        const lineItems = quote?.line_items || [];
 
-    return {
-      ...bid,
-      contractor: contractor ? { ...contractor, portfolioImages } : null,
-      lineItems,
-    };
-  }) : [];
+        return {
+          ...bid,
+          contractor: contractor ? { ...contractor, portfolioImages } : null,
+          lineItems,
+        };
+      })
+    : [];
 
   // Fetch job photos
   // NOTE: job_attachments uses 'uploaded_at' not 'created_at'
@@ -148,8 +184,12 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
     .in('photo_type', ['before', 'after'])
     .order('created_at', { ascending: true });
 
-  const beforePhotos = (photoEvidence || []).filter(p => p.photo_type === 'before');
-  const afterPhotos = (photoEvidence || []).filter(p => p.photo_type === 'after');
+  const beforePhotos = (photoEvidence || []).filter(
+    (p) => p.photo_type === 'before'
+  );
+  const afterPhotos = (photoEvidence || []).filter(
+    (p) => p.photo_type === 'after'
+  );
 
   // Fetch building assessment
   const { data: buildingAssessment } = await serverSupabase
@@ -187,12 +227,18 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
       admin_verified?: boolean;
       license_number?: string;
       rating?: number;
-      portfolioImages?: Array<{ url: string; title?: string; category?: string }>;
+      portfolioImages?: Array<{
+        url: string;
+        title?: string;
+        category?: string;
+      }>;
     };
   }
 
   // Get accepted bid
-  const acceptedBid = (bidsWithContractors as BidWithContractor[] | null)?.find((bid: BidWithContractor) => bid.status === 'accepted');
+  const acceptedBid = (bidsWithContractors as BidWithContractor[] | null)?.find(
+    (bid: BidWithContractor) => bid.status === 'accepted'
+  );
 
   // Fetch contract
   const { data: contract } = await serverSupabase
@@ -218,9 +264,10 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
 
   const escrowStatus = escrowTransaction?.status || 'none';
 
-  const userDisplayName = user.first_name && user.last_name
-    ? `${user.first_name} ${user.last_name}`.trim()
-    : user.email;
+  const userDisplayName =
+    user.first_name && user.last_name
+      ? `${user.first_name} ${user.last_name}`.trim()
+      : user.email;
 
   const { data: userProfile } = await serverSupabase
     .from('profiles')
@@ -229,36 +276,43 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
     .single();
 
   // Format bids for Professional component
-  const formattedBids = (bidsWithContractors as BidWithContractor[]).map((bid: BidWithContractor) => ({
-    id: bid.id,
-    amount: bid.amount || 0,
-    description: bid.description,
-    status: bid.status,
-    created_at: bid.created_at,
-    quote_id: bid.quote_id,
-    lineItems: bid.lineItems?.map(li => ({ ...li, type: li.type || 'labor' as const })),
-    contractor: {
-      id: bid.contractor?.id || '',
-      first_name: bid.contractor?.first_name,
-      last_name: bid.contractor?.last_name,
-      company_name: bid.contractor?.company_name,
-      email: bid.contractor?.email || '',
-      phone: bid.contractor?.phone,
-      profile_image_url: bid.contractor?.profile_image_url,
-      admin_verified: bid.contractor?.admin_verified,
-      license_number: bid.contractor?.license_number,
-    },
-  }));
+  const formattedBids = (bidsWithContractors as BidWithContractor[]).map(
+    (bid: BidWithContractor) => ({
+      id: bid.id,
+      amount: bid.amount || 0,
+      description: bid.description,
+      status: bid.status,
+      created_at: bid.created_at,
+      quote_id: bid.quote_id,
+      lineItems: bid.lineItems?.map((li) => ({
+        ...li,
+        type: li.type || ('labor' as const),
+      })),
+      contractor: {
+        id: bid.contractor?.id || '',
+        first_name: bid.contractor?.first_name,
+        last_name: bid.contractor?.last_name,
+        company_name: bid.contractor?.company_name,
+        email: bid.contractor?.email || '',
+        phone: bid.contractor?.phone,
+        profile_image_url: bid.contractor?.profile_image_url,
+        admin_verified: bid.contractor?.admin_verified,
+        license_number: bid.contractor?.license_number,
+      },
+    })
+  );
 
   // Prepare homeowner data
-  const homeownerData = userProfile ? {
-    id: user.id,
-    first_name: userProfile.first_name,
-    last_name: userProfile.last_name,
-    email: userProfile.email,
-    phone: userProfile.phone,
-    profile_image_url: userProfile.profile_image_url,
-  } : undefined;
+  const homeownerData = userProfile
+    ? {
+        id: user.id,
+        first_name: userProfile.first_name,
+        last_name: userProfile.last_name,
+        email: userProfile.email,
+        phone: userProfile.phone,
+        profile_image_url: userProfile.profile_image_url,
+      }
+    : undefined;
 
   return (
     <>
@@ -286,16 +340,20 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
           property={property}
           homeowner={homeownerData}
           contractor={contractor}
-          bids={formattedBids as unknown as import('./components/JobDetailsProfessional').JobDetailsProfessionalProps['bids']}
-          photos={photos?.map(p => p.file_url) || []}
+          bids={
+            formattedBids as unknown as import('./components/JobDetailsProfessional').JobDetailsProfessionalProps['bids']
+          }
+          photos={photos?.map((p) => p.file_url) || []}
           currentUserId={user.id}
-          userRole="homeowner"
+          userRole='homeowner'
           buildingAssessment={buildingAssessment}
           lifecycleData={{
             contractStatus,
             escrowStatus,
             bidCount: bidsWithContractors.length,
-            pendingBidCount: bidsWithContractors.filter(b => b.status === 'pending').length,
+            pendingBidCount: bidsWithContractors.filter(
+              (b) => b.status === 'pending'
+            ).length,
             completionConfirmed: !!job.completion_confirmed_by_homeowner,
           }}
         />
@@ -310,10 +368,13 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
           </div>
         )}
         {job.contractor_id && (
-          <div id="contract-section" style={{ marginTop: '24px', maxWidth: '768px' }}>
+          <div
+            id='contract-section'
+            style={{ marginTop: '24px', maxWidth: '768px' }}
+          >
             <ContractManagement
               jobId={job.id}
-              userRole="homeowner"
+              userRole='homeowner'
               userId={user.id}
             />
           </div>

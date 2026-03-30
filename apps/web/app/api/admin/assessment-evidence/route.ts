@@ -8,7 +8,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
  * Query: ?assessmentId=<uuid> (required)
  */
 export const GET = withApiHandler(
-  { roles: ['admin'] },
+  { roles: ['admin'], rateLimit: { maxRequests: 10 } },
   async (request) => {
     const assessmentId = request.nextUrl.searchParams.get('assessmentId');
 
@@ -21,7 +21,9 @@ export const GET = withApiHandler(
 
     const { data: evidence, error } = await serverSupabase
       .from('assessment_evidence')
-      .select('id, tool_name, step_index, input_refs, output_summary, confidence_aggregate, created_at')
+      .select(
+        'id, tool_name, step_index, input_refs, output_summary, confidence_aggregate, created_at'
+      )
       .eq('assessment_id', assessmentId)
       .order('step_index', { ascending: true });
 
@@ -32,9 +34,8 @@ export const GET = withApiHandler(
     return NextResponse.json({
       assessmentId,
       evidence: evidence ?? [],
-      categories: evidence?.find((e) => e.tool_name === 'detect')?.output_summary as
-        | { damageTypesDetected?: string[] }
-        | undefined,
+      categories: evidence?.find((e) => e.tool_name === 'detect')
+        ?.output_summary as { damageTypesDetected?: string[] } | undefined,
     });
   }
 );

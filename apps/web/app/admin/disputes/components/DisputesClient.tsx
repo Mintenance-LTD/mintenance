@@ -99,13 +99,16 @@ export function DisputesClient() {
   );
 
   useEffect(() => {
+    const abortController = new AbortController();
     fetchDisputes(1);
-  }, [fetchDisputes]);
-
-  useEffect(() => {
-    const interval = setInterval(() => fetchDisputes(pagination.page), 30000);
-    return () => clearInterval(interval);
-  }, [fetchDisputes, pagination.page]);
+    const interval = setInterval(() => {
+      if (!document.hidden) fetchDisputes(pagination.page);
+    }, 30000);
+    return () => {
+      abortController.abort();
+      clearInterval(interval);
+    };
+  }, [fetchDisputes]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleResolve = async () => {
     if (!selectedDispute) return;
@@ -223,6 +226,7 @@ export function DisputesClient() {
           </div>
         ) : disputes.length === 0 ? (
           <div
+            role='status'
             style={{
               padding: '64px 16px',
               display: 'flex',

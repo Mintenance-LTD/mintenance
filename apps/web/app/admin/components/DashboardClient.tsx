@@ -91,28 +91,39 @@ export function DashboardClient({
     setLastUpdated(new Date());
   }, []);
 
-  // Real-time polling (every 30 seconds)
+  // Real-time polling (every 30 seconds) with abort cleanup
   useEffect(() => {
+    const abortCtrl = new AbortController();
+
     const fetchMetrics = async () => {
       setLoading(true);
       try {
-        const response = await fetch('/api/admin/dashboard/metrics');
+        const response = await fetch('/api/admin/dashboard/metrics', {
+          signal: abortCtrl.signal,
+        });
         if (response.ok) {
           const data = await response.json();
           setMetrics(data);
           setLastUpdated(new Date());
         }
       } catch (error) {
-        logger.error('Error fetching dashboard metrics:', error);
+        if ((error as Error).name !== 'AbortError') {
+          logger.error('Error fetching dashboard metrics:', error);
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchMetrics(); // Initial fetch
-    const interval = setInterval(fetchMetrics, 30000); // 30 seconds
+    fetchMetrics();
+    const interval = setInterval(() => {
+      if (!document.hidden) fetchMetrics();
+    }, 30000);
 
-    return () => clearInterval(interval);
+    return () => {
+      abortCtrl.abort();
+      clearInterval(interval);
+    };
   }, []);
 
   return (
