@@ -48,7 +48,7 @@ export class TimeTrackingService {
       }
 
       const { data, error } = await supabase
-        .from('time_entries')
+        .from('contractor_time_entries')
         .select('*')
         .eq('contractor_id', userId)
         .order('created_at', { ascending: false });

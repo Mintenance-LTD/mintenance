@@ -1,11 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import {
-  TouchableOpacity,
-  StyleSheet,
-  View,
-  ActivityIndicator,
-  ViewStyle,
-} from 'react-native';
+import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import {
   useSafeAreaInsets,
   SafeAreaView,
@@ -60,6 +54,16 @@ import { QuickJobModal } from '../screens/job-posting/QuickJobModal';
 
 // Import messaging hook for unread badge count
 import { useUnreadMessageCount } from '../hooks/useMessaging';
+
+// Import tab screen options
+import {
+  getHomeTabOptions,
+  getJobsTabOptions,
+  getAddTabOptions,
+  getBusinessTabOptions,
+  getMessagingTabOptions,
+  getProfileTabOptions,
+} from './tabScreenOptions';
 
 // Import booking screens for root stack
 import { RescheduleBookingScreen } from '../screens/booking/RescheduleBookingScreen';
@@ -164,91 +168,23 @@ const TabNavigator: React.FC = () => {
         <Tab.Screen
           name='HomeTab'
           component={SafeHomeScreen}
-          options={{
-            tabBarLabel: 'Home',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name='home' size={size} color={color} />
-            ),
-            tabBarAccessibilityLabel: 'Home tab',
-            tabBarButton: ({ onPress, style, children, ...rest }) => (
-              <TouchableOpacity
-                onPress={(e) => {
-                  handleTabPress();
-                  onPress?.(e);
-                }}
-                accessibilityRole='tab'
-                accessibilityLabel='Home tab'
-                accessibilityHint='Navigate to home screen'
-                style={[style as ViewStyle, { minHeight: 44, minWidth: 44 }]}
-              >
-                {children}
-              </TouchableOpacity>
-            ),
-          }}
+          options={getHomeTabOptions(handleTabPress)}
         />
 
         <Tab.Screen
           name='JobsTab'
           component={JobsNavigator}
-          options={{
-            tabBarLabel: 'Jobs',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name='briefcase' size={size} color={color} />
-            ),
-            tabBarAccessibilityLabel: 'Jobs tab',
-            tabBarButton: ({ onPress, style, children, ...rest }) => (
-              <TouchableOpacity
-                onPress={(e) => {
-                  handleTabPress();
-                  onPress?.(e);
-                }}
-                accessibilityRole='tab'
-                accessibilityLabel='Jobs tab'
-                accessibilityHint='Navigate to jobs'
-                style={[style as ViewStyle, { minHeight: 44, minWidth: 44 }]}
-              >
-                {children}
-              </TouchableOpacity>
-            ),
-          }}
+          options={getJobsTabOptions(handleTabPress)}
         />
 
         <Tab.Screen
           name='AddTab'
           component={AddActionScreen}
-          options={{
-            tabBarLabel: '',
-            tabBarIcon: () => <FloatingActionButton />,
-            tabBarAccessibilityLabel:
-              user?.role === 'homeowner'
-                ? 'Create service request'
-                : 'Find jobs near you',
-            tabBarButton: ({ onPress, style, children, ...rest }) => (
-              <TouchableOpacity
-                onPress={(e) => {
-                  handleTabPress();
-                  onPress?.(e);
-                }}
-                accessibilityRole='button'
-                accessibilityLabel={
-                  user?.role === 'homeowner'
-                    ? 'Create service request'
-                    : 'Find jobs near you'
-                }
-                style={[
-                  style as ViewStyle,
-                  {
-                    minHeight: 64,
-                    minWidth: 64,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  },
-                ]}
-              >
-                {children}
-              </TouchableOpacity>
-            ),
-          }}
+          options={getAddTabOptions(
+            handleTabPress,
+            user?.role,
+            <FloatingActionButton />
+          )}
           listeners={({
             navigation,
           }: {
@@ -280,84 +216,20 @@ const TabNavigator: React.FC = () => {
           <Tab.Screen
             name='BusinessTab'
             component={BusinessNavigator}
-            options={{
-              tabBarLabel: 'Business',
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name='briefcase' size={size} color={color} />
-              ),
-              tabBarAccessibilityLabel: 'Business tools tab',
-              tabBarButton: ({ onPress, style, children, ...rest }) => (
-                <TouchableOpacity
-                  onPress={(e) => {
-                    handleTabPress();
-                    onPress?.(e);
-                  }}
-                  accessibilityRole='tab'
-                  accessibilityLabel='Business tools'
-                  accessibilityHint='Access invoices, quotes, finance, and other business tools'
-                  style={[style as ViewStyle, { minHeight: 44, minWidth: 44 }]}
-                >
-                  {children}
-                </TouchableOpacity>
-              ),
-            }}
+            options={getBusinessTabOptions(handleTabPress)}
           />
         )}
 
         <Tab.Screen
           name='MessagingTab'
           component={MessagingNavigator}
-          options={{
-            tabBarLabel: 'Messages',
-            tabBarBadge:
-              unreadMessageCount && unreadMessageCount > 0
-                ? unreadMessageCount
-                : undefined,
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name='chatbubbles' size={size} color={color} />
-            ),
-            tabBarAccessibilityLabel: 'Messages tab',
-            tabBarButton: ({ onPress, style, children, ...rest }) => (
-              <TouchableOpacity
-                onPress={(e) => {
-                  handleTabPress();
-                  onPress?.(e);
-                }}
-                accessibilityRole='tab'
-                accessibilityLabel='Messages tab'
-                accessibilityHint='Navigate to messages and conversations'
-                style={[style as ViewStyle, { minHeight: 44, minWidth: 44 }]}
-              >
-                {children}
-              </TouchableOpacity>
-            ),
-          }}
+          options={getMessagingTabOptions(handleTabPress, unreadMessageCount)}
         />
 
         <Tab.Screen
           name='ProfileTab'
           component={ProfileNavigator}
-          options={{
-            tabBarLabel: 'Profile',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name='person' size={size} color={color} />
-            ),
-            tabBarAccessibilityLabel: 'Profile tab',
-            tabBarButton: ({ onPress, style, children, ...rest }) => (
-              <TouchableOpacity
-                onPress={(e) => {
-                  handleTabPress();
-                  onPress?.(e);
-                }}
-                accessibilityRole='tab'
-                accessibilityLabel='Profile tab'
-                accessibilityHint='Navigate to your profile and settings'
-                style={[style as ViewStyle, { minHeight: 44, minWidth: 44 }]}
-              >
-                {children}
-              </TouchableOpacity>
-            ),
-          }}
+          options={getProfileTabOptions(handleTabPress)}
         />
       </Tab.Navigator>
     </>
