@@ -17,6 +17,11 @@ function run(cmd, opts = {}) {
 }
 
 console.log('=== Mintenance Build ===');
+console.log('=== Cleaning stale dist directories ===');
+run(
+  'rm -rf packages/shared/dist packages/types/dist packages/auth/dist packages/design-tokens/dist packages/security/dist packages/shared-ui/dist',
+  { allowFailure: true }
+);
 console.log('=== Building shared packages ===');
 run('npm run build --workspace=packages/shared --if-present', {
   allowFailure: true,
