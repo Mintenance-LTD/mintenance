@@ -258,7 +258,7 @@ const JobsScreen: React.FC = () => {
       onBid={() => navigation.navigate('BidSubmission', { jobId: item.id })}
       bidCount={item.bids?.length}
       isContractor={isContractor}
-      hasUserBid={bidJobIds.has(item.id)}
+      hasUserBid={selectedFilter === 'bid' || bidJobIds.has(item.id)}
     />
   );
 
