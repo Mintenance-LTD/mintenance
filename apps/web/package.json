@@ -88,7 +88,7 @@
     "dompurify": "^3.1.2",
     "dotenv": "^17.2.3",
     "embla-carousel-react": "^8.6.0",
-    "file-type": "^21.3.0",
+    "file-type": "^22.0.0",
     "framer-motion": "^12.23.24",
     "google-auth-library": "^9.9.0",
     "html2canvas": "^1.4.1",
