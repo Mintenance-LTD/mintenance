@@ -3,7 +3,11 @@ import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { JobStatusAgent } from '@/lib/services/agents/JobStatusAgent';
 import { logger } from '@mintenance/shared';
-import { BadRequestError, NotFoundError, ForbiddenError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  NotFoundError,
+  ForbiddenError,
+} from '@/lib/errors/api-error';
 import { EmailService } from '@/lib/email-service';
 import { sanitizeMessage } from '@/lib/sanitizer';
 import {
@@ -16,8 +20,18 @@ import { validateRequest } from '@/lib/validation/validator';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const bodySchema = z.object({
-  content: z.string().trim().min(1).optional().transform(val => val ? sanitizeMessage(val) : val),
-  messageText: z.string().trim().min(1).optional().transform(val => val ? sanitizeMessage(val) : val),
+  content: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .transform((val) => (val ? sanitizeMessage(val) : val)),
+  messageText: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .transform((val) => (val ? sanitizeMessage(val) : val)),
   receiverId: z.string().uuid().optional(),
   messageType: z.enum(MESSAGE_TYPES).optional(),
   attachments: z.array(z.string().trim().min(1)).optional(),
@@ -46,7 +60,9 @@ export const GET = withApiHandler(
     // Fetch messages directly by job_id (actual DB schema)
     const { data: messageData, error: messagesError } = await serverSupabase
       .from('messages')
-      .select('id, job_id, sender_id, receiver_id, content, message_type, attachment_url, read, created_at')
+      .select(
+        'id, job_id, sender_id, receiver_id, content, message_type, attachment_url, read, created_at'
+      )
       .eq('job_id', jobId)
       .order('created_at', { ascending: true });
 
@@ -102,13 +118,17 @@ export const POST = withApiHandler(
       throw new NotFoundError('Thread not found');
     }
 
-    const isParticipant = jobData.homeowner_id === user.id || jobData.contractor_id === user.id;
+    const isParticipant =
+      jobData.homeowner_id === user.id || jobData.contractor_id === user.id;
     if (!isParticipant) {
       throw new ForbiddenError('You are not a participant in this thread');
     }
 
-    const receiverId = data.receiverId
-      ?? (jobData.homeowner_id === user.id ? jobData.contractor_id : jobData.homeowner_id);
+    const receiverId =
+      data.receiverId ??
+      (jobData.homeowner_id === user.id
+        ? jobData.contractor_id
+        : jobData.homeowner_id);
 
     const messageType = normalizeMessageType(data.messageType);
     const attachmentUrl = data.attachments?.[0];
@@ -123,8 +143,18 @@ export const POST = withApiHandler(
         throw new BadRequestError('Attachment must be from official storage');
       }
       const pathname = new URL(attachmentUrl).pathname.toLowerCase();
-      const allowedExtensions = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic'];
-      if (!allowedExtensions.some(ext => pathname.endsWith(ext))) {
+      const allowedExtensions = [
+        '.pdf',
+        '.doc',
+        '.docx',
+        '.jpg',
+        '.jpeg',
+        '.png',
+        '.gif',
+        '.webp',
+        '.heic',
+      ];
+      if (!allowedExtensions.some((ext) => pathname.endsWith(ext))) {
         throw new BadRequestError('File type not allowed');
       }
     }
@@ -143,7 +173,9 @@ export const POST = withApiHandler(
     const { data: inserted, error: insertError } = await serverSupabase
       .from('messages')
       .insert(insertPayload)
-      .select('id, job_id, sender_id, receiver_id, content, message_type, attachment_url, read, created_at')
+      .select(
+        'id, job_id, sender_id, receiver_id, content, message_type, attachment_url, read, created_at'
+      )
       .single();
 
     if (insertError) {
@@ -195,24 +227,22 @@ export const POST = withApiHandler(
           .single();
 
         const senderName = senderData
-          ? (senderData.first_name && senderData.last_name
-              ? `${senderData.first_name} ${senderData.last_name}`
-              : senderData.company_name || 'Someone')
+          ? senderData.first_name && senderData.last_name
+            ? `${senderData.first_name} ${senderData.last_name}`
+            : senderData.company_name || 'Someone'
           : 'Someone';
 
         const messagePreview = messageText.substring(0, 80);
 
-        await serverSupabase
-          .from('notifications')
-          .insert({
-            user_id: receiverId,
-            title: 'New Message',
-            message: `${senderName}: ${messagePreview}${messageText.length > 80 ? '...' : ''}`,
-            type: 'message_received',
-            read: false,
-            action_url: `/messages?jobId=${jobId}`,
-            created_at: new Date().toISOString(),
-          });
+        await serverSupabase.from('notifications').insert({
+          user_id: receiverId,
+          title: 'New Message',
+          message: `${senderName}: ${messagePreview}${messageText.length > 80 ? '...' : ''}`,
+          type: 'message_received',
+          read: false,
+          action_url: `/messages?jobId=${jobId}`,
+          created_at: new Date().toISOString(),
+        });
         // Send email notification to the receiver
         try {
           const { data: receiverProfile } = await serverSupabase
@@ -227,7 +257,8 @@ export const POST = withApiHandler(
               recipientName: receiverProfile.first_name || 'there',
               senderName,
               jobTitle,
-              messagePreview: messagePreview + (messageText.length > 80 ? '...' : ''),
+              messagePreview:
+                messagePreview + (messageText.length > 80 ? '...' : ''),
               viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://mintenance.com')}/messages?jobId=${jobId}`,
             });
           }
@@ -238,12 +269,35 @@ export const POST = withApiHandler(
             jobId,
           });
         }
+        // Send push notification to the receiver's device
+        try {
+          const { NotificationService: PushService } =
+            await import('@/lib/services/notifications/NotificationService');
+          await PushService.createNotification({
+            userId: receiverId,
+            title: `${senderName}`,
+            message: messagePreview + (messageText.length > 80 ? '...' : ''),
+            type: 'message_received',
+            actionUrl: `/messages?jobId=${jobId}`,
+          });
+        } catch (pushError) {
+          logger.error('Message POST push notification error', pushError, {
+            service: 'messages',
+            receiverId,
+            jobId,
+          });
+          // Push failure should not block message send
+        }
       } catch (notificationError) {
-        logger.error('Message POST notification creation error', notificationError, {
-          service: 'messages',
-          receiverId,
-          jobId,
-        });
+        logger.error(
+          'Message POST notification creation error',
+          notificationError,
+          {
+            service: 'messages',
+            receiverId,
+            jobId,
+          }
+        );
       }
     }
 
