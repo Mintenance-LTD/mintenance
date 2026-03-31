@@ -2,17 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Icon } from '@/components/ui/Icon';
-import Logo from '@/app/components/Logo';
 import { SessionManager } from '@/lib/session-manager';
 import { logger } from '@/lib/logger';
 import { getCsrfHeaders } from '@/lib/csrf-client';
-import { theme } from '@/lib/theme';
-import styles from './UnifiedSidebar.module.css';
 import { AdminNotificationBell } from '@/components/admin/AdminNotificationBell';
-
 import { adminNavSections } from './adminNavConfig';
-import { AdminNavSection } from './AdminNavItem';
+import type { NavItem, NavSection } from './adminNavConfig';
 
 interface AdminLayoutShellProps {
   children: React.ReactNode;
@@ -26,31 +23,22 @@ interface AdminLayoutShellProps {
 }
 
 export function AdminLayoutShell(props: AdminLayoutShellProps) {
-  // Defensive prop destructuring with defaults to prevent test crashes
   const { children, user = { id: '', email: '', role: 'admin' as const } } =
     props || {};
   const pathname = usePathname();
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const handleLogout = async (): Promise<void> => {
     if (isLoggingOut) return;
-
     setIsLoggingOut(true);
     try {
       const sessionManager = SessionManager.getInstance();
       sessionManager.clearSession();
       await fetch('/api/auth/logout', {
         method: 'POST',
-        headers: {
-          ...(await getCsrfHeaders()),
-        },
+        headers: { ...(await getCsrfHeaders()) },
       });
       router.push('/admin/login');
       router.refresh();
@@ -64,9 +52,7 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
 
   const isActive = (href: string) => {
     if (!pathname) return false;
-    if (href === '/admin') {
-      return pathname === '/admin';
-    }
+    if (href === '/admin') return pathname === '/admin';
     return pathname.startsWith(href);
   };
 
@@ -76,17 +62,11 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
       : user.email.charAt(0).toUpperCase();
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        backgroundColor: '#F9FAFB',
-      }}
-    >
-      {/* Skip to content link for keyboard users */}
+    <div className='flex min-h-screen bg-[#f7f9fb]'>
+      {/* Skip to content */}
       <a
         href='#main-content'
-        className='sr-only focus:not-sr-only focus:absolute focus:z-[9999] focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-white focus:text-purple-700 focus:rounded-lg focus:shadow-lg focus:font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500'
+        className='sr-only focus:not-sr-only focus:absolute focus:z-[9999] focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-white focus:text-[#565e74] focus:rounded-lg focus:shadow-lg focus:font-semibold'
       >
         Skip to content
       </a>
@@ -94,86 +74,37 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
       {/* Sidebar */}
       <aside
         aria-label='Admin navigation sidebar'
-        style={{
-          width: isCollapsed ? '80px' : '280px',
-          backgroundColor: theme.colors.navy[950],
-          color: '#FFFFFF',
-          display: 'flex',
-          flexDirection: 'column',
-          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          position: 'fixed',
-          height: '100vh',
-          zIndex: 1000,
-          overflowY: 'auto',
-          boxShadow: '2px 0 8px rgba(0, 0, 0, 0.1)',
-        }}
+        className={`fixed left-0 top-0 h-screen z-50 flex flex-col bg-slate-950 shadow-[20px_0_50px_rgba(0,0,0,0.2)] transition-all duration-300 ${
+          isCollapsed ? 'w-20' : 'w-64'
+        }`}
       >
-        {/* Logo Section */}
-        <div
-          className={styles.logoSection}
-          style={{
-            padding: theme.spacing[4],
-            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            minHeight: '64px',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing[3],
-            }}
-          >
-            <Logo />
+        {/* Logo */}
+        <div className='px-6 py-5 flex items-center justify-between'>
+          <div className='flex items-center gap-3'>
+            <div className='w-8 h-8 rounded-lg bg-[#565e74] flex items-center justify-center flex-shrink-0'>
+              <Icon name='building' size={16} color='#dae2fd' />
+            </div>
             {!isCollapsed && (
-              <span
-                className={styles.logoText}
-                style={{
-                  fontSize: theme.typography.fontSize.xl,
-                  fontWeight: theme.typography.fontWeight.bold,
-                  color: theme.colors.primary,
-                }}
-              >
-                Mintenance
-              </span>
+              <div>
+                <h1 className='text-xl font-bold tracking-tighter text-white leading-none'>
+                  Mintenance
+                </h1>
+                <p className='text-[10px] text-slate-500 uppercase tracking-widest mt-0.5'>
+                  Admin Console
+                </p>
+              </div>
             )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className='flex items-center gap-2'>
             {!isCollapsed && <AdminNotificationBell userId={user.id} />}
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
               aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                border: 'none',
-                color: 'rgba(255, 255, 255, 0.6)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                flexShrink: 0,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor =
-                  'rgba(255, 255, 255, 0.2)';
-                e.currentTarget.style.color = '#FFFFFF';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor =
-                  'rgba(255, 255, 255, 0.1)';
-                e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)';
-              }}
+              className='w-7 h-7 rounded-full bg-white/10 text-white/60 flex items-center justify-center hover:bg-white/20 hover:text-white transition-all flex-shrink-0'
             >
               <Icon
                 name={isCollapsed ? 'chevronRight' : 'chevronLeft'}
-                size={16}
+                size={14}
                 color='currentColor'
               />
             </button>
@@ -183,14 +114,10 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
         {/* Navigation */}
         <nav
           aria-label='Admin main navigation'
-          style={{
-            flex: 1,
-            padding: theme.spacing[2],
-            overflowY: 'auto',
-          }}
+          className='flex-1 px-3 py-2 overflow-y-auto'
         >
           {adminNavSections.map((section) => (
-            <AdminNavSection
+            <SidebarSection
               key={section.title || 'top'}
               section={section}
               isCollapsed={isCollapsed}
@@ -199,64 +126,20 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
           ))}
         </nav>
 
-        {/* User Section */}
-        <div
-          style={{
-            padding: theme.spacing[4],
-            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing[3],
-              marginBottom: theme.spacing[4],
-            }}
-          >
-            <div
-              aria-hidden='true'
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                backgroundColor: theme.colors.primary,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#FFFFFF',
-                fontWeight: theme.typography.fontWeight.bold,
-                fontSize: theme.typography.fontSize.sm,
-              }}
-            >
+        {/* User + Logout */}
+        <div className='px-4 py-4 border-t border-white/10 mt-auto'>
+          <div className='flex items-center gap-3 mb-4'>
+            <div className='w-10 h-10 rounded-full bg-[#565e74] flex items-center justify-center text-white font-bold text-sm flex-shrink-0'>
               {userInitials}
             </div>
             {!isCollapsed && (
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p
-                  style={{
-                    fontSize: theme.typography.fontSize.sm,
-                    fontWeight: theme.typography.fontWeight.semibold,
-                    color: '#FFFFFF',
-                    margin: 0,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
+              <div className='flex-1 min-w-0'>
+                <p className='text-sm font-semibold text-white truncate'>
                   {user.first_name && user.last_name
                     ? `${user.first_name} ${user.last_name}`
                     : user.email}
                 </p>
-                <p
-                  style={{
-                    fontSize: theme.typography.fontSize.xs,
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    margin: 0,
-                  }}
-                >
-                  Admin
-                </p>
+                <p className='text-[10px] text-slate-500 truncate'>Admin</p>
               </div>
             )}
           </div>
@@ -264,23 +147,11 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
             onClick={handleLogout}
             disabled={isLoggingOut}
             aria-label='Log out of admin panel'
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing[3],
-              padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-              backgroundColor: 'transparent',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              borderRadius: theme.borderRadius.md,
-              color: '#FFFFFF',
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              cursor: isLoggingOut ? 'not-allowed' : 'pointer',
-              opacity: isLoggingOut ? 0.5 : 1,
-            }}
+            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all text-sm ${
+              isLoggingOut ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
-            <Icon name='logOut' size={20} color='#FFFFFF' />
+            <Icon name='logOut' size={18} color='currentColor' />
             {!isCollapsed && <span>Log Out</span>}
           </button>
         </div>
@@ -290,15 +161,89 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
       <main
         id='main-content'
         role='main'
-        style={{
-          flex: 1,
-          marginLeft: isCollapsed ? '80px' : '280px',
-          transition: 'margin-left 0.3s ease',
-          minHeight: '100vh',
-        }}
+        className={`flex-1 min-h-screen transition-all duration-300 ${
+          isCollapsed ? 'ml-20' : 'ml-64'
+        }`}
       >
         {children}
       </main>
     </div>
+  );
+}
+
+/* ── Sidebar sub-components ──────────────────────────────────────────── */
+
+function SidebarSection({
+  section,
+  isCollapsed,
+  isActive,
+}: {
+  section: NavSection;
+  isCollapsed: boolean;
+  isActive: (href: string) => boolean;
+}) {
+  return (
+    <div className='mb-1'>
+      {section.title && !isCollapsed && (
+        <>
+          <div className='h-px bg-white/[0.08] mx-2 my-2' />
+          <p className='text-[10px] font-bold uppercase tracking-widest text-slate-500 px-4 py-1'>
+            {section.title}
+          </p>
+        </>
+      )}
+      {section.title && isCollapsed && (
+        <div className='h-px bg-white/[0.08] mx-3 my-2' />
+      )}
+      {section.items.map((item) => (
+        <SidebarLink
+          key={item.href}
+          item={item}
+          isCollapsed={isCollapsed}
+          active={isActive(item.href)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function SidebarLink({
+  item,
+  isCollapsed,
+  active,
+}: {
+  item: NavItem;
+  isCollapsed: boolean;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={item.href}
+      prefetch={true}
+      aria-current={active ? 'page' : undefined}
+      className={`flex items-center gap-3 px-4 py-2.5 my-0.5 rounded-lg text-sm transition-all ${
+        active
+          ? 'bg-white/[0.08] text-[#dae2fd] font-semibold'
+          : 'text-slate-400 hover:text-slate-100 hover:bg-white/[0.05]'
+      }`}
+    >
+      <div className='w-5 h-5 flex items-center justify-center flex-shrink-0'>
+        <Icon
+          name={item.icon}
+          size={18}
+          color={active ? '#dae2fd' : 'currentColor'}
+        />
+      </div>
+      {!isCollapsed && (
+        <>
+          <span className='flex-1'>{item.label}</span>
+          {item.badge && (
+            <span className='text-[10px] font-bold bg-red-500/90 text-white rounded-full px-1.5 min-w-[18px] text-center leading-[16px]'>
+              !
+            </span>
+          )}
+        </>
+      )}
+    </Link>
   );
 }
