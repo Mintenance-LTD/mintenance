@@ -56,40 +56,74 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
     if (!user) return;
     try {
       setError(null);
-      const { data, error } = await supabase
+
+      // Step 1: Get all jobs where this contractor is assigned
+      const { data: jobsRaw, error: jobsErr } = await supabase
         .from('jobs')
         .select(
-          'id, homeowner_id, status, title, created_at, completed_at, budget, final_price, homeowner:profiles!homeowner_id(id, first_name, last_name, email, phone, profile_image_url)'
+          'id, homeowner_id, status, title, created_at, completed_at, budget, final_price'
         )
         .eq('contractor_id', user.id)
         .order('created_at', { ascending: false });
-      if (error) throw new Error(error.message);
+      if (jobsErr) throw new Error(jobsErr.message);
 
-      // Also fetch jobs from accepted bids (like the web version does)
-      const { data: bidsData } = await supabase
+      // Step 2: Get job IDs from accepted bids (covers jobs not yet assigned)
+      const { data: bidsRaw } = await supabase
         .from('bids')
         .select(
-          'id, status, amount, created_at, job:job_id(id, homeowner_id, status, title, created_at, completed_at, budget, final_price, homeowner:homeowner_id(id, first_name, last_name, email, phone, profile_image_url))'
+          'job_id, job:jobs!job_id(id, homeowner_id, status, title, created_at, completed_at, budget, final_price)'
         )
         .eq('contractor_id', user.id)
         .eq('status', 'accepted');
 
-      // Merge bid-sourced jobs that aren't already in the direct jobs list
-      const jobIdsFromJobs = new Set(
-        (data || []).map((j: Record<string, unknown>) => j.id)
-      );
-      const bidJobs = (bidsData || [])
-        .map((b: Record<string, unknown>) => b.job)
-        .filter(
-          (j: unknown) =>
-            j && !jobIdsFromJobs.has((j as Record<string, unknown>).id)
-        );
+      // Merge — deduplicate by job ID
+      const jobMap = new Map<string, Record<string, unknown>>();
+      for (const j of jobsRaw || []) {
+        jobMap.set(j.id, j as Record<string, unknown>);
+      }
+      for (const b of bidsRaw || []) {
+        const j = (b as Record<string, unknown>).job as Record<
+          string,
+          unknown
+        > | null;
+        if (j?.id && !jobMap.has(j.id as string)) jobMap.set(j.id as string, j);
+      }
 
-      const allJobs: JobRecord[] = [...(data || []), ...bidJobs].map((j) => ({
-        ...(j as Record<string, unknown>),
-        homeowner: (j as Record<string, unknown>)
-          .homeowner as JobRecord['homeowner'],
-      })) as JobRecord[];
+      // Step 3: Collect unique homeowner IDs and fetch profiles separately
+      const homeownerIds = [
+        ...new Set(
+          [...jobMap.values()]
+            .map((j) => j.homeowner_id as string)
+            .filter(Boolean)
+        ),
+      ];
+
+      const profileMap = new Map<string, Record<string, unknown>>();
+      if (homeownerIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, email, phone, profile_image_url')
+          .in('id', homeownerIds);
+        for (const p of profiles || []) {
+          profileMap.set(p.id, p as Record<string, unknown>);
+        }
+      }
+
+      // Step 4: Assemble JobRecord[] with homeowner data attached
+      const allJobs: JobRecord[] = [...jobMap.values()].map((j) => ({
+        id: j.id as string,
+        homeowner_id: j.homeowner_id as string,
+        status: j.status as string,
+        title: j.title as string | undefined,
+        created_at: j.created_at as string,
+        completed_at: j.completed_at as string | undefined,
+        budget: j.budget as number | undefined,
+        final_price: j.final_price as number | undefined,
+        homeowner: profileMap.get(
+          j.homeowner_id as string
+        ) as JobRecord['homeowner'],
+      }));
+
       setClients(deriveClients(allJobs));
     } catch (err) {
       logger.error('Error loading CRM data', err);
