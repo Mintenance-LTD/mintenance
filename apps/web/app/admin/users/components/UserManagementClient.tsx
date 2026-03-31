@@ -5,7 +5,6 @@ import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { Button } from '@/components/ui/Button';
-import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
 import { UserDetailDialog } from './UserDetailDialog';
 import { BulkActionDialog } from './BulkActionDialog';

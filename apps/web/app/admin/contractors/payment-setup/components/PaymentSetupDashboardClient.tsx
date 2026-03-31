@@ -6,7 +6,6 @@ import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
-import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 
@@ -63,38 +62,17 @@ export function PaymentSetupDashboardClient({ contractors }: Props) {
   );
 
   return (
-    <div
-      style={{
-        padding: theme.spacing[8],
-        maxWidth: '1440px',
-        margin: '0 auto',
-        width: '100%',
-      }}
-    >
-      <AdminPageHeader
-        title='Contractors Needing Payment Setup'
-        subtitle="Contractors with pending escrow payments who haven't completed payment account setup"
-        quickStats={[
-          {
-            label: 'contractors',
-            value: contractors.length,
-            icon: 'users',
-            color: theme.colors.warning,
-          },
-          {
-            label: 'pending escrows',
-            value: totalPendingEscrows,
-            icon: 'clock',
-            color: '#F59E0B',
-          },
-          {
-            label: 'total amount',
-            value: `£${totalPendingAmount.toFixed(0)}`,
-            icon: 'currencyPound',
-            color: theme.colors.success,
-          },
-        ]}
-      />
+    <div className='min-h-screen bg-[#f7f9fb] px-6 md:px-10 py-8 max-w-[1440px] mx-auto space-y-8'>
+      {/* Page Header */}
+      <div>
+        <h2 className='text-[2.75rem] font-extrabold tracking-tight text-[#2a3439] leading-tight'>
+          Payment Setup
+        </h2>
+        <p className='text-[#566166] text-lg mt-2'>
+          Contractors with pending escrow payments who haven&apos;t completed
+          payment account setup.
+        </p>
+      </div>
 
       {/* Summary Cards */}
       <div

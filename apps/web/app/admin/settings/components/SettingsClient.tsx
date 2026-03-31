@@ -6,7 +6,6 @@ import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card.unified';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PlatformSetting } from '@/lib/services/admin/PlatformSettingsService';
-import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { RenderSettingInput } from './RenderSettingInput';
 
@@ -265,26 +264,17 @@ export function SettingsClient({
   );
 
   return (
-    <div
-      style={{
-        padding: theme.spacing[8],
-        maxWidth: '1440px',
-        margin: '0 auto',
-        width: '100%',
-      }}
-    >
-      <AdminPageHeader
-        title='Platform Settings'
-        subtitle='Configure platform-wide settings and preferences'
-        quickStats={[
-          {
-            label: 'total settings',
-            value: totalSettings,
-            icon: 'settings',
-            color: theme.colors.primary,
-          },
-        ]}
-      />
+    <div className='min-h-screen bg-[#f7f9fb] px-6 md:px-10 py-8 max-w-[1440px] mx-auto space-y-8'>
+      {/* Page Header */}
+      <div className='mb-2'>
+        <h2 className='text-[2.75rem] font-extrabold tracking-tight text-[#2a3439] leading-tight'>
+          Platform Settings
+        </h2>
+        <p className='text-[#566166] text-lg mt-2'>
+          Configure platform-wide settings and preferences. {totalSettings}{' '}
+          settings available.
+        </p>
+      </div>
 
       {renderCategory('General Settings', settings.general, 'settings')}
       {renderCategory('Email Settings', settings.email, 'mail')}

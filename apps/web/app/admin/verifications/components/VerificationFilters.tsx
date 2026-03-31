@@ -4,7 +4,6 @@ import React from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { AdminCard } from '@/components/admin/AdminCard';
-import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
 import type { Stats, StatusFilter } from './types';
 

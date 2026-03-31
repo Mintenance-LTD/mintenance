@@ -5,7 +5,6 @@ import { CircleDollarSign } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
-import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
 import { Icon } from '@/components/ui/Icon';
 import { logger } from '@mintenance/shared';

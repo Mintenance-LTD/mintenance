@@ -35,7 +35,6 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CheckCircle2 } from 'lucide-react';
 import { AdminAnnouncement } from '@/lib/services/admin/AdminCommunicationService';
-import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { logger } from '@mintenance/shared';
 
