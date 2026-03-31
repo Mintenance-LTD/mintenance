@@ -62,19 +62,19 @@ export const StatsSection: React.FC<StatsSectionProps> = ({ stats }) => {
 
   return (
     <View style={styles.container}>
-      {/* Hero portfolio card — full width, gradient */}
-      <LinearGradient
-        colors={gradients.heroGreen}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.heroCard}
-      >
-        {/* Glass decoration */}
-        <View style={styles.glassCircle} />
+      {/* Hero portfolio card — white with teal corner accent */}
+      <View style={styles.heroCard}>
+        {/* Teal corner accent */}
+        <LinearGradient
+          colors={gradients.heroGreen}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroCornerAccent}
+        />
 
         <View style={styles.heroTop}>
           <View style={styles.heroBadge}>
-            <Ionicons name='rocket' size={16} color='#FFFFFF' />
+            <Ionicons name='rocket' size={16} color={theme.colors.primary} />
           </View>
           <Text style={styles.heroBadgeText}>Active Portfolio</Text>
         </View>
@@ -88,7 +88,7 @@ export const StatsSection: React.FC<StatsSectionProps> = ({ stats }) => {
           </Text>
           <Text style={styles.heroPayoutLabel}>Pending Payouts</Text>
         </View>
-      </LinearGradient>
+      </View>
 
       {/* 2x2 stat grid */}
       <View style={styles.grid}>
@@ -119,21 +119,23 @@ const styles = StyleSheet.create({
   container: {
     gap: 12,
   },
-  // Hero portfolio card
+  // Hero portfolio card — white with teal corner
   heroCard: {
     padding: 24,
     borderRadius: 24,
     overflow: 'hidden',
     position: 'relative',
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
-  glassCircle: {
+  heroCornerAccent: {
     position: 'absolute',
-    top: -40,
-    right: -40,
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    top: -30,
+    right: -30,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
   },
   heroTop: {
     flexDirection: 'row',
@@ -145,27 +147,27 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   heroBadgeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: 'rgba(255,255,255,0.9)',
+    color: theme.colors.primary,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   heroValue: {
     fontSize: 52,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: theme.colors.textPrimary,
     letterSpacing: -2,
   },
   heroLabel: {
     fontSize: 16,
     fontWeight: '500',
-    color: theme.colors.primaryLight,
+    color: theme.colors.textSecondary,
     marginBottom: 24,
   },
   heroBottom: {
@@ -176,12 +178,12 @@ const styles = StyleSheet.create({
   heroPayoutValue: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.colors.primary,
     letterSpacing: -0.5,
   },
   heroPayoutLabel: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
   },
   // 2x2 stat grid
