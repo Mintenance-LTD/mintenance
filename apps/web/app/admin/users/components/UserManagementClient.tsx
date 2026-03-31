@@ -6,6 +6,7 @@ import { Icon } from '@/components/ui/Icon';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { Button } from '@/components/ui/Button';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
 import { UserDetailDialog } from './UserDetailDialog';
 import { BulkActionDialog } from './BulkActionDialog';
 import toast from 'react-hot-toast';
@@ -192,51 +193,57 @@ export function UserManagementClient({
   ).length;
 
   return (
-    <div className='p-8 md:p-10 max-w-[1440px] mx-auto bg-slate-50 min-h-screen flex flex-col gap-6'>
-      <AdminPageHeader
-        title='User Management'
-        subtitle='Manage platform users, view profiles, and verify contractors'
-        quickStats={[
-          {
-            label: 'total',
-            value: totalUsers,
-            icon: 'users',
-            color: theme.colors.primary,
-          },
-          {
-            label: 'contractors',
-            value: totalContractors,
-            icon: 'briefcase',
-            color: theme.colors.info,
-          },
-          {
-            label: 'pending',
-            value: pendingCount,
-            icon: 'clock',
-            color: '#F59E0B',
-          },
-        ]}
-        actions={
-          <div style={{ display: 'flex', gap: theme.spacing[2] }}>
-            <Button
-              variant='secondary'
-              onClick={() => handleExport('csv')}
-              style={{ fontSize: theme.typography.fontSize.sm }}
-            >
-              <Icon name='download' size={16} /> Export CSV
-            </Button>
-            <Button
-              variant='secondary'
-              onClick={() => handleExport('pdf')}
-              style={{ fontSize: theme.typography.fontSize.sm }}
-            >
-              <Icon name='download' size={16} /> Export PDF
-            </Button>
-          </div>
-        }
-      />
+    <div className='min-h-screen bg-[#f7f9fb] px-6 md:px-10 py-8 max-w-[1440px] mx-auto space-y-8'>
+      {/* Page Header */}
+      <div className='flex flex-col md:flex-row md:items-end justify-between gap-4'>
+        <div>
+          <h2 className='text-[2.75rem] font-extrabold tracking-tight text-[#2a3439] leading-tight'>
+            User Management
+          </h2>
+          <p className='text-[#566166] text-lg mt-2'>
+            Manage platform users, view profiles, and verify contractors.
+          </p>
+        </div>
+        <div className='flex gap-3'>
+          <button
+            onClick={() => handleExport('csv')}
+            className='px-5 py-2.5 bg-[#e1e9ee] text-[#2a3439] rounded-xl font-medium text-sm hover:bg-[#d9e4ea] transition-all flex items-center gap-2'
+          >
+            <Icon name='download' size={16} color='#565e74' /> Export CSV
+          </button>
+          <button
+            onClick={() => handleExport('pdf')}
+            className='px-5 py-2.5 bg-[#565e74] text-white rounded-xl font-medium text-sm hover:brightness-110 transition-all flex items-center gap-2 shadow-sm'
+          >
+            <Icon name='download' size={16} color='#fff' /> Export PDF
+          </button>
+        </div>
+      </div>
 
-      <AdminCard padding='lg'>
+      {/* Metrics */}
+      <div className='grid grid-cols-1 sm:grid-cols-3 gap-6'>
+        <AdminMetricCard
+          label='Total Users'
+          value={totalUsers}
+          icon='users'
+          iconColor='#565e74'
+        />
+        <AdminMetricCard
+          label='Contractors'
+          value={totalContractors}
+          icon='briefcase'
+          iconColor='#506076'
+        />
+        <AdminMetricCard
+          label='Pending Verification'
+          value={pendingCount}
+          icon='clock'
+          iconColor='#605c78'
+        />
+      </div>
+
+      {/* Filters */}
+      <div className='bg-white rounded-[1.5rem] p-4'>
         <UserManagementFilters
           search={search}
           onSearchChange={setSearch}
@@ -252,9 +259,10 @@ export function UserManagementClient({
           onBulkReject={() => setShowBulkActionModal('reject')}
           onClearSelection={() => setSelectedUserIds(new Set())}
         />
-      </AdminCard>
+      </div>
 
-      <AdminCard padding='none' className='overflow-hidden'>
+      {/* Table */}
+      <div className='bg-white rounded-[1.5rem] overflow-hidden shadow-[0_12px_32px_-4px_rgba(42,52,57,0.04)] border border-[#a9b4b9]/10'>
         <UserManagementTable
           users={users}
           loading={loading}
@@ -270,7 +278,7 @@ export function UserManagementClient({
           }}
           onPageChange={fetchUsers}
         />
-      </AdminCard>
+      </div>
 
       {selectedUserId && (
         <UserDetailDialog

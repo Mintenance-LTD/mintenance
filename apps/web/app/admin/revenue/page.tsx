@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useMemo, Suspense } from 'react';
+import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
-import { AnimatePresence } from 'framer-motion';
 import {
   DollarSign,
   TrendingUp,
@@ -13,8 +12,6 @@ import {
   Calendar,
   Filter,
   CreditCard,
-  PieChart,
-  ArrowUpRight,
   ArrowDownRight,
   Loader2,
 } from 'lucide-react';
@@ -219,10 +216,20 @@ export default function AdminRevenueDashboard2025() {
 
   if (loading) {
     return (
-      <div className='min-h-screen bg-slate-50 flex items-center justify-center'>
-        <div className='text-center'>
-          <Loader2 className='w-12 h-12 text-emerald-600 animate-spin mx-auto mb-4' />
-          <p className='text-gray-600'>Loading revenue data...</p>
+      <div className='min-h-screen bg-[#f7f9fb]'>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8'>
+          <div className='h-12 w-80 bg-gray-200 rounded animate-pulse mb-3' />
+          <div className='h-5 w-96 bg-gray-100 rounded animate-pulse mb-8' />
+          <div className='grid grid-cols-12 gap-6 mb-8'>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className='col-span-12 md:col-span-4 bg-white rounded-[1.5rem] p-8 min-h-[160px] animate-pulse'
+              />
+            ))}
+          </div>
+          <div className='bg-white rounded-[1.5rem] p-8 h-[340px] animate-pulse mb-8' />
+          <div className='bg-white rounded-[1.5rem] p-8 h-[300px] animate-pulse' />
         </div>
       </div>
     );
@@ -245,132 +252,94 @@ export default function AdminRevenueDashboard2025() {
   }
 
   return (
-    <div className='min-h-screen bg-slate-50'>
-      {/* Hero Header */}
-      <MotionDiv
-        initial='hidden'
-        animate='visible'
-        variants={fadeIn}
-        className='bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white'
-      >
-        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12'>
-          <div className='flex items-center justify-between'>
-            <div>
-              <div className='flex items-center gap-3 mb-4'>
-                <div className='bg-white/20 backdrop-blur-sm p-3 rounded-xl'>
-                  <DollarSign className='w-8 h-8' />
-                </div>
-                <h1 className='text-4xl font-bold'>Revenue Dashboard</h1>
-              </div>
-              <p className='text-slate-300 text-lg'>
-                Track platform revenue, fees, and transaction analytics
-              </p>
-            </div>
+    <div className='min-h-screen bg-[#f7f9fb]'>
+      {/* Page Header — matches mockup flat style */}
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-4'>
+        <div className='flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8'>
+          <div>
+            <h1 className='text-[2.75rem] font-extrabold tracking-tight text-[#2a3439] leading-tight'>
+              Financial Overview
+            </h1>
+            <p className='text-[#566166] max-w-2xl mt-2'>
+              Track your ecosystem&apos;s growth, recurring revenue, and
+              individual transaction performance.
+            </p>
+          </div>
+          <button
+            onClick={handleExport}
+            className='px-5 py-2.5 bg-[#565e74] text-white rounded-xl font-semibold text-sm flex items-center gap-2 shadow-sm hover:brightness-110 transition-all'
+          >
+            <Download className='w-4 h-4' />
+            Export Report
+          </button>
+        </div>
 
-            <MotionButton
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleExport}
-              className='bg-white text-emerald-600 px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-shadow flex items-center gap-2'
-            >
-              <Download className='w-5 h-5' />
-              Export Report
-            </MotionButton>
+        {/* Bento Metrics Grid — 12-col matching mockup */}
+        <div className='grid grid-cols-12 gap-6 mb-8'>
+          {/* Total Revenue — hero card (4 cols) */}
+          <div className='col-span-12 md:col-span-4 bg-white rounded-[1.5rem] p-8 transition-all hover:shadow-[0_12px_32px_-4px_rgba(42,52,57,0.08)]'>
+            <div className='flex justify-between items-start mb-6'>
+              <div className='p-3 bg-[#dae2fd] rounded-2xl'>
+                <DollarSign className='w-5 h-5 text-[#565e74]' />
+              </div>
+              {revenueMetrics.growthRate > 0 && (
+                <span className='text-xs font-bold text-[#2e7d32] flex items-center gap-1'>
+                  <TrendingUp className='w-3 h-3' />+{revenueMetrics.growthRate}
+                  %
+                </span>
+              )}
+            </div>
+            <p className='text-[#566166] text-sm font-medium mb-1'>
+              Total Revenue
+            </p>
+            <h3 className='text-3xl font-extrabold text-[#2a3439]'>
+              £{revenueMetrics.totalRevenue.toLocaleString()}
+            </h3>
           </div>
 
-          {/* Key Metrics Grid */}
-          <MotionDiv
-            variants={staggerContainer}
-            initial='hidden'
-            animate='visible'
-            className='grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6 mt-8'
-          >
-            <MotionDiv
-              variants={staggerItem}
-              className='bg-white/20 backdrop-blur-sm rounded-xl p-4'
-            >
-              <div className='flex items-center gap-2 mb-2'>
-                <DollarSign className='w-5 h-5 text-slate-400' />
-                <p className='text-slate-300 text-sm'>Total Revenue</p>
+          {/* MRR — (4 cols) */}
+          <div className='col-span-12 md:col-span-4 bg-white rounded-[1.5rem] p-8 transition-all hover:shadow-[0_12px_32px_-4px_rgba(42,52,57,0.08)]'>
+            <div className='flex justify-between items-start mb-6'>
+              <div className='p-3 bg-[#e3dbfd] rounded-2xl'>
+                <CreditCard className='w-5 h-5 text-[#605c78]' />
               </div>
-              <p className='text-3xl font-bold'>
-                £{revenueMetrics.totalRevenue.toLocaleString()}
-              </p>
-            </MotionDiv>
-
-            <MotionDiv
-              variants={staggerItem}
-              className='bg-white/20 backdrop-blur-sm rounded-xl p-4'
-            >
-              <div className='flex items-center gap-2 mb-2'>
-                <CreditCard className='w-5 h-5 text-slate-400' />
-                <p className='text-slate-300 text-sm'>Platform Fees</p>
-              </div>
-              <p className='text-3xl font-bold'>
-                £{revenueMetrics.platformFees.toLocaleString()}
-              </p>
-            </MotionDiv>
-
-            <MotionDiv
-              variants={staggerItem}
-              className='bg-white/20 backdrop-blur-sm rounded-xl p-4'
-            >
-              <div className='flex items-center gap-2 mb-2'>
-                <Users className='w-5 h-5 text-slate-400' />
-                <p className='text-slate-300 text-sm'>Subscriptions</p>
-              </div>
-              <p className='text-3xl font-bold'>
+            </div>
+            <p className='text-[#566166] text-sm font-medium mb-1'>
+              Platform Fees
+            </p>
+            <h3 className='text-3xl font-extrabold text-[#2a3439]'>
+              £{revenueMetrics.platformFees.toLocaleString()}
+            </h3>
+            <p className='text-sm text-[#566166] mt-4'>
+              Subscriptions:{' '}
+              <span className='font-bold text-[#2a3439]'>
                 £{revenueMetrics.subscriptionRevenue.toLocaleString()}
-              </p>
-            </MotionDiv>
+              </span>
+            </p>
+          </div>
 
-            <MotionDiv
-              variants={staggerItem}
-              className='bg-white/20 backdrop-blur-sm rounded-xl p-4'
-            >
-              <div className='flex items-center gap-2 mb-2'>
-                <TrendingUp className='w-5 h-5 text-slate-400' />
-                <p className='text-slate-300 text-sm'>Growth Rate</p>
+          {/* Transactions — (4 cols) */}
+          <div className='col-span-12 md:col-span-4 bg-white rounded-[1.5rem] p-8 transition-all hover:shadow-[0_12px_32px_-4px_rgba(42,52,57,0.08)]'>
+            <div className='flex justify-between items-start mb-6'>
+              <div className='p-3 bg-[#d3e4fe] rounded-2xl'>
+                <Briefcase className='w-5 h-5 text-[#506076]' />
               </div>
-              <div className='flex items-center gap-2'>
-                <p className='text-3xl font-bold'>
-                  {revenueMetrics.growthRate}%
-                </p>
-                <ArrowUpRight className='w-6 h-6 text-green-300' />
-              </div>
-            </MotionDiv>
-
-            <MotionDiv
-              variants={staggerItem}
-              className='bg-white/20 backdrop-blur-sm rounded-xl p-4'
-            >
-              <div className='flex items-center gap-2 mb-2'>
-                <Briefcase className='w-5 h-5 text-slate-400' />
-                <p className='text-slate-300 text-sm'>Transactions</p>
-              </div>
-              <p className='text-3xl font-bold'>
-                {revenueMetrics.transactionCount.toLocaleString()}
-              </p>
-            </MotionDiv>
-
-            <MotionDiv
-              variants={staggerItem}
-              className='bg-white/20 backdrop-blur-sm rounded-xl p-4'
-            >
-              <div className='flex items-center gap-2 mb-2'>
-                <PieChart className='w-5 h-5 text-slate-400' />
-                <p className='text-slate-300 text-sm'>Avg Transaction</p>
-              </div>
-              <p className='text-3xl font-bold'>
-                £{revenueMetrics.averageTransactionValue}
-              </p>
-            </MotionDiv>
-          </MotionDiv>
+            </div>
+            <p className='text-[#566166] text-sm font-medium mb-1'>
+              Transactions
+            </p>
+            <h3 className='text-3xl font-extrabold text-[#2a3439]'>
+              {revenueMetrics.transactionCount.toLocaleString()}
+            </h3>
+            <p className='text-xs text-[#717c82] mt-4'>
+              Avg: £{revenueMetrics.averageTransactionValue.toLocaleString()}
+            </p>
+          </div>
         </div>
-      </MotionDiv>
+      </div>
 
       {/* Main Content */}
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4'>
         {/* Time Range Selector */}
         <MotionDiv
           initial={{ opacity: 0, y: 20 }}

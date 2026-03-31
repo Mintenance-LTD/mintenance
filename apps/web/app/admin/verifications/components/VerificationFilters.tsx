@@ -45,62 +45,41 @@ function getFilterColor(key: StatusFilter, isActive: boolean): string {
 export function VerificationPageHeader({ stats }: { stats: Stats }) {
   return (
     <>
-      <AdminPageHeader
-        title='Contractor Verifications'
-        subtitle='Review and approve contractor applications and documentation'
-        quickStats={[
-          {
-            label: 'total',
-            value: stats.total,
-            icon: 'users',
-            color: theme.colors.primary,
-          },
-          {
-            label: 'pending',
-            value: stats.pending,
-            icon: 'clock',
-            color: '#F59E0B',
-          },
-          {
-            label: 'verified',
-            value: stats.verified,
-            icon: 'checkCircle',
-            color: theme.colors.success,
-          },
-        ]}
-      />
+      {/* Page Header */}
+      <div className='mb-10'>
+        <h2 className='text-[2.75rem] font-extrabold tracking-tight text-[#2a3439] leading-tight'>
+          Contractor Verifications
+        </h2>
+        <p className='text-[#566166] text-lg mt-2'>
+          Review and approve contractor applications and documentation.
+        </p>
+      </div>
 
-      {/* Statistics Dashboard */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: theme.spacing[4],
-        }}
-      >
+      {/* Metrics Grid */}
+      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8'>
         <AdminMetricCard
           label='Total Contractors'
           value={stats.total}
           icon='users'
-          iconColor={theme.colors.primary}
+          iconColor='#565e74'
         />
         <AdminMetricCard
           label='Pending Review'
           value={stats.pending}
           icon='clock'
-          iconColor='#F59E0B'
+          iconColor='#605c78'
         />
         <AdminMetricCard
           label='Verified'
           value={stats.verified}
           icon='checkCircle'
-          iconColor={theme.colors.success}
+          iconColor='#506076'
         />
         <AdminMetricCard
           label='Rejected'
           value={stats.rejected}
           icon='xCircle'
-          iconColor={theme.colors.error}
+          iconColor='#9f403d'
         />
       </div>
     </>

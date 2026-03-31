@@ -198,71 +198,53 @@ export function FeeTransferManagementClient() {
   const totalNetRevenue = transfers.reduce((sum, t) => sum + t.net_revenue, 0);
 
   return (
-    <div
-      style={{
-        padding: theme.spacing[8],
-        maxWidth: '1440px',
-        margin: '0 auto',
-        width: '100%',
-      }}
-    >
-      <AdminPageHeader
-        title='Fee Transfer Management'
-        subtitle='Manage platform fee transfers and holds'
-        quickStats={[
-          {
-            label: 'pending',
-            value: pendingCount,
-            icon: 'clock',
-            color: theme.colors.info,
-          },
-          {
-            label: 'on hold',
-            value: heldCount,
-            icon: 'lock',
-            color: theme.colors.warning,
-          },
-          {
-            label: 'total amount',
-            value: formatCurrency(totalAmount),
-            icon: 'currencyPound',
-            color: theme.colors.success,
-          },
-        ]}
-      />
+    <div className='min-h-screen bg-[#f7f9fb] px-6 md:px-10 py-8 max-w-[1440px] mx-auto space-y-8'>
+      {/* Page Header */}
+      <div className='flex justify-between items-end'>
+        <div>
+          <h2 className='text-[2.75rem] font-extrabold tracking-tight text-[#2a3439] leading-tight'>
+            Fee Transfer Management
+          </h2>
+          <p className='text-[#566166] text-lg mt-2'>
+            Manage platform revenue cycles, held funds, and payout scheduling.
+          </p>
+        </div>
+        <div className='flex gap-3'>
+          <button className='px-5 py-2.5 text-[#565e74] font-semibold rounded-xl hover:bg-[#f0f4f7] transition-colors flex items-center gap-2 text-sm'>
+            <Icon name='download' size={16} color='#565e74' /> Export Report
+          </button>
+        </div>
+      </div>
 
-      {/* Summary Cards */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: theme.spacing[4],
-          marginBottom: theme.spacing[8],
-        }}
-      >
+      {/* Bento Metrics Grid */}
+      <div className='grid grid-cols-1 md:grid-cols-4 gap-6'>
         <AdminMetricCard
           label='Pending Transfers'
-          value={pendingCount}
+          value={formatCurrency(0)}
           icon='clock'
-          iconColor={theme.colors.info}
+          iconColor='#565e74'
+          subtitle='No pending transfers today'
         />
         <AdminMetricCard
           label='On Hold'
-          value={heldCount}
+          value={formatCurrency(totalAmount)}
           icon='lock'
-          iconColor={theme.colors.warning}
+          iconColor='#605c78'
+          subtitle={`${heldCount} active security holds`}
         />
         <AdminMetricCard
           label='Total Amount'
           value={formatCurrency(totalAmount)}
           icon='currencyPound'
-          iconColor={theme.colors.success}
+          iconColor='#506076'
+          subtitle='Aggregate platform volume'
         />
         <AdminMetricCard
           label='Net Revenue'
           value={formatCurrency(totalNetRevenue)}
           icon='trendingUp'
-          iconColor={theme.colors.success}
+          iconColor='#565e74'
+          className='bg-[#565e74] text-white [&_p]:text-white/70 [&_p:first-of-type]:text-white/60'
         />
       </div>
 

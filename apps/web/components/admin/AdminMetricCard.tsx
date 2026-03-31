@@ -35,47 +35,39 @@ export function AdminMetricCard({
   return (
     <div
       className={cn(
-        'rounded-2xl border border-slate-100 bg-white p-4 h-28 transition-all duration-300 shadow-sm',
-        onClick && 'cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:translate-y-0',
+        'rounded-[1.5rem] bg-white p-6 transition-all duration-300',
+        'hover:-translate-y-1 hover:shadow-[0_12px_32px_-4px_rgba(42,52,57,0.08)]',
+        onClick && 'cursor-pointer',
         styles.metricCard,
         className
       )}
       onClick={onClick}
     >
-      <div className="flex items-center gap-4 h-full">
-        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-          <Icon name={icon} size={18} color={iconColor || '#64748B'} className="text-slate-600" />
+      <div className='flex items-center justify-between mb-4'>
+        <div
+          className='w-10 h-10 rounded-xl flex items-center justify-center'
+          style={{ backgroundColor: `${iconColor}15` }}
+        >
+          <Icon name={icon} size={20} color={iconColor || '#565e74'} />
         </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            {label}
-          </div>
-          <div className="text-xl font-semibold text-slate-900 mt-1 truncate">
-            {value}
-          </div>
-          {subtitle && <div className="text-xs text-slate-400 mt-1">{subtitle}</div>}
-          {trend && (
-            <div className="flex items-center gap-1.5 mt-1">
-              <Icon
-                name={trend.direction === 'up' ? 'trendingUp' : 'trendingDown'}
-                size={14}
-                color={trend.direction === 'up' ? '#10B981' : '#EF4444'}
-              />
-              <span
-                className={cn(
-                  'text-xs font-semibold',
-                  trend.direction === 'up' ? 'text-emerald-600' : 'text-rose-600'
-                )}
-              >
-                {trend.value}
-              </span>
-              {trend.label && <span className="text-xs text-slate-400">{trend.label}</span>}
-            </div>
-          )}
-        </div>
+        {trend && (
+          <span
+            className={cn(
+              'text-[0.65rem] font-bold tracking-wider uppercase px-2 py-1 rounded-full',
+              trend.direction === 'up'
+                ? 'bg-emerald-50 text-emerald-700'
+                : 'bg-rose-50 text-rose-700'
+            )}
+          >
+            {trend.value}
+          </span>
+        )}
+      </div>
+      <div>
+        <p className='text-[#566166] text-sm font-medium'>{label}</p>
+        <p className='text-3xl font-bold text-[#2a3439] mt-1'>{value}</p>
+        {subtitle && <p className='text-xs text-[#717c82] mt-2'>{subtitle}</p>}
       </div>
     </div>
   );
 }
-
