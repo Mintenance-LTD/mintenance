@@ -30,7 +30,10 @@ export const useServiceAreas = () => {
         .from('service_areas')
         .select('*')
         .eq('contractor_id', user.id);
-      if (error) { logger.error('Error loading service areas', error.message); throw new Error(error.message); }
+      if (error) {
+        logger.error('Error loading service areas', error.message);
+        throw new Error(error.message);
+      }
       setServiceAreas((data || []) as ServiceArea[]);
     } catch (error) {
       logger.error('Error loading service areas', error);
@@ -50,15 +53,17 @@ export const useServiceAreas = () => {
     setRefreshing(false);
   };
 
-  const handleCreateServiceArea = async (input: CreateServiceAreaInput): Promise<void> => {
+  const handleCreateServiceArea = async (
+    input: CreateServiceAreaInput
+  ): Promise<void> => {
     if (!user?.id) return;
-    // The API expects city/state/serviceRadius format
-    await mobileApiClient.post('/api/contractor/add-service-area', {
-      city: input.area_name,
-      state: 'England',
-      zipCode: '',
-      serviceRadius: input.radius_km,
-      country: 'UK',
+    await mobileApiClient.post('/api/contractor/service-areas', {
+      area_name: input.area_name,
+      area_type: 'radius',
+      center_latitude: input.center_latitude || 0,
+      center_longitude: input.center_longitude || 0,
+      radius_km: input.radius_km,
+      is_active: true,
     });
     await loadServiceAreas();
   };
@@ -87,7 +92,9 @@ export const useServiceAreas = () => {
     if (!selectedArea) return;
 
     try {
-      await mobileApiClient.delete(`/api/contractor/service-areas/${selectedArea.id}`);
+      await mobileApiClient.delete(
+        `/api/contractor/service-areas/${selectedArea.id}`
+      );
       await loadServiceAreas();
       Alert.alert('Deleted', 'Service area deleted successfully');
     } catch {

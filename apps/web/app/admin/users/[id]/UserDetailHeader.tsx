@@ -69,7 +69,7 @@ export function UserDetailHeader({
                 width: 64,
                 height: 64,
                 borderRadius: '50%',
-                backgroundColor: '#4A67FF',
+                backgroundColor: theme.colors.adminPrimary,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

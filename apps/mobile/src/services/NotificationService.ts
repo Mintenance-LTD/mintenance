@@ -1,9 +1,5 @@
 import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
-import Constants from 'expo-constants';
-import { Platform } from 'react-native';
 import { supabase } from '../config/supabase';
-import { mobileApiClient } from '../utils/mobileApiClient';
 import { logger } from '../utils/logger';
 import * as sentry from '../config/sentry';
 import * as notificationCrud from './notifications/NotificationCRUD';
@@ -14,15 +10,12 @@ import type {
   QueuedNotification,
   DeepLinkParams,
   NavigationRef,
-  DatabaseNotificationRow,
   NotificationDeepLinkData,
 } from './notifications/types';
 
 import {
   getNotificationPreferences,
   updateNotificationPreferences,
-  shouldSendNotification,
-  getChannelId,
 } from './notifications/NotificationPreferencesManager';
 
 import {
@@ -37,6 +30,13 @@ import {
   processQueuedNotifications,
   clearAll as clearNotificationQueue,
 } from './notifications/NotificationQueue';
+
+import {
+  initializePushNotifications,
+  savePushToken,
+  sendPushNotification,
+  sendBulkNotification,
+} from './notifications/NotificationPushSender';
 
 // Re-export types for backwards compatibility
 export type {
@@ -94,329 +94,14 @@ export class NotificationService {
   }
 
   static async initialize(): Promise<string | null> {
-    try {
-      const isDevice =
-        NotificationService.deviceOverride !== null
-          ? NotificationService.deviceOverride
-          : (Device.isDevice as boolean);
-
-      if (!isDevice) {
-        logger.warn('Push notifications only work on physical devices');
-        this.addBreadcrumb(
-          'Push notifications only work on physical devices',
-          'warning'
-        );
-        return null;
-      }
-
-      const { status: existingStatus } =
-        await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-
-      if (finalStatus !== 'granted') {
-        logger.warn('Push notification permission not granted');
-        this.addBreadcrumb('Push notification permission denied', 'warning');
-        return null;
-      }
-
-      // On Android, attempt to get the native FCM device token first.
-      // This confirms that google-services.json is loaded and Firebase is initialized.
-      if (Platform.OS === 'android') {
-        try {
-          const deviceToken = await Notifications.getDevicePushTokenAsync();
-          logger.info('FCM device token obtained', { type: deviceToken.type });
-          this.addBreadcrumb('FCM device token obtained', 'info', {
-            type: deviceToken.type,
-          });
-        } catch (fcmError) {
-          const fcmMsg =
-            fcmError instanceof Error ? fcmError.message : String(fcmError);
-          // Non-fatal: Expo Push still works via Expo's FCM sender key as fallback
-          logger.warn(
-            'FCM device token unavailable — using Expo push fallback',
-            { error: fcmMsg }
-          );
-          this.addBreadcrumb(
-            'FCM device token unavailable (Expo fallback)',
-            'warning',
-            { error: fcmMsg }
-          );
-        }
-      }
-
-      const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-      if (!projectId) {
-        logger.warn('EAS project ID not found in config, using fallback');
-      }
-
-      const token = await Notifications.getExpoPushTokenAsync({
-        projectId: projectId || '671d1323-6979-465f-91db-e61471746ab3',
-      });
-
-      this.expoPushToken = token.data;
-      logger.info('Expo push token obtained', { token: token.data });
-      this.addBreadcrumb('Notification Service initialized', 'info', {
-        token: token.data,
-      });
-
-      if (Platform.OS === 'android') {
-        await this.setupAndroidChannels();
-      }
-
-      return token.data;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      const isFirebaseError =
-        errorMessage.includes('Firebase') ||
-        errorMessage.includes('FCM') ||
-        errorMessage.includes('FirebaseApp') ||
-        errorMessage.includes('not initialized');
-
-      if (isFirebaseError) {
-        logger.warn(
-          'Push notifications unavailable — Firebase/FCM not configured. ' +
-            'Ensure google-services.json is provided via EAS Secrets for production builds.',
-          { error: errorMessage }
-        );
-        this.addBreadcrumb(
-          'Push notifications unavailable (no FCM config)',
-          'warning',
-          { error: errorMessage }
-        );
-      } else {
-        logger.error('Failed to initialize push notifications', error);
-        this.addBreadcrumb('Failed to initialize push notifications', 'error', {
-          error: errorMessage,
-        });
-      }
-      return null;
-    }
+    const token = await initializePushNotifications(this.deviceOverride);
+    if (token) this.expoPushToken = token;
+    return token;
   }
 
-  private static async setupAndroidChannels(): Promise<void> {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#10B981',
-    });
-
-    await Notifications.setNotificationChannelAsync('job-updates', {
-      name: 'Job Updates',
-      description: 'Notifications about job status changes',
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#0F172A',
-    });
-
-    await Notifications.setNotificationChannelAsync('bid-notifications', {
-      name: 'Bid Notifications',
-      description: 'Notifications about new bids and bid updates',
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#10B981',
-    });
-
-    await Notifications.setNotificationChannelAsync('meeting-reminders', {
-      name: 'Meeting Reminders',
-      description: 'Reminders about upcoming meetings',
-      importance: Notifications.AndroidImportance.DEFAULT,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#F59E0B',
-    });
-
-    await Notifications.setNotificationChannelAsync('messages', {
-      name: 'Messages',
-      description: 'Direct messages between homeowners and contractors',
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#10B981',
-    });
-
-    await Notifications.setNotificationChannelAsync('payments', {
-      name: 'Payments',
-      description: 'Payment confirmations and escrow updates',
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#10B981',
-    });
-
-    this.addBreadcrumb('Android notification channels created', 'info', {
-      channels: [
-        'default',
-        'job-updates',
-        'bid-notifications',
-        'meeting-reminders',
-        'messages',
-        'payments',
-      ],
-    });
-  }
-
-  static async savePushToken(userId: string, token: string): Promise<void> {
-    try {
-      await mobileApiClient.post('/api/notifications', {
-        action: 'save_push_token',
-        user_id: userId,
-        push_token: token,
-        platform: Platform.OS,
-      });
-
-      logger.info('Push token saved successfully', { userId });
-      this.addBreadcrumb('Push token saved', 'info', {
-        userId,
-        platform: Platform.OS,
-      });
-    } catch (error) {
-      logger.error('Failed to save push token', error);
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      this.addBreadcrumb('Failed to save push token', 'error', {
-        userId,
-        error: errorMessage,
-      });
-      throw error;
-    }
-  }
-
-  static async sendPushNotification(
-    userId: string,
-    title: string,
-    body: string,
-    data?: unknown,
-    type: NotificationData['type'] = 'system'
-  ): Promise<void> {
-    try {
-      let pushToken: string | null = null;
-      try {
-        const tokenResponse = await mobileApiClient.get<{ token?: string; push_token?: string }>(
-          `/api/notifications?action=get_push_token&user_id=${encodeURIComponent(userId)}`
-        );
-        pushToken = tokenResponse.push_token ?? tokenResponse.token ?? null;
-      } catch {
-        // Token fetch failed
-      }
-
-      if (!pushToken) {
-        logger.warn('No push token found for user', { userId });
-        this.addBreadcrumb('No push token found for user', 'warning', {
-          userId,
-        });
-        return;
-      }
-
-      const preferences = await getNotificationPreferences(userId);
-      if (!shouldSendNotification(preferences, type)) {
-        logger.info('Notification blocked by user preferences', {
-          userId,
-          type,
-        });
-        this.addBreadcrumb('Notification blocked by user preferences', 'info', {
-          userId,
-          type,
-        });
-        return;
-      }
-
-      const messageData =
-        data && typeof data === 'object' && !Array.isArray(data)
-          ? { ...(data as Record<string, unknown>), type, userId }
-          : { type, userId };
-
-      const message = {
-        to: pushToken,
-        sound: 'default' as const,
-        title,
-        body,
-        data: messageData,
-        channelId: getChannelId(type),
-      };
-
-      await this.sendToExpo(message, userId);
-
-      await this.saveNotification({
-        title,
-        body,
-        data,
-        type,
-        userId,
-        priority: 'normal',
-        read: false,
-      });
-
-      logger.info('Push notification sent successfully', { userId, type });
-      this.addBreadcrumb('Push notification sent', 'info', {
-        userId,
-        type,
-        title,
-      });
-    } catch (error) {
-      logger.error('Failed to send push notification', error);
-      throw error;
-    }
-  }
-
-  private static async sendToExpo(
-    message: unknown,
-    userId: string
-  ): Promise<void> {
-    const timeoutMs = 10000;
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-    const fetchPromise = fetch('https://exp.host/--/api/v2/push/send', {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Accept-encoding': 'gzip, deflate',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(message),
-    });
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      timeoutId = setTimeout(
-        () => reject(new Error('Push notification request timed out')),
-        timeoutMs
-      );
-    });
-
-    try {
-      const response = await Promise.race([fetchPromise, timeoutPromise]);
-      if (timeoutId) clearTimeout(timeoutId);
-      if (!response.ok)
-        throw new Error(`Push notification failed: ${response.status}`);
-    } catch (error) {
-      if (timeoutId) clearTimeout(timeoutId);
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      this.addBreadcrumb(
-        errorMessage.includes('timed out')
-          ? 'Push notification timeout'
-          : 'Failed to send push notification',
-        'error',
-        { userId, error: errorMessage }
-      );
-      throw error;
-    }
-  }
-
-  static async sendBulkNotification(
-    userIds: string[],
-    title: string,
-    body: string,
-    data?: unknown,
-    type: NotificationData['type'] = 'system'
-  ): Promise<void> {
-    const promises = userIds.map((userId) =>
-      this.sendPushNotification(userId, title, body, data, type)
-    );
-    await Promise.allSettled(promises);
-  }
+  static savePushToken = savePushToken;
+  static sendPushNotification = sendPushNotification;
+  static sendBulkNotification = sendBulkNotification;
 
   static async scheduleNotification(
     title: string,

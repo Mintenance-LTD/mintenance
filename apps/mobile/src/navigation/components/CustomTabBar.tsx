@@ -6,7 +6,13 @@
  */
 
 import React from 'react';
-import { TouchableOpacity, StyleSheet, Platform, View, Text } from 'react-native';
+import {
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+  View,
+  Text,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
@@ -14,7 +20,9 @@ import { NAVIGATION_CONSTANTS, TAB_CONFIG } from '../constants';
 import { useAuth } from '../../contexts/AuthContext';
 import { theme } from '../../theme';
 
-const TabBadge: React.FC<{ badge: number | string | boolean | undefined }> = ({ badge }) => {
+const TabBadge: React.FC<{ badge: number | string | boolean | undefined }> = ({
+  badge,
+}) => {
   if (badge === undefined || badge === false || badge === 0 || badge === '') {
     return null;
   }
@@ -28,9 +36,10 @@ const TabBadge: React.FC<{ badge: number | string | boolean | undefined }> = ({ 
     return null;
   }
 
-  const displayText = typeof numericValue === 'number' && numericValue > 99
-    ? '99+'
-    : String(badge);
+  const displayText =
+    typeof numericValue === 'number' && numericValue > 99
+      ? '99+'
+      : String(badge);
 
   return (
     <View style={styles.badgeContainer}>
@@ -48,21 +57,21 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
   const { user } = useAuth();
 
   return (
-    <View style={[
-      styles.tabBar,
-      { paddingBottom: Math.max(insets.bottom, 4) }
-    ]}>
+    <View
+      style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 4) }]}
+    >
       {/* Top border line */}
       <View style={styles.topBorder} />
 
       <View style={styles.tabRow}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
-          const label = options.tabBarLabel !== undefined
-            ? options.tabBarLabel
-            : options.title !== undefined
-            ? options.title
-            : route.name;
+          const label =
+            options.tabBarLabel !== undefined
+              ? options.tabBarLabel
+              : options.title !== undefined
+                ? options.title
+                : route.name;
 
           const isFocused = state.index === index;
           const isAddTab = route.name === 'AddTab';
@@ -80,7 +89,7 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
             }
           };
 
-          // Center FAB
+          // Center action tab — same style as other tabs, no protruding FAB
           if (isAddTab) {
             const isContractor = user?.role === 'contractor';
             const handleAddPress = () => {
@@ -97,20 +106,40 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
             return (
               <TouchableOpacity
                 key={route.key}
-                accessibilityRole="button"
+                accessibilityRole='tab'
                 accessibilityLabel={isContractor ? 'Find jobs' : 'Post a job'}
                 onPress={handleAddPress}
-                style={styles.addTabContainer}
-                activeOpacity={0.8}
+                style={styles.tabItem}
+                activeOpacity={0.7}
               >
-                <View style={styles.addButton}>
+                <View
+                  style={[
+                    styles.activeIndicator,
+                    isFocused && styles.activeIndicatorVisible,
+                  ]}
+                />
+                <View style={styles.iconContainer}>
                   <Ionicons
-                    name={isContractor ? 'search' : 'add'}
-                    size={isContractor ? 20 : 24}
-                    color="#FFFFFF"
+                    name={
+                      isContractor
+                        ? isFocused
+                          ? 'search'
+                          : 'search-outline'
+                        : isFocused
+                          ? 'add-circle'
+                          : 'add-circle-outline'
+                    }
+                    size={24}
+                    color={isFocused ? '#222222' : '#B0B0B0'}
                   />
                 </View>
-                <Text style={styles.addLabel}>
+                <Text
+                  style={[
+                    styles.tabLabel,
+                    { color: isFocused ? '#222222' : '#B0B0B0' },
+                    isFocused && styles.tabLabelActive,
+                  ]}
+                >
                   {isContractor ? 'Find Jobs' : 'Post Job'}
                 </Text>
               </TouchableOpacity>
@@ -123,34 +152,43 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
           return (
             <TouchableOpacity
               key={route.key}
-              accessibilityRole="tab"
+              accessibilityRole='tab'
               accessibilityState={isFocused ? { selected: true } : {}}
               accessibilityLabel={options.tabBarAccessibilityLabel}
-              testID={(options as Record<string, unknown>).tabBarTestID as string | undefined}
+              testID={
+                (options as Record<string, unknown>).tabBarTestID as
+                  | string
+                  | undefined
+              }
               onPress={onPress}
               style={styles.tabItem}
               activeOpacity={0.7}
             >
               {/* Active indicator line */}
-              <View style={[
-                styles.activeIndicator,
-                isFocused && styles.activeIndicatorVisible,
-              ]} />
+              <View
+                style={[
+                  styles.activeIndicator,
+                  isFocused && styles.activeIndicatorVisible,
+                ]}
+              />
 
               <View style={styles.iconContainer}>
                 {React.createElement(Ionicons, {
-                  name: (iconName || 'help-outline') as keyof typeof Ionicons.glyphMap,
+                  name: (iconName ||
+                    'help-outline') as keyof typeof Ionicons.glyphMap,
                   size: 24,
                   color: isFocused ? '#222222' : '#B0B0B0',
                 })}
                 <TabBadge badge={badge} />
               </View>
 
-              <Text style={[
-                styles.tabLabel,
-                { color: isFocused ? '#222222' : '#B0B0B0' },
-                isFocused && styles.tabLabelActive,
-              ]}>
+              <Text
+                style={[
+                  styles.tabLabel,
+                  { color: isFocused ? '#222222' : '#B0B0B0' },
+                  isFocused && styles.tabLabelActive,
+                ]}
+              >
                 {String(label)}
               </Text>
             </TouchableOpacity>

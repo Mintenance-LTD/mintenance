@@ -182,7 +182,7 @@ function JobTable({ jobs }: { jobs: Job[] }) {
                     href='/admin/jobs'
                     style={{
                       fontSize: '13px',
-                      color: '#4A67FF',
+                      color: theme.colors.adminPrimary,
                       textDecoration: 'none',
                     }}
                   >
@@ -241,7 +241,7 @@ export function ActivityTab({ data }: { data: UserDetail }) {
             <Icon
               name={getActivityIcon(item.type)}
               size={14}
-              color={item.read ? '#94A3B8' : '#4A67FF'}
+              color={item.read ? '#94A3B8' : theme.colors.adminPrimary}
             />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>

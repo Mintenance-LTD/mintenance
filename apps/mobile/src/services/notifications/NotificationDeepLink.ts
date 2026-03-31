@@ -1,7 +1,13 @@
 import * as Notifications from 'expo-notifications';
 import { logger } from '../../utils/logger';
 import * as sentry from '../../config/sentry';
-import type { NotificationData, NotificationDeepLinkData, DeepLinkParams, NavigationRef, QueuedNotification } from './types';
+import type {
+  NotificationData,
+  NotificationDeepLinkData,
+  DeepLinkParams,
+  NavigationRef,
+  QueuedNotification,
+} from './types';
 
 function addBreadcrumb(
   message: string,
@@ -25,7 +31,10 @@ export function getDeepLinkParams(
           screen: 'Main',
           params: {
             screen: 'JobsTab',
-            params: { screen: 'JobDetails', params: { jobId: deepLinkData.jobId } },
+            params: {
+              screen: 'JobDetails',
+              params: { jobId: deepLinkData.jobId },
+            },
           },
         };
       }
@@ -37,7 +46,10 @@ export function getDeepLinkParams(
           screen: 'Main',
           params: {
             screen: 'JobsTab',
-            params: { screen: 'JobDetails', params: { jobId: deepLinkData.jobId } },
+            params: {
+              screen: 'JobDetails',
+              params: { jobId: deepLinkData.jobId },
+            },
           },
         };
       }
@@ -67,7 +79,10 @@ export function getDeepLinkParams(
       if (deepLinkData?.meetingId) {
         return {
           screen: 'Modal',
-          params: { screen: 'MeetingDetails', params: { meetingId: deepLinkData.meetingId } },
+          params: {
+            screen: 'MeetingDetails',
+            params: { meetingId: deepLinkData.meetingId },
+          },
         };
       }
       break;
@@ -78,7 +93,10 @@ export function getDeepLinkParams(
           screen: 'Main',
           params: {
             screen: 'JobsTab',
-            params: { screen: 'JobDetails', params: { jobId: deepLinkData.jobId } },
+            params: {
+              screen: 'JobDetails',
+              params: { jobId: deepLinkData.jobId },
+            },
           },
         };
       }
@@ -90,7 +108,31 @@ export function getDeepLinkParams(
           screen: 'Main',
           params: {
             screen: 'JobsTab',
-            params: { screen: 'JobDetails', params: { jobId: deepLinkData.jobId } },
+            params: {
+              screen: 'JobDetails',
+              params: { jobId: deepLinkData.jobId },
+            },
+          },
+        };
+      }
+      break;
+
+    case 'bid_rejected':
+    case 'payment_released':
+    case 'contract_created':
+    case 'contract_signed':
+    case 'job_completed':
+    case 'job_started':
+    case 'review_requested':
+      if (deepLinkData?.jobId) {
+        return {
+          screen: 'Main',
+          params: {
+            screen: 'JobsTab',
+            params: {
+              screen: 'JobDetails',
+              params: { jobId: deepLinkData.jobId },
+            },
           },
         };
       }
@@ -116,7 +158,7 @@ async function waitForNavigation(
     if (navigationRef?.isReady()) {
       return true;
     }
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
   return false;
 }
@@ -124,17 +166,23 @@ async function waitForNavigation(
 export async function handleNotificationResponse(
   response: Notifications.NotificationResponse,
   navigationRef: NavigationRef,
-  queueNotificationFn: (notification: Notifications.Notification) => Promise<void>,
+  queueNotificationFn: (
+    notification: Notifications.Notification
+  ) => Promise<void>,
   markAsReadFn: (id: string) => Promise<void>
 ): Promise<void> {
-  const data = response.notification.request.content.data as NotificationDeepLinkData | undefined;
+  const data = response.notification.request.content.data as
+    | NotificationDeepLinkData
+    | undefined;
   const type = data?.type;
   const actionIdentifier = response.actionIdentifier;
 
   logger.info('Processing notification tap', { type, data });
 
   if (!navigationRef) {
-    logger.warn('Navigation not ready, queuing notification for later processing');
+    logger.warn(
+      'Navigation not ready, queuing notification for later processing'
+    );
     await queueNotificationFn(response.notification);
     return;
   }
@@ -151,7 +199,7 @@ export async function handleNotificationResponse(
 
   // Mark as read
   if (data?.notificationId) {
-    await markAsReadFn(data.notificationId).catch(error => {
+    await markAsReadFn(data.notificationId).catch((error) => {
       logger.error('Failed to mark notification as read', error);
     });
   }
@@ -178,7 +226,9 @@ export async function handleNotificationResponse(
 
 export async function processLastNotificationResponse(
   navigationRef: NavigationRef,
-  queueNotificationFn: (notification: Notifications.Notification) => Promise<void>,
+  queueNotificationFn: (
+    notification: Notifications.Notification
+  ) => Promise<void>,
   markAsReadFn: (id: string) => Promise<void>
 ): Promise<void> {
   try {
@@ -187,7 +237,12 @@ export async function processLastNotificationResponse(
       logger.info('Processing notification from killed state', {
         type: response.notification.request.content.data?.type,
       });
-      await handleNotificationResponse(response, navigationRef, queueNotificationFn, markAsReadFn);
+      await handleNotificationResponse(
+        response,
+        navigationRef,
+        queueNotificationFn,
+        markAsReadFn
+      );
     }
   } catch (error) {
     logger.error('Failed to process last notification response', error);

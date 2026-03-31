@@ -11,7 +11,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
 import { Icon } from '@/components/ui/Icon';
 import { getCsrfHeaders } from '@/lib/csrf-client';
@@ -181,42 +180,16 @@ export function RefundManagementClient() {
   };
 
   return (
-    <div
-      style={{
-        padding: theme.spacing[8],
-        maxWidth: '1440px',
-        margin: '0 auto',
-        width: '100%',
-      }}
-    >
-      <AdminPageHeader
-        title='Refund & Payout Management'
-        subtitle='Release escrow payments, process refunds, and manage holds'
-        quickStats={
-          stats
-            ? [
-                {
-                  label: 'held',
-                  value: stats.held_count,
-                  icon: 'lock',
-                  color: theme.colors.warning,
-                },
-                {
-                  label: 'pending release',
-                  value: stats.release_pending_count,
-                  icon: 'clock',
-                  color: theme.colors.info,
-                },
-                {
-                  label: 'refunded',
-                  value: stats.refunded_count,
-                  icon: 'undo',
-                  color: '#8b5cf6',
-                },
-              ]
-            : undefined
-        }
-      />
+    <div className='min-h-screen bg-[#f7f9fb] px-6 md:px-10 py-8 max-w-[1440px] mx-auto space-y-8'>
+      {/* Page Header */}
+      <div className='flex flex-col gap-1'>
+        <h2 className='text-[2.75rem] font-extrabold tracking-tight text-[#2a3439] leading-tight'>
+          Refund &amp; Payouts
+        </h2>
+        <p className='text-[#566166] text-lg max-w-2xl'>
+          Monitor and manage the flow of funds within the escrow ecosystem.
+        </p>
+      </div>
 
       {/* Stats Cards */}
       {stats && (

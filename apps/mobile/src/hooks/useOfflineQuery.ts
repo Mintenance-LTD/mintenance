@@ -59,7 +59,9 @@ export const useOfflineQuery = <T = unknown>({
         if (!isOnline) return false;
 
         // Don't retry on client errors (4xx)
-        const status = (error as Record<string, unknown>)?.status as number | undefined;
+        const status = (error as Record<string, unknown>)?.status as
+          | number
+          | undefined;
         if (status !== undefined && status >= 400 && status < 500) return false;
 
         // Limit retries on slow connections
@@ -254,16 +256,25 @@ export const useOfflineMutation = <TVariables = unknown, TData = unknown>({
         // Snapshot the previous value
         const previousData = queryClient.getQueryData(queryKey);
 
-        // Optimistically update the cache
+        // Optimistically update the cache — append to existing array if it's a CREATE
         const optimisticData = optimisticUpdate(variables);
-        queryClient.setQueryData(queryKey, optimisticData);
+        if (actionType === 'CREATE') {
+          queryClient.setQueryData(queryKey, (old: unknown) => {
+            if (Array.isArray(old)) return [...old, optimisticData];
+            return [optimisticData];
+          });
+        } else {
+          queryClient.setQueryData(queryKey, optimisticData);
+        }
 
         return { previousData, queryKey };
       }
     },
     onError: (error, variables, context: unknown) => {
       // Rollback optimistic update on error
-      const ctx = context as { previousData?: unknown; queryKey?: QueryKey } | undefined;
+      const ctx = context as
+        | { previousData?: unknown; queryKey?: QueryKey }
+        | undefined;
       if (ctx?.previousData && ctx?.queryKey) {
         queryClient.setQueryData(ctx.queryKey, ctx.previousData);
       }
@@ -275,8 +286,22 @@ export const useOfflineMutation = <TVariables = unknown, TData = unknown>({
       });
     },
     onSuccess: (data, variables) => {
-      // Invalidate related queries on success
-      if (getQueryKey) {
+      // For CREATE actions, replace the temp optimistic entry with real data
+      // instead of invalidating (which clears the cache and causes flashing)
+      if (getQueryKey && actionType === 'CREATE' && data) {
+        const queryKey = getQueryKey(variables);
+        queryClient.setQueryData(queryKey, (old: unknown) => {
+          if (Array.isArray(old)) {
+            // Replace temp entries (id starts with 'temp_') with real data
+            return old.map((item: Record<string, unknown>) =>
+              typeof item?.id === 'string' && item.id.startsWith('temp_')
+                ? data
+                : item
+            );
+          }
+          return old;
+        });
+      } else if (getQueryKey) {
         const queryKey = getQueryKey(variables);
         queryClient.invalidateQueries({ queryKey });
       }
@@ -363,7 +388,10 @@ const handleMessagesQuery = async (
   }
 };
 
-const cacheLocalData = async (queryKey: QueryKey, data: unknown): Promise<void> => {
+const cacheLocalData = async (
+  queryKey: QueryKey,
+  data: unknown
+): Promise<void> => {
   try {
     await LocalDatabase.init();
 
@@ -420,17 +448,31 @@ const cacheMessagesData = async (
       // Normalize snake_case (Supabase) to camelCase (Message type)
       const senderId = (m.senderId ?? m.sender_id) as string | undefined;
       if (!senderId) continue; // skip messages without a sender
-      await LocalDatabase.saveMessage({
-        id: m.id as string,
-        jobId: (m.jobId ?? m.job_id ?? m.thread_id) as string | undefined,
-        senderId,
-        receiverId: (m.receiverId ?? m.receiver_id) as string | undefined,
-        messageText: (m.messageText ?? m.message_text ?? m.content) as string | undefined,
-        messageType: (m.messageType ?? m.message_type) as 'text' | 'image' | 'file' | 'system' | undefined,
-        attachmentUrl: (m.attachmentUrl ?? m.attachment_url) as string | undefined,
-        read: Boolean(m.read),
-        createdAt: ((m.createdAt ?? m.created_at) as string) ?? new Date().toISOString(),
-      }, false);
+      await LocalDatabase.saveMessage(
+        {
+          id: m.id as string,
+          jobId: (m.jobId ?? m.job_id ?? m.thread_id) as string | undefined,
+          senderId,
+          receiverId: (m.receiverId ?? m.receiver_id) as string | undefined,
+          messageText: (m.messageText ?? m.message_text ?? m.content) as
+            | string
+            | undefined,
+          messageType: (m.messageType ?? m.message_type) as
+            | 'text'
+            | 'image'
+            | 'file'
+            | 'system'
+            | undefined,
+          attachmentUrl: (m.attachmentUrl ?? m.attachment_url) as
+            | string
+            | undefined,
+          read: Boolean(m.read),
+          createdAt:
+            ((m.createdAt ?? m.created_at) as string) ??
+            new Date().toISOString(),
+        },
+        false
+      );
     }
   }
 };

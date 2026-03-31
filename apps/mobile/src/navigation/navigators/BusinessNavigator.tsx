@@ -61,8 +61,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
+import { theme, gradients } from '../../theme';
 
 interface ToolItem {
   label: string;
@@ -178,34 +179,76 @@ const BusinessHubScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Business</Text>
-        <Text style={styles.headerSubtitle}>
-          Manage your contractor business
-        </Text>
-      </View>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.grid}
+        contentContainerStyle={styles.scrollContent}
       >
-        {TOOLS.map((tool) => (
-          <TouchableOpacity
-            key={tool.screen}
-            style={styles.toolCard}
-            onPress={() =>
-              (navigation.navigate as (screen: string) => void)(tool.screen)
-            }
-            accessibilityRole='button'
-            accessibilityLabel={tool.label}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.iconWrap, { backgroundColor: tool.bgColor }]}>
-              <Ionicons name={tool.icon} size={24} color={tool.iconColor} />
-            </View>
-            <Text style={styles.toolLabel}>{tool.label}</Text>
-            <Text style={styles.toolSubtitle}>{tool.subtitle}</Text>
-          </TouchableOpacity>
-        ))}
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerLabel}>Business Hub</Text>
+          <Text style={styles.headerTitle}>Business</Text>
+          <Text style={styles.headerSubtitle}>
+            Manage your contractor business with precision and efficiency.
+          </Text>
+        </View>
+
+        {/* Tool Grid */}
+        <View style={styles.grid}>
+          {TOOLS.map((tool) => (
+            <TouchableOpacity
+              key={tool.screen}
+              style={styles.toolCard}
+              onPress={() =>
+                (navigation.navigate as (screen: string) => void)(tool.screen)
+              }
+              accessibilityRole='button'
+              accessibilityLabel={`${tool.label}: ${tool.subtitle}`}
+              activeOpacity={0.7}
+            >
+              <View style={styles.toolCardInner}>
+                <View
+                  style={[styles.iconWrap, { backgroundColor: tool.bgColor }]}
+                >
+                  <Ionicons name={tool.icon} size={26} color={tool.iconColor} />
+                </View>
+                <Text style={styles.toolLabel}>{tool.label}</Text>
+                <Text style={styles.toolSubtitle}>{tool.subtitle}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Scale Your Operations CTA banner */}
+        <LinearGradient
+          colors={gradients.heroGreen}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.ctaBanner}
+        >
+          <View style={styles.ctaGlassCircle} />
+          <View style={styles.ctaContent}>
+            <Text style={styles.ctaTitle}>Scale Your Operations</Text>
+            <Text style={styles.ctaSubtitle}>
+              Optimise your workflow with all your business tools in one place.
+            </Text>
+            <TouchableOpacity
+              style={styles.ctaButton}
+              onPress={() =>
+                (navigation.navigate as (screen: string) => void)(
+                  'FinanceDashboard'
+                )
+              }
+              accessibilityRole='button'
+              accessibilityLabel='View finance dashboard'
+              activeOpacity={0.8}
+            >
+              <Text style={styles.ctaButtonText}>View Dashboard</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.ctaIconWrap}>
+            <Ionicons name='rocket' size={48} color='rgba(255,255,255,0.9)' />
+          </View>
+        </LinearGradient>
       </ScrollView>
     </View>
   );
@@ -213,44 +256,123 @@ const BusinessHubScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
-  header: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16 },
-  headerTitle: { fontSize: 28, fontWeight: '700', color: theme.colors.text },
+  scrollContent: { paddingBottom: 40 },
+  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20 },
+  headerLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: theme.colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    marginBottom: 6,
+  },
+  headerTitle: {
+    fontSize: 36,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
+    letterSpacing: -1,
+    marginBottom: 8,
+  },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 15,
     color: theme.colors.textSecondary,
-    marginTop: 4,
+    lineHeight: 22,
+    maxWidth: 300,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     paddingHorizontal: 12,
-    paddingBottom: 32,
+    gap: 0,
   },
   toolCard: {
-    width: '33.33%',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 4,
+    width: '50%',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+  },
+  toolCardInner: {
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   iconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 14,
   },
   toolLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.colors.text,
-    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: 2,
   },
   toolSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     color: theme.colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 2,
+  },
+  // CTA Banner
+  ctaBanner: {
+    marginHorizontal: 20,
+    marginTop: 24,
+    borderRadius: 28,
+    padding: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  ctaGlassCircle: {
+    position: 'absolute',
+    bottom: -40,
+    right: -40,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  ctaContent: {
+    flex: 1,
+    zIndex: 1,
+  },
+  ctaTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 6,
+    letterSpacing: -0.3,
+  },
+  ctaSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  ctaButton: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 14,
+    alignSelf: 'flex-start',
+  },
+  ctaButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
+  ctaIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 16,
+    zIndex: 1,
   },
 });
 

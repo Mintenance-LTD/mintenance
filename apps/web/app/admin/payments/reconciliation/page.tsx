@@ -6,6 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { theme } from '@/lib/theme';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 import { ReconciliationTable } from './ReconciliationTable';
 
 interface ReconciliationRecord {
@@ -60,8 +61,11 @@ export default function ReconciliationDashboard() {
   const runReconciliation = async () => {
     setRunning(true);
     try {
-      await fetch('/api/cron/payment-reconciliation', {
-        headers: { 'x-cron-secret': 'manual-trigger' },
+      const csrfHeaders = await getCsrfHeaders();
+      await fetch('/api/admin/reconciliation', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
       });
       await fetchData();
     } finally {
@@ -73,35 +77,20 @@ export default function ReconciliationDashboard() {
     filter === 'unresolved' ? records.filter((r) => !r.resolved) : records;
 
   return (
-    <div
-      style={{ maxWidth: 1440, margin: '0 auto', padding: theme.spacing[6] }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: theme.spacing[6],
-        }}
-      >
+    <div className='min-h-screen bg-[#f7f9fb] px-6 md:px-10 py-8 max-w-[1440px] mx-auto space-y-8'>
+      {/* Page Header */}
+      <div className='flex justify-between items-end'>
         <div>
-          <h1
-            style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: 700,
-              color: theme.colors.text,
-            }}
-          >
-            Payment Reconciliation
-          </h1>
-          <p
-            style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
-              marginTop: 4,
-            }}
-          >
-            Compare local payment records against Stripe to detect
+          <nav className='flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold text-[#566166] mb-3'>
+            <span>Revenue</span>
+            <span className='text-[#a9b4b9]'>/</span>
+            <span className='text-[#565e74]'>Payment Reconciliation</span>
+          </nav>
+          <h2 className='text-[2.75rem] font-extrabold tracking-tight text-[#2a3439] leading-tight'>
+            Stripe Reconciliation
+          </h2>
+          <p className='text-[#566166] max-w-xl mt-2'>
+            Compare internal ledger records against Stripe API data to identify
             discrepancies.
           </p>
         </div>
@@ -109,6 +98,7 @@ export default function ReconciliationDashboard() {
           onClick={runReconciliation}
           disabled={running}
           variant='primary'
+          className='bg-[#565e74] hover:bg-[#4a5268] text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-[#565e74]/20 transition-all'
         >
           {running ? 'Running...' : 'Run Reconciliation'}
         </Button>

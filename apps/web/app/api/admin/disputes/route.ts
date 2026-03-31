@@ -83,37 +83,32 @@ export const GET = withApiHandler(
       throw new InternalServerError('Failed to fetch disputes');
     }
 
-    // Also get summary counts for the stats cards
-    const [
-      { count: openCount },
-      { count: reviewingCount },
-      { count: resolvedCount },
-    ] = await Promise.all([
-      serverSupabase
-        .from('escrow_transactions')
-        .select('id', { count: 'exact', head: true })
-        .eq('admin_hold_status', 'pending_review'),
-      serverSupabase
-        .from('escrow_transactions')
-        .select('id', { count: 'exact', head: true })
-        .eq('admin_hold_status', 'admin_hold'),
-      serverSupabase
-        .from('escrow_transactions')
-        .select('id', { count: 'exact', head: true })
-        .eq('admin_hold_status', 'released')
-        .not('admin_hold_status', 'is', null),
-    ]);
-
-    // Calculate total amount at risk (open + reviewing)
-    const { data: atRiskData } = await serverSupabase
+    // Fetch stats in a single query instead of 4 separate ones
+    const { data: statsRows } = await serverSupabase
       .from('escrow_transactions')
-      .select('amount')
-      .in('admin_hold_status', ['pending_review', 'admin_hold']);
+      .select('admin_hold_status, amount')
+      .in('admin_hold_status', ['pending_review', 'admin_hold', 'released']);
 
-    const totalAmountAtRisk = (atRiskData ?? []).reduce(
-      (sum, row) => sum + (Number(row.amount) || 0),
-      0
-    );
+    let openCount = 0;
+    let reviewingCount = 0;
+    let resolvedCount = 0;
+    let totalAmountAtRisk = 0;
+
+    for (const row of statsRows ?? []) {
+      switch (row.admin_hold_status) {
+        case 'pending_review':
+          openCount++;
+          totalAmountAtRisk += Number(row.amount) || 0;
+          break;
+        case 'admin_hold':
+          reviewingCount++;
+          totalAmountAtRisk += Number(row.amount) || 0;
+          break;
+        case 'released':
+          resolvedCount++;
+          break;
+      }
+    }
 
     const mapped = (disputes ?? []).map((d) => {
       const jobRaw = d.jobs;

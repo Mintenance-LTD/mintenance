@@ -22,7 +22,10 @@ try {
   // This allows the app to work with mobile-specific .env files
   // Only log in development to avoid noise in builds
   if (process.env.NODE_ENV === 'development') {
-    logger.warn('⚠️  Could not load shared environment variables:', error.message);
+    logger.warn(
+      '⚠️  Could not load shared environment variables:',
+      error.message
+    );
   }
 }
 
@@ -31,13 +34,21 @@ const validateEnvironment = () => {
   // Check if we're in an EAS build context
   // EAS sets EAS_BUILD=true during builds, and env vars are injected at build time
   // Also check if we're running via EAS CLI (eas build command)
-  const isEASBuild = process.env.EAS_BUILD === 'true' || 
-                     process.env.EAS_BUILD_PROFILE !== undefined ||
-                     process.env.EAS_CLI === 'true' ||
-                     (typeof process !== 'undefined' && process.argv && process.argv.some(arg => arg.includes('eas')) && process.argv.some(arg => arg.includes('build')));
-  const isProductionBuild = process.env.EXPO_PUBLIC_ENVIRONMENT === 'production' || process.env.NODE_ENV === 'production';
-  const isDev = process.env.NODE_ENV === 'development' || (!isProductionBuild && !isEASBuild);
-  
+  const isEASBuild =
+    process.env.EAS_BUILD === 'true' ||
+    process.env.EAS_BUILD_PROFILE !== undefined ||
+    process.env.EAS_CLI === 'true' ||
+    (typeof process !== 'undefined' &&
+      process.argv &&
+      process.argv.some((arg) => arg.includes('eas')) &&
+      process.argv.some((arg) => arg.includes('build')));
+  const isProductionBuild =
+    process.env.EXPO_PUBLIC_ENVIRONMENT === 'production' ||
+    process.env.NODE_ENV === 'production';
+  const isDev =
+    process.env.NODE_ENV === 'development' ||
+    (!isProductionBuild && !isEASBuild);
+
   const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -47,8 +58,12 @@ const validateEnvironment = () => {
     // During EAS builds, env vars are injected by the build system
     // Only warn if they're missing, but don't fail - EAS will handle validation
     if (!supabaseUrl || !supabaseKey) {
-      logger.warn('⚠️  Environment variables not yet available during EAS config evaluation.');
-      logger.warn('📋 They will be injected by EAS at build time from eas.json env section or EAS secrets.');
+      logger.warn(
+        '⚠️  Environment variables not yet available during EAS config evaluation.'
+      );
+      logger.warn(
+        '📋 They will be injected by EAS at build time from eas.json env section or EAS secrets.'
+      );
     }
     return; // Don't validate during EAS build config evaluation
   }
@@ -59,19 +74,29 @@ const validateEnvironment = () => {
     if (!supabaseUrl) missing.push('EXPO_PUBLIC_SUPABASE_URL');
     if (!supabaseKey) missing.push('EXPO_PUBLIC_SUPABASE_ANON_KEY');
 
-    logger.error('❌ Missing required environment variables:', missing.join(', '));
+    logger.error(
+      '❌ Missing required environment variables:',
+      missing.join(', ')
+    );
     logger.error('📋 Set these variables before building for production:');
-    logger.error('   EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co');
+    logger.error(
+      '   EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co'
+    );
     logger.error('   EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here');
 
-    throw new Error(`Production build requires Supabase credentials: ${missing.join(', ')}`);
+    throw new Error(
+      `Production build requires Supabase credentials: ${missing.join(', ')}`
+    );
   } else if (isDev && (!supabaseUrl || !supabaseKey)) {
     // In development, warn if missing but allow to continue
     const missing = [];
     if (!supabaseUrl) missing.push('EXPO_PUBLIC_SUPABASE_URL');
     if (!supabaseKey) missing.push('EXPO_PUBLIC_SUPABASE_ANON_KEY');
 
-    logger.warn('⚠️  Missing Supabase environment variables:', missing.join(', '));
+    logger.warn(
+      '⚠️  Missing Supabase environment variables:',
+      missing.join(', ')
+    );
     logger.warn('📋 App will use mock client. Set these for real data:');
     logger.warn('   EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co');
     logger.warn('   EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here');
@@ -83,7 +108,10 @@ try {
   validateEnvironment();
 } catch (error) {
   // During EAS builds, don't fail on validation - EAS will handle env vars
-  if (process.env.EAS_BUILD_PROFILE || process.argv.some(arg => arg.includes('eas'))) {
+  if (
+    process.env.EAS_BUILD_PROFILE ||
+    process.argv.some((arg) => arg.includes('eas'))
+  ) {
     logger.warn('⚠️  Validation warning (non-fatal):', error.message);
   } else {
     throw error;
@@ -92,183 +120,213 @@ try {
 
 module.exports = {
   expo: {
-    name: "Mintenance",
-    slug: "mintenance",
-    owner: "mintenance-ltd",
-    version: "1.2.4",
-    description: "Property maintenance made simple. Connect homeowners with trusted local contractors for repairs, renovations, and maintenance jobs. Get bids, manage projects, and pay securely.",
-    primaryColor: "#10B981",
-    orientation: "portrait",
-    icon: "./assets/icon.png",
-    userInterfaceStyle: "automatic",
+    name: 'Mintenance',
+    slug: 'mintenance',
+    owner: 'mintenance-ltd',
+    version: '1.2.4',
+    description:
+      'Property maintenance made simple. Connect homeowners with trusted local contractors for repairs, renovations, and maintenance jobs. Get bids, manage projects, and pay securely.',
+    primaryColor: '#10B981',
+    orientation: 'portrait',
+    icon: './assets/icon.png',
+    userInterfaceStyle: 'automatic',
     splash: {
-      image: "./assets/splash.png",
-      resizeMode: "contain",
-      backgroundColor: "#10B981"
+      image: './assets/splash.png',
+      resizeMode: 'contain',
+      backgroundColor: '#10B981',
     },
-    assetBundlePatterns: [
-      "**/*"
-    ],
+    assetBundlePatterns: ['**/*'],
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.mintenance.app",
-      buildNumber: "16",
+      bundleIdentifier: 'com.mintenance.app',
+      buildNumber: '16',
       // EAS writes GoogleService-Info.plist to the project root during build
       // Set GOOGLE_SERVICES_PLIST=1 in env (or use EAS Secrets) to enable
-      googleServicesFile: process.env.GOOGLE_SERVICES_PLIST ? "./GoogleService-Info.plist" : undefined,
+      googleServicesFile: process.env.GOOGLE_SERVICES_PLIST
+        ? './GoogleService-Info.plist'
+        : undefined,
       infoPlist: {
-        NSLocationWhenInUseUsageDescription: "This app needs location access to find nearby contractors and show job locations.",
+        NSLocationWhenInUseUsageDescription:
+          'This app needs location access to find nearby contractors and show job locations.',
         ITSAppUsesNonExemptEncryption: false,
-        NSCameraUsageDescription: "This app needs camera access to take photos of jobs and upload project images.",
-        NSPhotoLibraryUsageDescription: "This app needs photo library access to select images for job posts and project galleries.",
-        NSFaceIDUsageDescription: "This app uses Face ID for secure authentication.",
-        UIBackgroundModes: ["remote-notification"],
+        NSCameraUsageDescription:
+          'This app needs camera access to take photos of jobs and upload project images.',
+        NSPhotoLibraryUsageDescription:
+          'This app needs photo library access to select images for job posts and project galleries.',
+        NSFaceIDUsageDescription:
+          'This app uses Face ID for secure authentication.',
+        UIBackgroundModes: ['remote-notification'],
       },
       privacyManifests: {
         NSPrivacyAccessedAPITypes: [
           {
-            NSPrivacyAccessedAPIType: "NSPrivacyAccessedAPICategoryUserDefaults",
-            NSPrivacyAccessedAPITypeReasons: ["CA92.1"]
-          }
-        ]
+            NSPrivacyAccessedAPIType:
+              'NSPrivacyAccessedAPICategoryUserDefaults',
+            NSPrivacyAccessedAPITypeReasons: ['CA92.1'],
+          },
+        ],
       },
-      appStoreUrl: "https://apps.apple.com/app/mintenance/id0000000000",
-      associatedDomains: ["applinks:mintenance.app", "applinks:www.mintenance.app"]
+      appStoreUrl: 'https://apps.apple.com/app/mintenance/id0000000000',
+      associatedDomains: [
+        'applinks:mintenance.app',
+        'applinks:www.mintenance.app',
+      ],
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/adaptive-icon.png",
-        backgroundColor: "#10B981"
+        foregroundImage: './assets/adaptive-icon.png',
+        backgroundColor: '#10B981',
       },
       config: {
         googleMaps: {
-          apiKey: process.env.GOOGLE_MAPS_API_KEY
-        }
+          apiKey: process.env.GOOGLE_MAPS_API_KEY,
+        },
       },
-      package: "com.mintenance.app",
+      package: 'com.mintenance.app',
       versionCode: 16,
       // EAS writes google-services.json to the project root during build
       // Set GOOGLE_SERVICES_JSON=1 in env (or use EAS Secrets) to enable
-      googleServicesFile: process.env.GOOGLE_SERVICES_JSON ? "./google-services.json" : undefined,
-      playStoreUrl: "https://play.google.com/store/apps/details?id=com.mintenance.app",
+      googleServicesFile: process.env.GOOGLE_SERVICES_JSON
+        ? './google-services.json'
+        : undefined,
+      playStoreUrl:
+        'https://play.google.com/store/apps/details?id=com.mintenance.app',
       intentFilters: [
         {
-          action: "VIEW",
+          action: 'VIEW',
           autoVerify: true,
           data: [
             {
-              scheme: "https",
-              host: "mintenance.app"
+              scheme: 'https',
+              host: 'mintenance.app',
             },
             {
-              scheme: "https", 
-              host: "www.mintenance.app"
-            }
+              scheme: 'https',
+              host: 'www.mintenance.app',
+            },
           ],
-          category: ["BROWSABLE", "DEFAULT"]
-        }
+          category: ['BROWSABLE', 'DEFAULT'],
+        },
       ],
       permissions: [
-        "INTERNET",
-        "ACCESS_NETWORK_STATE",
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "CAMERA",
-        "RECORD_AUDIO",
-        "USE_BIOMETRIC",
-        "USE_FINGERPRINT",
-        "VIBRATE",
-        "RECEIVE_BOOT_COMPLETED",
-        "WAKE_LOCK"
-      ]
+        'INTERNET',
+        'ACCESS_NETWORK_STATE',
+        'ACCESS_FINE_LOCATION',
+        'ACCESS_COARSE_LOCATION',
+        'CAMERA',
+        'RECORD_AUDIO',
+        'USE_BIOMETRIC',
+        'USE_FINGERPRINT',
+        'VIBRATE',
+        'RECEIVE_BOOT_COMPLETED',
+        'WAKE_LOCK',
+      ],
     },
     web: {
-      favicon: "./assets/favicon.png"
+      favicon: './assets/favicon.png',
     },
-    scheme: "mintenance",
+    scheme: 'mintenance',
     updates: {
-      url: "https://u.expo.dev/671d1323-6979-465f-91db-e61471746ab3"
+      url: 'https://u.expo.dev/1ee95edc-0cc1-4775-b52e-4af46f9e51d0',
     },
-    runtimeVersion: "1.2.4",
+    runtimeVersion: '1.2.4',
     plugins: [
-      ["expo-build-properties", {
-        android: {
-          newArchEnabled: true,
-          enableProguardInReleaseBuilds: true,
-          enableSeparateBuildPerCPUArchitecture: true,
-          universalApk: false,
-          enableHermes: true,
-          minSdkVersion: 24,
-          compileSdkVersion: 35,
-          targetSdkVersion: 35,
-          buildToolsVersion: "35.0.0",
-          packagingOptions: {
-            pickFirst: ["**/libc++_shared.so", "**/libjsc.so"]
+      [
+        'expo-build-properties',
+        {
+          android: {
+            newArchEnabled: true,
+            enableProguardInReleaseBuilds: true,
+            enableSeparateBuildPerCPUArchitecture: true,
+            universalApk: false,
+            enableHermes: true,
+            minSdkVersion: 24,
+            compileSdkVersion: 35,
+            targetSdkVersion: 35,
+            buildToolsVersion: '35.0.0',
+            packagingOptions: {
+              pickFirst: ['**/libc++_shared.so', '**/libjsc.so'],
+            },
+            proguardFiles: ['proguard-android-optimize.txt'],
           },
-          proguardFiles: ["proguard-android-optimize.txt"]
+          ios: {
+            newArchEnabled: true,
+            deploymentTarget: '15.1',
+            useFrameworks: 'static',
+          },
         },
-        ios: {
-          newArchEnabled: true,
-          deploymentTarget: "15.1",
-          useFrameworks: "static"
-        }
-      }],
-      ["expo-location", {
-        locationAlwaysAndWhenInUsePermission: "This app needs location access to find nearby contractors and show job locations.",
-        locationAlwaysPermission: "This app needs location access to find nearby contractors and show job locations.",
-        locationWhenInUsePermission: "This app needs location access to find nearby contractors and show job locations."
-      }],
-      ["expo-image-picker", {
-        photosPermission: "This app needs photo library access to select images for job posts and project galleries.",
-        cameraPermission: "This app needs camera access to take photos of jobs and upload project images."
-      }],
-      ["expo-notifications", {
-        icon: "./assets/notification-icon.png",
-        color: "#10B981",
-        defaultChannel: "default",
-        // FCM v1 is used automatically when google-services.json is present
-        // For Android: requires google-services.json provided via EAS Secrets
-        // For iOS: requires GoogleService-Info.plist + APNs key provided via EAS Secrets
-        enableBackgroundRemoteNotifications: true,
-      }],
-      ["expo-local-authentication", {
-        faceIDPermission: "This app uses Face ID for secure authentication and faster login."
-      }],
-      ["@sentry/react-native/expo", {
-        organization: process.env.SENTRY_ORG || "mintenance",
-        project: process.env.SENTRY_PROJECT || "mintenance-mobile",
-      }],
-      ["@stripe/stripe-react-native", {
-        "merchantIdentifier": "merchant.com.mintenance.app",
-        "enableGooglePay": true
-      }],
-      "expo-font",
-      "expo-web-browser",
-      "@react-native-community/datetimepicker"
+      ],
+      [
+        'expo-location',
+        {
+          locationAlwaysAndWhenInUsePermission:
+            'This app needs location access to find nearby contractors and show job locations.',
+          locationAlwaysPermission:
+            'This app needs location access to find nearby contractors and show job locations.',
+          locationWhenInUsePermission:
+            'This app needs location access to find nearby contractors and show job locations.',
+        },
+      ],
+      [
+        'expo-image-picker',
+        {
+          photosPermission:
+            'This app needs photo library access to select images for job posts and project galleries.',
+          cameraPermission:
+            'This app needs camera access to take photos of jobs and upload project images.',
+        },
+      ],
+      [
+        'expo-notifications',
+        {
+          icon: './assets/notification-icon.png',
+          color: '#10B981',
+          defaultChannel: 'default',
+          // FCM v1 is used automatically when google-services.json is present
+          // For Android: requires google-services.json provided via EAS Secrets
+          // For iOS: requires GoogleService-Info.plist + APNs key provided via EAS Secrets
+          enableBackgroundRemoteNotifications: true,
+        },
+      ],
+      [
+        'expo-local-authentication',
+        {
+          faceIDPermission:
+            'This app uses Face ID for secure authentication and faster login.',
+        },
+      ],
+      [
+        '@sentry/react-native/expo',
+        {
+          organization: process.env.SENTRY_ORG || 'mintenance',
+          project: process.env.SENTRY_PROJECT || 'mintenance-mobile',
+        },
+      ],
+      [
+        '@stripe/stripe-react-native',
+        {
+          merchantIdentifier: 'merchant.com.mintenance.app',
+          enableGooglePay: true,
+        },
+      ],
+      'expo-font',
+      'expo-web-browser',
+      '@react-native-community/datetimepicker',
     ],
     extra: {
       eas: {
-        projectId: "1ee95edc-0cc1-4775-b52e-4af46f9e51d0",
-        owner: "mintenance-ltd"
+        projectId: '1ee95edc-0cc1-4775-b52e-4af46f9e51d0',
+        owner: 'mintenance-ltd',
       },
       // Supabase runtime config (read by src/config/supabase.ts)
       // Both URL and key MUST be provided via environment variables. No defaults to avoid leaks.
       supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
       supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
       // App metadata — used at runtime and by store submission tooling
-      privacyPolicyUrl: "https://mintenance.app/privacy",
-      termsOfServiceUrl: "https://mintenance.app/terms",
-      supportUrl: "https://mintenance.app/support",
-      marketingUrl: "https://mintenance.app",
-    }
-  }
+      privacyPolicyUrl: 'https://mintenance.app/privacy',
+      termsOfServiceUrl: 'https://mintenance.app/terms',
+      supportUrl: 'https://mintenance.app/support',
+      marketingUrl: 'https://mintenance.app',
+    },
+  },
 };
-
-
-
-
-
-
-
-
-

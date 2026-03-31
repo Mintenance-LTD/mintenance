@@ -1,24 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { encryptField } from '@/lib/encryption/field-encryption';
 import { logger } from '@mintenance/shared';
 
-// One-time admin maintenance route: re-encrypts any plaintext totp_secret values
-// flagged by migration 20260318000002_flag_plaintext_totp_secrets.sql
-//
-// Auth: requires SUPABASE_SERVICE_ROLE_KEY as Bearer token.
-// Idempotent: safe to run multiple times (only processes flagged rows).
-// After confirming count = 0, this route should be removed or disabled.
-
-export const POST = async (request: NextRequest): Promise<NextResponse> => {
-  // Auth: only callable with service role key
-  const authHeader = request.headers.get('Authorization');
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceRoleKey || authHeader !== `Bearer ${serviceRoleKey}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  try {
+/**
+ * POST /api/admin/maintenance/rotate-totp-secrets
+ * Re-encrypts any plaintext totp_secret values flagged by migration.
+ * Idempotent: safe to run multiple times (only processes flagged rows).
+ */
+export const POST = withApiHandler(
+  { roles: ['admin'], rateLimit: { maxRequests: 5 } },
+  async (_request, { user }) => {
     // Fetch flagged profiles (batch limit to prevent memory exhaustion)
     const { data: profiles, error: fetchError } = await serverSupabase
       .from('profiles')
@@ -51,7 +44,6 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
       if (!profile.totp_secret) continue;
 
       try {
-        // Encrypt the plaintext value using the existing field encryption library
         const encrypted = encryptField(profile.totp_secret, 'totp_secret');
 
         const { error: updateError } = await serverSupabase
@@ -65,11 +57,9 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 
         if (updateError) {
           logger.error(
-            '[MAINTENANCE] Failed to update TOTP secret for profile',
+            '[MAINTENANCE] Failed to update TOTP secret',
             updateError,
-            {
-              profileId: profile.id,
-            }
+            { profileId: profile.id }
           );
           failed++;
         } else {
@@ -77,17 +67,16 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
         }
       } catch (encryptErr) {
         logger.error(
-          '[MAINTENANCE] Failed to encrypt TOTP secret for profile',
+          '[MAINTENANCE] Failed to encrypt TOTP secret',
           encryptErr,
-          {
-            profileId: profile.id,
-          }
+          { profileId: profile.id }
         );
         failed++;
       }
     }
 
     logger.info('[MAINTENANCE] TOTP secret rotation complete', {
+      adminId: user.id,
       rotated,
       failed,
       total: profiles.length,
@@ -99,11 +88,5 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
       failed,
       total: profiles.length,
     });
-  } catch (error) {
-    logger.error('[MAINTENANCE] Unexpected error during TOTP rotation', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
   }
-};
+);

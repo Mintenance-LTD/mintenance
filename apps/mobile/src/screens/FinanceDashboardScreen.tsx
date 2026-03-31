@@ -1,5 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Platform, StatusBar } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  TouchableOpacity,
+  StatusBar,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -39,18 +47,30 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
     return <SkeletonDashboard />;
   }
 
-  const totalRevenue = (financialData?.monthly_revenue ?? []).reduce((sum, rev) => sum + rev, 0);
+  const totalRevenue = (financialData?.monthly_revenue ?? []).reduce(
+    (sum, rev) => sum + rev,
+    0
+  );
 
   return (
     <View style={styles.container}>
-      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      <StatusBar
+        translucent
+        backgroundColor='transparent'
+        barStyle='light-content'
+      />
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#FFFFFF" colors={[theme.colors.primary]} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor='#FFFFFF'
+            colors={[theme.colors.primary]}
+          />
         }
       >
         {/* Full-Bleed Gradient Hero — extends to very top */}
@@ -68,12 +88,26 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
           <View style={{ height: insets.top + 12 }} />
           {/* Nav row */}
           <View style={styles.heroNav}>
-            <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Ionicons name="arrow-back" size={24} color={theme.colors.textInverse} />
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons
+                name='arrow-back'
+                size={24}
+                color={theme.colors.textInverse}
+              />
             </TouchableOpacity>
             <Text style={styles.heroNavTitle}>Finance Dashboard</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Reporting')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Ionicons name="document-text-outline" size={22} color="rgba(255,255,255,0.8)" />
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Reporting')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons
+                name='document-text-outline'
+                size={22}
+                color='rgba(255,255,255,0.8)'
+              />
             </TouchableOpacity>
           </View>
 
@@ -85,52 +119,113 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
           {financialData && (
             <View style={styles.heroStatsRow}>
               <View style={styles.heroStat}>
-                <Text style={styles.heroStatValue}>{fmt(financialData.outstanding_invoices)}</Text>
+                <Text style={styles.heroStatValue}>
+                  {fmt(financialData.outstanding_invoices)}
+                </Text>
                 <Text style={styles.heroStatLabel}>Outstanding</Text>
               </View>
               <View style={styles.heroStatDivider} />
               <View style={styles.heroStat}>
-                <Text style={styles.heroStatValue}>{fmt(financialData.yearly_projection)}</Text>
+                <Text style={styles.heroStatValue}>
+                  {fmt(financialData.yearly_projection)}
+                </Text>
                 <Text style={styles.heroStatLabel}>Projected / yr</Text>
               </View>
             </View>
           )}
         </LinearGradient>
 
-        {/* KPI Stat Cards — overlap hero bottom */}
+        {/* KPI Status Cards */}
         <View style={styles.kpiRow}>
-          <View style={[styles.kpiCard, { borderLeftColor: theme.colors.primary }]}>
-            <View style={[styles.kpiIcon, { backgroundColor: theme.colors.primaryLight }]}>
-              <Ionicons name="cash-outline" size={16} color={theme.colors.primary} />
+          <View style={styles.kpiCard}>
+            <View
+              style={[
+                styles.kpiIcon,
+                { backgroundColor: theme.colors.primaryLight },
+              ]}
+            >
+              <Ionicons
+                name='cash-outline'
+                size={22}
+                color={theme.colors.primary}
+              />
             </View>
-            <Text style={styles.kpiValue}>{fmt(totalRevenue)}</Text>
-            <Text style={styles.kpiLabel}>Revenue</Text>
-            {financialData && financialData.quarterly_growth !== 0 && (
-              <View style={styles.kpiChange}>
-                <Ionicons
-                  name={financialData.quarterly_growth > 0 ? 'trending-up' : 'trending-down'}
-                  size={11}
-                  color={financialData.quarterly_growth > 0 ? theme.colors.primary : theme.colors.error}
-                />
-                <Text style={[styles.kpiChangeText, { color: financialData.quarterly_growth > 0 ? theme.colors.primary : theme.colors.error }]}>
-                  {financialData.quarterly_growth > 0 ? '+' : ''}{financialData.quarterly_growth.toFixed(1)}%
-                </Text>
-              </View>
-            )}
-          </View>
-          <View style={[styles.kpiCard, { borderLeftColor: theme.colors.accent }]}>
-            <View style={[styles.kpiIcon, { backgroundColor: theme.colors.accentLight }]}>
-              <Ionicons name="time-outline" size={16} color={theme.colors.accent} />
+            <View>
+              <Text style={styles.kpiLabel}>Revenue</Text>
+              <Text style={styles.kpiValue}>{fmt(totalRevenue)}</Text>
+              {financialData && financialData.quarterly_growth !== 0 && (
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 2,
+                    marginTop: 2,
+                  }}
+                >
+                  <Ionicons
+                    name={
+                      financialData.quarterly_growth > 0
+                        ? 'trending-up'
+                        : 'trending-down'
+                    }
+                    size={12}
+                    color={
+                      financialData.quarterly_growth > 0
+                        ? theme.colors.primary
+                        : theme.colors.error
+                    }
+                  />
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: '600',
+                      color:
+                        financialData.quarterly_growth > 0
+                          ? theme.colors.primary
+                          : theme.colors.error,
+                    }}
+                  >
+                    {financialData.quarterly_growth > 0 ? '+' : ''}
+                    {financialData.quarterly_growth.toFixed(1)}%
+                  </Text>
+                </View>
+              )}
             </View>
-            <Text style={styles.kpiValue}>{fmt(financialData?.outstanding_invoices ?? 0)}</Text>
-            <Text style={styles.kpiLabel}>Outstanding</Text>
           </View>
-          <View style={[styles.kpiCard, { borderLeftColor: theme.colors.error }]}>
+          <View style={styles.kpiCard}>
+            <View
+              style={[
+                styles.kpiIcon,
+                { backgroundColor: theme.colors.accentLight },
+              ]}
+            >
+              <Ionicons
+                name='time-outline'
+                size={22}
+                color={theme.colors.accent}
+              />
+            </View>
+            <View>
+              <Text style={styles.kpiLabel}>Outstanding</Text>
+              <Text style={styles.kpiValue}>
+                {fmt(financialData?.outstanding_invoices ?? 0)}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.kpiCard}>
             <View style={[styles.kpiIcon, { backgroundColor: '#FEE2E2' }]}>
-              <Ionicons name="warning-outline" size={16} color={theme.colors.error} />
+              <Ionicons
+                name='alert-circle-outline'
+                size={22}
+                color={theme.colors.error}
+              />
             </View>
-            <Text style={styles.kpiValue}>{fmt(financialData?.overdue_amount ?? 0)}</Text>
-            <Text style={styles.kpiLabel}>Overdue</Text>
+            <View>
+              <Text style={styles.kpiLabel}>Overdue</Text>
+              <Text style={[styles.kpiValue, { color: theme.colors.error }]}>
+                {fmt(financialData?.overdue_amount ?? 0)}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -144,19 +239,32 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
           {error ? (
             <View style={styles.errorCard}>
               <View style={styles.errorIconWrap}>
-                <Ionicons name="alert-circle" size={32} color={theme.colors.error} />
+                <Ionicons
+                  name='alert-circle'
+                  size={32}
+                  color={theme.colors.error}
+                />
               </View>
               <Text style={styles.errorTitle}>Unable to load finances</Text>
               <Text style={styles.errorMessage}>{error}</Text>
-              <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
+              <TouchableOpacity
+                style={styles.retryButton}
+                onPress={handleRefresh}
+              >
                 <Text style={styles.retryText}>Try Again</Text>
               </TouchableOpacity>
             </View>
           ) : financialData ? (
             <>
-              <ChartSection financialData={financialData} formatCurrency={fmt} />
+              <ChartSection
+                financialData={financialData}
+                formatCurrency={fmt}
+              />
               <QuickActions navigation={navigation} />
-              <FinancialInsights financialData={financialData} formatCurrency={fmt} />
+              <FinancialInsights
+                financialData={financialData}
+                formatCurrency={fmt}
+              />
             </>
           ) : null}
 
@@ -181,9 +289,11 @@ const styles = StyleSheet.create({
 
   // Full-bleed Hero
   hero: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingHorizontal: 24,
+    paddingBottom: 48,
     overflow: 'hidden',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
   heroDecorCircle: {
     position: 'absolute',
@@ -227,97 +337,92 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   heroLabel: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
-    fontWeight: '500',
-    letterSpacing: 0.5,
+    fontSize: 10,
+    color: theme.colors.primaryLight,
+    fontWeight: '700',
+    letterSpacing: 2,
     textTransform: 'uppercase',
-    marginBottom: 4,
+    marginBottom: 8,
     zIndex: 1,
+    opacity: 0.9,
   },
   heroAmount: {
-    fontSize: 40,
-    fontWeight: '700',
+    fontSize: 56,
+    fontWeight: '800',
     color: theme.colors.textInverse,
-    letterSpacing: -1.5,
-    marginBottom: 24,
+    letterSpacing: -2,
+    marginBottom: 28,
     zIndex: 1,
   },
   heroStatsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     zIndex: 1,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+    gap: 32,
   },
   heroStat: {
     alignItems: 'flex-start',
   },
   heroStatValue: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: theme.colors.textInverse,
+    fontSize: 24,
+    fontWeight: '600',
+    color: theme.colors.primaryLight,
     letterSpacing: -0.3,
   },
   heroStatLabel: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
-    fontWeight: '500',
+    fontSize: 9,
+    color: 'rgba(255,255,255,0.6)',
+    fontWeight: '700',
     marginTop: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   heroStatDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    marginHorizontal: 24,
+    display: 'none',
   },
 
-  // KPI Cards — overlap hero bottom
+  // KPI Cards
   kpiRow: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 16,
-    marginTop: -20,
+    gap: 12,
+    paddingHorizontal: 20,
+    marginTop: 20,
     marginBottom: 8,
   },
   kpiCard: {
-    flex: 1,
     backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: 12,
-    borderLeftWidth: 3,
-    ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12 },
-      android: { elevation: 4 },
-    }),
+    borderRadius: 24,
+    padding: 18,
+    borderLeftWidth: 0,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
   },
   kpiIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 0,
   },
   kpiValue: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
     color: theme.colors.textPrimary,
-    letterSpacing: -0.3,
+    letterSpacing: -0.5,
     marginBottom: 1,
   },
   kpiLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: theme.colors.textSecondary,
-    fontWeight: '500',
-  },
-  kpiChange: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    marginTop: 4,
-  },
-  kpiChangeText: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
 
   // Content
@@ -328,14 +433,12 @@ const styles = StyleSheet.create({
   // Error
   errorCard: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 32,
     alignItems: 'center',
     marginTop: 16,
-    ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
-      android: { elevation: 2 },
-    }),
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   errorIconWrap: {
     width: 56,

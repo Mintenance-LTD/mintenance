@@ -64,13 +64,33 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
         .eq('contractor_id', user.id)
         .order('created_at', { ascending: false });
       if (error) throw new Error(error.message);
-      const jobs: JobRecord[] = (data || []).map(
-        (j: Record<string, unknown>) => ({
-          ...j,
-          homeowner: j.homeowner as JobRecord['homeowner'],
-        })
-      ) as JobRecord[];
-      setClients(deriveClients(jobs));
+
+      // Also fetch jobs from accepted bids (like the web version does)
+      const { data: bidsData } = await supabase
+        .from('bids')
+        .select(
+          'id, status, amount, created_at, job:job_id(id, homeowner_id, status, title, created_at, completed_at, budget, final_price, homeowner:homeowner_id(id, first_name, last_name, email, phone, profile_image_url))'
+        )
+        .eq('contractor_id', user.id)
+        .eq('status', 'accepted');
+
+      // Merge bid-sourced jobs that aren't already in the direct jobs list
+      const jobIdsFromJobs = new Set(
+        (data || []).map((j: Record<string, unknown>) => j.id)
+      );
+      const bidJobs = (bidsData || [])
+        .map((b: Record<string, unknown>) => b.job)
+        .filter(
+          (j: unknown) =>
+            j && !jobIdsFromJobs.has((j as Record<string, unknown>).id)
+        );
+
+      const allJobs: JobRecord[] = [...(data || []), ...bidJobs].map((j) => ({
+        ...(j as Record<string, unknown>),
+        homeowner: (j as Record<string, unknown>)
+          .homeowner as JobRecord['homeowner'],
+      })) as JobRecord[];
+      setClients(deriveClients(allJobs));
     } catch (err) {
       logger.error('Error loading CRM data', err);
       setError('Failed to load client data. Pull down to retry.');
