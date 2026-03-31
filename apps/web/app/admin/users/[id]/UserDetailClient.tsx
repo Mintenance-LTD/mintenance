@@ -63,8 +63,12 @@ export function UserDetailClient({ userId }: UserDetailClientProps) {
       if (!response.ok) {
         const errorData = await response
           .json()
-          .catch(() => ({ error: 'Failed to fetch user' }));
-        throw new Error(errorData.error || 'Failed to fetch user details');
+          .catch(() => ({ error: 'Failed to fetch user details' }));
+        const errorMsg =
+          typeof errorData.error === 'string'
+            ? errorData.error
+            : `Failed to fetch user details (${response.status})`;
+        throw new Error(errorMsg);
       }
       const result = await response.json();
       setData(result.data);
