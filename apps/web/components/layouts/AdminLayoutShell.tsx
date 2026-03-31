@@ -22,6 +22,12 @@ interface AdminLayoutShellProps {
   };
 }
 
+const AUTH_ROUTES = [
+  '/admin/login',
+  '/admin/register',
+  '/admin/forgot-password',
+];
+
 export function AdminLayoutShell(props: AdminLayoutShellProps) {
   const { children, user = { id: '', email: '', role: 'admin' as const } } =
     props || {};
@@ -29,6 +35,16 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // SECURITY: Never render sidebar on auth routes — prevents leaking admin nav to unauthenticated users
+  if (
+    pathname &&
+    AUTH_ROUTES.some(
+      (route) => pathname === route || pathname.startsWith(route + '?')
+    )
+  ) {
+    return <>{children}</>;
+  }
 
   const handleLogout = async (): Promise<void> => {
     if (isLoggingOut) return;
