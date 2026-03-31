@@ -2,18 +2,48 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 
 export function ActionsDropdown({
   jobId,
   jobStatus,
+  onJobCancelled,
 }: {
   jobId: string;
   jobStatus: string;
+  onJobCancelled?: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleCancelJob = async () => {
+    setCancelling(true);
+    try {
+      const csrfHeaders = await getCsrfHeaders();
+      const response = await fetch(`/api/jobs/${jobId}/cancel`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to cancel job');
+      }
+      toast.success('Job cancelled successfully');
+      setConfirmCancel(false);
+      setOpen(false);
+      onJobCancelled?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to cancel job');
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -95,9 +125,100 @@ export function ActionsDropdown({
               label='Cancel Job'
               icon='x'
               variant='danger'
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                setOpen(false);
+                setConfirmCancel(true);
+              }}
             />
           )}
+        </div>
+      )}
+
+      {/* Cancel confirmation dialog */}
+      {confirmCancel && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+          }}
+          onClick={() => !cancelling && setConfirmCancel(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: theme.borderRadius.xl,
+              padding: '24px',
+              maxWidth: '420px',
+              width: '90%',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+            }}
+          >
+            <h3
+              style={{
+                fontSize: '18px',
+                fontWeight: 600,
+                marginBottom: '8px',
+                color: '#1E293B',
+              }}
+            >
+              Cancel this job?
+            </h3>
+            <p
+              style={{
+                fontSize: '14px',
+                color: '#64748B',
+                marginBottom: '20px',
+              }}
+            >
+              This will cancel the job and notify all parties. This action
+              cannot be undone.
+            </p>
+            <div
+              style={{
+                display: 'flex',
+                gap: '8px',
+                justifyContent: 'flex-end',
+              }}
+            >
+              <button
+                onClick={() => setConfirmCancel(false)}
+                disabled={cancelling}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: theme.borderRadius.md,
+                  border: '1px solid #E2E8F0',
+                  backgroundColor: '#FFFFFF',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                }}
+              >
+                Keep Job
+              </button>
+              <button
+                onClick={handleCancelJob}
+                disabled={cancelling}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: theme.borderRadius.md,
+                  border: 'none',
+                  backgroundColor: '#DC2626',
+                  color: '#FFFFFF',
+                  cursor: cancelling ? 'wait' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  opacity: cancelling ? 0.7 : 1,
+                }}
+              >
+                {cancelling ? 'Cancelling...' : 'Cancel Job'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

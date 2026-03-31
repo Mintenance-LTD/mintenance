@@ -13,9 +13,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
 import { logger } from '@mintenance/shared';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 import type {
   Assessment,
   Statistics,
@@ -85,12 +85,13 @@ export function BuildingAssessmentsClient(
   const handleValidate = async (assessmentId: string, validated: boolean) => {
     setLoading(true);
     try {
+      const csrfHeaders = await getCsrfHeaders();
       const response = await fetch(
         `/api/admin/building-assessments/${assessmentId}/validate`,
         {
           method: 'POST',
           credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...csrfHeaders },
           body: JSON.stringify({ validated, notes: validationNotes }),
         }
       );
@@ -140,64 +141,123 @@ export function BuildingAssessmentsClient(
   }, []);
 
   return (
-    <div className='p-8 md:p-10 max-w-[1440px] mx-auto bg-slate-50 min-h-screen flex flex-col gap-6'>
-      <AdminPageHeader
-        title='Building Assessments'
-        subtitle={`Review and validate AI building damage assessments for training data collection.${statistics.canAutoValidate ? ' Auto-validation is active for high-confidence assessments.' : ''}`}
-        quickStats={[
-          {
-            label: 'total',
-            value: statistics.total,
-            icon: 'fileText' as const,
-            color: theme.colors.primary,
-          },
-          {
-            label: 'pending',
-            value: statistics.pending,
-            icon: 'clock' as const,
-            color: '#F59E0B',
-          },
-          {
-            label: 'validated',
-            value: statistics.validated,
-            icon: 'checkCircle' as const,
-            color: theme.colors.success,
-          },
-        ]}
-      />
+    <div className='min-h-screen bg-[#f7f9fb] px-6 md:px-10 py-8 max-w-[1440px] mx-auto space-y-8'>
+      {/* Page Header */}
+      <div className='flex justify-between items-end'>
+        <div>
+          <h2 className='text-[2.75rem] font-extrabold tracking-tight text-[#2a3439] leading-tight'>
+            Building Assessments
+          </h2>
+          <p className='text-[#566166] text-lg mt-2'>
+            YOLO Continuous Learning &amp; AI Monitoring Ecosystem
+          </p>
+        </div>
+        <div className='flex gap-3'>
+          <button className='px-5 py-2.5 bg-[#d3e4fe] text-[#435368] rounded-xl font-medium text-sm hover:brightness-95 transition-all flex items-center gap-2'>
+            <Icon name='clock' size={16} color='#435368' /> Model History
+          </button>
+          <button
+            onClick={refreshAssessments}
+            className='px-5 py-2.5 bg-[#565e74] text-white rounded-xl font-medium text-sm hover:brightness-110 transition-all flex items-center gap-2 shadow-lg shadow-[#565e74]/20'
+          >
+            <Icon name='refresh' size={16} color='#fff' /> Refresh
+          </button>
+        </div>
+      </div>
 
-      {/* Statistics Dashboard */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: theme.spacing[4],
-        }}
-      >
-        <AdminMetricCard
-          label='Total Assessments'
-          value={statistics.total}
-          icon='fileText'
-          iconColor={theme.colors.primary}
-        />
-        <AdminMetricCard
-          label='Pending Review'
-          value={statistics.pending}
-          icon='clock'
-          iconColor='#F59E0B'
-        />
-        <AdminMetricCard
-          label='Validated'
-          value={statistics.validated}
-          icon='checkCircle'
-          iconColor={theme.colors.success}
-        />
-        <AdminMetricCard
-          label='Rejected'
-          value={statistics.rejected}
-          icon='xCircle'
-          iconColor={theme.colors.error}
-        />
+      {/* Bento Grid — 4/8 split matching mockup */}
+      <div className='grid grid-cols-12 gap-6'>
+        {/* Model Health Card (4 cols) */}
+        <div className='col-span-12 lg:col-span-4 bg-white rounded-[1.5rem] p-6 flex flex-col justify-between border border-[#a9b4b9]/5'>
+          <div className='flex justify-between items-start'>
+            <div>
+              <span className='text-[#717c82] text-[10px] font-bold tracking-[0.05em] uppercase'>
+                Total Assessments
+              </span>
+              <h3 className='text-3xl font-bold text-[#2a3439] mt-1'>
+                {statistics.total.toLocaleString()}
+              </h3>
+            </div>
+            <span className='bg-[#e3dbfd] text-[#514d68] px-3 py-1 rounded-full text-xs font-semibold'>
+              {statistics.canAutoValidate ? 'Auto-Active' : 'Manual'}
+            </span>
+          </div>
+          <div className='mt-6 grid grid-cols-3 gap-3'>
+            <div>
+              <p className='text-2xl font-bold text-[#2a3439]'>
+                {statistics.pending}
+              </p>
+              <p className='text-[10px] text-[#717c82] font-bold uppercase'>
+                Pending
+              </p>
+            </div>
+            <div>
+              <p className='text-2xl font-bold text-[#2a3439]'>
+                {statistics.validated}
+              </p>
+              <p className='text-[10px] text-[#717c82] font-bold uppercase'>
+                Validated
+              </p>
+            </div>
+            <div>
+              <p className='text-2xl font-bold text-[#9f403d]'>
+                {statistics.rejected}
+              </p>
+              <p className='text-[10px] text-[#717c82] font-bold uppercase'>
+                Rejected
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Learning Progress Card (8 cols) */}
+        <div className='col-span-12 lg:col-span-8 bg-white rounded-[1.5rem] p-6 border border-[#a9b4b9]/5'>
+          <div className='flex justify-between items-center mb-6'>
+            <h3 className='text-lg font-bold text-[#2a3439]'>
+              Continuous Learning Progress
+            </h3>
+            <span className='text-sm text-[#566166]'>
+              {correctionStats
+                ? `${correctionStats.approved} / ${correctionStats.approved + correctionStats.needed} corrections`
+                : 'Loading...'}
+            </span>
+          </div>
+          <div className='grid grid-cols-3 gap-8'>
+            <div className='space-y-2'>
+              <div className='flex items-center gap-2'>
+                <Icon name='checkCircle' size={18} color='#565e74' />
+                <span className='text-sm font-medium text-[#566166]'>
+                  Approved
+                </span>
+              </div>
+              <p className='text-3xl font-bold text-[#2a3439]'>
+                {correctionStats?.approved ?? 0}
+              </p>
+            </div>
+            <div className='space-y-2'>
+              <div className='flex items-center gap-2'>
+                <Icon name='clock' size={18} color='#605c78' />
+                <span className='text-sm font-medium text-[#566166]'>
+                  Pending Review
+                </span>
+              </div>
+              <p className='text-3xl font-bold text-[#2a3439]'>
+                {correctionStats?.pending ?? 0}
+              </p>
+            </div>
+            <div className='space-y-2'>
+              <div className='flex items-center gap-2'>
+                <Icon name='refresh' size={18} color='#506076' />
+                <span className='text-sm font-medium text-[#566166]'>
+                  Needed for Retrain
+                </span>
+              </div>
+              <p className='text-3xl font-bold text-[#2a3439]'>
+                {correctionStats?.needed ?? 100}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {correctionStats && (
@@ -257,10 +317,10 @@ export function BuildingAssessmentsClient(
                       marginTop: theme.spacing[1],
                     }}
                   >
-                    Need{' '}
-                    {statistics.minValidatedForAutoValidation -
-                      statistics.validated}{' '}
-                    more validated assessments
+                    {statistics.validated >=
+                    statistics.minValidatedForAutoValidation
+                      ? 'Minimum validations met — auto-validation can be enabled'
+                      : `Need ${statistics.minValidatedForAutoValidation - statistics.validated} more validated assessments`}
                   </div>
                 )}
             </div>

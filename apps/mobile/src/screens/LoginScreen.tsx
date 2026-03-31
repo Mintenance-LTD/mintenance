@@ -26,7 +26,10 @@ import { Input } from '../components/ui/Input';
 import { Banner } from '../components/ui/Banner';
 import { theme, gradients } from '../theme';
 
-type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
+type LoginScreenNavigationProp = NativeStackNavigationProp<
+  AuthStackParamList,
+  'Login'
+>;
 
 interface Props {
   navigation: LoginScreenNavigationProp;
@@ -63,7 +66,11 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
     if (!email || !password) {
       haptics.error();
-      setErrorMessage(String(t('auth.fillAllFields', { defaultValue: 'Please fill in all fields' })));
+      setErrorMessage(
+        String(
+          t('auth.fillAllFields', { defaultValue: 'Please fill in all fields' })
+        )
+      );
       return;
     }
 
@@ -73,51 +80,62 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       haptics.loginSuccess();
     } catch (error) {
       haptics.loginFailed();
-      setErrorMessage(String(getErrorMessage('loginFailed', error instanceof Error ? error.message : String(error))));
+      setErrorMessage(
+        String(
+          getErrorMessage(
+            'loginFailed',
+            error instanceof Error ? error.message : String(error)
+          )
+        )
+      );
     }
   };
 
   return (
     <View style={styles.safeArea}>
-      <StatusBar style="light" />
-      <View style={styles.container} testID="login-screen">
+      <StatusBar style='light' />
+      <View style={styles.container} testID='login-screen'>
         <FadeIn duration={500}>
-        <LinearGradient
-          colors={gradients.heroGreen}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.header, { paddingTop: insets.top + 24 }]}
-        >
-          {/* Decorative circles */}
-          <View style={styles.decorCircle1} />
-          <View style={styles.decorCircle2} />
-          <View style={styles.headerContent}>
-            <Image
-              source={require('../../assets/icon.png')}
-              style={styles.headerLogo}
-              resizeMode='contain'
-              accessible={false}
-            />
-            <Text
-              style={[styles.headerTitle, headerTitleText.textStyle]}
-              accessibilityRole='header'
-            >
-              Mintenance
+          <LinearGradient
+            colors={gradients.heroGreen}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.header, { paddingTop: insets.top + 24 }]}
+          >
+            {/* Decorative circles */}
+            <View style={styles.decorCircle1} />
+            <View style={styles.decorCircle2} />
+            <View style={styles.headerContent}>
+              <Image
+                source={require('../../assets/icon.png')}
+                style={styles.headerLogo}
+                resizeMode='contain'
+                accessible={false}
+              />
+              <Text
+                style={[styles.headerTitle, headerTitleText.textStyle]}
+                accessibilityRole='header'
+              >
+                Mintenance
+              </Text>
+            </View>
+            <Text style={styles.headerSubtitle} accessibilityRole='text'>
+              {String(t('auth.tagline'))}
             </Text>
-          </View>
-          <Text style={styles.headerSubtitle} accessibilityRole='text'>
-            {String(t('auth.tagline'))}
-          </Text>
 
-          <View style={styles.trustRow}>
-            {TRUST_ITEMS.map((item) => (
-              <View key={item.label} style={styles.trustPill}>
-                <Ionicons name={item.icon} size={13} color="rgba(255,255,255,0.9)" />
-                <Text style={styles.trustText}>{item.label}</Text>
-              </View>
-            ))}
-          </View>
-        </LinearGradient>
+            <View style={styles.trustRow}>
+              {TRUST_ITEMS.map((item) => (
+                <View key={item.label} style={styles.trustPill}>
+                  <Ionicons
+                    name={item.icon}
+                    size={13}
+                    color='rgba(255,255,255,0.9)'
+                  />
+                  <Text style={styles.trustText}>{item.label}</Text>
+                </View>
+              ))}
+            </View>
+          </LinearGradient>
         </FadeIn>
 
         <KeyboardAvoidingView
@@ -129,139 +147,158 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps='handled'
           >
-            <SlideIn direction="up" distance={20} duration={400} delay={200}>
-            <View style={styles.formHeading}>
-              <Text style={styles.formTitle}>{String(t('auth.signInTitle'))}</Text>
-              <Text style={styles.formSubtitle}>{String(t('auth.signInSubtitle'))}</Text>
-            </View>
+            <SlideIn direction='up' distance={20} duration={400} delay={200}>
+              <View style={styles.formHeading}>
+                <Text style={styles.formSectionLabel}>ACCOUNT ACCESS</Text>
+                <Text style={styles.formTitle}>
+                  {String(t('auth.signInTitle'))}
+                </Text>
+                <Text style={styles.formSubtitle}>
+                  {String(t('auth.signInSubtitle'))}
+                </Text>
+              </View>
             </SlideIn>
 
-              {errorMessage ? (
-                <Banner
-                  message={errorMessage}
-                  variant='error'
-                  testID='login-error-banner'
-                />
-              ) : null}
+            {errorMessage ? (
+              <Banner
+                message={errorMessage}
+                variant='error'
+                testID='login-error-banner'
+              />
+            ) : null}
 
-              <View style={styles.formContainer}>
-                <Input
-                  testID="email-input"
-                  label={String(auth.email())}
-                  placeholder={String(auth.email())}
-                  value={email}
-                  onChangeText={(value) => {
-                    setEmail(value);
-                    if (errorMessage) setErrorMessage(null);
-                  }}
-                  leftIcon='mail-outline'
-                  keyboardType='email-address'
-                  autoCapitalize='none'
-                  autoCorrect={false}
-                  accessibilityHint={String(
-                    t('auth.emailHint', { defaultValue: 'Please enter your email address to sign in' })
-                  )}
-                  textContentType='emailAddress'
-                  autoComplete='email'
-                  variant='outline'
-                  size='lg'
-                  fullWidth
-                  required
-                  containerStyle={{ marginBottom: 16 }}
-                />
+            <View style={styles.formContainer}>
+              <Input
+                testID='email-input'
+                label={String(auth.email())}
+                placeholder={String(auth.email())}
+                value={email}
+                onChangeText={(value) => {
+                  setEmail(value);
+                  if (errorMessage) setErrorMessage(null);
+                }}
+                leftIcon='mail-outline'
+                keyboardType='email-address'
+                autoCapitalize='none'
+                autoCorrect={false}
+                accessibilityHint={String(
+                  t('auth.emailHint', {
+                    defaultValue: 'Please enter your email address to sign in',
+                  })
+                )}
+                textContentType='emailAddress'
+                autoComplete='email'
+                variant='outline'
+                size='lg'
+                fullWidth
+                required
+                containerStyle={{ marginBottom: 16 }}
+              />
 
-                <Input
-                  testID="password-input"
-                  label={String(auth.password())}
-                  placeholder={String(auth.password())}
-                  value={password}
-                  onChangeText={(value) => {
-                    setPassword(value);
-                    if (errorMessage) setErrorMessage(null);
-                  }}
-                  leftIcon='lock-closed-outline'
-                  rightIcon={passwordVisible ? 'eye-off-outline' : 'eye-outline'}
-                  onRightIconPress={togglePasswordVisibility}
-                  secureTextEntry={!passwordVisible}
-                  accessibilityHint={String(
-                    t('auth.passwordHint', { defaultValue: 'Please enter your password to sign in' })
-                  )}
-                  textContentType='password'
-                  autoComplete='password'
-                  variant='outline'
-                  size='lg'
-                  fullWidth
-                  required
-                />
+              <Input
+                testID='password-input'
+                label={String(auth.password())}
+                placeholder={String(auth.password())}
+                value={password}
+                onChangeText={(value) => {
+                  setPassword(value);
+                  if (errorMessage) setErrorMessage(null);
+                }}
+                leftIcon='lock-closed-outline'
+                rightIcon={passwordVisible ? 'eye-off-outline' : 'eye-outline'}
+                onRightIconPress={togglePasswordVisibility}
+                secureTextEntry={!passwordVisible}
+                accessibilityHint={String(
+                  t('auth.passwordHint', {
+                    defaultValue: 'Please enter your password to sign in',
+                  })
+                )}
+                textContentType='password'
+                autoComplete='password'
+                variant='outline'
+                size='lg'
+                fullWidth
+                required
+              />
 
-                <TouchableOpacity
-                  style={styles.forgotPasswordLink}
-                  onPress={() => {
-                    haptics.buttonPress();
-                    navigation.navigate('ForgotPassword');
-                  }}
-                  accessibilityRole='button'
-                  accessibilityLabel={String(auth.forgotPassword())}
-                  accessibilityHint={String(
-                    t('auth.forgotPasswordHint', { defaultValue: 'Double tap to reset your password' })
-                  )}
-                >
-                  <Text style={[styles.forgotPasswordText, linkText.textStyle]}>
-                    {String(auth.forgotPassword())}
-                  </Text>
-                </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.forgotPasswordLink}
+                onPress={() => {
+                  haptics.buttonPress();
+                  navigation.navigate('ForgotPassword');
+                }}
+                accessibilityRole='button'
+                accessibilityLabel={String(auth.forgotPassword())}
+                accessibilityHint={String(
+                  t('auth.forgotPasswordHint', {
+                    defaultValue: 'Double tap to reset your password',
+                  })
+                )}
+              >
+                <Text style={[styles.forgotPasswordText, linkText.textStyle]}>
+                  {String(auth.forgotPassword())}
+                </Text>
+              </TouchableOpacity>
 
-                    <Button
-                  variant='primary'
-                  title={
-                    loading ? String(t('auth.loggingIn')) : String(auth.login())
-                  }
-                  onPress={handleLogin}
-                  disabled={loading}
-                  loading={loading}
-                  accessibilityLabel={
-                    loading ? String(t('auth.loggingIn')) : String(auth.login())
-                  }
-                  fullWidth
-                  style={{ borderRadius: 28, marginTop: 8 }}
-                  textStyle={buttonText.textStyle as import('react-native').TextStyle}
-                />
-              </View>
+              <Button
+                variant='primary'
+                title={
+                  loading ? String(t('auth.loggingIn')) : String(auth.login())
+                }
+                onPress={handleLogin}
+                disabled={loading}
+                loading={loading}
+                accessibilityLabel={
+                  loading ? String(t('auth.loggingIn')) : String(auth.login())
+                }
+                fullWidth
+                style={{ borderRadius: 28, marginTop: 8 }}
+                textStyle={
+                  buttonText.textStyle as import('react-native').TextStyle
+                }
+              />
+            </View>
 
             <View style={styles.dividerSection}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>{String(t('auth.newToMintenance'))}</Text>
+              <Text style={styles.dividerText}>
+                {String(t('auth.newToMintenance'))}
+              </Text>
               <View style={styles.dividerLine} />
             </View>
 
-              <View style={{ paddingHorizontal: 24 }}>
-                <Button
-                  variant='secondary'
-                  title={String(t('auth.createAccount'))}
-                  onPress={() => {
-                    haptics.buttonPress();
-                    navigation.navigate('Register');
-                  }}
-                  accessibilityLabel={String(
-                    t('auth.signUpForAccount', { defaultValue: 'Sign up for new account' })
-                  )}
-                  accessibilityHint={String(
-                    t('auth.signUpHint', { defaultValue: 'Double tap to create a new account' })
-                  )}
-                  fullWidth
-                  style={{ borderRadius: 28 }}
-                />
-              </View>
+            <View style={{ paddingHorizontal: 24 }}>
+              <Button
+                variant='secondary'
+                title={String(t('auth.createAccount'))}
+                onPress={() => {
+                  haptics.buttonPress();
+                  navigation.navigate('Register');
+                }}
+                accessibilityLabel={String(
+                  t('auth.signUpForAccount', {
+                    defaultValue: 'Sign up for new account',
+                  })
+                )}
+                accessibilityHint={String(
+                  t('auth.signUpHint', {
+                    defaultValue: 'Double tap to create a new account',
+                  })
+                )}
+                fullWidth
+                style={{ borderRadius: 28 }}
+              />
+            </View>
 
-              {isDev && (
-                <View style={styles.devSection}>
-                  <Text style={styles.devTitle}>Development Mode</Text>
-                  <Text style={styles.devNote}>
-                    Use test accounts from your local Supabase instance.
-                    {'\n'}Create test users via: npm run create-test-users
-                  </Text>
-                </View>
-              )}
+            {isDev && (
+              <View style={styles.devSection}>
+                <Text style={styles.devTitle}>Development Mode</Text>
+                <Text style={styles.devNote}>
+                  Use test accounts from your local Supabase instance.
+                  {'\n'}Create test users via: npm run create-test-users
+                </Text>
+              </View>
+            )}
           </ScrollView>
         </KeyboardAvoidingView>
       </View>
@@ -279,11 +316,11 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
   },
   header: {
-    paddingBottom: 28,
+    paddingBottom: 32,
     paddingHorizontal: 24,
     alignItems: 'center',
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
     overflow: 'hidden',
   },
   decorCircle1: {
@@ -356,6 +393,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     marginBottom: 20,
   },
+  formSectionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 6,
+  },
   formTitle: {
     fontSize: 26,
     fontWeight: '700',
@@ -369,6 +414,12 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     paddingHorizontal: 24,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 20,
+    marginHorizontal: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   forgotPasswordLink: {
     alignSelf: 'flex-end',
@@ -402,7 +453,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 24,
     padding: 12,
     backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: 12,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: theme.colors.border,
     borderStyle: 'dashed',

@@ -6,7 +6,13 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ContractorStats } from '../../services/UserService';
 import { theme } from '../../theme';
@@ -24,6 +30,7 @@ interface ScheduleSectionProps {
   recentlyCompleted?: ScheduleJob[];
   onViewAllPress: () => void;
   onJobDetailsPress: (jobId: string) => void;
+  onFindJobsPress?: () => void;
 }
 
 export const ScheduleSection: React.FC<ScheduleSectionProps> = ({
@@ -31,17 +38,20 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({
   recentlyCompleted = [],
   onViewAllPress,
   onJobDetailsPress,
+  onFindJobsPress,
 }) => {
   const hasContent = upcomingJobs.length > 0 || recentlyCompleted.length > 0;
 
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle} accessibilityRole="header">Today's Schedule</Text>
+        <Text style={styles.sectionTitle} accessibilityRole='header'>
+          Today's Schedule
+        </Text>
         <TouchableOpacity
           onPress={onViewAllPress}
-          accessibilityRole="button"
-          accessibilityLabel="View full schedule"
+          accessibilityRole='button'
+          accessibilityLabel='View full schedule'
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text style={styles.viewAllLink}>View All</Text>
@@ -51,10 +61,28 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({
       {!hasContent ? (
         <View style={styles.emptyState}>
           <View style={styles.emptyIconWrap}>
-            <Ionicons name="calendar-outline" size={28} color={theme.colors.textTertiary} />
+            <Ionicons
+              name='calendar-outline'
+              size={32}
+              color={theme.colors.textTertiary}
+            />
           </View>
-          <Text style={styles.emptyTitle}>No jobs scheduled</Text>
-          <Text style={styles.emptySubtitle}>Browse available jobs to fill your schedule</Text>
+          <Text style={styles.emptyTitle}>Today's Schedule</Text>
+          <Text style={styles.emptySubtitle}>
+            No schedule items yet. Your daily earnings and job timeline will
+            appear here when assigned.
+          </Text>
+          {onFindJobsPress && (
+            <TouchableOpacity
+              style={styles.findJobsButton}
+              onPress={onFindJobsPress}
+              accessibilityRole='button'
+              accessibilityLabel='Find new jobs'
+              activeOpacity={0.8}
+            >
+              <Text style={styles.findJobsButtonText}>Find New Jobs</Text>
+            </TouchableOpacity>
+          )}
         </View>
       ) : (
         <View style={styles.timeline}>
@@ -63,23 +91,31 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({
               key={job.id}
               style={styles.timelineItem}
               onPress={() => onJobDetailsPress(job.id)}
-              accessibilityRole="button"
+              accessibilityRole='button'
               accessibilityLabel={`${job.title}, ${job.time || ''}, ${job.status}`}
               activeOpacity={0.8}
             >
               {/* Timeline indicator */}
               <View style={styles.timelineTrack}>
                 <View style={styles.timelineDot} />
-                {index < upcomingJobs.length - 1 && <View style={styles.timelineLine} />}
+                {index < upcomingJobs.length - 1 && (
+                  <View style={styles.timelineLine} />
+                )}
               </View>
 
               {/* Card */}
               <View style={styles.scheduleCard}>
                 <View style={styles.cardContent}>
-                  <Text style={styles.scheduleTitle} numberOfLines={1}>{job.title}</Text>
+                  <Text style={styles.scheduleTitle} numberOfLines={1}>
+                    {job.title}
+                  </Text>
                   {job.time && (
                     <View style={styles.timeRow}>
-                      <Ionicons name="time-outline" size={13} color={theme.colors.textSecondary} />
+                      <Ionicons
+                        name='time-outline'
+                        size={13}
+                        color={theme.colors.textSecondary}
+                      />
                       <Text style={styles.timeText}>{job.time}</Text>
                     </View>
                   )}
@@ -99,13 +135,23 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({
                   key={job.id}
                   style={styles.completedCard}
                   onPress={() => onJobDetailsPress(job.id)}
-                  accessibilityRole="button"
+                  accessibilityRole='button'
                   accessibilityLabel={`Completed: ${job.title}`}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
-                  <Text style={styles.completedTitle} numberOfLines={1}>{job.title}</Text>
-                  <Ionicons name="chevron-forward" size={14} color={theme.colors.textTertiary} />
+                  <Ionicons
+                    name='checkmark-circle'
+                    size={18}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.completedTitle} numberOfLines={1}>
+                    {job.title}
+                  </Text>
+                  <Ionicons
+                    name='chevron-forward'
+                    size={14}
+                    color={theme.colors.textTertiary}
+                  />
                 </TouchableOpacity>
               ))}
             </View>
@@ -139,40 +185,46 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 16,
+    borderRadius: 24,
     padding: 40,
     alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   emptyIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: theme.colors.primaryLight,
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   emptyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 22,
+    fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginBottom: 4,
+    marginBottom: 8,
+    letterSpacing: -0.3,
   },
   emptySubtitle: {
     fontSize: 14,
     color: theme.colors.textSecondary,
     textAlign: 'center',
+    lineHeight: 20,
+    maxWidth: 260,
+  },
+  findJobsButton: {
+    marginTop: 24,
+    backgroundColor: theme.colors.primaryLight,
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 14,
+  },
+  findJobsButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: theme.colors.primaryDark,
   },
   timeline: {
     paddingLeft: 4,
@@ -208,17 +260,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 16,
     marginLeft: 8,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   cardContent: {
     flex: 1,

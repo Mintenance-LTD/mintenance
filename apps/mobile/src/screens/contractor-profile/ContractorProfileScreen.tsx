@@ -5,7 +5,7 @@
  * impact stats, primary CTA, portfolio gallery, and review breakdown.
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   ScrollView,
   View,
@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
 import { useContractorProfileViewModel } from './viewmodels/ContractorProfileViewModel';
 import {
   ProfileHeader,
@@ -27,6 +28,8 @@ import {
   PhotoGallery,
   ReviewsList,
 } from './components';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../config/supabase';
 import { theme } from '../../theme';
 
 interface ContractorProfileScreenProps {
@@ -39,19 +42,37 @@ interface ContractorProfileScreenProps {
   };
 }
 
-export const ContractorProfileScreen: React.FC<ContractorProfileScreenProps> = ({
-  navigation,
-  route,
-}) => {
+export const ContractorProfileScreen: React.FC<
+  ContractorProfileScreenProps
+> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const viewModel = useContractorProfileViewModel(route?.params?.contractorId);
+
+  // Check if the homeowner has an active job with this contractor (assigned/in_progress/completed)
+  const contractorId = route?.params?.contractorId;
+  const { data: activeJobs = [] } = useQuery({
+    queryKey: ['contractorActiveJobs', user?.id, contractorId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('jobs')
+        .select('id, status')
+        .eq('homeowner_id', user!.id)
+        .eq('contractor_id', contractorId!)
+        .in('status', ['assigned', 'in_progress', 'completed']);
+      return data || [];
+    },
+    enabled: !!user && !!contractorId,
+  });
+
+  const canMessage = activeJobs.length > 0;
 
   if (viewModel.loading) {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="light-content" />
+        <StatusBar barStyle='light-content' />
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size='large' color={theme.colors.primary} />
           <Text style={styles.loadingText}>Loading profile...</Text>
         </View>
       </View>
@@ -61,17 +82,31 @@ export const ContractorProfileScreen: React.FC<ContractorProfileScreenProps> = (
   if (viewModel.error) {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="dark-content" />
+        <StatusBar barStyle='dark-content' />
         <View style={[styles.centered, { paddingTop: insets.top + 60 }]}>
           <View style={styles.errorIconWrap}>
-            <Ionicons name="alert-circle-outline" size={28} color={theme.colors.error} />
+            <Ionicons
+              name='alert-circle-outline'
+              size={28}
+              color={theme.colors.error}
+            />
           </View>
           <Text style={styles.errorText}>{viewModel.error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={viewModel.refresh}>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={viewModel.refresh}
+          >
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.backLink} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={16} color={theme.colors.textSecondary} />
+          <TouchableOpacity
+            style={styles.backLink}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons
+              name='arrow-back'
+              size={16}
+              color={theme.colors.textSecondary}
+            />
             <Text style={styles.backLinkText}>Go Back</Text>
           </TouchableOpacity>
         </View>
@@ -81,7 +116,7 @@ export const ContractorProfileScreen: React.FC<ContractorProfileScreenProps> = (
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle='light-content' />
 
       <ScrollView
         style={styles.scrollView}
@@ -90,7 +125,7 @@ export const ContractorProfileScreen: React.FC<ContractorProfileScreenProps> = (
           <RefreshControl
             refreshing={viewModel.loading}
             onRefresh={viewModel.refresh}
-            tintColor="#FFFFFF"
+            tintColor='#FFFFFF'
             colors={[theme.colors.primary]}
           />
         }
@@ -120,10 +155,14 @@ export const ContractorProfileScreen: React.FC<ContractorProfileScreenProps> = (
           onCall={viewModel.handleCall}
           onVideo={viewModel.handleVideo}
           onShare={viewModel.handleShare}
+          canMessage={canMessage}
         />
 
         {/* Portfolio gallery */}
-        <PhotoGallery photos={viewModel.photos} onAddPhoto={viewModel.handleAddPhoto} />
+        <PhotoGallery
+          photos={viewModel.photos}
+          onAddPhoto={viewModel.handleAddPhoto}
+        />
 
         {/* Reviews with breakdown */}
         <ReviewsList

@@ -35,7 +35,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CheckCircle2 } from 'lucide-react';
 import { AdminAnnouncement } from '@/lib/services/admin/AdminCommunicationService';
-import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 import { logger } from '@mintenance/shared';
 
 import { MarkdownEditor } from './MarkdownEditor';
@@ -80,9 +80,11 @@ export function CommunicationsClient({
   const handleCreate = async () => {
     setLoading(true);
     try {
+      const csrfHeaders = await getCsrfHeaders();
       const response = await fetch('/api/admin/announcements', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
         body: JSON.stringify({
           ...formData,
           is_published: false,
@@ -118,9 +120,11 @@ export function CommunicationsClient({
   const handlePublish = async (id: string) => {
     setLoading(true);
     try {
+      const csrfHeaders = await getCsrfHeaders();
       const response = await fetch(`/api/admin/announcements/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
         body: JSON.stringify({ is_published: true }),
       });
 
@@ -156,10 +160,13 @@ export function CommunicationsClient({
 
     setLoading(true);
     try {
+      const csrfHeaders = await getCsrfHeaders();
       const response = await fetch(
         `/api/admin/announcements/${deleteDialog.id}`,
         {
           method: 'DELETE',
+          credentials: 'include',
+          headers: { ...csrfHeaders },
         }
       );
 
@@ -206,43 +213,26 @@ export function CommunicationsClient({
   const draftCount = announcements.filter((a) => !a.is_published).length;
 
   return (
-    <div
-      style={{
-        padding: theme.spacing[8],
-        maxWidth: '1440px',
-        margin: '0 auto',
-        width: '100%',
-      }}
-    >
-      <AdminPageHeader
-        title='Admin Communications'
-        subtitle='Create announcements and communicate with platform users'
-        quickStats={[
-          {
-            label: 'total',
-            value: announcements.length,
-            icon: 'megaphone',
-            color: theme.colors.primary,
-          },
-          {
-            label: 'published',
-            value: publishedCount,
-            icon: 'checkCircle',
-            color: theme.colors.success,
-          },
-          {
-            label: 'drafts',
-            value: draftCount,
-            icon: 'fileText',
-            color: theme.colors.warning,
-          },
-        ]}
-        actions={
-          <Button variant='primary' onClick={() => setShowCreateModal(true)}>
-            <Icon name='plus' size={16} aria-hidden='true' /> New Announcement
-          </Button>
-        }
-      />
+    <div className='min-h-screen bg-[#f7f9fb] px-6 md:px-10 py-8 max-w-[1440px] mx-auto'>
+      {/* Page Header */}
+      <div className='flex justify-between items-end mb-10'>
+        <div>
+          <h2 className='text-[2.75rem] font-extrabold tracking-tight text-[#2a3439] leading-tight'>
+            Communications
+          </h2>
+          <p className='text-[#566166] text-lg mt-2 max-w-lg'>
+            Broadcast announcements and manage system-wide notifications for the
+            ecosystem.
+          </p>
+        </div>
+        <Button
+          variant='primary'
+          onClick={() => setShowCreateModal(true)}
+          className='bg-[#565e74] hover:bg-[#4a5268] text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-[#565e74]/20 transition-all'
+        >
+          <Icon name='plus' size={16} aria-hidden='true' /> New Announcement
+        </Button>
+      </div>
 
       {/* Success Alert */}
       {successAlert.show && (

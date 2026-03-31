@@ -37,6 +37,9 @@ export const theme = {
       900: '#0f172a',
       950: '#0C1A33', // Admin sidebar
     },
+    // Admin-specific brand color (indigo-blue used across admin UI)
+    adminPrimary: '#4A67FF',
+    adminPrimaryLight: '#EEF1FF',
     // Semantic status colors for admin badges
     status: {
       success: { bg: '#D1FAE5', text: '#065F46', border: '#A7F3D0' },

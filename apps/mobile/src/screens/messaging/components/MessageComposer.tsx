@@ -44,16 +44,13 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
 
   return (
     <View
-      style={[
-        styles.container,
-        { paddingBottom: Math.max(bottomInset, 8) },
-      ]}
+      style={[styles.container, { paddingBottom: Math.max(bottomInset, 8) }]}
     >
       {error ? (
         <Banner
           message={error}
-          variant="error"
-          testID="messaging-composer-error"
+          variant='error'
+          testID='messaging-composer-error'
         />
       ) : null}
       <View style={styles.inputRow}>
@@ -64,9 +61,13 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
               style={styles.attachButton}
               onPress={onAttach}
               disabled={isSending}
-              accessibilityLabel="Attach image from gallery"
+              accessibilityLabel='Attach image from gallery'
             >
-              <Ionicons name="image-outline" size={22} color={theme.colors.textSecondary} />
+              <Ionicons
+                name='image-outline'
+                size={22}
+                color={theme.colors.textSecondary}
+              />
             </TouchableOpacity>
           )}
           {onCamera && (
@@ -74,9 +75,13 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
               style={styles.attachButton}
               onPress={onCamera}
               disabled={isSending}
-              accessibilityLabel="Take a photo"
+              accessibilityLabel='Take a photo'
             >
-              <Ionicons name="camera-outline" size={22} color={theme.colors.textSecondary} />
+              <Ionicons
+                name='camera-outline'
+                size={22}
+                color={theme.colors.textSecondary}
+              />
             </TouchableOpacity>
           )}
         </View>
@@ -87,7 +92,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
             style={styles.textInput}
             value={value}
             onChangeText={onChangeText}
-            placeholder="Type a message..."
+            placeholder='Type a message...'
             placeholderTextColor={theme.colors.textTertiary}
             multiline
             maxLength={500}
@@ -99,18 +104,21 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
         <TouchableOpacity
           style={[
             styles.sendButton,
-            hasText && !isSending ? styles.sendButtonActive : styles.sendButtonInactive,
+            hasText && !isSending
+              ? styles.sendButtonActive
+              : styles.sendButtonInactive,
+            { opacity: isDisabled ? 0.4 : 1 },
           ]}
           onPress={onSend}
           disabled={isDisabled}
-          accessibilityRole="button"
-          accessibilityLabel="Send message"
+          accessibilityRole='button'
+          accessibilityLabel='Send message'
         >
           {isSending ? (
-            <ActivityIndicator size="small" color={theme.colors.textInverse} />
+            <ActivityIndicator size='small' color={theme.colors.textInverse} />
           ) : (
             <Ionicons
-              name="send"
+              name='send'
               size={18}
               color={theme.colors.textInverse}
               style={{ marginLeft: 2 }}

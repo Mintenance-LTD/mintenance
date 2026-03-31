@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { theme } from '@/lib/theme';
 import { logger } from '@mintenance/shared';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 import { EscrowReviewDetailModal } from './EscrowReviewDetailModal';
 import { EscrowReviewStats } from './EscrowReviewStats';
 import { EscrowBulkDialogs } from './EscrowBulkDialogs';
@@ -107,9 +108,11 @@ export function EscrowReviewDashboardClient() {
     if (!selectedReview) return;
     setActionLoading(true);
     try {
+      const csrfHeaders = await getCsrfHeaders();
       const response = await fetch('/api/admin/escrow/approve', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
         body: JSON.stringify({
           escrowId: selectedReview.escrowId,
           notes: notes || undefined,
@@ -134,9 +137,11 @@ export function EscrowReviewDashboardClient() {
     if (!selectedReview || !reason.trim()) return;
     setActionLoading(true);
     try {
+      const csrfHeaders = await getCsrfHeaders();
       const response = await fetch('/api/admin/escrow/reject', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
         body: JSON.stringify({
           escrowId: selectedReview.escrowId,
           reason,
@@ -161,9 +166,11 @@ export function EscrowReviewDashboardClient() {
     if (!selectedReview || !reason.trim()) return;
     setActionLoading(true);
     try {
+      const csrfHeaders = await getCsrfHeaders();
       const response = await fetch('/api/admin/escrow/hold', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
         body: JSON.stringify({
           escrowId: selectedReview.escrowId,
           reason,
@@ -205,11 +212,13 @@ export function EscrowReviewDashboardClient() {
     setActionLoading(true);
     let success = 0;
     let failed = 0;
+    const csrfHeaders = await getCsrfHeaders();
     for (const escrowId of selectedIds) {
       try {
         const response = await fetch('/api/admin/escrow/approve', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', ...csrfHeaders },
           body: JSON.stringify({ escrowId, notes: bulkNotes || undefined }),
         });
         if (response.ok) success++;
@@ -236,11 +245,13 @@ export function EscrowReviewDashboardClient() {
     setActionLoading(true);
     let success = 0;
     let failed = 0;
+    const csrfHeaders = await getCsrfHeaders();
     for (const escrowId of selectedIds) {
       try {
         const response = await fetch('/api/admin/escrow/hold', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', ...csrfHeaders },
           body: JSON.stringify({ escrowId, reason: bulkReason }),
         });
         if (response.ok) success++;

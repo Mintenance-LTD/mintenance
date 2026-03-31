@@ -186,49 +186,44 @@ export default function AnalyticsDetailPage() {
   };
 
   return (
-    <div className='min-h-screen bg-slate-50'>
-      {/* Header */}
-      <MotionDiv
-        initial='hidden'
-        animate='visible'
-        variants={fadeIn}
-        className='bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white'
-      >
-        <div className='max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12'>
-          <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
-            <div>
-              <h1 className='text-4xl font-bold mb-2'>Advanced Analytics</h1>
-              <p className='text-slate-300'>
-                Detailed insights into platform performance and user behavior
-              </p>
-            </div>
-            <div className='flex flex-wrap gap-3'>
-              <select
-                value={dateRange}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                  setDateRange(e.target.value)
-                }
-                aria-label='Select date range'
-                className='px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/50'
-              >
-                <option value='7days'>Last 7 Days</option>
-                <option value='30days'>Last 30 Days</option>
-                <option value='90days'>Last 90 Days</option>
-                <option value='1year'>Last Year</option>
-              </select>
-              <button
-                onClick={handleExport}
-                className='flex items-center gap-2 px-4 py-2 bg-white text-slate-900 rounded-lg hover:bg-slate-100 transition-colors font-medium'
-              >
-                <Download className='w-5 h-5' />
-                Export
-              </button>
-            </div>
+    <div className='min-h-screen bg-[#f7f9fb]'>
+      {/* Page Header */}
+      <div className='max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-4'>
+        <div className='flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8'>
+          <div>
+            <h1 className='text-[2.75rem] font-extrabold tracking-tight text-[#2a3439] leading-tight'>
+              Advanced Analytics
+            </h1>
+            <p className='text-[#566166] text-lg mt-2'>
+              Detailed insights into platform performance and user behavior.
+            </p>
+          </div>
+          <div className='flex flex-wrap gap-3'>
+            <select
+              value={dateRange}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                setDateRange(e.target.value)
+              }
+              aria-label='Select date range'
+              className='px-4 py-2.5 bg-[#e1e9ee] border-none text-[#2a3439] rounded-xl focus:ring-2 focus:ring-[#565e74]/20 text-sm font-medium'
+            >
+              <option value='7days'>Last 7 Days</option>
+              <option value='30days'>Last 30 Days</option>
+              <option value='90days'>Last 90 Days</option>
+              <option value='1year'>Last Year</option>
+            </select>
+            <button
+              onClick={handleExport}
+              className='flex items-center gap-2 px-5 py-2.5 bg-[#565e74] text-white rounded-xl font-semibold text-sm hover:brightness-110 transition-all shadow-sm'
+            >
+              <Download className='w-4 h-4' />
+              Export
+            </button>
           </div>
         </div>
-      </MotionDiv>
+      </div>
 
-      <div className='max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+      <div className='max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pb-8'>
         {isLoading ? (
           <div className='flex items-center justify-center py-20'>
             <Loader2 className='w-8 h-8 animate-spin text-emerald-600' />

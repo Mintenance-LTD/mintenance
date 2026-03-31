@@ -110,7 +110,7 @@ export function ResolveDisputeDialog({
                   gap: theme.spacing[3],
                   padding: theme.spacing[3],
                   borderRadius: theme.borderRadius.md,
-                  border: `2px solid ${resolution === option.value ? '#4A67FF' : '#E2E8F0'}`,
+                  border: `2px solid ${resolution === option.value ? theme.colors.adminPrimary : '#E2E8F0'}`,
                   backgroundColor:
                     resolution === option.value ? '#EFF6FF' : '#FFFFFF',
                   cursor: 'pointer',
@@ -123,7 +123,10 @@ export function ResolveDisputeDialog({
                   value={option.value}
                   checked={resolution === option.value}
                   onChange={() => onResolutionChange(option.value)}
-                  style={{ marginTop: 2, accentColor: '#4A67FF' }}
+                  style={{
+                    marginTop: 2,
+                    accentColor: theme.colors.adminPrimary,
+                  }}
                 />
                 <div>
                   <div

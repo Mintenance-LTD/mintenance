@@ -1,6 +1,6 @@
 /**
  * Navigation Constants
- * 
+ *
  * Centralized navigation configuration and constants
  */
 
@@ -34,6 +34,11 @@ export const TAB_CONFIG = {
     icon: 'chatbubbles-outline' as keyof typeof Ionicons.glyphMap,
     activeIcon: 'chatbubbles' as keyof typeof Ionicons.glyphMap,
     label: 'Messages',
+  },
+  BusinessTab: {
+    icon: 'briefcase-outline' as keyof typeof Ionicons.glyphMap,
+    activeIcon: 'briefcase' as keyof typeof Ionicons.glyphMap,
+    label: 'Business',
   },
   ProfileTab: {
     icon: 'person-outline' as keyof typeof Ionicons.glyphMap,

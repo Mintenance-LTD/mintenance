@@ -47,7 +47,8 @@ function getTimeGreeting(): string {
 export const ContractorDashboard: React.FC = () => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const navigation = useNavigation<NavigationProp<Record<string, object | undefined>>>();
+  const navigation =
+    useNavigation<NavigationProp<Record<string, object | undefined>>>();
   const haptics = useHaptics();
   const queryClient = useQueryClient();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -92,13 +93,65 @@ export const ContractorDashboard: React.FC = () => {
       : 'Contractor');
 
   const menuItems: HeaderMenuItem[] = [
-    { label: 'Browse Jobs', subtitle: 'Find new opportunities', icon: 'search', iconColor: theme.colors.primary, iconBg: theme.colors.primaryLight, onPress: openJobsList },
-    { label: 'Inbox', subtitle: 'Messages & updates', icon: 'mail', iconColor: '#3B82F6', iconBg: '#DBEAFE', onPress: () => navigation.navigate('MessagingTab', { screen: 'MessagesList' }) },
-    { label: 'Quotes', subtitle: 'Build & send estimates', icon: 'document-text', iconColor: '#8B5CF6', iconBg: '#EDE9FE', onPress: () => navigation.navigate('BusinessTab', { screen: 'QuoteBuilder' }) },
-    { label: 'Invoices', subtitle: 'Manage billing', icon: 'receipt', iconColor: theme.colors.accent, iconBg: theme.colors.accentLight, onPress: () => navigation.navigate('BusinessTab', { screen: 'InvoiceManagement' }) },
-    { label: 'Expenses', subtitle: 'Track costs', icon: 'wallet', iconColor: theme.colors.error, iconBg: semanticBg.error, onPress: () => navigation.navigate('BusinessTab', { screen: 'Expenses' }) },
-    { label: 'Calendar', subtitle: 'Schedule & plan', icon: 'calendar', iconColor: '#06B6D4', iconBg: '#CFFAFE', onPress: () => navigation.navigate('BusinessTab', { screen: 'Calendar' }) },
-    { label: 'Profile & Settings', subtitle: 'Edit your account', icon: 'person-circle', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('ProfileTab' as never) },
+    {
+      label: 'Browse Jobs',
+      subtitle: 'Find new opportunities',
+      icon: 'search',
+      iconColor: theme.colors.primary,
+      iconBg: theme.colors.primaryLight,
+      onPress: openJobsList,
+    },
+    {
+      label: 'Inbox',
+      subtitle: 'Messages & updates',
+      icon: 'mail',
+      iconColor: '#3B82F6',
+      iconBg: '#DBEAFE',
+      onPress: () =>
+        navigation.navigate('MessagingTab', { screen: 'MessagesList' }),
+    },
+    {
+      label: 'Quotes',
+      subtitle: 'Build & send estimates',
+      icon: 'document-text',
+      iconColor: '#8B5CF6',
+      iconBg: '#EDE9FE',
+      onPress: () =>
+        navigation.navigate('BusinessTab', { screen: 'QuoteBuilder' }),
+    },
+    {
+      label: 'Invoices',
+      subtitle: 'Manage billing',
+      icon: 'receipt',
+      iconColor: theme.colors.accent,
+      iconBg: theme.colors.accentLight,
+      onPress: () =>
+        navigation.navigate('BusinessTab', { screen: 'InvoiceManagement' }),
+    },
+    {
+      label: 'Expenses',
+      subtitle: 'Track costs',
+      icon: 'wallet',
+      iconColor: theme.colors.error,
+      iconBg: semanticBg.error,
+      onPress: () => navigation.navigate('BusinessTab', { screen: 'Expenses' }),
+    },
+    {
+      label: 'Calendar',
+      subtitle: 'Schedule & plan',
+      icon: 'calendar',
+      iconColor: '#06B6D4',
+      iconBg: '#CFFAFE',
+      onPress: () => navigation.navigate('BusinessTab', { screen: 'Calendar' }),
+    },
+    {
+      label: 'Profile & Settings',
+      subtitle: 'Edit your account',
+      icon: 'person-circle',
+      iconColor: theme.colors.textSecondary,
+      iconBg: theme.colors.backgroundSecondary,
+      onPress: () => navigation.navigate('ProfileTab' as never),
+    },
   ];
 
   const handleItemPress = (item: HeaderMenuItem) => {
@@ -107,21 +160,23 @@ export const ContractorDashboard: React.FC = () => {
   };
 
   if (isLoading) {
-    return <FullScreenLoading message="Loading dashboard..." />;
+    return <FullScreenLoading message='Loading dashboard...' />;
   }
 
   if (isError) {
     return (
       <View style={styles.errorContainer}>
-        <View style={[styles.errorIconWrap, { backgroundColor: semanticBg.error }]}>
+        <View
+          style={[styles.errorIconWrap, { backgroundColor: semanticBg.error }]}
+        >
           <Text style={styles.errorEmoji}>!</Text>
         </View>
         <Text style={styles.errorText}>Failed to load dashboard</Text>
         <TouchableOpacity
           style={styles.retryButton}
           onPress={() => refetch()}
-          accessibilityRole="button"
-          accessibilityLabel="Retry loading dashboard"
+          accessibilityRole='button'
+          accessibilityLabel='Retry loading dashboard'
         >
           <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
@@ -134,11 +189,11 @@ export const ContractorDashboard: React.FC = () => {
       {/* Force translucent status bar so gradient fills behind it */}
       <StatusBar
         translucent
-        backgroundColor="transparent"
-        barStyle="light-content"
+        backgroundColor='transparent'
+        barStyle='light-content'
       />
       <ScrollView
-        testID="home-scroll-view"
+        testID='home-scroll-view'
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -150,10 +205,7 @@ export const ContractorDashboard: React.FC = () => {
         }
       >
         {/* Full-bleed green gradient hero — extends behind status bar */}
-        <LinearGradient
-          colors={gradients.heroGreen}
-          style={styles.hero}
-        >
+        <LinearGradient colors={gradients.heroGreen} style={styles.hero}>
           {/* Decorative circles */}
           <View style={styles.decorCircle1} />
           <View style={styles.decorCircle2} />
@@ -167,18 +219,26 @@ export const ContractorDashboard: React.FC = () => {
             <View style={styles.headerRight}>
               <TouchableOpacity
                 style={styles.headerIconBtn}
-                onPress={() => navigation.getParent?.()?.navigate('Modal', { screen: 'Notifications' })}
-                accessibilityRole="button"
-                accessibilityLabel="Notifications"
+                onPress={() =>
+                  navigation
+                    .getParent?.()
+                    ?.navigate('Modal', { screen: 'Notifications' })
+                }
+                accessibilityRole='button'
+                accessibilityLabel='Notifications'
               >
-                <Ionicons name="notifications-outline" size={22} color={theme.colors.textInverse} />
+                <Ionicons
+                  name='notifications-outline'
+                  size={22}
+                  color={theme.colors.textInverse}
+                />
               </TouchableOpacity>
               {userInitials && (
                 <TouchableOpacity
                   style={styles.avatarButton}
                   onPress={() => setDropdownOpen(true)}
-                  accessibilityRole="button"
-                  accessibilityLabel="Open profile menu"
+                  accessibilityRole='button'
+                  accessibilityLabel='Open profile menu'
                 >
                   <Text style={styles.avatarText}>{userInitials}</Text>
                 </TouchableOpacity>
@@ -188,20 +248,9 @@ export const ContractorDashboard: React.FC = () => {
 
           {/* Greeting + stats */}
           <Text style={styles.greeting}>{getTimeGreeting()}</Text>
-          <Text style={styles.heroName} numberOfLines={1}>{businessName}</Text>
-
-          <View style={styles.heroStatsRow}>
-            <View style={styles.heroStat}>
-              <Text style={styles.heroStatValue}>{contractorStats?.activeJobs ?? 0}</Text>
-              <Text style={styles.heroStatLabel}>Active Jobs</Text>
-            </View>
-            <View style={styles.heroStatDivider} />
-            <View style={styles.heroStat}>
-              <Text style={styles.heroStatValue}>£{(contractorStats?.monthlyEarnings ?? 0).toFixed(0)}</Text>
-              <Text style={styles.heroStatLabel}>This Month</Text>
-            </View>
-          </View>
-
+          <Text style={styles.heroName} numberOfLines={1}>
+            {businessName}
+          </Text>
         </LinearGradient>
 
         {/* Stat cards overlapping hero bottom edge */}
@@ -214,31 +263,52 @@ export const ContractorDashboard: React.FC = () => {
           <FadeIn duration={400}>
             <QuickActions
               onBrowseJobsPress={openJobsList}
-              onInboxPress={() => navigation.navigate('MessagingTab', { screen: 'MessagesList' })}
-              onQuotesPress={() => navigation.navigate('BusinessTab', { screen: 'QuoteBuilder' })}
-              onInvoicesPress={() => navigation.navigate('BusinessTab', { screen: 'InvoiceManagement' })}
-              onExpensesPress={() => navigation.navigate('BusinessTab', { screen: 'Expenses' })}
-              onCalendarPress={() => navigation.navigate('BusinessTab', { screen: 'Calendar' })}
-              onCRMPress={() => navigation.navigate('BusinessTab', { screen: 'CRMDashboard' })}
-              onFinancePress={() => navigation.navigate('BusinessTab', { screen: 'FinanceDashboard' })}
-              onTimeTrackingPress={() => navigation.navigate('BusinessTab', { screen: 'TimeTracking' })}
-              onReportingPress={() => navigation.navigate('BusinessTab', { screen: 'Reporting' })}
+              onInboxPress={() =>
+                navigation.navigate('MessagingTab', { screen: 'MessagesList' })
+              }
+              onQuotesPress={() =>
+                navigation.navigate('BusinessTab', { screen: 'QuoteBuilder' })
+              }
+              onInvoicesPress={() =>
+                navigation.navigate('BusinessTab', {
+                  screen: 'InvoiceManagement',
+                })
+              }
+              onExpensesPress={() =>
+                navigation.navigate('BusinessTab', { screen: 'Expenses' })
+              }
+              onCalendarPress={() =>
+                navigation.navigate('BusinessTab', { screen: 'Calendar' })
+              }
+              onCRMPress={() =>
+                navigation.navigate('BusinessTab', { screen: 'CRMDashboard' })
+              }
+              onFinancePress={() =>
+                navigation.navigate('BusinessTab', {
+                  screen: 'FinanceDashboard',
+                })
+              }
+              onTimeTrackingPress={() =>
+                navigation.navigate('BusinessTab', { screen: 'TimeTracking' })
+              }
+              onReportingPress={() =>
+                navigation.navigate('BusinessTab', { screen: 'Reporting' })
+              }
             />
           </FadeIn>
 
-          <SlideIn direction="up" distance={20} duration={400} delay={300}>
+          <SlideIn direction='up' distance={20} duration={400} delay={300}>
             <ScheduleSection
               stats={contractorStats}
-              upcomingJobs={
-                (contractorStats?.todaysJobs || []).map((job) => ({
-                  id: job.jobId,
-                  title: `${job.type} — ${job.client}`,
-                  time: job.time,
-                  status: 'Upcoming',
-                }))
-              }
+              upcomingJobs={(contractorStats?.todaysJobs || []).map((job) => ({
+                id: job.jobId,
+                title: `${job.type} — ${job.client}`,
+                time: job.time,
+                status: 'Upcoming',
+              }))}
               onViewAllPress={openMeetingSchedule}
               onJobDetailsPress={openJobDetails}
+              onFindJobsPress={openJobsList}
             />
           </SlideIn>
 
@@ -250,7 +320,7 @@ export const ContractorDashboard: React.FC = () => {
       <Modal
         visible={dropdownOpen}
         transparent
-        animationType="fade"
+        animationType='fade'
         onRequestClose={() => setDropdownOpen(false)}
       >
         <TouchableOpacity
@@ -261,10 +331,14 @@ export const ContractorDashboard: React.FC = () => {
         <View style={[styles.dropdownCard, { top: insets.top + 62 }]}>
           <View style={styles.dropdownHeader}>
             <View style={styles.dropdownAvatar}>
-              <Text style={styles.dropdownAvatarText}>{userInitials || '?'}</Text>
+              <Text style={styles.dropdownAvatarText}>
+                {userInitials || '?'}
+              </Text>
             </View>
             <View style={styles.dropdownUserInfo}>
-              <Text style={styles.dropdownUserName} numberOfLines={1}>{businessName}</Text>
+              <Text style={styles.dropdownUserName} numberOfLines={1}>
+                {businessName}
+              </Text>
               <Text style={styles.dropdownUserRole}>Contractor</Text>
             </View>
           </View>
@@ -273,18 +347,34 @@ export const ContractorDashboard: React.FC = () => {
             {menuItems.map((item, index) => (
               <TouchableOpacity
                 key={item.label}
-                style={[styles.dropdownItem, index === menuItems.length - 1 && styles.dropdownItemLast]}
+                style={[
+                  styles.dropdownItem,
+                  index === menuItems.length - 1 && styles.dropdownItemLast,
+                ]}
                 onPress={() => handleItemPress(item)}
                 activeOpacity={0.7}
               >
-                <View style={[styles.dropdownItemIcon, { backgroundColor: item.iconBg }]}>
+                <View
+                  style={[
+                    styles.dropdownItemIcon,
+                    { backgroundColor: item.iconBg },
+                  ]}
+                >
                   <Ionicons name={item.icon} size={17} color={item.iconColor} />
                 </View>
                 <View style={styles.dropdownItemText}>
                   <Text style={styles.dropdownItemLabel}>{item.label}</Text>
-                  {item.subtitle && <Text style={styles.dropdownItemSubtitle}>{item.subtitle}</Text>}
+                  {item.subtitle && (
+                    <Text style={styles.dropdownItemSubtitle}>
+                      {item.subtitle}
+                    </Text>
+                  )}
                 </View>
-                <Ionicons name="chevron-forward" size={14} color={theme.colors.textTertiary} />
+                <Ionicons
+                  name='chevron-forward'
+                  size={14}
+                  color={theme.colors.textTertiary}
+                />
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -309,87 +399,205 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   decorCircle1: {
-    position: 'absolute', top: -60, right: -40, width: 180, height: 180, borderRadius: 90,
+    position: 'absolute',
+    top: -60,
+    right: -40,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
     backgroundColor: 'rgba(255,255,255,0.06)',
   },
   decorCircle2: {
-    position: 'absolute', bottom: -40, left: -20, width: 120, height: 120, borderRadius: 60,
+    position: 'absolute',
+    bottom: -40,
+    left: -20,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     backgroundColor: 'rgba(255,255,255,0.04)',
   },
   decorDiamond: {
-    position: 'absolute', top: 80, right: 60, width: 60, height: 60,
-    backgroundColor: 'rgba(255,255,255,0.05)', transform: [{ rotate: '45deg' }], borderRadius: 8,
+    position: 'absolute',
+    top: 80,
+    right: 60,
+    width: 60,
+    height: 60,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    transform: [{ rotate: '45deg' }],
+    borderRadius: 8,
   },
   headerBar: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   logoWrap: {
-    width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center', alignItems: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   logoIcon: { width: 28, height: 28, borderRadius: 6 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerIconBtn: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center', alignItems: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarButton: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.25)',
-    justifyContent: 'center', alignItems: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  avatarText: { color: theme.colors.textInverse, fontSize: 13, fontWeight: '700' },
+  avatarText: {
+    color: theme.colors.textInverse,
+    fontSize: 13,
+    fontWeight: '700',
+  },
   greeting: {
-    fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: '500',
-    letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 4,
   },
   heroName: {
-    fontSize: 28, fontWeight: '700', color: theme.colors.textInverse, marginBottom: 20, letterSpacing: -0.5,
+    fontSize: 28,
+    fontWeight: '700',
+    color: theme.colors.textInverse,
+    marginBottom: 20,
+    letterSpacing: -0.5,
   },
-  heroStatsRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
-  heroStat: { alignItems: 'flex-start' },
-  heroStatValue: { fontSize: 30, fontWeight: '700', color: theme.colors.textInverse, letterSpacing: -0.3 },
-  heroStatLabel: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: '500', marginTop: 2 },
-  heroStatDivider: { width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.2)', marginHorizontal: 20 },
   content: { paddingHorizontal: 20, paddingTop: 8 },
   errorContainer: {
-    flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.backgroundSecondary, padding: 40,
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.backgroundSecondary,
+    padding: 40,
   },
   errorIconWrap: {
-    width: 64, height: 64, borderRadius: 32,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
   errorEmoji: { fontSize: 28, fontWeight: '700', color: theme.colors.error },
-  errorText: { fontSize: 16, color: theme.colors.textPrimary, fontWeight: '600', marginBottom: 16, textAlign: 'center' },
-  retryButton: { backgroundColor: theme.colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
-  retryButtonText: { color: theme.colors.textInverse, fontSize: 15, fontWeight: '600' },
+  errorText: {
+    fontSize: 16,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    color: theme.colors.textInverse,
+    fontSize: 15,
+    fontWeight: '600',
+  },
   bottomSpacer: { height: 40 },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)' },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+  },
   dropdownCard: {
-    position: 'absolute', right: 12, width: 260, backgroundColor: theme.colors.surface, borderRadius: 12,
-    overflow: 'hidden', maxHeight: 420,
-    borderWidth: 1, borderColor: theme.colors.border,
+    position: 'absolute',
+    right: 12,
+    width: 260,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    overflow: 'hidden',
+    maxHeight: 420,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 24,
+      },
       android: { elevation: 12 },
     }),
   },
-  dropdownHeader: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 10 },
-  dropdownAvatar: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.primary,
-    justifyContent: 'center', alignItems: 'center',
+  dropdownHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    gap: 10,
   },
-  dropdownAvatarText: { color: theme.colors.textInverse, fontSize: 14, fontWeight: '700' },
+  dropdownAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dropdownAvatarText: {
+    color: theme.colors.textInverse,
+    fontSize: 14,
+    fontWeight: '700',
+  },
   dropdownUserInfo: { flex: 1 },
-  dropdownUserName: { fontSize: 14, fontWeight: '700', color: theme.colors.textPrimary },
-  dropdownUserRole: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 1 },
-  dropdownDivider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.colors.border },
+  dropdownUserName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  dropdownUserRole: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginTop: 1,
+  },
+  dropdownDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: theme.colors.border,
+  },
   dropdownItem: {
-    flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14,
-    gap: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.borderLight,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.borderLight,
   },
   dropdownItemLast: { borderBottomWidth: 0 },
-  dropdownItemIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  dropdownItemIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   dropdownItemText: { flex: 1 },
-  dropdownItemLabel: { fontSize: 14, fontWeight: '600', color: theme.colors.textPrimary },
-  dropdownItemSubtitle: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 1 },
+  dropdownItemLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+  dropdownItemSubtitle: {
+    fontSize: 11,
+    color: theme.colors.textSecondary,
+    marginTop: 1,
+  },
 });

@@ -1,11 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
-import { AdminCard } from '@/components/admin/AdminCard';
 import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
-import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { logger } from '@mintenance/shared';
 import { JobManagementTable } from './JobManagementTable';
 import type { Job, JobStats, JobsResponse } from './JobManagementTypes';
@@ -34,7 +31,6 @@ export function JobManagementClient() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchInput);
@@ -43,12 +39,10 @@ export function JobManagementClient() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  // Reset page when filter changes
   useEffect(() => {
     setPage(1);
   }, [statusFilter]);
 
-  // Fetch jobs from API
   const fetchJobs = useCallback(async () => {
     setLoading(true);
     try {
@@ -81,9 +75,10 @@ export function JobManagementClient() {
     fetchJobs();
   }, [fetchJobs]);
 
-  // Auto-refresh every 30 seconds
   useEffect(() => {
-    refreshTimerRef.current = setInterval(fetchJobs, AUTO_REFRESH_INTERVAL);
+    refreshTimerRef.current = setInterval(() => {
+      if (!document.hidden) fetchJobs();
+    }, AUTO_REFRESH_INTERVAL);
     return () => {
       if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
     };
@@ -98,128 +93,134 @@ export function JobManagementClient() {
     }
   };
 
-  return (
-    <div className='p-8 md:p-10 max-w-[1440px] mx-auto bg-slate-50 min-h-screen flex flex-col gap-6'>
-      <AdminPageHeader
-        title='Job Management'
-        subtitle='Monitor all platform jobs, track progress, and intervene when needed'
-        quickStats={[
-          {
-            label: 'total',
-            value: stats.total,
-            icon: 'briefcase',
-            color: theme.colors.primary,
-          },
-          {
-            label: 'active',
-            value: stats.active,
-            icon: 'activity',
-            color: '#0D9488',
-          },
-          {
-            label: 'posted',
-            value: stats.posted,
-            icon: 'clock',
-            color: '#1D4ED8',
-          },
-          {
-            label: 'completed',
-            value: stats.completed,
-            icon: 'check',
-            color: '#15803D',
-          },
-        ]}
-      />
+  const countMap: Record<string, number> = {
+    posted: stats.posted,
+    assigned: stats.assigned,
+    in_progress: stats.inProgress,
+    completed: stats.completed,
+    cancelled: stats.cancelled,
+  };
 
-      {/* Stats Cards */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: theme.spacing[4],
-        }}
-      >
+  return (
+    <div className='min-h-screen bg-[#f7f9fb] px-6 md:px-10 py-8 max-w-[1440px] mx-auto space-y-8'>
+      {/* Page Header */}
+      <div className='flex flex-col md:flex-row md:items-end justify-between gap-4'>
+        <div>
+          <h2 className='text-[2.75rem] font-extrabold tracking-tight text-[#2a3439] leading-tight'>
+            Job Management
+          </h2>
+          <p className='text-[#566166] text-lg mt-2'>
+            Monitor all platform jobs, track progress, and intervene when
+            needed.
+          </p>
+        </div>
+        <button
+          onClick={fetchJobs}
+          disabled={loading}
+          className='px-5 py-2.5 bg-[#e1e9ee] text-[#2a3439] rounded-xl font-medium text-sm hover:bg-[#d9e4ea] transition-all flex items-center gap-2 disabled:opacity-50'
+        >
+          <Icon
+            name='refresh'
+            size={16}
+            color='#565e74'
+            className={loading ? 'animate-spin' : ''}
+          />
+          Refresh
+        </button>
+      </div>
+
+      {/* Metrics Grid */}
+      <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4'>
         <AdminMetricCard
           label='Total Jobs'
           value={stats.total.toLocaleString()}
           icon='briefcase'
-          iconColor={theme.colors.primary}
+          iconColor='#565e74'
         />
         <AdminMetricCard
           label='Active'
           value={stats.active.toLocaleString()}
           icon='activity'
-          iconColor='#0D9488'
+          iconColor='#565e74'
         />
         <AdminMetricCard
           label='Posted'
           value={stats.posted.toLocaleString()}
           icon='clock'
-          iconColor='#1D4ED8'
+          iconColor='#506076'
         />
         <AdminMetricCard
           label='Assigned'
           value={stats.assigned.toLocaleString()}
           icon='userCheck'
-          iconColor='#B45309'
+          iconColor='#605c78'
         />
         <AdminMetricCard
           label='Completed'
           value={stats.completed.toLocaleString()}
-          icon='check'
-          iconColor='#15803D'
+          icon='checkCircle'
+          iconColor='#506076'
         />
         <AdminMetricCard
           label='Cancelled'
           value={stats.cancelled.toLocaleString()}
           icon='x'
-          iconColor='#B91C1C'
+          iconColor='#9f403d'
         />
       </div>
 
-      {/* Filters */}
-      <AdminCard padding='lg'>
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            gap: theme.spacing[4],
-          }}
-        >
-          <StatusTabs
-            current={statusFilter}
-            stats={stats}
-            onChange={setStatusFilter}
-          />
-          <SearchInput value={searchInput} onChange={setSearchInput} />
-          <button
-            onClick={fetchJobs}
-            disabled={loading}
-            aria-label='Refresh jobs'
-            style={{
-              padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: theme.borderRadius.lg,
-              backgroundColor: '#FFFFFF',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing[2],
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
-              opacity: loading ? 0.6 : 1,
-              transition: 'all 0.2s',
-            }}
-          >
-            <Icon name='refresh' size={16} color={theme.colors.textSecondary} />
-            Refresh
-          </button>
+      {/* Filter Bar */}
+      <div className='bg-white rounded-[1.5rem] p-4 flex flex-wrap items-center gap-4'>
+        {/* Status Tabs */}
+        <div className='flex gap-1 bg-[#f0f4f7] rounded-xl p-1'>
+          {STATUS_TABS.map((tab) => {
+            const isActive = statusFilter === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setStatusFilter(tab.key)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                  isActive
+                    ? 'bg-white text-[#565e74] font-semibold shadow-sm'
+                    : 'text-[#566166] hover:text-[#2a3439]'
+                }`}
+              >
+                {tab.label}
+                {tab.key !== 'all' && (
+                  <span
+                    className={`ml-1.5 text-xs ${isActive ? 'text-[#565e74]' : 'text-[#a9b4b9]'}`}
+                  >
+                    {countMap[tab.key] ?? 0}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
-      </AdminCard>
+
+        {/* Search */}
+        <div className='flex-1 min-w-[240px] relative'>
+          <Icon
+            name='search'
+            size={16}
+            color='#a9b4b9'
+            className='absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none'
+          />
+          <input
+            type='text'
+            placeholder='Search by job title...'
+            aria-label='Search jobs by title'
+            value={searchInput}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setSearchInput(e.target.value)
+            }
+            className='w-full pl-10 pr-4 py-2 bg-[#e1e9ee] border-none rounded-xl text-sm text-[#2a3439] placeholder:text-[#a9b4b9] focus:ring-2 focus:ring-[#565e74]/20 transition-all'
+          />
+        </div>
+      </div>
 
       {/* Table */}
-      <AdminCard padding='none' className='overflow-hidden'>
+      <div className='bg-white rounded-[1.5rem] overflow-hidden shadow-[0_12px_32px_-4px_rgba(42,52,57,0.04)] border border-[#a9b4b9]/10'>
         <JobManagementTable
           jobs={jobs}
           total={total}
@@ -231,136 +232,7 @@ export function JobManagementClient() {
           onSort={handleSort}
           onPageChange={setPage}
         />
-      </AdminCard>
-
-      <style>{`
-        .admin-jobs-spinner {
-          width: 40px; height: 40px; border: 3px solid #E2E8F0;
-          border-top-color: ${theme.colors.primary}; border-radius: 50%;
-          animation: admin-jobs-spin 0.8s linear infinite;
-        }
-        @keyframes admin-jobs-spin { to { transform: rotate(360deg); } }
-      `}</style>
-    </div>
-  );
-}
-
-// ── Extracted sub-components (kept here as they are small) ─────────
-
-function StatusTabs({
-  current,
-  stats,
-  onChange,
-}: {
-  current: string;
-  stats: JobStats;
-  onChange: (s: string) => void;
-}) {
-  const countMap: Record<string, number> = {
-    posted: stats.posted,
-    assigned: stats.assigned,
-    in_progress: stats.inProgress,
-    completed: stats.completed,
-    cancelled: stats.cancelled,
-  };
-  return (
-    <div
-      style={{
-        display: 'flex',
-        gap: '2px',
-        backgroundColor: '#F1F5F9',
-        borderRadius: theme.borderRadius.lg,
-        padding: '3px',
-      }}
-    >
-      {STATUS_TABS.map((tab) => {
-        const isActive = current === tab.key;
-        return (
-          <button
-            key={tab.key}
-            onClick={() => onChange(tab.key)}
-            style={{
-              padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-              borderRadius: theme.borderRadius.md,
-              border: 'none',
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: isActive ? 600 : 400,
-              backgroundColor: isActive ? '#FFFFFF' : 'transparent',
-              color: isActive
-                ? theme.colors.primary
-                : theme.colors.textSecondary,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {tab.label}
-            {tab.key !== 'all' && (
-              <span
-                style={{
-                  marginLeft: '6px',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: isActive ? theme.colors.primary : '#94A3B8',
-                }}
-              >
-                {countMap[tab.key] ?? 0}
-              </span>
-            )}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function SearchInput({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div style={{ flex: 1, minWidth: '240px', position: 'relative' }}>
-      <div
-        style={{
-          position: 'absolute',
-          left: '12px',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          pointerEvents: 'none',
-        }}
-      >
-        <Icon name='search' size={16} color='#94A3B8' />
       </div>
-      <input
-        type='text'
-        placeholder='Search by job title...'
-        aria-label='Search jobs by title'
-        value={value}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-          onChange(e.target.value)
-        }
-        style={{
-          width: '100%',
-          padding: `${theme.spacing[2]} ${theme.spacing[4]} ${theme.spacing[2]} 40px`,
-          border: `1px solid ${theme.colors.border}`,
-          borderRadius: theme.borderRadius.lg,
-          fontSize: theme.typography.fontSize.sm,
-          color: theme.colors.textPrimary,
-          backgroundColor: '#FFFFFF',
-          outline: 'none',
-          transition: 'border-color 0.2s',
-        }}
-        onFocus={(e) => {
-          e.currentTarget.style.borderColor = theme.colors.primary;
-        }}
-        onBlur={(e) => {
-          e.currentTarget.style.borderColor = theme.colors.border;
-        }}
-      />
     </div>
   );
 }

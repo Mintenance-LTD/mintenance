@@ -19,17 +19,19 @@ export const GET = withApiHandler({}, async () => {
     '';
 
   const continuousLearningEnabled =
-    envVarValue === 'true' ||
-    String(envVarValue).toLowerCase() === 'true';
+    envVarValue === 'true' || String(envVarValue).toLowerCase() === 'true';
 
-  logger.info('YOLO Continuous Learning Status', {
+  logger.debug('YOLO Continuous Learning Status', {
     service: 'YOLORetrainingStatusAPI',
     envVar: envVarValue,
     enabled: continuousLearningEnabled,
   });
 
   const MIN_CORRECTIONS = 100;
-  const correctionsNeeded = Math.max(0, MIN_CORRECTIONS - correctionCounts.approved);
+  const correctionsNeeded = Math.max(
+    0,
+    MIN_CORRECTIONS - correctionCounts.approved
+  );
 
   return NextResponse.json({
     correctionsCount: {
@@ -39,13 +41,15 @@ export const GET = withApiHandler({}, async () => {
       rejected: correctionCounts.rejected,
     },
     retrainingStatus: {
-      lastJob: lastJob ? {
-        status: lastJob.status,
-        modelVersion: lastJob.modelVersion,
-        correctionsCount: lastJob.correctionsCount,
-        startedAt: lastJob.startedAt?.toISOString(),
-        completedAt: lastJob.completedAt?.toISOString(),
-      } : undefined,
+      lastJob: lastJob
+        ? {
+            status: lastJob.status,
+            modelVersion: lastJob.modelVersion,
+            correctionsCount: lastJob.correctionsCount,
+            startedAt: lastJob.startedAt?.toISOString(),
+            completedAt: lastJob.completedAt?.toISOString(),
+          }
+        : undefined,
       nextRetrainThreshold: MIN_CORRECTIONS,
       correctionsNeeded,
     },
