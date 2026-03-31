@@ -162,6 +162,7 @@ DROP POLICY IF EXISTS "webhook_events_all" ON public.webhook_events;
 DROP POLICY IF EXISTS "webhook_events_policy" ON public.webhook_events;
 DROP POLICY IF EXISTS "Enable all operations for webhook_events" ON public.webhook_events;
 
+DROP POLICY IF EXISTS "webhook_events_service_role_only" ON public.webhook_events;
 CREATE POLICY "webhook_events_service_role_only"
   ON public.webhook_events
   FOR ALL
