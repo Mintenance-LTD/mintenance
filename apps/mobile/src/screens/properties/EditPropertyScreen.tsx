@@ -249,54 +249,74 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>DETAILS</Text>
-            <View style={styles.row}>
-              <View style={[styles.inputGroup, styles.flex]}>
-                <Text style={styles.label}>Bedrooms</Text>
+            <Text style={styles.sectionTitle}>PROPERTY SPECS</Text>
+            <View style={styles.specGrid}>
+              <View style={styles.specCard}>
+                <View
+                  style={[styles.specIconWrap, { backgroundColor: '#DBEAFE' }]}
+                >
+                  <Ionicons name='bed-outline' size={18} color='#3B82F6' />
+                </View>
+                <Text style={styles.specLabel}>Bedrooms</Text>
                 <TextInput
-                  style={styles.input}
+                  style={styles.specInput}
                   value={bedrooms}
                   onChangeText={setBedrooms}
                   placeholder='0'
                   placeholderTextColor={theme.colors.textTertiary}
                   keyboardType='number-pad'
+                  textAlign='center'
                 />
               </View>
-              <View style={styles.rowSpacer} />
-              <View style={[styles.inputGroup, styles.flex]}>
-                <Text style={styles.label}>Bathrooms</Text>
+              <View style={styles.specCard}>
+                <View
+                  style={[styles.specIconWrap, { backgroundColor: '#D1FAE5' }]}
+                >
+                  <Ionicons name='water-outline' size={18} color='#10B981' />
+                </View>
+                <Text style={styles.specLabel}>Bathrooms</Text>
                 <TextInput
-                  style={styles.input}
+                  style={styles.specInput}
                   value={bathrooms}
                   onChangeText={setBathrooms}
                   placeholder='0'
                   placeholderTextColor={theme.colors.textTertiary}
                   keyboardType='number-pad'
+                  textAlign='center'
                 />
               </View>
-            </View>
-            <View style={styles.row}>
-              <View style={[styles.inputGroup, styles.flex]}>
-                <Text style={styles.label}>Year Built</Text>
+              <View style={styles.specCard}>
+                <View
+                  style={[styles.specIconWrap, { backgroundColor: '#FEF3C7' }]}
+                >
+                  <Ionicons name='calendar-outline' size={18} color='#F59E0B' />
+                </View>
+                <Text style={styles.specLabel}>Year Built</Text>
                 <TextInput
-                  style={styles.input}
+                  style={styles.specInput}
                   value={yearBuilt}
                   onChangeText={setYearBuilt}
-                  placeholder='e.g. 2005'
+                  placeholder='2005'
                   placeholderTextColor={theme.colors.textTertiary}
                   keyboardType='number-pad'
+                  textAlign='center'
                 />
               </View>
-              <View style={styles.rowSpacer} />
-              <View style={[styles.inputGroup, styles.flex]}>
-                <Text style={styles.label}>Size (sq ft)</Text>
+              <View style={styles.specCard}>
+                <View
+                  style={[styles.specIconWrap, { backgroundColor: '#EDE9FE' }]}
+                >
+                  <Ionicons name='resize-outline' size={18} color='#8B5CF6' />
+                </View>
+                <Text style={styles.specLabel}>Size (sq ft)</Text>
                 <TextInput
-                  style={styles.input}
+                  style={styles.specInput}
                   value={squareFootage}
                   onChangeText={setSquareFootage}
-                  placeholder='e.g. 1200'
+                  placeholder='1200'
                   placeholderTextColor={theme.colors.textTertiary}
                   keyboardType='number-pad'
+                  textAlign='center'
                 />
               </View>
             </View>
@@ -403,8 +423,48 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   typeChipTextSelected: { color: theme.colors.textInverse, fontWeight: '600' },
+  specGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  specCard: {
+    width: '48%' as unknown as number,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 16,
+    padding: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  specIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  specLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+    marginBottom: 6,
+  },
+  specInput: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
   submitButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.textPrimary,
     borderRadius: 28,
     paddingVertical: 16,
     alignItems: 'center',
@@ -412,9 +472,9 @@ const styles = StyleSheet.create({
   },
   submitButtonDisabled: { opacity: 0.5 },
   submitButtonText: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });
 

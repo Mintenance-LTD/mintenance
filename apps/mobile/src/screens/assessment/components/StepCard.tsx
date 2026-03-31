@@ -1,105 +1,127 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { theme } from '../../../theme';
 import { AssessmentStep } from '../types';
 
 interface StepCardProps {
   step: AssessmentStep;
+  stepNumber: number;
   onPress: () => void;
 }
 
-const getStepStatusIcon = (status: AssessmentStep['status']) => {
-  switch (status) {
-    case 'completed':
-      return <Icon name="check-circle" size={24} color={theme.colors.primary} />;
-    case 'in_progress':
-      return <Icon name="pending" size={24} color={theme.colors.accent} />;
-    default:
-      return <Icon name="radio-button-unchecked" size={24} color={theme.colors.textTertiary} />;
-  }
+const STATUS_STYLES = {
+  completed: {
+    bg: '#D1FAE5',
+    border: '#A7F3D0',
+    iconBg: '#10B981',
+    iconColor: '#FFFFFF',
+    statusIcon: 'check-circle' as const,
+    statusColor: '#10B981',
+  },
+  in_progress: {
+    bg: '#DBEAFE',
+    border: '#93C5FD',
+    iconBg: '#3B82F6',
+    iconColor: '#FFFFFF',
+    statusIcon: 'play-circle-filled' as const,
+    statusColor: '#3B82F6',
+  },
+  pending: {
+    bg: theme.colors.surface,
+    border: theme.colors.border,
+    iconBg: theme.colors.backgroundSecondary,
+    iconColor: theme.colors.textTertiary,
+    statusIcon: 'radio-button-unchecked' as const,
+    statusColor: theme.colors.textTertiary,
+  },
 };
 
-export const StepCard: React.FC<StepCardProps> = ({ step, onPress }) => {
+export const StepCard: React.FC<StepCardProps> = ({
+  step,
+  stepNumber,
+  onPress,
+}) => {
+  const s = STATUS_STYLES[step.status];
+
   return (
     <TouchableOpacity
-      style={[
-        styles.stepCard,
-        step.status === 'completed' && styles.stepCardCompleted,
-      ]}
+      style={[styles.card, { backgroundColor: s.bg, borderColor: s.border }]}
       onPress={onPress}
       disabled={step.status === 'completed'}
+      activeOpacity={0.7}
     >
-      <View style={styles.stepIcon}>
-        <Icon
-          name={step.icon}
-          size={24}
-          color={step.status === 'completed' ? theme.colors.primary : theme.colors.textSecondary}
-        />
+      <View style={[styles.stepIcon, { backgroundColor: s.iconBg }]}>
+        <Icon name={step.icon} size={20} color={s.iconColor} />
       </View>
-      <View style={styles.stepContent}>
-        <View style={styles.stepHeader}>
-          <Text style={styles.stepTitle}>{step.title}</Text>
+      <View style={styles.content}>
+        <View style={styles.titleRow}>
+          <Text style={styles.stepNumber}>Step {stepNumber}</Text>
           {step.required && (
-            <Text style={styles.requiredBadge}>Required</Text>
+            <View style={styles.requiredBadge}>
+              <Text style={styles.requiredText}>Required</Text>
+            </View>
           )}
         </View>
-        <Text style={styles.stepDescription}>{step.description}</Text>
+        <Text style={styles.title}>{step.title}</Text>
+        <Text style={styles.description}>{step.description}</Text>
       </View>
-      {getStepStatusIcon(step.status)}
+      <Icon name={s.statusIcon} size={22} color={s.statusColor} />
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  stepCard: {
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
-    marginBottom: 12,
-    ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
-      android: { elevation: 2 },
-    }),
-  },
-  stepCardCompleted: {
-    backgroundColor: theme.colors.primaryLight,
+    marginBottom: 10,
+    borderWidth: 1,
   },
   stepIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: theme.colors.backgroundSecondary,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
   },
-  stepContent: {
+  content: {
     flex: 1,
   },
-  stepHeader: {
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
     gap: 8,
+    marginBottom: 2,
   },
-  stepTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
+  stepNumber: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   requiredBadge: {
-    fontSize: 11,
-    color: theme.colors.error,
-    fontWeight: '600',
     backgroundColor: '#FEE2E2',
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 6,
+    borderRadius: 8,
   },
-  stepDescription: {
+  requiredText: {
+    fontSize: 10,
+    color: '#EF4444',
+    fontWeight: '700',
+  },
+  title: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: 2,
+  },
+  description: {
     fontSize: 13,
     color: theme.colors.textSecondary,
   },

@@ -1,4 +1,3 @@
-// PropertyDetailScreen - View and manage a single property with tabbed interface
 import React, { useState } from 'react';
 import {
   View,
@@ -26,7 +25,7 @@ import type { Property } from '@mintenance/types';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { Badge } from '../../components/ui/Badge/Badge';
 import { theme } from '../../theme';
-import { styles } from './PropertyDetailStyles';
+import { styles, CATEGORY_ICONS } from './PropertyDetailStyles';
 import { PropertyHealthScore } from './components/PropertyHealthScore';
 import { SpendingAnalytics } from './components/SpendingAnalytics';
 import { RecurringMaintenance } from './components/RecurringMaintenance';
@@ -34,6 +33,7 @@ import { TenantContacts } from './components/TenantContacts';
 import { TeamAccess } from './components/TeamAccess';
 import { ComplianceCertificates } from './components/ComplianceCertificates';
 
+type Tab = 'overview' | 'maintenance' | 'manage';
 interface Props {
   navigation: NativeStackNavigationProp<
     ProfileStackParamList,
@@ -41,8 +41,6 @@ interface Props {
   >;
   route: RouteProp<ProfileStackParamList, 'PropertyDetail'>;
 }
-
-type Tab = 'overview' | 'maintenance' | 'manage';
 
 const TABS: {
   key: Tab;
@@ -53,22 +51,6 @@ const TABS: {
   { key: 'maintenance', label: 'Maintenance', icon: 'construct-outline' },
   { key: 'manage', label: 'Manage', icon: 'settings-outline' },
 ];
-
-const InfoRow: React.FC<{
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  value: string;
-}> = ({ icon, label, value }) => (
-  <View style={styles.infoRow}>
-    <View style={styles.infoIconWrap}>
-      <Ionicons name={icon} size={16} color={theme.colors.textSecondary} />
-    </View>
-    <View style={styles.infoContent}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
-    </View>
-  </View>
-);
 
 export const PropertyDetailScreen: React.FC<Props> = ({
   navigation,
@@ -176,9 +158,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
   if (!property)
     return <ErrorView message='Property not found' onRetry={refetch} />;
 
-  const formatType = (type: string) =>
-    type.charAt(0).toUpperCase() + type.slice(1);
-
+  const formatType = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
   const renderOverviewTab = () => (
     <>
       <View style={styles.statsRow}>
@@ -209,38 +189,51 @@ export const PropertyDetailScreen: React.FC<Props> = ({
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>PROPERTY INFORMATION</Text>
-        <InfoRow
-          icon='business-outline'
-          label='Type'
-          value={formatType(property.property_type ?? '')}
-        />
-        {property.bedrooms != null && (
-          <InfoRow
-            icon='bed-outline'
-            label='Bedrooms'
-            value={String(property.bedrooms)}
-          />
-        )}
-        {property.bathrooms != null && (
-          <InfoRow
-            icon='water-outline'
-            label='Bathrooms'
-            value={String(property.bathrooms)}
-          />
-        )}
-        {property.year_built != null && (
-          <InfoRow
-            icon='calendar-outline'
-            label='Year Built'
-            value={String(property.year_built)}
-          />
-        )}
+        <View style={styles.specGrid}>
+          <View style={styles.specTile}>
+            <View style={[styles.specTileIcon, { backgroundColor: '#DBEAFE' }]}>
+              <Ionicons name='business-outline' size={16} color='#3B82F6' />
+            </View>
+            <Text style={styles.specTileValue}>
+              {formatType(property.property_type ?? 'N/A')}
+            </Text>
+            <Text style={styles.specTileLabel}>Type</Text>
+          </View>
+          <View style={styles.specTile}>
+            <View style={[styles.specTileIcon, { backgroundColor: '#EDE9FE' }]}>
+              <Ionicons name='bed-outline' size={16} color='#8B5CF6' />
+            </View>
+            <Text style={styles.specTileValue}>{property.bedrooms ?? '-'}</Text>
+            <Text style={styles.specTileLabel}>Bedrooms</Text>
+          </View>
+          <View style={styles.specTile}>
+            <View style={[styles.specTileIcon, { backgroundColor: '#D1FAE5' }]}>
+              <Ionicons name='water-outline' size={16} color='#10B981' />
+            </View>
+            <Text style={styles.specTileValue}>
+              {property.bathrooms ?? '-'}
+            </Text>
+            <Text style={styles.specTileLabel}>Bathrooms</Text>
+          </View>
+          <View style={styles.specTile}>
+            <View style={[styles.specTileIcon, { backgroundColor: '#FEF3C7' }]}>
+              <Ionicons name='calendar-outline' size={16} color='#F59E0B' />
+            </View>
+            <Text style={styles.specTileValue}>
+              {property.year_built ?? '-'}
+            </Text>
+            <Text style={styles.specTileLabel}>Year Built</Text>
+          </View>
+        </View>
         {property.square_footage != null && (
-          <InfoRow
-            icon='resize-outline'
-            label='Size'
-            value={`${property.square_footage} sq ft`}
-          />
+          <View style={styles.sizeRow}>
+            <Ionicons
+              name='resize-outline'
+              size={16}
+              color={theme.colors.textSecondary}
+            />
+            <Text style={styles.sizeText}>{property.square_footage} sq ft</Text>
+          </View>
         )}
       </View>
 
@@ -277,56 +270,68 @@ export const PropertyDetailScreen: React.FC<Props> = ({
             </Text>
           </View>
         ) : (
-          propertyJobs.map((job) => (
-            <TouchableOpacity
-              key={job.id}
-              style={styles.jobRow}
-              onPress={() =>
-                (navigation as ReturnType<typeof Object>).navigate('JobsTab', {
-                  screen: 'JobDetails',
-                  params: { jobId: job.id },
-                })
-              }
-              accessibilityRole='button'
-              accessibilityLabel={`View ${job.title}`}
-            >
-              <View style={styles.jobRowInfo}>
-                <Text style={styles.jobRowTitle} numberOfLines={1}>
-                  {job.title}
-                </Text>
-                <Text style={styles.jobRowDate}>
-                  {new Date(job.created_at).toLocaleDateString('en-GB', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                  })}
-                </Text>
-              </View>
-              <View style={styles.jobRowRight}>
-                {job.budget ? (
-                  <Text style={styles.jobRowBudget}>
-                    {'\u00A3'}
-                    {job.budget.toLocaleString()}
+          propertyJobs.map((job) => {
+            const cat =
+              CATEGORY_ICONS[(job.category || '').toLowerCase()] ||
+              CATEGORY_ICONS.general;
+            return (
+              <TouchableOpacity
+                key={job.id}
+                style={styles.jobCard}
+                onPress={() =>
+                  (navigation as ReturnType<typeof Object>).navigate(
+                    'JobsTab',
+                    {
+                      screen: 'JobDetails',
+                      params: { jobId: job.id },
+                    }
+                  )
+                }
+                accessibilityRole='button'
+                accessibilityLabel={`View ${job.title}`}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.jobCatIcon, { backgroundColor: cat.bg }]}>
+                  <Ionicons name={cat.icon} size={18} color={cat.color} />
+                </View>
+                <View style={styles.jobRowInfo}>
+                  <Text style={styles.jobRowTitle} numberOfLines={1}>
+                    {job.title}
                   </Text>
-                ) : null}
-                <Badge
-                  variant={
-                    job.status === 'completed'
-                      ? 'success'
-                      : job.status === 'in_progress'
-                        ? 'primary'
-                        : 'warning'
-                  }
-                  size='sm'
-                >
-                  {job.status === 'in_progress'
-                    ? 'In Progress'
-                    : (job.status ?? '').charAt(0).toUpperCase() +
-                      (job.status ?? '').slice(1)}
-                </Badge>
-              </View>
-            </TouchableOpacity>
-          ))
+                  <Text style={styles.jobRowDate}>
+                    {new Date(job.created_at).toLocaleDateString('en-GB', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </Text>
+                </View>
+                <View style={styles.jobRowRight}>
+                  {job.budget ? (
+                    <Text style={styles.jobRowBudget}>
+                      {'\u00A3'}
+                      {job.budget.toLocaleString()}
+                    </Text>
+                  ) : null}
+                  <Badge
+                    variant={
+                      job.status === 'completed'
+                        ? 'success'
+                        : job.status === 'in_progress'
+                          ? 'primary'
+                          : 'warning'
+                    }
+                    size='sm'
+                  >
+                    {job.status === 'in_progress'
+                      ? 'In Progress'
+                      : (job.status ?? '').charAt(0).toUpperCase() +
+                        (job.status ?? '').slice(1)}
+                  </Badge>
+                </View>
+              </TouchableOpacity>
+            );
+          })
         )}
       </View>
     </>

@@ -155,20 +155,23 @@ export const ServiceAreasScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderEmpty = () => (
     <View style={s.empty}>
-      <Ionicons
-        name='location-outline'
-        size={48}
-        color={theme.colors.primary}
-      />
+      {/* Hero icon */}
+      <View style={s.emptyIconCircle}>
+        <Ionicons name='location' size={36} color={theme.colors.primary} />
+      </View>
+
       <Text style={s.emptyLabel}>STRATEGIC COVERAGE</Text>
       <Text style={s.emptyTitle}>Set your service areas</Text>
       <Text style={s.emptyDesc}>
         Define the precise radius where you provide maintenance expertise. We'll
         only match you with properties within your bounds.
       </Text>
+
+      {/* CTA */}
       <TouchableOpacity
         style={s.emptyBtn}
         onPress={() => setCreateModalVisible(true)}
+        activeOpacity={0.8}
       >
         <Ionicons
           name='navigate-outline'
@@ -176,11 +179,37 @@ export const ServiceAreasScreen: React.FC<Props> = ({ navigation }) => {
           color='#FFFFFF'
           style={{ marginRight: 8 }}
         />
-        <Text style={s.emptyBtnTxt}>Add Service Area</Text>
+        <Text style={s.emptyBtnTxt}>Define Service Radius</Text>
       </TouchableOpacity>
       <Text style={s.emptySubtitle}>
         You can add multiple zones or city-specific hubs
       </Text>
+
+      {/* Bento grid highlights */}
+      <View style={s.bentoGrid}>
+        <View style={s.bentoCard}>
+          <Ionicons
+            name='compass-outline'
+            size={22}
+            color={theme.colors.primary}
+          />
+          <Text style={s.bentoTitle}>Precise Targeting</Text>
+          <Text style={s.bentoDesc}>
+            Minimize travel time with zip-code level accuracy.
+          </Text>
+        </View>
+        <View style={s.bentoCard}>
+          <Ionicons
+            name='flash-outline'
+            size={22}
+            color={theme.colors.primary}
+          />
+          <Text style={s.bentoTitle}>Smart Routing</Text>
+          <Text style={s.bentoDesc}>
+            Jobs are grouped to optimize your daily workflow.
+          </Text>
+        </View>
+      </View>
     </View>
   );
 
@@ -270,7 +299,7 @@ const s = StyleSheet.create({
     paddingVertical: 12,
   },
   iconBtn: { padding: 4 },
-  title: { fontSize: 18, fontWeight: '600', color: theme.colors.textPrimary },
+  title: { fontSize: 20, fontWeight: '800', color: theme.colors.textPrimary },
   summary: {
     fontSize: 13,
     color: theme.colors.textSecondary,
@@ -285,9 +314,10 @@ const s = StyleSheet.create({
   card: {
     flexDirection: 'row',
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
+    borderRadius: 20,
     overflow: 'hidden',
-    ...theme.shadows.base,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   accent: { width: 4 },
   cardBody: { flex: 1, padding: 16 },
@@ -299,7 +329,7 @@ const s = StyleSheet.create({
   },
   areaName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     flex: 1,
     marginRight: 8,
@@ -326,43 +356,81 @@ const s = StyleSheet.create({
   },
   delBtn: { padding: 6 },
   // Empty
-  empty: { alignItems: 'center', paddingVertical: 48 },
+  empty: { alignItems: 'center', paddingVertical: 32 },
+  emptyIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
   emptyLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     color: theme.colors.primary,
-    letterSpacing: 1.5,
-    marginTop: 16,
-    marginBottom: 4,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 6,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 26,
+    fontWeight: '800',
     color: theme.colors.textPrimary,
     marginBottom: 8,
+    letterSpacing: -0.5,
   },
   emptyDesc: {
-    fontSize: 14,
+    fontSize: 15,
     color: theme.colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 24,
+    lineHeight: 22,
+    marginBottom: 28,
+    maxWidth: 280,
   },
   emptyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.textPrimary,
     alignSelf: 'stretch',
-    paddingVertical: 16,
-    borderRadius: 28,
+    paddingVertical: 18,
+    borderRadius: 20,
   },
-  emptyBtnTxt: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  emptyBtnTxt: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
   emptySubtitle: {
-    fontSize: 12,
+    fontSize: 13,
     color: theme.colors.textTertiary,
-    marginTop: 12,
+    marginTop: 16,
     textAlign: 'center',
+  },
+  // Bento highlights
+  bentoGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 28,
+    alignSelf: 'stretch',
+  },
+  bentoCard: {
+    flex: 1,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  bentoTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  bentoDesc: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    lineHeight: 17,
   },
 });
 
