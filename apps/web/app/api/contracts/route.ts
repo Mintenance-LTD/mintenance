@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger, JOB_STATUS, CONTRACT_STATUS } from '@mintenance/shared';
-import { ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import {
+  ForbiddenError,
+  NotFoundError,
+  BadRequestError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
-import { createContractSchema, updateContractSchema } from '@/lib/validation/schemas';
+import {
+  createContractSchema,
+  updateContractSchema,
+} from '@/lib/validation/schemas';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { EmailService } from '@/lib/email-service';
 
@@ -23,14 +31,14 @@ interface ContractUpdateData {
   updated_at: string;
 }
 
-export const GET = withApiHandler({ csrf: false }, async (request, { user }) => {
-  const searchParams = request.nextUrl.searchParams;
-  const jobId = searchParams.get('job_id');
-  const status = searchParams.get('status');
+export const GET = withApiHandler(
+  { csrf: false },
+  async (request, { user }) => {
+    const searchParams = request.nextUrl.searchParams;
+    const jobId = searchParams.get('job_id');
+    const status = searchParams.get('status');
 
-  let query = serverSupabase
-    .from('contracts')
-    .select(`
+    let query = serverSupabase.from('contracts').select(`
       id, job_id, contractor_id, homeowner_id, status, title, description, amount,
       start_date, end_date, terms, contractor_signed_at, homeowner_signed_at,
       contractor_company_name, contractor_license_registration, contractor_license_type,
@@ -39,40 +47,47 @@ export const GET = withApiHandler({ csrf: false }, async (request, { user }) => 
       homeowner:profiles!homeowner_id(first_name, last_name)
     `);
 
-  // Filter by role
-  if (user.role === 'contractor') {
-    query = query.eq('contractor_id', user.id);
-  } else if (user.role === 'homeowner') {
-    query = query.eq('homeowner_id', user.id);
-  } else {
-    throw new ForbiddenError('Invalid role');
+    // Filter by role
+    if (user.role === 'contractor') {
+      query = query.eq('contractor_id', user.id);
+    } else if (user.role === 'homeowner') {
+      query = query.eq('homeowner_id', user.id);
+    } else {
+      throw new ForbiddenError('Invalid role');
+    }
+
+    // Additional filters
+    if (jobId) {
+      query = query.eq('job_id', jobId);
+    }
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    query = query.order('created_at', { ascending: false });
+
+    const { data: contracts, error } = await query;
+
+    if (error) {
+      logger.error('Error fetching contracts', error, {
+        service: 'contracts',
+        userId: user.id,
+        role: user.role,
+      });
+      return NextResponse.json(
+        {
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to fetch contracts',
+          },
+        },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ contracts: contracts || [] });
   }
-
-  // Additional filters
-  if (jobId) {
-    query = query.eq('job_id', jobId);
-  }
-  if (status) {
-    query = query.eq('status', status);
-  }
-
-  query = query.order('created_at', { ascending: false });
-
-  const { data: contracts, error } = await query;
-
-  if (error) {
-    logger.error('Error fetching contracts', error, {
-      service: 'contracts',
-      userId: user.id,
-      role: user.role,
-    });
-    return NextResponse.json({
-      error: { code: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch contracts' },
-    }, { status: 500 });
-  }
-
-  return NextResponse.json({ contracts: contracts || [] });
-});
+);
 
 export const POST = withApiHandler(
   { roles: ['contractor'] },
@@ -82,7 +97,21 @@ export const POST = withApiHandler(
     if (validation instanceof NextResponse) return validation;
     const { data: validatedContract } = validation;
 
-    const { job_id, title, description, amount, start_date, end_date, terms, contractor_company_name, contractor_license_registration, contractor_license_type, insurance_provider, insurance_policy_number } = validatedContract;
+    const {
+      job_id,
+      title,
+      description,
+      amount,
+      start_date,
+      end_date,
+      terms,
+      contractor_company_name,
+      contractor_license_registration,
+      contractor_license_type,
+      insurance_provider,
+      insurance_policy_number,
+      quote_id,
+    } = validatedContract;
 
     // Verify job exists and contractor is assigned
     const { data: job, error: jobError } = await serverSupabase
@@ -96,11 +125,15 @@ export const POST = withApiHandler(
     }
 
     if (job.contractor_id !== user.id) {
-      throw new ForbiddenError('Not authorized to create contract for this job');
+      throw new ForbiddenError(
+        'Not authorized to create contract for this job'
+      );
     }
 
     if (job.status !== JOB_STATUS.ASSIGNED) {
-      throw new BadRequestError('Job must be assigned before creating a contract');
+      throw new BadRequestError(
+        'Job must be assigned before creating a contract'
+      );
     }
 
     // Check if a contract already exists for this job and contractor
@@ -125,6 +158,7 @@ export const POST = withApiHandler(
       contractor_company_name,
       contractor_license_registration,
       contractor_license_type: contractor_license_type || null,
+      quote_id: quote_id || null,
       status: CONTRACT_STATUS.PENDING_HOMEOWNER,
       updated_at: new Date().toISOString(),
     };
@@ -135,7 +169,11 @@ export const POST = withApiHandler(
     if (existingContract) {
       // Allow updating draft or pending_homeowner contracts (contractor can resend)
       // Block if already signed/accepted/rejected by homeowner
-      if (!([CONTRACT_STATUS.DRAFT, CONTRACT_STATUS.PENDING_HOMEOWNER] as string[]).includes(existingContract.status)) {
+      if (
+        !(
+          [CONTRACT_STATUS.DRAFT, CONTRACT_STATUS.PENDING_HOMEOWNER] as string[]
+        ).includes(existingContract.status)
+      ) {
         throw new BadRequestError(
           existingContract.status === CONTRACT_STATUS.ACCEPTED
             ? 'This contract has already been signed by both parties and cannot be modified'
@@ -148,7 +186,9 @@ export const POST = withApiHandler(
         .from('contracts')
         .update(contractPayload)
         .eq('id', existingContract.id)
-        .select('id, job_id, contractor_id, homeowner_id, status, title, description, amount, start_date, end_date, terms, created_at, updated_at')
+        .select(
+          'id, job_id, contractor_id, homeowner_id, status, title, description, amount, start_date, end_date, terms, created_at, updated_at'
+        )
         .single();
 
       contract = result.data;
@@ -164,7 +204,9 @@ export const POST = withApiHandler(
           ...contractPayload,
           created_at: new Date().toISOString(),
         })
-        .select('id, job_id, contractor_id, homeowner_id, status, title, description, amount, start_date, end_date, terms, created_at, updated_at')
+        .select(
+          'id, job_id, contractor_id, homeowner_id, status, title, description, amount, start_date, end_date, terms, created_at, updated_at'
+        )
         .single();
 
       contract = result.data;
@@ -183,17 +225,15 @@ export const POST = withApiHandler(
 
     // Create notification for homeowner
     try {
-      await serverSupabase
-        .from('notifications')
-        .insert({
-          user_id: job.homeowner_id,
-          title: 'New Contract Created',
-          message: `Contractor has created a contract for "${job.title || 'your job'}". Please review and sign.`,
-          type: 'contract_created',
-          read: false,
-          action_url: `/jobs/${job_id}`,
-          created_at: new Date().toISOString(),
-        });
+      await serverSupabase.from('notifications').insert({
+        user_id: job.homeowner_id,
+        title: 'New Contract Created',
+        message: `Contractor has created a contract for "${job.title || 'your job'}". Please review and sign.`,
+        type: 'contract_created',
+        read: false,
+        action_url: `/jobs/${job_id}`,
+        created_at: new Date().toISOString(),
+      });
     } catch (notificationError) {
       logger.error('Failed to create notification', notificationError, {
         service: 'contracts',
@@ -218,11 +258,15 @@ export const POST = withApiHandler(
           .single();
 
         const contractorDisplayName = contractorProfile
-          ? (contractorProfile.company_name || `${contractorProfile.first_name || ''} ${contractorProfile.last_name || ''}`.trim() || 'Your contractor')
+          ? contractorProfile.company_name ||
+            `${contractorProfile.first_name || ''} ${contractorProfile.last_name || ''}`.trim() ||
+            'Your contractor'
           : 'Your contractor';
 
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
-          ? `https://${process.env.VERCEL_URL}` : 'https://mintenance.com';
+        const baseUrl =
+          process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
+            ? `https://${process.env.VERCEL_URL}`
+            : 'https://mintenance.com';
 
         await EmailService.sendContractNotification(homeownerProfile.email, {
           homeownerName: homeownerProfile.first_name || 'Homeowner',
@@ -248,9 +292,9 @@ export const POST = withApiHandler(
         .single();
 
       const contractorName = contractorData
-        ? (contractorData.first_name && contractorData.last_name
-            ? `${contractorData.first_name} ${contractorData.last_name}`
-            : contractorData.company_name || 'Contractor')
+        ? contractorData.first_name && contractorData.last_name
+          ? `${contractorData.first_name} ${contractorData.last_name}`
+          : contractorData.company_name || 'Contractor'
         : 'Contractor';
 
       const contractMessageText = `📋 New contract submitted: £${amount.toLocaleString()}\n\n${title || `Contract for ${job.title || 'your job'}`}${description ? `\n\n${description}` : ''}`;
@@ -285,10 +329,13 @@ export const POST = withApiHandler(
       }
 
       if (!threadData) {
-        logger.error('Failed to find or create message thread for contract message', {
-          service: 'contracts',
-          jobId: job_id,
-        });
+        logger.error(
+          'Failed to find or create message thread for contract message',
+          {
+            service: 'contracts',
+            jobId: job_id,
+          }
+        );
         throw new Error('Failed to create message thread');
       }
 
@@ -353,10 +400,13 @@ export const POST = withApiHandler(
           messageId: insertedMessageId,
         });
       } else {
-        logger.warn('Contract message was not inserted, but contract creation succeeded', {
-          service: 'contracts',
-          jobId: job_id,
-        });
+        logger.warn(
+          'Contract message was not inserted, but contract creation succeeded',
+          {
+            service: 'contracts',
+            jobId: job_id,
+          }
+        );
       }
     } catch (messageError) {
       logger.error('Failed to create contract message', messageError, {
@@ -366,7 +416,7 @@ export const POST = withApiHandler(
     }
 
     return NextResponse.json({ contract }, { status: 201 });
-  },
+  }
 );
 
 export const PUT = withApiHandler({}, async (request, { user }) => {
@@ -380,7 +430,9 @@ export const PUT = withApiHandler({}, async (request, { user }) => {
   // Verify contract exists and user has permission
   const { data: contract, error: contractError } = await serverSupabase
     .from('contracts')
-    .select('id, job_id, contractor_id, homeowner_id, title, description, amount, status, start_date, end_date, terms, created_at, updated_at, contractor_signed_at, homeowner_signed_at')
+    .select(
+      'id, job_id, contractor_id, homeowner_id, title, description, amount, status, start_date, end_date, terms, created_at, updated_at, contractor_signed_at, homeowner_signed_at'
+    )
     .eq('id', contractId)
     .single();
 
@@ -388,15 +440,24 @@ export const PUT = withApiHandler({}, async (request, { user }) => {
     throw new NotFoundError('Contract not found');
   }
 
-  const canEdit = (user.role === 'contractor' && contract.contractor_id === user.id) ||
-                  (user.role === 'homeowner' && contract.homeowner_id === user.id);
+  const canEdit =
+    (user.role === 'contractor' && contract.contractor_id === user.id) ||
+    (user.role === 'homeowner' && contract.homeowner_id === user.id);
 
   if (!canEdit) {
     throw new ForbiddenError('Not authorized to edit this contract');
   }
 
   // Can only edit if status is draft or pending
-  if (!([CONTRACT_STATUS.DRAFT, CONTRACT_STATUS.PENDING_CONTRACTOR, CONTRACT_STATUS.PENDING_HOMEOWNER] as string[]).includes(contract.status)) {
+  if (
+    !(
+      [
+        CONTRACT_STATUS.DRAFT,
+        CONTRACT_STATUS.PENDING_CONTRACTOR,
+        CONTRACT_STATUS.PENDING_HOMEOWNER,
+      ] as string[]
+    ).includes(contract.status)
+  ) {
     throw new BadRequestError('Contract cannot be edited in current status');
   }
 
@@ -409,17 +470,29 @@ export const PUT = withApiHandler({}, async (request, { user }) => {
     updated_at: new Date().toISOString(),
   };
 
-  if (validatedUpdate.title !== undefined) updateData.title = validatedUpdate.title;
-  if (validatedUpdate.description !== undefined) updateData.description = validatedUpdate.description;
-  if (validatedUpdate.amount !== undefined) updateData.amount = validatedUpdate.amount;
-  if (validatedUpdate.start_date !== undefined) updateData.start_date = validatedUpdate.start_date || null;
-  if (validatedUpdate.end_date !== undefined) updateData.end_date = validatedUpdate.end_date || null;
-  if (validatedUpdate.terms !== undefined) updateData.terms = validatedUpdate.terms as ContractTerms;
+  if (validatedUpdate.title !== undefined)
+    updateData.title = validatedUpdate.title;
+  if (validatedUpdate.description !== undefined)
+    updateData.description = validatedUpdate.description;
+  if (validatedUpdate.amount !== undefined)
+    updateData.amount = validatedUpdate.amount;
+  if (validatedUpdate.start_date !== undefined)
+    updateData.start_date = validatedUpdate.start_date || null;
+  if (validatedUpdate.end_date !== undefined)
+    updateData.end_date = validatedUpdate.end_date || null;
+  if (validatedUpdate.terms !== undefined)
+    updateData.terms = validatedUpdate.terms as ContractTerms;
 
   // Update status based on who is editing
-  if (user.role === 'contractor' && contract.status === CONTRACT_STATUS.PENDING_HOMEOWNER) {
+  if (
+    user.role === 'contractor' &&
+    contract.status === CONTRACT_STATUS.PENDING_HOMEOWNER
+  ) {
     updateData.status = CONTRACT_STATUS.PENDING_HOMEOWNER;
-  } else if (user.role === 'homeowner' && contract.status === CONTRACT_STATUS.PENDING_CONTRACTOR) {
+  } else if (
+    user.role === 'homeowner' &&
+    contract.status === CONTRACT_STATUS.PENDING_CONTRACTOR
+  ) {
     updateData.status = CONTRACT_STATUS.PENDING_CONTRACTOR;
   }
 
@@ -427,7 +500,9 @@ export const PUT = withApiHandler({}, async (request, { user }) => {
     .from('contracts')
     .update(updateData)
     .eq('id', contractId)
-    .select('id, job_id, contractor_id, homeowner_id, status, title, description, amount, start_date, end_date, terms, contractor_signed_at, homeowner_signed_at, created_at, updated_at')
+    .select(
+      'id, job_id, contractor_id, homeowner_id, status, title, description, amount, start_date, end_date, terms, contractor_signed_at, homeowner_signed_at, created_at, updated_at'
+    )
     .single();
 
   if (updateError) {

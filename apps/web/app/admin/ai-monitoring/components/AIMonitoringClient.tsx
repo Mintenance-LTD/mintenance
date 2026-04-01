@@ -1,7 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { AreaChart, BarChart, DonutChart, LineChart } from '@tremor/react';
+import dynamic from 'next/dynamic';
+
+const AreaChart = dynamic(() => import('@tremor/react').then(m => ({ default: m.AreaChart })), { ssr: false });
+const BarChart = dynamic(() => import('@tremor/react').then(m => ({ default: m.BarChart })), { ssr: false });
+const DonutChart = dynamic(() => import('@tremor/react').then(m => ({ default: m.DonutChart })), { ssr: false });
+const LineChart = dynamic(() => import('@tremor/react').then(m => ({ default: m.LineChart })), { ssr: false });
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { fadeIn, staggerContainer, staggerItem } from '@/lib/animations/variants';
 import { logger } from '@mintenance/shared';
@@ -160,63 +165,64 @@ export function AIMonitoringClient() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-600">Loading AI monitoring data...</p>
+      <div className="min-h-screen bg-[#f7f9fb] px-6 md:px-10 py-8 max-w-[1440px] mx-auto">
+        <div className="h-12 w-80 bg-gray-200 rounded animate-pulse mb-3" />
+        <div className="h-5 w-96 bg-gray-100 rounded animate-pulse mb-8" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-[1.5rem] p-6 min-h-[120px] animate-pulse" />
+          ))}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-[1600px] mx-auto px-8 py-8 w-full">
-      {/* Header Controls */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold text-gray-900">AI Agent Monitoring</h2>
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Clock className="w-4 h-4" />
-            <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
-          </div>
+    <div className="min-h-screen bg-[#f7f9fb] px-6 md:px-10 py-8 max-w-[1440px] mx-auto space-y-8">
+      {/* Page Header */}
+      <div className="flex justify-between items-end">
+        <div>
+          <h2 className="text-[2.75rem] font-extrabold tracking-tight text-[#2a3439] leading-tight">
+            AI Agent Monitoring
+          </h2>
+          <p className="text-[#566166] text-lg mt-2">
+            Real-time performance metrics and insights.
+            <span className="ml-3 text-sm text-[#717c82]">
+              Updated {lastUpdated.toLocaleTimeString()}
+            </span>
+          </p>
         </div>
-
         <div className="flex items-center gap-3">
           <button
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className={`px-4 py-2 rounded-lg border font-medium transition-all ${
+            className={`px-5 py-2.5 rounded-xl font-medium text-sm transition-all flex items-center gap-2 ${
               autoRefresh
-                ? 'bg-purple-50 border-purple-200 text-purple-700'
-                : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                ? 'bg-[#dae2fd] text-[#4a5167] border border-[#ccd4ee]'
+                : 'bg-[#e1e9ee] text-[#566166]'
             }`}
           >
-            <div className="flex items-center gap-2">
-              <RefreshCw className={`w-4 h-4 ${autoRefresh ? 'animate-spin' : ''}`} />
-              Auto-refresh {autoRefresh ? 'On' : 'Off'}
-            </div>
+            <RefreshCw className={`w-4 h-4 ${autoRefresh ? 'animate-spin' : ''}`} />
+            Auto-refresh {autoRefresh ? 'On' : 'Off'}
           </button>
-
           <button
             onClick={fetchData}
-            className="px-4 py-2 rounded-lg bg-purple-600 text-white font-medium hover:bg-purple-700 transition-all"
+            className="px-5 py-2.5 rounded-xl bg-[#565e74] text-white font-medium text-sm hover:brightness-110 transition-all flex items-center gap-2 shadow-lg shadow-[#565e74]/20"
           >
-            <div className="flex items-center gap-2">
-              <RefreshCw className="w-4 h-4" />
-              Refresh Now
-            </div>
+            <RefreshCw className="w-4 h-4" />
+            Refresh Now
           </button>
         </div>
       </div>
 
       {/* Overview Metrics Cards */}
       <MotionDiv
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
         variants={staggerContainer}
         initial="initial"
         animate="animate"
       >
         <MotionDiv
-          className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
+          className="bg-white rounded-[1.5rem] p-6 hover:shadow-[0_12px_32px_-4px_rgba(42,52,57,0.08)] transition-all"
           variants={staggerItem}
         >
           <div className="flex items-start justify-between mb-4">

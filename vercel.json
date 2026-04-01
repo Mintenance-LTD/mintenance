@@ -1,0 +1,52 @@
+{
+  "buildCommand": "node scripts/vercel-build.js",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "outputDirectory": "apps/web/.next",
+  "regions": ["lhr1"],
+  "functions": {
+    "app/api/ai/**/*.ts": {
+      "maxDuration": 60
+    },
+    "app/api/payments/**/*.ts": {
+      "maxDuration": 30
+    },
+    "app/api/webhooks/**/*.ts": {
+      "maxDuration": 30
+    },
+    "app/api/cron/**/*.ts": {
+      "maxDuration": 60
+    },
+    "app/api/jobs/**/*.ts": {
+      "maxDuration": 30
+    },
+    "app/api/admin/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
+  "crons": [
+    { "path": "/api/cron/payment-setup-reminders",     "schedule": "0 9 * * *"   },
+    { "path": "/api/cron/low-activity-contractor-nudge","schedule": "15 9 * * *"  },
+    { "path": "/api/cron/win-back-campaign",            "schedule": "0 10 * * *"  },
+    { "path": "/api/cron/anniversary-recognition",      "schedule": "0 8 * * *"   },
+    { "path": "/api/cron/contractor-job-digest",        "schedule": "0 8 * * 1"   },
+    { "path": "/api/cron/compliance-expiry-reminders",  "schedule": "0 7 * * *"   },
+    { "path": "/api/cron/recurring-job-creator",        "schedule": "0 6 * * *"   },
+    { "path": "/api/cron/escrow-auto-release",          "schedule": "0 0 * * *"   },
+    { "path": "/api/cron/agent-processor",              "schedule": "0 1 * * *"   },
+    { "path": "/api/cron/no-show-reminders",            "schedule": "0 11 * * *"  },
+    { "path": "/api/cron/notification-processor",       "schedule": "0 12 * * *"  },
+    { "path": "/api/cron/distillation-processor",       "schedule": "0 13 * * *"  },
+    { "path": "/api/cron/expire-bids",                  "schedule": "0 14 * * *"  },
+    { "path": "/api/cron/homeowner-approval-reminders", "schedule": "0 9 * * *"   },
+    { "path": "/api/cron/admin-escrow-alerts",          "schedule": "0 8 * * *"   },
+    { "path": "/api/cron/payment-reconciliation",       "schedule": "0 2 * * *"   },
+    { "path": "/api/cron/auto-verify-contractors",      "schedule": "0 7 * * *"   },
+    { "path": "/api/cron/admin-alerts",                 "schedule": "0 8 * * *"   },
+    { "path": "/api/cron/retention-cleanup",            "schedule": "0 3 * * 0"   },
+    { "path": "/api/cron/pii-cleanup",                  "schedule": "0 3 * * *"   },
+    { "path": "/api/cron/data-archival",                "schedule": "0 4 1 * *"   },
+    { "path": "/api/cron/model-retraining",             "schedule": "0 5 * * *"   },
+    { "path": "/api/cron/vlm-retraining",               "schedule": "0 5 * * *"   }
+  ]
+}

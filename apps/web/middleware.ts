@@ -2,8 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyJWT, ConfigManager, SessionValidator } from '@mintenance/auth';
 import { logger } from '@mintenance/shared';
 import { tokenBlacklist } from '@/lib/auth/token-blacklist';
-import { checkRateLimit, createRateLimitHeaders, type RateLimitResult } from '@/lib/rate-limiter-enhanced';
-import { handlePreflightRequest, addCorsHeaders, shouldSkipCors } from '@/lib/cors';
+import {
+  checkRateLimit,
+  createRateLimitHeaders,
+  type RateLimitResult,
+} from '@/lib/rate-limiter-enhanced';
+import {
+  handlePreflightRequest,
+  addCorsHeaders,
+  shouldSkipCors,
+} from '@/lib/cors';
 import { securityMonitor } from '@/lib/security-monitor';
 
 // Lazy-initialized ConfigManager to avoid module-level throws that crash the middleware Edge Function
@@ -19,14 +27,20 @@ function getConfigManager(): ConfigManager | null {
     const jwtSecret = configManager.get('JWT_SECRET');
     if (!jwtSecret) {
       configInitError = 'JWT_SECRET not available in configuration';
-      logger.error('CRITICAL: ' + configInitError, undefined, { service: 'middleware' });
+      logger.error('CRITICAL: ' + configInitError, undefined, {
+        service: 'middleware',
+      });
       configManager = null;
       return null;
     }
     return configManager;
   } catch (error) {
     configInitError = error instanceof Error ? error.message : 'Unknown error';
-    logger.error('CRITICAL: Middleware configuration initialization failed', error, { service: 'middleware' });
+    logger.error(
+      'CRITICAL: Middleware configuration initialization failed',
+      error,
+      { service: 'middleware' }
+    );
     return null;
   }
 }
@@ -39,10 +53,16 @@ import type { JWTPayload } from '@mintenance/types';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // AUDIT FIX: Single isDevelopment declaration — was previously redefined 3 times
+  // at lines 100, 315, 552. Hoisted here for consistency and to prevent silent divergence.
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+
   // Coming Soon mode: redirect all traffic to /coming-soon in production
   if (process.env.NEXT_PUBLIC_LAUNCH_MODE === 'coming-soon') {
     const allowed = ['/coming-soon', '/_next', '/favicon.ico', '/api/'];
-    const isAllowed = allowed.some(p => pathname.startsWith(p)) || /\.(png|jpg|jpeg|svg|ico|css|js|woff2?)$/.test(pathname);
+    const isAllowed =
+      allowed.some((p) => pathname.startsWith(p)) ||
+      /\.(png|jpg|jpeg|svg|ico|css|js|woff2?)$/.test(pathname);
     if (!isAllowed) {
       return NextResponse.redirect(new URL('/coming-soon', request.url));
     }
@@ -51,9 +71,10 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check if IP is auto-blocked by security monitor (DDoS / attack mitigation)
-  const clientIP = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    || request.headers.get('x-real-ip')
-    || 'unknown';
+  const clientIP =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown';
   if (securityMonitor.isIPBlocked(clientIP)) {
     return new NextResponse('Forbidden', { status: 403 });
   }
@@ -61,25 +82,59 @@ export async function middleware(request: NextRequest) {
   // Define public routes that don't require authentication
   // IMPORTANT: Public route check MUST happen before ConfigManager to ensure
   // login, CSRF, session-status, and diag routes work even if config fails
-  const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password', '/about', '/contact', '/privacy', '/terms', '/help', '/logout', '/careers', '/press', '/safety', '/cookies', '/faq', '/blog', '/pricing', '/how-it-works', '/ai-search', '/try-mint-ai'];
+  const publicRoutes = [
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/reset-password',
+    '/about',
+    '/contact',
+    '/privacy',
+    '/terms',
+    '/help',
+    '/logout',
+    '/careers',
+    '/press',
+    '/safety',
+    '/cookies',
+    '/faq',
+    '/blog',
+    '/pricing',
+    '/how-it-works',
+    '/ai-search',
+    '/try-mint-ai',
+  ];
   // SECURITY: Exact-match API routes — no sub-path access allowed
   const publicApiRoutesExact = new Set([
-    '/api/csrf', '/api/stats/platform', '/api/diag',
-    '/api/building-surveyor/demo', '/api/building-surveyor/demo-feedback',
+    '/api/csrf',
+    '/api/stats/platform',
+    '/api/diag',
+    '/api/building-surveyor/demo',
+    '/api/building-surveyor/demo-feedback',
     '/api/csp-report', // Browser-generated CSP violation reports: no auth, no CSRF (browser controls headers)
   ]);
   // Prefix-match API routes — sub-paths are intentionally allowed (e.g. /api/auth/login/callback)
   const publicApiRoutesPrefixed = ['/api/auth/'];
-  const adminAuthRoutes = ['/admin/login', '/admin/register', '/admin/forgot-password'];
+  const adminAuthRoutes = [
+    '/admin/login',
+    '/admin/register',
+    '/admin/forgot-password',
+  ];
   // SECURITY: Only allow UUID-formatted contractor profile paths as public
   // This prevents /contractor/dashboard-enhanced, /contractor/settings, etc. from bypassing auth
-  const isPublicContractorProfile = /^\/contractor\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pathname);
+  const isPublicContractorProfile =
+    /^\/contractor\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      pathname
+    );
   // /contractors listing now requires authentication
   const isPublicContractorsPage = false;
-  const isPublicRoute = pathname === '/' ||
-    publicRoutes.some(route => pathname === route || pathname.startsWith(route + '/')) ||
+  const isPublicRoute =
+    pathname === '/' ||
+    publicRoutes.some(
+      (route) => pathname === route || pathname.startsWith(route + '/')
+    ) ||
     publicApiRoutesExact.has(pathname) ||
-    publicApiRoutesPrefixed.some(prefix => pathname.startsWith(prefix)) ||
+    publicApiRoutesPrefixed.some((prefix) => pathname.startsWith(prefix)) ||
     isPublicContractorProfile ||
     isPublicContractorsPage ||
     adminAuthRoutes.includes(pathname);
@@ -94,10 +149,11 @@ export async function middleware(request: NextRequest) {
     const publicNonce = crypto.randomUUID().replace(/-/g, '');
     requestHeaders.set('x-csp-nonce', publicNonce);
 
-    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    const response = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
 
     // Generate or refresh CSRF token (always set to ensure httpOnly:false is applied)
-    const isDevelopment = process.env.NODE_ENV !== 'production';
     const csrfCookieName = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
     const existingCsrf = request.cookies.get(csrfCookieName)?.value;
     const csrfToken = existingCsrf || crypto.randomUUID();
@@ -110,19 +166,26 @@ export async function middleware(request: NextRequest) {
     });
 
     if (!isDevelopment) {
-      response.headers.set('Content-Security-Policy', [
-        "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com https://vercel.live",
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-        "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
-        "font-src 'self' data: https://fonts.gstatic.com",
-        "connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com https://vercel.live wss://ws-us3.pusher.com",
-        "frame-src https://js.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://www.openstreetmap.org https://vercel.live",
-        "object-src 'none'",
-        "base-uri 'self'",
-        "form-action 'self'",
-        "frame-ancestors 'none'",
-      ].join('; '));
+      // Nonce-based CSP with 'unsafe-inline' fallback for Next.js compatibility.
+      // In CSP Level 3+ browsers, 'unsafe-inline' is automatically ignored when a
+      // nonce is present — so nonce provides real XSS protection in modern browsers.
+      // The 'unsafe-inline' fallback ensures Next.js inline hydration scripts work.
+      response.headers.set(
+        'Content-Security-Policy',
+        [
+          "default-src 'self'",
+          `script-src 'self' 'nonce-${publicNonce}' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com https://vercel.live`,
+          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+          "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
+          "font-src 'self' data: https://fonts.gstatic.com",
+          "connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com https://vercel.live wss://ws-us3.pusher.com",
+          'frame-src https://js.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://www.openstreetmap.org https://vercel.live',
+          "object-src 'none'",
+          "base-uri 'self'",
+          "form-action 'self'",
+          "frame-ancestors 'none'",
+        ].join('; ')
+      );
     }
 
     return response;
@@ -159,10 +222,13 @@ export async function middleware(request: NextRequest) {
       );
     }
 
-    if (contentType && !contentType.includes('application/json') &&
-        !contentType.includes('multipart/form-data') &&
-        !contentType.includes('application/x-www-form-urlencoded') &&
-        !contentType.includes('text/')) {
+    if (
+      contentType &&
+      !contentType.includes('application/json') &&
+      !contentType.includes('multipart/form-data') &&
+      !contentType.includes('application/x-www-form-urlencoded') &&
+      !contentType.includes('text/')
+    ) {
       logger.warn('Invalid content-type for request', {
         service: 'middleware',
         pathname,
@@ -174,17 +240,24 @@ export async function middleware(request: NextRequest) {
   // If configuration failed to load, fail closed for security (non-public routes only)
   const cfg = getConfigManager();
   if (!cfg) {
-    logger.error('Middleware: Configuration unavailable - rejecting request', undefined, {
-      service: 'middleware',
-      pathname,
-      configError: configInitError,
-    });
+    logger.error(
+      'Middleware: Configuration unavailable - rejecting request',
+      undefined,
+      {
+        service: 'middleware',
+        pathname,
+        configError: configInitError,
+      }
+    );
     return new NextResponse('Service Unavailable', { status: 503 });
   }
 
   // Skip middleware for static files only
   // SECURITY: All API routes including webhooks should go through rate limiting
-  const isStaticFile = /\.(svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2|ttf|eot)$/i.test(pathname);
+  const isStaticFile =
+    /\.(svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2|ttf|eot)$/i.test(
+      pathname
+    );
 
   if (
     pathname.startsWith('/_next') ||
@@ -218,18 +291,36 @@ export async function middleware(request: NextRequest) {
       ]);
       // Prefix paths — any pathname starting with these skips middleware rate limiting
       const RATE_LIMIT_SKIP_PREFIXES = [
-        '/api/notifications', '/api/messages', '/api/payments',
-        '/api/contractors', '/api/jobs', '/api/contractor/',
-        '/api/bids', '/api/user/', '/api/account', '/api/upload',
-        '/api/ai/', '/api/building-surveyor', '/api/admin',
-        '/api/escrow', '/api/properties', '/api/subscriptions',
+        '/api/notifications',
+        '/api/messages',
+        '/api/payments',
+        '/api/contractors',
+        '/api/jobs',
+        '/api/contractor/',
+        '/api/bids',
+        '/api/user/',
+        '/api/account',
+        '/api/upload',
+        '/api/ai/',
+        '/api/building-surveyor',
+        '/api/admin',
+        '/api/escrow',
+        '/api/properties',
+        '/api/subscriptions',
       ];
-      const skipMiddlewareRateLimit = RATE_LIMIT_SKIP_EXACT.has(pathname) ||
-        RATE_LIMIT_SKIP_PREFIXES.some(prefix => pathname.startsWith(prefix));
+      const skipMiddlewareRateLimit =
+        RATE_LIMIT_SKIP_EXACT.has(pathname) ||
+        RATE_LIMIT_SKIP_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 
       // Perform rate limit check (unless explicitly skipped)
       const rateLimitResult = skipMiddlewareRateLimit
-        ? { allowed: true, limit: 0, remaining: 0, resetTime: Date.now() + 60000, tier: 'anonymous' } as RateLimitResult
+        ? ({
+            allowed: true,
+            limit: 0,
+            remaining: 0,
+            resetTime: Date.now() + 60000,
+            tier: 'anonymous',
+          } as RateLimitResult)
         : await checkRateLimit(request);
 
       if (!rateLimitResult.allowed) {
@@ -259,13 +350,17 @@ export async function middleware(request: NextRequest) {
 
       // Add rate limit headers to successful responses for API routes
       const requestHeaders = new Headers(request.headers);
-      Object.entries(createRateLimitHeaders(rateLimitResult)).forEach(([key, value]) => {
-        requestHeaders.set(key, value);
-      });
+      Object.entries(createRateLimitHeaders(rateLimitResult)).forEach(
+        ([key, value]) => {
+          requestHeaders.set(key, value);
+        }
+      );
 
       // Special handling for webhook endpoints (skip auth but apply rate limiting)
       if (pathname.startsWith('/api/webhooks')) {
-        const response = NextResponse.next({ request: { headers: requestHeaders } });
+        const response = NextResponse.next({
+          request: { headers: requestHeaders },
+        });
         // Add CORS headers to webhook responses (if not skipped)
         return skipCors ? response : addCorsHeaders(response, request);
       }
@@ -294,7 +389,9 @@ export async function middleware(request: NextRequest) {
   // handlers via getUserFromRequest() → getCurrentUserFromBearerToken().
   // SECURITY FIX: Require valid JWT format (3-part dot-separated base64url) before
   // waiving CSRF. A fake/malformed "Bearer invalid" header no longer bypasses CSRF.
-  const bearerToken = request.headers.get('authorization')?.replace('Bearer ', '');
+  const bearerToken = request.headers
+    .get('authorization')
+    ?.replace('Bearer ', '');
   const isValidJwtFormat =
     !!bearerToken &&
     /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(bearerToken);
@@ -303,7 +400,9 @@ export async function middleware(request: NextRequest) {
     requestHeaders.set('x-pathname', pathname);
     const requestId = crypto.randomUUID();
     requestHeaders.set('x-request-id', requestId);
-    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    const response = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
     if (!shouldSkipCors(pathname)) {
       return addCorsHeaders(response, request);
     }
@@ -312,13 +411,19 @@ export async function middleware(request: NextRequest) {
 
   try {
     // Get JWT token from cookies
-    const isDevelopment = process.env.NODE_ENV !== 'production';
-    const authCookieName = isDevelopment ? 'mintenance-auth' : '__Host-mintenance-auth';
+    const authCookieName = isDevelopment
+      ? 'mintenance-auth'
+      : '__Host-mintenance-auth';
     const token = request.cookies.get(authCookieName)?.value;
 
     // Also check for Supabase auth token (for E2E tests and Supabase-only auth)
-    const supabaseRef = process.env.NEXT_PUBLIC_SUPABASE_URL?.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1] || '';
-    const supabaseAuthCookie = request.cookies.get(`sb-${supabaseRef}-auth-token`)?.value;
+    const supabaseRef =
+      process.env.NEXT_PUBLIC_SUPABASE_URL?.match(
+        /https:\/\/([^.]+)\.supabase\.co/
+      )?.[1] || '';
+    const supabaseAuthCookie = request.cookies.get(
+      `sb-${supabaseRef}-auth-token`
+    )?.value;
 
     if (!token && !supabaseAuthCookie) {
       // No token found, redirect to login
@@ -355,7 +460,10 @@ export async function middleware(request: NextRequest) {
           },
         });
 
-        const { data: { user }, error } = await supabase.auth.getUser();
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
 
         if (error || !user) {
           return redirectToLogin(request);
@@ -363,7 +471,9 @@ export async function middleware(request: NextRequest) {
 
         // SECURITY: Validate CSRF for state-changing requests (same check as JWT path)
         if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method)) {
-          const csrfCookieName = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
+          const csrfCookieName = isDevelopment
+            ? 'csrf-token'
+            : '__Host-csrf-token';
           const headerToken = request.headers.get('x-csrf-token');
           const cookieToken = request.cookies.get(csrfCookieName)?.value;
 
@@ -375,7 +485,10 @@ export async function middleware(request: NextRequest) {
               hasHeaderToken: !!headerToken,
               hasCookieToken: !!cookieToken,
             });
-            return NextResponse.json({ error: 'CSRF token mismatch' }, { status: 403 });
+            return NextResponse.json(
+              { error: 'CSRF token mismatch' },
+              { status: 403 }
+            );
           }
         }
 
@@ -392,15 +505,17 @@ export async function middleware(request: NextRequest) {
         requestHeaders.set('x-user-role', profileData?.role || 'homeowner');
         requestHeaders.set('x-pathname', pathname);
 
-        const response = NextResponse.next({ request: { headers: requestHeaders } });
+        const response = NextResponse.next({
+          request: { headers: requestHeaders },
+        });
 
         // Refresh CSRF cookie with httpOnly:false on protected routes too
-        const isDev = process.env.NODE_ENV !== 'production';
-        const csrfName = isDev ? 'csrf-token' : '__Host-csrf-token';
-        const csrfValue = request.cookies.get(csrfName)?.value || crypto.randomUUID();
+        const csrfName = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
+        const csrfValue =
+          request.cookies.get(csrfName)?.value || crypto.randomUUID();
         response.cookies.set(csrfName, csrfValue, {
           httpOnly: false,
-          secure: !isDev,
+          secure: !isDevelopment,
           sameSite: 'strict',
           path: '/',
           maxAge: 24 * 60 * 60,
@@ -426,10 +541,14 @@ export async function middleware(request: NextRequest) {
       const jwtSecret = cfg.getRequired('JWT_SECRET');
       jwtPayload = await verifyJWT(token, jwtSecret);
     } catch (configError) {
-      logger.error('JWT verification failed due to configuration error', configError, {
-        service: 'middleware',
-        pathname,
-      });
+      logger.error(
+        'JWT verification failed due to configuration error',
+        configError,
+        {
+          service: 'middleware',
+          pathname,
+        }
+      );
       return redirectToLogin(request);
     }
 
@@ -451,12 +570,16 @@ export async function middleware(request: NextRequest) {
     } catch (blacklistError) {
       // SECURITY: Fail closed for payment platform - if blacklist check fails, reject token
       // This prevents compromised tokens from being used if Redis is unavailable
-      logger.error('CRITICAL: Token blacklist check failed - rejecting request for security', {
-        service: 'middleware',
-        pathname,
-        error: blacklistError,
-        securityRisk: 'Cannot verify token is not blacklisted - failing closed',
-      });
+      logger.error(
+        'CRITICAL: Token blacklist check failed - rejecting request for security',
+        {
+          service: 'middleware',
+          pathname,
+          error: blacklistError,
+          securityRisk:
+            'Cannot verify token is not blacklisted - failing closed',
+        }
+      );
       return redirectToLogin(request);
     }
 
@@ -486,24 +609,27 @@ export async function middleware(request: NextRequest) {
           process.env.NODE_ENV === 'production';
 
         // Log violation (both soft and hard enforcement)
-        securityMonitor.logSuspiciousActivity(
-          request,
-          `Session timeout violation: ${sessionValidation.reason}`,
-          jwtPayload.sub,
-          {
-            violations: sessionValidation.violations,
-            sessionAgeMs: sessionValidation.metadata.sessionAgeMs,
-            idleTimeMs: sessionValidation.metadata.idleTimeMs,
-            hardEnforcement: enforceTimeouts,  // Phase 3: track enforcement mode
-            timeoutMessage: SessionValidator.getTimeoutMessage(sessionValidation),
-          }
-        ).catch((err) => {
-          // Catch logging errors to prevent middleware failures
-          logger.error('Failed to log session timeout violation', err, {
-            service: 'middleware',
-            userId: jwtPayload.sub,
+        securityMonitor
+          .logSuspiciousActivity(
+            request,
+            `Session timeout violation: ${sessionValidation.reason}`,
+            jwtPayload.sub,
+            {
+              violations: sessionValidation.violations,
+              sessionAgeMs: sessionValidation.metadata.sessionAgeMs,
+              idleTimeMs: sessionValidation.metadata.idleTimeMs,
+              hardEnforcement: enforceTimeouts, // Phase 3: track enforcement mode
+              timeoutMessage:
+                SessionValidator.getTimeoutMessage(sessionValidation),
+            }
+          )
+          .catch((err) => {
+            // Catch logging errors to prevent middleware failures
+            logger.error('Failed to log session timeout violation', err, {
+              service: 'middleware',
+              userId: jwtPayload.sub,
+            });
           });
-        });
 
         // Hard enforcement: force logout on timeout violation
         if (enforceTimeouts) {
@@ -516,11 +642,16 @@ export async function middleware(request: NextRequest) {
               violations: sessionValidation.violations.join(', '),
             });
           } catch (error) {
-            logger.error('CRITICAL: Token blacklist failed on forced logout', error, {
-              service: 'middleware',
-              userId: jwtPayload.sub,
-              securityRisk: 'Token may be reused until JWT expiry (max 1 hour)',
-            });
+            logger.error(
+              'CRITICAL: Token blacklist failed on forced logout',
+              error,
+              {
+                service: 'middleware',
+                userId: jwtPayload.sub,
+                securityRisk:
+                  'Token may be reused until JWT expiry (max 1 hour)',
+              }
+            );
             // Continue with logout anyway (user experience > blacklist failure)
           }
 
@@ -533,8 +664,13 @@ export async function middleware(request: NextRequest) {
                 code: 'SESSION_TIMEOUT',
                 message: SessionValidator.getTimeoutMessage(sessionValidation),
                 violations: sessionValidation.violations,
-                sessionAgeHours: Math.floor((sessionValidation.metadata.sessionAgeMs || 0) / (60 * 60 * 1000)),
-                idleMinutes: Math.floor((sessionValidation.metadata.idleTimeMs || 0) / (60 * 1000)),
+                sessionAgeHours: Math.floor(
+                  (sessionValidation.metadata.sessionAgeMs || 0) /
+                    (60 * 60 * 1000)
+                ),
+                idleMinutes: Math.floor(
+                  (sessionValidation.metadata.idleTimeMs || 0) / (60 * 1000)
+                ),
               },
               { status: 401 }
             );
@@ -549,9 +685,8 @@ export async function middleware(request: NextRequest) {
 
     // Validate CSRF token for state-changing requests
     if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method)) {
-      const isDevelopment = process.env.NODE_ENV !== 'production';
       const csrfCookieName = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
-      
+
       const headerToken = request.headers.get('x-csrf-token');
       const cookieToken = request.cookies.get(csrfCookieName)?.value;
 
@@ -562,9 +697,12 @@ export async function middleware(request: NextRequest) {
           pathname: pathname,
           hasHeaderToken: !!headerToken,
           hasCookieToken: !!cookieToken,
-          tokensMatch: headerToken === cookieToken
+          tokensMatch: headerToken === cookieToken,
         });
-        return NextResponse.json({ error: 'CSRF token mismatch' }, { status: 403 });
+        return NextResponse.json(
+          { error: 'CSRF token mismatch' },
+          { status: 403 }
+        );
       }
     }
 
@@ -595,11 +733,16 @@ export async function middleware(request: NextRequest) {
     const is2025Enabled = is2025FeatureEnabled(request);
     requestHeaders.set('x-ui-version', is2025Enabled ? '2025' : 'current');
 
-    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    const response = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
 
     // Refresh CSRF cookie with httpOnly:false on protected routes
-    const csrfCookieNameJwt = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
-    const csrfValueJwt = request.cookies.get(csrfCookieNameJwt)?.value || crypto.randomUUID();
+    const csrfCookieNameJwt = isDevelopment
+      ? 'csrf-token'
+      : '__Host-csrf-token';
+    const csrfValueJwt =
+      request.cookies.get(csrfCookieNameJwt)?.value || crypto.randomUUID();
     response.cookies.set(csrfCookieNameJwt, csrfValueJwt, {
       httpOnly: false,
       secure: !isDevelopment,
@@ -612,21 +755,20 @@ export async function middleware(request: NextRequest) {
     const connectSrc = isDevelopment
       ? "connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com http://localhost:* http://127.0.0.1:* ws: wss:"
       : "connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com https://vercel.live wss: wss://ws-us3.pusher.com";
-    // CSP: 'unsafe-inline' required because Next.js generates inline scripts for
-    // hydration/chunking that cannot receive nonces. Nonce-only CSP is tracked in
-    // Content-Security-Policy-Report-Only below for future migration.
+    // Nonce-based CSP with 'unsafe-inline' fallback for authenticated routes.
+    // In CSP3+ browsers, 'unsafe-inline' is ignored when nonce is present.
     const cspHeader = [
       "default-src 'self'",
-      `script-src 'self' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com https://vercel.live`,
+      `script-src 'self' 'nonce-${nonce}' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com https://vercel.live`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
       "font-src 'self' data: https://fonts.gstatic.com",
       connectSrc,
-      "frame-src https://js.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://www.openstreetmap.org https://vercel.live",
+      'frame-src https://js.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://www.openstreetmap.org https://vercel.live',
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
-      "frame-ancestors 'none'"
+      "frame-ancestors 'none'",
     ].join('; ');
 
     response.headers.set('Content-Security-Policy', cspHeader);
@@ -636,27 +778,32 @@ export async function middleware(request: NextRequest) {
     const strictCspHeader = [
       "default-src 'self'",
       `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com https://maps.googleapis.com`,
-      `style-src 'self' 'nonce-${nonce}' https://fonts.googleapis.com`,
+      `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
       "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
       "font-src 'self' data: https://fonts.gstatic.com",
       connectSrc,
-      "frame-src https://js.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://www.openstreetmap.org",
+      'frame-src https://js.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://www.openstreetmap.org',
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
       "frame-ancestors 'none'",
-      "report-uri /api/csp-report"
+      'report-uri /api/csp-report',
     ].join('; ');
-    response.headers.set('Content-Security-Policy-Report-Only', strictCspHeader);
+    response.headers.set(
+      'Content-Security-Policy-Report-Only',
+      strictCspHeader
+    );
 
     // API versioning header for all /api/ routes
     if (pathname.startsWith('/api/')) {
-      response.headers.set('X-API-Version', process.env.API_VERSION || '2026-02-09');
+      response.headers.set(
+        'X-API-Version',
+        process.env.API_VERSION || '2026-02-09'
+      );
       response.headers.set('X-API-Deprecation', 'false');
     }
 
     return response;
-
   } catch (error) {
     logger.error('JWT verification failed', error, {
       service: 'middleware',
@@ -699,7 +846,10 @@ function is2025FeatureEnabled(request: NextRequest): boolean {
   // 5. Gradual rollout based on percentage (consistent hashing)
   const rolloutPercentage = getRolloutPercentage();
   if (rolloutPercentage > 0) {
-    const userIdentifier = request.cookies.get('session-id')?.value || request.headers.get('x-forwarded-for') || 'anonymous';
+    const userIdentifier =
+      request.cookies.get('session-id')?.value ||
+      request.headers.get('x-forwarded-for') ||
+      'anonymous';
     const hash = simpleHash(userIdentifier);
     const userPercentile = hash % 100;
 
@@ -739,7 +889,7 @@ function simpleHash(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32-bit integer
   }
   return Math.abs(hash);
@@ -770,7 +920,7 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder files
-     * 
+     *
      * NOTE: API routes are NOT excluded - middleware handles rate limiting and CORS for /api/*
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',

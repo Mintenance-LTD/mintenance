@@ -133,6 +133,13 @@ const ICON_NAME_MAP: Readonly<Record<string, keyof typeof LucideIcons>> = {
   leaf: 'Leaf',
   brain: 'Brain',
   save: 'Save',
+  unlock: 'Unlock',
+  undo: 'Undo2',
+  rotateCcw: 'RotateCcw',
+  pause: 'Pause',
+  banknote: 'Banknote',
+  scale: 'Scale',
+  receiptText: 'ReceiptText',
 } as const;
 
 /**
@@ -201,9 +208,8 @@ function getLucideIcon(iconName: string): LucideIcon | null {
     return null;
   }
 
-  return typeof IconComponent === 'function'
-    ? (IconComponent as LucideIcon)
-    : null;
+  // Lucide icons may be function components or forwardRef objects
+  return IconComponent ? (IconComponent as LucideIcon) : null;
 }
 
 /**

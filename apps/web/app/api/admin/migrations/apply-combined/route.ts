@@ -12,7 +12,12 @@ import { NotFoundError } from '@/lib/errors/api-error';
 export const POST = withApiHandler(
   { roles: ['admin'], rateLimit: { maxRequests: 10 } },
   async () => {
-    const filePath = join(process.cwd(), 'supabase', 'migrations', '20250228000000_combined_platform_enhancements.sql');
+    const filePath = join(
+      process.cwd(),
+      'supabase',
+      'migrations',
+      '20250228000000_combined_platform_enhancements.sql'
+    );
 
     let sql: string;
     try {
@@ -25,15 +30,19 @@ export const POST = withApiHandler(
       throw new NotFoundError('Migration file not found');
     }
 
-    logger.info('Combined migration SQL prepared', { service: 'migrations', sqlLength: sql.length });
+    logger.info('Combined migration SQL prepared', {
+      service: 'migrations',
+      sqlLength: sql.length,
+    });
 
     return NextResponse.json({
       message: 'Combined migration SQL ready',
-      sql,
+      sqlLength: sql.length,
+      fileName: '20250228000000_combined_platform_enhancements.sql',
       instructions: [
-        'Option 1: Copy this SQL and paste it into Supabase Dashboard > SQL Editor',
-        'Option 2: Use Supabase CLI: supabase db push',
-        'Option 3: The migration files are in supabase/migrations/ directory',
+        'Run via Supabase CLI: supabase db push',
+        'Or open the file directly: supabase/migrations/20250228000000_combined_platform_enhancements.sql',
+        'Or paste the file contents into Supabase Dashboard > SQL Editor',
       ],
     });
   }

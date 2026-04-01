@@ -14,48 +14,49 @@ import { logger } from '@mintenance/shared';
 // Define the schema for environment variables
 const envSchema = z.object({
   // Node environment
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z
+    .enum(['development', 'production', 'test'])
+    .default('development'),
 
   // JWT Configuration (CRITICAL)
   JWT_SECRET: z
     .string()
-    .min(64, 'JWT_SECRET must be at least 64 characters for production security')
-    .refine(
-      (val) => {
-        // Reject known weak/placeholder patterns
-        const weakPatterns = [
-          'your-jwt-secret',
-          'change-me',
-          'placeholder',
-          'secret123',
-          'development',
-          'test-jwt',
-          /^(.)\1{10,}$/, // Repeated characters like 'aaaaaaaaaa'
-        ];
-        const lowerVal = val.toLowerCase();
-        for (const pattern of weakPatterns) {
-          if (typeof pattern === 'string') {
-            if (lowerVal.includes(pattern)) return false;
-          } else if (pattern.test(val)) {
-            return false;
-          }
+    .min(
+      64,
+      'JWT_SECRET must be at least 64 characters for production security'
+    )
+    .refine((val) => {
+      // Reject known weak/placeholder patterns
+      const weakPatterns = [
+        'your-jwt-secret',
+        'change-me',
+        'placeholder',
+        'secret123',
+        'development',
+        'test-jwt',
+        /^(.)\1{10,}$/, // Repeated characters like 'aaaaaaaaaa'
+      ];
+      const lowerVal = val.toLowerCase();
+      for (const pattern of weakPatterns) {
+        if (typeof pattern === 'string') {
+          if (lowerVal.includes(pattern)) return false;
+        } else if (pattern.test(val)) {
+          return false;
         }
-        return true;
-      },
-      'JWT_SECRET appears to be a weak or placeholder value - use a cryptographically secure random string'
-    )
-    .refine(
-      (val) => {
-        // Check for minimum entropy (at least 3 different character classes)
-        const hasLower = /[a-z]/.test(val);
-        const hasUpper = /[A-Z]/.test(val);
-        const hasNumber = /[0-9]/.test(val);
-        const hasSpecial = /[^a-zA-Z0-9]/.test(val);
-        const charClasses = [hasLower, hasUpper, hasNumber, hasSpecial].filter(Boolean).length;
-        return charClasses >= 3;
-      },
-      'JWT_SECRET must contain at least 3 character classes (lowercase, uppercase, numbers, special characters)'
-    )
+      }
+      return true;
+    }, 'JWT_SECRET appears to be a weak or placeholder value - use a cryptographically secure random string')
+    .refine((val) => {
+      // Check for minimum entropy (at least 3 different character classes)
+      const hasLower = /[a-z]/.test(val);
+      const hasUpper = /[A-Z]/.test(val);
+      const hasNumber = /[0-9]/.test(val);
+      const hasSpecial = /[^a-zA-Z0-9]/.test(val);
+      const charClasses = [hasLower, hasUpper, hasNumber, hasSpecial].filter(
+        Boolean
+      ).length;
+      return charClasses >= 3;
+    }, 'JWT_SECRET must contain at least 3 character classes (lowercase, uppercase, numbers, special characters)')
     .describe('Secret key for JWT signing - must be strong and random'),
 
   // Supabase Configuration (CRITICAL)
@@ -77,9 +78,14 @@ const envSchema = z.object({
   // Security Secrets (CRITICAL)
   ENCRYPTION_MASTER_KEY: z
     .string()
-    .min(32, 'ENCRYPTION_MASTER_KEY must be at least 32 characters (hex-encoded 16+ bytes)')
+    .min(
+      32,
+      'ENCRYPTION_MASTER_KEY must be at least 32 characters (hex-encoded 16+ bytes)'
+    )
     .optional()
-    .describe('Master key for PII field encryption - required if encryption features are used'),
+    .describe(
+      'Master key for PII field encryption - required if encryption features are used'
+    ),
 
   CSRF_SECRET: z
     .string()
@@ -90,7 +96,10 @@ const envSchema = z.object({
   // Stripe Configuration (CRITICAL)
   STRIPE_SECRET_KEY: z
     .string()
-    .regex(/^sk_(test|live)_/, 'STRIPE_SECRET_KEY must start with sk_test_ or sk_live_')
+    .regex(
+      /^sk_(test|live)_/,
+      'STRIPE_SECRET_KEY must start with sk_test_ or sk_live_'
+    )
     .describe('Stripe secret key - server-side only'),
 
   STRIPE_WEBHOOK_SECRET: z
@@ -112,7 +121,9 @@ const envSchema = z.object({
       'OPENAI_API_KEY must start with sk- or sk-proj-'
     )
     .optional()
-    .describe('OpenAI API key for GPT-4 Vision and embeddings (server-side only)'),
+    .describe(
+      'OpenAI API key for GPT-4 Vision and embeddings (server-side only)'
+    ),
 
   // Roboflow Configuration (OPTIONAL but recommended)
   ROBOFLOW_API_KEY: z
@@ -128,7 +139,9 @@ const envSchema = z.object({
   ROBOFLOW_MODEL_VERSION: z
     .string()
     .default('4')
-    .describe('Roboflow model version; use 4 for Building Defect Detection 7 4 (YOLOv11 Accurate)'),
+    .describe(
+      'Roboflow model version; use 4 for Building Defect Detection 7 4 (YOLOv11 Accurate)'
+    ),
 
   ROBOFLOW_TIMEOUT_MS: z
     .string()
@@ -144,12 +157,18 @@ const envSchema = z.object({
     .describe('Google Maps API key for geocoding and map display'),
 
   // AWS Configuration (OPTIONAL)
-  AWS_ACCESS_KEY_ID: z.string().optional().describe('AWS access key for Rekognition'),
+  AWS_ACCESS_KEY_ID: z
+    .string()
+    .optional()
+    .describe('AWS access key for Rekognition'),
   AWS_SECRET_ACCESS_KEY: z.string().optional().describe('AWS secret key'),
   AWS_REGION: z.string().default('us-east-1').optional().describe('AWS region'),
 
   // Google Cloud (OPTIONAL)
-  GOOGLE_CLOUD_API_KEY: z.string().optional().describe('Google Cloud API key for Vision API'),
+  GOOGLE_CLOUD_API_KEY: z
+    .string()
+    .optional()
+    .describe('Google Cloud API key for Vision API'),
 
   // Redis Configuration (REQUIRED IN PRODUCTION)
   UPSTASH_REDIS_REST_URL: z
@@ -216,17 +235,34 @@ function validateEnv(): Env {
     // Return safe placeholder defaults — no real operations run during build.
     if (isBuildTime) {
       return {
-        NODE_ENV: (process.env.NODE_ENV || 'production') as 'production' | 'development' | 'test',
-        JWT_SECRET: process.env.JWT_SECRET || 'Build_Phase_Placeholder_Secret_0123456789_ABCDEFGHIJ_klmnopqrstuvwxyz!@#',
-        NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key',
-        SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder',
-        STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder',
-        STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || 'whsec_placeholder',
-        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder',
-        ROBOFLOW_MODEL_ID: process.env.ROBOFLOW_MODEL_ID || 'building-defect-detection-7-ks0im',
+        NODE_ENV: (process.env.NODE_ENV || 'production') as
+          | 'production'
+          | 'development'
+          | 'test',
+        JWT_SECRET:
+          process.env.JWT_SECRET ||
+          'Build_Phase_Placeholder_Secret_0123456789_ABCDEFGHIJ_klmnopqrstuvwxyz!@#',
+        NEXT_PUBLIC_SUPABASE_URL:
+          process.env.NEXT_PUBLIC_SUPABASE_URL ||
+          'https://placeholder.supabase.co',
+        NEXT_PUBLIC_SUPABASE_ANON_KEY:
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key',
+        SUPABASE_SERVICE_ROLE_KEY:
+          process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder',
+        STRIPE_SECRET_KEY:
+          process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder',
+        STRIPE_WEBHOOK_SECRET:
+          process.env.STRIPE_WEBHOOK_SECRET || 'whsec_placeholder',
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:
+          process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ||
+          'pk_test_placeholder',
+        ROBOFLOW_MODEL_ID:
+          process.env.ROBOFLOW_MODEL_ID || 'building-defect-detection-7-ks0im',
         ROBOFLOW_MODEL_VERSION: process.env.ROBOFLOW_MODEL_VERSION || '4',
-        ROBOFLOW_TIMEOUT_MS: parseInt(process.env.ROBOFLOW_TIMEOUT_MS || '10000', 10),
+        ROBOFLOW_TIMEOUT_MS: parseInt(
+          process.env.ROBOFLOW_TIMEOUT_MS || '10000',
+          10
+        ),
       } as Env;
     }
 
@@ -240,17 +276,27 @@ function validateEnv(): Env {
         });
       }
       // Use parsed values if available, otherwise the schema will use defaults
-      const parsed = result.success ? result.data : envSchema.parse({
-        ...process.env,
-        // Provide minimal defaults for test mode
-        JWT_SECRET: process.env.JWT_SECRET || 'Test_JWT_Secret_1234567890_abcdefghij_KLMNOPQRSTUVWXYZ!@#$%^&*',
-        NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://test.supabase.co',
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'test-anon-key',
-        SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role-key',
-        STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || 'sk_test_mock',
-        STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || 'whsec_mock',
-        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_mock',
-      });
+      const parsed = result.success
+        ? result.data
+        : envSchema.parse({
+            ...process.env,
+            // Provide minimal defaults for test mode
+            JWT_SECRET:
+              process.env.JWT_SECRET ||
+              'Test_JWT_Secret_1234567890_abcdefghij_KLMNOPQRSTUVWXYZ!@#$%^&*',
+            NEXT_PUBLIC_SUPABASE_URL:
+              process.env.NEXT_PUBLIC_SUPABASE_URL ||
+              'https://test.supabase.co',
+            NEXT_PUBLIC_SUPABASE_ANON_KEY:
+              process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'test-anon-key',
+            SUPABASE_SERVICE_ROLE_KEY:
+              process.env.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role-key',
+            STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || 'sk_test_mock',
+            STRIPE_WEBHOOK_SECRET:
+              process.env.STRIPE_WEBHOOK_SECRET || 'whsec_mock',
+            NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:
+              process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_mock',
+          });
       logger.info('Environment variables validated successfully (test mode)', {
         service: 'env-validation',
       });
@@ -260,6 +306,27 @@ function validateEnv(): Env {
     const parsed = envSchema.parse(process.env);
 
     // Additional runtime checks
+
+    // AUDIT FIX: Reject live Stripe keys in non-production environments.
+    // This prevents accidental real charges during local development.
+    if (parsed.NODE_ENV !== 'production') {
+      if (parsed.STRIPE_SECRET_KEY.startsWith('sk_live_')) {
+        throw new Error(
+          'SECURITY: Live Stripe secret key (sk_live_) detected in non-production environment. ' +
+            'Use sk_test_ keys for development/testing. ' +
+            'Update STRIPE_SECRET_KEY in your .env.local file.'
+        );
+      }
+      const pubKey = parsed.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+      if (pubKey && pubKey.startsWith('pk_live_')) {
+        throw new Error(
+          'SECURITY: Live Stripe publishable key (pk_live_) detected in non-production environment. ' +
+            'Use pk_test_ keys for development/testing. ' +
+            'Update NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY in your .env.local file.'
+        );
+      }
+    }
+
     if (parsed.NODE_ENV === 'production') {
       // In production, ensure we're using live keys
       if (parsed.STRIPE_SECRET_KEY.startsWith('sk_test_')) {
@@ -270,38 +337,57 @@ function validateEnv(): Env {
 
       // Ensure Redis is configured in production (skip during build)
       // During build, Next.js may not have all env vars, so we only validate at runtime
-      const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || 
-                         process.env.NEXT_PHASE === 'phase-development-build';
-      
+      const isBuildTime =
+        process.env.NEXT_PHASE === 'phase-production-build' ||
+        process.env.NEXT_PHASE === 'phase-development-build';
+
       if (!parsed.ENCRYPTION_MASTER_KEY) {
-        logger.warn('ENCRYPTION_MASTER_KEY not configured — PII field encryption will fail at runtime', {
-          service: 'env-validation',
-        });
+        logger.warn(
+          'ENCRYPTION_MASTER_KEY not configured — PII field encryption will fail at runtime',
+          {
+            service: 'env-validation',
+          }
+        );
       }
 
       if (!parsed.CSRF_SECRET) {
-        logger.warn('CSRF_SECRET not configured — CSRF protection may not work correctly', {
-          service: 'env-validation',
-        });
+        logger.warn(
+          'CSRF_SECRET not configured — CSRF protection may not work correctly',
+          {
+            service: 'env-validation',
+          }
+        );
       }
 
-      if (!isBuildTime && (!parsed.UPSTASH_REDIS_REST_URL || !parsed.UPSTASH_REDIS_REST_TOKEN)) {
-        logger.warn('Redis not configured — rate limiting will use in-memory fallback', {
-          service: 'env-validation',
-        });
+      if (
+        !isBuildTime &&
+        (!parsed.UPSTASH_REDIS_REST_URL || !parsed.UPSTASH_REDIS_REST_TOKEN)
+      ) {
+        logger.warn(
+          'Redis not configured — rate limiting will use in-memory fallback',
+          {
+            service: 'env-validation',
+          }
+        );
       }
 
       // Warn if AI features are disabled in production
       if (!parsed.OPENAI_API_KEY) {
-        logger.warn('AI assessment features will be disabled - OPENAI_API_KEY not configured', {
-          service: 'env-validation',
-        });
+        logger.warn(
+          'AI assessment features will be disabled - OPENAI_API_KEY not configured',
+          {
+            service: 'env-validation',
+          }
+        );
       }
 
       if (!parsed.GOOGLE_MAPS_API_KEY) {
-        logger.warn('Google Maps features may be limited - GOOGLE_MAPS_API_KEY not configured', {
-          service: 'env-validation',
-        });
+        logger.warn(
+          'Google Maps features may be limited - GOOGLE_MAPS_API_KEY not configured',
+          {
+            service: 'env-validation',
+          }
+        );
       }
     }
 
@@ -340,7 +426,7 @@ function validateEnv(): Env {
         '  - OPENAI_API_KEY (for AI features)',
         '  - ROBOFLOW_API_KEY (for damage detection)',
         '  - GOOGLE_MAPS_API_KEY (for location services)',
-        ''
+        '',
       ].join('\n');
 
       // Write to stderr synchronously to ensure it's captured

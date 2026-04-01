@@ -1,8 +1,20 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
-import { SortMode, FilterStatus, SORT_TABS, HOMEOWNER_TABS, CONTRACTOR_TABS } from './types';
+import {
+  SortMode,
+  FilterStatus,
+  SORT_TABS,
+  HOMEOWNER_TABS,
+  CONTRACTOR_TABS,
+} from './types';
 
 interface JobsFilterTabsProps {
   isContractor: boolean;
@@ -25,8 +37,12 @@ export const JobsFilterTabs: React.FC<JobsFilterTabsProps> = ({
     <View style={styles.tabContainer}>
       {isContractor ? (
         <>
-          {/* Contractor filter tabs (In Progress, Bids Pending, Completed) */}
-          <View style={styles.tabRow}>
+          {/* Contractor filter tabs — single-line horizontal scroll */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.scrollRow}
+          >
             {CONTRACTOR_TABS.map((tab) => {
               const active = selectedFilter === tab.key;
               const count = filterCounts[tab.key];
@@ -35,21 +51,40 @@ export const JobsFilterTabs: React.FC<JobsFilterTabsProps> = ({
                   key={tab.key}
                   style={[styles.sortTab, active && styles.sortTabActive]}
                   onPress={() => onFilterChange(tab.key)}
-                  accessibilityRole="button"
+                  accessibilityRole='button'
                   accessibilityState={{ selected: active }}
                 >
                   <Ionicons
                     name={tab.icon}
-                    size={14}
-                    color={active ? theme.colors.textInverse : theme.colors.textSecondary}
-                    style={{ marginRight: 4 }}
+                    size={13}
+                    color={
+                      active
+                        ? theme.colors.textInverse
+                        : theme.colors.textSecondary
+                    }
+                    style={{ marginRight: 3 }}
                   />
-                  <Text style={[styles.sortTabText, active && styles.sortTabTextActive]}>
+                  <Text
+                    style={[
+                      styles.sortTabText,
+                      active && styles.sortTabTextActive,
+                    ]}
+                  >
                     {tab.label}
                   </Text>
                   {count > 0 && tab.key !== 'all' && (
-                    <View style={[styles.countBadge, active && styles.countBadgeActive]}>
-                      <Text style={[styles.countBadgeText, active && styles.countBadgeTextActive]}>
+                    <View
+                      style={[
+                        styles.countBadge,
+                        active && styles.countBadgeActive,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.countBadgeText,
+                          active && styles.countBadgeTextActive,
+                        ]}
+                      >
                         {count}
                       </Text>
                     </View>
@@ -57,9 +92,13 @@ export const JobsFilterTabs: React.FC<JobsFilterTabsProps> = ({
                 </TouchableOpacity>
               );
             })}
-          </View>
-          {/* Sort tabs */}
-          <View style={[styles.tabRow, { marginTop: 8 }]}>
+          </ScrollView>
+          {/* Sort tabs — compact second row */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={[styles.scrollRow, { marginTop: 6 }]}
+          >
             {SORT_TABS.map((tab) => {
               const active = sortMode === tab.key;
               return (
@@ -67,25 +106,38 @@ export const JobsFilterTabs: React.FC<JobsFilterTabsProps> = ({
                   key={tab.key}
                   style={[styles.sortTab, active && styles.sortTabActive]}
                   onPress={() => onSortModeChange(tab.key)}
-                  accessibilityRole="button"
+                  accessibilityRole='button'
                   accessibilityState={{ selected: active }}
                 >
                   <Ionicons
                     name={tab.icon}
-                    size={14}
-                    color={active ? theme.colors.textInverse : theme.colors.textSecondary}
-                    style={{ marginRight: 4 }}
+                    size={13}
+                    color={
+                      active
+                        ? theme.colors.textInverse
+                        : theme.colors.textSecondary
+                    }
+                    style={{ marginRight: 3 }}
                   />
-                  <Text style={[styles.sortTabText, active && styles.sortTabTextActive]}>
+                  <Text
+                    style={[
+                      styles.sortTabText,
+                      active && styles.sortTabTextActive,
+                    ]}
+                  >
                     {tab.label}
                   </Text>
                 </TouchableOpacity>
               );
             })}
-          </View>
+          </ScrollView>
         </>
       ) : (
-        <View style={styles.tabRow}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.scrollRow}
+        >
           {HOMEOWNER_TABS.map((tab) => {
             const active = selectedFilter === tab.key;
             const count = filterCounts[tab.key];
@@ -94,21 +146,40 @@ export const JobsFilterTabs: React.FC<JobsFilterTabsProps> = ({
                 key={tab.key}
                 style={[styles.sortTab, active && styles.sortTabActive]}
                 onPress={() => onFilterChange(tab.key)}
-                accessibilityRole="button"
+                accessibilityRole='button'
                 accessibilityState={{ selected: active }}
               >
                 <Ionicons
                   name={tab.icon}
-                  size={14}
-                  color={active ? theme.colors.textInverse : theme.colors.textSecondary}
-                  style={{ marginRight: 4 }}
+                  size={13}
+                  color={
+                    active
+                      ? theme.colors.textInverse
+                      : theme.colors.textSecondary
+                  }
+                  style={{ marginRight: 3 }}
                 />
-                <Text style={[styles.sortTabText, active && styles.sortTabTextActive]}>
+                <Text
+                  style={[
+                    styles.sortTabText,
+                    active && styles.sortTabTextActive,
+                  ]}
+                >
                   {tab.label}
                 </Text>
                 {count > 0 && tab.key !== 'all' && (
-                  <View style={[styles.countBadge, active && styles.countBadgeActive]}>
-                    <Text style={[styles.countBadgeText, active && styles.countBadgeTextActive]}>
+                  <View
+                    style={[
+                      styles.countBadge,
+                      active && styles.countBadgeActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.countBadgeText,
+                        active && styles.countBadgeTextActive,
+                      ]}
+                    >
                       {count}
                     </Text>
                   </View>
@@ -116,7 +187,7 @@ export const JobsFilterTabs: React.FC<JobsFilterTabsProps> = ({
               </TouchableOpacity>
             );
           })}
-        </View>
+        </ScrollView>
       )}
     </View>
   );
@@ -125,23 +196,22 @@ export const JobsFilterTabs: React.FC<JobsFilterTabsProps> = ({
 const styles = StyleSheet.create({
   tabContainer: {
     backgroundColor: theme.colors.surface,
-    paddingTop: 12,
-    paddingBottom: 8,
+    paddingTop: 8,
+    paddingBottom: 6,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border,
   },
-  tabRow: {
+  scrollRow: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 8,
-    flexWrap: 'wrap',
+    paddingHorizontal: 12,
+    gap: 6,
   },
   sortTab: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
     backgroundColor: theme.colors.backgroundSecondary,
   },
   sortTabActive: {

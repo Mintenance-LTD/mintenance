@@ -6,19 +6,35 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Skeleton } from '../../components/skeletons/Skeleton';
 import { theme } from '../../theme';
 
-const AVATAR_COLORS = ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#EC4899', '#6B7280'];
+const AVATAR_COLORS = [
+  '#EF4444',
+  '#3B82F6',
+  '#10B981',
+  '#F59E0B',
+  '#8B5CF6',
+  '#06B6D4',
+  '#EC4899',
+  '#6B7280',
+];
 
 const getAvatarColor = (name: string): string => {
   const charCode = name.charCodeAt(0) || 0;
   return AVATAR_COLORS[charCode % AVATAR_COLORS.length];
 };
 
-const getInitial = (name: string): string => (name.charAt(0) || '?').toUpperCase();
+const getInitial = (name: string): string =>
+  (name.charAt(0) || '?').toUpperCase();
 
 interface Bid {
   id: string;
@@ -29,10 +45,18 @@ interface Bid {
   jobId?: string;
 }
 
-const getBidLabel = (bid: Bid, allBids: Bid[]): { text: string; color: string; bg: string } | null => {
+const getBidLabel = (
+  bid: Bid,
+  allBids: Bid[]
+): { text: string; color: string; bg: string } | null => {
   if (allBids.length < 2) return null;
   const sorted = [...allBids].sort((a, b) => a.amount - b.amount);
-  if (sorted[0].id === bid.id) return { text: 'Best Price', color: theme.colors.primary, bg: theme.colors.primaryLight };
+  if (sorted[0].id === bid.id)
+    return {
+      text: 'Best Price',
+      color: theme.colors.primary,
+      bg: theme.colors.primaryLight,
+    };
   return null;
 };
 
@@ -60,7 +84,12 @@ export const BidsReceived: React.FC<BidsReceivedProps> = ({
             <Skeleton width={44} height={44} borderRadius={22} />
             <View style={styles.bidInfo}>
               <Skeleton width={120} height={14} borderRadius={4} />
-              <Skeleton width={90} height={12} borderRadius={4} style={{ marginTop: 4 }} />
+              <Skeleton
+                width={90}
+                height={12}
+                borderRadius={4}
+                style={{ marginTop: 4 }}
+              />
             </View>
             <View style={styles.bidRight}>
               <Skeleton width={60} height={22} borderRadius={4} />
@@ -74,17 +103,37 @@ export const BidsReceived: React.FC<BidsReceivedProps> = ({
   if (bids.length === 0) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Bids Received</Text>
-        </View>
-        <View style={styles.emptyInline}>
-          <Ionicons name="mail-open-outline" size={16} color={theme.colors.textTertiary} />
-          <Text style={styles.emptyInlineText}>No bids yet</Text>
-          {onViewAllPress ? (
-            <TouchableOpacity onPress={onViewAllPress} accessibilityRole="button" accessibilityLabel="View your posted jobs">
-              <Text style={styles.emptyLink}>View jobs</Text>
+        <View style={styles.emptyCard}>
+          <View style={styles.emptyCardLeft}>
+            <View style={styles.emptyIconCircle}>
+              <Ionicons
+                name='mail-outline'
+                size={24}
+                color={theme.colors.primary}
+              />
+            </View>
+            <View style={styles.emptyCardText}>
+              <Text style={styles.emptyCardTitle}>Bids Received</Text>
+              <Text style={styles.emptyCardSubtitle}>
+                No bids yet for your open requests
+              </Text>
+            </View>
+          </View>
+          {onViewAllPress && (
+            <TouchableOpacity
+              style={styles.emptyCardButton}
+              onPress={onViewAllPress}
+              accessibilityRole='button'
+              accessibilityLabel='View your posted jobs'
+            >
+              <Text style={styles.emptyCardButtonText}>View jobs</Text>
+              <Ionicons
+                name='arrow-forward'
+                size={14}
+                color={theme.colors.primary}
+              />
             </TouchableOpacity>
-          ) : null}
+          )}
         </View>
       </View>
     );
@@ -95,7 +144,7 @@ export const BidsReceived: React.FC<BidsReceivedProps> = ({
       <View style={styles.header}>
         <Text style={styles.title}>Bids Received</Text>
         {onViewAllPress && (
-          <TouchableOpacity onPress={onViewAllPress} accessibilityRole="button">
+          <TouchableOpacity onPress={onViewAllPress} accessibilityRole='button'>
             <Text style={styles.viewAll}>View All ({bids.length})</Text>
           </TouchableOpacity>
         )}
@@ -105,27 +154,44 @@ export const BidsReceived: React.FC<BidsReceivedProps> = ({
         const label = getBidLabel(bid, bids);
         return (
           <View key={bid.id} style={styles.bidCard}>
-            <View style={[styles.bidAvatar, { backgroundColor: getAvatarColor(bid.contractorName) }]}>
-              <Text style={styles.avatarInitial}>{getInitial(bid.contractorName)}</Text>
+            <View
+              style={[
+                styles.bidAvatar,
+                { backgroundColor: getAvatarColor(bid.contractorName) },
+              ]}
+            >
+              <Text style={styles.avatarInitial}>
+                {getInitial(bid.contractorName)}
+              </Text>
             </View>
             <View style={styles.bidInfo}>
               <View style={styles.nameRow}>
-                <Text style={styles.contractorName} numberOfLines={1}>{bid.contractorName}</Text>
+                <Text style={styles.contractorName} numberOfLines={1}>
+                  {bid.contractorName}
+                </Text>
                 {label && (
-                  <View style={[styles.bidLabel, { backgroundColor: label.bg }]}>
-                    <Text style={[styles.bidLabelText, { color: label.color }]}>{label.text}</Text>
+                  <View
+                    style={[styles.bidLabel, { backgroundColor: label.bg }]}
+                  >
+                    <Text style={[styles.bidLabelText, { color: label.color }]}>
+                      {label.text}
+                    </Text>
                   </View>
                 )}
               </View>
-              <Text style={styles.jobTitle} numberOfLines={1}>{bid.jobTitle}</Text>
+              <Text style={styles.jobTitle} numberOfLines={1}>
+                {bid.jobTitle}
+              </Text>
             </View>
             <View style={styles.bidRight}>
-              <Text style={styles.bidAmount}>£{bid.amount.toLocaleString()}</Text>
+              <Text style={styles.bidAmount}>
+                £{bid.amount.toLocaleString()}
+              </Text>
               {onReviewPress && (
                 <TouchableOpacity
                   style={styles.reviewButton}
                   onPress={() => onReviewPress(bid.id)}
-                  accessibilityRole="button"
+                  accessibilityRole='button'
                   accessibilityLabel={`Review bid from ${bid.contractorName}`}
                 >
                   <Text style={styles.reviewText}>Review</Text>
@@ -180,25 +246,61 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  emptyInline: {
+  emptyCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 20,
+    padding: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
+      },
+      android: { elevation: 2 },
+    }),
+  },
+  emptyCardLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: 12,
+    gap: 14,
+    marginBottom: 16,
   },
-  emptyInlineText: {
+  emptyIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyCardText: {
     flex: 1,
+  },
+  emptyCardTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: 2,
+  },
+  emptyCardSubtitle: {
     fontSize: 14,
     color: theme.colors.textSecondary,
   },
-  emptyLink: {
-    fontSize: 13,
+  emptyCardButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    gap: 6,
+    backgroundColor: theme.colors.backgroundSecondary,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  emptyCardButtonText: {
+    fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
-    textDecorationLine: 'underline',
+    color: theme.colors.primary,
   },
   bidAvatar: {
     width: 44,

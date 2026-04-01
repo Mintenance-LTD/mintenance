@@ -8,11 +8,9 @@ import {
   View,
   Text,
   FlatList,
-  StyleSheet,
   TouchableOpacity,
   RefreshControl,
   Alert,
-  Platform,
   StatusBar,
   ScrollView,
   Linking,
@@ -32,6 +30,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { theme, gradients } from '../../theme';
+import { styles } from './DocumentsStyles';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES & CONSTANTS
@@ -49,9 +48,20 @@ interface Document {
   job_id?: string;
 }
 
-type DocFilter = 'all' | 'contracts' | 'photos' | 'certifications' | 'insurance' | 'receipts' | 'templates';
+type DocFilter =
+  | 'all'
+  | 'contracts'
+  | 'photos'
+  | 'certifications'
+  | 'insurance'
+  | 'receipts'
+  | 'templates';
 
-const FILTER_CONFIG: { key: DocFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+const FILTER_CONFIG: {
+  key: DocFilter;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
   { key: 'all', label: 'All', icon: 'grid-outline' },
   { key: 'contracts', label: 'Contracts', icon: 'document-text-outline' },
   { key: 'photos', label: 'Photos', icon: 'image-outline' },
@@ -61,33 +71,87 @@ const FILTER_CONFIG: { key: DocFilter; label: string; icon: keyof typeof Ionicon
   { key: 'templates', label: 'Templates', icon: 'copy-outline' },
 ];
 
-const CATEGORY_STYLE: Record<string, { color: string; bg: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  contracts:      { color: theme.colors.primary, bg: theme.colors.primaryLight, icon: 'document-text' },
-  contract:       { color: theme.colors.primary, bg: theme.colors.primaryLight, icon: 'document-text' },
-  photos:         { color: '#3B82F6', bg: '#DBEAFE', icon: 'image' },
-  photo:          { color: '#3B82F6', bg: '#DBEAFE', icon: 'image' },
-  certifications: { color: theme.colors.accent, bg: theme.colors.accentLight, icon: 'ribbon' },
-  certification:  { color: theme.colors.accent, bg: theme.colors.accentLight, icon: 'ribbon' },
-  insurance:      { color: '#8B5CF6', bg: '#EDE9FE', icon: 'shield-checkmark' },
-  receipts:       { color: theme.colors.textSecondary, bg: theme.colors.backgroundTertiary, icon: 'receipt' },
-  receipt:        { color: theme.colors.textSecondary, bg: theme.colors.backgroundTertiary, icon: 'receipt' },
-  templates:      { color: '#3B82F6', bg: '#DBEAFE', icon: 'copy' },
-  template:       { color: '#3B82F6', bg: '#DBEAFE', icon: 'copy' },
+const CATEGORY_STYLE: Record<
+  string,
+  { color: string; bg: string; icon: keyof typeof Ionicons.glyphMap }
+> = {
+  contracts: {
+    color: theme.colors.primary,
+    bg: theme.colors.primaryLight,
+    icon: 'document-text',
+  },
+  contract: {
+    color: theme.colors.primary,
+    bg: theme.colors.primaryLight,
+    icon: 'document-text',
+  },
+  photos: { color: '#3B82F6', bg: '#DBEAFE', icon: 'image' },
+  photo: { color: '#3B82F6', bg: '#DBEAFE', icon: 'image' },
+  certifications: {
+    color: theme.colors.accent,
+    bg: theme.colors.accentLight,
+    icon: 'ribbon',
+  },
+  certification: {
+    color: theme.colors.accent,
+    bg: theme.colors.accentLight,
+    icon: 'ribbon',
+  },
+  insurance: { color: '#8B5CF6', bg: '#EDE9FE', icon: 'shield-checkmark' },
+  receipts: {
+    color: theme.colors.textSecondary,
+    bg: theme.colors.backgroundTertiary,
+    icon: 'receipt',
+  },
+  receipt: {
+    color: theme.colors.textSecondary,
+    bg: theme.colors.backgroundTertiary,
+    icon: 'receipt',
+  },
+  templates: { color: '#3B82F6', bg: '#DBEAFE', icon: 'copy' },
+  template: { color: '#3B82F6', bg: '#DBEAFE', icon: 'copy' },
 };
 
 const getDocStyle = (category: string) => {
   const key = category?.toLowerCase() || '';
-  return CATEGORY_STYLE[key] || { color: theme.colors.textSecondary, bg: theme.colors.backgroundTertiary, icon: 'document-outline' as const };
+  return (
+    CATEGORY_STYLE[key] || {
+      color: theme.colors.textSecondary,
+      bg: theme.colors.backgroundTertiary,
+      icon: 'document-outline' as const,
+    }
+  );
 };
 
 const EMPTY_MESSAGES: Record<DocFilter, { title: string; desc: string }> = {
-  all:            { title: 'No Documents Yet', desc: 'Upload contracts, photos, certificates and more to keep everything organised.' },
-  contracts:      { title: 'No Contracts', desc: 'Signed contracts with your clients will appear here.' },
-  photos:         { title: 'No Photos', desc: 'Job photos and site images will be stored here.' },
-  certifications: { title: 'No Certificates', desc: 'Upload your trade certifications to build trust with homeowners.' },
-  insurance:      { title: 'No Insurance Docs', desc: 'Add your liability and professional insurance documents.' },
-  receipts:       { title: 'No Receipts', desc: 'Material and expense receipts will appear here.' },
-  templates:      { title: 'No Templates', desc: 'Save quote and contract templates for quick reuse.' },
+  all: {
+    title: 'No Documents Yet',
+    desc: 'Upload contracts, photos, certificates and more to keep everything organised.',
+  },
+  contracts: {
+    title: 'No Contracts',
+    desc: 'Signed contracts with your clients will appear here.',
+  },
+  photos: {
+    title: 'No Photos',
+    desc: 'Job photos and site images will be stored here.',
+  },
+  certifications: {
+    title: 'No Certificates',
+    desc: 'Upload your trade certifications to build trust with homeowners.',
+  },
+  insurance: {
+    title: 'No Insurance Docs',
+    desc: 'Add your liability and professional insurance documents.',
+  },
+  receipts: {
+    title: 'No Receipts',
+    desc: 'Material and expense receipts will appear here.',
+  },
+  templates: {
+    title: 'No Templates',
+    desc: 'Save quote and contract templates for quick reuse.',
+  },
 };
 
 const formatFileSize = (bytes?: number): string => {
@@ -99,7 +163,8 @@ const formatFileSize = (bytes?: number): string => {
 
 const getFileTypeIcon = (filename: string): keyof typeof Ionicons.glyphMap => {
   const ext = filename.split('.').pop()?.toLowerCase() || '';
-  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic'].includes(ext)) return 'image';
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic'].includes(ext))
+    return 'image';
   if (ext === 'pdf') return 'document-text';
   if (['doc', 'docx'].includes(ext)) return 'document';
   if (['xls', 'xlsx'].includes(ext)) return 'grid';
@@ -134,11 +199,18 @@ export const DocumentsScreen: React.FC = () => {
         .order('created_at', { ascending: false });
       (contracts || []).forEach((c: Record<string, unknown>) => {
         const status = c.status as string;
-        const statusLabel = status === 'accepted' ? 'Signed' : status === 'pending_contractor' ? 'Awaiting Contractor' : status === 'pending_homeowner' ? 'Awaiting You' : status;
+        const statusLabel =
+          status === 'accepted'
+            ? 'Signed'
+            : status === 'pending_contractor'
+              ? 'Awaiting Contractor'
+              : status === 'pending_homeowner'
+                ? 'Awaiting You'
+                : status;
         allDocs.push({
           id: c.id as string,
           filename: `${(c.title as string) || 'Contract'} (${statusLabel})`,
-          category: 'contract',
+          category: 'contracts',
           uploaded_at: c.created_at as string,
           starred: false,
           is_contract: true,
@@ -169,7 +241,9 @@ export const DocumentsScreen: React.FC = () => {
         // 3. Certifications as documents
         const { data: certs } = await supabase
           .from('contractor_certifications')
-          .select('id, certification_name, issuing_body, issue_date, expiry_date, document_url')
+          .select(
+            'id, certification_name, issuing_body, issue_date, expiry_date, document_url'
+          )
           .eq('contractor_id', user.id)
           .order('issue_date', { ascending: false });
         (certs || []).forEach((c: Record<string, unknown>) => {
@@ -185,14 +259,21 @@ export const DocumentsScreen: React.FC = () => {
       }
 
       // Sort all by date descending
-      allDocs.sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime());
+      allDocs.sort(
+        (a, b) =>
+          new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()
+      );
       return allDocs;
     },
     enabled: !!user?.id,
   });
 
   const uploadMutation = useMutation({
-    mutationFn: async (file: { uri: string; name: string; mimeType: string }) => {
+    mutationFn: async (file: {
+      uri: string;
+      name: string;
+      mimeType: string;
+    }) => {
       const ext = file.name.split('.').pop()?.toLowerCase() || 'unknown';
       const formData = new FormData();
       formData.append('file', {
@@ -215,7 +296,9 @@ export const DocumentsScreen: React.FC = () => {
 
   const toggleStarMutation = useMutation({
     mutationFn: async ({ id, starred }: { id: string; starred: boolean }) => {
-      await mobileApiClient.patch(`/api/contractor/documents/${id}`, { starred });
+      await mobileApiClient.patch(`/api/contractor/documents/${id}`, {
+        starred,
+      });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }),
   });
@@ -228,41 +311,61 @@ export const DocumentsScreen: React.FC = () => {
     const result = await DocumentPicker.getDocumentAsync({ type: '*/*' });
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
-      uploadMutation.mutate({ uri: asset.uri, name: asset.name, mimeType: asset.mimeType || 'application/octet-stream' });
+      uploadMutation.mutate({
+        uri: asset.uri,
+        name: asset.name,
+        mimeType: asset.mimeType || 'application/octet-stream',
+      });
     }
   };
 
-  const handleOpenDocument = useCallback((doc: Document) => {
-    // Contracts: navigate to the job/contract view
-    if (doc.is_contract || doc.category === 'contract' || doc.category === 'contracts') {
-      if (doc.job_id) {
-        (navigation as ReturnType<typeof Object>).navigate('JobsTab', {
-          screen: 'JobDetails',
-          params: { jobId: doc.job_id },
-        });
-      } else {
-        // Contract without job_id: try opening the contract directly
-        (navigation as ReturnType<typeof Object>).navigate('JobsTab', {
-          screen: 'JobDetails',
-          params: { jobId: doc.id },
-        });
+  const handleOpenDocument = useCallback(
+    (doc: Document) => {
+      // Contracts: navigate to the job/contract view
+      if (
+        doc.is_contract ||
+        doc.category === 'contract' ||
+        doc.category === 'contracts'
+      ) {
+        if (doc.job_id) {
+          (navigation as ReturnType<typeof Object>).navigate('JobsTab', {
+            screen: 'JobDetails',
+            params: { jobId: doc.job_id },
+          });
+        } else {
+          // Contract without job_id: try opening the contract directly
+          (navigation as ReturnType<typeof Object>).navigate('JobsTab', {
+            screen: 'JobDetails',
+            params: { jobId: doc.id },
+          });
+        }
+        return;
       }
-      return;
-    }
 
-    // Regular documents: open the file URL
-    if (doc.public_url) {
-      Linking.openURL(doc.public_url).catch(() => {
-        Alert.alert('Cannot Open', 'Unable to open this file. The URL may be unavailable.');
-      });
-      return;
-    }
+      // Regular documents: open the file URL
+      if (doc.public_url) {
+        Linking.openURL(doc.public_url).catch(() => {
+          Alert.alert(
+            'Cannot Open',
+            'Unable to open this file. The URL may be unavailable.'
+          );
+        });
+        return;
+      }
 
-    Alert.alert('No File', 'This document does not have a viewable file attached.');
-  }, [navigation]);
+      Alert.alert(
+        'No File',
+        'This document does not have a viewable file attached.'
+      );
+    },
+    [navigation]
+  );
 
   const documents = data || [];
-  const filtered = filter === 'all' ? documents : documents.filter((d) => d.category === filter);
+  const filtered =
+    filter === 'all'
+      ? documents
+      : documents.filter((d) => d.category === filter);
 
   // Stats
   const stats = useMemo(() => {
@@ -283,7 +386,7 @@ export const DocumentsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle='light-content' />
 
       <FlatList
         data={filtered}
@@ -293,7 +396,7 @@ export const DocumentsScreen: React.FC = () => {
           <RefreshControl
             refreshing={isLoading}
             onRefresh={refetch}
-            tintColor="#FFFFFF"
+            tintColor='#FFFFFF'
             colors={[theme.colors.primary]}
             progressViewOffset={140}
           />
@@ -315,25 +418,34 @@ export const DocumentsScreen: React.FC = () => {
                 <TouchableOpacity
                   style={styles.navBtn}
                   onPress={() => navigation.goBack()}
-                  accessibilityRole="button"
-                  accessibilityLabel="Go back"
+                  accessibilityRole='button'
+                  accessibilityLabel='Go back'
                 >
-                  <Ionicons name="arrow-back" size={20} color={theme.colors.textInverse} />
+                  <Ionicons
+                    name='arrow-back'
+                    size={20}
+                    color={theme.colors.textInverse}
+                  />
                 </TouchableOpacity>
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text style={styles.heroTitle}>Documents</Text>
                   <Text style={styles.heroSubtitle}>
-                    {stats.count} {stats.count === 1 ? 'file' : 'files'} uploaded
+                    {stats.count} {stats.count === 1 ? 'file' : 'files'}{' '}
+                    uploaded
                   </Text>
                 </View>
                 {isContractor && (
                   <TouchableOpacity
                     style={styles.uploadHeroBtn}
                     onPress={handlePickDocument}
-                    accessibilityRole="button"
-                    accessibilityLabel="Upload document"
+                    accessibilityRole='button'
+                    accessibilityLabel='Upload document'
                   >
-                    <Ionicons name="cloud-upload-outline" size={18} color="#064E3B" />
+                    <Ionicons
+                      name='cloud-upload-outline'
+                      size={18}
+                      color='#064E3B'
+                    />
                   </TouchableOpacity>
                 )}
               </View>
@@ -350,7 +462,9 @@ export const DocumentsScreen: React.FC = () => {
                 </View>
                 <View style={styles.statPill}>
                   <Text style={styles.statValue}>
-                    {stats.totalSize > 0 ? formatFileSize(stats.totalSize) : '—'}
+                    {stats.totalSize > 0
+                      ? formatFileSize(stats.totalSize)
+                      : '—'}
                   </Text>
                   <Text style={styles.statLabel}>Total Size</Text>
                 </View>
@@ -369,22 +483,44 @@ export const DocumentsScreen: React.FC = () => {
                 return (
                   <TouchableOpacity
                     key={f.key}
-                    style={[styles.filterChip, active && styles.filterChipActive]}
+                    style={[
+                      styles.filterChip,
+                      active && styles.filterChipActive,
+                    ]}
                     onPress={() => setFilter(f.key)}
-                    accessibilityRole="button"
+                    accessibilityRole='button'
                     accessibilityState={{ selected: active }}
                   >
                     <Ionicons
                       name={f.icon}
                       size={14}
-                      color={active ? theme.colors.textInverse : theme.colors.textSecondary}
+                      color={
+                        active
+                          ? theme.colors.textInverse
+                          : theme.colors.textSecondary
+                      }
                     />
-                    <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        active && styles.filterChipTextActive,
+                      ]}
+                    >
                       {f.label}
                     </Text>
                     {count > 0 && f.key !== 'all' && (
-                      <View style={[styles.chipBadge, active && styles.chipBadgeActive]}>
-                        <Text style={[styles.chipBadgeText, active && styles.chipBadgeTextActive]}>
+                      <View
+                        style={[
+                          styles.chipBadge,
+                          active && styles.chipBadgeActive,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.chipBadgeText,
+                            active && styles.chipBadgeTextActive,
+                          ]}
+                        >
                           {count}
                         </Text>
                       </View>
@@ -397,7 +533,8 @@ export const DocumentsScreen: React.FC = () => {
             {/* Results count */}
             <View style={styles.resultsRow}>
               <Text style={styles.resultsText}>
-                {filtered.length} {filtered.length === 1 ? 'document' : 'documents'}
+                {filtered.length}{' '}
+                {filtered.length === 1 ? 'document' : 'documents'}
               </Text>
             </View>
           </View>
@@ -406,16 +543,28 @@ export const DocumentsScreen: React.FC = () => {
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconWrap}>
               <Ionicons
-                name={FILTER_CONFIG.find((f) => f.key === filter)?.icon ?? 'document-outline'}
+                name={
+                  FILTER_CONFIG.find((f) => f.key === filter)?.icon ??
+                  'document-outline'
+                }
                 size={32}
                 color={theme.colors.primary}
               />
             </View>
-            <Text style={styles.emptyTitle}>{EMPTY_MESSAGES[filter].title}</Text>
+            <Text style={styles.emptyTitle}>
+              {EMPTY_MESSAGES[filter].title}
+            </Text>
             <Text style={styles.emptyDesc}>{EMPTY_MESSAGES[filter].desc}</Text>
             {isContractor && (
-              <TouchableOpacity style={styles.emptyUploadBtn} onPress={handlePickDocument}>
-                <Ionicons name="cloud-upload-outline" size={18} color={theme.colors.textInverse} />
+              <TouchableOpacity
+                style={styles.emptyUploadBtn}
+                onPress={handlePickDocument}
+              >
+                <Ionicons
+                  name='cloud-upload-outline'
+                  size={18}
+                  color={theme.colors.textInverse}
+                />
                 <Text style={styles.emptyUploadText}>Upload Document</Text>
               </TouchableOpacity>
             )}
@@ -427,30 +576,63 @@ export const DocumentsScreen: React.FC = () => {
           const sizeStr = formatFileSize(item.file_size);
 
           return (
-            <TouchableOpacity style={styles.docCard} activeOpacity={0.7} onPress={() => handleOpenDocument(item)}>
+            <TouchableOpacity
+              style={styles.docCard}
+              activeOpacity={0.7}
+              onPress={() => handleOpenDocument(item)}
+            >
               {/* Color accent bar */}
-              <View style={[styles.docAccent, { backgroundColor: docStyle.color }]} />
+              <View
+                style={[styles.docAccent, { backgroundColor: docStyle.color }]}
+              />
 
               <View style={styles.docContent}>
                 <View style={styles.docTopRow}>
                   {/* Category icon */}
-                  <View style={[styles.docIconWrap, { backgroundColor: docStyle.bg }]}>
-                    <Ionicons name={docStyle.icon} size={20} color={docStyle.color} />
+                  <View
+                    style={[
+                      styles.docIconWrap,
+                      { backgroundColor: docStyle.bg },
+                    ]}
+                  >
+                    <Ionicons
+                      name={docStyle.icon}
+                      size={20}
+                      color={docStyle.color}
+                    />
                   </View>
 
                   {/* File info */}
                   <View style={styles.docInfo}>
-                    <Text style={styles.docName} numberOfLines={1}>{item.filename}</Text>
+                    <Text style={styles.docName} numberOfLines={1}>
+                      {item.filename}
+                    </Text>
                     <View style={styles.docMeta}>
-                      <View style={[styles.categoryPill, { backgroundColor: docStyle.bg }]}>
-                        <Text style={[styles.categoryPillText, { color: docStyle.color }]}>
-                          {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
+                      <View
+                        style={[
+                          styles.categoryPill,
+                          { backgroundColor: docStyle.bg },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.categoryPillText,
+                            { color: docStyle.color },
+                          ]}
+                        >
+                          {item.category.charAt(0).toUpperCase() +
+                            item.category.slice(1)}
                         </Text>
                       </View>
                       <Text style={styles.docDate}>
-                        {new Date(item.uploaded_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {new Date(item.uploaded_at).toLocaleDateString(
+                          'en-GB',
+                          { day: 'numeric', month: 'short', year: 'numeric' }
+                        )}
                       </Text>
-                      {sizeStr ? <Text style={styles.docSize}>{sizeStr}</Text> : null}
+                      {sizeStr ? (
+                        <Text style={styles.docSize}>{sizeStr}</Text>
+                      ) : null}
                     </View>
                   </View>
 
@@ -459,18 +641,33 @@ export const DocumentsScreen: React.FC = () => {
                     {isContractor && (
                       <TouchableOpacity
                         style={styles.starBtn}
-                        onPress={() => toggleStarMutation.mutate({ id: item.id, starred: !item.starred })}
+                        onPress={() =>
+                          toggleStarMutation.mutate({
+                            id: item.id,
+                            starred: !item.starred,
+                          })
+                        }
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        accessibilityLabel={item.starred ? 'Unstar document' : 'Star document'}
+                        accessibilityLabel={
+                          item.starred ? 'Unstar document' : 'Star document'
+                        }
                       >
                         <Ionicons
                           name={item.starred ? 'star' : 'star-outline'}
                           size={18}
-                          color={item.starred ? theme.colors.accent : theme.colors.textTertiary}
+                          color={
+                            item.starred
+                              ? theme.colors.accent
+                              : theme.colors.textTertiary
+                          }
                         />
                       </TouchableOpacity>
                     )}
-                    <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
+                    <Ionicons
+                      name='chevron-forward'
+                      size={16}
+                      color={theme.colors.textTertiary}
+                    />
                   </View>
                 </View>
               </View>
@@ -485,318 +682,13 @@ export const DocumentsScreen: React.FC = () => {
         <TouchableOpacity
           style={[styles.fab, { bottom: insets.bottom + 20 }]}
           onPress={handlePickDocument}
-          accessibilityLabel="Upload document"
+          accessibilityLabel='Upload document'
         >
-          <Ionicons name="add" size={28} color={theme.colors.textInverse} />
+          <Ionicons name='add' size={28} color={theme.colors.textInverse} />
         </TouchableOpacity>
       )}
     </View>
   );
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// STYLES
-// ─────────────────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
-  },
-
-  // Hero
-  hero: {
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-    overflow: 'hidden',
-  },
-  decor1: {
-    position: 'absolute',
-    top: -30,
-    right: -30,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  decor2: {
-    position: 'absolute',
-    bottom: -20,
-    left: -20,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-  },
-  heroNav: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  navBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: theme.colors.textInverse,
-    letterSpacing: -0.5,
-  },
-  heroSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 2,
-  },
-  uploadHeroBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // Stat pills
-  statRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  statPill: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 14,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: theme.colors.textInverse,
-    letterSpacing: -0.3,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 2,
-    fontWeight: '500',
-  },
-
-  // Filter chips
-  filterRow: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: theme.colors.surface,
-    gap: 5,
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 },
-      android: { elevation: 1 },
-    }),
-  },
-  filterChipActive: {
-    backgroundColor: theme.colors.textPrimary,
-  },
-  filterChipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
-  },
-  filterChipTextActive: {
-    color: theme.colors.textInverse,
-  },
-  chipBadge: {
-    backgroundColor: theme.colors.backgroundTertiary,
-    borderRadius: 8,
-    minWidth: 18,
-    height: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 5,
-    marginLeft: 2,
-  },
-  chipBadgeActive: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
-  },
-  chipBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: theme.colors.textSecondary,
-  },
-  chipBadgeTextActive: {
-    color: theme.colors.textInverse,
-  },
-
-  // Results
-  resultsRow: {
-    paddingHorizontal: 16,
-    paddingBottom: 4,
-  },
-  resultsText: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    fontWeight: '500',
-  },
-
-  // List
-  list: {
-    paddingBottom: 100,
-  },
-
-  // Document card
-  docCard: {
-    flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    marginHorizontal: 16,
-    marginBottom: 8,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6 },
-      android: { elevation: 1 },
-    }),
-  },
-  docAccent: {
-    width: 4,
-  },
-  docContent: {
-    flex: 1,
-    padding: 14,
-  },
-  docTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  docIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  docInfo: {
-    flex: 1,
-  },
-  docName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-    marginBottom: 4,
-  },
-  docMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  categoryPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  categoryPillText: {
-    fontSize: 10,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-  docDate: {
-    fontSize: 12,
-    color: theme.colors.textTertiary,
-  },
-  docSize: {
-    fontSize: 12,
-    color: theme.colors.textTertiary,
-  },
-  docActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  starBtn: {
-    padding: 4,
-  },
-
-  // Empty state
-  emptyContainer: {
-    alignItems: 'center',
-    paddingTop: 60,
-    paddingHorizontal: 40,
-  },
-  emptyIconWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 24,
-    backgroundColor: theme.colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    textAlign: 'center',
-  },
-  emptyDesc: {
-    fontSize: 15,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginTop: 6,
-    maxWidth: 280,
-  },
-  emptyUploadBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 14,
-    marginTop: 24,
-  },
-  emptyUploadText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: theme.colors.textInverse,
-  },
-
-  // FAB
-  fab: {
-    position: 'absolute',
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: theme.colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: theme.colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-      },
-      android: { elevation: 8 },
-    }),
-  },
-});
 
 export default DocumentsScreen;

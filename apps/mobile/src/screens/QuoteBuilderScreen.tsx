@@ -2,12 +2,10 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   RefreshControl,
   Alert,
-  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,6 +23,7 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { Banner } from '../components/ui/Banner';
 import { useToast } from '../components/ui/Toast';
 import { theme } from '../theme';
+import { styles } from './QuoteBuilderStyles';
 
 interface QuoteBuilderScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'QuoteBuilder'>;
@@ -54,7 +53,9 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
 
     try {
       const statusFilter =
-        selectedStatus === 'all' ? undefined : [selectedStatus as ContractorQuote['status']];
+        selectedStatus === 'all'
+          ? undefined
+          : [selectedStatus as ContractorQuote['status']];
       const data = await QuoteBuilderService.getQuotes(user?.id || '', {
         status: statusFilter,
       });
@@ -89,7 +90,8 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
     setLoading(true);
 
     try {
-      const statusFilter = status === 'all' ? undefined : [status as ContractorQuote['status']];
+      const statusFilter =
+        status === 'all' ? undefined : [status as ContractorQuote['status']];
       const data = await QuoteBuilderService.getQuotes(user?.id || '', {
         status: statusFilter,
       });
@@ -144,17 +146,63 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
     );
   };
 
-  const STAT_ITEMS = stats ? [
-    { value: String(stats.total_quotes), label: 'Total', iconColor: '#3B82F6', iconBg: '#DBEAFE', icon: 'document-text-outline' as const },
-    { value: String(stats.accepted_quotes), label: 'Accepted', iconColor: theme.colors.primary, iconBg: theme.colors.primaryLight, icon: 'checkmark-circle-outline' as const },
-    { value: `£${stats.total_value.toFixed(0)}`, label: 'Value', iconColor: theme.colors.accent, iconBg: theme.colors.accentLight, icon: 'wallet-outline' as const },
-    { value: `${stats.acceptance_rate.toFixed(0)}%`, label: 'Success', iconColor: '#8B5CF6', iconBg: '#EDE9FE', icon: 'trending-up-outline' as const },
-  ] : [];
+  const STAT_ITEMS = stats
+    ? [
+        {
+          value: String(stats.total_quotes),
+          label: 'Total',
+          iconColor: '#3B82F6',
+          iconBg: '#DBEAFE',
+          icon: 'document-text-outline' as const,
+        },
+        {
+          value: String(stats.accepted_quotes),
+          label: 'Accepted',
+          iconColor: theme.colors.primary,
+          iconBg: theme.colors.primaryLight,
+          icon: 'checkmark-circle-outline' as const,
+        },
+        {
+          value: `£${stats.total_value.toFixed(0)}`,
+          label: 'Value',
+          iconColor: theme.colors.accent,
+          iconBg: theme.colors.accentLight,
+          icon: 'wallet-outline' as const,
+        },
+        {
+          value: `${stats.acceptance_rate.toFixed(0)}%`,
+          label: 'Success',
+          iconColor: '#8B5CF6',
+          iconBg: '#EDE9FE',
+          icon: 'trending-up-outline' as const,
+        },
+      ]
+    : [];
 
   const QUICK_ACTIONS = [
-    { icon: 'document-text' as const, label: 'Templates', iconColor: '#3B82F6', iconBg: '#DBEAFE', onPress: () => (navigation.navigate as (...args: unknown[]) => void)('QuoteTemplates') },
-    { icon: 'analytics' as const, label: 'Analytics', iconColor: '#8B5CF6', iconBg: '#EDE9FE', onPress: () => setShowAnalytics(prev => !prev) },
-    { icon: 'add-circle' as const, label: 'New Quote', iconColor: theme.colors.primary, iconBg: theme.colors.primaryLight, onPress: () => (navigation.navigate as (...args: unknown[]) => void)('CreateQuote') },
+    {
+      icon: 'document-text' as const,
+      label: 'Templates',
+      iconColor: '#3B82F6',
+      iconBg: '#DBEAFE',
+      onPress: () =>
+        (navigation.navigate as (...args: unknown[]) => void)('QuoteTemplates'),
+    },
+    {
+      icon: 'analytics' as const,
+      label: 'Analytics',
+      iconColor: '#8B5CF6',
+      iconBg: '#EDE9FE',
+      onPress: () => setShowAnalytics((prev) => !prev),
+    },
+    {
+      icon: 'add-circle' as const,
+      label: 'New Quote',
+      iconColor: theme.colors.primary,
+      iconBg: theme.colors.primaryLight,
+      onPress: () =>
+        (navigation.navigate as (...args: unknown[]) => void)('CreateQuote'),
+    },
   ];
 
   if (loading && quotes.length === 0) {
@@ -164,38 +212,57 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Ionicons name='arrow-back' size={24} color={theme.colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Quote Builder</Text>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            accessibilityRole='button'
+            accessibilityLabel='Go back'
+          >
+            <Ionicons
+              name='arrow-back'
+              size={24}
+              color={theme.colors.textPrimary}
+            />
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.headerLabel}>Revenue Growth</Text>
+            <Text style={styles.headerTitle}>Quote Builder</Text>
+          </View>
+        </View>
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => (navigation.navigate as (...args: unknown[]) => void)('CreateQuote')}
-          accessibilityRole="button"
-          accessibilityLabel="Create new quote"
+          onPress={() =>
+            (navigation.navigate as (...args: unknown[]) => void)('CreateQuote')
+          }
+          accessibilityRole='button'
+          accessibilityLabel='Create new quote'
         >
-          <View style={styles.addIconWrap}>
-            <Ionicons name='add' size={20} color={theme.colors.textInverse} />
-          </View>
+          <Ionicons
+            name='add-circle'
+            size={18}
+            color={theme.colors.textInverse}
+          />
+          <Text style={styles.addButtonText}>New Quote</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={theme.colors.textPrimary}
+            colors={[theme.colors.textPrimary]}
+          />
         }
         showsVerticalScrollIndicator={false}
       >
         {listError && (
           <View style={{ paddingTop: 8 }}>
-            <Banner message={listError} variant="error" />
+            <Banner message={listError} variant='error' />
           </View>
         )}
 
@@ -206,8 +273,17 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
             <View style={styles.statsGrid}>
               {STAT_ITEMS.map((item) => (
                 <View key={item.label} style={styles.statItem}>
-                  <View style={[styles.statIconWrap, { backgroundColor: item.iconBg }]}>
-                    <Ionicons name={item.icon} size={16} color={item.iconColor} />
+                  <View
+                    style={[
+                      styles.statIconWrap,
+                      { backgroundColor: item.iconBg },
+                    ]}
+                  >
+                    <Ionicons
+                      name={item.icon}
+                      size={16}
+                      color={item.iconColor}
+                    />
                   </View>
                   <Text style={styles.statValue}>{item.value}</Text>
                   <Text style={styles.statLabel}>{item.label}</Text>
@@ -228,8 +304,16 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
             { key: 'all', label: 'All', count: stats?.total_quotes || 0 },
             { key: 'draft', label: 'Draft', count: stats?.draft_quotes || 0 },
             { key: 'sent', label: 'Sent', count: stats?.sent_quotes || 0 },
-            { key: 'accepted', label: 'Accepted', count: stats?.accepted_quotes || 0 },
-            { key: 'rejected', label: 'Rejected', count: stats?.rejected_quotes || 0 },
+            {
+              key: 'accepted',
+              label: 'Accepted',
+              count: stats?.accepted_quotes || 0,
+            },
+            {
+              key: 'rejected',
+              label: 'Rejected',
+              count: stats?.rejected_quotes || 0,
+            },
           ].map((filter) => (
             <TouchableOpacity
               key={filter.key}
@@ -238,7 +322,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
                 selectedStatus === filter.key && styles.filterChipActive,
               ]}
               onPress={() => handleStatusFilter(filter.key)}
-              accessibilityRole="button"
+              accessibilityRole='button'
               accessibilityLabel={`Filter by ${filter.label}, ${filter.count} quotes`}
               accessibilityState={{ selected: selectedStatus === filter.key }}
             >
@@ -261,12 +345,21 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
               key={action.label}
               style={styles.actionButton}
               onPress={action.onPress}
-              accessibilityRole="button"
+              accessibilityRole='button'
               accessibilityLabel={action.label}
               activeOpacity={0.7}
             >
-              <View style={[styles.actionIconWrap, { backgroundColor: action.iconBg }]}>
-                <Ionicons name={action.icon} size={20} color={action.iconColor} />
+              <View
+                style={[
+                  styles.actionIconWrap,
+                  { backgroundColor: action.iconBg },
+                ]}
+              >
+                <Ionicons
+                  name={action.icon}
+                  size={20}
+                  color={action.iconColor}
+                />
               </View>
               <Text style={styles.actionButtonText}>{action.label}</Text>
             </TouchableOpacity>
@@ -284,13 +377,18 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
               </View>
               <View style={styles.analyticsStat}>
                 <Text style={styles.analyticsValue}>
-                  {stats.acceptance_rate ? `${Math.round(stats.acceptance_rate)}%` : '—'}
+                  {stats.acceptance_rate
+                    ? `${Math.round(stats.acceptance_rate)}%`
+                    : '—'}
                 </Text>
                 <Text style={styles.analyticsLabel}>Acceptance Rate</Text>
               </View>
               <View style={styles.analyticsStat}>
                 <Text style={styles.analyticsValue}>
-                  £{stats.total_value ? Math.round(stats.total_value / 1000) + 'k' : '0'}
+                  £
+                  {stats.total_value
+                    ? Math.round(stats.total_value / 1000) + 'k'
+                    : '0'}
                 </Text>
                 <Text style={styles.analyticsLabel}>Total Value</Text>
               </View>
@@ -309,7 +407,11 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
           {quotes.length === 0 ? (
             <View style={styles.emptyState}>
               <View style={styles.emptyIconWrap}>
-                <Ionicons name='document-text-outline' size={32} color={theme.colors.textTertiary} />
+                <Ionicons
+                  name='document-text-outline'
+                  size={32}
+                  color={theme.colors.textTertiary}
+                />
               </View>
               <Text style={styles.emptyTitle}>No quotes found</Text>
               <Text style={styles.emptyText}>
@@ -319,9 +421,13 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
               </Text>
               <TouchableOpacity
                 style={styles.createButton}
-                onPress={() => (navigation.navigate as (...args: unknown[]) => void)('CreateQuote')}
-                accessibilityRole="button"
-                accessibilityLabel="Create your first quote"
+                onPress={() =>
+                  (navigation.navigate as (...args: unknown[]) => void)(
+                    'CreateQuote'
+                  )
+                }
+                accessibilityRole='button'
+                accessibilityLabel='Create your first quote'
               >
                 <Text style={styles.createButtonText}>Create Quote</Text>
               </TouchableOpacity>
@@ -332,10 +438,16 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
                 key={quote.id}
                 quote={quote}
                 onPress={() =>
-                  (navigation.navigate as (...args: unknown[]) => void)('QuoteDetail', { quoteId: quote.id })
+                  (navigation.navigate as (...args: unknown[]) => void)(
+                    'QuoteDetail',
+                    { quoteId: quote.id }
+                  )
                 }
                 onEdit={() =>
-                  (navigation.navigate as (...args: unknown[]) => void)('CreateQuote', { jobId: quote.job_id })
+                  (navigation.navigate as (...args: unknown[]) => void)(
+                    'CreateQuote',
+                    { jobId: quote.job_id }
+                  )
                 }
                 onSend={() => handleSendQuote(quote.id)}
                 onDuplicate={() => handleDuplicateQuote(quote.id)}
@@ -348,253 +460,5 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-  },
-  addButton: {
-    padding: 4,
-  },
-  addIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: theme.colors.textPrimary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
-  statsCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginTop: 16,
-    marginBottom: 14,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  statsTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 12,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 2,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-  },
-  filterContainer: {
-    marginBottom: 14,
-  },
-  filterContent: {
-    gap: 8,
-  },
-  filterChip: {
-    backgroundColor: theme.colors.surface,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-      },
-      android: { elevation: 1 },
-    }),
-  },
-  filterChipActive: {
-    backgroundColor: theme.colors.textPrimary,
-  },
-  filterText: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    fontWeight: '600',
-  },
-  filterTextActive: {
-    color: theme.colors.textInverse,
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    marginBottom: 20,
-    gap: 10,
-  },
-  actionButton: {
-    flex: 1,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: 14,
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  actionIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-  },
-  actionButtonText: {
-    fontSize: 12,
-    color: theme.colors.textPrimary,
-    fontWeight: '600',
-  },
-  quotesContainer: {
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 12,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: theme.colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 6,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 24,
-    paddingHorizontal: 32,
-    lineHeight: 20,
-  },
-  createButton: {
-    backgroundColor: theme.colors.textPrimary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 28,
-  },
-  createButtonText: {
-    color: theme.colors.textInverse,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  analyticsPanel: {
-    backgroundColor: theme.colors.surface,
-    marginBottom: 14,
-    borderRadius: 16,
-    padding: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  analyticsTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 12,
-  },
-  analyticsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  analyticsStat: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  analyticsValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-  },
-  analyticsLabel: {
-    fontSize: 11,
-    color: theme.colors.textSecondary,
-    marginTop: 2,
-    textAlign: 'center',
-  },
-});
 
 export default QuoteBuilderScreen;

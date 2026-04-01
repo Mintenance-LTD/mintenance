@@ -76,8 +76,10 @@ interface ApiThread {
 
 export default function MessagesPage2025() {
   return (
-    <ErrorBoundary componentName="MessagesPage">
-      <Suspense fallback={<LoadingSpinner fullScreen message="Loading messages..." />}>
+    <ErrorBoundary componentName='MessagesPage'>
+      <Suspense
+        fallback={<LoadingSpinner fullScreen message='Loading messages...' />}
+      >
         <MessagesPageContent />
       </Suspense>
     </ErrorBoundary>
@@ -90,7 +92,8 @@ function MessagesPageContent() {
   const { user, loading: loadingUser } = useCurrentUser();
   const { csrfToken } = useCSRF();
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [selectedConversation, setSelectedConversation] =
+    useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -114,8 +117,12 @@ function MessagesPageContent() {
         if (!response.ok) throw new Error('Failed to fetch conversations');
 
         const data = await response.json();
-        const transformedConversations: Conversation[] = (data.threads || []).map((thread: ApiThread) => {
-          const otherParticipant = thread.participants.find((p: Participant) => p.id !== user.id);
+        const transformedConversations: Conversation[] = (
+          data.threads || []
+        ).map((thread: ApiThread) => {
+          const otherParticipant = thread.participants.find(
+            (p: Participant) => p.id !== user.id
+          );
           return {
             id: thread.jobId,
             otherUser: {
@@ -124,15 +131,20 @@ function MessagesPageContent() {
               avatar: otherParticipant?.profile_image_url,
               online: false,
             },
-            lastMessage: thread.lastMessage ? {
-              text: thread.lastMessage.content || thread.lastMessage.messageText || '',
-              timestamp: thread.lastMessage.createdAt,
-              read: true,
-            } : {
-              text: 'No messages yet',
-              timestamp: new Date().toISOString(),
-              read: true,
-            },
+            lastMessage: thread.lastMessage
+              ? {
+                  text:
+                    thread.lastMessage.content ||
+                    thread.lastMessage.messageText ||
+                    '',
+                  timestamp: thread.lastMessage.createdAt,
+                  read: true,
+                }
+              : {
+                  text: 'No messages yet',
+                  timestamp: new Date().toISOString(),
+                  read: true,
+                },
             jobTitle: thread.jobTitle,
             unreadCount: thread.unreadCount || 0,
           };
@@ -143,7 +155,9 @@ function MessagesPageContent() {
         // Auto-select conversation if jobId is in URL params
         const targetJobId = searchParams.get('jobId');
         if (targetJobId) {
-          const match = transformedConversations.find((c: Conversation) => c.id === targetJobId);
+          const match = transformedConversations.find(
+            (c: Conversation) => c.id === targetJobId
+          );
           if (match) setSelectedConversation(match);
         }
       } catch (error) {
@@ -163,19 +177,24 @@ function MessagesPageContent() {
     const fetchMessages = async () => {
       setLoadingMessages(true);
       try {
-        const response = await fetch(`/api/messages/threads/${selectedConversation.id}/messages`);
+        const response = await fetch(
+          `/api/messages/threads/${selectedConversation.id}/messages`
+        );
         if (!response.ok) throw new Error('Failed to fetch messages');
 
         const data = await response.json();
-        const transformedMessages = (data.messages || []).map((msg: ApiMessageResponse): Message => ({
-          id: msg.id,
-          sender_id: msg.senderId || msg.sender_id || '',
-          content: msg.content || msg.messageText || '',
-          message_type: msg.messageType || msg.message_type || 'text',
-          attachment_url: msg.attachmentUrl || msg.attachment_url || undefined,
-          created_at: msg.createdAt || msg.created_at || '',
-          read: msg.read !== undefined ? msg.read : true,
-        }));
+        const transformedMessages = (data.messages || []).map(
+          (msg: ApiMessageResponse): Message => ({
+            id: msg.id,
+            sender_id: msg.senderId || msg.sender_id || '',
+            content: msg.content || msg.messageText || '',
+            message_type: msg.messageType || msg.message_type || 'text',
+            attachment_url:
+              msg.attachmentUrl || msg.attachment_url || undefined,
+            created_at: msg.createdAt || msg.created_at || '',
+            read: msg.read !== undefined ? msg.read : true,
+          })
+        );
 
         setMessages(transformedMessages);
 
@@ -194,7 +213,8 @@ function MessagesPageContent() {
   }, [selectedConversation]);
 
   const handleSendMessage = async () => {
-    if (!messageInput.trim() || !selectedConversation || !user || sending) return;
+    if (!messageInput.trim() || !selectedConversation || !user || sending)
+      return;
 
     if (!csrfToken) {
       toast.error('Security token not available. Please refresh the page.');
@@ -203,20 +223,25 @@ function MessagesPageContent() {
 
     setSending(true);
     try {
-      const response = await fetch(`/api/messages/threads/${selectedConversation.id}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-csrf-token': csrfToken,
-        },
-        body: JSON.stringify({
-          content: messageInput.trim(),
-          messageType: 'text',
-        }),
-      });
+      const response = await fetch(
+        `/api/messages/threads/${selectedConversation.id}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-csrf-token': csrfToken,
+          },
+          body: JSON.stringify({
+            content: messageInput.trim(),
+            messageType: 'text',
+          }),
+        }
+      );
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to send message' }));
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: 'Failed to send message' }));
         throw new Error(errorData.error || 'Failed to send message');
       }
 
@@ -230,21 +255,23 @@ function MessagesPageContent() {
         read: false,
       };
 
-      setMessages(prev => [...prev, newMessage]);
+      setMessages((prev) => [...prev, newMessage]);
       setMessageInput('');
 
-      setConversations(prev => prev.map(conv =>
-        conv.id === selectedConversation.id
-          ? {
-              ...conv,
-              lastMessage: {
-                text: newMessage.content,
-                timestamp: newMessage.created_at,
-                read: false,
-              },
-            }
-          : conv
-      ));
+      setConversations((prev) =>
+        prev.map((conv) =>
+          conv.id === selectedConversation.id
+            ? {
+                ...conv,
+                lastMessage: {
+                  text: newMessage.content,
+                  timestamp: newMessage.created_at,
+                  read: false,
+                },
+              }
+            : conv
+        )
+      );
     } catch (error) {
       toast.error('Failed to send message');
     } finally {
@@ -260,7 +287,7 @@ function MessagesPageContent() {
   }, [user, loadingUser, router]);
 
   if (loadingUser) {
-    return <LoadingSpinner fullScreen message="Loading messages..." />;
+    return <LoadingSpinner fullScreen message='Loading messages...' />;
   }
 
   if (!user) return null;
@@ -270,15 +297,17 @@ function MessagesPageContent() {
       {/* Back to Dashboard Button */}
       <button
         onClick={() => router.push('/dashboard')}
-        className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4"
+        className='flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4'
       >
-        <ArrowLeft className="w-5 h-5" />
-        <span className="font-medium">Back to Dashboard</span>
+        <ArrowLeft className='w-5 h-5' />
+        <span className='font-medium'>Back to Dashboard</span>
       </button>
 
-      <div className="h-[calc(100vh-120px)] flex bg-white border border-gray-200 rounded-xl overflow-hidden">
-        {/* Sidebar — full-width on mobile, 30% on md+ */}
-        <div className={`${selectedConversation ? 'hidden md:flex' : 'flex'} w-full md:w-auto`}>
+      <div className='h-[calc(100vh-120px)] flex bg-white border border-gray-200 rounded-xl overflow-hidden'>
+        {/* Sidebar — full-width on mobile, fixed width on md+ */}
+        <div
+          className={`${selectedConversation ? 'hidden md:flex' : 'flex'} w-full md:w-auto h-full`}
+        >
           <MessagesConversationSidebar
             conversations={conversations}
             selectedConversation={selectedConversation}
@@ -292,16 +321,20 @@ function MessagesPageContent() {
         </div>
 
         {/* Main Chat Area — hidden on mobile when no conversation selected */}
-        <div className={`${selectedConversation ? 'flex' : 'hidden md:flex'} flex-1 flex-col`}>
+        <div
+          className={`${selectedConversation ? 'flex' : 'hidden md:flex'} flex-1 flex-col`}
+        >
           {selectedConversation ? (
             <>
               {/* Mobile back button */}
               <button
                 onClick={() => setSelectedConversation(null)}
-                className="md:hidden flex items-center gap-2 px-4 py-3 border-b border-gray-200 text-gray-600 hover:text-gray-900"
+                className='md:hidden flex items-center gap-2 px-4 py-3 border-b border-gray-200 text-gray-600 hover:text-gray-900'
               >
-                <ArrowLeft className="w-5 h-5" />
-                <span className="font-medium text-sm">Back to conversations</span>
+                <ArrowLeft className='w-5 h-5' />
+                <span className='font-medium text-sm'>
+                  Back to conversations
+                </span>
               </button>
               <MessagesChatArea
                 conversation={selectedConversation}
@@ -309,7 +342,10 @@ function MessagesPageContent() {
                 currentUserId={user.id}
                 loadingMessages={loadingMessages}
                 messageInput={messageInput}
-                onMessageInputChange={(val: string) => { setMessageInput(val); broadcastTyping(); }}
+                onMessageInputChange={(val: string) => {
+                  setMessageInput(val);
+                  broadcastTyping();
+                }}
                 onSendMessage={handleSendMessage}
                 sending={sending}
                 isTyping={isOtherTyping}

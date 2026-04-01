@@ -13,7 +13,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { JobsStackParamList } from '../../navigation/types';
-import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
+import {
+  ScreenHeader,
+  LoadingSpinner,
+  ErrorView,
+} from '../../components/shared';
 import { Button } from '../../components/ui/Button';
 import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
@@ -32,12 +36,19 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
   const [changesText, setChangesText] = useState('');
   const [showChangesForm, setShowChangesForm] = useState(false);
 
-  const { data: job, isLoading, error, refetch } = useQuery({
+  const {
+    data: job,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ['job-signoff', jobId],
     queryFn: async () => {
       const { data: row, error: err } = await supabase
         .from('jobs')
-        .select('id, title, status, completion_confirmed_by_homeowner, contractor:contractor_id(full_name)')
+        .select(
+          'id, title, status, completion_confirmed_by_homeowner, contractor:profiles!contractor_id(full_name)'
+        )
         .eq('id', jobId)
         .single();
       if (err) throw new Error(err.message);
@@ -47,7 +58,8 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
         id: r.id as string,
         title: r.title as string,
         status: r.status as string,
-        completion_confirmed_by_homeowner: (r.completion_confirmed_by_homeowner as boolean) ?? false,
+        completion_confirmed_by_homeowner:
+          (r.completion_confirmed_by_homeowner as boolean) ?? false,
         contractor_name: contractor?.full_name as string | undefined,
       };
     },
@@ -60,9 +72,11 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['job-signoff', jobId] });
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      Alert.alert('Work Approved', 'Payment will be released to the contractor.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      Alert.alert(
+        'Work Approved',
+        'Payment will be released to the contractor.',
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
+      );
     },
     onError: (err: Error) => {
       Alert.alert('Error', err.message || 'Failed to confirm completion.');
@@ -71,7 +85,9 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const requestChangesMutation = useMutation({
     mutationFn: async (comments: string) => {
-      return mobileApiClient.post(`/api/jobs/${jobId}/request-changes`, { comments });
+      return mobileApiClient.post(`/api/jobs/${jobId}/request-changes`, {
+        comments,
+      });
     },
     onSuccess: () => {
       Alert.alert('Changes Requested', 'The contractor has been notified.', [
@@ -96,27 +112,44 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleRequestChanges = () => {
     if (changesText.trim().length < 10) {
-      Alert.alert('Error', 'Please describe the changes needed (at least 10 characters).');
+      Alert.alert(
+        'Error',
+        'Please describe the changes needed (at least 10 characters).'
+      );
       return;
     }
     requestChangesMutation.mutate(changesText.trim());
   };
 
   if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorView message="Failed to load job details" onRetry={refetch} />;
-  if (!job) return <ErrorView message="Job not found" onRetry={refetch} />;
+  if (error)
+    return <ErrorView message='Failed to load job details' onRetry={refetch} />;
+  if (!job) return <ErrorView message='Job not found' onRetry={refetch} />;
 
   const isAlreadyConfirmed = job.completion_confirmed_by_homeowner;
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
-      <ScreenHeader title="Review Work" showBack onBack={() => navigation.goBack()} />
+      <StatusBar
+        barStyle='dark-content'
+        backgroundColor={theme.colors.backgroundSecondary}
+      />
+      <ScreenHeader
+        title='Review Work'
+        showBack
+        onBack={() => navigation.goBack()}
+      />
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor={theme.colors.textPrimary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={false}
+            onRefresh={refetch}
+            tintColor={theme.colors.textPrimary}
+          />
+        }
       >
         <Text style={styles.jobTitle}>{job.title}</Text>
         {job.contractor_name && (
@@ -126,48 +159,53 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
         {isAlreadyConfirmed ? (
           <View style={styles.confirmedBanner}>
             <Text style={styles.confirmedText}>Work has been approved</Text>
-            <Text style={styles.confirmedSubtext}>Payment is being processed.</Text>
+            <Text style={styles.confirmedSubtext}>
+              Payment is being processed.
+            </Text>
           </View>
         ) : (
           <>
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Review Completed Work</Text>
               <Text style={styles.sectionDescription}>
-                Review the work completed by the contractor. If satisfied, approve to release
-                payment. If changes are needed, describe what needs to be fixed.
+                Review the work completed by the contractor. If satisfied,
+                approve to release payment. If changes are needed, describe what
+                needs to be fixed.
               </Text>
             </View>
 
             {!showChangesForm ? (
               <View style={styles.actions}>
                 <Button
-                  variant="primary"
+                  variant='primary'
                   fullWidth
                   onPress={handleApprove}
                   loading={confirmMutation.isPending}
-                  title="Approve Work"
+                  title='Approve Work'
                 />
 
                 <Button
-                  variant="secondary"
+                  variant='secondary'
                   fullWidth
                   onPress={() => setShowChangesForm(true)}
                   style={styles.secondaryAction}
-                  title="Request Changes"
+                  title='Request Changes'
                 />
               </View>
             ) : (
               <View style={styles.changesForm}>
-                <Text style={styles.changesLabel}>Describe changes needed:</Text>
+                <Text style={styles.changesLabel}>
+                  Describe changes needed:
+                </Text>
                 <TextInput
                   style={styles.changesInput}
                   multiline
                   numberOfLines={5}
-                  placeholder="Please describe what needs to be fixed or changed..."
+                  placeholder='Please describe what needs to be fixed or changed...'
                   placeholderTextColor={theme.colors.textTertiary}
                   value={changesText}
                   onChangeText={setChangesText}
-                  textAlignVertical="top"
+                  textAlignVertical='top'
                 />
                 <Text style={styles.charCount}>
                   {changesText.length}/10 min characters
@@ -175,14 +213,14 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
 
                 <View style={styles.changesActions}>
                   <Button
-                    variant="secondary"
+                    variant='secondary'
                     onPress={() => setShowChangesForm(false)}
                     style={styles.cancelButton}
                   >
                     Cancel
                   </Button>
                   <Button
-                    variant="danger"
+                    variant='danger'
                     onPress={handleRequestChanges}
                     loading={requestChangesMutation.isPending}
                     disabled={changesText.trim().length < 10}

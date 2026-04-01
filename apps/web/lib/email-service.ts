@@ -55,6 +55,7 @@ interface EmailOptions {
  * Email Service for sending notifications
  */
 export class EmailService {
+  private static brevoKey = process.env.BREVO_API_KEY;
   private static sendgridKey = process.env.SENDGRID_API_KEY;
   private static resendKey = process.env.RESEND_API_KEY;
   private static fromEmail = process.env.EMAIL_FROM || 'noreply@mintenance.com';
@@ -84,11 +85,14 @@ export class EmailService {
    * Send a generic email
    */
   static async sendEmail(options: EmailOptions): Promise<boolean> {
-    const provider = this.sendgridKey
-      ? 'sendgrid'
-      : this.resendKey
-        ? 'resend'
-        : null;
+    // Priority: Brevo (free 300/day) > SendGrid > Resend
+    const provider = this.brevoKey
+      ? 'brevo'
+      : this.sendgridKey
+        ? 'sendgrid'
+        : this.resendKey
+          ? 'resend'
+          : null;
 
     if (!provider) {
       logger.warn('Email service not configured, skipping email send', {
@@ -102,7 +106,24 @@ export class EmailService {
     try {
       let response: Response;
 
-      if (provider === 'resend') {
+      if (provider === 'brevo') {
+        // Brevo (formerly Sendinblue) — 300 free emails/day
+        response = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'api-key': this.brevoKey!,
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({
+            sender: { name: this.fromName, email: this.fromEmail },
+            to: [{ email: options.to }],
+            subject: options.subject,
+            htmlContent: options.html,
+            textContent: options.text || undefined,
+          }),
+        });
+      } else if (provider === 'resend') {
         response = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {

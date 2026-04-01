@@ -8,7 +8,10 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../../navigation/types';
@@ -35,7 +38,10 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 };
 
 function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(amount);
+  return new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'GBP',
+  }).format(amount);
 }
 
 function formatDate(dateStr: string): string {
@@ -69,14 +75,17 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
 
       if (error) throw error;
 
-      const mapped: EscrowRecord[] = (data ?? []).map((row: Record<string, unknown>) => ({
-        id: row.id as string,
-        amount: row.amount as number,
-        status: row.status as string,
-        created_at: row.created_at as string,
-        job_title:
-          (row.job as Record<string, unknown>)?.title as string ?? 'Untitled Job',
-      }));
+      const mapped: EscrowRecord[] = (data ?? []).map(
+        (row: Record<string, unknown>) => ({
+          id: row.id as string,
+          amount: row.amount as number,
+          status: row.status as string,
+          created_at: row.created_at as string,
+          job_title:
+            ((row.job as Record<string, unknown>)?.title as string) ??
+            'Untitled Job',
+        })
+      );
       setRecords(mapped);
     } catch (error) {
       logger.error('Failed to fetch escrow data', error);
@@ -105,18 +114,24 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
     .filter((r) => r.status === 'released')
     .reduce((sum, r) => sum + r.amount, 0);
 
-  const SummaryCard: React.FC<{ label: string; amount: number; color: string; icon: string }> = ({
-    label,
-    amount,
-    color,
-    icon,
-  }) => (
+  const SummaryCard: React.FC<{
+    label: string;
+    amount: number;
+    color: string;
+    icon: string;
+  }> = ({ label, amount, color, icon }) => (
     <View style={[styles.summaryCard, { borderLeftColor: color }]}>
       <View style={[styles.summaryIconWrap, { backgroundColor: color + '20' }]}>
-        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={color} />
+        <Ionicons
+          name={icon as keyof typeof Ionicons.glyphMap}
+          size={20}
+          color={color}
+        />
       </View>
       <Text style={styles.summaryLabel}>{label}</Text>
-      <Text style={[styles.summaryAmount, { color }]}>{formatCurrency(amount)}</Text>
+      <Text style={[styles.summaryAmount, { color }]}>
+        {formatCurrency(amount)}
+      </Text>
     </View>
   );
 
@@ -128,7 +143,9 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.recordTitle} numberOfLines={1}>
             {item.job_title}
           </Text>
-          <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
+          <View
+            style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}
+          >
             <Text style={[styles.statusBadgeText, { color: statusStyle.text }]}>
               {formatStatus(item.status)}
             </Text>
@@ -148,25 +165,32 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
         <View style={[styles.headerBar, { paddingTop: insets.top + 8 }]}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
+            accessibilityRole='button'
+            accessibilityLabel='Go back'
             style={styles.headerBackBtn}
           >
-            <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+            <Ionicons
+              name='arrow-back'
+              size={24}
+              color={theme.colors.textPrimary}
+            />
           </TouchableOpacity>
-          <Text style={styles.headerBarTitle}>Escrow Dashboard</Text>
+          <View style={styles.headerTitleGroup}>
+            <Text style={styles.headerOverline}>FINANCIAL OVERVIEW</Text>
+            <Text style={styles.headerBarTitle}>Escrow Dashboard</Text>
+          </View>
           <View style={styles.headerSpacer} />
         </View>
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <ActivityIndicator size='large' color={theme.colors.primary} />
           </View>
         ) : records.length === 0 ? (
           <EmptyState
-            icon="wallet-outline"
-            title="No Escrow Records"
-            subtitle="Escrow transactions will appear here once payments are made."
+            icon='wallet-outline'
+            title='No Escrow Records'
+            subtitle='Escrow transactions will appear here once payments are made.'
             style={styles.emptyState}
           />
         ) : (
@@ -185,9 +209,24 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
             }
             ListHeaderComponent={
               <View style={styles.summaryRow}>
-                <SummaryCard label="Held" amount={totalHeld} color="#D97706" icon="lock-closed-outline" />
-                <SummaryCard label="Pending" amount={totalPending} color="#2563EB" icon="time-outline" />
-                <SummaryCard label="Released" amount={totalReleased} color="#059669" icon="checkmark-circle-outline" />
+                <SummaryCard
+                  label='Held'
+                  amount={totalHeld}
+                  color='#D97706'
+                  icon='lock-closed-outline'
+                />
+                <SummaryCard
+                  label='Pending'
+                  amount={totalPending}
+                  color='#2563EB'
+                  icon='time-outline'
+                />
+                <SummaryCard
+                  label='Released'
+                  amount={totalReleased}
+                  color='#059669'
+                  icon='checkmark-circle-outline'
+                />
               </View>
             }
           />
@@ -218,9 +257,18 @@ const styles = StyleSheet.create({
   headerBackBtn: {
     padding: 8,
   },
-  headerBarTitle: {
+  headerTitleGroup: {
     flex: 1,
-    textAlign: 'center',
+    alignItems: 'center',
+  },
+  headerOverline: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: theme.colors.textTertiary,
+    letterSpacing: 1.2,
+    marginBottom: 2,
+  },
+  headerBarTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: theme.colors.textPrimary,
@@ -249,14 +297,11 @@ const styles = StyleSheet.create({
   summaryCard: {
     flex: 1,
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 20,
+    padding: 14,
     borderLeftWidth: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   summaryIconWrap: {
     width: 32,
@@ -267,27 +312,24 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   summaryLabel: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '700',
     color: theme.colors.textTertiary,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     marginBottom: 4,
   },
   summaryAmount: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
   },
   recordCard: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 16,
     marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   recordHeader: {
     flexDirection: 'row',

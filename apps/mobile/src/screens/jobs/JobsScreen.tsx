@@ -20,6 +20,7 @@ import { Job } from '@mintenance/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ResponsiveContainer } from '../../components/responsive';
 import { ExploreMapScreen } from '../explore-map/ExploreMapScreen';
+import { ScreenErrorBoundary } from '../../components/ScreenErrorBoundary';
 import { theme, semanticBg } from '../../theme';
 
 import type { SortMode, FilterStatus, JobStats } from './types';
@@ -237,10 +238,64 @@ const JobsScreen: React.FC = () => {
     navigation.getParent?.()?.navigate('Modal', { screen: 'ServiceRequest' });
   }, [navigation]);
 
-  // -- Map view --
+  // -- Map view (wrapped in error boundary) --
   if (sortMode === 'map' && isContractor) {
-    return <ExploreMapScreen onBackToList={() => setSortMode('for_you')} />;
+    return (
+      <ScreenErrorBoundary
+        screenName='ExploreMap'
+        fallbackComponent={(_error, retry) => (
+          <View
+            style={{
+              flex: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: 40,
+            }}
+          >
+            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 8 }}>
+              Map unavailable
+            </Text>
+            <Text
+              style={{
+                fontSize: 14,
+                color: '#717171',
+                textAlign: 'center',
+                marginBottom: 20,
+              }}
+            >
+              The map view encountered an error. Try again or switch to list
+              view.
+            </Text>
+            <TouchableOpacity
+              onPress={retry}
+              style={{
+                backgroundColor: '#0D9488',
+                paddingHorizontal: 24,
+                paddingVertical: 12,
+                borderRadius: 12,
+                marginBottom: 10,
+              }}
+            >
+              <Text style={{ color: '#FFFFFF', fontWeight: '700' }}>Retry</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setSortMode('for_you')}>
+              <Text style={{ color: '#0D9488', fontWeight: '600' }}>
+                Back to List
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      >
+        <ExploreMapScreen onBackToList={() => setSortMode('for_you')} />
+      </ScreenErrorBoundary>
+    );
   }
+
+  // -- Set of job IDs where the contractor has already sent a bid --
+  const bidJobIds = useMemo(
+    () => new Set(bidPendingJobs.map((j) => j.id)),
+    [bidPendingJobs]
+  );
 
   // -- Render job card --
   const renderItem = ({ item }: { item: Job }) => (
@@ -252,6 +307,7 @@ const JobsScreen: React.FC = () => {
       onBid={() => navigation.navigate('BidSubmission', { jobId: item.id })}
       bidCount={item.bids?.length}
       isContractor={isContractor}
+      hasUserBid={selectedFilter === 'bid' || bidJobIds.has(item.id)}
     />
   );
 

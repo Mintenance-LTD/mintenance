@@ -1,15 +1,15 @@
 'use client';
 
 import React from 'react';
+import { DynamicBarChart } from '@/components/charts/DynamicCharts';
 import {
-  DynamicBarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-} from '@/components/charts/DynamicCharts';
+} from 'recharts';
 import { theme } from '@/lib/theme';
 
 interface ProgressTrendChartProps {
@@ -27,19 +27,26 @@ export function ProgressTrendChart({ data }: ProgressTrendChartProps) {
 
   return (
     <div style={{ width: '100%', height: '100%', minHeight: '200px' }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <DynamicBarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" vertical={false} />
+      <ResponsiveContainer width='100%' height='100%'>
+        <DynamicBarChart
+          data={chartData}
+          margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+        >
+          <CartesianGrid
+            strokeDasharray='3 3'
+            stroke='#E5E7EB'
+            vertical={false}
+          />
           <XAxis
-            dataKey="name"
-            stroke="#6B7280"
+            dataKey='name'
+            stroke='#6B7280'
             fontSize={11}
             tickLine={false}
             axisLine={false}
             tickMargin={8}
           />
           <YAxis
-            stroke="#6B7280"
+            stroke='#6B7280'
             fontSize={11}
             tickLine={false}
             axisLine={false}
@@ -59,14 +66,13 @@ export function ProgressTrendChart({ data }: ProgressTrendChartProps) {
             labelStyle={{ fontWeight: 600, marginBottom: '4px' }}
           />
           <Bar
-            dataKey="value"
+            dataKey='value'
             fill={theme.colors.secondary}
             radius={[8, 8, 0, 0]}
-            name="Completion Rate"
+            name='Completion Rate'
           />
         </DynamicBarChart>
       </ResponsiveContainer>
     </div>
   );
 }
-

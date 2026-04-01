@@ -11,16 +11,23 @@ export default async function AdminLayout({
   // Get pathname from headers (set by middleware)
   const headersList = await headers();
   const pathname = headersList.get('x-pathname') || '';
-  
-  // Allow access to registration and login pages without authentication
-  // These routes are in the (auth) route group but still go through this layout
-  const isAuthRoute = pathname === '/admin/login' || pathname === '/admin/register';
-  
+
+  // SECURITY: Allow access to auth pages without authentication.
+  // Check with startsWith to handle query params (e.g., /admin/login?redirect=...)
+  const authRoutes = [
+    '/admin/login',
+    '/admin/register',
+    '/admin/forgot-password',
+  ];
+  const isAuthRoute = authRoutes.some(
+    (route) => pathname === route || pathname.startsWith(route)
+  );
+
   if (isAuthRoute) {
-    // For auth routes, render without layout shell
+    // For auth routes, render without layout shell — no sidebar, no admin nav
     return <>{children}</>;
   }
-  
+
   // For protected routes, check authentication
   const user = await getCurrentUserFromCookies();
 
@@ -35,4 +42,3 @@ export default async function AdminLayout({
     </AdminLayoutShell>
   );
 }
-

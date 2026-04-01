@@ -33,8 +33,20 @@ export const theme = {
       500: '#64748b',
       600: '#475569',
       700: '#334155',
-      800: '#1e293b', // Sidebar background
+      800: '#1e293b',
       900: '#0f172a',
+      950: '#0C1A33', // Admin sidebar
+    },
+    // Admin-specific brand color (indigo-blue used across admin UI)
+    adminPrimary: '#4A67FF',
+    adminPrimaryLight: '#EEF1FF',
+    // Semantic status colors for admin badges
+    status: {
+      success: { bg: '#D1FAE5', text: '#065F46', border: '#A7F3D0' },
+      error: { bg: '#FEE2E2', text: '#991B1B', border: '#FECACA' },
+      warning: { bg: '#FEF3C7', text: '#92400E', border: '#FDE68A' },
+      info: { bg: '#DBEAFE', text: '#1E40AF', border: '#BFDBFE' },
+      neutral: { bg: '#F1F5F9', text: '#475569', border: '#E2E8F0' },
     },
   },
 
@@ -224,7 +236,9 @@ export const getSpacing = (size: keyof typeof tokens.spacing): string => {
   return typeof value === 'string' ? value : `${value}px`;
 };
 
-export const getFontSize = (size: keyof typeof tokens.typography.fontSize): string => {
+export const getFontSize = (
+  size: keyof typeof tokens.typography.fontSize
+): string => {
   return tokens.typography.fontSize[size];
 };
 

@@ -1,12 +1,18 @@
 /**
  * QuickActions Component (Contractor)
  *
- * Airbnb category-bar-style: horizontal scrollable icon circles
- * with label below. Each action is a quick tap target.
+ * Horizontal scrollable circle icons with labels — trimmed to
+ * the 5 most-used daily actions matching the design mockup.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useHaptics } from '../../utils/haptics';
 import { theme } from '../../theme';
@@ -38,11 +44,6 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
   onQuotesPress,
   onInvoicesPress,
   onExpensesPress,
-  onCalendarPress,
-  onCRMPress,
-  onFinancePress,
-  onTimeTrackingPress,
-  onReportingPress,
 }) => {
   const haptics = useHaptics();
 
@@ -62,82 +63,43 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
       onPress: onInboxPress,
     },
     ...(onQuotesPress
-      ? [{
-          label: 'Quotes',
-          icon: 'document-text' as keyof typeof Ionicons.glyphMap,
-          iconColor: '#8B5CF6',
-          bgColor: '#EDE9FE',
-          onPress: onQuotesPress,
-        }]
+      ? [
+          {
+            label: 'Quotes',
+            icon: 'document-text' as keyof typeof Ionicons.glyphMap,
+            iconColor: '#8B5CF6',
+            bgColor: '#EDE9FE',
+            onPress: onQuotesPress,
+          },
+        ]
       : []),
     ...(onInvoicesPress
-      ? [{
-          label: 'Invoices',
-          icon: 'receipt' as keyof typeof Ionicons.glyphMap,
-          iconColor: theme.colors.accent,
-          bgColor: theme.colors.accentLight,
-          onPress: onInvoicesPress,
-        }]
+      ? [
+          {
+            label: 'Invoices',
+            icon: 'receipt' as keyof typeof Ionicons.glyphMap,
+            iconColor: theme.colors.accent,
+            bgColor: theme.colors.accentLight,
+            onPress: onInvoicesPress,
+          },
+        ]
       : []),
     ...(onExpensesPress
-      ? [{
-          label: 'Expenses',
-          icon: 'wallet' as keyof typeof Ionicons.glyphMap,
-          iconColor: theme.colors.error,
-          bgColor: '#FEE2E2',
-          onPress: onExpensesPress,
-        }]
-      : []),
-    ...(onCalendarPress
-      ? [{
-          label: 'Calendar',
-          icon: 'calendar' as keyof typeof Ionicons.glyphMap,
-          iconColor: '#06B6D4',
-          bgColor: '#CFFAFE',
-          onPress: onCalendarPress,
-        }]
-      : []),
-    ...(onCRMPress
-      ? [{
-          label: 'Clients',
-          icon: 'people' as keyof typeof Ionicons.glyphMap,
-          iconColor: '#3B82F6',
-          bgColor: '#DBEAFE',
-          onPress: onCRMPress,
-        }]
-      : []),
-    ...(onFinancePress
-      ? [{
-          label: 'Finance',
-          icon: 'analytics' as keyof typeof Ionicons.glyphMap,
-          iconColor: theme.colors.primary,
-          bgColor: theme.colors.primaryLight,
-          onPress: onFinancePress,
-        }]
-      : []),
-    ...(onTimeTrackingPress
-      ? [{
-          label: 'Time',
-          icon: 'time' as keyof typeof Ionicons.glyphMap,
-          iconColor: '#3B82F6',
-          bgColor: '#DBEAFE',
-          onPress: onTimeTrackingPress,
-        }]
-      : []),
-    ...(onReportingPress
-      ? [{
-          label: 'Reports',
-          icon: 'bar-chart' as keyof typeof Ionicons.glyphMap,
-          iconColor: '#8B5CF6',
-          bgColor: '#EDE9FE',
-          onPress: onReportingPress,
-        }]
+      ? [
+          {
+            label: 'Expenses',
+            icon: 'wallet' as keyof typeof Ionicons.glyphMap,
+            iconColor: theme.colors.error,
+            bgColor: '#FEE2E2',
+            onPress: onExpensesPress,
+          },
+        ]
       : []),
   ];
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Quick Actions</Text>
+      <Text style={styles.sectionLabel}>Quick Actions</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -151,14 +113,18 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
               haptics.buttonPress();
               action.onPress();
             }}
-            accessibilityRole="button"
+            accessibilityRole='button'
             accessibilityLabel={action.label}
             activeOpacity={0.7}
           >
-            <View style={[styles.iconCircle, { backgroundColor: action.bgColor }]}>
-              <Ionicons name={action.icon} size={22} color={action.iconColor} />
+            <View
+              style={[styles.iconCircle, { backgroundColor: action.bgColor }]}
+            >
+              <Ionicons name={action.icon} size={24} color={action.iconColor} />
             </View>
-            <Text style={styles.actionLabel} numberOfLines={1}>{action.label}</Text>
+            <Text style={styles.actionLabel} numberOfLines={1}>
+              {action.label}
+            </Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -170,32 +136,33 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 28,
   },
-  sectionTitle: {
-    fontSize: 20,
+  sectionLabel: {
+    fontSize: 11,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 14,
-    letterSpacing: -0.3,
+    color: theme.colors.textSecondary,
+    marginBottom: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
   },
   scrollContent: {
-    gap: 16,
+    gap: 20,
     paddingRight: 8,
   },
   actionItem: {
     alignItems: 'center',
-    width: 68,
+    width: 64,
   },
   iconCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
   },
   actionLabel: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
     color: theme.colors.textPrimary,
     textAlign: 'center',
   },

@@ -19,7 +19,9 @@ interface NotificationsModule {
   }) => void;
   getPermissionsAsync: () => Promise<{ status: string }>;
   requestPermissionsAsync: () => Promise<{ status: string }>;
-  getExpoPushTokenAsync: (options?: { projectId?: string }) => Promise<{ data: string }>;
+  getExpoPushTokenAsync: (options?: {
+    projectId?: string;
+  }) => Promise<{ data: string }>;
   scheduleNotificationAsync: (options: {
     content: { title: string; body: string; data: Record<string, unknown> };
     trigger: { seconds?: number; date?: Date } | null;
@@ -54,7 +56,13 @@ try {
 }
 
 interface NotificationData {
-  type: 'job_created' | 'job_updated' | 'bid_received' | 'bid_accepted' | 'message_received' | 'payment_received';
+  type:
+    | 'job_created'
+    | 'job_updated'
+    | 'bid_received'
+    | 'bid_accepted'
+    | 'message_received'
+    | 'payment_received';
   title: string;
   body: string;
   data?: Record<string, unknown>;
@@ -91,9 +99,13 @@ export class PushNotificationService {
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       const isFirebaseError =
-        msg.includes('Firebase') || msg.includes('FCM') || msg.includes('not initialized');
+        msg.includes('Firebase') ||
+        msg.includes('FCM') ||
+        msg.includes('not initialized');
       if (isFirebaseError) {
-        logger.warn('Push notification service unavailable — Firebase/FCM not configured');
+        logger.warn(
+          'Push notification service unavailable — Firebase/FCM not configured'
+        );
       } else {
         logger.error('Failed to initialize push notification service', error);
       }
@@ -112,7 +124,8 @@ export class PushNotificationService {
         };
       }
 
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      const { status: existingStatus } =
+        await Notifications.getPermissionsAsync();
 
       if (existingStatus !== 'granted') {
         const { status } = await Notifications.requestPermissionsAsync();
@@ -156,15 +169,22 @@ export class PushNotificationService {
       });
       this.pushToken = token.data;
 
-      logger.info('Push token obtained successfully');
+      // Register token with the server for remote push delivery
+      await this.registerTokenWithServer(this.pushToken);
+
+      logger.info('Push token obtained and registered');
       return this.pushToken;
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       const isFirebaseError =
-        msg.includes('Firebase') || msg.includes('FCM') || msg.includes('not initialized');
+        msg.includes('Firebase') ||
+        msg.includes('FCM') ||
+        msg.includes('not initialized');
       if (isFirebaseError) {
-        logger.warn('FCM not configured — push token unavailable. '
-          + 'Ensure google-services.json is provided for production builds.');
+        logger.warn(
+          'FCM not configured — push token unavailable. ' +
+            'Ensure google-services.json is provided for production builds.'
+        );
       } else {
         logger.error('Failed to get push token', error);
       }
@@ -174,7 +194,10 @@ export class PushNotificationService {
 
   async sendLocalNotification(notification: NotificationData): Promise<void> {
     try {
-      logger.info('Sending local notification', { type: notification.type, title: notification.title });
+      logger.info('Sending local notification', {
+        type: notification.type,
+        title: notification.title,
+      });
 
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -199,7 +222,7 @@ export class PushNotificationService {
       logger.info('Scheduling notification', {
         type: notification.type,
         title: notification.title,
-        trigger
+        trigger,
       });
 
       let notificationTrigger = null;
@@ -243,8 +266,46 @@ export class PushNotificationService {
     }
   }
 
+  /**
+   * Register push token with the server for remote push delivery.
+   * Called automatically when a push token is obtained.
+   */
+  private async registerTokenWithServer(token: string): Promise<void> {
+    try {
+      const apiUrl =
+        process.env.EXPO_PUBLIC_API_URL || process.env.NEXT_PUBLIC_APP_URL;
+      if (!apiUrl) {
+        logger.warn('API URL not configured, skipping push token registration');
+        return;
+      }
+
+      const response = await fetch(`${apiUrl}/api/user/push-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pushToken: token,
+          platform: Platform.OS === 'ios' ? 'ios' : 'android',
+        }),
+      });
+
+      if (!response.ok) {
+        logger.warn('Failed to register push token with server', {
+          status: response.status,
+        });
+      }
+    } catch (error) {
+      // Non-blocking — push registration failure shouldn't break the app
+      logger.warn('Push token server registration failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   // Convenience methods for specific notification types
-  async notifyJobCreated(jobTitle: string, data?: Record<string, unknown>): Promise<void> {
+  async notifyJobCreated(
+    jobTitle: string,
+    data?: Record<string, unknown>
+  ): Promise<void> {
     await this.sendLocalNotification({
       type: 'job_created',
       title: 'New Job Posted',
@@ -253,7 +314,11 @@ export class PushNotificationService {
     });
   }
 
-  async notifyBidReceived(jobTitle: string, bidAmount: number, data?: Record<string, unknown>): Promise<void> {
+  async notifyBidReceived(
+    jobTitle: string,
+    bidAmount: number,
+    data?: Record<string, unknown>
+  ): Promise<void> {
     await this.sendLocalNotification({
       type: 'bid_received',
       title: 'New Bid Received',
@@ -262,7 +327,10 @@ export class PushNotificationService {
     });
   }
 
-  async notifyBidAccepted(jobTitle: string, data?: Record<string, unknown>): Promise<void> {
+  async notifyBidAccepted(
+    jobTitle: string,
+    data?: Record<string, unknown>
+  ): Promise<void> {
     await this.sendLocalNotification({
       type: 'bid_accepted',
       title: 'Bid Accepted!',
@@ -271,7 +339,11 @@ export class PushNotificationService {
     });
   }
 
-  async notifyNewMessage(senderName: string, jobTitle: string, data?: Record<string, unknown>): Promise<void> {
+  async notifyNewMessage(
+    senderName: string,
+    jobTitle: string,
+    data?: Record<string, unknown>
+  ): Promise<void> {
     await this.sendLocalNotification({
       type: 'message_received',
       title: `New message from ${senderName}`,
@@ -280,7 +352,11 @@ export class PushNotificationService {
     });
   }
 
-  async notifyPaymentReceived(amount: number, jobTitle: string, data?: Record<string, unknown>): Promise<void> {
+  async notifyPaymentReceived(
+    amount: number,
+    jobTitle: string,
+    data?: Record<string, unknown>
+  ): Promise<void> {
     await this.sendLocalNotification({
       type: 'payment_received',
       title: 'Payment Received',

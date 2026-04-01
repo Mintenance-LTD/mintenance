@@ -1,8 +1,3 @@
-/**
- * Property Assessment Screen
- * Integrates video capture with property assessment workflow
- */
-
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -12,7 +7,6 @@ import {
   TouchableOpacity,
   Alert,
   TextInput,
-  Platform,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -284,7 +278,13 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
         propertyAddress={propertyAddress}
         onGoBack={() => navigation.goBack()}
       />
-      <ProgressBar percentage={progressPercentage} />
+      <ProgressBar
+        percentage={progressPercentage}
+        completedSteps={
+          assessmentSteps.filter((s) => s.status === 'completed').length
+        }
+        totalSteps={assessmentSteps.length}
+      />
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -292,10 +292,11 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
       >
         <View style={styles.stepsSection}>
           <Text style={styles.sectionTitle}>Assessment Steps</Text>
-          {assessmentSteps.map((step) => (
+          {assessmentSteps.map((step, index) => (
             <StepCard
               key={step.id}
               step={step}
+              stepNumber={index + 1}
               onPress={() => handleStepPress(step)}
             />
           ))}
@@ -416,47 +417,35 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
   );
 };
 
+const borderedCard = {
+  backgroundColor: theme.colors.surface,
+  borderRadius: 20,
+  padding: 16,
+  marginBottom: 16,
+  borderWidth: 1,
+  borderColor: theme.colors.border,
+} as const;
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
-  },
-  content: {
-    padding: 16,
-  },
-  stepsSection: {
-    marginBottom: 24,
-  },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  content: { padding: 16 },
+  stepsSection: { ...borderedCard },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 16,
+    color: theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 14,
   },
-  videosSection: {
-    marginBottom: 24,
-  },
+  videosSection: { marginBottom: 24 },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
   },
-  notesSection: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
-  },
+  notesSection: { ...borderedCard },
   notesInput: {
     backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
@@ -465,21 +454,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     minHeight: 120,
   },
-  reviewSection: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
-  },
+  reviewSection: { ...borderedCard },
   reviewRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -487,10 +462,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border,
   },
-  reviewLabel: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
+  reviewLabel: { fontSize: 14, color: theme.colors.textSecondary },
   reviewValue: {
     fontSize: 14,
     fontWeight: '600',

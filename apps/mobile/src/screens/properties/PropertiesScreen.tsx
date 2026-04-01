@@ -7,9 +7,7 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  StyleSheet,
   RefreshControl,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +24,7 @@ import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { Property } from '@mintenance/types';
 import { theme } from '../../theme';
+import { styles } from './PropertiesStyles';
 
 interface Props {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'Properties'>;
@@ -248,6 +247,9 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.screenLabel}>
+        <Text style={styles.screenLabelText}>PROPERTY MANAGEMENT</Text>
+      </View>
       <ScreenHeader
         title='My Properties'
         rightComponent={
@@ -356,150 +358,5 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
-  },
-  listContainer: {
-    padding: 16,
-  },
-  propertyCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  propertyIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardHeaderText: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  propertyAddress: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-  },
-  propertyLocation: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    marginTop: 2,
-  },
-  propertyMeta: {
-    flexDirection: 'row',
-    marginTop: 8,
-    paddingTop: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  metaText: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    marginLeft: 4,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  emptyIconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: theme.colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 15,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 24,
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.primary,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 28,
-    gap: 8,
-  },
-  addButtonText: {
-    color: theme.colors.textInverse,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  sortRow: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  sortChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: theme.colors.surface,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-      },
-      android: { elevation: 1 },
-    }),
-  },
-  sortChipActive: {
-    backgroundColor: theme.colors.primary,
-  },
-  favChipActive: {
-    backgroundColor: '#FEE2E2',
-  },
-  sortChipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
-  },
-  sortChipTextActive: {
-    color: theme.colors.textInverse,
-  },
-});
 
 export default PropertiesScreen;

@@ -106,7 +106,9 @@ export const HomeownerDashboard: React.FC = () => {
       const today = new Date().toISOString().split('T')[0];
       const { data: rows, error: err } = await supabase
         .from('bookings')
-        .select('id, title, date, time, contractor:contractor_id(full_name)')
+        .select(
+          'id, title, date, time, contractor:profiles!contractor_id(full_name)'
+        )
         .eq('homeowner_id', user!.id)
         .gte('date', today)
         .order('date', { ascending: true })
@@ -268,6 +270,7 @@ export const HomeownerDashboard: React.FC = () => {
 
           {/* Greeting */}
           <FadeIn duration={400}>
+            <Text style={styles.heroOverline}>Overview</Text>
             <Text style={styles.heroGreeting}>
               {greeting}, {userName}
             </Text>
@@ -281,26 +284,70 @@ export const HomeownerDashboard: React.FC = () => {
           </FadeIn>
         </LinearGradient>
 
-        {/* Stats cards below hero */}
+        {/* Bento stat cards below hero */}
         <SlideIn direction='up' distance={20} duration={400} delay={100}>
           <View style={styles.statsCardsRow}>
             <View style={styles.statCard}>
-              <Text style={styles.statCardValue}>
+              <View style={styles.statCardTop}>
+                <Text style={styles.statCardLabel}>Active</Text>
+                <View
+                  style={[
+                    styles.statCardIconWrap,
+                    { backgroundColor: theme.colors.primaryLight },
+                  ]}
+                >
+                  <Ionicons
+                    name='pulse-outline'
+                    size={16}
+                    color={theme.colors.primary}
+                  />
+                </View>
+              </View>
+              <Text
+                style={[styles.statCardValue, { color: theme.colors.primary }]}
+              >
                 {jobsLoading ? '–' : activeCount}
               </Text>
-              <Text style={styles.statCardLabel}>Active</Text>
             </View>
             <View style={styles.statCard}>
+              <View style={styles.statCardTop}>
+                <Text style={styles.statCardLabel}>Done</Text>
+                <View
+                  style={[
+                    styles.statCardIconWrap,
+                    { backgroundColor: '#E8F5E9' },
+                  ]}
+                >
+                  <Ionicons
+                    name='checkmark-circle-outline'
+                    size={16}
+                    color='#43A047'
+                  />
+                </View>
+              </View>
               <Text style={styles.statCardValue}>
                 {jobsLoading ? '–' : completedCount}
               </Text>
-              <Text style={styles.statCardLabel}>Completed</Text>
             </View>
             <View style={styles.statCard}>
+              <View style={styles.statCardTop}>
+                <Text style={styles.statCardLabel}>Posted</Text>
+                <View
+                  style={[
+                    styles.statCardIconWrap,
+                    { backgroundColor: theme.colors.backgroundSecondary },
+                  ]}
+                >
+                  <Ionicons
+                    name='document-text-outline'
+                    size={16}
+                    color={theme.colors.textSecondary}
+                  />
+                </View>
+              </View>
               <Text style={styles.statCardValue}>
                 {jobsLoading ? '–' : postedCount}
               </Text>
-              <Text style={styles.statCardLabel}>Posted</Text>
             </View>
           </View>
         </SlideIn>

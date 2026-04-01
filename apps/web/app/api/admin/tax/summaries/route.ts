@@ -12,16 +12,18 @@ const summariesQuerySchema = z.object({
     .number()
     .int()
     .min(2024, 'Year must be 2024 or later')
-    .max(new Date().getFullYear() + 1, 'Year cannot be more than 1 year in the future'),
+    .max(
+      new Date().getFullYear() + 1,
+      'Year cannot be more than 1 year in the future'
+    ),
   status: z
     .enum(['pending', 'generated', 'filed'], {
-      errorMap: () => ({ message: 'Status must be "pending", "generated", or "filed"' }),
+      errorMap: () => ({
+        message: 'Status must be "pending", "generated", or "filed"',
+      }),
     })
     .optional(),
-  search: z
-    .string()
-    .max(200, 'Search query too long')
-    .optional(),
+  search: z.string().max(200, 'Search query too long').optional(),
 });
 
 // -- Types --------------------------------------------------------------------
@@ -81,13 +83,17 @@ export const GET = withApiHandler(
 
     if (!parsed.success) {
       const firstIssue = parsed.error.issues[0];
-      throw new BadRequestError(firstIssue?.message ?? 'Invalid query parameters');
+      throw new BadRequestError(
+        firstIssue?.message ?? 'Invalid query parameters'
+      );
     }
 
     const { year, status, search } = parsed.data;
 
     try {
       // Build query: tax_year_summaries joined with profiles and contractor_tax_profiles
+      // Join profiles for contractor name/email.
+      // contractor_tax_profiles is joined through profiles (both FK to profiles.id).
       let query = serverSupabase
         .from('tax_year_summaries')
         .select(
@@ -107,17 +113,17 @@ export const GET = withApiHandler(
           form_1099_filed_at,
           created_at,
           updated_at,
-          contractor:contractor_id (
+          contractor:profiles!tax_year_summaries_contractor_id_fkey (
             id,
             first_name,
             last_name,
-            email
-          ),
-          tax_profile:contractor_tax_profiles!contractor_tax_profiles_contractor_id_fkey (
-            w9_submitted_at,
-            w9_verified
+            email,
+            tax_profile:contractor_tax_profiles (
+              w9_submitted_at,
+              w9_verified
+            )
           )
-          `,
+          `
         )
         .eq('tax_year', year)
         .order('total_earnings', { ascending: false });
@@ -174,7 +180,7 @@ export const GET = withApiHandler(
         totalFiled: filtered.filter((s) => s.form_1099_filed).length,
         totalEarnings: filtered.reduce(
           (acc, s) => acc + Number(s.total_earnings),
-          0,
+          0
         ),
       };
 
@@ -193,7 +199,10 @@ export const GET = withApiHandler(
       });
     } catch (err) {
       // Re-throw API errors (they have proper status codes)
-      if (err instanceof BadRequestError || err instanceof InternalServerError) {
+      if (
+        err instanceof BadRequestError ||
+        err instanceof InternalServerError
+      ) {
         throw err;
       }
       logger.error('Unexpected error fetching tax summaries', err, {
@@ -203,5 +212,5 @@ export const GET = withApiHandler(
       });
       throw new InternalServerError('An unexpected error occurred');
     }
-  },
+  }
 );
