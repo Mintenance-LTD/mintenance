@@ -18,16 +18,25 @@ const year = () => new Date().getFullYear();
 
 /** Shared base CSS included in every template */
 function baseCSS(headerColor: string, extraCSS = ''): string {
-  return `body{font-family:Arial,sans-serif;line-height:1.6;color:#333}
-    .container{max-width:600px;margin:0 auto;padding:20px}
-    .header{background-color:${headerColor};color:white;padding:24px;border-radius:12px 12px 0 0;text-align:center}
-    .content{background-color:#f9fafb;padding:30px;border-radius:0 0 12px 12px}
-    .footer{text-align:center;margin-top:30px;color:#6b7280;font-size:14px}
-    .cta{display:inline-block;background-color:${headerColor};color:white;padding:14px 32px;border-radius:10px;text-decoration:none;font-weight:bold;margin-top:20px}
+  return `
+    body{margin:0;padding:0;background-color:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;line-height:1.6;color:#1f2937;-webkit-font-smoothing:antialiased}
+    .wrapper{width:100%;background-color:#f3f4f6;padding:40px 0}
+    .container{max-width:600px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 6px -1px rgba(0,0,0,0.07),0 2px 4px -2px rgba(0,0,0,0.05)}
+    .logo-bar{padding:20px 30px;text-align:left;background:#ffffff;border-bottom:1px solid #e5e7eb}
+    .logo-text{font-size:22px;font-weight:800;color:#0d9488;text-decoration:none;letter-spacing:-0.5px}
+    .header{background:linear-gradient(135deg,${headerColor} 0%,${headerColor}dd 100%);color:white;padding:32px 30px;text-align:left}
+    .header h1{margin:0;font-size:24px;font-weight:700;letter-spacing:-0.3px}
+    .header p{margin:8px 0 0;opacity:0.85;font-size:15px}
+    .content{padding:32px 30px;background:#ffffff}
+    .content p{margin:0 0 16px;font-size:15px;color:#374151}
+    .cta{display:inline-block;background-color:${headerColor};color:#ffffff !important;padding:14px 32px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;margin-top:8px;text-align:center}
+    .footer-wrap{padding:24px 30px;background:#f9fafb;border-top:1px solid #e5e7eb;text-align:center}
+    .footer-wrap p{margin:4px 0;font-size:12px;color:#9ca3af}
+    .footer-wrap a{color:#6b7280;text-decoration:underline}
     ${extraCSS}`;
 }
 
-/** Wrap content in the standard email shell */
+/** Wrap content in the standard email shell with Mintenance branding */
 function emailShell(
   headerColor: string,
   extraCSS: string,
@@ -35,11 +44,14 @@ function emailShell(
   bodyHtml: string,
   footer: string
 ): string {
-  return `<!DOCTYPE html><html><head><style>${baseCSS(headerColor, extraCSS)}</style></head><body>
-  <div class="container">
-    <div class="header">${headerHtml}</div>
-    <div class="content">${bodyHtml}</div>
-    ${footer}
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><style>${baseCSS(headerColor, extraCSS)}</style></head><body>
+  <div class="wrapper">
+    <div class="container">
+      <div class="logo-bar"><a href="https://mintenance.co.uk" class="logo-text">Mintenance</a></div>
+      <div class="header">${headerHtml}</div>
+      <div class="content">${bodyHtml}</div>
+      <div class="footer-wrap">${footer}</div>
+    </div>
   </div></body></html>`;
 }
 
@@ -187,7 +199,7 @@ export function quoteNotificationTemplate(data: QuoteEmailData): {
      <p><strong>Total Amount:</strong> $${data.totalAmount.toFixed(2)}</p>
      <a href="${e(data.viewUrl)}" class="button">View Quote</a>
      <p style="margin-top:30px">Log in to your Mintenance account to review the full details and accept or decline the quote.</p>`,
-    `<div class="footer"><p>&copy; ${year()} Mintenance. All rights reserved.</p></div>`
+    `<p>&copy; ${year()} Mintenance ltd. All rights reserved.</p>`
   );
   const text = `Hi ${data.recipientName},\n\n${data.contractorName} has sent you a new quote.\n\nQuote Number: ${data.quoteNumber}\nTotal Amount: $${data.totalAmount.toFixed(2)}\n\nView your quote here: ${data.viewUrl}\n\nLog in to review the full details and accept or decline the quote.\n\n© ${year()} Mintenance.`;
   return {
@@ -216,7 +228,7 @@ export function bidNotificationTemplate(data: BidEmailData): {
      <p style="background:white;padding:15px;border-left:4px solid ${color};margin:15px 0">${e(data.proposalExcerpt)}...</p>
      <a href="${e(data.viewUrl)}" class="button">View Full Bid</a>
      <p style="margin-top:30px">Review the contractor's full proposal, ratings, and past work to make an informed decision.</p>`,
-    `<div class="footer"><p>&copy; ${year()} Mintenance. All rights reserved.</p></div>`
+    `<p>&copy; ${year()} Mintenance ltd. All rights reserved.</p>`
   );
   const text = `Hi ${data.homeownerName},\n\n${data.contractorName} has submitted a bid for your job: ${data.jobTitle}\n\nBid Amount: $${data.bidAmount.toFixed(2)}\n\nProposal Preview:\n${data.proposalExcerpt}...\n\nView the full bid here: ${data.viewUrl}\n\nReview the contractor's full proposal, ratings, and past work.\n\n© ${year()} Mintenance.`;
   return {
@@ -242,7 +254,7 @@ export function connectionRequestTemplate(data: ConnectionRequestEmailData): {
      <p><strong>${e(data.requesterName)}</strong> (${e(data.requesterRole)}) wants to connect with you on Mintenance.</p>
      <a href="${e(data.acceptUrl)}" class="button">View Request</a>
      <p style="margin-top:30px">Building connections helps you grow your network and find more opportunities.</p>`,
-    `<div class="footer"><p>&copy; ${year()} Mintenance. All rights reserved.</p></div>`
+    `<p>&copy; ${year()} Mintenance ltd. All rights reserved.</p>`
   );
   const text = `Hi ${data.recipientName},\n\n${data.requesterName} (${data.requesterRole}) wants to connect with you on Mintenance.\n\nView the request here: ${data.acceptUrl}\n\nBuilding connections helps you grow your network.\n\n© ${year()} Mintenance.`;
   return {
@@ -266,7 +278,7 @@ export function quoteAcceptedTemplate(
     `<p>Great news!</p>
      <p><strong>${e(homeownerName)}</strong> has accepted your quote <strong>${e(quoteNumber)}</strong> for <strong>$${amount.toFixed(2)}</strong>.</p>
      <p>Log in to your Mintenance account to coordinate the next steps with your client.</p>`,
-    `<div class="footer"><p>&copy; ${year()} Mintenance. All rights reserved.</p></div>`
+    `<p>&copy; ${year()} Mintenance ltd. All rights reserved.</p>`
   );
   return { subject: `Quote Accepted - ${quoteNumber}`, html };
 }
@@ -289,7 +301,7 @@ export function contractNotificationTemplate(data: ContractNotificationData): {
      <p>Please review the contract details and sign it to proceed with the work.</p>
      <p><a href="${e(data.viewUrl)}" class="cta">Review &amp; Sign Contract</a></p>
      <p style="margin-top:20px;font-size:14px;color:#6b7280">Payment will be held securely in escrow by Mintenance until the work is completed and approved.</p>`,
-    `<div class="footer"><p>&copy; ${year()} Mintenance. All rights reserved.</p></div>`
+    `<p>&copy; ${year()} Mintenance ltd. All rights reserved.</p>`
   );
   const text = `Hi ${data.homeownerName},\n\n${data.contractorName} has sent you a contract for "${data.jobTitle}" for £${data.contractAmount.toFixed(2)}.\n\nPlease review and sign: ${data.viewUrl}\n\n© ${year()} Mintenance.`;
   return {
@@ -306,16 +318,20 @@ export function messageNotificationTemplate(data: MessageNotificationData): {
 } {
   const e = escapeHtml;
   const color = '#0d9488';
-  const extra = `.message-box{background:white;border-left:4px solid ${color};padding:15px;border-radius:4px;margin:15px 0}`;
+  const extra = `.message-box{background:#f0fdfa;border-left:4px solid ${color};padding:16px 20px;border-radius:0 8px 8px 0;margin:20px 0}
+    .sender-badge{display:inline-block;background:#e0f2fe;color:#0369a1;font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;margin-bottom:12px}
+    .job-ref{font-size:13px;color:#6b7280;margin-top:4px}`;
   const html = emailShell(
     color,
     extra,
-    `<h1>New Message</h1>`,
+    `<h1>New Message</h1><p>You have a new message on Mintenance</p>`,
     `<p>Hi ${e(data.recipientName)},</p>
-     <p><strong>${e(data.senderName)}</strong> sent you a message about "<strong>${e(data.jobTitle)}</strong>":</p>
-     <div class="message-box"><p style="margin:0;color:#374151">${e(data.messagePreview)}</p></div>
-     <p><a href="${e(data.viewUrl)}" class="cta">Reply Now</a></p>`,
-    `<div class="footer"><p>&copy; ${year()} Mintenance. All rights reserved.</p></div>`
+     <div class="sender-badge">${e(data.senderName)}</div>
+     <p style="margin-bottom:4px"><strong>${e(data.senderName)}</strong> sent you a message about:</p>
+     <p class="job-ref" style="margin-top:0"><strong>${e(data.jobTitle)}</strong></p>
+     <div class="message-box"><p style="margin:0;color:#374151;font-style:italic;white-space:pre-wrap">${e(data.messagePreview)}</p></div>
+     <p style="text-align:center"><a href="${e(data.viewUrl)}" class="cta">Reply Now</a></p>`,
+    `<p>&copy; ${year()} Mintenance ltd. All rights reserved.</p>`
   );
   const text = `Hi ${data.recipientName},\n\n${data.senderName} sent you a message about "${data.jobTitle}":\n\n"${data.messagePreview}"\n\nReply: ${data.viewUrl}\n\n© ${year()} Mintenance.`;
   return {
@@ -575,25 +591,38 @@ export function newsletterWelcomeTemplate(
   email: string
 ): { subject: string; html: string; text: string } {
   const color = '#0d9488';
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.co.uk';
+  const extra = `.feature-grid{margin:20px 0}
+    .feature-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid #f3f4f6}
+    .feature-item:last-child{border-bottom:none}
+    .feature-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+    .feature-label{font-weight:600;color:#1f2937;font-size:14px}
+    .feature-desc{color:#6b7280;font-size:13px;margin-top:2px}`;
   const html = emailShell(
     color,
-    '',
-    `<h1 style="margin:0">Welcome to Mintenance</h1><p style="margin:8px 0 0;opacity:0.9">You're on the list!</p>`,
+    extra,
+    `<h1>Welcome to Mintenance</h1><p>You're on the list!</p>`,
     `<p>Hi there,</p>
      <p>Thanks for subscribing to the Mintenance newsletter. You'll be the first to hear about:</p>
-     <ul style="color:#374151;padding-left:20px">
-       <li>New platform features &amp; updates</li>
-       <li>Tips for homeowners &amp; contractors</li>
-       <li>Industry insights &amp; guides</li>
-     </ul>
+     <div class="feature-grid">
+       <div class="feature-item">
+         <div class="feature-icon" style="background:#f0fdfa;color:#0d9488">&#9889;</div>
+         <div><div class="feature-label">New Platform Features</div><div class="feature-desc">Be the first to know about updates</div></div>
+       </div>
+       <div class="feature-item">
+         <div class="feature-icon" style="background:#fef3c7;color:#d97706">&#128161;</div>
+         <div><div class="feature-label">Tips &amp; Guides</div><div class="feature-desc">Expert advice for homeowners &amp; contractors</div></div>
+       </div>
+       <div class="feature-item">
+         <div class="feature-icon" style="background:#ede9fe;color:#7c3aed">&#128200;</div>
+         <div><div class="feature-label">Industry Insights</div><div class="feature-desc">Trends and data from the UK trades sector</div></div>
+       </div>
+     </div>
      <p>In the meantime, explore what Mintenance can do for you:</p>
      <p style="text-align:center"><a href="${baseUrl}/try-mint-ai" class="cta">Try AI Assessment</a></p>
-     <p style="margin-top:20px;text-align:center"><a href="${baseUrl}/discover" style="color:${color};font-weight:bold">Browse Contractors</a></p>`,
-    `<div style="margin-top:30px;padding-top:20px;border-top:1px solid #e5e7eb;text-align:center;font-size:12px;color:#9ca3af;">
-       <p>&copy; ${year()} Mintenance. All rights reserved.</p>
-       <p><a href="${baseUrl}/api/email/unsubscribe?email=${encodeURIComponent(email)}" style="color:#6b7280;">Unsubscribe</a></p>
-     </div>`
+     <p style="margin-top:16px;text-align:center"><a href="${baseUrl}/discover" style="color:${color};font-weight:600;font-size:14px">Browse Contractors &rarr;</a></p>`,
+    `<p>&copy; ${year()} Mintenance ltd. All rights reserved.</p>
+     <p><a href="${baseUrl}/api/email/unsubscribe?email=${encodeURIComponent(email)}">Unsubscribe</a></p>`
   );
   const text = `Welcome to Mintenance!\n\nThanks for subscribing. You'll be the first to hear about new features, tips, and industry insights.\n\nTry our AI assessment: ${baseUrl}/try-mint-ai\nBrowse contractors: ${baseUrl}/discover\n\n© ${year()} Mintenance.`;
   return {
