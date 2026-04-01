@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, FormEvent } from 'react';
+import { useState, useRef, useEffect, FormEvent, Suspense } from 'react';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { motion, useInView } from 'framer-motion';
@@ -55,6 +55,14 @@ function AnimatedSection({
 /* -------------------------------------------------------------------------- */
 
 export default function ComingSoonPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#f3fbf9]" />}>
+      <ComingSoonContent />
+    </Suspense>
+  );
+}
+
+function ComingSoonContent() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);

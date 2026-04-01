@@ -33,6 +33,7 @@ import type { HeaderMenuItem } from '../../components/navigation/NavigationHeade
 import { QuickActions } from './QuickActions';
 import { StatsSection } from './StatsSection';
 import { ScheduleSection } from './ScheduleSection';
+import { NotificationService } from '../../services/NotificationService';
 import { theme, gradients, semanticBg } from '../../theme';
 
 const appIcon = require('../../../assets/icon.png');
@@ -63,6 +64,13 @@ export const ContractorDashboard: React.FC = () => {
     queryKey: ['contractorStats', user?.id],
     queryFn: () => UserService.getContractorStats(user!.id),
     enabled: !!user && user.role === 'contractor',
+  });
+
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ['unreadNotifications', user?.id],
+    queryFn: () => NotificationService.getUnreadCount(user!.id),
+    enabled: !!user,
+    refetchInterval: 30000,
   });
 
   const handleRefresh = () => {
@@ -232,6 +240,11 @@ export const ContractorDashboard: React.FC = () => {
                   size={22}
                   color={theme.colors.textInverse}
                 />
+                {unreadCount > 0 && (
+                  <View style={styles.notifBadge}>
+                    <Text style={styles.notifBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+                  </View>
+                )}
               </TouchableOpacity>
               {userInitials && (
                 <TouchableOpacity
@@ -442,6 +455,12 @@ const styles = StyleSheet.create({
   },
   logoIcon: { width: 28, height: 28, borderRadius: 6 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  notifBadge: {
+    position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18, borderRadius: 9,
+    backgroundColor: '#EF4444', alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 4, borderWidth: 2, borderColor: theme.colors.primary,
+  },
+  notifBadgeText: { color: '#FFF', fontSize: 10, fontWeight: '700' },
   headerIconBtn: {
     width: 40,
     height: 40,
