@@ -3,13 +3,8 @@
 import React from 'react';
 import { theme } from '@/lib/theme';
 import { AdminCard } from '@/components/admin/AdminCard';
-import {
-  DynamicPieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  ResponsiveContainer,
-} from '@/components/charts/DynamicCharts';
+import { DynamicPieChart } from '@/components/charts/DynamicCharts';
+import { Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatCurrency } from './RevenueTypes';
 import type { RevenueMetrics } from './RevenueTypes';
 

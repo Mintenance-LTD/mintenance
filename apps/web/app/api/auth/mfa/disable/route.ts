@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { MFAService } from '@/lib/mfa/mfa-service';
-import { DatabaseManager } from '@/lib/database';
+import { createClient } from '@supabase/supabase-js';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { logger } from '@mintenance/shared';
-import { UnauthorizedError, BadRequestError, RateLimitError } from '@/lib/errors/api-error';
+import {
+  UnauthorizedError,
+  BadRequestError,
+  RateLimitError,
+} from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
 export const dynamic = 'force-dynamic';
@@ -28,7 +32,10 @@ export const POST = withApiHandler(
     });
 
     if (!rateLimitResult.allowed) {
-      logger.warn('MFA disable rate limit exceeded', { service: 'mfa', userId: user.id });
+      logger.warn('MFA disable rate limit exceeded', {
+        service: 'mfa',
+        userId: user.id,
+      });
       throw new RateLimitError();
     }
 
@@ -40,10 +47,21 @@ export const POST = withApiHandler(
 
     const { password } = validation.data;
 
-    // Verify password
-    const authenticatedUser = await DatabaseManager.authenticateUser(user.email, password);
-    if (!authenticatedUser) {
-      logger.warn('Failed password verification for MFA disable', { service: 'mfa', userId: user.id });
+    // AUDIT FIX: Verify password via Supabase Auth (not the legacy DatabaseManager.authenticateUser
+    // which never actually verified passwords)
+    const supabaseAuth = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    const { error: authError } = await supabaseAuth.auth.signInWithPassword({
+      email: user.email,
+      password,
+    });
+    if (authError) {
+      logger.warn('Failed password verification for MFA disable', {
+        service: 'mfa',
+        userId: user.id,
+      });
       throw new UnauthorizedError('Invalid password');
     }
 
@@ -58,7 +76,8 @@ export const POST = withApiHandler(
 
     return NextResponse.json({
       success: true,
-      message: 'MFA has been disabled. Your account is now protected by password only.',
+      message:
+        'MFA has been disabled. Your account is now protected by password only.',
     });
-  },
+  }
 );

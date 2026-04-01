@@ -5,6 +5,8 @@ import {
   DynamicLineChart,
   DynamicBarChart,
   DynamicAreaChart,
+} from '@/components/charts';
+import {
   Line,
   Bar,
   Area,
@@ -14,7 +16,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-} from '@/components/charts';
+} from 'recharts';
 import { theme } from '@/lib/theme';
 import { Card } from '@/components/ui/Card.unified';
 import { Icon } from '@/components/ui/Icon';
@@ -33,7 +35,13 @@ interface MarketInsightsClientProps {
 
 export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: theme.spacing[6],
+      }}
+    >
       {/* Header */}
       <div>
         <h1
@@ -52,7 +60,8 @@ export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
             color: theme.colors.textSecondary,
           }}
         >
-          Pricing trends, demand forecasting, and market analysis to help you make informed decisions
+          Pricing trends, demand forecasting, and market analysis to help you
+          make informed decisions
         </p>
       </div>
 
@@ -64,8 +73,15 @@ export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
           gap: theme.spacing[4],
         }}
       >
-        <Card padding="lg">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2], paddingLeft: theme.spacing[4] }}>
+        <Card padding='lg'>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: theme.spacing[2],
+              paddingLeft: theme.spacing[4],
+            }}
+          >
             <div
               style={{
                 fontSize: theme.typography.fontSize.sm,
@@ -90,13 +106,21 @@ export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
                 color: theme.colors.textTertiary,
               }}
             >
-              vs Your Average: £{insights.marketAnalysis.yourAverageRate.toLocaleString()}
+              vs Your Average: £
+              {insights.marketAnalysis.yourAverageRate.toLocaleString()}
             </div>
           </div>
         </Card>
 
-        <Card padding="lg">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2], paddingLeft: theme.spacing[4] }}>
+        <Card padding='lg'>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: theme.spacing[2],
+              paddingLeft: theme.spacing[4],
+            }}
+          >
             <div
               style={{
                 fontSize: theme.typography.fontSize.sm,
@@ -132,8 +156,15 @@ export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
           </div>
         </Card>
 
-        <Card padding="lg">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2], paddingLeft: theme.spacing[4] }}>
+        <Card padding='lg'>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: theme.spacing[2],
+              paddingLeft: theme.spacing[4],
+            }}
+          >
             <div
               style={{
                 fontSize: theme.typography.fontSize.sm,
@@ -150,7 +181,8 @@ export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
                 color: theme.colors.primary,
               }}
             >
-              £{insights.marketAnalysis.pricingRecommendation.suggestedRate.toLocaleString()}
+              £
+              {insights.marketAnalysis.pricingRecommendation.suggestedRate.toLocaleString()}
             </div>
             <div
               style={{
@@ -165,7 +197,7 @@ export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
       </div>
 
       {/* Pricing Trends Chart */}
-      <Card padding="lg">
+      <Card padding='lg'>
         <h2
           style={{
             fontSize: theme.typography.fontSize.xl,
@@ -177,11 +209,11 @@ export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
         >
           Pricing Trends (Last 12 Months)
         </h2>
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width='100%' height={300}>
           <DynamicLineChart data={insights.pricingTrends}>
-            <CartesianGrid strokeDasharray="3 3" stroke={theme.colors.border} />
+            <CartesianGrid strokeDasharray='3 3' stroke={theme.colors.border} />
             <XAxis
-              dataKey="month"
+              dataKey='month'
               stroke={theme.colors.textSecondary}
               fontSize={12}
               tickLine={false}
@@ -193,7 +225,10 @@ export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
               tickFormatter={(value) => `£${value}`}
             />
             <Tooltip
-              formatter={(value: number) => [`£${value.toLocaleString()}`, 'Average Price']}
+              formatter={(value: number) => [
+                `£${value.toLocaleString()}`,
+                'Average Price',
+              ]}
               contentStyle={{
                 backgroundColor: theme.colors.surface,
                 border: `1px solid ${theme.colors.border}`,
@@ -202,19 +237,19 @@ export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
             />
             <Legend />
             <Line
-              type="monotone"
-              dataKey="averagePrice"
+              type='monotone'
+              dataKey='averagePrice'
               stroke={theme.colors.primary}
               strokeWidth={2}
-              name="Average Price"
+              name='Average Price'
               dot={{ fill: theme.colors.primary, r: 4 }}
             />
             <Line
-              type="monotone"
-              dataKey="medianPrice"
+              type='monotone'
+              dataKey='medianPrice'
               stroke={theme.colors.secondary}
               strokeWidth={2}
-              name="Median Price"
+              name='Median Price'
               dot={{ fill: theme.colors.secondary, r: 4 }}
             />
           </DynamicLineChart>
@@ -222,7 +257,7 @@ export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
       </Card>
 
       {/* Demand Forecast Chart */}
-      <Card padding="lg">
+      <Card padding='lg'>
         <h2
           style={{
             fontSize: theme.typography.fontSize.xl,
@@ -234,17 +269,25 @@ export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
         >
           Demand Forecast (Next 6 Months)
         </h2>
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width='100%' height={300}>
           <DynamicAreaChart data={insights.demandForecast}>
             <defs>
-              <linearGradient id="demandGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={theme.colors.primary} stopOpacity={0.3} />
-                <stop offset="95%" stopColor={theme.colors.primary} stopOpacity={0} />
+              <linearGradient id='demandGradient' x1='0' y1='0' x2='0' y2='1'>
+                <stop
+                  offset='5%'
+                  stopColor={theme.colors.primary}
+                  stopOpacity={0.3}
+                />
+                <stop
+                  offset='95%'
+                  stopColor={theme.colors.primary}
+                  stopOpacity={0}
+                />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke={theme.colors.border} />
+            <CartesianGrid strokeDasharray='3 3' stroke={theme.colors.border} />
             <XAxis
-              dataKey="month"
+              dataKey='month'
               stroke={theme.colors.textSecondary}
               fontSize={12}
               tickLine={false}
@@ -258,7 +301,8 @@ export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
             />
             <Tooltip
               formatter={(value: number, name: string) => {
-                if (name === 'predictedDemand') return [`${value}%`, 'Predicted Demand'];
+                if (name === 'predictedDemand')
+                  return [`${value}%`, 'Predicted Demand'];
                 if (name === 'confidence') return [`${value}%`, 'Confidence'];
                 return [value, name];
               }}
@@ -270,19 +314,19 @@ export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
             />
             <Legend />
             <Area
-              type="monotone"
-              dataKey="predictedDemand"
+              type='monotone'
+              dataKey='predictedDemand'
               stroke={theme.colors.primary}
               fillOpacity={1}
-              fill="url(#demandGradient)"
-              name="Predicted Demand"
+              fill='url(#demandGradient)'
+              name='Predicted Demand'
             />
           </DynamicAreaChart>
         </ResponsiveContainer>
       </Card>
 
       {/* Seasonal Trends */}
-      <Card padding="lg">
+      <Card padding='lg'>
         <h2
           style={{
             fontSize: theme.typography.fontSize.xl,
@@ -294,11 +338,11 @@ export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
         >
           Seasonal Trends
         </h2>
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width='100%' height={300}>
           <DynamicBarChart data={insights.seasonalTrends}>
-            <CartesianGrid strokeDasharray="3 3" stroke={theme.colors.border} />
+            <CartesianGrid strokeDasharray='3 3' stroke={theme.colors.border} />
             <XAxis
-              dataKey="month"
+              dataKey='month'
               stroke={theme.colors.textSecondary}
               fontSize={12}
               tickLine={false}
@@ -312,7 +356,8 @@ export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
             />
             <Tooltip
               formatter={(value: number, name: string) => {
-                if (name === 'demandScore') return [`${value}%`, 'Demand Score'];
+                if (name === 'demandScore')
+                  return [`${value}%`, 'Demand Score'];
                 return [value, name];
               }}
               contentStyle={{
@@ -323,9 +368,9 @@ export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
             />
             <Legend />
             <Bar
-              dataKey="demandScore"
+              dataKey='demandScore'
               fill={theme.colors.secondary}
-              name="Demand Score"
+              name='Demand Score'
               radius={[8, 8, 0, 0]}
             />
           </DynamicBarChart>
@@ -334,7 +379,7 @@ export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
 
       {/* Service Type Insights */}
       {insights.serviceTypeInsights.length > 0 && (
-        <Card padding="lg">
+        <Card padding='lg'>
           <h2
             style={{
               fontSize: theme.typography.fontSize.xl,
@@ -418,7 +463,9 @@ export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
                   style={{
                     fontSize: theme.typography.fontSize.xs,
                     color:
-                      insight.growthRate > 0 ? theme.colors.success : theme.colors.textTertiary,
+                      insight.growthRate > 0
+                        ? theme.colors.success
+                        : theme.colors.textTertiary,
                   }}
                 >
                   {insight.growthRate > 0 ? '+' : ''}
@@ -431,7 +478,7 @@ export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
       )}
 
       {/* Pricing Recommendation */}
-      <Card padding="lg">
+      <Card padding='lg'>
         <div
           style={{
             display: 'flex',
@@ -451,7 +498,7 @@ export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
               flexShrink: 0,
             }}
           >
-            <Icon name="lightBulb" size={24} color={theme.colors.primary} />
+            <Icon name='lightBulb' size={24} color={theme.colors.primary} />
           </div>
           <div style={{ flex: 1 }}>
             <h3
@@ -498,7 +545,8 @@ export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
                   color: theme.colors.primary,
                 }}
               >
-                £{insights.marketAnalysis.pricingRecommendation.suggestedRate.toLocaleString()}
+                £
+                {insights.marketAnalysis.pricingRecommendation.suggestedRate.toLocaleString()}
               </div>
             </div>
           </div>
@@ -507,5 +555,3 @@ export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
     </div>
   );
 }
-
-

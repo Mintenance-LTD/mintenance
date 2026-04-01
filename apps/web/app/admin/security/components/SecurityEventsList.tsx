@@ -63,7 +63,7 @@ function getSeverityColor(severity: string) {
     case 'critical':
       return 'bg-red-100 text-red-700 border-red-300';
     case 'high':
-      return 'bg-emerald-100 text-emerald-700 border-emerald-300';
+      return 'bg-orange-100 text-orange-700 border-orange-300';
     case 'medium':
       return 'bg-yellow-100 text-yellow-700 border-yellow-300';
     case 'low':

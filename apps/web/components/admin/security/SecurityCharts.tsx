@@ -3,9 +3,8 @@
 import React from 'react';
 import { Card } from '@/components/ui/Card.unified';
 import { theme } from '@/lib/theme';
+import { DynamicBarChart, DynamicPieChart } from '@/components/charts';
 import {
-  DynamicBarChart,
-  DynamicPieChart,
   Bar,
   Pie,
   Cell,
@@ -14,7 +13,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-} from '@/components/charts';
+} from 'recharts';
 import type { SecurityMetrics } from './SecurityMetricsCards';
 
 const SEVERITY_COLORS = {
