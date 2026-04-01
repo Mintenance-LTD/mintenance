@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { EmailService } from '@/lib/email-service';
 
 const subscribeSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -10,10 +11,9 @@ const subscribeSchema = z.object({
 
 /**
  * POST /api/newsletter
- * Subscribe email to newsletter.
+ * Subscribe email to newsletter and send welcome email via Brevo.
  *
  * Saves to Supabase table `public.newsletter_subscriptions`.
- * Store-only: no newsletter emails are sent.
  */
 export const POST = withApiHandler(
   { auth: false, rateLimit: { maxRequests: 10, windowMs: 60_000 } },
@@ -57,7 +57,7 @@ export const POST = withApiHandler(
           email: normalizedEmail,
         });
         return NextResponse.json(
-          { message: 'Email already subscribed', subscribed: true },
+          { message: 'You\'re already subscribed!', subscribed: true },
           { status: 200 }
         );
       }
@@ -118,6 +118,15 @@ export const POST = withApiHandler(
           subscriptionId: inserted?.id,
         });
       }
+
+      // Send welcome email (fire-and-forget — don't block the response)
+      EmailService.sendNewsletterWelcomeEmail(normalizedEmail).catch((err) => {
+        logger.error('Failed to send newsletter welcome email', {
+          service: 'newsletter',
+          error: err,
+          email: normalizedEmail,
+        });
+      });
 
       return NextResponse.json(
         { message: 'Successfully subscribed to newsletter', subscribed: true },

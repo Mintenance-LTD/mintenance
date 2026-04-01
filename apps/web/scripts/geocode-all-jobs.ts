@@ -160,7 +160,7 @@ async function updateContractorLocations() {
 
   const contractorLocations = [
     { email: 'contractor@example.com', latitude: 51.5200, longitude: -0.1000, address: '45 City Road, Shoreditch, London EC1Y 1AE' },
-    { email: 'test.contractor@mintenance.com', latitude: 51.5074, longitude: -0.1278, address: '123 Oxford Street, London W1D 1BS' },
+    { email: 'test.contractor@mintenance.co.uk', latitude: 51.5074, longitude: -0.1278, address: '123 Oxford Street, London W1D 1BS' },
   ];
 
   for (const contractor of contractorLocations) {

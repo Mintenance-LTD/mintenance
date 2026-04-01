@@ -43,7 +43,7 @@ export class AdminNotificationService {
         .eq('setting_key', 'admin_email')
         .single();
 
-      const adminEmail = setting?.setting_value || process.env.ADMIN_EMAIL || 'admin@mintenance.com';
+      const adminEmail = setting?.setting_value || process.env.ADMIN_EMAIL || 'admin@mintenance.co.uk';
       const baseUrl = getAppUrl();
 
       const html = `

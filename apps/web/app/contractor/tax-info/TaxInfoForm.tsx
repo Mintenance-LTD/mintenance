@@ -794,8 +794,8 @@ export function TaxInfoForm() {
           <p className="mt-6 text-xs text-gray-500 text-center">
             Your tax information is transmitted securely and encrypted at rest. We use it solely for
             1099-NEC tax reporting as required by the IRS. For questions, contact{' '}
-            <a href="mailto:support@mintenance.com" className="text-teal-600 hover:underline">
-              support@mintenance.com
+            <a href="mailto:support@mintenance.co.uk" className="text-teal-600 hover:underline">
+              support@mintenance.co.uk
             </a>
             .
           </p>

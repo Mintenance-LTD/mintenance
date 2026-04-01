@@ -70,8 +70,8 @@ export default function ContractorSupportPage() {
           </h2>
           <p style={{ margin: 0, color: theme.colors.textSecondary, fontSize: theme.typography.fontSize.sm }}>
             Email{' '}
-            <a href="mailto:support@mintenance.com" style={{ color: theme.colors.primary }}>
-              support@mintenance.com
+            <a href="mailto:support@mintenance.co.uk" style={{ color: theme.colors.primary }}>
+              support@mintenance.co.uk
             </a>{' '}
             or start a chat with our contractor success team.
           </p>

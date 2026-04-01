@@ -151,8 +151,8 @@ export default function ForgotPasswordPage() {
               <li>Wait a few minutes and try again</li>
               <li>
                 Contact support at{' '}
-                <a href="mailto:support@mintenance.com" className="text-blue-600 hover:underline">
-                  support@mintenance.com
+                <a href="mailto:support@mintenance.co.uk" className="text-blue-600 hover:underline">
+                  support@mintenance.co.uk
                 </a>
               </li>
             </ul>

@@ -71,7 +71,7 @@ export class TrialNotifications {
               <a href="${baseUrl}/contractor/subscription" class="button">View Subscription Plans</a>
             </div>
             <div class="footer">
-              <p>Questions? Contact us at support@mintenance.com</p>
+              <p>Questions? Contact us at support@mintenance.co.uk</p>
             </div>
           </div>
         </body>
@@ -157,7 +157,7 @@ export class TrialNotifications {
               <a href="${baseUrl}/contractor/subscription" class="button">Subscribe Now</a>
             </div>
             <div class="footer">
-              <p>Questions? Contact us at support@mintenance.com</p>
+              <p>Questions? Contact us at support@mintenance.co.uk</p>
             </div>
           </div>
         </body>
@@ -224,7 +224,7 @@ export class TrialNotifications {
               <a href="${baseUrl}/contractor/subscription" class="button">Subscribe Now</a>
             </div>
             <div class="footer">
-              <p>Questions? Contact us at support@mintenance.com</p>
+              <p>Questions? Contact us at support@mintenance.co.uk</p>
             </div>
           </div>
         </body>
@@ -293,7 +293,7 @@ export class TrialNotifications {
               <p>Thank you for being a valued Mintenance contractor!</p>
             </div>
             <div class="footer">
-              <p>Questions? Contact us at support@mintenance.com</p>
+              <p>Questions? Contact us at support@mintenance.co.uk</p>
             </div>
           </div>
         </body>
@@ -358,7 +358,7 @@ export class TrialNotifications {
               <a href="${baseUrl}/contractor/subscription" class="button">Update Payment Method</a>
             </div>
             <div class="footer">
-              <p>Questions? Contact us at support@mintenance.com</p>
+              <p>Questions? Contact us at support@mintenance.co.uk</p>
             </div>
           </div>
         </body>

@@ -147,7 +147,7 @@ export class AlertingService {
       email: {
         enabled: process.env.EMAIL_ALERTS_ENABLED === 'true',
         recipients: (process.env.ALERT_EMAIL_RECIPIENTS || '').split(',').filter(Boolean),
-        fromEmail: process.env.ALERT_FROM_EMAIL || 'alerts@mintenance.com',
+        fromEmail: process.env.ALERT_FROM_EMAIL || 'alerts@mintenance.co.uk',
         fromName: process.env.ALERT_FROM_NAME || 'Mintenance AI Alerts'
       },
       slack: {

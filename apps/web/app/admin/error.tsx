@@ -132,8 +132,8 @@ export default function AdminError({
           </ol>
           <p className="mt-3 text-sm text-gray-600">
             For urgent admin support, contact{' '}
-            <a href="mailto:admin@mintenance.com" className="text-blue-600 hover:underline">
-              admin@mintenance.com
+            <a href="mailto:admin@mintenance.co.uk" className="text-blue-600 hover:underline">
+              admin@mintenance.co.uk
             </a>
             {' '}with incident ID: <span className="font-mono text-xs">{error.digest}</span>
           </p>
