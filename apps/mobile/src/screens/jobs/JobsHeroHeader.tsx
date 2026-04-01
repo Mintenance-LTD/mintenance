@@ -64,44 +64,38 @@ export const JobsHeroHeader: React.FC<JobsHeroHeaderProps> = ({
           )}
         </View>
 
-        {/* Search bar */}
-        <View style={styles.searchBar}>
-          <Ionicons
-            name='search'
-            size={18}
-            color={theme.colors.primary}
-            style={styles.searchIcon}
-          />
-          <TextInput
-            style={styles.searchInput}
-            placeholder={
-              isContractor
-                ? 'Search by trade, location...'
-                : 'Search your jobs...'
-            }
-            placeholderTextColor={theme.colors.textTertiary}
-            value={searchQuery}
-            onChangeText={onSearchChange}
-            accessibilityLabel='Search jobs'
-            returnKeyType='search'
-          />
-          {searchQuery.length > 0 ? (
-            <TouchableOpacity
-              onPress={() => onSearchChange('')}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons
-                name='close-circle'
-                size={18}
-                color={theme.colors.textTertiary}
-              />
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.searchButton} activeOpacity={0.8}>
-              <Text style={styles.searchButtonText}>Find</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        {/* Search bar — homeowner only */}
+        {!isContractor && (
+          <View style={styles.searchBar}>
+            <Ionicons
+              name='search'
+              size={18}
+              color={theme.colors.primary}
+              style={styles.searchIcon}
+            />
+            <TextInput
+              style={styles.searchInput}
+              placeholder='Search your jobs...'
+              placeholderTextColor={theme.colors.textTertiary}
+              value={searchQuery}
+              onChangeText={onSearchChange}
+              accessibilityLabel='Search jobs'
+              returnKeyType='search'
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={() => onSearchChange('')}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons
+                  name='close-circle'
+                  size={18}
+                  color={theme.colors.textTertiary}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </View>
 
       {/* Summary stat cards */}

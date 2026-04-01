@@ -57,39 +57,46 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
     try {
       setError(null);
 
-      // Step 1: Get all jobs where this contractor is assigned
-      const { data: jobsRaw, error: jobsErr } = await supabase
-        .from('jobs')
-        .select(
-          'id, homeowner_id, status, title, created_at, completed_at, budget, final_price'
-        )
-        .eq('contractor_id', user.id)
-        .order('created_at', { ascending: false });
-      if (jobsErr) throw new Error(jobsErr.message);
+      // Step 1: Get jobs where contractor is assigned + job IDs from accepted bids
+      const [jobsResult, bidsResult] = await Promise.all([
+        supabase
+          .from('jobs')
+          .select(
+            'id, homeowner_id, status, title, created_at, completed_at, budget, final_price'
+          )
+          .eq('contractor_id', user.id)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('bids')
+          .select('job_id')
+          .eq('contractor_id', user.id)
+          .eq('status', 'accepted'),
+      ]);
 
-      // Step 2: Get job IDs from accepted bids (covers jobs not yet assigned)
-      const { data: bidsRaw } = await supabase
-        .from('bids')
-        .select(
-          'job_id, job:jobs!job_id(id, homeowner_id, status, title, created_at, completed_at, budget, final_price)'
-        )
-        .eq('contractor_id', user.id)
-        .eq('status', 'accepted');
-
-      // Merge — deduplicate by job ID
+      // Collect all job IDs (direct + from bids)
       const jobMap = new Map<string, Record<string, unknown>>();
-      for (const j of jobsRaw || []) {
+      for (const j of jobsResult.data || []) {
         jobMap.set(j.id, j as Record<string, unknown>);
       }
-      for (const b of bidsRaw || []) {
-        const j = (b as Record<string, unknown>).job as Record<
-          string,
-          unknown
-        > | null;
-        if (j?.id && !jobMap.has(j.id as string)) jobMap.set(j.id as string, j);
+
+      // Fetch any bid-sourced jobs not already in the map
+      const bidJobIds = (bidsResult.data || [])
+        .map((b) => (b as Record<string, unknown>).job_id as string)
+        .filter((id) => id && !jobMap.has(id));
+
+      if (bidJobIds.length > 0) {
+        const { data: extraJobs } = await supabase
+          .from('jobs')
+          .select(
+            'id, homeowner_id, status, title, created_at, completed_at, budget, final_price'
+          )
+          .in('id', bidJobIds);
+        for (const j of extraJobs || []) {
+          jobMap.set(j.id, j as Record<string, unknown>);
+        }
       }
 
-      // Step 3: Collect unique homeowner IDs and fetch profiles separately
+      // Step 2: Fetch homeowner profiles
       const homeownerIds = [
         ...new Set(
           [...jobMap.values()]
@@ -109,7 +116,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
         }
       }
 
-      // Step 4: Assemble JobRecord[] with homeowner data attached
+      // Step 3: Assemble
       const allJobs: JobRecord[] = [...jobMap.values()].map((j) => ({
         id: j.id as string,
         homeowner_id: j.homeowner_id as string,
