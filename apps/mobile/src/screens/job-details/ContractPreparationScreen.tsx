@@ -245,12 +245,13 @@ export const ContractPreparationScreen: React.FC<Props> = ({
         'The homeowner has been notified to review and sign.',
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
-    } catch (err) {
+    } catch (err: unknown) {
       HapticService.error();
-      Alert.alert(
-        'Error',
-        err instanceof Error ? err.message : 'Failed to submit contract'
-      );
+      const msg = err instanceof Error ? err.message
+        : typeof err === 'string' ? err
+        : typeof err === 'object' && err !== null && 'message' in err ? String((err as Record<string, unknown>).message)
+        : 'Failed to submit contract. Please try again.';
+      Alert.alert('Error', msg);
     } finally {
       setSubmitting(false);
     }
