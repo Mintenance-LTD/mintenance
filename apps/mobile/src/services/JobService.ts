@@ -1,6 +1,6 @@
 /**
  * Job Service - Main Service
- * 
+ *
  * This is the main JobService that delegates to specialized services.
  * It maintains backward compatibility while using the new modular architecture.
  */
@@ -36,7 +36,19 @@ export class JobService {
 
   static async updateJob(
     jobId: string,
-    updates: Partial<Pick<Job, 'title' | 'description' | 'location' | 'budget' | 'status' | 'category' | 'subcategory' | 'priority'>>
+    updates: Partial<
+      Pick<
+        Job,
+        | 'title'
+        | 'description'
+        | 'location'
+        | 'budget'
+        | 'status'
+        | 'category'
+        | 'subcategory'
+        | 'priority'
+      >
+    >
   ): Promise<Job> {
     return JobCRUDService.updateJob(jobId, updates);
   }
@@ -97,7 +109,10 @@ export class JobService {
     return JobSearchService.getJob(jobId);
   }
 
-  static async getJobsByUser(userId: string, role: 'homeowner' | 'contractor'): Promise<Job[]> {
+  static async getJobsByUser(
+    userId: string,
+    role: 'homeowner' | 'contractor'
+  ): Promise<Job[]> {
     return JobSearchService.getJobsByUser(userId, role);
   }
 
@@ -109,6 +124,18 @@ export class JobService {
     description: string;
     estimatedDurationDays?: number;
     proposedStartDate?: string;
+    lineItems?: Array<{
+      description: string;
+      type: string;
+      quantity: number;
+      unitPrice: number;
+      total: number;
+    }>;
+    subtotal?: number;
+    taxRate?: number;
+    taxAmount?: number;
+    totalAmount?: number;
+    terms?: string;
   }): Promise<Bid> {
     return BidManagementService.submitBid(bidData);
   }

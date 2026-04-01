@@ -1,9 +1,3 @@
-/**
- * ContractViewScreen - View and sign contracts (Phase 4)
- *
- * Both homeowners and contractors can view and sign contracts.
- * Uses the same /api/contracts endpoints as the web app.
- */
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -77,45 +71,38 @@ const formatDate = (dateStr: string) =>
     day: 'numeric',
   });
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'accepted':
-      return theme.colors.primary;
-    case 'pending_contractor':
-    case 'pending_homeowner':
-      return theme.colors.accent;
-    case 'rejected':
-    case 'cancelled':
-      return theme.colors.error;
-    default:
-      return theme.colors.textSecondary;
-  }
+const STATUS_COLORS: Record<string, string> = {
+  accepted: theme.colors.primary,
+  pending_contractor: theme.colors.accent,
+  pending_homeowner: theme.colors.accent,
+  rejected: theme.colors.error,
+  cancelled: theme.colors.error,
 };
-
-const getStatusLabel = (status: string) => {
-  switch (status) {
-    case 'draft':
-      return 'Draft';
-    case 'pending_contractor':
-      return 'Pending Contractor Signature';
-    case 'pending_homeowner':
-      return 'Pending Homeowner Signature';
-    case 'accepted':
-      return 'Accepted';
-    case 'rejected':
-      return 'Rejected';
-    case 'cancelled':
-      return 'Cancelled';
-    default:
-      return status;
-  }
+const STATUS_LABELS: Record<string, string> = {
+  draft: 'Draft',
+  pending_contractor: 'Pending Contractor Signature',
+  pending_homeowner: 'Pending Homeowner Signature',
+  accepted: 'Accepted',
+  rejected: 'Rejected',
+  cancelled: 'Cancelled',
 };
+const getStatusColor = (s: string) =>
+  STATUS_COLORS[s] || theme.colors.textSecondary;
+const getStatusLabel = (s: string) => STATUS_LABELS[s] || s;
 
 export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
   const { jobId } = route.params;
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [contract, setContract] = useState<Contract | null>(null);
+  const [quoteItems, setQuoteItems] = useState<
+    Array<{
+      description: string;
+      quantity: number;
+      unitPrice: number;
+      total: number;
+    }>
+  >([]);
   const [loading, setLoading] = useState(true);
   const [signing, setSigning] = useState(false);
   const [rejecting, setRejecting] = useState(false);
@@ -156,6 +143,29 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             [h?.first_name, h?.last_name].filter(Boolean).join(' ') ||
             'Homeowner',
         });
+        // Fetch linked quote line items
+        const qid = row.quote_id as string | null;
+        if (qid) {
+          const { supabase } = await import('../../config/supabase');
+          const { data: q } = await supabase
+            .from('contractor_quotes')
+            .select('line_items')
+            .eq('id', qid)
+            .single();
+          if (q?.line_items) setQuoteItems(q.line_items as typeof quoteItems);
+        } else {
+          // Try by job_id + contractor_id
+          const { supabase } = await import('../../config/supabase');
+          const { data: q } = await supabase
+            .from('contractor_quotes')
+            .select('line_items')
+            .eq('job_id', jobId)
+            .eq('contractor_id', row.contractor_id as string)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (q?.line_items) setQuoteItems(q.line_items as typeof quoteItems);
+        }
       } else {
         setContract(null);
       }
@@ -390,13 +400,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
 
         {/* Amount + Escrow Badge */}
         <View style={styles.amountCard}>
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
+          <View style={styles.amountRow}>
             <View>
               <Text style={styles.amountLabel}>CONTRACT AMOUNT</Text>
               <Text style={styles.amountValue}>
@@ -404,34 +408,47 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
                 {Number(contract.amount).toLocaleString()}
               </Text>
             </View>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 4,
-                backgroundColor: theme.colors.primaryLight,
-                paddingHorizontal: 10,
-                paddingVertical: 6,
-                borderRadius: 8,
-              }}
-            >
+            <View style={styles.escrowBadge}>
               <Ionicons
                 name='shield-checkmark'
                 size={14}
                 color={theme.colors.primary}
               />
-              <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: '700',
-                  color: theme.colors.primary,
-                }}
-              >
-                Escrow Protected
-              </Text>
+              <Text style={styles.escrowBadgeText}>Escrow Protected</Text>
             </View>
           </View>
         </View>
+
+        {/* Agreed scope from quote */}
+        {quoteItems.length > 0 && (
+          <View style={styles.scopeCard}>
+            <View style={styles.scopeHeader}>
+              <Ionicons name='list' size={16} color={theme.colors.primary} />
+              <Text style={styles.scopeTitle}>Agreed Scope</Text>
+            </View>
+            {quoteItems.map((item, idx) => (
+              <View
+                key={idx}
+                style={[
+                  styles.scopeItemRow,
+                  idx < quoteItems.length - 1 && styles.scopeItemBorder,
+                ]}
+              >
+                <View style={styles.scopeItemInfo}>
+                  <Text style={styles.scopeItemDesc}>{item.description}</Text>
+                  <Text style={styles.scopeItemQty}>
+                    {item.quantity} x {'\u00A3'}
+                    {(item.unitPrice || 0).toFixed(2)}
+                  </Text>
+                </View>
+                <Text style={styles.scopeItemTotal}>
+                  {'\u00A3'}
+                  {(item.total || 0).toFixed(2)}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Title, description, dates, terms */}
         <ContractTermsView

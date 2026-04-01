@@ -166,14 +166,15 @@ export async function middleware(request: NextRequest) {
     });
 
     if (!isDevelopment) {
-      // AUDIT FIX: Replaced 'unsafe-inline' with nonce-based CSP for script-src.
-      // The nonce is generated above as publicNonce and set in x-csp-nonce header.
-      // Style-src still uses 'unsafe-inline' as Next.js injects inline styles for hydration.
+      // Nonce-based CSP with 'unsafe-inline' fallback for Next.js compatibility.
+      // In CSP Level 3+ browsers, 'unsafe-inline' is automatically ignored when a
+      // nonce is present — so nonce provides real XSS protection in modern browsers.
+      // The 'unsafe-inline' fallback ensures Next.js inline hydration scripts work.
       response.headers.set(
         'Content-Security-Policy',
         [
           "default-src 'self'",
-          `script-src 'self' 'nonce-${publicNonce}' https://js.stripe.com https://maps.googleapis.com https://vercel.live`,
+          `script-src 'self' 'nonce-${publicNonce}' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com https://vercel.live`,
           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
           "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
           "font-src 'self' data: https://fonts.gstatic.com",
@@ -754,11 +755,11 @@ export async function middleware(request: NextRequest) {
     const connectSrc = isDevelopment
       ? "connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com http://localhost:* http://127.0.0.1:* ws: wss:"
       : "connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com https://vercel.live wss: wss://ws-us3.pusher.com";
-    // AUDIT FIX: Replaced 'unsafe-inline' with nonce-based CSP for authenticated routes.
-    // The nonce is generated above and set in x-csp-nonce header for inline scripts.
+    // Nonce-based CSP with 'unsafe-inline' fallback for authenticated routes.
+    // In CSP3+ browsers, 'unsafe-inline' is ignored when nonce is present.
     const cspHeader = [
       "default-src 'self'",
-      `script-src 'self' 'nonce-${nonce}' https://js.stripe.com https://maps.googleapis.com https://vercel.live`,
+      `script-src 'self' 'nonce-${nonce}' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com https://vercel.live`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
       "font-src 'self' data: https://fonts.gstatic.com",

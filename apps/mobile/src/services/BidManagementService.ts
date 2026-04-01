@@ -1,6 +1,6 @@
 /**
  * Bid Management Service
- * 
+ *
  * Handles all bidding-related operations:
  * - Submitting bids
  * - Getting bids by job/contractor
@@ -44,16 +44,39 @@ export class BidManagementService {
     description: string;
     estimatedDurationDays?: number;
     proposedStartDate?: string;
+    lineItems?: Array<{
+      description: string;
+      type: string;
+      quantity: number;
+      unitPrice: number;
+      total: number;
+    }>;
+    subtotal?: number;
+    taxRate?: number;
+    taxAmount?: number;
+    totalAmount?: number;
+    terms?: string;
   }): Promise<Bid> {
     // Route through web API for server-side validation, subscription checks, and notifications
     // Field names must match backend validation schema (validation.ts)
-    const response = await mobileApiClient.post<{ bid: DatabaseBidsRow }>('/api/contractor/submit-bid', {
+    const payload: Record<string, unknown> = {
       jobId: bidData.jobId,
       bidAmount: bidData.amount,
       proposalText: bidData.description,
       estimatedDuration: bidData.estimatedDurationDays,
       proposedStartDate: bidData.proposedStartDate,
-    });
+    };
+    // Quote fields — auto-creates a contractor_quotes record on the backend
+    if (bidData.lineItems) payload.lineItems = bidData.lineItems;
+    if (bidData.subtotal != null) payload.subtotal = bidData.subtotal;
+    if (bidData.taxRate != null) payload.taxRate = bidData.taxRate;
+    if (bidData.taxAmount != null) payload.taxAmount = bidData.taxAmount;
+    if (bidData.totalAmount != null) payload.totalAmount = bidData.totalAmount;
+    if (bidData.terms) payload.terms = bidData.terms;
+    const response = await mobileApiClient.post<{ bid: DatabaseBidsRow }>(
+      '/api/contractor/submit-bid',
+      payload
+    );
 
     if (!response.bid) {
       throw new Error('No bid returned from API');
@@ -127,16 +150,19 @@ export class BidManagementService {
       description: data.message,
       createdAt: data.created_at,
       status: data.status,
-      ...(data.contractor && data.contractor.first_name && data.contractor.last_name && {
-        contractorName: `${data.contractor.first_name} ${data.contractor.last_name}`,
-        contractorEmail: data.contractor.email || '',
-      }),
-      ...(data.job && data.job.title && {
-        jobTitle: data.job.title,
-        jobDescription: data.job.description || '',
-        jobLocation: data.job.location || '',
-        jobBudget: data.job.budget || 0,
-      }),
+      ...(data.contractor &&
+        data.contractor.first_name &&
+        data.contractor.last_name && {
+          contractorName: `${data.contractor.first_name} ${data.contractor.last_name}`,
+          contractorEmail: data.contractor.email || '',
+        }),
+      ...(data.job &&
+        data.job.title && {
+          jobTitle: data.job.title,
+          jobDescription: data.job.description || '',
+          jobLocation: data.job.location || '',
+          jobBudget: data.job.budget || 0,
+        }),
     };
   }
 }

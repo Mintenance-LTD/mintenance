@@ -90,6 +90,67 @@ export const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
   },
+  scopeCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  scopeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  scopeTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  scopeItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  scopeItemBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
+  },
+  scopeItemInfo: { flex: 1 },
+  scopeItemDesc: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+  scopeItemQty: { fontSize: 12, color: theme.colors.textTertiary },
+  scopeItemTotal: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  amountRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  escrowBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: theme.colors.primaryLight,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  escrowBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
   amountCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: 16,

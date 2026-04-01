@@ -18,8 +18,6 @@ import {
   Text,
   TouchableOpacity,
   ActivityIndicator,
-  ScrollView,
-  Image,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,46 +26,33 @@ import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { BidService, Bid } from '../services/BidService';
+import { supabase } from '../config/supabase';
 import SwipeableCardWrapper, {
   SwipeableCardRef,
 } from '../components/SwipeableCardWrapper';
 import type { JobsStackParamList } from '../navigation/types';
 import { theme } from '../theme';
 import { styles } from './BidReviewStyles';
+import { BidReviewCard } from './BidReviewCard';
+
+interface QuoteLineItem {
+  description: string;
+  type?: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+type BidQuoteMap = Record<
+  string,
+  {
+    line_items?: QuoteLineItem[];
+    tax_rate?: number;
+    tax_amount?: number;
+    total_amount?: number;
+  }
+>;
 
 type BidReviewRouteProp = RouteProp<JobsStackParamList, 'BidReview'>;
-
-function renderStars(rating: number) {
-  const stars = [];
-  const full = Math.floor(rating);
-  for (let i = 0; i < full; i++) {
-    stars.push(
-      <Ionicons key={i} name='star' size={14} color={theme.colors.accent} />
-    );
-  }
-  if (rating % 1 !== 0) {
-    stars.push(
-      <Ionicons
-        key='half'
-        name='star-half'
-        size={14}
-        color={theme.colors.accent}
-      />
-    );
-  }
-  const empty = 5 - Math.ceil(rating);
-  for (let i = 0; i < empty; i++) {
-    stars.push(
-      <Ionicons
-        key={`e${i}`}
-        name='star-outline'
-        size={14}
-        color={theme.colors.textTertiary}
-      />
-    );
-  }
-  return stars;
-}
 
 export const BidReviewScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -76,6 +61,7 @@ export const BidReviewScreen: React.FC = () => {
   const { jobId } = route.params;
 
   const [bids, setBids] = useState<Bid[]>([]);
+  const [quoteMap, setQuoteMap] = useState<BidQuoteMap>({});
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [allReviewed, setAllReviewed] = useState(false);
@@ -105,9 +91,31 @@ export const BidReviewScreen: React.FC = () => {
       const data = await BidService.getBidsByJob(jobId, 'pending');
       setBids(data);
       if (data.length === 0) setAllReviewed(true);
-      // Get job title from first bid if available
-      if (data.length > 0 && data[0].job?.title) {
-        setJobTitle(data[0].job.title);
+      if (data.length > 0 && data[0].job?.title) setJobTitle(data[0].job.title);
+
+      // Fetch linked quotes for line items display
+      const contractorIds = data.map((b) => b.contractor_id).filter(Boolean);
+      if (contractorIds.length > 0) {
+        const { data: quotes } = await supabase
+          .from('contractor_quotes')
+          .select(
+            'contractor_id, line_items, tax_rate, tax_amount, total_amount'
+          )
+          .eq('job_id', jobId)
+          .in('contractor_id', contractorIds);
+        const map: BidQuoteMap = {};
+        (quotes || []).forEach((q: Record<string, unknown>) => {
+          const cid = q.contractor_id as string;
+          const items = q.line_items as QuoteLineItem[] | null;
+          if (cid && items?.length)
+            map[cid] = {
+              line_items: items,
+              tax_rate: q.tax_rate as number,
+              tax_amount: q.tax_amount as number,
+              total_amount: q.total_amount as number,
+            };
+        });
+        setQuoteMap(map);
       }
     } catch (err) {
       Alert.alert('Error', 'Failed to load bids');
@@ -179,169 +187,9 @@ export const BidReviewScreen: React.FC = () => {
     setAllReviewed(true);
   };
 
-  const renderBidCard = (bid: Bid) => {
-    const contractor = bid.contractor;
-    const avatarUri =
-      contractor?.profile_picture || contractor?.profile_image_url;
-    const truncatedBio = contractor?.bio
-      ? contractor.bio.length > 100
-        ? `${contractor.bio.slice(0, 100)}...`
-        : contractor.bio
-      : null;
-
-    return (
-      <View style={styles.bidCard}>
-        <ScrollView
-          style={styles.cardScroll}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Contractor Header — tappable to view profile */}
-          <TouchableOpacity
-            style={styles.contractorHeader}
-            onPress={() =>
-              contractor?.id &&
-              (navigation as ReturnType<typeof Object>).navigate(
-                'ContractorProfile',
-                { contractorId: contractor.id }
-              )
-            }
-            activeOpacity={0.7}
-            accessibilityRole='button'
-            accessibilityLabel={`View ${contractor?.first_name || 'contractor'}'s profile`}
-          >
-            {avatarUri ? (
-              <Image source={{ uri: avatarUri }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Ionicons
-                  name='person-circle-outline'
-                  size={48}
-                  color={theme.colors.textSecondary}
-                />
-              </View>
-            )}
-            <View style={styles.contractorInfo}>
-              <Text style={styles.contractorName}>
-                {contractor
-                  ? `${contractor.first_name} ${contractor.last_name}`
-                  : 'Contractor'}
-              </Text>
-              {contractor?.company_name ? (
-                <Text style={styles.companyName}>
-                  {contractor.company_name}
-                </Text>
-              ) : null}
-              {contractor?.rating != null && (
-                <View style={styles.ratingRow}>
-                  <View style={styles.stars}>
-                    {renderStars(contractor.rating)}
-                  </View>
-                  <Text style={styles.ratingText}>
-                    {contractor.rating.toFixed(1)} (
-                    {contractor.reviews_count || 0} reviews)
-                  </Text>
-                </View>
-              )}
-              {contractor?.city ? (
-                <View style={styles.locationRow}>
-                  <Ionicons
-                    name='location-outline'
-                    size={13}
-                    color={theme.colors.textTertiary}
-                  />
-                  <Text style={styles.locationText}>{contractor.city}</Text>
-                </View>
-              ) : null}
-              <Text style={styles.viewProfileLink}>View Full Profile →</Text>
-            </View>
-          </TouchableOpacity>
-
-          {/* Bio Snippet */}
-          {truncatedBio ? (
-            <Text style={styles.bioText}>{truncatedBio}</Text>
-          ) : null}
-
-          {/* Bid Amount */}
-          <View style={styles.amountSection}>
-            <Text style={styles.amountLabel}>Bid Amount</Text>
-            <Text style={styles.amountValue}>
-              £{bid.amount.toLocaleString()}
-            </Text>
-          </View>
-
-          {/* Contractor Stats Row */}
-          {(contractor?.hourly_rate != null ||
-            contractor?.years_experience != null) && (
-            <View style={styles.statsRow}>
-              {contractor?.hourly_rate != null && (
-                <View style={styles.statChip}>
-                  <Ionicons
-                    name='cash-outline'
-                    size={14}
-                    color={theme.colors.primary}
-                  />
-                  <Text style={styles.statText}>
-                    £{contractor.hourly_rate}/hr
-                  </Text>
-                </View>
-              )}
-              {contractor?.years_experience != null && (
-                <View style={styles.statChip}>
-                  <Ionicons
-                    name='construct-outline'
-                    size={14}
-                    color={theme.colors.accent}
-                  />
-                  <Text style={styles.statText}>
-                    {contractor.years_experience} yrs exp
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
-
-          {/* Estimated Duration */}
-          {bid.estimated_duration && (
-            <View style={styles.detailRow}>
-              <View style={styles.detailIconWrap}>
-                <Ionicons name='time-outline' size={16} color='#3B82F6' />
-              </View>
-              <Text style={styles.detailText}>
-                Estimated: {bid.estimated_duration}
-              </Text>
-            </View>
-          )}
-
-          {/* Availability */}
-          {bid.availability && (
-            <View style={styles.detailRow}>
-              <View
-                style={[
-                  styles.detailIconWrap,
-                  { backgroundColor: theme.colors.primaryLight },
-                ]}
-              >
-                <Ionicons
-                  name='calendar-outline'
-                  size={16}
-                  color={theme.colors.primary}
-                />
-              </View>
-              <Text style={styles.detailText}>
-                Available: {bid.availability}
-              </Text>
-            </View>
-          )}
-
-          {/* Proposal Message */}
-          <View style={styles.proposalSection}>
-            <Text style={styles.proposalLabel}>Proposal</Text>
-            <Text style={styles.proposalText}>{bid.message}</Text>
-          </View>
-        </ScrollView>
-      </View>
-    );
-  };
+  const renderBidCard = (bid: Bid) => (
+    <BidReviewCard bid={bid} quoteData={quoteMap[bid.contractor_id]} />
+  );
 
   if (loading) {
     return (
