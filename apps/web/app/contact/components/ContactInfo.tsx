@@ -20,7 +20,7 @@ const contactInfo = [
   {
     icon: Mail,
     title: 'Email Us',
-    details: 'support@mintenance.com',
+    details: 'support@mintenance.co.uk',
     description: 'We typically respond within 24 hours',
   },
   {

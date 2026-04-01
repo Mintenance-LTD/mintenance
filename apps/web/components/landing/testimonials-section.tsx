@@ -56,7 +56,6 @@ function AnimatedStars({ delay }: { delay: number }) {
       {[...Array(5)].map((_, i) => (
         <motion.svg
           key={i}
-          initial={{ scale: 0, rotate: -180 }}
           whileInView={{ scale: 1, rotate: 0 }}
           viewport={{ once: true }}
           transition={{ delay: delay + i * 0.1, duration: 0.4, type: "spring", stiffness: 200 }}
@@ -86,7 +85,6 @@ function VerifiedBadge({ text, colors }: { text: string; colors: string }) {
 function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.6, delay: testimonial.delay }}
@@ -125,7 +123,6 @@ export function TestimonialsSection() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-20">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}

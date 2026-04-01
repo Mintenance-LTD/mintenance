@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { motion, useInView } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { AIPreviewDemo } from './ai-preview-demo';
 
 const containerVariants = {
-  hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
@@ -17,7 +16,6 @@ const containerVariants = {
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
   visible: {
     opacity: 1,
     y: 0,
@@ -29,15 +27,12 @@ const itemVariants = {
  * Bento Grid Features Section - showcases platform capabilities
  */
 export function BentoFeaturesSection() {
-  const ref = useRef<HTMLElement>(null);
-  const isInView = useInView(ref, { once: true, amount: 0.1 });
-
   return (
-    <section ref={ref} className='py-24 bg-white overflow-hidden'>
+    <section className='py-24 bg-white overflow-hidden'>
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.1 }}
           transition={{ duration: 0.6 }}
           className='text-center mb-20'
         >
@@ -56,8 +51,8 @@ export function BentoFeaturesSection() {
         {/* Bento Grid Layout */}
         <motion.div
           variants={containerVariants}
-          initial='hidden'
-          animate={isInView ? 'visible' : 'hidden'}
+          whileInView='visible'
+          viewport={{ once: true, amount: 0.1 }}
           className='grid grid-cols-1 md:grid-cols-6 gap-6'
         >
           {/* Large Feature - AI Building Surveyor (2x2 grid space) */}

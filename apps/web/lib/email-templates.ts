@@ -571,6 +571,38 @@ export function changesRequestedTemplate(
   return { subject: `Changes Requested - ${data.jobTitle}`, html, text };
 }
 
+export function newsletterWelcomeTemplate(
+  email: string
+): { subject: string; html: string; text: string } {
+  const color = '#0d9488';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com';
+  const html = emailShell(
+    color,
+    '',
+    `<h1 style="margin:0">Welcome to Mintenance</h1><p style="margin:8px 0 0;opacity:0.9">You're on the list!</p>`,
+    `<p>Hi there,</p>
+     <p>Thanks for subscribing to the Mintenance newsletter. You'll be the first to hear about:</p>
+     <ul style="color:#374151;padding-left:20px">
+       <li>New platform features &amp; updates</li>
+       <li>Tips for homeowners &amp; contractors</li>
+       <li>Industry insights &amp; guides</li>
+     </ul>
+     <p>In the meantime, explore what Mintenance can do for you:</p>
+     <p style="text-align:center"><a href="${baseUrl}/try-mint-ai" class="cta">Try AI Assessment</a></p>
+     <p style="margin-top:20px;text-align:center"><a href="${baseUrl}/discover" style="color:${color};font-weight:bold">Browse Contractors</a></p>`,
+    `<div style="margin-top:30px;padding-top:20px;border-top:1px solid #e5e7eb;text-align:center;font-size:12px;color:#9ca3af;">
+       <p>&copy; ${year()} Mintenance. All rights reserved.</p>
+       <p><a href="${baseUrl}/api/email/unsubscribe?email=${encodeURIComponent(email)}" style="color:#6b7280;">Unsubscribe</a></p>
+     </div>`
+  );
+  const text = `Welcome to Mintenance!\n\nThanks for subscribing. You'll be the first to hear about new features, tips, and industry insights.\n\nTry our AI assessment: ${baseUrl}/try-mint-ai\nBrowse contractors: ${baseUrl}/discover\n\n© ${year()} Mintenance.`;
+  return {
+    subject: 'Welcome to Mintenance - You\'re on the list!',
+    html,
+    text,
+  };
+}
+
 export function paymentReleasedTemplate(
   data: PaymentReleasedData,
   unsubscribeFooter: string

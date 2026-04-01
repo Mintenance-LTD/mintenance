@@ -83,8 +83,8 @@ export default function ContractorDetailsError({
           </h3>
           <p className="mt-1 text-sm text-gray-600">
             Contact our support team at{' '}
-            <a href="mailto:support@mintenance.com" className="text-blue-600 hover:underline">
-              support@mintenance.com
+            <a href="mailto:support@mintenance.co.uk" className="text-blue-600 hover:underline">
+              support@mintenance.co.uk
             </a>
           </p>
         </div>

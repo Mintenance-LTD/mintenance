@@ -69,7 +69,7 @@ function downloadReceipt(transaction: Transaction, subtotal: number) {
   </table>
   <div class="footer">
     <p>Mintenance Ltd &middot; All prices include applicable taxes</p>
-    <p>This receipt was generated automatically. For queries, contact support@mintenance.com</p>
+    <p>This receipt was generated automatically. For queries, contact support@mintenance.co.uk</p>
   </div>
 </body></html>`;
 

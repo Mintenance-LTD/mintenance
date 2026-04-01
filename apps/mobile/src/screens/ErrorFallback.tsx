@@ -48,7 +48,7 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
     const body = encodeURIComponent(
       `Error: ${error.message}\n\nError ID: ${(error as Error & { digest?: string }).digest || 'N/A'}\n\nPlease describe what you were doing when this error occurred:`
     );
-    const mailtoUrl = `mailto:support@mintenance.com?subject=${subject}&body=${body}`;
+    const mailtoUrl = `mailto:support@mintenance.co.uk?subject=${subject}&body=${body}`;
 
     Linking.openURL(mailtoUrl).catch((err) => {
       logger.error('[ErrorFallback] Failed to open email client', { error: err });

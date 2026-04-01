@@ -62,7 +62,7 @@ export function LocalBusinessStructuredData({
   description = 'Connect with verified contractors for all your home maintenance needs. Get instant quotes, read reviews, and hire trusted professionals.',
   url = 'https://mintenance.com',
   telephone = '+44 20 1234 5678',
-  email = 'info@mintenance.com',
+  email = 'info@mintenance.co.uk',
   address = {
     streetAddress: '123 High Street',
     addressLocality: 'London',

@@ -112,7 +112,7 @@ export default function ContractorsError({
           </ul>
           <p className="mt-3 text-sm text-gray-600">
             Need help finding contractors?{' '}
-            <a href="mailto:support@mintenance.com" className="text-blue-600 hover:underline">
+            <a href="mailto:support@mintenance.co.uk" className="text-blue-600 hover:underline">
               Contact support
             </a>
           </p>
