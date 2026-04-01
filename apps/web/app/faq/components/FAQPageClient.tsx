@@ -151,7 +151,7 @@ export default function FAQPageClient() {
     {
       id: '15',
       question: 'How do I report a safety concern?',
-      answer: 'If you have any safety concerns, click the "Report Issue" button on the job page or contact our support team immediately at support@mintenance.com or call our emergency line. We take all safety reports seriously and investigate promptly.',
+      answer: 'If you have any safety concerns, click the "Report Issue" button on the job page or contact our support team immediately at support@mintenance.co.uk or call our emergency line. We take all safety reports seriously and investigate promptly.',
       category: 'safety',
     },
     {
@@ -171,7 +171,7 @@ export default function FAQPageClient() {
     {
       id: '18',
       question: 'How can I contact customer support?',
-      answer: 'You can reach us via: live chat (bottom right corner of website), email at support@mintenance.com, phone at 0800 MINTENANCE, or through the Help Centre. We\'re available Monday-Friday 8am-8pm, Saturday 9am-5pm.',
+      answer: 'You can reach us via: live chat (bottom right corner of website), email at support@mintenance.co.uk, phone at 0800 MINTENANCE, or through the Help Centre. We\'re available Monday-Friday 8am-8pm, Saturday 9am-5pm.',
       category: 'support',
     },
     {

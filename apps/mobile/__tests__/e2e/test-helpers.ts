@@ -10,7 +10,7 @@ import { waitFor } from '@testing-library/react-native';
  */
 export const MOCK_TEST_USER = {
   id: 'test-user-123',
-  email: 'test@mintenance.com',
+  email: 'test@mintenance.co.uk',
   firstName: 'Test',
   lastName: 'User',
   role: 'homeowner' as const,
@@ -23,7 +23,7 @@ export const MOCK_TEST_USER = {
  */
 export const MOCK_TEST_CONTRACTOR = {
   id: 'test-contractor-456',
-  email: 'contractor@mintenance.com',
+  email: 'contractor@mintenance.co.uk',
   firstName: 'Pro',
   lastName: 'Contractor',
   role: 'contractor' as const,

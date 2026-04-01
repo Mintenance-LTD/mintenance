@@ -71,7 +71,7 @@ export class HomeownerNotifications {
               <p style="margin-top: 30px;">Need help getting started? Check out our <a href="${baseUrl}/help" style="color: #0F172A;">help center</a> or contact our support team.</p>
             </div>
             <div class="footer">
-              <p>Questions? Contact us at support@mintenance.com</p>
+              <p>Questions? Contact us at support@mintenance.co.uk</p>
               <p>© ${new Date().getFullYear()} Mintenance. All rights reserved.</p>
             </div>
           </div>

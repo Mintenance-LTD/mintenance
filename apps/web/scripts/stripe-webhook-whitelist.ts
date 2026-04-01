@@ -9,10 +9,10 @@ import chalk from 'chalk';
 
 // Test accounts for whitelisting
 const WHITELIST_ACCOUNTS = [
-  'test-user-001@mintenance.com',
-  'test-user-002@mintenance.com',
-  'qa-webhook-test@mintenance.com',
-  'dev-integration@mintenance.com'
+  'test-user-001@mintenance.co.uk',
+  'test-user-002@mintenance.co.uk',
+  'qa-webhook-test@mintenance.co.uk',
+  'dev-integration@mintenance.co.uk'
 ];
 
 // Webhook test scenarios
@@ -137,7 +137,7 @@ async function setupWhitelistTesting() {
   console.log(chalk.cyan('🔧 Test Commands:\n'));
 
   console.log(chalk.gray('# Enable whitelist for specific user:'));
-  console.log(`export STRIPE_WEBHOOK_WHITELIST="test-user-001@mintenance.com"\n`);
+  console.log(`export STRIPE_WEBHOOK_WHITELIST="test-user-001@mintenance.co.uk"\n`);
 
   console.log(chalk.gray('# Test specific webhook event:'));
   console.log(`curl -X POST https://staging.mintenance.com/api/webhooks/stripe \\

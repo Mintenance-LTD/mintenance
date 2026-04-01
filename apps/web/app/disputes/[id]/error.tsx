@@ -73,8 +73,8 @@ export default function DisputeDetailsError({
           </h3>
           <p className="mt-1 text-sm text-gray-600">
             Our support team can help resolve conflicts. Contact us at{' '}
-            <a href="mailto:disputes@mintenance.com" className="text-blue-600 hover:underline">
-              disputes@mintenance.com
+            <a href="mailto:disputes@mintenance.co.uk" className="text-blue-600 hover:underline">
+              disputes@mintenance.co.uk
             </a>
           </p>
         </div>

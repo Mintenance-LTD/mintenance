@@ -131,8 +131,8 @@ export default function ResetPasswordError({
           </ol>
           <p className="mt-3 text-sm text-gray-600">
             Still having trouble? Contact{' '}
-            <a href="mailto:support@mintenance.com" className="text-blue-600 hover:underline">
-              support@mintenance.com
+            <a href="mailto:support@mintenance.co.uk" className="text-blue-600 hover:underline">
+              support@mintenance.co.uk
             </a>
             {' '}for assistance with account recovery.
           </p>

@@ -59,7 +59,7 @@ function buildHomeownerHtml(firstName: string): string {
     </div>
     <div class="footer">
       <p>© ${new Date().getFullYear()} Mintenance. All rights reserved.</p>
-      <p>Questions? <a href="mailto:support@mintenance.com" style="color: #6b7280;">support@mintenance.com</a></p>
+      <p>Questions? <a href="mailto:support@mintenance.co.uk" style="color: #6b7280;">support@mintenance.co.uk</a></p>
     </div>
   </div>
 </body>
@@ -102,7 +102,7 @@ function buildContractorHtml(firstName: string): string {
     </div>
     <div class="footer">
       <p>© ${new Date().getFullYear()} Mintenance. All rights reserved.</p>
-      <p>Questions? <a href="mailto:support@mintenance.com" style="color: #6b7280;">support@mintenance.com</a></p>
+      <p>Questions? <a href="mailto:support@mintenance.co.uk" style="color: #6b7280;">support@mintenance.co.uk</a></p>
     </div>
   </div>
 </body>

@@ -112,8 +112,8 @@ export default function ProfileError({
           </ol>
           <p className="mt-3 text-sm text-gray-600">
             Still having issues? Contact{' '}
-            <a href="mailto:support@mintenance.com" className="text-blue-600 hover:underline">
-              support@mintenance.com
+            <a href="mailto:support@mintenance.co.uk" className="text-blue-600 hover:underline">
+              support@mintenance.co.uk
             </a>
           </p>
         </div>

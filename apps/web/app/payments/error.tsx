@@ -128,8 +128,8 @@ export default function PaymentError({
           </ol>
           <p className="mt-3 text-sm text-gray-600">
             For payment support, contact{' '}
-            <a href="mailto:billing@mintenance.com" className="text-blue-600 hover:underline">
-              billing@mintenance.com
+            <a href="mailto:billing@mintenance.co.uk" className="text-blue-600 hover:underline">
+              billing@mintenance.co.uk
             </a>
             {' '}with reference ID: <span className="font-mono text-xs">{error.digest}</span>
           </p>

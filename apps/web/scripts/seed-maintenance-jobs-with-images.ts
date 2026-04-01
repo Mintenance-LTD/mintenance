@@ -155,7 +155,7 @@ async function seedMaintenanceJobs() {
     const { data: newUser, error: userError } = await supabase
       .from('profiles')
       .insert({
-        email: 'test.homeowner@mintenance.com',
+        email: 'test.homeowner@mintenance.co.uk',
         first_name: 'Test',
         last_name: 'Homeowner',
         role: 'homeowner',

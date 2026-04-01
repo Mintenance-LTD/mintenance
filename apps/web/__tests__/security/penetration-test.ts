@@ -456,7 +456,7 @@ class AdminSecurityPenetrationTester {
       const stolenToken = jwt.sign(
         {
           sub: 'real-admin-id',
-          email: 'real-admin@mintenance.com',
+          email: 'real-admin@mintenance.co.uk',
           role: 'admin',
           iat: Math.floor(Date.now() / 1000),
           exp: Math.floor(Date.now() / 1000) + 3600,

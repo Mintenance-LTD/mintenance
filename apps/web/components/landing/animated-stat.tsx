@@ -14,7 +14,9 @@ interface AnimatedStatProps {
 }
 
 /**
- * Animated Stat Counter Component with scroll-triggered animation
+ * Animated Stat Counter Component with scroll-triggered animation.
+ * Uses whileInView instead of initial={{ opacity: 0 }} to ensure content
+ * is visible even before JS hydration completes.
  */
 export function AnimatedStat({
   end,
@@ -38,8 +40,8 @@ export function AnimatedStat({
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      viewport={{ once: true, amount: 0.1 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
       className='bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer'
     >

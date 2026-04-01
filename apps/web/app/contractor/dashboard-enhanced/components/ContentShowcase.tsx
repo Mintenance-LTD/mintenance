@@ -41,7 +41,7 @@ export function ContentShowcase({
   const handleNewsletterSubmit = async (email: string) => {
     try {
       // You can add API call here if needed
-      const response = await fetch('/api/newsletter/subscribe', {
+      const response = await fetch('/api/newsletter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),

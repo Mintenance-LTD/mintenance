@@ -79,7 +79,7 @@ export const mockUser = {
 
   admin: (overrides = {}) => ({
     id: 'admin-123',
-    email: 'admin@mintenance.com',
+    email: 'admin@mintenance.co.uk',
     role: 'admin',
     first_name: 'Admin',
     last_name: 'User',

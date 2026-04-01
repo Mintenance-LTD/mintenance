@@ -101,7 +101,7 @@ const HelpCenterScreen: React.FC = () => {
     {
       id: 'email',
       title: 'Email Support',
-      description: 'support@mintenance.com',
+      description: 'support@mintenance.co.uk',
       icon: 'mail',
       action: () => handleEmailSupport(),
     },
@@ -131,7 +131,7 @@ const HelpCenterScreen: React.FC = () => {
   };
 
   const handleEmailSupport = () => {
-    Linking.openURL('mailto:support@mintenance.com?subject=Support Request');
+    Linking.openURL('mailto:support@mintenance.co.uk?subject=Support Request');
   };
 
   const toggleFaq = (id: string) => {
