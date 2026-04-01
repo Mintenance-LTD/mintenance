@@ -1,9 +1,8 @@
 'use client';
 
 import React from 'react';
+import { DynamicLineChart, DynamicBarChart } from '@/components/charts';
 import {
-  DynamicLineChart,
-  DynamicBarChart,
   Line,
   Bar,
   XAxis,
@@ -12,13 +11,19 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-} from '@/components/charts';
+} from 'recharts';
 import { theme } from '@/lib/theme';
 
 interface EnhancedChartProps {
   title?: string;
   subtitle?: string;
-  data?: Array<{ label: string; value: number; revenue?: number; expenses?: number; profit?: number }>;
+  data?: Array<{
+    label: string;
+    value: number;
+    revenue?: number;
+    expenses?: number;
+    profit?: number;
+  }>;
   type?: 'line' | 'bar' | 'area';
   height?: number;
   showLegend?: boolean;
@@ -54,7 +59,7 @@ export function EnhancedChart({
 
   return (
     <div
-      className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-200"
+      className='bg-white rounded-2xl p-6 border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-200'
       style={{
         height: '100%',
         display: 'flex',
@@ -63,7 +68,7 @@ export function EnhancedChart({
     >
       <div style={{ marginBottom: theme.spacing[5] }}>
         <h2
-          className="text-subheading-md font-[560] text-gray-900 tracking-normal mb-1"
+          className='text-subheading-md font-[560] text-gray-900 tracking-normal mb-1'
           style={{
             margin: 0,
             marginBottom: theme.spacing[1],
@@ -73,7 +78,7 @@ export function EnhancedChart({
         </h2>
         {subtitle && (
           <p
-            className="text-sm font-[460] text-gray-600"
+            className='text-sm font-[460] text-gray-600'
             style={{
               margin: 0,
             }}
@@ -84,19 +89,19 @@ export function EnhancedChart({
       </div>
 
       <div style={{ flex: 1, minHeight: 0 }}>
-        <ResponsiveContainer width="100%" height={height}>
+        <ResponsiveContainer width='100%' height={height}>
           {type === 'bar' ? (
             <DynamicBarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <CartesianGrid strokeDasharray='3 3' stroke='#E5E7EB' />
               <XAxis
-                dataKey="name"
-                stroke="#6B7280"
+                dataKey='name'
+                stroke='#6B7280'
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
               />
               <YAxis
-                stroke="#6B7280"
+                stroke='#6B7280'
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
@@ -111,32 +116,32 @@ export function EnhancedChart({
               />
               {showLegend && <Legend />}
               <Bar
-                dataKey="revenue"
+                dataKey='revenue'
                 fill={theme.colors.success}
                 radius={[8, 8, 0, 0]}
-                name="Revenue"
+                name='Revenue'
               />
               {chartData.some((d) => d.expenses) && (
                 <Bar
-                  dataKey="expenses"
+                  dataKey='expenses'
                   fill={theme.colors.error}
                   radius={[8, 8, 0, 0]}
-                  name="Expenses"
+                  name='Expenses'
                 />
               )}
             </DynamicBarChart>
           ) : (
             <DynamicLineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <CartesianGrid strokeDasharray='3 3' stroke='#E5E7EB' />
               <XAxis
-                dataKey="name"
-                stroke="#6B7280"
+                dataKey='name'
+                stroke='#6B7280'
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
               />
               <YAxis
-                stroke="#6B7280"
+                stroke='#6B7280'
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
@@ -151,34 +156,34 @@ export function EnhancedChart({
               />
               {showLegend && <Legend />}
               <Line
-                type="monotone"
-                dataKey="revenue"
+                type='monotone'
+                dataKey='revenue'
                 stroke={theme.colors.success}
                 strokeWidth={2}
                 dot={{ fill: theme.colors.success, r: 4 }}
                 activeDot={{ r: 6 }}
-                name="Revenue"
+                name='Revenue'
               />
               {chartData.some((d) => d.expenses) && (
                 <Line
-                  type="monotone"
-                  dataKey="expenses"
+                  type='monotone'
+                  dataKey='expenses'
                   stroke={theme.colors.error}
                   strokeWidth={2}
                   dot={{ fill: theme.colors.error, r: 4 }}
                   activeDot={{ r: 6 }}
-                  name="Expenses"
+                  name='Expenses'
                 />
               )}
               {chartData.some((d) => d.profit) && (
                 <Line
-                  type="monotone"
-                  dataKey="profit"
+                  type='monotone'
+                  dataKey='profit'
                   stroke={theme.colors.primary}
                   strokeWidth={2}
                   dot={{ fill: theme.colors.primary, r: 4 }}
                   activeDot={{ r: 6 }}
-                  name="Profit"
+                  name='Profit'
                 />
               )}
             </DynamicLineChart>
@@ -205,8 +210,8 @@ interface DashboardRevenueChartProps {
 export function DashboardRevenueChart({ data }: DashboardRevenueChartProps) {
   return (
     <EnhancedChart
-      title="Revenue Overview"
-      subtitle="Last 6 months"
+      title='Revenue Overview'
+      subtitle='Last 6 months'
       data={data.map((item) => ({
         label: item.month,
         value: item.revenue, // Required property
@@ -214,10 +219,9 @@ export function DashboardRevenueChart({ data }: DashboardRevenueChartProps) {
         expenses: item.expenses,
         profit: item.profit,
       }))}
-      type="line"
+      type='line'
       height={300}
       showLegend={true}
     />
   );
 }
-

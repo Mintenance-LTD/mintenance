@@ -4,6 +4,8 @@ import {
   DynamicLineChart,
   DynamicBarChart,
   DynamicPieChart,
+} from '@/components/charts';
+import {
   Line,
   Bar,
   Pie,
@@ -14,7 +16,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-} from '@/components/charts';
+} from 'recharts';
 
 const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6'];
 
@@ -42,54 +44,54 @@ export function RevenueChart({ data }: RevenueChartProps) {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className='space-y-6'>
       {/* Line Chart */}
-      <div className="rounded-lg border bg-white p-6">
-        <h3 className="mb-4 text-lg font-semibold">Revenue Trend</h3>
-        <ResponsiveContainer width="100%" height={300}>
+      <div className='rounded-lg border bg-white p-6'>
+        <h3 className='mb-4 text-lg font-semibold'>Revenue Trend</h3>
+        <ResponsiveContainer width='100%' height={300}>
           <DynamicLineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
+            <CartesianGrid strokeDasharray='3 3' />
+            <XAxis dataKey='month' />
             <YAxis />
             <Tooltip />
             <Legend />
             <Line
-              type="monotone"
-              dataKey="revenue"
-              stroke="#10B981"
+              type='monotone'
+              dataKey='revenue'
+              stroke='#10B981'
               strokeWidth={2}
-              name="Revenue"
+              name='Revenue'
             />
             <Line
-              type="monotone"
-              dataKey="expenses"
-              stroke="#EF4444"
+              type='monotone'
+              dataKey='expenses'
+              stroke='#EF4444'
               strokeWidth={2}
-              name="Expenses"
+              name='Expenses'
             />
             <Line
-              type="monotone"
-              dataKey="profit"
-              stroke="#3B82F6"
+              type='monotone'
+              dataKey='profit'
+              stroke='#3B82F6'
               strokeWidth={2}
-              name="Profit"
+              name='Profit'
             />
           </DynamicLineChart>
         </ResponsiveContainer>
       </div>
 
       {/* Bar Chart */}
-      <div className="rounded-lg border bg-white p-6">
-        <h3 className="mb-4 text-lg font-semibold">Monthly Comparison</h3>
-        <ResponsiveContainer width="100%" height={300}>
+      <div className='rounded-lg border bg-white p-6'>
+        <h3 className='mb-4 text-lg font-semibold'>Monthly Comparison</h3>
+        <ResponsiveContainer width='100%' height={300}>
           <DynamicBarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
+            <CartesianGrid strokeDasharray='3 3' />
+            <XAxis dataKey='month' />
             <YAxis />
             <Tooltip />
             <Legend />
-            <Bar dataKey="revenue" fill="#10B981" name="Revenue" />
-            <Bar dataKey="expenses" fill="#EF4444" name="Expenses" />
+            <Bar dataKey='revenue' fill='#10B981' name='Revenue' />
+            <Bar dataKey='expenses' fill='#EF4444' name='Expenses' />
           </DynamicBarChart>
         </ResponsiveContainer>
       </div>
@@ -117,22 +119,27 @@ export function JobDistributionChart({ data }: JobDistributionChartProps) {
   ];
 
   return (
-    <div className="rounded-lg border bg-white p-6">
-      <h3 className="mb-4 text-lg font-semibold">Job Distribution</h3>
-      <ResponsiveContainer width="100%" height={300}>
+    <div className='rounded-lg border bg-white p-6'>
+      <h3 className='mb-4 text-lg font-semibold'>Job Distribution</h3>
+      <ResponsiveContainer width='100%' height={300}>
         <DynamicPieChart>
           <Pie
             data={chartData}
-            cx="50%"
-            cy="50%"
+            cx='50%'
+            cy='50%'
             labelLine={false}
-            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+            label={({ name, percent }) =>
+              `${name} ${(percent * 100).toFixed(0)}%`
+            }
             outerRadius={80}
-            fill="#8884d8"
-            dataKey="value"
+            fill='#8884d8'
+            dataKey='value'
           >
             {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              <Cell
+                key={`cell-${index}`}
+                fill={COLORS[index % COLORS.length]}
+              />
             ))}
           </Pie>
           <Tooltip />
@@ -155,15 +162,15 @@ export function DashboardStatsChart() {
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4'>
       {statsData.map((stat) => (
         <div
           key={stat.name}
-          className="rounded-lg border bg-white p-4"
+          className='rounded-lg border bg-white p-4'
           style={{ borderLeft: `4px solid ${stat.color}` }}
         >
-          <p className="text-sm text-gray-600">{stat.name}</p>
-          <p className="text-2xl font-bold" style={{ color: stat.color }}>
+          <p className='text-sm text-gray-600'>{stat.name}</p>
+          <p className='text-2xl font-bold' style={{ color: stat.color }}>
             {stat.value}
           </p>
         </div>
@@ -171,4 +178,3 @@ export function DashboardStatsChart() {
     </div>
   );
 }
-

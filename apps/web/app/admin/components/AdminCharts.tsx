@@ -6,6 +6,8 @@ import {
   DynamicLineChart,
   DynamicAreaChart,
   DynamicBarChart,
+} from '@/components/charts';
+import {
   Line,
   Area,
   Bar,
@@ -14,7 +16,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-} from '@/components/charts';
+} from 'recharts';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 interface ChartDataPoint {

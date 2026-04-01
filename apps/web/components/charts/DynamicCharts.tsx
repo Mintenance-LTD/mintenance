@@ -52,6 +52,7 @@ export const DynamicPieChart = dynamic(
   }
 );
 
-// Export other recharts components for convenience
-// These will be in the same chunk as the chart types above
-export { Area, Bar, Line, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+// AUDIT FIX: Static re-exports of recharts sub-components (Area, XAxis, etc.)
+// were removed because they defeated code splitting — shipping ~100KB of recharts
+// into every consumer regardless of dynamic chart type imports.
+// Consumers should import chart helpers directly: import { Area, XAxis } from 'recharts';

@@ -1,9 +1,9 @@
 /**
  * JobDetails ViewModel
- * 
+ *
  * Business logic for job details management.
  * Handles job data, AI analysis, status updates, and contractor assignment.
- * 
+ *
  * @filesize Target: <170 lines
  * @compliance MVVM - Business logic only
  */
@@ -12,7 +12,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { logger } from '../../../utils/logger';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useJob } from '../../../hooks/useJobs';
-import { AIAnalysisService, AIAnalysis } from '../../../services/AIAnalysisService';
+import {
+  AIAnalysisService,
+  AIAnalysis,
+} from '../../../services/AIAnalysisService';
 import UnifiedAIServiceMobile from '../../../services/UnifiedAIServiceMobile';
 import { supabase } from '../../../config/supabase';
 import type { Job } from '@mintenance/types';
@@ -35,7 +38,8 @@ export interface JobDetailsActions {
   refetchJob: () => void;
 }
 
-export interface JobDetailsViewModel extends JobDetailsState, JobDetailsActions {}
+export interface JobDetailsViewModel
+  extends JobDetailsState, JobDetailsActions {}
 
 /**
  * Custom hook providing Job Details screen logic
@@ -70,17 +74,23 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
     }
   }, []);
 
-  const handleContractorAssigned = useCallback((contractorId: string, bidId: string) => {
-    logger.info('Contractor assigned to job', { jobId, contractorId, bidId });
-    // Refetch job data to get updated status
-    refetchJob();
-  }, [jobId, refetchJob]);
+  const handleContractorAssigned = useCallback(
+    (contractorId: string, bidId: string) => {
+      logger.info('Contractor assigned to job', { jobId, contractorId, bidId });
+      // Refetch job data to get updated status
+      refetchJob();
+    },
+    [jobId, refetchJob]
+  );
 
-  const handleJobStatusUpdate = useCallback((updatedJob: Job) => {
-    logger.info('Job status updated', { jobId, status: updatedJob.status });
-    // Refetch to get fresh data
-    refetchJob();
-  }, [jobId, refetchJob]);
+  const handleJobStatusUpdate = useCallback(
+    (updatedJob: Job) => {
+      logger.info('Job status updated', { jobId, status: updatedJob.status });
+      // Refetch to get fresh data
+      refetchJob();
+    },
+    [jobId, refetchJob]
+  );
 
   // Fetch contract status, escrow status, and review state for CTA logic
   useEffect(() => {
@@ -90,14 +100,32 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
     const fetchCTAData = async () => {
       try {
         const [contractsRes, escrowRes, reviewsRes] = await Promise.allSettled([
-          supabase.from('contracts').select('id, status').eq('job_id', jobId).order('created_at', { ascending: false }).limit(1),
-          supabase.from('escrow_transactions').select('id, status').eq('job_id', jobId).order('created_at', { ascending: false }).limit(1),
-          supabase.from('reviews').select('id').eq('job_id', jobId).eq('reviewer_id', user.id).limit(1),
+          supabase
+            .from('contracts')
+            .select('id, status')
+            .eq('job_id', jobId)
+            .order('created_at', { ascending: false })
+            .limit(1),
+          supabase
+            .from('escrow_transactions')
+            .select('id, status')
+            .eq('job_id', jobId)
+            .order('created_at', { ascending: false })
+            .limit(1),
+          supabase
+            .from('reviews')
+            .select('id')
+            .eq('job_id', jobId)
+            .eq('reviewer_id', user.id)
+            .limit(1),
         ]);
 
         if (cancelled) return;
 
-        if (contractsRes.status === 'fulfilled' && contractsRes.value?.data?.[0]) {
+        if (
+          contractsRes.status === 'fulfilled' &&
+          contractsRes.value?.data?.[0]
+        ) {
           setContractStatus(contractsRes.value.data[0].status);
         }
         if (escrowRes.status === 'fulfilled' && escrowRes.value?.data?.[0]) {
@@ -113,7 +141,9 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
     };
 
     fetchCTAData();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [job, jobId, user]);
 
   // Load AI analysis: first check building_assessments DB, then fall back to real-time analysis
@@ -129,24 +159,45 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
         // 1. Check for stored assessment in building_assessments table
         const { data: storedAssessment } = await supabase
           .from('building_assessments')
-          .select('id, damage_type, severity, confidence, urgency, assessment_data, created_at')
+          .select(
+            'id, damage_type, severity, confidence, urgency, assessment_data, created_at'
+          )
           .eq('job_id', job.id)
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
 
         if (!isCancelled && storedAssessment) {
-          setAiAnalysis({
+          const base: AIAnalysis = {
             confidence: storedAssessment.confidence || 0,
             detectedItems: [storedAssessment.damage_type || 'Unknown'],
-            safetyConcerns: storedAssessment.urgency === 'immediate'
-              ? [{ concern: 'Urgent repair needed', severity: 'High' as const, description: `Severity: ${storedAssessment.severity || 'unknown'}` }]
-              : [],
-            recommendedActions: storedAssessment.assessment_data?.recommended_actions || [],
-            estimatedComplexity: (storedAssessment.severity === 'critical' ? 'High' : storedAssessment.severity === 'moderate' ? 'Medium' : 'Low') as AIAnalysis['estimatedComplexity'],
+            safetyConcerns:
+              storedAssessment.urgency === 'immediate'
+                ? [
+                    {
+                      concern: 'Urgent repair needed',
+                      severity: 'High' as const,
+                      description: `Severity: ${storedAssessment.severity || 'unknown'}`,
+                    },
+                  ]
+                : [],
+            recommendedActions:
+              storedAssessment.assessment_data?.recommended_actions || [],
+            estimatedComplexity: (storedAssessment.severity === 'critical'
+              ? 'High'
+              : storedAssessment.severity === 'moderate'
+                ? 'Medium'
+                : 'Low') as AIAnalysis['estimatedComplexity'],
             suggestedTools: [],
-            estimatedDuration: storedAssessment.assessment_data?.estimated_duration || 'Unknown',
-          } satisfies AIAnalysis);
+            estimatedDuration:
+              storedAssessment.assessment_data?.estimated_duration || 'Unknown',
+          };
+          // Pass full assessment_data so AIAnalysisCard renders rich view (damage, cost, insurance)
+          setAiAnalysis({
+            ...base,
+            assessmentData: storedAssessment.assessment_data,
+            source: 'stored',
+          } as AIAnalysis);
           setAiLoading(false);
           return;
         }

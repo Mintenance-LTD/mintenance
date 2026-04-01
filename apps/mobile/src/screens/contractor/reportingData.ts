@@ -93,7 +93,7 @@ export async function fetchReportingData(
     supabase
       .from('reviews')
       .select(
-        'id, rating, comment, created_at, reviewer:reviewer_id(first_name, last_name)'
+        'id, rating, comment, created_at, reviewer:profiles!reviewer_id(first_name, last_name)'
       )
       .eq('reviewee_id', userId)
       .order('created_at', { ascending: false })

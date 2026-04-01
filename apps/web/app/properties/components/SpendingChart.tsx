@@ -1,15 +1,15 @@
 'use client';
 
 import React from 'react';
+import { DynamicLineChart } from '@/components/charts/DynamicCharts';
 import {
-  DynamicLineChart,
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-} from '@/components/charts/DynamicCharts';
+} from 'recharts';
 
 interface SpendingDataPoint {
   month: string;
@@ -29,10 +29,10 @@ interface SpendingChartProps {
 export function SpendingChart({ data, height = 300 }: SpendingChartProps) {
   if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center" style={{ height }}>
-        <div className="text-center">
-          <p className="text-gray-600 mb-2">No spending data available</p>
-          <p className="text-sm text-gray-500">
+      <div className='flex items-center justify-center' style={{ height }}>
+        <div className='text-center'>
+          <p className='text-gray-600 mb-2'>No spending data available</p>
+          <p className='text-sm text-gray-500'>
             Complete jobs will appear here
           </p>
         </div>
@@ -41,19 +41,15 @@ export function SpendingChart({ data, height = 300 }: SpendingChartProps) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={height}>
+    <ResponsiveContainer width='100%' height={height}>
       <DynamicLineChart
         data={data}
         margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
       >
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-        <XAxis
-          dataKey="month"
-          stroke="#6b7280"
-          style={{ fontSize: '12px' }}
-        />
+        <CartesianGrid strokeDasharray='3 3' stroke='#f0f0f0' />
+        <XAxis dataKey='month' stroke='#6b7280' style={{ fontSize: '12px' }} />
         <YAxis
-          stroke="#6b7280"
+          stroke='#6b7280'
           style={{ fontSize: '12px' }}
           tickFormatter={(value) => `£${value.toLocaleString()}`}
         />
@@ -65,12 +61,16 @@ export function SpendingChart({ data, height = 300 }: SpendingChartProps) {
             padding: '12px',
           }}
           formatter={(value: number) => [`£${value.toLocaleString()}`, 'Spent']}
-          labelStyle={{ color: '#111827', fontWeight: 600, marginBottom: '4px' }}
+          labelStyle={{
+            color: '#111827',
+            fontWeight: 600,
+            marginBottom: '4px',
+          }}
         />
         <Line
-          type="monotone"
-          dataKey="amount"
-          stroke="#14b8a6"
+          type='monotone'
+          dataKey='amount'
+          stroke='#14b8a6'
           strokeWidth={2}
           dot={{ fill: '#14b8a6', strokeWidth: 2, r: 4 }}
           activeDot={{ r: 6 }}

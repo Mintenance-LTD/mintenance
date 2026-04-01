@@ -56,40 +56,81 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
     if (!user) return;
     try {
       setError(null);
-      const { data, error } = await supabase
-        .from('jobs')
-        .select(
-          'id, homeowner_id, status, title, created_at, completed_at, budget, final_price, homeowner:profiles!homeowner_id(id, first_name, last_name, email, phone, profile_image_url)'
-        )
-        .eq('contractor_id', user.id)
-        .order('created_at', { ascending: false });
-      if (error) throw new Error(error.message);
 
-      // Also fetch jobs from accepted bids (like the web version does)
-      const { data: bidsData } = await supabase
-        .from('bids')
-        .select(
-          'id, status, amount, created_at, job:job_id(id, homeowner_id, status, title, created_at, completed_at, budget, final_price, homeowner:homeowner_id(id, first_name, last_name, email, phone, profile_image_url))'
-        )
-        .eq('contractor_id', user.id)
-        .eq('status', 'accepted');
+      // Step 1: Get jobs where contractor is assigned + job IDs from accepted bids
+      const [jobsResult, bidsResult] = await Promise.all([
+        supabase
+          .from('jobs')
+          .select(
+            'id, homeowner_id, status, title, created_at, completed_at, budget, final_price'
+          )
+          .eq('contractor_id', user.id)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('bids')
+          .select('job_id')
+          .eq('contractor_id', user.id)
+          .eq('status', 'accepted'),
+      ]);
 
-      // Merge bid-sourced jobs that aren't already in the direct jobs list
-      const jobIdsFromJobs = new Set(
-        (data || []).map((j: Record<string, unknown>) => j.id)
-      );
-      const bidJobs = (bidsData || [])
-        .map((b: Record<string, unknown>) => b.job)
-        .filter(
-          (j: unknown) =>
-            j && !jobIdsFromJobs.has((j as Record<string, unknown>).id)
-        );
+      // Collect all job IDs (direct + from bids)
+      const jobMap = new Map<string, Record<string, unknown>>();
+      for (const j of jobsResult.data || []) {
+        jobMap.set(j.id, j as Record<string, unknown>);
+      }
 
-      const allJobs: JobRecord[] = [...(data || []), ...bidJobs].map((j) => ({
-        ...(j as Record<string, unknown>),
-        homeowner: (j as Record<string, unknown>)
-          .homeowner as JobRecord['homeowner'],
-      })) as JobRecord[];
+      // Fetch any bid-sourced jobs not already in the map
+      const bidJobIds = (bidsResult.data || [])
+        .map((b) => (b as Record<string, unknown>).job_id as string)
+        .filter((id) => id && !jobMap.has(id));
+
+      if (bidJobIds.length > 0) {
+        const { data: extraJobs } = await supabase
+          .from('jobs')
+          .select(
+            'id, homeowner_id, status, title, created_at, completed_at, budget, final_price'
+          )
+          .in('id', bidJobIds);
+        for (const j of extraJobs || []) {
+          jobMap.set(j.id, j as Record<string, unknown>);
+        }
+      }
+
+      // Step 2: Fetch homeowner profiles
+      const homeownerIds = [
+        ...new Set(
+          [...jobMap.values()]
+            .map((j) => j.homeowner_id as string)
+            .filter(Boolean)
+        ),
+      ];
+
+      const profileMap = new Map<string, Record<string, unknown>>();
+      if (homeownerIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, email, phone, profile_image_url')
+          .in('id', homeownerIds);
+        for (const p of profiles || []) {
+          profileMap.set(p.id, p as Record<string, unknown>);
+        }
+      }
+
+      // Step 3: Assemble
+      const allJobs: JobRecord[] = [...jobMap.values()].map((j) => ({
+        id: j.id as string,
+        homeowner_id: j.homeowner_id as string,
+        status: j.status as string,
+        title: j.title as string | undefined,
+        created_at: j.created_at as string,
+        completed_at: j.completed_at as string | undefined,
+        budget: j.budget as number | undefined,
+        final_price: j.final_price as number | undefined,
+        homeowner: profileMap.get(
+          j.homeowner_id as string
+        ) as JobRecord['homeowner'],
+      }));
+
       setClients(deriveClients(allJobs));
     } catch (err) {
       logger.error('Error loading CRM data', err);

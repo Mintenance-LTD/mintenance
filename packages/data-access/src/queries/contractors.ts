@@ -15,7 +15,7 @@ export const CONTRACTOR_PROFILE_SELECT = `
   business_address, hourly_rate, years_experience, service_radius,
   availability, portfolio_images, specialties, certifications,
   license_number, latitude, longitude,
-  user:user_id(first_name, last_name, email)
+  user:profiles!user_id(first_name, last_name, email)
 ` as const;
 
 // ─── Query functions ─────────────────────────────────────────────
@@ -76,7 +76,7 @@ export async function fetchContractorStats(
     client
       .from('jobs')
       .select(
-        'id, title, location, scheduled_start_date, homeowner:homeowner_id(first_name, last_name)'
+        'id, title, location, scheduled_start_date, homeowner:profiles!homeowner_id(first_name, last_name)'
       )
       .eq('contractor_id', contractorId)
       .in('status', ['assigned', 'in_progress'])
@@ -134,7 +134,7 @@ export async function fetchContractorReviews(
   return client
     .from('reviews')
     .select(
-      'id, rating, comment, created_at, reviewer:reviewer_id(first_name, last_name, profile_image_url)'
+      'id, rating, comment, created_at, reviewer:profiles!reviewer_id(first_name, last_name, profile_image_url)'
     )
     .eq('reviewed_id', contractorId)
     .order('created_at', { ascending: false })

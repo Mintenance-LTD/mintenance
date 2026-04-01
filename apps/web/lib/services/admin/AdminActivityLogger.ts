@@ -2,12 +2,12 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NextRequest } from 'next/server';
 
-export type AdminActionCategory = 
-  | 'user_management' 
-  | 'verification' 
-  | 'security' 
-  | 'settings' 
-  | 'revenue' 
+export type AdminActionCategory =
+  | 'user_management'
+  | 'verification'
+  | 'security'
+  | 'settings'
+  | 'revenue'
   | 'communication'
   | 'ip_blocking';
 
@@ -43,19 +43,17 @@ export class AdminActivityLogger {
    */
   static async logActivity(entry: AdminActivityLogEntry): Promise<void> {
     try {
-      const { error } = await serverSupabase
-        .from('admin_activity_log')
-        .insert({
-          admin_id: entry.admin_id,
-          action_type: entry.action_type,
-          action_category: entry.action_category,
-          target_type: entry.target_type,
-          target_id: entry.target_id,
-          description: entry.description,
-          metadata: entry.metadata || {},
-          ip_address: entry.ip_address || null,
-          user_agent: entry.user_agent || null,
-        });
+      const { error } = await serverSupabase.from('admin_activity_log').insert({
+        admin_id: entry.admin_id,
+        action_type: entry.action_type,
+        action_category: entry.action_category,
+        target_type: entry.target_type,
+        target_id: entry.target_id,
+        description: entry.description,
+        metadata: entry.metadata || {},
+        ip_address: entry.ip_address || null,
+        user_agent: entry.user_agent || null,
+      });
 
       if (error) {
         logger.error('Failed to log admin activity', {
@@ -91,9 +89,10 @@ export class AdminActivityLogger {
     targetId?: string,
     metadata?: Record<string, unknown>
   ): Promise<void> {
-    const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0] ||
-                     request.headers.get('x-real-ip') ||
-                     'unknown';
+    const ipAddress =
+      request.headers.get('x-forwarded-for')?.split(',')[0] ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
     const userAgent = request.headers.get('user-agent') || 'unknown';
 
     await this.logActivity({
@@ -126,7 +125,10 @@ export class AdminActivityLogger {
     try {
       let query = serverSupabase
         .from('admin_activity_log')
-        .select('*, admin:admin_id(id, email, first_name, last_name)', { count: 'exact' })
+        .select(
+          '*, admin:profiles!admin_id(id, email, first_name, last_name)',
+          { count: 'exact' }
+        )
         .order('created_at', { ascending: false });
 
       if (options.adminId) {
@@ -150,7 +152,10 @@ export class AdminActivityLogger {
       }
 
       if (options.offset) {
-        query = query.range(options.offset, options.offset + (options.limit || 50) - 1);
+        query = query.range(
+          options.offset,
+          options.offset + (options.limit || 50) - 1
+        );
       }
 
       const { data, error, count } = await query;
@@ -175,4 +180,3 @@ export class AdminActivityLogger {
     }
   }
 }
-
