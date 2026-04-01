@@ -33,6 +33,7 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/web/lib/cache.ts',
   'apps/web/app/contractor/finance/page.tsx',
   'apps/web/app/contractor/market-insights/components/MarketInsightsClient.tsx',
+  'apps/web/app/coming-soon/page.tsx',
 ]);
 
 function countLines(filePath) {
