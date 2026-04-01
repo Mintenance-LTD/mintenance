@@ -122,17 +122,14 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
           if (verificationData.data) {
             setValue('contractor_company_name', verificationData.data.company_name || '');
             setValue('contractor_license_registration', verificationData.data.license_number || '');
-          }
-        }
-
-        if (profileRes.ok) {
-          const profileData = await profileRes.json();
-          if (profileData.profile) {
-            if (profileData.profile.insurance_provider) {
-              setValue('insurance_provider', profileData.profile.insurance_provider);
+            if (verificationData.data.insurance_provider) {
+              setValue('insurance_provider', verificationData.data.insurance_provider);
             }
-            if (profileData.profile.insurance_policy_number) {
-              setValue('insurance_policy_number', profileData.profile.insurance_policy_number);
+            if (verificationData.data.insurance_policy_number) {
+              setValue('insurance_policy_number', verificationData.data.insurance_policy_number);
+            }
+            if (verificationData.data.license_type) {
+              setValue('contractor_license_type', verificationData.data.license_type);
             }
           }
         }

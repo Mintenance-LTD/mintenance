@@ -371,6 +371,13 @@ const ProfileScreen: React.FC = () => {
                     iconBg: '#DBEAFE',
                     onPress: () => navigation.navigate('ContractorVerification'),
                   },
+                  {
+                    label: 'Business Profile',
+                    icon: 'briefcase-outline',
+                    iconColor: theme.colors.primary,
+                    iconBg: theme.colors.primaryLight,
+                    onPress: () => navigation.navigate('BusinessProfile' as never),
+                  },
                 ]}
               />
             )}

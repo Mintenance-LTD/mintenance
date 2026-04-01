@@ -23,7 +23,7 @@ import {
   SafeCRMDashboardScreen, SafeAddClientScreen, SafeClientDetailScreen,
   SafeFinanceDashboardScreen, SafeServiceAreasScreen, SafeQuoteBuilderScreen,
   SafeCreateQuoteScreen, SafeQuoteDetailScreen, SafeQuoteTemplatesScreen,
-  SafeContractorCardEditorScreen, SafeContractorVerificationScreen,
+  SafeContractorCardEditorScreen, SafeContractorVerificationScreen, SafeBusinessProfileScreen,
   SafeCalendarScreen, SafeReviewsScreen, SafeExpensesScreen, SafeDocumentsScreen,
   SafeCertificationsScreen, SafeTimeTrackingScreen, SafeAddTimeEntryScreen,
   SafeAddCertificationScreen, SafeReportingScreen, SafePayoutsScreen,
@@ -54,6 +54,7 @@ export const ProfileNavigator = () => {
       <ProfileStack.Screen name="QuoteTemplates" component={SafeQuoteTemplatesScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="ContractorCardEditor" component={SafeContractorCardEditorScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="ContractorVerification" component={SafeContractorVerificationScreen} options={{ headerShown: false }} />
+      <ProfileStack.Screen name="BusinessProfile" component={SafeBusinessProfileScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="Properties" component={SafePropertiesScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="PropertyDetail" component={SafePropertyDetailScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="EditProperty" component={SafeEditPropertyScreen} options={{ headerShown: false }} />

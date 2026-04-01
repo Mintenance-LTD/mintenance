@@ -89,6 +89,12 @@ export const GET = withApiHandler(
 
     if (error) throw error;
 
+    // Fetch insurance and license from normalized tables
+    const [insuranceRes, licenseRes] = await Promise.all([
+      serverSupabase.from('contractor_insurance').select('provider, policy_number').eq('contractor_id', user.id).eq('status', 'active').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      serverSupabase.from('contractor_licenses').select('name, number').eq('contractor_id', user.id).eq('status', 'active').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+    ]);
+
     const verificationStatus: VerificationStatusResponse = {
       hasBusinessAddress: Boolean(userData?.business_address),
       hasLicenseNumber: Boolean(userData?.license_number),
@@ -101,7 +107,12 @@ export const GET = withApiHandler(
           userData?.longitude &&
           userData?.company_name,
       ),
-      data: userData,
+      data: {
+        ...userData,
+        insurance_provider: insuranceRes.data?.provider || null,
+        insurance_policy_number: insuranceRes.data?.policy_number || null,
+        license_type: licenseRes.data?.name || null,
+      },
     };
 
     return NextResponse.json(verificationStatus, { status: 200 });
@@ -166,10 +177,7 @@ export const POST = withApiHandler(
       updateData.address = coordinates.formattedAddress;
     }
 
-    if (insuranceProvider) updateData.insurance_provider = insuranceProvider;
-    if (insurancePolicyNumber) updateData.insurance_policy_number = insurancePolicyNumber;
-    if (insuranceExpiryDate) updateData.insurance_expiry_date = insuranceExpiryDate;
-
+    // Save profile fields (company_name, license_number, address)
     const { data: updatedUser, error: updateError } = await serverSupabase
       .from('profiles')
       .update(updateData)
@@ -183,6 +191,30 @@ export const POST = withApiHandler(
         userId: user.id,
       });
       throw updateError;
+    }
+
+    // Save insurance to contractor_insurance table (not profiles)
+    if (insuranceProvider) {
+      await serverSupabase.from('contractor_insurance').upsert({
+        contractor_id: user.id,
+        provider: insuranceProvider,
+        policy_number: insurancePolicyNumber || null,
+        expiry_date: insuranceExpiryDate || null,
+        type: 'general_liability',
+        status: 'active',
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'contractor_id' });
+    }
+
+    // Save license type to contractor_licenses table
+    if (licenseType) {
+      await serverSupabase.from('contractor_licenses').upsert({
+        contractor_id: user.id,
+        name: licenseType,
+        number: licenseNumber.trim().toUpperCase(),
+        status: 'active',
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'contractor_id' });
     }
 
     return NextResponse.json(

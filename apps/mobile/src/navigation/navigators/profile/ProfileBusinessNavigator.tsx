@@ -24,6 +24,7 @@ import { AddTimeEntryScreen } from "../../../screens/contractor/AddTimeEntryScre
 import { AddCertificationScreen } from "../../../screens/contractor/AddCertificationScreen";
 import { ReportingScreen } from "../../../screens/contractor/ReportingScreen";
 import { PayoutsScreen } from "../../../screens/contractor/PayoutsScreen";
+import { BusinessProfileScreen } from "../../../screens/contractor/BusinessProfileScreen";
 import { withScreenErrorBoundary } from "../../../components/ErrorBoundaryProvider";
 
 export const SafeInvoiceManagementScreen = withScreenErrorBoundary(InvoiceManagementScreen, "Invoice Management", { fallbackRoute: "ProfileMain" });
@@ -40,6 +41,7 @@ export const SafeQuoteDetailScreen = withScreenErrorBoundary(QuoteDetailScreen, 
 export const SafeQuoteTemplatesScreen = withScreenErrorBoundary(QuoteTemplatesScreen, "Quote Templates", { fallbackRoute: "QuoteBuilder" });
 export const SafeContractorCardEditorScreen = withScreenErrorBoundary(ContractorCardEditorScreen, "Edit Discovery Card", { fallbackRoute: "ProfileMain" });
 export const SafeContractorVerificationScreen = withScreenErrorBoundary(ContractorVerificationScreen, "Contractor Verification", { fallbackRoute: "ProfileMain" });
+export const SafeBusinessProfileScreen = withScreenErrorBoundary(BusinessProfileScreen, "Business Profile", { fallbackRoute: "ProfileMain" });
 export const SafeCalendarScreen = withScreenErrorBoundary(CalendarScreen, "Calendar", { fallbackRoute: "ProfileMain" });
 export const SafeReviewsScreen = withScreenErrorBoundary(ReviewsScreen, "Reviews", { fallbackRoute: "ProfileMain" });
 export const SafeExpensesScreen = withScreenErrorBoundary(ExpensesScreen, "Expenses", { fallbackRoute: "ProfileMain" });
