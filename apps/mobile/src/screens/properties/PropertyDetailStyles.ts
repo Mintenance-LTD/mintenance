@@ -1,5 +1,19 @@
 import { StyleSheet } from 'react-native';
+import type { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
+
+export const CATEGORY_ICONS: Record<
+  string,
+  { icon: keyof typeof Ionicons.glyphMap; color: string; bg: string }
+> = {
+  plumbing: { icon: 'water-outline', color: '#3B82F6', bg: '#DBEAFE' },
+  electrical: { icon: 'flash-outline', color: '#F59E0B', bg: '#FEF3C7' },
+  roofing: { icon: 'home-outline', color: '#8B5CF6', bg: '#EDE9FE' },
+  painting: { icon: 'color-palette-outline', color: '#EC4899', bg: '#FCE7F3' },
+  carpentry: { icon: 'hammer-outline', color: '#92400E', bg: '#FDE68A' },
+  cleaning: { icon: 'sparkles-outline', color: '#10B981', bg: '#D1FAE5' },
+  general: { icon: 'construct-outline', color: '#6B7280', bg: '#F3F4F6' },
+};
 
 export const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
@@ -82,8 +96,8 @@ export const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   statNumber: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '800',
     color: theme.colors.textPrimary,
   },
   statLabel: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 4 },
@@ -103,6 +117,53 @@ export const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 12,
+  },
+  // Spec grid (2x2 bento)
+  specGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 10,
+  },
+  specTile: {
+    width: '47%' as unknown as number,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 16,
+    padding: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  specTileIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  specTileValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
+    marginBottom: 2,
+  },
+  specTileLabel: {
+    fontSize: 12,
+    color: theme.colors.textTertiary,
+  },
+  sizeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.border,
+  },
+  sizeText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
   },
   // Info rows
   infoRow: {
@@ -170,13 +231,20 @@ export const styles = StyleSheet.create({
     color: theme.colors.textTertiary,
     textAlign: 'center',
   },
-  jobRow: {
+  jobCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border,
+  },
+  jobCatIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
   jobRowInfo: { flex: 1, marginRight: 12 },
   jobRowTitle: {

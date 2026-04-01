@@ -1,5 +1,7 @@
 if (typeof window !== 'undefined') {
-  throw new Error('[ServerOnly] apps/web/lib/database.ts must not run in the browser');
+  throw new Error(
+    '[ServerOnly] apps/web/lib/database.ts must not run in the browser'
+  );
 }
 
 import { serverSupabase } from '@/lib/api/supabaseServer';
@@ -52,7 +54,10 @@ export class DatabaseManager {
    */
   static async createUser(userData: CreateUserData): Promise<User> {
     // Validate password complexity (for Supabase Auth, not stored in profiles)
-    const validationResult = PasswordValidator.validate(userData.password, passwordRequirements);
+    const validationResult = PasswordValidator.validate(
+      userData.password,
+      passwordRequirements
+    );
     if (!validationResult.isValid) {
       throw new Error(validationResult.errors.join(', '));
     }
@@ -69,13 +74,16 @@ export class DatabaseManager {
         phone: userData.phone?.trim(),
         verified: false,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
-      .select('id, email, first_name, last_name, role, created_at, updated_at, verified, phone')
+      .select(
+        'id, email, first_name, last_name, role, created_at, updated_at, verified, phone'
+      )
       .single();
 
     if (error) {
-      if (error.code === '23505') { // Unique constraint violation
+      if (error.code === '23505') {
+        // Unique constraint violation
         throw new Error('User with this email already exists');
       }
       throw new Error(`Database error: ${error.message}`);
@@ -85,73 +93,22 @@ export class DatabaseManager {
   }
 
   /**
-   * Authenticate user with email and password
-   * TODO: This is a LEGACY method. Authentication should be handled entirely by Supabase Auth
-   * (serverSupabase.auth.signInWithPassword). The profiles table does NOT store password_hash.
-   * This method now only looks up the user profile; actual password verification
-   * must be done via Supabase Auth before calling this.
+   * @deprecated SECURITY: This method does NOT verify passwords. It only looks up
+   * the user profile by email. Use Supabase Auth (signInWithPassword) instead.
+   * Throws an error to prevent accidental use — callers must migrate.
    */
-  static async authenticateUser(email: string, _password: string, ipAddress?: string): Promise<User | null> {
-    // TODO: Replace with serverSupabase.auth.signInWithPassword() for actual password verification.
-    // The profiles table does not have a password_hash column - Supabase Auth handles passwords.
-
-    // Get user profile (no password_hash - it does not exist in profiles)
-    const { data, error } = await serverSupabase
-      .from('profiles')
-      .select('id, email, first_name, last_name, role, created_at, updated_at, verified, phone')
-      .eq('email', email.toLowerCase().trim())
-      .single();
-
-    if (error || !data) {
-      // Record failed attempt for non-existent user
-      try {
-        await serverSupabase.rpc('record_failed_login', {
-          attempt_user_id: null,
-          attempt_email: email.toLowerCase().trim(),
-          attempt_ip: ipAddress || null,
-          attempt_user_agent: null,
-          attempt_failure_reason: 'user_not_found'
-        });
-      } catch (e) {
-        logger.error('Failed to record login attempt', e, { service: 'auth' });
-      }
-      return null;
-    }
-
-    // Check if account is locked
-    try {
-      const { data: isLocked } = await serverSupabase.rpc('is_account_locked', {
-        check_user_id: data.id
-      });
-
-      if (isLocked) {
-        logger.warn('Login attempt on locked account', {
-          service: 'auth',
-          userId: data.id,
-          email: data.email
-        });
-        return null;
-      }
-    } catch (e) {
-      logger.error('Failed to check account lockout', e, { service: 'auth' });
-    }
-
-    // TODO: Password verification should be done via Supabase Auth BEFORE calling this method.
-    // The profiles table does not store password_hash. Supabase Auth (auth.users) handles passwords.
-
-    // Record successful login and clear any lockouts
-    try {
-      await serverSupabase.rpc('record_successful_login', {
-        login_user_id: data.id,
-        login_email: email.toLowerCase().trim(),
-        login_ip: ipAddress || null,
-        login_user_agent: null
-      });
-    } catch (e) {
-      logger.error('Failed to record successful login', e, { service: 'auth' });
-    }
-
-    return data;
+  static async authenticateUser(
+    email: string,
+    _password: string,
+    ipAddress?: string
+  ): Promise<User | null> {
+    // AUDIT FIX: This method accepted any password without verification.
+    // All dead code removed — callers must use Supabase Auth instead.
+    throw new Error(
+      'DEPRECATED: DatabaseManager.authenticateUser() does not verify passwords. ' +
+        'Use supabase.auth.signInWithPassword() for authentication. ' +
+        'See apps/web/app/api/auth/login/route.ts for the correct pattern.'
+    );
   }
 
   /**
@@ -160,7 +117,9 @@ export class DatabaseManager {
   static async getUserById(userId: string): Promise<User | null> {
     const { data, error } = await serverSupabase
       .from('profiles')
-      .select('id, email, first_name, last_name, role, created_at, updated_at, verified, phone, phone_verified, phone_verified_at, location, profile_image_url, bio, address, city, postcode, country, company_name, admin_verified, is_available, onboarding_completed, rating, total_jobs_completed')
+      .select(
+        'id, email, first_name, last_name, role, created_at, updated_at, verified, phone, phone_verified, phone_verified_at, location, profile_image_url, bio, address, city, postcode, country, company_name, admin_verified, is_available, onboarding_completed, rating, total_jobs_completed'
+      )
       .eq('id', userId)
       .single();
 
@@ -177,7 +136,9 @@ export class DatabaseManager {
   static async getUserByEmail(email: string): Promise<User | null> {
     const { data, error } = await serverSupabase
       .from('profiles')
-      .select('id, email, first_name, last_name, role, created_at, updated_at, verified, phone, location, profile_image_url')
+      .select(
+        'id, email, first_name, last_name, role, created_at, updated_at, verified, phone, location, profile_image_url'
+      )
       .eq('email', email.toLowerCase().trim())
       .single();
 
@@ -194,9 +155,15 @@ export class DatabaseManager {
    * or serverSupabase.auth.updateUser). The profiles table does NOT store password_hash.
    * This method currently only validates the password and updates the updated_at timestamp.
    */
-  static async updateUserPassword(userId: string, newPassword: string): Promise<boolean> {
+  static async updateUserPassword(
+    userId: string,
+    newPassword: string
+  ): Promise<boolean> {
     // Validate password complexity
-    const validationResult = PasswordValidator.validate(newPassword, passwordRequirements);
+    const validationResult = PasswordValidator.validate(
+      newPassword,
+      passwordRequirements
+    );
     if (!validationResult.isValid) {
       throw new Error(validationResult.errors.join(', '));
     }
@@ -204,19 +171,25 @@ export class DatabaseManager {
     // Check if password is in history by comparing against stored hashes
     try {
       // Get password history from database
-      const { data: passwordHistory, error: historyError } = await serverSupabase
-        .from('password_history')
-        .select('password_hash')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(5); // Check last 5 passwords
+      const { data: passwordHistory, error: historyError } =
+        await serverSupabase
+          .from('password_history')
+          .select('password_hash')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(5); // Check last 5 passwords
 
       if (!historyError && passwordHistory) {
         // Use bcrypt.compare() to check each stored hash
         for (const record of passwordHistory) {
-          const isMatch = await bcrypt.compare(newPassword, record.password_hash);
+          const isMatch = await bcrypt.compare(
+            newPassword,
+            record.password_hash
+          );
           if (isMatch) {
-            throw new Error('Password has been used recently. Please choose a different password.');
+            throw new Error(
+              'Password has been used recently. Please choose a different password.'
+            );
           }
         }
       }
@@ -224,7 +197,10 @@ export class DatabaseManager {
       if (e instanceof Error && e.message.includes('recently')) {
         throw e; // Re-throw password reuse error
       }
-      logger.error('Failed to check password history', e, { service: 'auth', userId });
+      logger.error('Failed to check password history', e, {
+        service: 'auth',
+        userId,
+      });
     }
 
     // TODO: Use serverSupabase.auth.admin.updateUserById(userId, { password: newPassword })
@@ -234,7 +210,7 @@ export class DatabaseManager {
     const { error } = await serverSupabase
       .from('profiles')
       .update({
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', userId);
 
@@ -248,13 +224,13 @@ export class DatabaseManager {
       const passwordHash = await bcrypt.hash(newPassword, saltRounds);
       await serverSupabase.rpc('add_password_to_history', {
         history_user_id: userId,
-        new_password_hash: passwordHash
+        new_password_hash: passwordHash,
       });
     } catch (historyError) {
       logger.warn('Failed to add password to history', {
         service: 'auth',
         userId,
-        error: historyError
+        error: historyError,
       });
     }
 
@@ -264,15 +240,22 @@ export class DatabaseManager {
   /**
    * Update user profile
    */
-  static async updateUser(userId: string, updates: Partial<Pick<User, 'first_name' | 'last_name' | 'phone' | 'verified'>>): Promise<User | null> {
+  static async updateUser(
+    userId: string,
+    updates: Partial<
+      Pick<User, 'first_name' | 'last_name' | 'phone' | 'verified'>
+    >
+  ): Promise<User | null> {
     const { data, error } = await serverSupabase
       .from('profiles')
       .update({
         ...updates,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', userId)
-      .select('id, email, first_name, last_name, role, created_at, updated_at, verified, phone')
+      .select(
+        'id, email, first_name, last_name, role, created_at, updated_at, verified, phone'
+      )
       .single();
 
     if (error || !data) {
@@ -294,18 +277,19 @@ export class DatabaseManager {
         .eq('email', normalizedEmail)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned, which is expected
-        logger.error('Error checking user existence', error, { 
-          service: 'database', 
-          email: normalizedEmail 
+      if (error && error.code !== 'PGRST116') {
+        // PGRST116 = no rows returned, which is expected
+        logger.error('Error checking user existence', error, {
+          service: 'database',
+          email: normalizedEmail,
         });
       }
 
       return !!data && !error;
     } catch (error) {
-      logger.error('Exception checking user existence', error, { 
-        service: 'database', 
-        email 
+      logger.error('Exception checking user existence', error, {
+        service: 'database',
+        email,
       });
       return false;
     }
@@ -316,18 +300,22 @@ export class DatabaseManager {
    */
   static isValidEmail(email: string): boolean {
     // RFC 5322 compliant email regex (simplified but more robust than basic version)
-    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    const emailRegex =
+      /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
     return emailRegex.test(email);
   }
 
   /**
    * Verify password strength (using PasswordValidator)
    */
-  static isValidPassword(password: string): { valid: boolean; message?: string } {
+  static isValidPassword(password: string): {
+    valid: boolean;
+    message?: string;
+  } {
     const result = PasswordValidator.validate(password, passwordRequirements);
     return {
       valid: result.isValid,
-      message: result.errors.join(', ')
+      message: result.errors.join(', '),
     };
   }
 
@@ -337,16 +325,17 @@ export class DatabaseManager {
   static async isAccountLocked(userId: string): Promise<boolean> {
     try {
       const { data } = await serverSupabase.rpc('is_account_locked', {
-        check_user_id: userId
+        check_user_id: userId,
       });
       return !!data;
     } catch (error) {
-      logger.error('Failed to check account lockout', error, { service: 'auth', userId });
+      logger.error('Failed to check account lockout', error, {
+        service: 'auth',
+        userId,
+      });
       // SECURITY: Fail closed - if we can't verify lockout status, deny access
       // This prevents locked accounts from bypassing security if the check fails
       return true;
     }
   }
 }
-
-

@@ -107,8 +107,9 @@ export class BidService {
         created_at, updated_at,
         contractor:profiles!bids_contractor_id_fkey(
           id, first_name, last_name, email, profile_image_url, company_name
-        )
-      `
+        ),
+        job:jobs!job_id(id, title)
+`
       )
       .in('job_id', jobIds)
       .order('created_at', { ascending: false });

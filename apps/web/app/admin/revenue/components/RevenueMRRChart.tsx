@@ -3,15 +3,15 @@
 import React from 'react';
 import { theme } from '@/lib/theme';
 import { AdminCard } from '@/components/admin/AdminCard';
+import { DynamicBarChart } from '@/components/charts/DynamicCharts';
 import {
-  DynamicBarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-} from '@/components/charts/DynamicCharts';
+} from 'recharts';
 import { formatCurrency } from './RevenueTypes';
 import type { MRRMetrics } from './RevenueTypes';
 

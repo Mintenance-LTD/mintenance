@@ -4,41 +4,66 @@ import { theme } from '../../../theme';
 
 interface ProgressBarProps {
   percentage: number;
+  completedSteps?: number;
+  totalSteps?: number;
 }
 
-export const ProgressBar: React.FC<ProgressBarProps> = ({ percentage }) => {
+export const ProgressBar: React.FC<ProgressBarProps> = ({
+  percentage,
+  completedSteps,
+  totalSteps,
+}) => {
   return (
-    <View style={styles.progressContainer}>
-      <View style={styles.progressBar}>
-        <View style={[styles.progressFill, { width: `${percentage}%` }]} />
+    <View style={styles.container}>
+      <View style={styles.topRow}>
+        <Text style={styles.percentage}>{percentage}%</Text>
+        {completedSteps != null && totalSteps != null && (
+          <Text style={styles.stepCount}>
+            {completedSteps} of {totalSteps} steps
+          </Text>
+        )}
       </View>
-      <Text style={styles.progressText}>{percentage}% Complete</Text>
+      <View style={styles.barTrack}>
+        <View
+          style={[styles.barFill, { width: `${Math.min(percentage, 100)}%` }]}
+        />
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  progressContainer: {
+  container: {
     backgroundColor: theme.colors.surface,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border,
   },
-  progressBar: {
-    height: 6,
-    backgroundColor: theme.colors.border,
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginBottom: 8,
+  topRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 10,
   },
-  progressFill: {
-    height: '100%',
-    backgroundColor: theme.colors.textPrimary,
+  percentage: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
   },
-  progressText: {
-    fontSize: 12,
+  stepCount: {
+    fontSize: 13,
     color: theme.colors.textSecondary,
-    textAlign: 'center',
+  },
+  barTrack: {
+    height: 8,
+    backgroundColor: theme.colors.border,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  barFill: {
+    height: '100%',
+    backgroundColor: theme.colors.primary,
+    borderRadius: 4,
   },
 });

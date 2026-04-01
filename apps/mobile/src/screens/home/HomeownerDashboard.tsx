@@ -106,7 +106,9 @@ export const HomeownerDashboard: React.FC = () => {
       const today = new Date().toISOString().split('T')[0];
       const { data: rows, error: err } = await supabase
         .from('bookings')
-        .select('id, title, date, time, contractor:contractor_id(full_name)')
+        .select(
+          'id, title, date, time, contractor:profiles!contractor_id(full_name)'
+        )
         .eq('homeowner_id', user!.id)
         .gte('date', today)
         .order('date', { ascending: true })
