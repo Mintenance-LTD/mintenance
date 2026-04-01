@@ -268,7 +268,7 @@ export class JobCRUDService {
       const { data, error } = await supabase
         .from('contracts')
         .select(
-          'id, job_id, contractor_id, homeowner_id, status, title, description, amount, start_date, end_date, contractor_signed_at, homeowner_signed_at, terms, created_at, updated_at, contractor:profiles!contractor_id(first_name, last_name, company_name), homeowner:profiles!homeowner_id(first_name, last_name)'
+          'id, job_id, contractor_id, homeowner_id, status, title, description, amount, start_date, end_date, contractor_signed_at, homeowner_signed_at, terms, quote_id, created_at, updated_at, contractor:profiles!contractor_id(first_name, last_name, company_name), homeowner:profiles!homeowner_id(first_name, last_name)'
         )
         .eq('job_id', jobId)
         .order('created_at', { ascending: false })
