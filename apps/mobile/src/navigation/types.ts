@@ -116,6 +116,7 @@ export type ProfileStackParamList = {
   CreateQuote: { jobId?: string };
   ContractorCardEditor: undefined;
   ContractorVerification: undefined;
+  BusinessProfile: undefined;
   Properties: undefined;
   PropertyDetail: { propertyId: string };
   EditProperty: { propertyId: string };

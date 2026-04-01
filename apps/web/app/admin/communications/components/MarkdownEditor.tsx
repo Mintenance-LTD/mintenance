@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useMemo } from 'react';
 import { Bold, Italic, Link, Heading3, Eye, EyeOff } from 'lucide-react';
 import { Textarea } from '@/components/ui/Textarea';
 
@@ -88,6 +88,22 @@ export function MarkdownEditor({
     onContentChange(newText);
   }, [content, onContentChange]);
 
+  // Toolbar buttons defined as stable array to avoid refs-during-render lint error
+  const toolbarButtons = useMemo(
+    () => [
+      { icon: Bold, label: 'Bold', handler: handleInsertBold },
+      { icon: Italic, label: 'Italic', handler: handleInsertItalic },
+      { icon: Link, label: 'Link', handler: handleInsertLink },
+      { icon: Heading3, label: 'Heading', handler: handleInsertHeading },
+    ],
+    [
+      handleInsertBold,
+      handleInsertItalic,
+      handleInsertLink,
+      handleInsertHeading,
+    ]
+  );
+
   // Admin-only preview — content is authored by admins, not user input.
   // HTML entities are escaped in simpleMarkdownToHtml before transformation.
   const previewHtml = simpleMarkdownToHtml(content);
@@ -107,12 +123,7 @@ export function MarkdownEditor({
           aria-label='Text formatting'
           style={{ display: 'flex', gap: 4 }}
         >
-          {[
-            { icon: Bold, label: 'Bold', handler: handleInsertBold },
-            { icon: Italic, label: 'Italic', handler: handleInsertItalic },
-            { icon: Link, label: 'Link', handler: handleInsertLink },
-            { icon: Heading3, label: 'Heading', handler: handleInsertHeading },
-          ].map(({ icon: IconComp, label, handler }) => (
+          {toolbarButtons.map(({ icon: IconComp, label, handler }) => (
             <button
               key={label}
               type='button'

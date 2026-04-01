@@ -102,50 +102,36 @@ export const ContractPreparationScreen: React.FC<Props> = ({
       try {
         if (!user?.id) return;
         const { supabase } = await import('../../config/supabase');
-        const [profileRes, contractsRes, bidRes, quoteRes] =
+        const [profileRes, insuranceRes, licenseRes, contractsRes, bidRes, quoteRes] =
           await Promise.allSettled([
-            supabase
-              .from('contractor_profiles')
-              .select(
-                'company_name, license_number, license_type, insurance_provider, insurance_policy_number'
-              )
-              .eq('user_id', user.id)
-              .single(),
-            supabase
-              .from('contracts')
-              .select('id, amount, title, description, terms, status')
-              .eq('job_id', jobId)
-              .order('created_at', { ascending: false })
-              .limit(1),
-            supabase
-              .from('bids')
-              .select('amount, description, message')
-              .eq('job_id', jobId)
-              .eq('contractor_id', user.id)
-              .eq('status', 'accepted')
-              .limit(1)
-              .maybeSingle(),
-            supabase
-              .from('contractor_quotes')
-              .select(
-                'id, line_items, total_amount, tax_rate, tax_amount, terms'
-              )
-              .eq('job_id', jobId)
-              .eq('contractor_id', user.id)
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .maybeSingle(),
+            // Business details from profiles table (company_name, license_number)
+            supabase.from('profiles').select('company_name, license_number').eq('id', user.id).single(),
+            // Insurance from contractor_insurance table
+            supabase.from('contractor_insurance').select('provider, policy_number').eq('contractor_id', user.id).eq('status', 'active').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+            // License type from contractor_licenses table
+            supabase.from('contractor_licenses').select('name, number').eq('contractor_id', user.id).eq('status', 'active').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+            supabase.from('contracts').select('id, amount, title, description, terms, status').eq('job_id', jobId).order('created_at', { ascending: false }).limit(1),
+            supabase.from('bids').select('amount, description, message').eq('job_id', jobId).eq('contractor_id', user.id).eq('status', 'accepted').limit(1).maybeSingle(),
+            supabase.from('contractor_quotes').select('id, line_items, total_amount, tax_rate, tax_amount, terms').eq('job_id', jobId).eq('contractor_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
           ]);
         if (cancelled) return;
 
+        // Auto-fill from profiles table (company_name, license_number)
         if (profileRes.status === 'fulfilled' && profileRes.value.data) {
           const p = profileRes.value.data;
           if (p.company_name) setCompanyName(p.company_name);
           if (p.license_number) setLicenseNumber(p.license_number);
-          if (p.license_type) setLicenseType(p.license_type);
-          if (p.insurance_provider) setInsuranceProvider(p.insurance_provider);
-          if (p.insurance_policy_number)
-            setInsurancePolicyNumber(p.insurance_policy_number);
+        }
+        // Auto-fill insurance from contractor_insurance table
+        if (insuranceRes.status === 'fulfilled' && insuranceRes.value.data) {
+          const ins = insuranceRes.value.data;
+          if (ins.provider) setInsuranceProvider(ins.provider);
+          if (ins.policy_number) setInsurancePolicyNumber(ins.policy_number);
+        }
+        // Auto-fill license type from contractor_licenses table
+        if (licenseRes.status === 'fulfilled' && licenseRes.value.data) {
+          const lic = licenseRes.value.data;
+          if (lic.name) setLicenseType(lic.name);
         }
         if (
           contractsRes.status === 'fulfilled' &&
