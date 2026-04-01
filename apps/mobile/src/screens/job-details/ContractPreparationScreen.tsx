@@ -1,17 +1,8 @@
-/**
- * ContractPreparationScreen - Contractor fills in contract terms (Phase 4.5)
- *
- * After bid acceptance, the contract is auto-created as 'draft'.
- * The web API blocks signing 'draft' contracts.
- * This screen lets contractors fill in terms, dates, license info
- * to move the contract to 'pending_homeowner' via POST /api/contracts.
- */
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
-  StyleSheet,
   TouchableOpacity,
   TextInput,
   Alert,
@@ -20,6 +11,7 @@ import {
   Platform,
   StatusBar,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -29,35 +21,56 @@ import { useAuth } from '../../contexts/AuthContext';
 import { HapticService } from '../../utils/haptics';
 import { JobsStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
+import { styles } from './ContractPreparationStyles';
 
-type ScreenRouteProp = RouteProp<JobsStackParamList, 'ContractPreparation'>;
-type ScreenNavigationProp = NativeStackNavigationProp<JobsStackParamList, 'ContractPreparation'>;
+type Props = {
+  route: RouteProp<JobsStackParamList, 'ContractPreparation'>;
+  navigation: NativeStackNavigationProp<
+    JobsStackParamList,
+    'ContractPreparation'
+  >;
+};
 
-interface Props {
-  route: ScreenRouteProp;
-  navigation: ScreenNavigationProp;
-}
+const LICENSE_TYPES = [
+  'General Contractor',
+  'Electrical',
+  'Plumbing',
+  'HVAC',
+  'Roofing',
+  'Landscaping',
+  'Painting',
+  'Carpentry',
+  'Other',
+] as const;
 
-interface ContractDraft {
-  id?: string;
-  amount?: number;
-  title?: string;
-  description?: string;
-}
+type ContractStatus =
+  | 'draft'
+  | 'pending_homeowner'
+  | 'pending_contractor'
+  | 'accepted'
+  | 'rejected'
+  | null;
 
-export const ContractPreparationScreen: React.FC<Props> = ({ route, navigation }) => {
+export const ContractPreparationScreen: React.FC<Props> = ({
+  route,
+  navigation,
+}) => {
   const { jobId, jobTitle } = route.params;
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
 
   // Form state
-  const [title, setTitle] = useState(jobTitle ? `Contract for ${jobTitle}` : '');
+  const [title, setTitle] = useState(
+    jobTitle ? `Contract for ${jobTitle}` : ''
+  );
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
   const [companyName, setCompanyName] = useState('');
-  const [licenseRegistration, setLicenseRegistration] = useState('');
+  const [licenseNumber, setLicenseNumber] = useState('');
   const [licenseType, setLicenseType] = useState('');
   const [insuranceProvider, setInsuranceProvider] = useState('');
   const [insurancePolicyNumber, setInsurancePolicyNumber] = useState('');
@@ -66,117 +79,221 @@ export const ContractPreparationScreen: React.FC<Props> = ({ route, navigation }
   // UI state
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [existingStatus, setExistingStatus] = useState<ContractStatus>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let cancelled = false;
     const loadData = async () => {
       try {
         if (!user?.id) return;
-
-        // Fetch contractor profile, existing contract, and accepted bid — all via direct Supabase
         const { supabase } = await import('../../config/supabase');
-
         const [profileRes, contractsRes, bidRes] = await Promise.allSettled([
-          supabase.from('contractor_profiles').select('company_name, license_number, license_type, insurance_provider, insurance_policy_number, business_address, hourly_rate').eq('user_id', user.id).single(),
-          supabase.from('contracts').select('id, amount, title, description, terms').eq('job_id', jobId).order('created_at', { ascending: false }).limit(1),
-          supabase.from('bids').select('amount, description, message, estimated_duration_days').eq('job_id', jobId).eq('contractor_id', user.id).eq('status', 'accepted').limit(1).maybeSingle(),
+          supabase
+            .from('contractor_profiles')
+            .select(
+              'company_name, license_number, license_type, insurance_provider, insurance_policy_number'
+            )
+            .eq('user_id', user.id)
+            .single(),
+          supabase
+            .from('contracts')
+            .select('id, amount, title, description, terms, status')
+            .eq('job_id', jobId)
+            .order('created_at', { ascending: false })
+            .limit(1),
+          supabase
+            .from('bids')
+            .select('amount, description, message')
+            .eq('job_id', jobId)
+            .eq('contractor_id', user.id)
+            .eq('status', 'accepted')
+            .limit(1)
+            .maybeSingle(),
         ]);
-
         if (cancelled) return;
 
-        // Auto-fill from contractor profile
         if (profileRes.status === 'fulfilled' && profileRes.value.data) {
           const p = profileRes.value.data;
           if (p.company_name) setCompanyName(p.company_name);
-          if (p.license_number) setLicenseRegistration(p.license_number);
+          if (p.license_number) setLicenseNumber(p.license_number);
           if (p.license_type) setLicenseType(p.license_type);
           if (p.insurance_provider) setInsuranceProvider(p.insurance_provider);
-          if (p.insurance_policy_number) setInsurancePolicyNumber(p.insurance_policy_number);
+          if (p.insurance_policy_number)
+            setInsurancePolicyNumber(p.insurance_policy_number);
         }
-
-        // Auto-fill from existing contract (if editing)
-        if (contractsRes.status === 'fulfilled' && contractsRes.value.data?.[0]) {
+        if (
+          contractsRes.status === 'fulfilled' &&
+          contractsRes.value.data?.[0]
+        ) {
           const c = contractsRes.value.data[0];
           if (c.amount) setAmount(String(c.amount));
           if (c.title) setTitle(c.title);
           if (c.description) setDescription(c.description);
+          if (c.status && c.status !== 'draft')
+            setExistingStatus(c.status as ContractStatus);
         }
-
-        // Auto-fill from accepted bid (amount + description)
         if (bidRes.status === 'fulfilled' && bidRes.value.data) {
           const b = bidRes.value.data;
           if (b.amount && !amount) setAmount(String(b.amount));
-          if ((b.description || b.message) && !description) setDescription(b.description || b.message || '');
+          if ((b.description || b.message) && !description)
+            setDescription(b.description || b.message || '');
         }
       } catch {
-        // Non-critical - form still works without pre-fill
+        /* pre-fill is non-critical */
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
-
     loadData();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [jobId, jobTitle]);
 
-  const validate = useCallback((): string | null => {
-    if (!title || title.length < 2) return 'Title must be at least 2 characters';
-    if (!description || description.length < 10) return 'Description must be at least 10 characters';
-    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) return 'Enter a valid amount';
-    if (!startDate) return 'Start date is required';
-    if (!endDate) return 'End date is required';
-    if (new Date(endDate) <= new Date(startDate)) return 'End date must be after start date';
-    if (!companyName) return 'Company name is required';
-    if (!licenseRegistration) return 'License/registration number is required';
-    return null;
-  }, [title, description, amount, startDate, endDate, companyName, licenseRegistration]);
+  const validate = useCallback((): Record<string, string> => {
+    const e: Record<string, string> = {};
+    if (!title || title.length < 2)
+      e.title = 'Title must be at least 2 characters';
+    if (!description || description.length < 10)
+      e.description = 'Description must be at least 10 characters';
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0)
+      e.amount = 'Enter a valid amount';
+    if (!startDate) e.startDate = 'Start date is required';
+    if (!endDate) e.endDate = 'End date is required';
+    if (startDate && endDate && endDate <= startDate)
+      e.endDate = 'End date must be after start date';
+    if (!companyName) e.companyName = 'Company name is required';
+    if (!licenseNumber) e.licenseNumber = 'License number is required';
+    return e;
+  }, [
+    title,
+    description,
+    amount,
+    startDate,
+    endDate,
+    companyName,
+    licenseNumber,
+  ]);
 
   const handleSubmit = useCallback(async () => {
-    const error = validate();
-    if (error) {
-      Alert.alert('Missing Information', error);
+    const errs = validate();
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) {
+      HapticService.error();
       return;
     }
 
     setSubmitting(true);
     try {
-      const termsObj: Record<string, string> = {};
-      if (terms.trim()) termsObj.additional_terms = terms.trim();
-      if (insuranceProvider) termsObj.insurance_provider = insuranceProvider;
-      if (insurancePolicyNumber) termsObj.insurance_policy_number = insurancePolicyNumber;
-
       await mobileApiClient.post('/api/contracts', {
         job_id: jobId,
         title,
         description,
         amount: Number(amount),
-        start_date: new Date(startDate).toISOString(),
-        end_date: new Date(endDate).toISOString(),
+        start_date: startDate!.toISOString(),
+        end_date: endDate!.toISOString(),
         contractor_company_name: companyName,
-        contractor_license_registration: licenseRegistration,
+        contractor_license_registration: licenseNumber,
         contractor_license_type: licenseType || undefined,
-        terms: termsObj,
+        insurance_provider: insuranceProvider || undefined,
+        insurance_policy_number: insurancePolicyNumber || undefined,
+        terms: terms.trim() || undefined,
       });
-
       HapticService.success();
       Alert.alert(
-        'Contract Submitted',
-        'The homeowner has been notified to review and sign the contract.',
+        'Contract Sent',
+        'The homeowner has been notified to review and sign.',
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (err) {
       HapticService.error();
-      const msg = err instanceof Error ? err.message : 'Failed to submit contract';
-      Alert.alert('Error', msg);
+      Alert.alert(
+        'Error',
+        err instanceof Error ? err.message : 'Failed to submit contract'
+      );
     } finally {
       setSubmitting(false);
     }
-  }, [jobId, title, description, amount, startDate, endDate, companyName, licenseRegistration, licenseType, insuranceProvider, insurancePolicyNumber, terms, validate, navigation]);
+  }, [
+    jobId,
+    title,
+    description,
+    amount,
+    startDate,
+    endDate,
+    companyName,
+    licenseNumber,
+    licenseType,
+    insuranceProvider,
+    insurancePolicyNumber,
+    terms,
+    validate,
+    navigation,
+  ]);
+
+  const formatDate = (d: Date | null) =>
+    d
+      ? d.toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : '';
+  const isSigned = existingStatus === 'accepted';
+
+  const statusBanner = () => {
+    if (!existingStatus) return null;
+    const cfg =
+      existingStatus === 'accepted'
+        ? {
+            bg: '#D1FAE5',
+            border: '#A7F3D0',
+            icon: 'checkmark-circle' as const,
+            color: '#065F46',
+            text: 'Contract signed by both parties.',
+          }
+        : existingStatus === 'rejected'
+          ? {
+              bg: '#FEE2E2',
+              border: '#FECACA',
+              icon: 'alert-circle' as const,
+              color: '#991B1B',
+              text: 'Homeowner requested changes. Update and resend.',
+            }
+          : {
+              bg: '#DBEAFE',
+              border: '#93C5FD',
+              icon: 'information-circle' as const,
+              color: '#1E40AF',
+              text: `Contract already sent (status: ${existingStatus.replace(/_/g, ' ')}).`,
+            };
+    return (
+      <View
+        style={[
+          styles.statusBanner,
+          { backgroundColor: cfg.bg, borderColor: cfg.border },
+        ]}
+      >
+        <Ionicons name={cfg.icon} size={20} color={cfg.color} />
+        <Text style={[styles.statusText, { color: cfg.color }]}>
+          {cfg.text}
+        </Text>
+      </View>
+    );
+  };
+
+  const FieldError: React.FC<{ field: string }> = ({ field }) =>
+    errors[field] ? (
+      <Text style={styles.fieldError}>{errors[field]}</Text>
+    ) : null;
 
   if (loading) {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={theme.colors.textPrimary} />
+        <ActivityIndicator size='large' color={theme.colors.textPrimary} />
         <Text style={styles.loadingText}>Loading contract details...</Text>
       </View>
     );
@@ -184,115 +301,315 @@ export const ContractPreparationScreen: React.FC<Props> = ({ route, navigation }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.surface} />
-      {/* Header */}
+      <StatusBar
+        barStyle='dark-content'
+        backgroundColor={theme.colors.surface}
+      />
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel="Go back">
-          <Ionicons name="arrow-back" size={22} color={theme.colors.textPrimary} />
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons
+            name='arrow-back'
+            size={22}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Prepare Contract</Text>
         <View style={{ width: 44 }} />
       </View>
 
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          {/* Info banner */}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps='handled'
+        >
           <View style={styles.infoBanner}>
-            <Ionicons name="document-text-outline" size={20} color={theme.colors.textPrimary} />
-            <Text style={styles.infoText}>Fill in the contract details for the homeowner to review and sign.</Text>
+            <Ionicons
+              name='document-text-outline'
+              size={20}
+              color={theme.colors.textPrimary}
+            />
+            <Text style={styles.infoText}>
+              Fill in the contract details. This will be sent to the homeowner
+              for review and signature.
+            </Text>
           </View>
 
-          {/* Contract Details */}
-          <Text style={styles.sectionLabel}>Contract Details</Text>
+          {statusBanner()}
 
-          <Text style={styles.fieldLabel}>Title *</Text>
-          <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="e.g., Kitchen Plumbing Repair Contract" placeholderTextColor={theme.colors.textTertiary} />
+          {/* SCOPE OF WORK */}
+          <Text style={styles.sectionLabel}>Scope of Work</Text>
+          <Text style={styles.fieldLabel}>Contract Title *</Text>
+          <TextInput
+            style={[styles.input, errors.title && styles.inputError]}
+            value={title}
+            onChangeText={setTitle}
+            placeholder='e.g., Kitchen Plumbing Repair'
+            placeholderTextColor={theme.colors.textTertiary}
+          />
+          <FieldError field='title' />
 
-          <Text style={styles.fieldLabel}>Description *</Text>
-          <TextInput style={[styles.input, styles.textArea]} value={description} onChangeText={setDescription} placeholder="Describe the scope of work..." placeholderTextColor={theme.colors.textTertiary} multiline numberOfLines={4} textAlignVertical="top" />
+          <Text style={styles.fieldLabel}>Description of Work *</Text>
+          <TextInput
+            style={[
+              styles.input,
+              styles.textArea,
+              errors.description && styles.inputError,
+            ]}
+            value={description}
+            onChangeText={setDescription}
+            placeholder='Describe the work to be performed in detail...'
+            placeholderTextColor={theme.colors.textTertiary}
+            multiline
+            numberOfLines={4}
+            textAlignVertical='top'
+          />
+          <FieldError field='description' />
 
-          <Text style={styles.fieldLabel}>Amount ({'\u00A3'}) *</Text>
-          <TextInput style={styles.input} value={amount} onChangeText={setAmount} placeholder="0.00" placeholderTextColor={theme.colors.textTertiary} keyboardType="decimal-pad" />
+          {/* PAYMENT & SCHEDULE */}
+          <Text style={styles.sectionLabel}>Payment & Schedule</Text>
+          <Text style={styles.fieldLabel}>Contract Amount ({'\u00A3'}) *</Text>
+          <TextInput
+            style={[styles.input, errors.amount && styles.inputError]}
+            value={amount}
+            onChangeText={setAmount}
+            placeholder='0.00'
+            placeholderTextColor={theme.colors.textTertiary}
+            keyboardType='decimal-pad'
+          />
+          <Text style={styles.escrowNote}>
+            Payment will be held securely in escrow via Mintenance
+          </Text>
+          <FieldError field='amount' />
 
-          {/* Schedule */}
-          <Text style={styles.sectionLabel}>Schedule</Text>
+          <View style={styles.dateRow}>
+            <View style={styles.dateField}>
+              <Text style={styles.fieldLabel}>Start Date *</Text>
+              <TouchableOpacity
+                style={[
+                  styles.dateButton,
+                  errors.startDate && styles.inputError,
+                ]}
+                onPress={() => setShowStartPicker(true)}
+              >
+                <Text
+                  style={startDate ? styles.dateText : styles.datePlaceholder}
+                >
+                  {startDate ? formatDate(startDate) : 'Select start date'}
+                </Text>
+                <Ionicons
+                  name='calendar-outline'
+                  size={18}
+                  color={theme.colors.textTertiary}
+                />
+              </TouchableOpacity>
+              <FieldError field='startDate' />
+            </View>
+            <View style={styles.dateField}>
+              <Text style={styles.fieldLabel}>End Date *</Text>
+              <TouchableOpacity
+                style={[styles.dateButton, errors.endDate && styles.inputError]}
+                onPress={() => setShowEndPicker(true)}
+              >
+                <Text
+                  style={endDate ? styles.dateText : styles.datePlaceholder}
+                >
+                  {endDate ? formatDate(endDate) : 'Select end date'}
+                </Text>
+                <Ionicons
+                  name='calendar-outline'
+                  size={18}
+                  color={theme.colors.textTertiary}
+                />
+              </TouchableOpacity>
+              <FieldError field='endDate' />
+            </View>
+          </View>
 
-          <Text style={styles.fieldLabel}>Start Date *</Text>
-          <TextInput style={styles.input} value={startDate} onChangeText={setStartDate} placeholder="YYYY-MM-DD" placeholderTextColor={theme.colors.textTertiary} />
+          {showStartPicker && (
+            <DateTimePicker
+              value={startDate || new Date()}
+              mode='date'
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(_, d) => {
+                setShowStartPicker(Platform.OS === 'ios');
+                if (d) setStartDate(d);
+              }}
+            />
+          )}
+          {showEndPicker && (
+            <DateTimePicker
+              value={endDate || new Date()}
+              mode='date'
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              minimumDate={startDate || undefined}
+              onChange={(_, d) => {
+                setShowEndPicker(Platform.OS === 'ios');
+                if (d) setEndDate(d);
+              }}
+            />
+          )}
 
-          <Text style={styles.fieldLabel}>End Date *</Text>
-          <TextInput style={styles.input} value={endDate} onChangeText={setEndDate} placeholder="YYYY-MM-DD" placeholderTextColor={theme.colors.textTertiary} />
-
-          {/* Business Details */}
+          {/* BUSINESS DETAILS */}
           <Text style={styles.sectionLabel}>Business Details</Text>
-
           <Text style={styles.fieldLabel}>Company Name *</Text>
-          <TextInput style={styles.input} value={companyName} onChangeText={setCompanyName} placeholder="Your company name" placeholderTextColor={theme.colors.textTertiary} />
+          <TextInput
+            style={[styles.input, errors.companyName && styles.inputError]}
+            value={companyName}
+            onChangeText={setCompanyName}
+            placeholder='Your company name'
+            placeholderTextColor={theme.colors.textTertiary}
+          />
+          <FieldError field='companyName' />
 
-          <Text style={styles.fieldLabel}>License / Registration Number *</Text>
-          <TextInput style={styles.input} value={licenseRegistration} onChangeText={setLicenseRegistration} placeholder="License or registration number" placeholderTextColor={theme.colors.textTertiary} />
+          <View style={styles.dateRow}>
+            <View style={styles.dateField}>
+              <Text style={styles.fieldLabel}>License Number *</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  errors.licenseNumber && styles.inputError,
+                ]}
+                value={licenseNumber}
+                onChangeText={setLicenseNumber}
+                placeholder='e.g. LIC-12345'
+                placeholderTextColor={theme.colors.textTertiary}
+              />
+              <FieldError field='licenseNumber' />
+            </View>
+            <View style={styles.dateField}>
+              <Text style={styles.fieldLabel}>License Type</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.chipScroll}
+              >
+                {LICENSE_TYPES.map((t) => (
+                  <TouchableOpacity
+                    key={t}
+                    style={[
+                      styles.chip,
+                      licenseType === t && styles.chipActive,
+                    ]}
+                    onPress={() => setLicenseType(t)}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        licenseType === t && styles.chipTextActive,
+                      ]}
+                    >
+                      {t}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
 
-          <Text style={styles.fieldLabel}>License Type (optional)</Text>
-          <TextInput style={styles.input} value={licenseType} onChangeText={setLicenseType} placeholder="e.g., General, Electrical, Plumbing" placeholderTextColor={theme.colors.textTertiary} />
+          {/* INSURANCE — highlighted card */}
+          <View style={styles.insuranceCard}>
+            <View style={styles.insuranceHeader}>
+              <Ionicons
+                name='shield-checkmark-outline'
+                size={18}
+                color='#3B82F6'
+              />
+              <Text style={styles.insuranceTitle}>
+                Insurance Details (Recommended)
+              </Text>
+            </View>
+            <Text style={styles.insuranceSub}>
+              Adding insurance details builds trust and shows professionalism
+            </Text>
+            <View style={styles.dateRow}>
+              <View style={styles.dateField}>
+                <Text style={styles.fieldLabel}>Insurance Provider</Text>
+                <TextInput
+                  style={styles.input}
+                  value={insuranceProvider}
+                  onChangeText={setInsuranceProvider}
+                  placeholder='e.g. Hiscox, AXA'
+                  placeholderTextColor={theme.colors.textTertiary}
+                />
+              </View>
+              <View style={styles.dateField}>
+                <Text style={styles.fieldLabel}>Policy Number</Text>
+                <TextInput
+                  style={styles.input}
+                  value={insurancePolicyNumber}
+                  onChangeText={setInsurancePolicyNumber}
+                  placeholder='e.g. POL-123456'
+                  placeholderTextColor={theme.colors.textTertiary}
+                />
+              </View>
+            </View>
+          </View>
 
-          <Text style={styles.fieldLabel}>Insurance Provider (optional)</Text>
-          <TextInput style={styles.input} value={insuranceProvider} onChangeText={setInsuranceProvider} placeholder="Insurance company name" placeholderTextColor={theme.colors.textTertiary} />
-
-          <Text style={styles.fieldLabel}>Insurance Policy Number (optional)</Text>
-          <TextInput style={styles.input} value={insurancePolicyNumber} onChangeText={setInsurancePolicyNumber} placeholder="Policy number" placeholderTextColor={theme.colors.textTertiary} />
-
-          {/* Additional Terms */}
+          {/* ADDITIONAL TERMS */}
           <Text style={styles.sectionLabel}>Additional Terms</Text>
-
-          <TextInput style={[styles.input, styles.textArea]} value={terms} onChangeText={setTerms} placeholder="Any additional terms or conditions..." placeholderTextColor={theme.colors.textTertiary} multiline numberOfLines={3} textAlignVertical="top" />
+          <Text style={styles.fieldLabel}>Terms & Conditions (Optional)</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={terms}
+            onChangeText={setTerms}
+            placeholder='Any additional terms, conditions, or special requirements...'
+            placeholderTextColor={theme.colors.textTertiary}
+            multiline
+            numberOfLines={3}
+            textAlignVertical='top'
+          />
 
           <View style={{ height: 120 }} />
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Submit Button */}
-      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 20) }]}>
-        <TouchableOpacity
-          style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
-          onPress={handleSubmit}
-          disabled={submitting}
-          accessibilityRole="button"
-          accessibilityLabel="Submit contract"
-        >
-          {submitting ? (
-            <ActivityIndicator color={theme.colors.textInverse} />
-          ) : (
-            <>
-              <Ionicons name="document-text" size={20} color={theme.colors.textInverse} />
-              <Text style={styles.submitButtonText}>Submit Contract</Text>
-            </>
-          )}
-        </TouchableOpacity>
+      {/* Bottom bar */}
+      <View
+        style={[
+          styles.bottomBar,
+          { paddingBottom: Math.max(insets.bottom, 20) },
+        ]}
+      >
+        <View style={styles.bottomRow}>
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.cancelText}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.submitButton,
+              (submitting || isSigned) && styles.submitButtonDisabled,
+            ]}
+            onPress={handleSubmit}
+            disabled={submitting || isSigned}
+          >
+            {submitting ? (
+              <ActivityIndicator color='#FFF' />
+            ) : (
+              <>
+                <Ionicons name='document-text' size={18} color='#FFF' />
+                <Text style={styles.submitText}>
+                  {isSigned
+                    ? 'Contract Signed'
+                    : existingStatus
+                      ? 'Update & Resend'
+                      : 'Send Contract to Homeowner'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
-  flex: { flex: 1 },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: theme.colors.backgroundSecondary },
-  loadingText: { marginTop: 12, fontSize: 16, color: theme.colors.textSecondary },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border, backgroundColor: theme.colors.surface },
-  backButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.colors.backgroundSecondary, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { flex: 1, fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary, textAlign: 'center' },
-  scrollView: { flex: 1 },
-  scrollContent: { padding: 20 },
-  infoBanner: { flexDirection: 'row', backgroundColor: theme.colors.primaryLight, borderRadius: 16, padding: 14, gap: 10, marginBottom: 24, alignItems: 'center' },
-  infoText: { flex: 1, fontSize: 14, color: theme.colors.textPrimary, lineHeight: 20 },
-  sectionLabel: { fontSize: 12, fontWeight: '700', color: theme.colors.textTertiary, textTransform: 'uppercase', letterSpacing: 0.8, marginTop: 20, marginBottom: 12 },
-  fieldLabel: { fontSize: 13, fontWeight: '600', color: theme.colors.textSecondary, marginBottom: 6 },
-  input: { backgroundColor: theme.colors.backgroundSecondary, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: theme.colors.textPrimary, marginBottom: 14 },
-  textArea: { minHeight: 90, paddingTop: 12 },
-  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: theme.colors.surface, paddingHorizontal: 20, paddingTop: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.border, ...Platform.select({ ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.08, shadowRadius: 12 }, android: { elevation: 8 } }) },
-  submitButton: { backgroundColor: theme.colors.textPrimary, borderRadius: 28, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 56 },
-  submitButtonDisabled: { opacity: 0.5 },
-  submitButtonText: { color: theme.colors.textInverse, fontSize: 16, fontWeight: '600' },
-});
 
 export default ContractPreparationScreen;
