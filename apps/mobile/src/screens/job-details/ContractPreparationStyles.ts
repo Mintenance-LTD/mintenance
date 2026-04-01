@@ -149,6 +149,52 @@ export const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   chipTextActive: { color: theme.colors.textInverse },
+  // Agreed quote card
+  agreedQuoteCard: {
+    backgroundColor: '#F0FDF4',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    marginBottom: 8,
+  },
+  agreedQuoteHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  agreedQuoteTitle: { fontSize: 15, fontWeight: '700', color: '#166534' },
+  agreedQuoteSub: {
+    fontSize: 13,
+    color: '#15803D',
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  agreedItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#BBF7D0',
+  },
+  agreedItemDesc: { fontSize: 14, color: '#166534', flex: 1 },
+  agreedItemTotal: { fontSize: 14, fontWeight: '700', color: '#166534' },
+  agreedTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#86EFAC',
+  },
+  agreedTotalLabel: { fontSize: 15, fontWeight: '700', color: '#166534' },
+  agreedTotalValue: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: theme.colors.primary,
+  },
   // Insurance card
   insuranceCard: {
     backgroundColor: '#EFF6FF',

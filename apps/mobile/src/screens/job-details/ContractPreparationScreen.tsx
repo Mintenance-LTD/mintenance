@@ -11,7 +11,6 @@ import {
   Platform,
   StatusBar,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -22,6 +21,12 @@ import { HapticService } from '../../utils/haptics';
 import { JobsStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
 import { styles } from './ContractPreparationStyles';
+import {
+  AgreedQuoteCard,
+  LicenseTypeChips,
+  InsuranceDetailsCard,
+  DateRangePicker,
+} from './ContractFormSections';
 
 type Props = {
   route: RouteProp<JobsStackParamList, 'ContractPreparation'>;
@@ -67,14 +72,23 @@ export const ContractPreparationScreen: React.FC<Props> = ({
   const [amount, setAmount] = useState('');
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
   const [companyName, setCompanyName] = useState('');
   const [licenseNumber, setLicenseNumber] = useState('');
   const [licenseType, setLicenseType] = useState('');
   const [insuranceProvider, setInsuranceProvider] = useState('');
   const [insurancePolicyNumber, setInsurancePolicyNumber] = useState('');
   const [terms, setTerms] = useState('');
+
+  // Quote data (from accepted bid)
+  const [quoteId, setQuoteId] = useState<string | null>(null);
+  const [quoteLineItems, setQuoteLineItems] = useState<
+    Array<{
+      description: string;
+      quantity: number;
+      unitPrice: number;
+      total: number;
+    }>
+  >([]);
 
   // UI state
   const [loading, setLoading] = useState(true);
@@ -88,29 +102,40 @@ export const ContractPreparationScreen: React.FC<Props> = ({
       try {
         if (!user?.id) return;
         const { supabase } = await import('../../config/supabase');
-        const [profileRes, contractsRes, bidRes] = await Promise.allSettled([
-          supabase
-            .from('contractor_profiles')
-            .select(
-              'company_name, license_number, license_type, insurance_provider, insurance_policy_number'
-            )
-            .eq('user_id', user.id)
-            .single(),
-          supabase
-            .from('contracts')
-            .select('id, amount, title, description, terms, status')
-            .eq('job_id', jobId)
-            .order('created_at', { ascending: false })
-            .limit(1),
-          supabase
-            .from('bids')
-            .select('amount, description, message')
-            .eq('job_id', jobId)
-            .eq('contractor_id', user.id)
-            .eq('status', 'accepted')
-            .limit(1)
-            .maybeSingle(),
-        ]);
+        const [profileRes, contractsRes, bidRes, quoteRes] =
+          await Promise.allSettled([
+            supabase
+              .from('contractor_profiles')
+              .select(
+                'company_name, license_number, license_type, insurance_provider, insurance_policy_number'
+              )
+              .eq('user_id', user.id)
+              .single(),
+            supabase
+              .from('contracts')
+              .select('id, amount, title, description, terms, status')
+              .eq('job_id', jobId)
+              .order('created_at', { ascending: false })
+              .limit(1),
+            supabase
+              .from('bids')
+              .select('amount, description, message')
+              .eq('job_id', jobId)
+              .eq('contractor_id', user.id)
+              .eq('status', 'accepted')
+              .limit(1)
+              .maybeSingle(),
+            supabase
+              .from('contractor_quotes')
+              .select(
+                'id, line_items, total_amount, tax_rate, tax_amount, terms'
+              )
+              .eq('job_id', jobId)
+              .eq('contractor_id', user.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+          ]);
         if (cancelled) return;
 
         if (profileRes.status === 'fulfilled' && profileRes.value.data) {
@@ -138,6 +163,19 @@ export const ContractPreparationScreen: React.FC<Props> = ({
           if (b.amount && !amount) setAmount(String(b.amount));
           if ((b.description || b.message) && !description)
             setDescription(b.description || b.message || '');
+        }
+        // Load linked quote (line items from accepted bid)
+        if (quoteRes.status === 'fulfilled' && quoteRes.value.data) {
+          const q = quoteRes.value.data;
+          setQuoteId(q.id);
+          const items = q.line_items as Array<{
+            description: string;
+            quantity: number;
+            unitPrice: number;
+            total: number;
+          }> | null;
+          if (items?.length) setQuoteLineItems(items);
+          if (q.terms && !terms) setTerms(String(q.terms));
         }
       } catch {
         /* pre-fill is non-critical */
@@ -199,6 +237,7 @@ export const ContractPreparationScreen: React.FC<Props> = ({
         insurance_provider: insuranceProvider || undefined,
         insurance_policy_number: insurancePolicyNumber || undefined,
         terms: terms.trim() || undefined,
+        quote_id: quoteId || undefined,
       });
       HapticService.success();
       Alert.alert(
@@ -285,11 +324,8 @@ export const ContractPreparationScreen: React.FC<Props> = ({
     );
   };
 
-  const FieldError: React.FC<{ field: string }> = ({ field }) =>
-    errors[field] ? (
-      <Text style={styles.fieldError}>{errors[field]}</Text>
-    ) : null;
-
+  const FErr = ({ f }: { f: string }) =>
+    errors[f] ? <Text style={styles.fieldError}>{errors[f]}</Text> : null;
   if (loading) {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
@@ -342,7 +378,7 @@ export const ContractPreparationScreen: React.FC<Props> = ({
 
           {statusBanner()}
 
-          {/* SCOPE OF WORK */}
+          <AgreedQuoteCard items={quoteLineItems} amount={amount} />
           <Text style={styles.sectionLabel}>Scope of Work</Text>
           <Text style={styles.fieldLabel}>Contract Title *</Text>
           <TextInput
@@ -352,7 +388,7 @@ export const ContractPreparationScreen: React.FC<Props> = ({
             placeholder='e.g., Kitchen Plumbing Repair'
             placeholderTextColor={theme.colors.textTertiary}
           />
-          <FieldError field='title' />
+          <FErr f='title' />
 
           <Text style={styles.fieldLabel}>Description of Work *</Text>
           <TextInput
@@ -369,9 +405,8 @@ export const ContractPreparationScreen: React.FC<Props> = ({
             numberOfLines={4}
             textAlignVertical='top'
           />
-          <FieldError field='description' />
+          <FErr f='description' />
 
-          {/* PAYMENT & SCHEDULE */}
           <Text style={styles.sectionLabel}>Payment & Schedule</Text>
           <Text style={styles.fieldLabel}>Contract Amount ({'\u00A3'}) *</Text>
           <TextInput
@@ -385,75 +420,17 @@ export const ContractPreparationScreen: React.FC<Props> = ({
           <Text style={styles.escrowNote}>
             Payment will be held securely in escrow via Mintenance
           </Text>
-          <FieldError field='amount' />
+          <FErr f='amount' />
 
-          <View style={styles.dateRow}>
-            <View style={styles.dateField}>
-              <Text style={styles.fieldLabel}>Start Date *</Text>
-              <TouchableOpacity
-                style={[
-                  styles.dateButton,
-                  errors.startDate && styles.inputError,
-                ]}
-                onPress={() => setShowStartPicker(true)}
-              >
-                <Text
-                  style={startDate ? styles.dateText : styles.datePlaceholder}
-                >
-                  {startDate ? formatDate(startDate) : 'Select start date'}
-                </Text>
-                <Ionicons
-                  name='calendar-outline'
-                  size={18}
-                  color={theme.colors.textTertiary}
-                />
-              </TouchableOpacity>
-              <FieldError field='startDate' />
-            </View>
-            <View style={styles.dateField}>
-              <Text style={styles.fieldLabel}>End Date *</Text>
-              <TouchableOpacity
-                style={[styles.dateButton, errors.endDate && styles.inputError]}
-                onPress={() => setShowEndPicker(true)}
-              >
-                <Text
-                  style={endDate ? styles.dateText : styles.datePlaceholder}
-                >
-                  {endDate ? formatDate(endDate) : 'Select end date'}
-                </Text>
-                <Ionicons
-                  name='calendar-outline'
-                  size={18}
-                  color={theme.colors.textTertiary}
-                />
-              </TouchableOpacity>
-              <FieldError field='endDate' />
-            </View>
-          </View>
-
-          {showStartPicker && (
-            <DateTimePicker
-              value={startDate || new Date()}
-              mode='date'
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={(_, d) => {
-                setShowStartPicker(Platform.OS === 'ios');
-                if (d) setStartDate(d);
-              }}
-            />
-          )}
-          {showEndPicker && (
-            <DateTimePicker
-              value={endDate || new Date()}
-              mode='date'
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              minimumDate={startDate || undefined}
-              onChange={(_, d) => {
-                setShowEndPicker(Platform.OS === 'ios');
-                if (d) setEndDate(d);
-              }}
-            />
-          )}
+          <DateRangePicker
+            startDate={startDate}
+            endDate={endDate}
+            onStartChange={setStartDate}
+            onEndChange={setEndDate}
+            startError={errors.startDate}
+            endError={errors.endDate}
+            formatDate={formatDate}
+          />
 
           {/* BUSINESS DETAILS */}
           <Text style={styles.sectionLabel}>Business Details</Text>
@@ -465,7 +442,7 @@ export const ContractPreparationScreen: React.FC<Props> = ({
             placeholder='Your company name'
             placeholderTextColor={theme.colors.textTertiary}
           />
-          <FieldError field='companyName' />
+          <FErr f='companyName' />
 
           <View style={styles.dateRow}>
             <View style={styles.dateField}>
@@ -480,76 +457,24 @@ export const ContractPreparationScreen: React.FC<Props> = ({
                 placeholder='e.g. LIC-12345'
                 placeholderTextColor={theme.colors.textTertiary}
               />
-              <FieldError field='licenseNumber' />
+              <FErr f='licenseNumber' />
             </View>
             <View style={styles.dateField}>
               <Text style={styles.fieldLabel}>License Type</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.chipScroll}
-              >
-                {LICENSE_TYPES.map((t) => (
-                  <TouchableOpacity
-                    key={t}
-                    style={[
-                      styles.chip,
-                      licenseType === t && styles.chipActive,
-                    ]}
-                    onPress={() => setLicenseType(t)}
-                  >
-                    <Text
-                      style={[
-                        styles.chipText,
-                        licenseType === t && styles.chipTextActive,
-                      ]}
-                    >
-                      {t}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+              <LicenseTypeChips
+                selected={licenseType}
+                onSelect={setLicenseType}
+                types={LICENSE_TYPES}
+              />
             </View>
           </View>
 
-          {/* INSURANCE — highlighted card */}
-          <View style={styles.insuranceCard}>
-            <View style={styles.insuranceHeader}>
-              <Ionicons
-                name='shield-checkmark-outline'
-                size={18}
-                color='#3B82F6'
-              />
-              <Text style={styles.insuranceTitle}>
-                Insurance Details (Recommended)
-              </Text>
-            </View>
-            <Text style={styles.insuranceSub}>
-              Adding insurance details builds trust and shows professionalism
-            </Text>
-            <View style={styles.dateRow}>
-              <View style={styles.dateField}>
-                <Text style={styles.fieldLabel}>Insurance Provider</Text>
-                <TextInput
-                  style={styles.input}
-                  value={insuranceProvider}
-                  onChangeText={setInsuranceProvider}
-                  placeholder='e.g. Hiscox, AXA'
-                  placeholderTextColor={theme.colors.textTertiary}
-                />
-              </View>
-              <View style={styles.dateField}>
-                <Text style={styles.fieldLabel}>Policy Number</Text>
-                <TextInput
-                  style={styles.input}
-                  value={insurancePolicyNumber}
-                  onChangeText={setInsurancePolicyNumber}
-                  placeholder='e.g. POL-123456'
-                  placeholderTextColor={theme.colors.textTertiary}
-                />
-              </View>
-            </View>
-          </View>
+          <InsuranceDetailsCard
+            provider={insuranceProvider}
+            setProvider={setInsuranceProvider}
+            policyNumber={insurancePolicyNumber}
+            setPolicyNumber={setInsurancePolicyNumber}
+          />
 
           {/* ADDITIONAL TERMS */}
           <Text style={styles.sectionLabel}>Additional Terms</Text>

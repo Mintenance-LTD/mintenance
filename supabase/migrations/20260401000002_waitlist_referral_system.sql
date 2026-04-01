@@ -23,7 +23,7 @@ WHERE coming_soon_signups.id = ranked.id;
 
 -- Backfill referral codes for existing rows (8-char hex)
 UPDATE coming_soon_signups
-SET referral_code = SUBSTRING(encode(gen_random_uuid()::bytea, 'hex') FROM 1 FOR 8)
+SET referral_code = REPLACE(LEFT(gen_random_uuid()::text, 8), '-', '')
 WHERE referral_code IS NULL;
 
 -- Index for fast referral code lookups
