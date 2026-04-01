@@ -52,9 +52,20 @@ interface UnverifiedW9Row {
 }
 
 interface AdminTaxData {
-  summary: TaxSummary;
-  contractors: ContractorTaxRow[];
-  unverifiedW9s: UnverifiedW9Row[];
+  summaries: Array<{
+    id: string;
+    contractor_id: string;
+    tax_year: number;
+    total_earnings: number;
+    requires_1099: boolean;
+    form_1099_generated: boolean;
+    form_1099_generated_at: string | null;
+    form_1099_filed: boolean;
+    form_1099_filed_at: string | null;
+    contractor: { id: string; first_name: string | null; last_name: string | null; email: string } | null;
+    tax_profile: { w9_submitted_at: string | null; w9_verified: boolean } | null;
+  }>;
+  stats: TaxSummary;
 }
 
 // -- Fetch helper ------------------------------------------------------------
@@ -102,15 +113,46 @@ export default function AdminTaxDashboardPage() {
     retry: 2,
   });
 
-  const summary: TaxSummary = data?.summary ?? {
+  const summary: TaxSummary = data?.stats ?? {
     totalRequiring1099: 0,
     totalGenerated: 0,
     totalFiled: 0,
     totalEarnings: 0,
   };
 
-  const contractors = data?.contractors ?? [];
-  const unverifiedW9s = data?.unverifiedW9s ?? [];
+  // Map API summaries to the ContractorTaxRow shape the table expects
+  // tax_profile is now nested under contractor (joined through profiles)
+  const contractors: ContractorTaxRow[] = (data?.summaries ?? []).map((s) => {
+    const c = Array.isArray(s.contractor) ? s.contractor[0] : s.contractor;
+    const tp = c?.tax_profile ? (Array.isArray(c.tax_profile) ? c.tax_profile[0] : c.tax_profile) : null;
+    return {
+      contractorId: s.contractor_id,
+      contractorName: c ? `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim() : 'Unknown',
+      email: c?.email ?? '',
+      tinLast4: '****',
+      totalEarnings: Number(s.total_earnings),
+      status: s.form_1099_filed ? 'filed' : s.form_1099_generated ? 'generated' : 'pending',
+      w9Status: tp?.w9_verified ? 'verified' : tp?.w9_submitted_at ? 'submitted' : 'unverified',
+    };
+  });
+
+  const unverifiedW9s: UnverifiedW9Row[] = (data?.summaries ?? [])
+    .filter((s) => {
+      const c = Array.isArray(s.contractor) ? s.contractor[0] : s.contractor;
+      const tp = c?.tax_profile ? (Array.isArray(c.tax_profile) ? c.tax_profile[0] : c.tax_profile) : null;
+      return !tp?.w9_verified;
+    })
+    .map((s) => {
+      const c = Array.isArray(s.contractor) ? s.contractor[0] : s.contractor;
+      const tp = c?.tax_profile ? (Array.isArray(c.tax_profile) ? c.tax_profile[0] : c.tax_profile) : null;
+      return {
+        contractorId: s.contractor_id,
+        contractorName: c ? `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim() : 'Unknown',
+        email: c?.email ?? '',
+        submittedAt: tp?.w9_submitted_at ?? null,
+        w9Status: tp?.w9_submitted_at ? 'submitted' : 'unverified',
+      };
+    });
 
   // -- Filtered list ---------------------------------------------------------
 
