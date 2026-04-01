@@ -90,7 +90,14 @@ export const adminSettingCreateSchema = z.object({
     z.array(z.any()),
   ]),
   type: z.enum(['string', 'number', 'boolean', 'json', 'array']),
-  category: z.enum(['general', 'email', 'security', 'features', 'payment', 'notifications']),
+  category: z.enum([
+    'general',
+    'email',
+    'security',
+    'features',
+    'payment',
+    'notifications',
+  ]),
   description: z.string().max(1000, 'Description too long').optional(),
   isPublic: z.boolean().default(false),
 });
@@ -98,26 +105,60 @@ export const adminSettingCreateSchema = z.object({
 // Contract Schemas
 export const createContractSchema = z.object({
   job_id: z.string().uuid('Invalid job ID'),
-  title: z.string().min(1, 'Title required').max(255, 'Title too long').optional(),
+  title: z
+    .string()
+    .min(1, 'Title required')
+    .max(255, 'Title too long')
+    .optional(),
   description: z.string().max(5000, 'Description too long').optional(),
   amount: z.number().positive('Amount must be positive'),
   start_date: z.string().datetime('Invalid start date format').optional(),
   end_date: z.string().datetime('Invalid end date format').optional(),
-  terms: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
-  contractor_company_name: z.string().min(1, 'Company name required').max(255, 'Company name too long'),
-  contractor_license_registration: z.string().min(1, 'License registration required').max(100, 'License registration too long'),
-  contractor_license_type: z.string().max(100, 'License type too long').optional(),
-  insurance_provider: z.string().max(255, 'Insurance provider too long').optional(),
-  insurance_policy_number: z.string().max(100, 'Insurance policy number too long').optional(),
+  terms: z
+    .record(
+      z.string(),
+      z.union([z.string(), z.number(), z.boolean(), z.null()])
+    )
+    .optional(),
+  contractor_company_name: z
+    .string()
+    .min(1, 'Company name required')
+    .max(255, 'Company name too long'),
+  contractor_license_registration: z
+    .string()
+    .min(1, 'License registration required')
+    .max(100, 'License registration too long'),
+  contractor_license_type: z
+    .string()
+    .max(100, 'License type too long')
+    .optional(),
+  insurance_provider: z
+    .string()
+    .max(255, 'Insurance provider too long')
+    .optional(),
+  insurance_policy_number: z
+    .string()
+    .max(100, 'Insurance policy number too long')
+    .optional(),
+  quote_id: z.string().uuid('Invalid quote ID').optional(),
 });
 
 export const updateContractSchema = z.object({
-  title: z.string().min(1, 'Title required').max(255, 'Title too long').optional(),
+  title: z
+    .string()
+    .min(1, 'Title required')
+    .max(255, 'Title too long')
+    .optional(),
   description: z.string().max(5000, 'Description too long').optional(),
   amount: z.number().positive('Amount must be positive').optional(),
   start_date: z.string().datetime('Invalid start date format').optional(),
   end_date: z.string().datetime('Invalid end date format').optional(),
-  terms: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
+  terms: z
+    .record(
+      z.string(),
+      z.union([z.string(), z.number(), z.boolean(), z.null()])
+    )
+    .optional(),
 });
 
 // Message Schemas
@@ -142,7 +183,10 @@ export const sendMessageSchema = z.object({
 
 // Notification Schemas
 export const notificationEngagementSchema = z.object({
-  notificationId: z.string().min(1, 'Notification ID required').max(255, 'Notification ID too long'),
+  notificationId: z
+    .string()
+    .min(1, 'Notification ID required')
+    .max(255, 'Notification ID too long'),
   action: z.enum(['opened', 'clicked', 'dismissed']),
 });
 
@@ -159,7 +203,10 @@ export const createPropertySchema = z
     country: z.string().max(50).optional(),
     property_type: z.string().min(1, 'Property type is required'),
     is_primary: z.boolean().default(false),
-    photos: z.array(z.string().url('Invalid photo URL')).max(20, 'Maximum 20 photos allowed').optional(),
+    photos: z
+      .array(z.string().url('Invalid photo URL'))
+      .max(20, 'Maximum 20 photos allowed')
+      .optional(),
     bedrooms: z.number().int().min(0).optional(),
     bathrooms: z.number().int().min(0).optional(),
     notes: z.string().max(1000).optional(),
@@ -192,13 +239,40 @@ export const updatePropertySchema = z.object({
     .optional(),
   type: z
     .enum([
-      'residential', 'commercial', 'rental', 'house', 'apartment', 'flat',
-      'detached', 'semi-detached', 'terraced', 'bungalow', 'cottage', 'other',
+      'residential',
+      'commercial',
+      'rental',
+      'house',
+      'apartment',
+      'flat',
+      'detached',
+      'semi-detached',
+      'terraced',
+      'bungalow',
+      'cottage',
+      'other',
     ])
     .optional(),
-  bedrooms: z.number().int('Bedrooms must be a whole number').min(0).max(50).optional().nullable(),
-  bathrooms: z.number().int('Bathrooms must be a whole number').min(0).max(50).optional().nullable(),
-  squareFeet: z.number().positive('Square feet must be positive').max(100000).optional().nullable(),
+  bedrooms: z
+    .number()
+    .int('Bedrooms must be a whole number')
+    .min(0)
+    .max(50)
+    .optional()
+    .nullable(),
+  bathrooms: z
+    .number()
+    .int('Bathrooms must be a whole number')
+    .min(0)
+    .max(50)
+    .optional()
+    .nullable(),
+  squareFeet: z
+    .number()
+    .positive('Square feet must be positive')
+    .max(100000)
+    .optional()
+    .nullable(),
   yearBuilt: z
     .number()
     .int('Year must be a whole number')
@@ -206,7 +280,10 @@ export const updatePropertySchema = z.object({
     .max(new Date().getFullYear() + 5, 'Year built is in the future')
     .optional()
     .nullable(),
-  photos: z.array(z.string().url('Invalid photo URL')).max(20, 'Maximum 20 photos allowed').optional(),
+  photos: z
+    .array(z.string().url('Invalid photo URL'))
+    .max(20, 'Maximum 20 photos allowed')
+    .optional(),
 });
 
 export const propertyFavoriteSchema = z.object({
@@ -252,7 +329,9 @@ export type CreateContractInput = z.infer<typeof createContractSchema>;
 export type UpdateContractInput = z.infer<typeof updateContractSchema>;
 export type MessageReactionInput = z.infer<typeof messageReactionSchema>;
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
-export type NotificationEngagementInput = z.infer<typeof notificationEngagementSchema>;
+export type NotificationEngagementInput = z.infer<
+  typeof notificationEngagementSchema
+>;
 export type CreatePropertyInput = z.infer<typeof createPropertySchema>;
 export type UpdatePropertyInput = z.infer<typeof updatePropertySchema>;
 export type PropertyFavoriteInput = z.infer<typeof propertyFavoriteSchema>;

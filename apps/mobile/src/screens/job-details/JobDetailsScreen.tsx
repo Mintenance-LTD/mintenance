@@ -1,9 +1,3 @@
-/**
- * JobDetailsScreen - Airbnb Listing-Style Layout
- *
- * Full-bleed hero image carousel, host card, pricing breakdown,
- * detail sections, and sticky bottom CTA.
- */
 import React, { useState, useCallback } from 'react';
 import {
   View,
@@ -29,6 +23,8 @@ import { ContractorAssignment } from '../../components/ContractorAssignment';
 import { AIAnalysisCard, JobLifecycleStepper } from './components';
 import { ContractorLocationSection } from './components/ContractorLocationSection';
 import { HomeownerLocationRequest } from './components/HomeownerLocationRequest';
+import { JobLocationMap } from './components/JobLocationMap';
+import { JobPricingCard } from './components/JobPricingCard';
 import { useAuth } from '../../contexts/AuthContext';
 import { JobsStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
@@ -38,19 +34,14 @@ import { styles } from './jobDetailsStyles';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const IMAGE_CAROUSEL_HEIGHT = Math.round(SCREEN_WIDTH * 0.75);
-
-type JobDetailsScreenRouteProp = RouteProp<JobsStackParamList, 'JobDetails'>;
-type JobDetailsScreenNavigationProp = NativeStackNavigationProp<
-  JobsStackParamList,
-  'JobDetails'
->;
-
+type ScreenRoute = RouteProp<JobsStackParamList, 'JobDetails'>;
+type ScreenNav = NativeStackNavigationProp<JobsStackParamList, 'JobDetails'>;
 interface Props {
-  route: JobDetailsScreenRouteProp;
-  navigation: JobDetailsScreenNavigationProp;
+  route: ScreenRoute;
+  navigation: ScreenNav;
 }
 
-const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+const CAT_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   plumbing: 'water-outline',
   electrical: 'flash-outline',
   roofing: 'home-outline',
@@ -62,7 +53,6 @@ const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   general: 'construct-outline',
 };
 
-/** Small helper row used in the Details section */
 const DetailRow: React.FC<{
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
@@ -79,14 +69,12 @@ const DetailRow: React.FC<{
   </View>
 );
 
-/** Color mapping for bid status badges */
-function bidStatusColors(status: string | undefined) {
-  if (status === 'accepted')
-    return { bg: '#D1FAE5', text: '#065F46', label: 'Accepted' };
-  if (status === 'rejected')
-    return { bg: '#FEE2E2', text: '#991B1B', label: 'Rejected' };
-  return { bg: '#FEF3C7', text: '#92400E', label: 'Pending' };
-}
+const bidStatusColors = (s: string | undefined) =>
+  s === 'accepted'
+    ? { bg: '#D1FAE5', text: '#065F46', label: 'Accepted' }
+    : s === 'rejected'
+      ? { bg: '#FEE2E2', text: '#991B1B', label: 'Rejected' }
+      : { bg: '#FEF3C7', text: '#92400E', label: 'Pending' };
 
 export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const { jobId } = route.params;
@@ -180,7 +168,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const budget = job.budget || job.budget_min || 0;
   const urgency = job.urgency || job.priority || 'medium';
   const categoryIcon =
-    CATEGORY_ICONS[job.category?.toLowerCase() || ''] || 'construct-outline';
+    CAT_ICONS[job.category?.toLowerCase() || ''] || 'construct-outline';
 
   const daysAgo = Math.floor(
     (Date.now() -
@@ -297,7 +285,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
         <View style={styles.divider} />
 
-        {/* 3. Host Card (homeowner info) */}
+        {/* Host Card */}
         {job.homeowner && (
           <View style={styles.sectionPadded}>
             <Text style={styles.sectionLabel}>Posted by</Text>
@@ -318,43 +306,11 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         )}
 
-        {/* 5. Pricing Section */}
         {budget > 0 && (
-          <>
-            <View style={styles.divider} />
-            <View style={styles.sectionPadded}>
-              <Text style={styles.sectionLabel}>Budget</Text>
-              <View style={styles.pricingCard}>
-                <View style={styles.pricingMain}>
-                  <Text style={styles.pricingAmount}>
-                    {'\u00A3'}
-                    {budget.toLocaleString()}
-                  </Text>
-                  <Text style={styles.pricingLabelText}>Estimated cost</Text>
-                </View>
-                <View style={styles.escrowBadge}>
-                  <Ionicons
-                    name='shield-checkmark'
-                    size={16}
-                    color={theme.colors.textSecondary}
-                  />
-                  <Text style={styles.escrowText}>Escrow protected</Text>
-                  <TouchableOpacity
-                    onPress={() => setShowEscrowModal(true)}
-                    accessibilityRole='button'
-                    accessibilityLabel='Learn how escrow protection works'
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <Ionicons
-                      name='information-circle-outline'
-                      size={18}
-                      color={theme.colors.textSecondary}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </>
+          <JobPricingCard
+            budget={budget}
+            onEscrowInfo={() => setShowEscrowModal(true)}
+          />
         )}
 
         <View style={styles.divider} />
@@ -401,7 +357,19 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.description}>{job.description}</Text>
         </View>
 
-        {/* 7b. Bids Section (homeowner sees bids on their job) */}
+        {job.latitude != null && job.longitude != null && locationStr ? (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.sectionPadded}>
+              <JobLocationMap
+                address={locationStr}
+                latitude={job.latitude}
+                longitude={job.longitude}
+              />
+            </View>
+          </>
+        ) : null}
+
         {isOwner && bidsArray.length > 0 && (
           <>
             <View style={styles.divider} />

@@ -258,13 +258,13 @@ export default function AuditLogsPage() {
   // -- Loading state -------------------------------------------------------
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2
-            className="w-12 h-12 text-emerald-600 animate-spin mx-auto mb-4"
-            aria-hidden="true"
-          />
-          <p className="text-gray-600">Loading audit logs...</p>
+      <div className="min-h-screen bg-[#f7f9fb] px-6 md:px-10 py-8 max-w-[1440px] mx-auto">
+        <div className="h-12 w-72 bg-gray-200 rounded animate-pulse mb-3" />
+        <div className="h-5 w-96 bg-gray-100 rounded animate-pulse mb-8" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-[1.5rem] p-6 min-h-[100px] animate-pulse" />
+          ))}
         </div>
       </div>
     );
@@ -273,16 +273,14 @@ export default function AuditLogsPage() {
   // -- Error state ---------------------------------------------------------
   if (errorMessage && !data) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" aria-hidden="true" />
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">
-            Failed to load audit logs
-          </h2>
-          <p className="text-red-600 mb-6 text-sm break-words">{errorMessage}</p>
+      <div className="min-h-screen bg-[#f7f9fb] flex items-center justify-center">
+        <div className="text-center max-w-md bg-white rounded-[1.5rem] p-8 shadow-sm">
+          <XCircle className="w-12 h-12 text-[#9f403d] mx-auto mb-4" aria-hidden="true" />
+          <h2 className="text-lg font-semibold text-[#2a3439] mb-2">Failed to load audit logs</h2>
+          <p className="text-[#9f403d] mb-6 text-sm break-words">{errorMessage}</p>
           <button
             onClick={() => refetch()}
-            className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors inline-flex items-center gap-2"
+            className="px-5 py-2.5 bg-[#565e74] text-white rounded-xl font-semibold text-sm hover:brightness-110 transition-all inline-flex items-center gap-2"
           >
             <RefreshCw className="w-4 h-4" aria-hidden="true" />
             Retry
@@ -294,111 +292,80 @@ export default function AuditLogsPage() {
 
   // -- Main render ---------------------------------------------------------
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Hero Header */}
-      <MotionDiv
-        initial="hidden"
-        animate="visible"
-        variants={fadeIn}
-        className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="bg-white/20 backdrop-blur-sm p-3 rounded-xl">
-                  <Shield className="w-8 h-8" aria-hidden="true" />
-                </div>
-                <h1 className="text-4xl font-bold">Audit Logs</h1>
+    <div className="min-h-screen bg-[#f7f9fb]">
+      {/* Page Header — flat style matching mockup */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-[2.75rem] font-extrabold tracking-tight text-[#2a3439] leading-tight">Audit Logs</h1>
+            <p className="text-[#566166] text-lg mt-2">
+              Monitor all system activities and administrative actions.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {isFetching && !isLoading && (
+              <Loader2 className="w-5 h-5 text-[#717c82] animate-spin" aria-label="Refreshing data" />
+            )}
+            <button
+              onClick={handleExport}
+              aria-label="Export audit logs as CSV"
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#565e74] text-white rounded-xl font-semibold text-sm hover:brightness-110 transition-all shadow-sm"
+            >
+              <Download className="w-4 h-4" aria-hidden="true" />
+              Export Logs
+            </button>
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8" aria-label="Audit log statistics">
+          <div className="bg-white rounded-[1.5rem] p-6 hover:shadow-[0_12px_32px_-4px_rgba(42,52,57,0.08)] transition-all">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-[#dae2fd]/30 flex items-center justify-center">
+                <FileText className="w-5 h-5 text-[#565e74]" aria-hidden="true" />
               </div>
-              <p className="text-slate-300">
-                Monitor all system activities and administrative actions
-              </p>
             </div>
-            <div className="flex items-center gap-3">
-              {isFetching && !isLoading && (
-                <Loader2
-                  className="w-5 h-5 text-slate-400 animate-spin"
-                  aria-label="Refreshing data"
-                />
-              )}
-              <MotionButton
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleExport}
-                aria-label="Export audit logs as CSV"
-                className="flex items-center gap-2 px-5 py-2.5 bg-white text-emerald-600 rounded-xl hover:shadow-lg transition-shadow font-semibold"
-              >
-                <Download className="w-5 h-5" aria-hidden="true" />
-                Export Logs
-              </MotionButton>
-            </div>
+            <p className="text-[#566166] text-sm font-medium">Total Events</p>
+            <p className="text-3xl font-bold text-[#2a3439] mt-1">{stats.total.toLocaleString()}</p>
           </div>
 
-          {/* Stats in header */}
-          <MotionDiv
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-            className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8"
-            aria-label="Audit log statistics"
-          >
-            <MotionDiv
-              variants={staggerItem}
-              className="bg-white/10 backdrop-blur-sm rounded-xl p-4"
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <FileText className="w-4 h-4 text-slate-400" aria-hidden="true" />
-                <p className="text-slate-400 text-sm">Total Events</p>
+          <div className="bg-white rounded-[1.5rem] p-6 hover:shadow-[0_12px_32px_-4px_rgba(42,52,57,0.08)] transition-all">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-[#d3e4fe]/30 flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-[#506076]" aria-hidden="true" />
               </div>
-              <p className="text-2xl font-bold">{stats.total.toLocaleString()}</p>
-            </MotionDiv>
+            </div>
+            <p className="text-[#566166] text-sm font-medium">Successful</p>
+            <p className="text-3xl font-bold text-[#2a3439] mt-1">{stats.success.toLocaleString()}</p>
+          </div>
 
-            <MotionDiv
-              variants={staggerItem}
-              className="bg-white/10 backdrop-blur-sm rounded-xl p-4"
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <CheckCircle className="w-4 h-4 text-green-400" aria-hidden="true" />
-                <p className="text-slate-400 text-sm">Successful</p>
+          <div className="bg-white rounded-[1.5rem] p-6 hover:shadow-[0_12px_32px_-4px_rgba(42,52,57,0.08)] transition-all">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-[#fe8983]/15 flex items-center justify-center">
+                <XCircle className="w-5 h-5 text-[#9f403d]" aria-hidden="true" />
               </div>
-              <p className="text-2xl font-bold">{stats.success.toLocaleString()}</p>
-            </MotionDiv>
+            </div>
+            <p className="text-[#566166] text-sm font-medium">Failures</p>
+            <p className="text-3xl font-bold text-[#2a3439] mt-1">{stats.failure.toLocaleString()}</p>
+          </div>
 
-            <MotionDiv
-              variants={staggerItem}
-              className="bg-white/10 backdrop-blur-sm rounded-xl p-4"
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <XCircle className="w-4 h-4 text-red-400" aria-hidden="true" />
-                <p className="text-slate-400 text-sm">Failures</p>
+          <div className="bg-white rounded-[1.5rem] p-6 hover:shadow-[0_12px_32px_-4px_rgba(42,52,57,0.08)] transition-all">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-[#e3dbfd]/30 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-[#605c78]" aria-hidden="true" />
               </div>
-              <p className="text-2xl font-bold">{stats.failure.toLocaleString()}</p>
-            </MotionDiv>
-
-            <MotionDiv
-              variants={staggerItem}
-              className="bg-white/10 backdrop-blur-sm rounded-xl p-4"
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <AlertTriangle className="w-4 h-4 text-yellow-400" aria-hidden="true" />
-                <p className="text-slate-400 text-sm">Warnings</p>
-              </div>
-              <p className="text-2xl font-bold">{stats.warning.toLocaleString()}</p>
-            </MotionDiv>
-          </MotionDiv>
+            </div>
+            <p className="text-[#566166] text-sm font-medium">Warnings</p>
+            <p className="text-3xl font-bold text-[#2a3439] mt-1">{stats.warning.toLocaleString()}</p>
+          </div>
         </div>
-      </MotionDiv>
+      </div>
 
       {/* Main content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
         {/* Filter bar */}
-        <MotionDiv
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6"
-        >
+        <div className="bg-white rounded-[1.5rem] p-6 mb-6 shadow-[0_12px_32px_-4px_rgba(42,52,57,0.04)] border border-[#a9b4b9]/10">
+
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Search */}
             <div className="relative">
@@ -470,15 +437,11 @@ export default function AuditLogsPage() {
               ))}
             </select>
           </div>
-        </MotionDiv>
+        </div>
 
         {/* Logs table */}
-        <MotionDiv
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
-        >
+        <div className="bg-white rounded-[1.5rem] overflow-hidden shadow-[0_12px_32px_-4px_rgba(42,52,57,0.04)] border border-[#a9b4b9]/10">
+
           <div className="overflow-x-auto">
             <table className="w-full" aria-label="Audit log entries">
               <caption className="sr-only">
@@ -637,7 +600,7 @@ export default function AuditLogsPage() {
               </button>
             </div>
           )}
-        </MotionDiv>
+        </div>
       </div>
     </div>
   );

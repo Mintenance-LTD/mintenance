@@ -187,10 +187,35 @@ export default function AdminSecurityDashboard2025() {
 
   if (isLoading) {
     return (
-      <div className='min-h-screen bg-slate-50 flex items-center justify-center'>
-        <div className='text-center'>
-          <Loader2 className='w-12 h-12 text-emerald-600 animate-spin mx-auto mb-4' />
-          <p className='text-gray-600'>Loading security data...</p>
+      <div className='min-h-screen bg-slate-50'>
+        {/* Match hero header dimensions to prevent CLS */}
+        <div className='bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white'>
+          <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12'>
+            <div className='flex items-center justify-between'>
+              <div>
+                <div className='flex items-center gap-3 mb-4'>
+                  <div className='bg-white/20 backdrop-blur-sm p-3 rounded-xl'>
+                    <Shield className='w-8 h-8' aria-hidden='true' />
+                  </div>
+                  <h1 className='text-4xl font-bold'>Security Dashboard</h1>
+                </div>
+                <p className='text-slate-300 text-lg'>
+                  Real-time security monitoring and threat detection
+                </p>
+              </div>
+              <div className='w-24 h-24 rounded-full bg-white/10 animate-pulse' />
+            </div>
+            <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 mt-8'>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className='bg-white/10 rounded-xl p-4 min-h-[88px] animate-pulse' />
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+          <div className='flex items-center justify-center py-12'>
+            <Loader2 className='w-8 h-8 text-emerald-600 animate-spin' />
+          </div>
         </div>
       </div>
     );
@@ -271,7 +296,7 @@ export default function AdminSecurityDashboard2025() {
           >
             <MotionDiv
               variants={staggerItem}
-              className='bg-white/20 backdrop-blur-sm rounded-xl p-4'
+              className='bg-white/20 backdrop-blur-sm rounded-xl p-4 min-h-[88px]'
             >
               <div className='flex items-center gap-2 mb-2'>
                 <Activity
@@ -316,7 +341,7 @@ export default function AdminSecurityDashboard2025() {
 
             <MotionDiv
               variants={staggerItem}
-              className='bg-white/20 backdrop-blur-sm rounded-xl p-4'
+              className='bg-white/20 backdrop-blur-sm rounded-xl p-4 min-h-[88px]'
             >
               <div className='flex items-center gap-2 mb-2'>
                 <UserX className='w-5 h-5 text-green-200' aria-hidden='true' />
@@ -327,7 +352,7 @@ export default function AdminSecurityDashboard2025() {
 
             <MotionDiv
               variants={staggerItem}
-              className='bg-white/20 backdrop-blur-sm rounded-xl p-4'
+              className='bg-white/20 backdrop-blur-sm rounded-xl p-4 min-h-[88px]'
             >
               <div className='flex items-center gap-2 mb-2'>
                 <Key className='w-5 h-5 text-slate-400' aria-hidden='true' />
@@ -340,7 +365,7 @@ export default function AdminSecurityDashboard2025() {
 
             <MotionDiv
               variants={staggerItem}
-              className='bg-white/20 backdrop-blur-sm rounded-xl p-4'
+              className='bg-white/20 backdrop-blur-sm rounded-xl p-4 min-h-[88px]'
             >
               <div className='flex items-center gap-2 mb-2'>
                 <TrendingDown

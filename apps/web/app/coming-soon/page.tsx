@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useRef, FormEvent } from 'react';
+import { useState, useRef, useEffect, FormEvent } from 'react';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 import { motion, useInView } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 import { ArrowRight, Check, Loader2, Sparkles } from 'lucide-react';
 import { features, steps, pricingPlans } from './data';
+import { WaitlistSuccessCard } from './WaitlistSuccessCard';
 
 /* -------------------------------------------------------------------------- */
 /*  Animation helpers                                                         */
@@ -49,10 +51,6 @@ function AnimatedSection({
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Data                                                                      */
-/* -------------------------------------------------------------------------- */
-
-/* -------------------------------------------------------------------------- */
 /*  Page component                                                            */
 /* -------------------------------------------------------------------------- */
 
@@ -60,7 +58,20 @@ export default function ComingSoonPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [signupResult, setSignupResult] = useState<{
+    position: number;
+    referralCode: string;
+  } | null>(null);
   const signupRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
+  const referralCodeFromUrl = searchParams.get('ref');
+
+  // Track referral source
+  useEffect(() => {
+    if (referralCodeFromUrl) {
+      sessionStorage.setItem('mintenance_ref', referralCodeFromUrl);
+    }
+  }, [referralCodeFromUrl]);
 
   const scrollToSignup = () => {
     signupRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -77,23 +88,34 @@ export default function ComingSoonPage() {
     setIsSubmitting(true);
 
     try {
+      const storedRef =
+        sessionStorage.getItem('mintenance_ref') || referralCodeFromUrl;
+
       const response = await fetch('/api/coming-soon/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), email: email.trim() }),
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          referralCode: storedRef || undefined,
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.message || 'Something went wrong. Please try again.'
+          data.error || 'Something went wrong. Please try again.'
         );
       }
 
-      toast.success(
-        data.message || "You're on the list! We'll be in touch soon."
-      );
+      // Show success state with position and referral
+      setSignupResult({
+        position: data.position,
+        referralCode: data.referralCode,
+      });
+
+      toast.success(data.message || "You're on the list!");
       setName('');
       setEmail('');
     } catch (err) {
@@ -136,9 +158,7 @@ export default function ComingSoonPage() {
         }}
       />
 
-      {/* ------------------------------------------------------------------ */}
-      {/*  Navigation                                                        */}
-      {/* ------------------------------------------------------------------ */}
+      {/* Navigation */}
       <nav
         aria-label='Coming soon navigation'
         className='sticky top-0 z-50 border-b border-navy-100 bg-white/90 backdrop-blur-md'
@@ -172,11 +192,8 @@ export default function ComingSoonPage() {
       </nav>
 
       <main id='main-content'>
-        {/* ------------------------------------------------------------------ */}
-        {/*  Hero                                                              */}
-        {/* ------------------------------------------------------------------ */}
+        {/* Hero */}
         <section className='relative overflow-hidden'>
-          {/* Subtle gradient background */}
           <div className='pointer-events-none absolute inset-0 bg-gradient-to-b from-teal-50/60 via-white to-white' />
 
           <div className='relative mx-auto max-w-7xl px-4 py-24 sm:px-6 sm:py-32 lg:px-8 lg:py-40'>
@@ -224,9 +241,7 @@ export default function ComingSoonPage() {
           </div>
         </section>
 
-        {/* ------------------------------------------------------------------ */}
-        {/*  Features                                                          */}
-        {/* ------------------------------------------------------------------ */}
+        {/* Features */}
         <section className='bg-navy-50/50 py-20 sm:py-28'>
           <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8'>
             <AnimatedSection className='mx-auto max-w-2xl text-center'>
@@ -270,9 +285,7 @@ export default function ComingSoonPage() {
           </div>
         </section>
 
-        {/* ------------------------------------------------------------------ */}
-        {/*  How It Works                                                      */}
-        {/* ------------------------------------------------------------------ */}
+        {/* How It Works */}
         <section className='py-20 sm:py-28'>
           <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8'>
             <AnimatedSection className='mx-auto max-w-2xl text-center'>
@@ -299,7 +312,6 @@ export default function ComingSoonPage() {
                     variants={fadeUp}
                     className='relative text-center'
                   >
-                    {/* Connector line (desktop only) */}
                     {index < steps.length - 1 && (
                       <div className='absolute left-[calc(50%+2.5rem)] top-8 hidden h-px w-[calc(100%-5rem)] bg-navy-200 md:block' />
                     )}
@@ -323,9 +335,7 @@ export default function ComingSoonPage() {
           </div>
         </section>
 
-        {/* ------------------------------------------------------------------ */}
-        {/*  Pricing                                                           */}
-        {/* ------------------------------------------------------------------ */}
+        {/* Pricing */}
         <section className='bg-navy-50/50 py-20 sm:py-28'>
           <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8'>
             <AnimatedSection className='mx-auto max-w-2xl text-center'>
@@ -408,90 +418,98 @@ export default function ComingSoonPage() {
           </div>
         </section>
 
-        {/* ------------------------------------------------------------------ */}
-        {/*  Email Signup                                                      */}
-        {/* ------------------------------------------------------------------ */}
+        {/* Email Signup / Success */}
         <section ref={signupRef} className='py-20 sm:py-28'>
           <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8'>
             <AnimatedSection>
-              <div className='mx-auto max-w-2xl rounded-3xl border border-navy-100 bg-white p-8 shadow-lg sm:p-12'>
-                <div className='text-center'>
-                  <div className='mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-50 text-teal-600'>
-                    <Sparkles className='h-6 w-6' />
-                  </div>
-                  <h2 className='text-2xl font-bold tracking-tight text-navy-900 sm:text-3xl'>
-                    Be the First to Know
-                  </h2>
-                  <p className='mt-3 text-base text-navy-500'>
-                    Sign up for early access and be notified as soon as we
-                    launch. No spam, ever.
-                  </p>
-                </div>
-
-                <form onSubmit={handleSubmit} className='mt-8 space-y-4'>
-                  <div>
-                    <label
-                      htmlFor='signup-name'
-                      className='mb-1.5 block text-sm font-medium text-navy-700'
-                    >
-                      Name
-                    </label>
-                    <input
-                      id='signup-name'
-                      type='text'
-                      placeholder='Jane Smith'
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className='block w-full rounded-xl border border-navy-200 bg-white px-4 py-3 text-sm text-navy-900 placeholder:text-navy-300 transition-colors focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100'
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor='signup-email'
-                      className='mb-1.5 block text-sm font-medium text-navy-700'
-                    >
-                      Email <span className='text-red-500'>*</span>
-                    </label>
-                    <input
-                      id='signup-email'
-                      type='email'
-                      required
-                      placeholder='jane@example.com'
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className='block w-full rounded-xl border border-navy-200 bg-white px-4 py-3 text-sm text-navy-900 placeholder:text-navy-300 transition-colors focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100'
-                    />
-                  </div>
-                  <button
-                    type='submit'
-                    disabled={isSubmitting}
-                    className='flex w-full items-center justify-center gap-2 rounded-xl bg-teal-600 px-6 py-3.5 text-sm font-semibold text-white shadow-md shadow-teal-600/20 transition-all hover:bg-teal-700 hover:shadow-lg hover:shadow-teal-600/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60'
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className='h-4 w-4 animate-spin' />
-                        Submitting...
-                      </>
-                    ) : (
-                      <>
-                        Get Early Access
-                        <ArrowRight className='h-4 w-4' />
-                      </>
+              {signupResult ? (
+                <WaitlistSuccessCard
+                  position={signupResult.position}
+                  referralCode={signupResult.referralCode}
+                />
+              ) : (
+                <div className='mx-auto max-w-2xl rounded-3xl border border-navy-100 bg-white p-8 shadow-lg sm:p-12'>
+                  <div className='text-center'>
+                    <div className='mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-50 text-teal-600'>
+                      <Sparkles className='h-6 w-6' />
+                    </div>
+                    <h2 className='text-2xl font-bold tracking-tight text-navy-900 sm:text-3xl'>
+                      Be the First to Know
+                    </h2>
+                    <p className='mt-3 text-base text-navy-500'>
+                      Sign up for early access and be notified as soon as we
+                      launch. No spam, ever.
+                    </p>
+                    {referralCodeFromUrl && (
+                      <p className='mt-2 text-sm font-medium text-teal-600'>
+                        You were invited by a friend! Sign up to join them.
+                      </p>
                     )}
-                  </button>
-                  <p className='text-center text-xs text-navy-400'>
-                    We respect your privacy. Unsubscribe at any time.
-                  </p>
-                </form>
-              </div>
+                  </div>
+
+                  <form onSubmit={handleSubmit} className='mt-8 space-y-4'>
+                    <div>
+                      <label
+                        htmlFor='signup-name'
+                        className='mb-1.5 block text-sm font-medium text-navy-700'
+                      >
+                        Name
+                      </label>
+                      <input
+                        id='signup-name'
+                        type='text'
+                        placeholder='Jane Smith'
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className='block w-full rounded-xl border border-navy-200 bg-white px-4 py-3 text-sm text-navy-900 placeholder:text-navy-300 transition-colors focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100'
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor='signup-email'
+                        className='mb-1.5 block text-sm font-medium text-navy-700'
+                      >
+                        Email <span className='text-red-500'>*</span>
+                      </label>
+                      <input
+                        id='signup-email'
+                        type='email'
+                        required
+                        placeholder='jane@example.com'
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className='block w-full rounded-xl border border-navy-200 bg-white px-4 py-3 text-sm text-navy-900 placeholder:text-navy-300 transition-colors focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100'
+                      />
+                    </div>
+                    <button
+                      type='submit'
+                      disabled={isSubmitting}
+                      className='flex w-full items-center justify-center gap-2 rounded-xl bg-teal-600 px-6 py-3.5 text-sm font-semibold text-white shadow-md shadow-teal-600/20 transition-all hover:bg-teal-700 hover:shadow-lg hover:shadow-teal-600/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60'
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className='h-4 w-4 animate-spin' />
+                          Submitting...
+                        </>
+                      ) : (
+                        <>
+                          Get Early Access
+                          <ArrowRight className='h-4 w-4' />
+                        </>
+                      )}
+                    </button>
+                    <p className='text-center text-xs text-navy-400'>
+                      We respect your privacy. Unsubscribe at any time.
+                    </p>
+                  </form>
+                </div>
+              )}
             </AnimatedSection>
           </div>
         </section>
       </main>
 
-      {/* ------------------------------------------------------------------ */}
-      {/*  Footer                                                            */}
-      {/* ------------------------------------------------------------------ */}
+      {/* Footer */}
       <footer
         className='border-t border-navy-100 bg-navy-900 py-12'
         role='contentinfo'
