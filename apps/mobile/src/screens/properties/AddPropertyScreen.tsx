@@ -86,7 +86,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
         owner_id: user.id,
         property_name: propertyName,
         address,
-        property_type: 'residential',
+        property_type: (data.property_type as string) || 'residential',
         city: data.city,
         postcode: data.postcode,
         bedrooms: data.bedrooms || null,
