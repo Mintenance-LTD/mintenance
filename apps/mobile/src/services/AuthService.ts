@@ -266,9 +266,10 @@ export class AuthService {
       try {
         const { mobileApiClient } = await import('../utils/mobileApiClient');
         const response = await mobileApiClient.get<{
-          user: Record<string, unknown>;
+          profile?: Record<string, unknown>;
+          user?: Record<string, unknown>;
         }>('/api/users/profile');
-        const userProfile = response.user;
+        const userProfile = response.profile || response.user;
         if (userProfile) {
           return {
             ...userProfile,

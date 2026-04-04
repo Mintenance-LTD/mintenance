@@ -73,7 +73,7 @@ export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (req
   const { data: profile, error } = await serverSupabase
     .from('profiles')
     .select(
-      'id, first_name, last_name, email, bio, city, country, phone, location, profile_image_url, role, created_at, updated_at, address, postcode, latitude, longitude, verified, phone_verified'
+      'id, first_name, last_name, email, bio, city, country, phone, location, profile_image_url, role, created_at, updated_at, address, postcode, latitude, longitude, verified, phone_verified, company_name, skills'
     )
     .eq('id', user.id)
     .single();

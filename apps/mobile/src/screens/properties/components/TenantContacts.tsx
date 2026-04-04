@@ -25,6 +25,9 @@ interface Tenant {
   lease_end?: string;
   notes?: string;
   is_active?: boolean;
+  invitation_sent_at?: string;
+  invitation_accepted_at?: string;
+  user_id?: string;
 }
 
 interface Props {
@@ -184,6 +187,12 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
                   </TouchableOpacity>
                 )}
               </View>
+              {t.email && !t.invitation_accepted_at && t.invitation_sent_at && (
+                <Text style={styles.inviteStatus}>Invitation sent</Text>
+              )}
+              {t.invitation_accepted_at && (
+                <Text style={styles.inviteAccepted}>Account linked</Text>
+              )}
               {t.lease_end && (
                 <Text style={styles.leaseDate}>
                   Lease ends{' '}
@@ -280,4 +289,6 @@ const styles = StyleSheet.create({
   contactRow: { flexDirection: 'row', gap: 12, marginTop: 2 },
   contactLink: { fontSize: 13, color: '#3B82F6' },
   leaseDate: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2 },
+  inviteStatus: { fontSize: 11, color: '#d97706', fontWeight: '600', marginTop: 2 },
+  inviteAccepted: { fontSize: 11, color: theme.colors.primary, fontWeight: '600', marginTop: 2 },
 });

@@ -38,7 +38,7 @@ export async function getJobMessages(
         'id, job_id, sender_id, receiver_id, content, message_type, attachment_url, read, created_at, sender:profiles!messages_sender_id_fkey(id, first_name, last_name, role, profile_image_url)'
       )
       .eq('job_id', jobId)
-      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: true })
       .range(offset, offset + limit - 1);
 
     if (error) {

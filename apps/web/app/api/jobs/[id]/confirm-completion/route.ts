@@ -140,6 +140,19 @@ export const POST = withApiHandler({ roles: ['homeowner'], rateLimit: { maxReque
     logger.error('Failed to send work approved email', emailError, { service: 'jobs', jobId });
   }
 
+  // Verify after-photos exist before releasing escrow (completion evidence)
+  const { count: afterPhotoCount } = await serverSupabase
+    .from('job_photos_metadata')
+    .select('id', { count: 'exact', head: true })
+    .eq('job_id', jobId)
+    .eq('photo_type', 'after');
+
+  if (!afterPhotoCount || afterPhotoCount === 0) {
+    throw new BadRequestError(
+      'Cannot confirm completion without after-photos. The contractor must upload completion photos first.'
+    );
+  }
+
   // Trigger escrow release workflow
   try {
     // Check if there's an active escrow transaction for this job

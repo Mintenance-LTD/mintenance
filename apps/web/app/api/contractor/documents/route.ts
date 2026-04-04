@@ -79,6 +79,7 @@ export const POST = withApiHandler(
     const category = (formData.get('category') as string) || 'other';
     const jobId = formData.get('job_id') as string | null;
     const tags = formData.get('tags') as string | null;
+    const verificationType = formData.get('verification_type') as string | null;
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
@@ -133,6 +134,7 @@ export const POST = withApiHandler(
         public_url: urlData.publicUrl,
         job_id: jobId || null,
         tags: tags ? tags.split(',').map((t: string) => t.trim()) : [],
+        ...(verificationType ? { verification_type: verificationType, review_status: 'pending' } : {}),
       })
       .select()
       .single();

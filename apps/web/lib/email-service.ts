@@ -24,7 +24,10 @@ import {
   changesRequestedTemplate,
   paymentReleasedTemplate,
   newsletterWelcomeTemplate,
+  tenantInviteTemplate,
+  tenantJobNotificationTemplate,
 } from './email-templates';
+export type { TenantInviteData } from './email-templates';
 
 // Re-export data interfaces for consumers that import them from this module
 export type {
@@ -364,6 +367,24 @@ export class EmailService {
       this.getUnsubscribeFooter()
     );
     return this.sendEmail({ to: contractorEmail, subject, html, text });
+  }
+
+  /** Send tenant invitation email */
+  static async sendTenantInviteEmail(
+    tenantEmail: string,
+    data: Parameters<typeof tenantInviteTemplate>[0]
+  ): Promise<boolean> {
+    const { subject, html, text } = tenantInviteTemplate(data);
+    return this.sendEmail({ to: tenantEmail, subject, html, text });
+  }
+
+  /** Send tenant job status notification */
+  static async sendTenantJobNotification(
+    tenantEmail: string,
+    data: Parameters<typeof tenantJobNotificationTemplate>[0]
+  ): Promise<boolean> {
+    const { subject, html, text } = tenantJobNotificationTemplate(data);
+    return this.sendEmail({ to: tenantEmail, subject, html, text });
   }
 
   /** Send newsletter welcome/confirmation email */
