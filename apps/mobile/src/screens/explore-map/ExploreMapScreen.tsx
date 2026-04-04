@@ -89,10 +89,11 @@ const CarouselCard: React.FC<{
   onBid: () => void;
   onDetails: () => void;
 }> = ({ job, isSelected, onPress, onBid, onDetails }) => {
+  const amt = job.budget_max ?? job.budget_min ?? job.budget;
   const budgetText = job.budget_min && job.budget_max && job.budget_max !== job.budget_min
     ? `£${job.budget_min.toLocaleString()} – £${job.budget_max.toLocaleString()}`
-    : (job.budget_max ?? job.budget_min)
-      ? `£${(job.budget_max ?? job.budget_min)!.toLocaleString()}`
+    : amt
+      ? `£${amt.toLocaleString()}`
       : 'TBD';
   const catKey = job.category.toLowerCase();
   const catMarker = CATEGORY_MARKERS[catKey] ?? CATEGORY_MARKERS.general;
