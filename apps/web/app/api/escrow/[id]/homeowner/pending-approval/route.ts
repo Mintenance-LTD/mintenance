@@ -32,7 +32,7 @@ interface EscrowRecord {
  * Get pending approval details
  */
 export const GET = withApiHandler(
-  { rateLimit: { maxRequests: 20 } },
+  { roles: ['homeowner'], rateLimit: { maxRequests: 20 } },
   async (_request, { user, params }) => {
     const escrowId = params.id as string;
 

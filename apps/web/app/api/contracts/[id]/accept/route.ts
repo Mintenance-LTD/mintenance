@@ -15,7 +15,7 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { EmailService } from '@/lib/email-service';
 
-export const POST = withApiHandler({}, async (request, { user, params }) => {
+export const POST = withApiHandler({ roles: ['homeowner', 'contractor'] }, async (request, { user, params }) => {
   const userDb = createRequestScopedClient(request) ?? serverSupabase;
   const { id: contractId } = await params;
 
