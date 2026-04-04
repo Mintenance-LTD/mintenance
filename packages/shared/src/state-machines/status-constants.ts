@@ -8,6 +8,7 @@ export const JOB_STATUS = {
   ASSIGNED: 'assigned',
   IN_PROGRESS: 'in_progress',
   COMPLETED: 'completed',
+  DISPUTED: 'disputed',
   CANCELLED: 'cancelled',
 } as const;
 

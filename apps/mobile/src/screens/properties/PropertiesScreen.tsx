@@ -1,7 +1,7 @@
 /**
  * PropertiesScreen - List homeowner's properties with CRUD support
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -142,6 +142,20 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+
+  // Load favorites from server on mount
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase
+      .from('property_favorites')
+      .select('property_id')
+      .eq('user_id', user.id)
+      .then(({ data }) => {
+        if (data?.length) {
+          setFavoriteIds(new Set(data.map((f: { property_id: string }) => f.property_id)));
+        }
+      });
+  }, [user?.id]);
 
   const {
     data: properties,

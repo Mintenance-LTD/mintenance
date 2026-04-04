@@ -177,6 +177,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     );
   }
 
+  // Skip rendering empty messages (no text, no attachment)
+  const hasContent = !!(item.messageText?.trim() || item.attachmentUrl);
+  if (!hasContent) {
+    return dateSep ? <>{dateSep}</> : null;
+  }
+
   return (
     <>
       {dateSep}

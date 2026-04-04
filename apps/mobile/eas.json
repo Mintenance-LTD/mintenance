@@ -11,9 +11,7 @@
       "cache": {
         "key": "development",
         "disabled": false,
-        "paths": [
-          "node_modules"
-        ]
+        "paths": []
       },
       "android": {
         "gradleCommand": ":app:assembleDebug",
@@ -41,9 +39,7 @@
       "cache": {
         "key": "stable",
         "disabled": false,
-        "paths": [
-          "node_modules"
-        ]
+        "paths": []
       },
       "android": {
         "buildType": "apk",
@@ -75,9 +71,7 @@
       "cache": {
         "key": "staging",
         "disabled": false,
-        "paths": [
-          "node_modules"
-        ]
+        "paths": []
       },
       "android": {
         "buildType": "apk",
@@ -110,9 +104,7 @@
       "cache": {
         "key": "preview",
         "disabled": false,
-        "paths": [
-          "node_modules"
-        ]
+        "paths": []
       },
       "android": {
         "buildType": "apk",
@@ -141,9 +133,7 @@
       "cache": {
         "key": "internal",
         "disabled": false,
-        "paths": [
-          "node_modules"
-        ]
+        "paths": []
       },
       "android": {
         "buildType": "apk",
@@ -171,9 +161,7 @@
       "cache": {
         "key": "production",
         "disabled": false,
-        "paths": [
-          "node_modules"
-        ]
+        "paths": []
       },
       "android": {
         "buildType": "app-bundle",
@@ -202,9 +190,7 @@
       "cache": {
         "key": "production-store",
         "disabled": false,
-        "paths": [
-          "node_modules"
-        ]
+        "paths": []
       },
       "android": {
         "buildType": "app-bundle",

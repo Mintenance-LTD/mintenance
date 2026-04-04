@@ -15,7 +15,7 @@ const approveCompletionSchema = z.object({
  * POST /api/escrow/:id/homeowner/approve - homeowner approves completion.
  */
 export const POST = withApiHandler(
-  { rateLimit: { maxRequests: 20 } },
+  { roles: ['homeowner'], rateLimit: { maxRequests: 20 } },
   async (request, { user, params }) => {
     const escrowId = params.id;
 

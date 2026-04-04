@@ -18,6 +18,7 @@ export interface JobMapItem {
   title: string;
   category: string;
   urgency: string;
+  budget: number | null;
   budget_min: number | null;
   budget_max: number | null;
   latitude: number;
@@ -160,7 +161,7 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
         supabase
           .from('jobs')
           .select(`
-            id, title, category, urgency, budget_min, budget_max,
+            id, title, category, urgency, budget, budget_min, budget_max,
             latitude, longitude, created_at,
             homeowner:homeowner_id ( first_name )
           `)
@@ -198,6 +199,7 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
           title: row.title as string,
           category: (row.category as string) || 'general',
           urgency: (row.urgency as string) || 'medium',
+          budget: row.budget ? Number(row.budget) : null,
           budget_min: row.budget_min as number | null,
           budget_max: row.budget_max as number | null,
           latitude: lat,

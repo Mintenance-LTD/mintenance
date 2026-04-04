@@ -3,7 +3,7 @@
  * Validates job status transitions to prevent invalid state changes
  */
 
-export type JobStatus = 'posted' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
+export type JobStatus = 'posted' | 'assigned' | 'in_progress' | 'completed' | 'disputed' | 'cancelled';
 
 /**
  * Defines valid state transitions for job statuses
@@ -12,9 +12,10 @@ export type JobStatus = 'posted' | 'assigned' | 'in_progress' | 'completed' | 'c
  */
 const JOB_STATE_TRANSITIONS: Record<JobStatus, JobStatus[]> = {
   posted: ['assigned', 'cancelled'],
-  assigned: ['in_progress', 'cancelled'],
-  in_progress: ['completed', 'cancelled'],
-  completed: [], // Terminal state - no transitions allowed
+  assigned: ['in_progress', 'posted', 'cancelled'], // posted = contractor terminated
+  in_progress: ['completed', 'disputed', 'posted', 'cancelled'], // posted = contractor terminated
+  completed: ['disputed'], // Homeowner can dispute after completion
+  disputed: ['in_progress', 'completed', 'cancelled'], // Can resolve back or escalate
   cancelled: [], // Terminal state - no transitions allowed
 };
 

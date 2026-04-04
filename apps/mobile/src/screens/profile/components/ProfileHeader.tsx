@@ -15,6 +15,7 @@ interface ProfileHeaderUser {
   avatar_url?: string;
   verified?: boolean;
   role?: string;
+  skills?: string[];
 }
 
 interface ProfileHeaderProps {
@@ -77,7 +78,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate, to
       {isContractor && (
         <View style={styles.subtitleRow}>
           <Ionicons name="hammer" size={12} color="rgba(255,255,255,0.75)" />
-          <Text style={styles.subtitleText}>Professional Contractor</Text>
+          <Text style={styles.subtitleText}>
+            {user?.skills?.[0]
+              ? user.skills[0].charAt(0).toUpperCase() + user.skills[0].slice(1)
+              : 'Professional Contractor'}
+          </Text>
         </View>
       )}
 

@@ -61,8 +61,12 @@ export const JobPreviewCard: React.FC<JobPreviewCardProps> = ({
   const catKey = job.category.toLowerCase();
   const iconName = CATEGORY_ICONS[catKey] || 'construct';
   const colors = CATEGORY_COLORS[catKey] || CATEGORY_COLORS.general;
-  const budget = job.budget_max || job.budget_min;
-  const budgetText = budget ? `£${budget.toLocaleString()}` : 'Budget TBD';
+  const amt = job.budget_max ?? job.budget_min ?? (job as Record<string, unknown>).budget as number | null;
+  const budgetText = job.budget_min && job.budget_max && job.budget_max !== job.budget_min
+    ? `£${job.budget_min.toLocaleString()} – £${job.budget_max.toLocaleString()}`
+    : amt
+      ? `£${amt.toLocaleString()}`
+      : 'Budget TBD';
   const categoryLabel = job.category.charAt(0).toUpperCase() + job.category.slice(1);
   const isUrgent = job.urgency === 'urgent';
 

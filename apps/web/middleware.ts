@@ -166,15 +166,14 @@ export async function middleware(request: NextRequest) {
     });
 
     if (!isDevelopment) {
-      // Nonce-based CSP with 'unsafe-inline' fallback for Next.js compatibility.
-      // In CSP Level 3+ browsers, 'unsafe-inline' is automatically ignored when a
-      // nonce is present — so nonce provides real XSS protection in modern browsers.
-      // The 'unsafe-inline' fallback ensures Next.js inline hydration scripts work.
+      // CSP for public routes. We use 'unsafe-inline' without a nonce because
+      // Next.js injects inline hydration scripts that don't carry a nonce.
+      // Adding a nonce causes CSP3 browsers to IGNORE 'unsafe-inline', breaking hydration.
       response.headers.set(
         'Content-Security-Policy',
         [
           "default-src 'self'",
-          `script-src 'self' 'nonce-${publicNonce}' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com https://vercel.live`,
+          `script-src 'self' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com https://vercel.live`,
           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
           "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
           "font-src 'self' data: https://fonts.gstatic.com",
@@ -755,11 +754,11 @@ export async function middleware(request: NextRequest) {
     const connectSrc = isDevelopment
       ? "connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com http://localhost:* http://127.0.0.1:* ws: wss:"
       : "connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com https://vercel.live wss: wss://ws-us3.pusher.com";
-    // Nonce-based CSP with 'unsafe-inline' fallback for authenticated routes.
-    // In CSP3+ browsers, 'unsafe-inline' is ignored when nonce is present.
+    // CSP for authenticated routes. No nonce — Next.js inline hydration scripts
+    // don't carry nonces, and CSP3 browsers ignore 'unsafe-inline' when a nonce is present.
     const cspHeader = [
       "default-src 'self'",
-      `script-src 'self' 'nonce-${nonce}' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com https://vercel.live`,
+      `script-src 'self' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com https://vercel.live`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
       "font-src 'self' data: https://fonts.gstatic.com",
@@ -773,11 +772,10 @@ export async function middleware(request: NextRequest) {
 
     response.headers.set('Content-Security-Policy', cspHeader);
 
-    // CSP Report-Only with nonce — monitors what would break if we enforced nonce-based CSP.
-    // Once violations are zero in production logs, we can replace the main CSP header above.
+    // CSP Report-Only — monitors stricter policy for future enforcement.
     const strictCspHeader = [
       "default-src 'self'",
-      `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com https://maps.googleapis.com`,
+      `script-src 'self' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com`,
       `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
       "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
       "font-src 'self' data: https://fonts.gstatic.com",

@@ -32,6 +32,8 @@ export function NotificationDropdown(props: NotificationDropdownProps) {
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+  const prevUnreadRef = useRef<number>(-1);
 
   // Prevent hydration mismatch
   useEffect(() => {
@@ -57,8 +59,8 @@ export function NotificationDropdown(props: NotificationDropdownProps) {
     if (userId) {
       fetchNotifications();
       // Poll for new notifications every 60 seconds
-      const interval = setInterval(fetchNotifications, 60000);
-      return () => clearInterval(interval);
+      pollingRef.current = setInterval(fetchNotifications, 60000);
+      return () => clearInterval(pollingRef.current);
     }
   }, [userId]);
 
@@ -86,42 +88,33 @@ export function NotificationDropdown(props: NotificationDropdownProps) {
 
       const notifications: Notification[] = [];
 
+      // Handle auth failures — stop polling if session expired
+      if (regularResponse && regularResponse.status === 401) {
+        clearInterval(pollingRef.current);
+        return;
+      }
+
       // Add regular notifications
       if (regularResponse?.ok) {
         try {
           const regularData = await regularResponse.json();
           let parsedNotifications: Notification[] = [];
-          
+
           if (Array.isArray(regularData)) {
             parsedNotifications = regularData;
           } else if (Array.isArray(regularData.notifications)) {
             parsedNotifications = regularData.notifications;
           } else if (regularData && typeof regularData === 'object') {
-            // Handle case where API returns object with notifications array
             const notifArray = regularData.notifications || regularData.data || [];
             if (Array.isArray(notifArray)) {
               parsedNotifications = notifArray;
             }
           }
-          
+
           notifications.push(...parsedNotifications);
-          
-          // Debug: Log bid_accepted notifications
-          const bidAccepted = parsedNotifications.filter(n => n.type === 'bid_accepted');
-          if (bidAccepted.length > 0) {
-            logger.info(`Found ${bidAccepted.length} bid_accepted notification(s)`, { service: 'NotificationDropdown', count: bidAccepted.length, notifications: bidAccepted });
-          }
         } catch (parseError) {
-          logger.error('Error parsing regular notifications response', parseError, { service: 'NotificationDropdown', userId });
+          logger.error('Error parsing notifications response', parseError, { service: 'NotificationDropdown' });
         }
-      } else if (regularResponse) {
-        const errorText = await regularResponse.text().catch(() => 'Unknown error');
-        logger.warn('Regular notifications API returned non-OK status', {
-          service: 'NotificationDropdown',
-          status: regularResponse.status,
-          statusText: regularResponse.statusText,
-          error: errorText,
-        });
       }
 
       // Sort by created_at (newest first) and remove duplicates
@@ -131,14 +124,14 @@ export function NotificationDropdown(props: NotificationDropdownProps) {
 
       setNotifications(uniqueNotifications);
       
-      // Debug logging
-      if (typeof window !== 'undefined' && uniqueNotifications.length > 0) {
-        logger.info('Notifications fetched', {
+      // Only log when count changes to avoid console spam
+      const unreadCount = uniqueNotifications.filter(n => !n.read).length;
+      if (unreadCount !== prevUnreadRef.current) {
+        prevUnreadRef.current = unreadCount;
+        logger.info('Notifications updated', {
           service: 'NotificationDropdown',
           total: uniqueNotifications.length,
-          unread: uniqueNotifications.filter(n => !n.read).length,
-          types: uniqueNotifications.map(n => n.type),
-          notifications: uniqueNotifications.slice(0, 3).map(n => ({ id: n.id, type: n.type, title: n.title, read: n.read })),
+          unread: unreadCount,
         });
       }
     } catch (error) {

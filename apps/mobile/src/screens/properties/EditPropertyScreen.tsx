@@ -107,16 +107,15 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
   const updateMutation = useMutation({
     mutationFn: async () => {
       await mobileApiClient.put(`/api/properties/${propertyId}`, {
-        property_name: name.trim(),
+        name: name.trim(),
         address: address.trim(),
         city: city.trim(),
         postcode: postcode.trim().toUpperCase(),
-        property_type: propertyType,
+        type: propertyType,
         bedrooms: bedrooms ? parseInt(bedrooms, 10) : null,
         bathrooms: bathrooms ? parseInt(bathrooms, 10) : null,
-        year_built: yearBuilt ? parseInt(yearBuilt, 10) : null,
-        square_footage: squareFootage ? parseInt(squareFootage, 10) : null,
-        notes: notes.trim() || null,
+        yearBuilt: yearBuilt ? parseInt(yearBuilt, 10) : null,
+        squareFeet: squareFootage ? parseInt(squareFootage, 10) : null,
       });
     },
     onSuccess: () => {
