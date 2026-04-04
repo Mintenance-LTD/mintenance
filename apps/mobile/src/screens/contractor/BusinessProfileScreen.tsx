@@ -62,28 +62,38 @@ export const BusinessProfileScreen: React.FC = () => {
       }).eq('id', user.id);
       if (profileErr) throw new Error(profileErr.message);
 
-      // Upsert insurance
+      // Save insurance — check if existing record, then update or insert
       if (insuranceProvider.trim()) {
-        const { error: insErr } = await supabase.from('contractor_insurance').upsert({
+        const { data: existingIns } = await supabase.from('contractor_insurance')
+          .select('id').eq('contractor_id', user.id).limit(1).maybeSingle();
+        const insData = {
           contractor_id: user.id,
           provider: insuranceProvider.trim(),
           policy_number: policyNumber.trim() || null,
           type: 'general_liability',
           status: 'active',
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'contractor_id' });
+        };
+        const { error: insErr } = existingIns
+          ? await supabase.from('contractor_insurance').update(insData).eq('id', existingIns.id)
+          : await supabase.from('contractor_insurance').insert(insData);
         if (insErr) throw new Error(insErr.message);
       }
 
-      // Upsert license
+      // Save license — check if existing record, then update or insert
       if (licenseType) {
-        const { error: licErr } = await supabase.from('contractor_licenses').upsert({
+        const { data: existingLic } = await supabase.from('contractor_licenses')
+          .select('id').eq('contractor_id', user.id).limit(1).maybeSingle();
+        const licData = {
           contractor_id: user.id,
           name: licenseType,
           number: licenseNumber.trim() || null,
           status: 'active',
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'contractor_id' });
+        };
+        const { error: licErr } = existingLic
+          ? await supabase.from('contractor_licenses').update(licData).eq('id', existingLic.id)
+          : await supabase.from('contractor_licenses').insert(licData);
         if (licErr) throw new Error(licErr.message);
       }
     },
