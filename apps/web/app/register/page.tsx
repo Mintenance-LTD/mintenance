@@ -50,6 +50,7 @@ function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roleParam = searchParams.get('role');
+  const inviteToken = searchParams.get('invite');
   const { csrfToken, loading: csrfLoading } = useCSRF();
 
   const {
@@ -135,9 +136,21 @@ function RegisterForm() {
         }
       }
 
+      // Accept tenant invitation if invite token present
+      if (inviteToken) {
+        try {
+          await fetch('/api/tenant-invite/accept', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+            body: JSON.stringify({ token: inviteToken }),
+          });
+        } catch {
+          // Non-blocking — invitation can be accepted later
+        }
+      }
+
       setSubmitStatus('success');
       setTimeout(() => {
-        // Redirect based on user role
         const redirectPath = data.role === 'contractor' ? '/contractor/dashboard-enhanced' : '/dashboard';
         router.push(redirectPath);
         router.refresh();
