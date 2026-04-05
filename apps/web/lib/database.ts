@@ -150,10 +150,17 @@ export class DatabaseManager {
   }
 
   /**
-   * Update user password
-   * TODO: Password updates should be done via Supabase Auth (serverSupabase.auth.admin.updateUserById
-   * or serverSupabase.auth.updateUser). The profiles table does NOT store password_hash.
-   * This method currently only validates the password and updates the updated_at timestamp.
+   * Update user password.
+   * Actual password storage lives in Supabase Auth (auth.users), not the
+   * profiles table. This method:
+   *   1. Validates complexity
+   *   2. Checks last-5 password history (bcrypt compare)
+   *   3. Calls Supabase Auth admin API to set the new password
+   *   4. Stores the bcrypt hash in password_history for future reuse checks
+   *
+   * BUG FIXED: prior version only validated + stored history but NEVER called
+   * Supabase Auth, so password changes silently no-op'd. Users could still
+   * sign in with their old password.
    */
   static async updateUserPassword(
     userId: string,
@@ -170,17 +177,15 @@ export class DatabaseManager {
 
     // Check if password is in history by comparing against stored hashes
     try {
-      // Get password history from database
       const { data: passwordHistory, error: historyError } =
         await serverSupabase
           .from('password_history')
           .select('password_hash')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
-          .limit(5); // Check last 5 passwords
+          .limit(5);
 
       if (!historyError && passwordHistory) {
-        // Use bcrypt.compare() to check each stored hash
         for (const record of passwordHistory) {
           const isMatch = await bcrypt.compare(
             newPassword,
@@ -203,19 +208,35 @@ export class DatabaseManager {
       });
     }
 
-    // TODO: Use serverSupabase.auth.admin.updateUserById(userId, { password: newPassword })
-    // to update the password in Supabase Auth. The profiles table does NOT have password_hash.
+    // Actually update the password in Supabase Auth
+    const { error: authError } = await serverSupabase.auth.admin.updateUserById(
+      userId,
+      { password: newPassword },
+    );
+    if (authError) {
+      logger.error('Failed to update password via Supabase Auth', authError, {
+        service: 'auth',
+        userId,
+      });
+      return false;
+    }
 
-    // Update the updated_at timestamp on the profile
-    const { error } = await serverSupabase
+    // Update the updated_at timestamp on the profile for audit visibility
+    const { error: profileError } = await serverSupabase
       .from('profiles')
       .update({
         updated_at: new Date().toISOString(),
       })
       .eq('id', userId);
 
-    if (error) {
-      return false;
+    if (profileError) {
+      // Password changed successfully but timestamp update failed — log but
+      // don't fail the request (password change is the primary operation)
+      logger.warn('Password updated but profile timestamp update failed', {
+        service: 'auth',
+        userId,
+        error: profileError,
+      });
     }
 
     // Add new password to history (password_history table is separate from profiles)
