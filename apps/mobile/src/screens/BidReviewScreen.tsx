@@ -163,7 +163,12 @@ export const BidReviewScreen: React.FC = () => {
         ]
       );
     } catch (err) {
-      Alert.alert('Error', 'Failed to accept bid. Please try again.');
+      Alert.alert(
+        'Error',
+        err instanceof Error
+          ? err.message
+          : 'Failed to accept bid. Please try again.'
+      );
     } finally {
       setProcessing(false);
     }
@@ -177,7 +182,12 @@ export const BidReviewScreen: React.FC = () => {
     try {
       await BidService.rejectBid(bid.id, user.id);
     } catch (err) {
-      Alert.alert('Error', 'Failed to reject bid. Please try again.');
+      Alert.alert(
+        'Error',
+        err instanceof Error
+          ? err.message
+          : 'Failed to reject bid. Please try again.'
+      );
     } finally {
       setProcessing(false);
     }

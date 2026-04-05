@@ -13,7 +13,11 @@ import { setUserContext } from '../utils/sentryUtils';
 import { useBiometricAuth } from '../hooks/useBiometricAuth';
 
 import type { Session } from '@supabase/supabase-js';
-import type { AuthContextType, AuthProviderProps, AuthSession } from './auth-types';
+import type {
+  AuthContextType,
+  AuthProviderProps,
+  AuthSession,
+} from './auth-types';
 import {
   saveSessionToSecureStore,
   clearSessionFromSecureStore,
@@ -28,7 +32,11 @@ import {
 } from './auth-actions';
 
 // Re-export types so existing consumers keep working
-export type { AuthContextType, AuthSession, SignUpUserData } from './auth-types';
+export type {
+  AuthContextType,
+  AuthSession,
+  SignUpUserData,
+} from './auth-types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -61,7 +69,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const subscription = AuthService.onAuthStateChange(
         async (event: string, newSession: unknown) => {
           if (!mounted) return;
-          logger.info('[AUTH] Auth state changed:', { event, hasSession: !!newSession });
+          logger.info('[AUTH] Auth state changed:', {
+            event,
+            hasSession: !!newSession,
+          });
 
           if (event === 'TOKEN_REFRESHED' && newSession) {
             setSession(newSession as AuthSession);
@@ -89,7 +100,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       };
     };
 
-    initialize().catch(error => {
+    initialize().catch((error) => {
       if (mounted) logger.error('Failed to initialize auth:', error);
     });
 
@@ -106,8 +117,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   );
 
   const signUp = useCallback(
-    (email: string, password: string, userData: { firstName: string; lastName: string; role: 'homeowner' | 'contractor' }) =>
-      performSignUp(email, password, userData, dispatch, biometricAuth),
+    (
+      email: string,
+      password: string,
+      userData: {
+        firstName: string;
+        lastName: string;
+        role: 'homeowner' | 'contractor';
+      }
+    ) => performSignUp(email, password, userData, dispatch, biometricAuth),
     [dispatch, biometricAuth]
   );
 
@@ -123,6 +141,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     },
     [user, dispatch]
   );
+
+  const refreshUser = useCallback(async () => {
+    const currentUser = await AuthService.getCurrentUser();
+    if (currentUser) {
+      setUser(currentUser);
+      setUserContext(currentUser);
+    }
+  }, []);
 
   const signInWithBiometrics = useCallback(async () => {
     setLoading(true);
@@ -140,14 +166,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [biometricAuth]);
 
   const enableBiometric = useCallback(async () => {
-    if (!user) throw new Error('User must be signed in to enable biometric authentication');
+    if (!user)
+      throw new Error(
+        'User must be signed in to enable biometric authentication'
+      );
 
     let activeSession = session;
     if (!activeSession?.access_token || !activeSession?.refresh_token) {
-      activeSession = (await AuthService.getCurrentSession()) as AuthSession | null;
+      activeSession =
+        (await AuthService.getCurrentSession()) as AuthSession | null;
       setSession(activeSession);
     }
-    await biometricAuth.enableBiometric(user, activeSession as unknown as Session | null);
+    await biometricAuth.enableBiometric(
+      user,
+      activeSession as unknown as Session | null
+    );
   }, [user, session, biometricAuth]);
 
   const value: AuthContextType = useMemo(
@@ -159,13 +192,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       signUp,
       signOut,
       updateProfile,
+      refreshUser,
       signInWithBiometrics,
       isBiometricAvailable: () => biometricAuth.isBiometricAvailable(),
       isBiometricEnabled: () => biometricAuth.isBiometricEnabled(),
       enableBiometric,
       disableBiometric: () => biometricAuth.disableBiometric(),
     }),
-    [user, session, loading, signIn, signUp, signOut, updateProfile, signInWithBiometrics, enableBiometric, biometricAuth]
+    [
+      user,
+      session,
+      loading,
+      signIn,
+      signUp,
+      signOut,
+      updateProfile,
+      refreshUser,
+      signInWithBiometrics,
+      enableBiometric,
+      biometricAuth,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

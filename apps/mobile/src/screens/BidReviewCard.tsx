@@ -73,13 +73,18 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
         {/* Contractor header */}
         <TouchableOpacity
           style={styles.contractorHeader}
-          onPress={() =>
-            contractor?.id &&
-            (navigation as ReturnType<typeof Object>).navigate(
-              'ContractorProfile',
-              { contractorId: contractor.id }
-            )
-          }
+          onPress={() => {
+            if (!contractor?.id) return;
+            const nav = navigation as {
+              getParent?: () =>
+                | { navigate: (name: string, params: unknown) => void }
+                | undefined;
+            };
+            nav.getParent?.()?.navigate('Modal', {
+              screen: 'ContractorProfile',
+              params: { contractorId: contractor.id },
+            });
+          }}
           activeOpacity={0.7}
         >
           {avatarUri ? (

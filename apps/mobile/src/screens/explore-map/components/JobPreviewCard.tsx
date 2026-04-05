@@ -6,7 +6,13 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { JobMapItem } from '../viewmodels/ExploreMapViewModel';
 import { theme } from '../../../theme';
@@ -24,15 +30,18 @@ const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 };
 
 const CATEGORY_COLORS: Record<string, { icon: string; bg: string }> = {
-  plumbing:   { icon: theme.colors.primary, bg: theme.colors.primaryLight },
+  plumbing: { icon: theme.colors.primary, bg: theme.colors.primaryLight },
   electrical: { icon: theme.colors.accent, bg: theme.colors.accentLight },
-  roofing:    { icon: theme.colors.primary, bg: theme.colors.primaryLight },
-  painting:   { icon: '#3B82F6', bg: '#DBEAFE' },
-  carpentry:  { icon: theme.colors.accent, bg: theme.colors.accentLight },
-  cleaning:   { icon: '#3B82F6', bg: '#DBEAFE' },
-  hvac:       { icon: theme.colors.error, bg: '#FEE2E2' },
-  landscaping:{ icon: theme.colors.primary, bg: theme.colors.primaryLight },
-  general:    { icon: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary },
+  roofing: { icon: theme.colors.primary, bg: theme.colors.primaryLight },
+  painting: { icon: '#3B82F6', bg: '#DBEAFE' },
+  carpentry: { icon: theme.colors.accent, bg: theme.colors.accentLight },
+  cleaning: { icon: '#3B82F6', bg: '#DBEAFE' },
+  hvac: { icon: theme.colors.error, bg: '#FEE2E2' },
+  landscaping: { icon: theme.colors.primary, bg: theme.colors.primaryLight },
+  general: {
+    icon: theme.colors.textSecondary,
+    bg: theme.colors.backgroundSecondary,
+  },
 };
 
 function timeAgo(dateStr: string): string {
@@ -61,13 +70,18 @@ export const JobPreviewCard: React.FC<JobPreviewCardProps> = ({
   const catKey = job.category.toLowerCase();
   const iconName = CATEGORY_ICONS[catKey] || 'construct';
   const colors = CATEGORY_COLORS[catKey] || CATEGORY_COLORS.general;
-  const amt = job.budget_max ?? job.budget_min ?? (job as Record<string, unknown>).budget as number | null;
-  const budgetText = job.budget_min && job.budget_max && job.budget_max !== job.budget_min
-    ? `£${job.budget_min.toLocaleString()} – £${job.budget_max.toLocaleString()}`
-    : amt
-      ? `£${amt.toLocaleString()}`
-      : 'Budget TBD';
-  const categoryLabel = job.category.charAt(0).toUpperCase() + job.category.slice(1);
+  const amt =
+    job.budget_max ??
+    job.budget_min ??
+    ((job as unknown as Record<string, unknown>).budget as number | null);
+  const budgetText =
+    job.budget_min && job.budget_max && job.budget_max !== job.budget_min
+      ? `£${job.budget_min.toLocaleString()} – £${job.budget_max.toLocaleString()}`
+      : amt
+        ? `£${amt.toLocaleString()}`
+        : 'Budget TBD';
+  const categoryLabel =
+    job.category.charAt(0).toUpperCase() + job.category.slice(1);
   const isUrgent = job.urgency === 'urgent';
 
   return (
@@ -79,7 +93,7 @@ export const JobPreviewCard: React.FC<JobPreviewCardProps> = ({
         style={styles.card}
         onPress={onViewDetails}
         activeOpacity={0.95}
-        accessibilityRole="button"
+        accessibilityRole='button'
         accessibilityLabel={`${job.title}, ${budgetText}`}
       >
         {/* Dismiss button */}
@@ -87,21 +101,27 @@ export const JobPreviewCard: React.FC<JobPreviewCardProps> = ({
           style={styles.dismissBtn}
           onPress={onDismiss}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityRole="button"
-          accessibilityLabel="Dismiss"
+          accessibilityRole='button'
+          accessibilityLabel='Dismiss'
         >
-          <Ionicons name="close" size={16} color={theme.colors.textSecondary} />
+          <Ionicons name='close' size={16} color={theme.colors.textSecondary} />
         </TouchableOpacity>
 
         {/* Budget — FIRST, large */}
         <Text style={styles.budget}>{budgetText}</Text>
 
         {/* Title */}
-        <Text style={styles.title} numberOfLines={2}>{job.title}</Text>
+        <Text style={styles.title} numberOfLines={2}>
+          {job.title}
+        </Text>
 
         {/* Meta: category · distance · time */}
         <View style={styles.metaRow}>
-          <Ionicons name="location-outline" size={13} color={theme.colors.textSecondary} />
+          <Ionicons
+            name='location-outline'
+            size={13}
+            color={theme.colors.textSecondary}
+          />
           <Text style={styles.metaText}>
             {job.distance} km · {categoryLabel} · {timeAgo(job.created_at)}
           </Text>
@@ -111,11 +131,13 @@ export const JobPreviewCard: React.FC<JobPreviewCardProps> = ({
         <View style={styles.tagsRow}>
           <View style={[styles.categoryPill, { backgroundColor: colors.bg }]}>
             <Ionicons name={iconName} size={12} color={colors.icon} />
-            <Text style={[styles.categoryPillText, { color: colors.icon }]}>{categoryLabel}</Text>
+            <Text style={[styles.categoryPillText, { color: colors.icon }]}>
+              {categoryLabel}
+            </Text>
           </View>
           {isUrgent && (
             <View style={styles.urgentBadge}>
-              <Ionicons name="flame" size={11} color={theme.colors.error} />
+              <Ionicons name='flame' size={11} color={theme.colors.error} />
               <Text style={styles.urgentText}>Urgent</Text>
             </View>
           )}
@@ -126,23 +148,27 @@ export const JobPreviewCard: React.FC<JobPreviewCardProps> = ({
           <TouchableOpacity
             style={styles.bidButton}
             onPress={onBidNow}
-            accessibilityRole="button"
-            accessibilityLabel="Bid on this job"
+            accessibilityRole='button'
+            accessibilityLabel='Bid on this job'
             activeOpacity={0.85}
           >
-            <Ionicons name="flash" size={15} color={theme.colors.textInverse} />
+            <Ionicons name='flash' size={15} color={theme.colors.textInverse} />
             <Text style={styles.bidButtonText}>Quick Bid</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.detailsButton}
             onPress={onViewDetails}
-            accessibilityRole="button"
-            accessibilityLabel="View job details"
+            accessibilityRole='button'
+            accessibilityLabel='View job details'
             activeOpacity={0.7}
           >
             <Text style={styles.detailsButtonText}>Details</Text>
-            <Ionicons name="arrow-forward" size={14} color={theme.colors.textPrimary} />
+            <Ionicons
+              name='arrow-forward'
+              size={14}
+              color={theme.colors.textPrimary}
+            />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -167,7 +193,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 18,
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 16 },
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 16,
+      },
       android: { elevation: 8 },
     }),
   },

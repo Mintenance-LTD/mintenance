@@ -40,7 +40,9 @@ interface VerificationData {
   licenseExpiry: string;
 }
 
-export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = ({ navigation }) => {
+export const ContractorVerificationScreen: React.FC<
+  VerificationScreenProps
+> = ({ navigation }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<VerificationData>({
@@ -59,10 +61,15 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
   const checkVerificationStatus = async () => {
     if (!user?.id) return;
     try {
-      const result = await ((supabase
-        .from('profiles')
-        .select('company_name, business_address, license_number, license_type, license_expiry, verification_status') as any)
-        .eq('id', user.id)).single() as { data: Record<string, string> | null };
+      const result = (await (
+        supabase
+          .from('profiles')
+          .select(
+            'company_name, business_address, license_number, license_type, license_expiry, verification_status'
+          ) as any
+      )
+        .eq('id', user.id)
+        .single()) as { data: Record<string, string> | null };
       const profile = result.data;
       if (profile) {
         if (profile.verification_status === 'verified') {
@@ -105,16 +112,16 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
     try {
       setLoading(true);
 
-      const { error } = await (supabase
-        .from('profiles')
-        .update({
+      const { error } = (await (
+        supabase.from('profiles').update({
           company_name: sanitize.companyName(formData.companyName),
           business_address: sanitize.address(formData.businessAddress),
           license_number: sanitize.text(formData.licenseNumber.trim(), 50),
           license_type: formData.licenseType,
           license_expiry: formData.licenseExpiry || null,
           verification_status: 'pending',
-        }) as any).eq('id', user.id) as { error: Error | null };
+        }) as any
+      ).eq('id', user.id)) as { error: Error | null };
 
       if (error) throw error;
 
@@ -123,8 +130,13 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
         'Your verification request has been submitted and will be reviewed within 24-48 hours.',
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
-    } catch {
-      Alert.alert('Error', 'Failed to submit verification. Please try again.');
+    } catch (err) {
+      Alert.alert(
+        'Error',
+        err instanceof Error
+          ? err.message
+          : 'Failed to submit verification. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -132,7 +144,10 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
+      <StatusBar
+        barStyle='dark-content'
+        backgroundColor={theme.colors.backgroundSecondary}
+      />
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -140,21 +155,35 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          <Ionicons
+            name='arrow-back'
+            size={24}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} accessibilityRole='header'>Business Verification</Text>
+        <Text style={styles.headerTitle} accessibilityRole='header'>
+          Business Verification
+        </Text>
         <View style={{ width: 44 }} />
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.infoBanner}>
           <View style={styles.infoBannerIconWrap}>
-            <Ionicons name="shield-checkmark" size={24} color={theme.colors.primary} />
+            <Ionicons
+              name='shield-checkmark'
+              size={24}
+              color={theme.colors.primary}
+            />
           </View>
           <View style={styles.infoBannerContent}>
             <Text style={styles.infoBannerTitle}>Why Verify?</Text>
             <Text style={styles.infoBannerText}>
-              Verified contractors appear on the homeowner map and get 3x more job opportunities
+              Verified contractors appear on the homeowner map and get 3x more
+              job opportunities
             </Text>
           </View>
         </View>
@@ -167,8 +196,10 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
             <TextInput
               style={styles.input}
               value={formData.companyName}
-              onChangeText={(text) => setFormData({ ...formData, companyName: text })}
-              placeholder="e.g., ABC Plumbing Ltd"
+              onChangeText={(text) =>
+                setFormData({ ...formData, companyName: text })
+              }
+              placeholder='e.g., ABC Plumbing Ltd'
               placeholderTextColor={theme.colors.textTertiary}
             />
           </View>
@@ -180,14 +211,17 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
             <TextInput
               style={[styles.input, styles.textArea]}
               value={formData.businessAddress}
-              onChangeText={(text) => setFormData({ ...formData, businessAddress: text })}
-              placeholder="123 Main Street, London, UK"
+              onChangeText={(text) =>
+                setFormData({ ...formData, businessAddress: text })
+              }
+              placeholder='123 Main Street, London, UK'
               placeholderTextColor={theme.colors.textTertiary}
               multiline
               numberOfLines={3}
             />
             <Text style={styles.helpText}>
-              This address will be used to show your location on the homeowner map
+              This address will be used to show your location on the homeowner
+              map
             </Text>
           </View>
 
@@ -198,8 +232,10 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
             <TextInput
               style={styles.input}
               value={formData.licenseNumber}
-              onChangeText={(text) => setFormData({ ...formData, licenseNumber: text })}
-              placeholder="e.g., LIC-12345-UK"
+              onChangeText={(text) =>
+                setFormData({ ...formData, licenseNumber: text })
+              }
+              placeholder='e.g., LIC-12345-UK'
               placeholderTextColor={theme.colors.textTertiary}
             />
           </View>
@@ -216,13 +252,25 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
                 <TouchableOpacity
                   key={option.value}
                   style={styles.radioOption}
-                  onPress={() => setFormData({ ...formData, licenseType: option.value })}
+                  onPress={() =>
+                    setFormData({ ...formData, licenseType: option.value })
+                  }
                   accessibilityRole='radio'
                   accessibilityLabel={option.label}
-                  accessibilityState={{ selected: formData.licenseType === option.value }}
+                  accessibilityState={{
+                    selected: formData.licenseType === option.value,
+                  }}
                 >
-                  <View style={[styles.radio, formData.licenseType === option.value && styles.radioActive]}>
-                    {formData.licenseType === option.value && <View style={styles.radioSelected} />}
+                  <View
+                    style={[
+                      styles.radio,
+                      formData.licenseType === option.value &&
+                        styles.radioActive,
+                    ]}
+                  >
+                    {formData.licenseType === option.value && (
+                      <View style={styles.radioSelected} />
+                    )}
                   </View>
                   <Text style={styles.radioLabel}>{option.label}</Text>
                 </TouchableOpacity>
@@ -235,8 +283,10 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
             <TextInput
               style={styles.input}
               value={formData.licenseExpiry}
-              onChangeText={(text) => setFormData({ ...formData, licenseExpiry: text })}
-              placeholder="DD/MM/YYYY"
+              onChangeText={(text) =>
+                setFormData({ ...formData, licenseExpiry: text })
+              }
+              placeholder='DD/MM/YYYY'
               placeholderTextColor={theme.colors.textTertiary}
             />
           </View>
@@ -252,7 +302,11 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
             'Build trust with potential clients',
           ].map((benefit, index) => (
             <View key={index} style={styles.benefitRow}>
-              <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
+              <Ionicons
+                name='checkmark-circle'
+                size={18}
+                color={theme.colors.primary}
+              />
               <Text style={styles.benefitItem}>{benefit}</Text>
             </View>
           ))}
@@ -263,7 +317,9 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
           onPress={handleSubmit}
           disabled={loading}
           accessibilityRole='button'
-          accessibilityLabel={loading ? 'Submitting verification' : 'Submit for verification'}
+          accessibilityLabel={
+            loading ? 'Submitting verification' : 'Submit for verification'
+          }
           accessibilityState={{ disabled: loading }}
         >
           {loading ? (
@@ -274,7 +330,8 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
         </TouchableOpacity>
 
         <Text style={styles.privacyNote}>
-          Your information is securely encrypted and will only be used for verification purposes.
+          Your information is securely encrypted and will only be used for
+          verification purposes.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -319,7 +376,12 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -353,7 +415,12 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -424,7 +491,12 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },

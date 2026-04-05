@@ -34,12 +34,12 @@ export interface DatabaseContractorProfileRow {
 
 export interface DatabaseUserRow {
   id: string;
-  email: string;
+  email?: string; // not selected on cross-user reads (PII protection)
   first_name: string;
   last_name: string;
   role: 'homeowner' | 'contractor' | 'admin';
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   latitude?: number;
   longitude?: number;
   profile_image_url?: string;
