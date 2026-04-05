@@ -267,6 +267,44 @@ describe('Rate Limiting for Specific Endpoints', () => {
   });
 });
 
+describe('Redis Enforcement (REDIS_REQUIRED)', () => {
+  const origEnv = { ...process.env };
+
+  afterEach(() => {
+    process.env = { ...origEnv };
+  });
+
+  it('should allow in-memory fallback when REDIS_REQUIRED=false', async () => {
+    process.env.REDIS_REQUIRED = 'false';
+    process.env.NODE_ENV = 'development';
+    delete process.env.UPSTASH_REDIS_REST_URL;
+
+    const limiter = new EnhancedRateLimiter();
+    const request = createMockRequest('/api/test');
+    // Should succeed using in-memory fallback
+    const result = await limiter.checkLimit(request, {
+      identifier: 'redis-opt-out',
+      tier: 'anonymous',
+    });
+    expect(result.allowed).toBe(true);
+  });
+
+  it('should warn when no Redis configured in non-prod', async () => {
+    process.env.REDIS_REQUIRED = 'false';
+    process.env.NODE_ENV = 'test';
+    delete process.env.UPSTASH_REDIS_REST_URL;
+
+    const warnSpy = vi.spyOn(console, 'warn');
+    new EnhancedRateLimiter();
+    // Give init() microtask a chance to run
+    await new Promise((r) => setTimeout(r, 10));
+
+    const warnCalls = warnSpy.mock.calls.flat().join(' ');
+    expect(warnCalls).toMatch(/in-memory rate limiting|No Redis configured/i);
+    warnSpy.mockRestore();
+  });
+});
+
 describe('Security Event Logging', () => {
   it('should log rate limit violations', async () => {
     const logSpy = vi.spyOn(console, 'warn');

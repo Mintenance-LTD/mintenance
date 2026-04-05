@@ -1,0 +1,266 @@
+/**
+ * Test data fixtures for integration tests.
+ *
+ * Each helper:
+ *  - Uses the service-role client (bypasses RLS) for setup/teardown
+ *  - Returns a cleanup function that the caller MUST call in afterEach/afterAll
+ *  - Prefixes all test data with `itest_` for easy identification
+ */
+import { SupabaseClient } from '@supabase/supabase-js';
+import { randomUUID } from 'crypto';
+import { createServiceClient } from './supabase-test-client';
+
+const TEST_PREFIX = 'itest_';
+
+export interface TestUser {
+  id: string;
+  email: string;
+  password: string;
+  role: 'homeowner' | 'contractor' | 'admin';
+  cleanup: () => Promise<void>;
+}
+
+export interface TestJob {
+  id: string;
+  homeowner_id: string;
+  cleanup: () => Promise<void>;
+}
+
+/**
+ * Create a test user via Supabase Auth admin API.
+ * The user is created confirmed (no email verification required).
+ */
+export async function createTestUser(opts: {
+  role: 'homeowner' | 'contractor' | 'admin';
+  email?: string;
+}): Promise<TestUser> {
+  const admin = createServiceClient();
+  const email = opts.email ?? `${TEST_PREFIX}${randomUUID()}@test.local`;
+  const password = `TestPass_${randomUUID().slice(0, 8)}!`;
+
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { role: opts.role, test_user: true },
+  });
+
+  if (error || !data.user) {
+    throw new Error(`Failed to create test user: ${error?.message}`);
+  }
+
+  const userId = data.user.id;
+
+  // The handle_new_user trigger (20260206002000_profiles_trigger.sql) creates
+  // the profile row automatically on auth.users insert with role='homeowner'.
+  // We UPDATE to set the real role + test metadata.
+  const { error: profileErr } = await admin
+    .from('profiles')
+    .update({
+      role: opts.role,
+      first_name: `${TEST_PREFIX}${opts.role}`,
+      last_name: 'test',
+    })
+    .eq('id', userId);
+
+  if (profileErr) {
+    await admin.auth.admin.deleteUser(userId).catch(() => {});
+    throw new Error(`Failed to update profile: ${profileErr.message}`);
+  }
+
+  return {
+    id: userId,
+    email,
+    password,
+    role: opts.role,
+    cleanup: async () => {
+      await admin.from('profiles').delete().eq('id', userId);
+      await admin.auth.admin.deleteUser(userId).catch(() => {});
+    },
+  };
+}
+
+/**
+ * Create a test job owned by a homeowner.
+ * Returns cleanup function that deletes the job and its dependent rows.
+ */
+export async function createTestJob(opts: {
+  homeowner_id: string;
+  title?: string;
+  status?: string;
+}): Promise<TestJob> {
+  const admin = createServiceClient();
+  const title = opts.title ?? `${TEST_PREFIX}job_${randomUUID().slice(0, 8)}`;
+
+  const { data, error } = await admin
+    .from('jobs')
+    .insert({
+      homeowner_id: opts.homeowner_id,
+      title,
+      description: 'Integration test job — safe to delete',
+      category: 'plumbing',
+      urgency: 'medium',
+      status: opts.status ?? 'posted',
+      budget_min: 100,
+      budget_max: 500,
+    })
+    .select('id')
+    .single();
+
+  if (error || !data) {
+    throw new Error(`Failed to create test job: ${error?.message}`);
+  }
+
+  const jobId = data.id;
+
+  return {
+    id: jobId,
+    homeowner_id: opts.homeowner_id,
+    cleanup: async () => {
+      await admin.from('jobs').delete().eq('id', jobId);
+    },
+  };
+}
+
+export interface TestBid {
+  id: string;
+  job_id: string;
+  contractor_id: string;
+  cleanup: () => Promise<void>;
+}
+
+/**
+ * Create a test bid on a job.
+ */
+export async function createTestBid(opts: {
+  job_id: string;
+  contractor_id: string;
+  amount?: number;
+  status?: 'pending' | 'accepted' | 'rejected' | 'withdrawn';
+}): Promise<TestBid> {
+  const admin = createServiceClient();
+  const { data, error } = await admin
+    .from('bids')
+    .insert({
+      job_id: opts.job_id,
+      contractor_id: opts.contractor_id,
+      amount: opts.amount ?? 200,
+      message: 'itest_bid',
+      status: opts.status ?? 'pending',
+      estimated_duration_days: 3,
+    })
+    .select('id')
+    .single();
+
+  if (error || !data) {
+    throw new Error(`Failed to create test bid: ${error?.message}`);
+  }
+
+  const bidId = data.id;
+
+  return {
+    id: bidId,
+    job_id: opts.job_id,
+    contractor_id: opts.contractor_id,
+    cleanup: async () => {
+      await admin.from('bids').delete().eq('id', bidId);
+    },
+  };
+}
+
+export interface TestPayment {
+  id: string;
+  cleanup: () => Promise<void>;
+}
+
+export interface TestEscrow {
+  id: string;
+  payment_id: string;
+  cleanup: () => Promise<void>;
+}
+
+/**
+ * Create a test payment linking payer (homeowner) → payee (contractor).
+ * Status defaults to 'in_escrow' to exercise escrow RLS.
+ */
+export async function createTestPayment(opts: {
+  job_id: string;
+  payer_id: string;
+  payee_id: string;
+  amount?: number;
+  status?: string;
+}): Promise<TestPayment> {
+  const admin = createServiceClient();
+  const { data, error } = await admin
+    .from('payments')
+    .insert({
+      job_id: opts.job_id,
+      payer_id: opts.payer_id,
+      payee_id: opts.payee_id,
+      amount: opts.amount ?? 250,
+      currency: 'GBP',
+      status: opts.status ?? 'in_escrow',
+      payment_method: 'stripe',
+    })
+    .select('id')
+    .single();
+
+  if (error || !data) {
+    throw new Error(`Failed to create test payment: ${error?.message}`);
+  }
+
+  const paymentId = data.id;
+
+  return {
+    id: paymentId,
+    cleanup: async () => {
+      await admin.from('payments').delete().eq('id', paymentId);
+    },
+  };
+}
+
+/**
+ * Create a test escrow account linked to an existing payment.
+ */
+export async function createTestEscrow(opts: {
+  payment_id: string;
+  amount?: number;
+  status?: 'held' | 'releasing' | 'released' | 'refunded';
+}): Promise<TestEscrow> {
+  const admin = createServiceClient();
+  const { data, error } = await admin
+    .from('escrow_accounts')
+    .insert({
+      payment_id: opts.payment_id,
+      amount: opts.amount ?? 250,
+      status: opts.status ?? 'held',
+    })
+    .select('id')
+    .single();
+
+  if (error || !data) {
+    throw new Error(`Failed to create test escrow: ${error?.message}`);
+  }
+
+  const escrowId = data.id;
+
+  return {
+    id: escrowId,
+    payment_id: opts.payment_id,
+    cleanup: async () => {
+      await admin.from('escrow_accounts').delete().eq('id', escrowId);
+    },
+  };
+}
+
+/**
+ * Wipe all rows in a table whose text columns start with the itest_ prefix.
+ * Safety net in case a test crashes without calling cleanup.
+ */
+export async function wipeTestData(
+  admin: SupabaseClient,
+  table: string,
+  column: string,
+): Promise<void> {
+  await admin.from(table).delete().like(column, `${TEST_PREFIX}%`);
+}
