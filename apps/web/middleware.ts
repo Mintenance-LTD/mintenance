@@ -13,6 +13,20 @@ import {
   shouldSkipCors,
 } from '@/lib/cors';
 import { securityMonitor } from '@/lib/security-monitor';
+import { isPublicRoute } from './middleware/public-routes';
+import { validateRequestBody } from './middleware/body-validation';
+import {
+  buildPublicCSP,
+  buildAuthenticatedCSP,
+  buildStrictReportOnlyCSP,
+} from './middleware/csp';
+import { is2025FeatureEnabled } from './middleware/feature-flags';
+import {
+  getClientIP,
+  extractBearerToken,
+  isValidJwtFormat,
+  redirectToLogin,
+} from './middleware/helpers';
 
 // Lazy-initialized ConfigManager to avoid module-level throws that crash the middleware Edge Function
 let configManager: ConfigManager | null = null;
@@ -71,76 +85,15 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check if IP is auto-blocked by security monitor (DDoS / attack mitigation)
-  const clientIP =
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip') ||
-    'unknown';
+  const clientIP = getClientIP(request);
   if (securityMonitor.isIPBlocked(clientIP)) {
     return new NextResponse('Forbidden', { status: 403 });
   }
 
-  // Define public routes that don't require authentication
-  // IMPORTANT: Public route check MUST happen before ConfigManager to ensure
-  // login, CSRF, session-status, and diag routes work even if config fails
-  const publicRoutes = [
-    '/login',
-    '/register',
-    '/forgot-password',
-    '/reset-password',
-    '/about',
-    '/contact',
-    '/privacy',
-    '/terms',
-    '/help',
-    '/logout',
-    '/careers',
-    '/press',
-    '/safety',
-    '/cookies',
-    '/faq',
-    '/blog',
-    '/pricing',
-    '/how-it-works',
-    '/ai-search',
-    '/try-mint-ai',
-  ];
-  // SECURITY: Exact-match API routes — no sub-path access allowed
-  const publicApiRoutesExact = new Set([
-    '/api/csrf',
-    '/api/stats/platform',
-    '/api/diag',
-    '/api/building-surveyor/demo',
-    '/api/building-surveyor/demo-feedback',
-    '/api/csp-report', // Browser-generated CSP violation reports: no auth, no CSRF (browser controls headers)
-  ]);
-  // Prefix-match API routes — sub-paths are intentionally allowed (e.g. /api/auth/login/callback)
-  const publicApiRoutesPrefixed = ['/api/auth/'];
-  const adminAuthRoutes = [
-    '/admin/login',
-    '/admin/register',
-    '/admin/forgot-password',
-  ];
-  // SECURITY: Only allow UUID-formatted contractor profile paths as public
-  // This prevents /contractor/dashboard-enhanced, /contractor/settings, etc. from bypassing auth
-  const isPublicContractorProfile =
-    /^\/contractor\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      pathname
-    );
-  // /contractors listing now requires authentication
-  const isPublicContractorsPage = false;
-  const isPublicRoute =
-    pathname === '/' ||
-    publicRoutes.some(
-      (route) => pathname === route || pathname.startsWith(route + '/')
-    ) ||
-    publicApiRoutesExact.has(pathname) ||
-    publicApiRoutesPrefixed.some((prefix) => pathname.startsWith(prefix)) ||
-    isPublicContractorProfile ||
-    isPublicContractorsPage ||
-    adminAuthRoutes.includes(pathname);
-
+  // Public route check MUST happen before ConfigManager so that login,
+  // CSRF, session-status, and diag routes work even if config fails.
   // Skip auth middleware for public routes — no ConfigManager needed
-  if (isPublicRoute) {
+  if (isPublicRoute(pathname)) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-pathname', pathname);
 
@@ -166,75 +119,15 @@ export async function middleware(request: NextRequest) {
     });
 
     if (!isDevelopment) {
-      // CSP for public routes. We use 'unsafe-inline' without a nonce because
-      // Next.js injects inline hydration scripts that don't carry a nonce.
-      // Adding a nonce causes CSP3 browsers to IGNORE 'unsafe-inline', breaking hydration.
-      response.headers.set(
-        'Content-Security-Policy',
-        [
-          "default-src 'self'",
-          `script-src 'self' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com https://vercel.live`,
-          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-          "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
-          "font-src 'self' data: https://fonts.gstatic.com",
-          "connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com https://vercel.live wss://ws-us3.pusher.com",
-          'frame-src https://js.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://www.openstreetmap.org https://vercel.live',
-          "object-src 'none'",
-          "base-uri 'self'",
-          "form-action 'self'",
-          "frame-ancestors 'none'",
-        ].join('; ')
-      );
+      response.headers.set('Content-Security-Policy', buildPublicCSP());
     }
 
     return response;
   }
 
   // SECURITY: Validate request body size and content type for POST/PUT/PATCH requests
-  if (['POST', 'PUT', 'PATCH'].includes(request.method)) {
-    const contentType = request.headers.get('content-type') || '';
-    const contentLength = request.headers.get('content-length');
-
-    if (!contentType && request.method !== 'GET') {
-      logger.warn('Request missing content-type header', {
-        service: 'middleware',
-        pathname,
-        method: request.method,
-      });
-      return new NextResponse(
-        JSON.stringify({ error: 'Content-Type header required' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const maxBodySize = 10 * 1024 * 1024; // 10MB
-    if (contentLength && parseInt(contentLength, 10) > maxBodySize) {
-      logger.warn('Request body size exceeds limit', {
-        service: 'middleware',
-        pathname,
-        contentLength,
-        maxSize: maxBodySize,
-      });
-      return new NextResponse(
-        JSON.stringify({ error: 'Request body too large' }),
-        { status: 413, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (
-      contentType &&
-      !contentType.includes('application/json') &&
-      !contentType.includes('multipart/form-data') &&
-      !contentType.includes('application/x-www-form-urlencoded') &&
-      !contentType.includes('text/')
-    ) {
-      logger.warn('Invalid content-type for request', {
-        service: 'middleware',
-        pathname,
-        contentType,
-      });
-    }
-  }
+  const bodyValidationResponse = validateRequestBody(request);
+  if (bodyValidationResponse) return bodyValidationResponse;
 
   // If configuration failed to load, fail closed for security (non-public routes only)
   const cfg = getConfigManager();
@@ -388,13 +281,8 @@ export async function middleware(request: NextRequest) {
   // handlers via getUserFromRequest() → getCurrentUserFromBearerToken().
   // SECURITY FIX: Require valid JWT format (3-part dot-separated base64url) before
   // waiving CSRF. A fake/malformed "Bearer invalid" header no longer bypasses CSRF.
-  const bearerToken = request.headers
-    .get('authorization')
-    ?.replace('Bearer ', '');
-  const isValidJwtFormat =
-    !!bearerToken &&
-    /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(bearerToken);
-  if (pathname.startsWith('/api/') && isValidJwtFormat) {
+  const bearerToken = extractBearerToken(request);
+  if (pathname.startsWith('/api/') && isValidJwtFormat(bearerToken)) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-pathname', pathname);
     const requestId = crypto.randomUUID();
@@ -750,46 +638,13 @@ export async function middleware(request: NextRequest) {
       maxAge: 24 * 60 * 60,
     });
 
-    // Set CSP header with nonce — localhost only allowed in development
-    const connectSrc = isDevelopment
-      ? "connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com http://localhost:* http://127.0.0.1:* ws: wss:"
-      : "connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com https://vercel.live wss: wss://ws-us3.pusher.com";
-    // CSP for authenticated routes. No nonce — Next.js inline hydration scripts
-    // don't carry nonces, and CSP3 browsers ignore 'unsafe-inline' when a nonce is present.
-    const cspHeader = [
-      "default-src 'self'",
-      `script-src 'self' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com https://vercel.live`,
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
-      "font-src 'self' data: https://fonts.gstatic.com",
-      connectSrc,
-      'frame-src https://js.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://www.openstreetmap.org https://vercel.live',
-      "object-src 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "frame-ancestors 'none'",
-    ].join('; ');
-
-    response.headers.set('Content-Security-Policy', cspHeader);
-
-    // CSP Report-Only — monitors stricter policy for future enforcement.
-    const strictCspHeader = [
-      "default-src 'self'",
-      `script-src 'self' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com`,
-      `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
-      "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
-      "font-src 'self' data: https://fonts.gstatic.com",
-      connectSrc,
-      'frame-src https://js.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://www.openstreetmap.org',
-      "object-src 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "frame-ancestors 'none'",
-      'report-uri /api/csp-report',
-    ].join('; ');
+    response.headers.set(
+      'Content-Security-Policy',
+      buildAuthenticatedCSP(isDevelopment),
+    );
     response.headers.set(
       'Content-Security-Policy-Report-Only',
-      strictCspHeader
+      buildStrictReportOnlyCSP(isDevelopment),
     );
 
     // API versioning header for all /api/ routes
@@ -812,100 +667,6 @@ export async function middleware(request: NextRequest) {
   }
 }
 
-/**
- * 2025 UI Feature Flag Logic
- * Controls gradual rollout of the redesigned UI
- */
-function is2025FeatureEnabled(request: NextRequest): boolean {
-  // 1. Kill switch - emergency disable (highest priority)
-  if (process.env.DISABLE_2025_PAGES === 'true') {
-    return false;
-  }
-
-  // 2. Global feature flag - enable for all users
-  if (process.env.NEXT_PUBLIC_ENABLE_2025_DASHBOARD === 'true') {
-    return true;
-  }
-
-  // 3. User preference cookie - user manually switched
-  const userPreference = request.cookies.get('dashboard-version')?.value;
-  if (userPreference === '2025') {
-    return true;
-  }
-  if (userPreference === 'current') {
-    return false;
-  }
-
-  // 4. Beta features flag - opt-in beta testers
-  if (request.cookies.get('beta-features')?.value === 'true') {
-    return true;
-  }
-
-  // 5. Gradual rollout based on percentage (consistent hashing)
-  const rolloutPercentage = getRolloutPercentage();
-  if (rolloutPercentage > 0) {
-    const userIdentifier =
-      request.cookies.get('session-id')?.value ||
-      request.headers.get('x-forwarded-for') ||
-      'anonymous';
-    const hash = simpleHash(userIdentifier);
-    const userPercentile = hash % 100;
-
-    if (userPercentile < rolloutPercentage) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-/**
- * Get rollout percentage from environment variable
- * @returns number between 0-100
- */
-function getRolloutPercentage(): number {
-  const percentage = process.env.NEXT_PUBLIC_ROLLOUT_PERCENTAGE;
-  if (!percentage) return 0;
-
-  const parsed = parseInt(percentage, 10);
-  if (isNaN(parsed) || parsed < 0 || parsed > 100) {
-    logger.warn('Invalid NEXT_PUBLIC_ROLLOUT_PERCENTAGE value', {
-      service: 'middleware',
-      value: percentage,
-    });
-    return 0;
-  }
-
-  return parsed;
-}
-
-/**
- * Simple hash function for consistent user bucketing
- * Uses basic string hashing for deterministic results
- */
-function simpleHash(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-  return Math.abs(hash);
-}
-
-/**
- * Helper function to redirect to login page
- * Checks if route is admin route and redirects to appropriate login page
- */
-function redirectToLogin(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
-  const isAdminRoute = pathname.startsWith('/admin');
-  const loginPath = isAdminRoute ? '/admin/login' : '/login';
-  const loginUrl = new URL(loginPath, request.url);
-  loginUrl.searchParams.set('redirect', pathname);
-
-  return NextResponse.redirect(loginUrl);
-}
 
 /**
  * Configure which paths the middleware should run on
