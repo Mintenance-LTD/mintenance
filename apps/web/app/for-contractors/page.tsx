@@ -7,7 +7,6 @@ import {
   PoundSterling,
   TrendingUp,
   MapPin,
-  Star,
   Award,
   Sparkles,
   UserPlus,
@@ -89,10 +88,10 @@ const FEATURES = [
 ];
 
 const STATS = [
-  { value: '12', label: 'Average jobs per contractor' },
-  { value: '92%', label: 'Bid win rate (top contractors)' },
-  { value: '£806', label: 'Average job value' },
-  { value: '< 2hr', label: 'Average payment release time' },
+  { value: 'Free', label: 'To join and start bidding' },
+  { value: '100%', label: 'Escrow-protected payments' },
+  { value: '0', label: 'Chasing invoices' },
+  { value: '1 day', label: 'To set up your profile' },
 ];
 
 const BUSINESS_TOOLS = [
@@ -104,27 +103,21 @@ const BUSINESS_TOOLS = [
   { icon: Award, title: 'Verification & DBS', desc: 'Get verified and earn trust badges on your profile' },
 ];
 
-const TESTIMONIALS = [
+const WHY_MINTENANCE = [
   {
-    quote: 'I went from 2 jobs a week to 8 within a month. The job map feature means I only bid on work near me \u2014 saves fuel and time.',
-    name: 'Marcus D.',
-    trade: 'Plumber',
-    location: 'Cheltenham',
-    rating: 5,
+    icon: Shield,
+    title: 'Guaranteed Payment',
+    description: 'Homeowner funds are held in escrow before you start work. Complete the job, upload photos \u2014 money goes straight to your bank. No invoicing, no chasing.',
   },
   {
-    quote: 'The business hub replaced three apps I was paying for. Invoices, expenses, and time tracking all in one place.',
-    name: 'Sophie R.',
-    trade: 'Electrician',
-    location: 'Leeds',
-    rating: 5,
+    icon: Award,
+    title: 'Build Your Reputation',
+    description: 'Earn ratings, verification badges, and DBS-checked status. The more you build your profile, the more homeowners trust you with higher-value work.',
   },
   {
-    quote: 'Getting paid through escrow is a game changer. No more chasing homeowners for payment \u2014 the money is already there waiting.',
-    name: 'Tom W.',
-    trade: 'General Builder',
-    location: 'Birmingham',
-    rating: 5,
+    icon: Sparkles,
+    title: 'Replace 5 Apps With 1',
+    description: 'Invoicing, expense tracking, quotes, client CRM, calendar, and time logging \u2014 all built in. Stop paying for tools that don\'t talk to each other.',
   },
 ];
 
@@ -319,30 +312,24 @@ export default function ForContractorsPage() {
         <section className="py-20">
           <div className="max-w-7xl mx-auto px-6">
             <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
-              Contractors Growing with Mintenance
+              Why Contractors Choose Mintenance
             </h2>
+            <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
+              Real platform guarantees \u2014 not promises.
+            </p>
             <div className="grid md:grid-cols-3 gap-8">
-              {TESTIMONIALS.map((t) => (
-                <div key={t.name} className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex gap-1 mb-4">
-                    {Array.from({ length: t.rating }).map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                    ))}
-                  </div>
-                  <p className="text-gray-600 mb-6 leading-relaxed italic">
-                    &ldquo;{t.quote}&rdquo;
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm">
-                      {t.name[0]}
+              {WHY_MINTENANCE.map((point) => {
+                const Icon = point.icon;
+                return (
+                  <div key={point.title} className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow text-center">
+                    <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 mb-4">
+                      <Icon className="w-6 h-6" />
                     </div>
-                    <div>
-                      <div className="font-semibold text-gray-900 text-sm">{t.name}</div>
-                      <div className="text-xs text-gray-500">{t.trade} \u00b7 {t.location}</div>
-                    </div>
+                    <h3 className="font-semibold text-gray-900 mb-2 text-lg">{point.title}</h3>
+                    <p className="text-gray-500 leading-relaxed">{point.description}</p>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>

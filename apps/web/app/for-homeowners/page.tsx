@@ -9,8 +9,6 @@ import {
   Sparkles,
   Home,
   ArrowRight,
-  Star,
-  Clock,
   Eye,
 } from 'lucide-react';
 import { LandingNavigation } from '../components/landing/LandingNavigation';
@@ -52,7 +50,7 @@ const FEATURES = [
     badge: 'Powered by Mint AI',
   },
   {
-    icon: Star,
+    icon: CheckCircle,
     title: 'Compare & Choose',
     description: 'Review bids from verified contractors. See their ratings, completed jobs, company details, and portfolio. Accept the best offer \u2014 your money stays protected until you\'re happy.',
     screenshot: '/screenshots/homeowner/bids-received.png',
@@ -82,30 +80,27 @@ const FEATURES = [
 ];
 
 const STATS = [
-  { value: '60s', label: 'Average time to post a job' },
-  { value: '85%', label: 'AI assessment accuracy' },
-  { value: '4.8', label: 'Average contractor rating' },
-  { value: '0', label: 'Money lost to bad work' },
+  { value: '60s', label: 'To post a job' },
+  { value: '100%', label: 'Payment protected in escrow' },
+  { value: '24/7', label: 'AI damage assessment' },
+  { value: 'Free', label: 'To get started' },
 ];
 
-const TESTIMONIALS = [
+const TRUST_POINTS = [
   {
-    quote: 'The AI assessment told me exactly what was wrong with my damp wall before I even called anyone. Saved me hundreds in unnecessary quotes.',
-    name: 'Sarah M.',
-    location: 'Bristol',
-    rating: 5,
+    icon: Shield,
+    title: 'Escrow-Protected Payments',
+    description: 'Your money is held securely by Stripe until you confirm the work is done. No risk of paying upfront and getting ghosted.',
   },
   {
-    quote: 'Being able to see before and after photos before releasing payment gave me total peace of mind. The escrow system is brilliant.',
-    name: 'James T.',
-    location: 'Manchester',
-    rating: 5,
+    icon: Camera,
+    title: 'Photo Evidence Required',
+    description: 'Contractors must upload before and after photos. You compare them side by side and approve before payment releases.',
   },
   {
-    quote: 'Posted a job for a leaky pipe, had 3 bids within an hour. Chose the highest-rated contractor and the job was done same day.',
-    name: 'Priya K.',
-    location: 'London',
-    rating: 5,
+    icon: CheckCircle,
+    title: 'Verified Contractors Only',
+    description: 'Every contractor goes through identity verification, DBS checks, and insurance validation before appearing on the platform.',
   },
 ];
 
@@ -303,34 +298,28 @@ export default function ForHomeownersPage() {
           </div>
         </section>
 
-        {/* Testimonials */}
+        {/* Trust section — real platform guarantees, not fabricated reviews */}
         <section className="py-20">
           <div className="max-w-7xl mx-auto px-6">
-            <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
-              Homeowners Love Mintenance
+            <h2 className="text-3xl font-bold text-gray-900 text-center mb-4">
+              Built on Trust
             </h2>
+            <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
+              Every part of Mintenance is designed to protect your money and your property.
+            </p>
             <div className="grid md:grid-cols-3 gap-8">
-              {TESTIMONIALS.map((t) => (
-                <div key={t.name} className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex gap-1 mb-4">
-                    {Array.from({ length: t.rating }).map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                    ))}
-                  </div>
-                  <p className="text-gray-600 mb-6 leading-relaxed italic">
-                    &ldquo;{t.quote}&rdquo;
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-bold text-sm">
-                      {t.name[0]}
+              {TRUST_POINTS.map((point) => {
+                const Icon = point.icon;
+                return (
+                  <div key={point.title} className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow text-center">
+                    <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-teal-100 text-teal-600 mb-4">
+                      <Icon className="w-6 h-6" />
                     </div>
-                    <div>
-                      <div className="font-semibold text-gray-900 text-sm">{t.name}</div>
-                      <div className="text-xs text-gray-500">{t.location}</div>
-                    </div>
+                    <h3 className="font-semibold text-gray-900 mb-2 text-lg">{point.title}</h3>
+                    <p className="text-gray-500 leading-relaxed">{point.description}</p>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>
