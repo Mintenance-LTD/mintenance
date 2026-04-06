@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -96,9 +96,9 @@ const URGENCY_OPTIONS = [
 
 export default function QuickJobPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading: loadingUser } = useCurrentUser();
   const { csrfToken } = useCSRF();
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [primaryProperty, setPrimaryProperty] = useState<{
     id: string;
@@ -111,13 +111,27 @@ export default function QuickJobPage() {
   const [propertiesLoading, setPropertiesLoading] = useState(true);
   const [propertiesError, setPropertiesError] = useState<string | null>(null);
 
+  // Read pre-fill params from AirbnbSearchBar (WHERE/WHEN/WHAT)
+  const paramCategory = searchParams.get('category');
+  const paramUrgency = searchParams.get('urgency');
+  const paramPropertyId = searchParams.get('property_id');
+
+  // Auto-select template matching the passed category
+  const matchingTemplate = paramCategory
+    ? REPAIR_TEMPLATES.find((t) => t.category === paramCategory)
+    : null;
+
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(
+    matchingTemplate?.id || null
+  );
+
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    category: 'handyman',
-    budget: '100',  // Store as string for form input, convert to number for API
-    urgency: 'this_week',
-    property_id: '',
+    title: matchingTemplate?.title || '',
+    description: matchingTemplate?.description || '',
+    category: paramCategory || 'handyman',
+    budget: matchingTemplate?.budget || '100',
+    urgency: paramUrgency || 'this_week',
+    property_id: paramPropertyId || '',
   });
 
   const fetchProperties = React.useCallback(() => {
