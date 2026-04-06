@@ -7,18 +7,12 @@ import { memoryManager } from '../ml-engine/memory/MemoryManager';
 import { AdaptiveUpdateEngine } from './AdaptiveUpdateEngine';
 import type { AgentResult, AgentContext, RiskPrediction } from './types';
 import type { ContinuumMemoryConfig } from '../ml-engine/memory/types';
-
-// Job type for risk analysis
-interface JobForRisk {
-  id: string;
-  status: string;
-  contractor_id?: string | null;
-  homeowner_id: string;
-  scheduled_start_date?: string;
-  budget?: number;
-  category?: string;
-  created_at?: string;
-}
+import {
+  calculateRuleBasedNoShowRisk,
+  calculateRuleBasedDisputeRisk,
+} from './predictive/ruleBasedRisk';
+import { extractRiskKeys } from './predictive/riskKeys';
+import type { JobForRisk } from './predictive/types';
 
 /**
  * Predictive agent that predicts job risks and applies preventive actions
@@ -225,7 +219,7 @@ export class PredictiveAgent {
         .single();
 
       // Extract features for memory keys
-      const keys = await this.extractRiskKeys(jobId, contractorId, 'no-show', job as JobForRisk | null);
+      const keys = await extractRiskKeys(jobId, contractorId, 'no-show', job as JobForRisk | null);
 
       // Query all memory levels for risk probabilities
       const memoryProbabilities: number[] = [];
@@ -263,7 +257,7 @@ export class PredictiveAgent {
       
       if (memoryProbabilities.every(prob => prob === 0)) {
         // No memory data, use rule-based fallback
-        const ruleBased = await this.calculateRuleBasedNoShowRisk(contractorId);
+        const ruleBased = await calculateRuleBasedNoShowRisk(contractorId);
         finalProbability = ruleBased.probability;
         reasoning = ruleBased.reasoning;
       }
@@ -301,52 +295,6 @@ export class PredictiveAgent {
   }
 
   /**
-   * Calculate rule-based no-show risk (fallback)
-   */
-  private static async calculateRuleBasedNoShowRisk(contractorId: string): Promise<{
-    probability: number;
-    reasoning: string;
-  }> {
-    const { data: contractorJobs, error } = await serverSupabase
-      .from('jobs')
-      .select('id, status, scheduled_start_date')
-      .eq('contractor_id', contractorId)
-      .in('status', ['assigned', 'in_progress', 'completed', 'cancelled']);
-
-    if (error || !contractorJobs || contractorJobs.length === 0) {
-      return {
-        probability: 40,
-        reasoning: 'New contractor - no history available',
-      };
-    }
-
-    const pastNoShows = contractorJobs.filter((job) => {
-      if (job.status === 'cancelled' && job.scheduled_start_date) {
-        const scheduledDate = new Date(job.scheduled_start_date);
-        const now = new Date();
-        return scheduledDate.getTime() - now.getTime() < 24 * 60 * 60 * 1000;
-      }
-      return false;
-    }).length;
-
-    const noShowRate = (pastNoShows / contractorJobs.length) * 100;
-    let probability = 0;
-
-    if (noShowRate > 30) {
-      probability = 75;
-    } else if (noShowRate > 15) {
-      probability = 50;
-    } else if (noShowRate > 5) {
-      probability = 30;
-    }
-
-    return {
-      probability,
-      reasoning: `Contractor has ${noShowRate.toFixed(1)}% no-show rate`,
-    };
-  }
-
-  /**
    * Predict dispute risk based on job characteristics
    * Enhanced with multi-frequency memory queries
    */
@@ -358,7 +306,7 @@ export class PredictiveAgent {
       await this.initializeMemorySystem();
 
       // Extract features for memory keys
-      const keys = await this.extractRiskKeys(jobId, job.contractor_id || '', 'dispute', job);
+      const keys = await extractRiskKeys(jobId, job.contractor_id || '', 'dispute', job);
 
       // Query all memory levels
       const memoryProbabilities: number[] = [];
@@ -393,7 +341,7 @@ export class PredictiveAgent {
       let factors: string[] = [];
       
       if (memoryProbabilities.every(prob => prob === 0)) {
-        const ruleBased = await this.calculateRuleBasedDisputeRisk(job);
+        const ruleBased = await calculateRuleBasedDisputeRisk(job);
         finalProbability = ruleBased.riskScore;
         factors = ruleBased.factors;
       }
@@ -421,48 +369,6 @@ export class PredictiveAgent {
       });
       return null;
     }
-  }
-
-  /**
-   * Calculate rule-based dispute risk (fallback)
-   */
-  private static async calculateRuleBasedDisputeRisk(job: JobForRisk): Promise<{
-    riskScore: number;
-    factors: string[];
-  }> {
-    let riskScore = 0;
-    const factors: string[] = [];
-
-    if (job.budget && job.budget > 1000) {
-      riskScore += 20;
-      factors.push('High-value job (>£1000)');
-    }
-
-    if (job.contractor_id) {
-      const { data: contractorJobs } = await serverSupabase
-        .from('jobs')
-        .select('id, status')
-        .eq('contractor_id', job.contractor_id)
-        .eq('status', 'completed');
-
-      if (contractorJobs && contractorJobs.length < 5) {
-        riskScore += 15;
-        factors.push('Inexperienced contractor (<5 completed jobs)');
-      }
-    }
-
-    const { data: homeownerJobs } = await serverSupabase
-      .from('jobs')
-      .select('id')
-      .eq('homeowner_id', job.homeowner_id)
-      .eq('status', 'completed');
-
-    if (!homeownerJobs || homeownerJobs.length === 0) {
-      riskScore += 10;
-      factors.push('New homeowner (no completed jobs)');
-    }
-
-    return { riskScore, factors };
   }
 
   /**
@@ -531,77 +437,6 @@ export class PredictiveAgent {
   }
 
   /**
-   * Extract risk keys for memory queries
-   * Keys: Job features, contractor history, timing factors
-   */
-  private static async extractRiskKeys(
-    jobId: string,
-    contractorId: string,
-    riskType: 'no-show' | 'dispute' | 'delay' | 'quality',
-    job?: JobForRisk | null
-  ): Promise<number[]> {
-    const keys: number[] = [];
-
-    // Get job details if not provided
-    let jobData = job;
-    if (!jobData) {
-      const { data: fetchedJob } = await serverSupabase
-        .from('jobs')
-        .select('id, budget, category, scheduled_start_date, contractor_id, homeowner_id')
-        .eq('id', jobId)
-        .single();
-      jobData = fetchedJob as JobForRisk | null;
-    }
-
-    // Get contractor features
-    const { data: contractor } = await serverSupabase
-      .from('profiles')
-      .select('id, rating, total_jobs_completed')
-      .eq('id', contractorId)
-      .single();
-
-    // Get contractor history
-    const { data: contractorJobs } = await serverSupabase
-      .from('jobs')
-      .select('id, status, scheduled_start_date')
-      .eq('contractor_id', contractorId)
-      .in('status', ['assigned', 'in_progress', 'completed', 'cancelled']);
-
-    // Normalize features to 0-1 range
-    keys.push((contractor?.rating || 0) / 5); // Rating
-    keys.push(Math.min((contractor?.total_jobs_completed || 0) / 100, 1)); // Experience
-    keys.push(Math.min((jobData?.budget || 0) / 5000, 1)); // Budget
-    keys.push(jobData?.category ? 1 : 0); // Has category
-
-    // Timing factors
-    if (jobData?.scheduled_start_date) {
-      const scheduledDate = new Date(jobData.scheduled_start_date);
-      const now = new Date();
-      const hoursUntilStart = (scheduledDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-      keys.push(Math.min(Math.max(hoursUntilStart / 168, 0), 1)); // Normalize to 0-1 (1 week)
-    } else {
-      keys.push(0);
-    }
-
-    // Contractor history features
-    const totalJobs = contractorJobs?.length || 0;
-    keys.push(Math.min(totalJobs / 50, 1)); // Total jobs
-    const cancelledJobs = contractorJobs?.filter(j => j.status === 'cancelled').length || 0;
-    keys.push(totalJobs > 0 ? cancelledJobs / totalJobs : 0); // Cancellation rate
-
-    // Risk type encoding
-    const riskTypeMap = { 'no-show': 0.25, 'dispute': 0.5, 'delay': 0.75, 'quality': 1.0 };
-    keys.push(riskTypeMap[riskType] || 0);
-
-    // Pad to expected input size (24 features)
-    while (keys.length < 24) {
-      keys.push(0);
-    }
-
-    return keys.slice(0, 24);
-  }
-
-  /**
    * Learn from prediction outcome
    * Updates memory with actual outcomes for continual learning
    */
@@ -629,7 +464,7 @@ export class PredictiveAgent {
       }
 
       // Extract keys from original prediction context
-      const keys = await this.extractRiskKeys(
+      const keys = await extractRiskKeys(
         prediction.job_id,
         prediction.user_id || '',
         riskType
@@ -785,7 +620,7 @@ export class PredictiveAgent {
       // Add context flow for this prediction (for memory learning)
       try {
         await this.initializeMemorySystem();
-        const keys = await this.extractRiskKeys(contextJobId, userId, riskType);
+        const keys = await extractRiskKeys(contextJobId, userId, riskType);
         const predictedValues = [
           riskType === 'no-show' ? probability / 100 : 0,
           riskType === 'dispute' ? probability / 100 : 0,

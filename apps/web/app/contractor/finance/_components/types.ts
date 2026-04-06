@@ -1,0 +1,32 @@
+export interface Transaction {
+  id: string;
+  jobId: string;
+  jobTitle: string;
+  client: string;
+  amount: number;
+  status: 'pending' | 'held' | 'released' | 'completed';
+  date: string;
+  platformFee: number;
+  processingFee: number;
+  netAmount: number;
+}
+
+// API response type from escrow transactions endpoint
+export interface EscrowTransaction {
+  id: string;
+  jobId?: string;
+  job_id?: string;
+  payerId: string;
+  payeeId: string;
+  amount: number;
+  status: 'pending' | 'held' | 'released' | 'refunded';
+  createdAt?: string;
+  created_at?: string;
+  job?: {
+    title: string;
+  };
+  payer?: {
+    first_name?: string;
+    last_name?: string;
+  };
+}

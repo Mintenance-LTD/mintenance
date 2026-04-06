@@ -22,6 +22,13 @@ import type { DamageTypeSegmentation, SAM3SegmentationResponse } from './SAM3Ser
 import type { Phase1BuildingAssessment, DamageSeverity } from './types';
 import type { SceneGraphFeatures } from './scene_graph_features';
 import type { RoboflowDetection } from './types';
+import {
+  extractYOLOProbability,
+  extractSAM3Probability,
+  extractGPT4Probability,
+  extractSceneGraphProbability,
+} from './fusion/probability-extractors';
+import { refineBoxesWithMasks } from './fusion/box-refinement';
 
 export interface EnhancedFusionInput {
   // YOLO evidence
@@ -126,11 +133,11 @@ export class EnhancedBayesianFusionService {
       const startTime = Date.now();
 
       // 1. Extract probabilities from each modality
-      const yoloProb = this.extractYOLOProbability(input.yoloEvidence);
-      const sam3Prob = this.extractSAM3Probability(input.sam3Evidence);
-      const gpt4Prob = this.extractGPT4Probability(input.gpt4Assessment);
+      const yoloProb = extractYOLOProbability(input.yoloEvidence);
+      const sam3Prob = extractSAM3Probability(input.sam3Evidence);
+      const gpt4Prob = extractGPT4Probability(input.gpt4Assessment);
       const sceneProb = input.sceneGraphFeatures
-        ? this.extractSceneGraphProbability(input.sceneGraphFeatures)
+        ? extractSceneGraphProbability(input.sceneGraphFeatures)
         : null;
 
       // 2. Calculate attention weights based on confidence and quality
@@ -150,7 +157,7 @@ export class EnhancedBayesianFusionService {
       }, attentionWeights);
 
       // 4. Refine YOLO boxes with SAM3 masks if available
-      const refinedBoxes = this.refineBoxesWithMasks(
+      const refinedBoxes = refineBoxesWithMasks(
         input.yoloEvidence?.detections,
         input.sam3Evidence
       );
@@ -207,152 +214,6 @@ export class EnhancedBayesianFusionService {
     }
   }
 
-  /**
-   * Extract YOLO probability from detections
-   */
-  private static extractYOLOProbability(
-    yoloEvidence?: EnhancedFusionInput['yoloEvidence']
-  ): { probability: number; confidence: number; quality: number } {
-    if (!yoloEvidence || yoloEvidence.totalDetections === 0) {
-      return { probability: 0.5, confidence: 0, quality: 0 };
-    }
-
-    // Calculate damage probability based on detection counts and confidence
-    const maxDetections = 10; // Normalize by expected max detections
-    const detectionRate = Math.min(1, yoloEvidence.totalDetections / maxDetections);
-
-    // Weight by average confidence
-    const probability = detectionRate * (yoloEvidence.avgConfidence / 100);
-
-    // Quality metric based on detection consistency
-    const quality = yoloEvidence.avgConfidence > 70 ? 0.9 : 0.7;
-
-    return {
-      probability: Math.min(1, probability * 1.2), // Slight boost for YOLO
-      confidence: yoloEvidence.avgConfidence / 100,
-      quality
-    };
-  }
-
-  /**
-   * Extract SAM3 probability with presence scores
-   */
-  private static extractSAM3Probability(
-    sam3Evidence?: EnhancedFusionInput['sam3Evidence']
-  ): { probability: number; confidence: number; quality: number } {
-    if (!sam3Evidence || !sam3Evidence.damageTypes) {
-      return { probability: 0.5, confidence: 0, quality: 0 };
-    }
-
-    // Use presence scores as primary signal
-    if (sam3Evidence.presenceChecked && sam3Evidence.averagePresenceScore !== undefined) {
-      // If presence check was done, use it as primary probability
-      const probability = sam3Evidence.averagePresenceScore;
-
-      // Calculate confidence from detection counts
-      let totalInstances = 0;
-      let maxPresenceScore = 0;
-
-      for (const damage of Object.values(sam3Evidence.damageTypes)) {
-        totalInstances += damage.numInstances;
-        maxPresenceScore = Math.max(maxPresenceScore, damage.presenceScore || 0);
-      }
-
-      const confidence = sam3Evidence.overallConfidence;
-      const quality = maxPresenceScore > 0.7 ? 0.95 : 0.8; // SAM3 is very precise
-
-      return { probability, confidence, quality };
-    }
-
-    // Fallback to instance-based calculation
-    let weightedSum = 0;
-    let totalWeight = 0;
-
-    for (const [_, damage] of Object.entries(sam3Evidence.damageTypes)) {
-      const weight = damage.numInstances;
-      weightedSum += damage.confidence * weight;
-      totalWeight += weight;
-    }
-
-    const probability = totalWeight > 0
-      ? weightedSum / totalWeight
-      : sam3Evidence.overallConfidence;
-
-    return {
-      probability,
-      confidence: sam3Evidence.overallConfidence,
-      quality: 0.85
-    };
-  }
-
-  /**
-   * Extract GPT-4 probability from assessment
-   */
-  private static extractGPT4Probability(
-    gpt4Assessment?: EnhancedFusionInput['gpt4Assessment']
-  ): { probability: number; confidence: number; quality: number } {
-    if (!gpt4Assessment) {
-      return { probability: 0.5, confidence: 0, quality: 0 };
-    }
-
-    // Enhanced severity mapping
-    const severityMap: Record<string, number> = {
-      'none': 0.05,
-      'minimal': 0.15,
-      'minor': 0.3,
-      'early': 0.35,
-      'moderate': 0.6,
-      'midway': 0.65,
-      'severe': 0.85,
-      'full': 0.9,
-      'critical': 0.95,
-      'emergency': 0.99
-    };
-
-    const baseProbability = severityMap[gpt4Assessment.severity.toLowerCase()] || 0.5;
-
-    // Boost for critical hazards
-    const probability = gpt4Assessment.hasCriticalHazards
-      ? Math.min(1, baseProbability * 1.15)
-      : baseProbability;
-
-    // GPT-4 has high semantic understanding quality
-    const quality = gpt4Assessment.confidence > 80 ? 0.9 : 0.75;
-
-    return {
-      probability,
-      confidence: gpt4Assessment.confidence / 100,
-      quality
-    };
-  }
-
-  /**
-   * Extract scene graph probability
-   */
-  private static extractSceneGraphProbability(
-    sceneGraph: SceneGraphFeatures
-  ): { probability: number; confidence: number; quality: number } {
-    const features = sceneGraph.compactFeatureVector || sceneGraph.featureVector;
-
-    // Key features for damage assessment
-    const hasCriticalHazard = features[0] || 0;
-    const crackDensity = features[1] || 0;
-    const damageSeverity = features[5] || 0;
-    const structuralIntegrity = features[7] || 0.5;
-
-    // Weighted combination
-    const probability = Math.min(1,
-      hasCriticalHazard * 0.35 +
-      crackDensity * 0.25 +
-      damageSeverity * 0.25 +
-      (1 - structuralIntegrity) * 0.15
-    );
-
-    const confidence = sceneGraph.spatialFeatures.avgNodeConfidence;
-    const quality = 0.7; // Scene graphs provide good structural context
-
-    return { probability, confidence, quality };
-  }
 
   /**
    * Calculate attention weights using quality-aware attention mechanism
@@ -481,80 +342,6 @@ export class EnhancedBayesianFusionService {
     };
   }
 
-  /**
-   * Refine YOLO bounding boxes using SAM3 pixel masks
-   */
-  private static refineBoxesWithMasks(
-    yoloDetections?: RoboflowDetection[],
-    sam3Evidence?: EnhancedFusionInput['sam3Evidence']
-  ): Array<{ original: number[]; refined: number[]; iou: number }> | undefined {
-    if (!yoloDetections || !sam3Evidence) {
-      return undefined;
-    }
-
-    const refinedBoxes: Array<{ original: number[]; refined: number[]; iou: number }> = [];
-
-    for (const detection of yoloDetections) {
-      // Find corresponding SAM3 mask for this damage type
-      const damageType = detection.className;
-      const sam3Data = sam3Evidence.damageTypes[damageType];
-
-      if (sam3Data && sam3Data.boxes && sam3Data.boxes.length > 0) {
-        // Find best matching SAM3 box (highest IoU)
-        let bestBox = sam3Data.boxes[0];
-        let bestIoU = 0;
-
-        const bb = detection.boundingBox;
-        for (const sam3Box of sam3Data.boxes) {
-          const iou = this.calculateIoU(
-            [bb.x, bb.y, bb.width, bb.height],
-            sam3Box
-          );
-
-          if (iou > bestIoU) {
-            bestIoU = iou;
-            bestBox = sam3Box;
-          }
-        }
-
-        // If good match, use SAM3's more precise box
-        if (bestIoU > 0.3) {
-          refinedBoxes.push({
-            original: [bb.x, bb.y, bb.width, bb.height],
-            refined: bestBox,
-            iou: bestIoU
-          });
-        }
-      }
-    }
-
-    return refinedBoxes.length > 0 ? refinedBoxes : undefined;
-  }
-
-  /**
-   * Calculate Intersection over Union for two bounding boxes
-   */
-  private static calculateIoU(box1: number[], box2: number[]): number {
-    const [x1, y1, w1, h1] = box1;
-    const [x2, y2, w2, h2] = box2;
-
-    // Calculate intersection
-    const xLeft = Math.max(x1, x2);
-    const yTop = Math.max(y1, y2);
-    const xRight = Math.min(x1 + w1, x2 + w2);
-    const yBottom = Math.min(y1 + h1, y2 + h2);
-
-    if (xRight < xLeft || yBottom < yTop) {
-      return 0; // No intersection
-    }
-
-    const intersectionArea = (xRight - xLeft) * (yBottom - yTop);
-    const box1Area = w1 * h1;
-    const box2Area = w2 * h2;
-    const unionArea = box1Area + box2Area - intersectionArea;
-
-    return intersectionArea / unionArea;
-  }
 
   /**
    * Calculate agreement between modalities

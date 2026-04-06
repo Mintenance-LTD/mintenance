@@ -11,52 +11,32 @@ if (typeof window !== 'undefined') {
   throw new Error('[ServerOnly] mfa-service.ts must not run in the browser');
 }
 
-import { randomBytes, createHash } from 'crypto';
 import bcrypt from 'bcryptjs';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import * as OTPAuth from 'otpauth';
 import QRCode from 'qrcode';
-import { encryptField, decryptField, type EncryptedField } from '@/lib/encryption/field-encryption';
+import { encryptField } from '@/lib/encryption/field-encryption';
 
-interface TOTPEnrollmentData {
-  secret: string;
-  qrCodeDataUrl: string;
-  backupCodes: string[];
-}
-
-interface MFAVerificationResult {
-  success: boolean;
-  error?: string;
-  requiresNewBackupCodes?: boolean;
-}
-
-interface PreMFASession {
-  sessionToken: string;
-  expiresAt: Date;
-}
-
-interface TrustedDeviceData {
-  deviceToken: string;
-  deviceName?: string;
-  expiresAt: Date;
-}
-
-/**
- * Decrypt TOTP secret — handles AES-256-GCM encrypted (JSON envelope) and
- * legacy plaintext values for backward-compatibility during migration.
- */
-function tryDecryptTOTPSecret(rawValue: string): string {
-  try {
-    const parsed = JSON.parse(rawValue) as Partial<EncryptedField>;
-    if (parsed.ciphertext && parsed.iv && parsed.authTag && parsed.algorithm) {
-      return decryptField(parsed as EncryptedField, 'totp_secret');
-    }
-  } catch {
-    // Not JSON — assume plaintext legacy value
-  }
-  return rawValue;
-}
+import {
+  TOTP_WINDOW,
+  PRE_MFA_SESSION_DURATION,
+  TRUSTED_DEVICE_DURATION,
+  TOTP_ISSUER,
+  TOTP_ALGORITHM,
+  TOTP_DIGITS,
+  TOTP_PERIOD,
+  TOTP_SECRET_SIZE,
+} from './service/constants';
+import { tryDecryptTOTPSecret } from './service/totp-crypto';
+import { createBackupCodeArray } from './service/backup-codes';
+import { generateSecureToken } from './service/tokens';
+import type {
+  TOTPEnrollmentData,
+  MFAVerificationResult,
+  PreMFASession,
+  TrustedDeviceData,
+} from './service/types';
 
 /**
  * MFA Service
@@ -65,11 +45,9 @@ function tryDecryptTOTPSecret(rawValue: string): string {
  * backup codes, and session management.
  */
 export class MFAService {
-  private static readonly TOTP_WINDOW = 1; // Allow 1 step before/after for time drift
-  private static readonly BACKUP_CODE_LENGTH = 8;
-  private static readonly BACKUP_CODE_COUNT = 10;
-  private static readonly PRE_MFA_SESSION_DURATION = 10 * 60 * 1000; // 10 minutes
-  private static readonly TRUSTED_DEVICE_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days
+  private static readonly TOTP_WINDOW = TOTP_WINDOW;
+  private static readonly PRE_MFA_SESSION_DURATION = PRE_MFA_SESSION_DURATION;
+  private static readonly TRUSTED_DEVICE_DURATION = TRUSTED_DEVICE_DURATION;
 
   /**
    * Enroll user in TOTP MFA
@@ -94,12 +72,12 @@ export class MFAService {
 
       // Generate TOTP secret using otpauth
       const totp = new OTPAuth.TOTP({
-        issuer: 'Mintenance',
+        issuer: TOTP_ISSUER,
         label: user.email,
-        algorithm: 'SHA1',
-        digits: 6,
-        period: 30,
-        secret: new OTPAuth.Secret({ size: 32 }),
+        algorithm: TOTP_ALGORITHM,
+        digits: TOTP_DIGITS,
+        period: TOTP_PERIOD,
+        secret: new OTPAuth.Secret({ size: TOTP_SECRET_SIZE }),
       });
 
       const secret = {
@@ -111,7 +89,7 @@ export class MFAService {
       const qrCodeDataUrl = await QRCode.toDataURL(secret.otpauth_url);
 
       // Generate backup codes
-      const backupCodes = this._createBackupCodeArray();
+      const backupCodes = createBackupCodeArray();
 
       // Encrypt TOTP secret at rest using AES-256-GCM before storing
       const encryptedSecret = encryptField(secret.base32, 'totp_secret');
@@ -186,10 +164,10 @@ export class MFAService {
 
       // Verify token using otpauth (constant-time comparison)
       const totp = new OTPAuth.TOTP({
-        issuer: 'Mintenance',
-        algorithm: 'SHA1',
-        digits: 6,
-        period: 30,
+        issuer: TOTP_ISSUER,
+        algorithm: TOTP_ALGORITHM,
+        digits: TOTP_DIGITS,
+        period: TOTP_PERIOD,
         secret: OTPAuth.Secret.fromBase32(plainSecret),
       });
 
@@ -329,7 +307,7 @@ export class MFAService {
         .is('used_at', null);
 
       // Generate new codes
-      const backupCodes = this._createBackupCodeArray();
+      const backupCodes = createBackupCodeArray();
       await this.storeBackupCodes(userId, backupCodes);
 
       logger.info('Backup codes regenerated', {
@@ -378,7 +356,7 @@ export class MFAService {
     userAgent?: string
   ): Promise<PreMFASession> {
     try {
-      const sessionToken = this.generateSecureToken();
+      const sessionToken = generateSecureToken();
       const expiresAt = new Date(Date.now() + this.PRE_MFA_SESSION_DURATION);
 
       const { error } = await serverSupabase
@@ -479,7 +457,7 @@ export class MFAService {
     userAgent?: string
   ): Promise<TrustedDeviceData> {
     try {
-      const deviceToken = this.generateSecureToken();
+      const deviceToken = generateSecureToken();
       const expiresAt = new Date(Date.now() + this.TRUSTED_DEVICE_DURATION);
 
       const { error } = await serverSupabase
@@ -630,24 +608,6 @@ export class MFAService {
   // Private helper methods
   // ============================================================================
 
-  private static _createBackupCodeArray(): string[] {
-    const codes: string[] = [];
-    for (let i = 0; i < this.BACKUP_CODE_COUNT; i++) {
-      codes.push(this.generateBackupCode());
-    }
-    return codes;
-  }
-
-  private static generateBackupCode(): string {
-    const chars = '0123456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // Exclude ambiguous chars
-    let code = '';
-    const bytes = randomBytes(this.BACKUP_CODE_LENGTH);
-    for (let i = 0; i < this.BACKUP_CODE_LENGTH; i++) {
-      code += chars[bytes[i] % chars.length];
-    }
-    return code;
-  }
-
   private static async storeBackupCodes(
     userId: string,
     codes: string[]
@@ -686,10 +646,10 @@ export class MFAService {
     const plainSecret = tryDecryptTOTPSecret(user.totp_secret);
 
     const totp = new OTPAuth.TOTP({
-      issuer: 'Mintenance',
-      algorithm: 'SHA1',
-      digits: 6,
-      period: 30,
+      issuer: TOTP_ISSUER,
+      algorithm: TOTP_ALGORITHM,
+      digits: TOTP_DIGITS,
+      period: TOTP_PERIOD,
       secret: OTPAuth.Secret.fromBase32(plainSecret),
     });
 
@@ -786,9 +746,4 @@ export class MFAService {
       });
     }
   }
-
-  private static generateSecureToken(): string {
-    return randomBytes(32).toString('base64url');
-  }
-
 }

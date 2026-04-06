@@ -11,120 +11,38 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { existsSync, readFileSync } from 'fs';
-import { execSync, spawn } from 'child_process';
+import { execSync } from 'child_process';
 import path from 'path';
 
-// ============================================================================
-// TYPE DEFINITIONS
-// ============================================================================
+import type {
+  ModelEvaluationMetrics,
+  ModelComparisonResult,
+  EvaluationOptions
+} from './model-evaluation/types';
+import { DEPLOYMENT_THRESHOLDS } from './model-evaluation/types';
+import {
+  calculateF1Score,
+  calculateImprovement,
+  getModelSizeMB,
+  calculateLinearTrend
+} from './model-evaluation/metrics-math';
+import { parseMetricsFromLogs } from './model-evaluation/log-parser';
+import { generateRecommendation } from './model-evaluation/recommendation';
 
-export interface ModelEvaluationMetrics {
-  // Core detection metrics
-  test_metrics: {
-    mAP50: number;           // Mean Average Precision @ IoU 0.5
-    mAP50_95: number;        // Mean Average Precision @ IoU 0.5-0.95
-    precision: number;       // True Positives / (True Positives + False Positives)
-    recall: number;          // True Positives / (True Positives + False Negatives)
-    f1_score: number;        // Harmonic mean of precision and recall
-  };
-
-  // Validation metrics from training
-  validation_metrics: {
-    val_loss: number;        // Validation loss
-    val_accuracy: number;    // Validation accuracy
-    val_box_loss?: number;   // Box regression loss
-    val_cls_loss?: number;   // Classification loss
-    val_dfl_loss?: number;   // Distribution focal loss
-  };
-
-  // Per-class performance
-  class_wise_metrics?: {
-    [className: string]: {
-      precision: number;
-      recall: number;
-      f1_score: number;
-      support: number;       // Number of samples
-      ap50: number;          // Average Precision @ IoU 0.5
-    };
-  };
-
-  // Confusion matrix
-  confusion_matrix?: number[][];
-
-  // Training efficiency metrics
-  training_metrics?: {
-    total_epochs: number;
-    best_epoch: number;
-    training_time_seconds: number;
-    gpu_memory_gb?: number;
-    model_size_mb: number;
-  };
-
-  // Metadata
-  evaluation_timestamp: string;
-  model_version: string;
-  dataset_version?: string;
-  evaluation_type: 'training' | 'validation' | 'test' | 'production';
-}
-
-export interface ModelComparisonResult {
-  model_a: {
-    version: string;
-    metrics: ModelEvaluationMetrics;
-  };
-  model_b: {
-    version: string;
-    metrics: ModelEvaluationMetrics;
-  };
-
-  // Statistical comparison
-  comparison: {
-    mAP50_improvement: number;        // Percentage improvement
-    precision_improvement: number;
-    recall_improvement: number;
-    f1_improvement: number;
-
-    // Statistical significance
-    is_statistically_significant: boolean;
-    confidence_level: number;         // e.g., 0.95 for 95% confidence
-    p_value?: number;
-
-    // Practical significance
-    meets_deployment_threshold: boolean;
-    recommendation: 'deploy_a' | 'deploy_b' | 'no_change' | 'needs_more_testing';
-    reasoning: string[];
-  };
-
-  // Performance comparison
-  performance: {
-    inference_speed_ratio: number;    // model_b_speed / model_a_speed
-    memory_usage_ratio: number;
-    model_size_ratio: number;
-  };
-}
-
-export interface EvaluationOptions {
-  test_dataset_path?: string;
-  confidence_threshold?: number;
-  iou_threshold?: number;
-  max_detections?: number;
-  device?: 'cpu' | 'cuda';
-  batch_size?: number;
-  verbose?: boolean;
-}
+// Re-export types and standalone functions for backwards compatibility
+export type {
+  ModelEvaluationMetrics,
+  ModelComparisonResult,
+  EvaluationOptions
+} from './model-evaluation/types';
+export { quickEvaluate, validateModelFile } from './model-evaluation/standalone';
 
 // ============================================================================
 // MAIN SERVICE CLASS
 // ============================================================================
 
 export class ModelEvaluationService {
-  private static readonly DEPLOYMENT_THRESHOLDS = {
-    MIN_MAP50: 0.70,
-    MIN_PRECISION: 0.75,
-    MIN_RECALL: 0.70,
-    MIN_F1: 0.72,
-    MIN_IMPROVEMENT_FOR_DEPLOYMENT: 0.02  // 2% improvement required
-  };
+  private static readonly DEPLOYMENT_THRESHOLDS = DEPLOYMENT_THRESHOLDS;
 
   private static readonly EVALUATION_SCRIPT_PATH = path.join(
     process.cwd(),
@@ -145,7 +63,7 @@ export class ModelEvaluationService {
 
       if (!existsSync(metricsPath)) {
         // Fallback: Parse from training logs
-        return this.parseMetricsFromLogs(outputDir);
+        return parseMetricsFromLogs(outputDir);
       }
 
       const metricsJson = JSON.parse(readFileSync(metricsPath, 'utf-8'));
@@ -157,7 +75,7 @@ export class ModelEvaluationService {
           mAP50_95: metricsJson.test_metrics?.mAP50_95 || 0,
           precision: metricsJson.test_metrics?.precision || 0,
           recall: metricsJson.test_metrics?.recall || 0,
-          f1_score: this.calculateF1Score(
+          f1_score: calculateF1Score(
             metricsJson.test_metrics?.precision || 0,
             metricsJson.test_metrics?.recall || 0
           )
@@ -241,7 +159,7 @@ export class ModelEvaluationService {
           mAP50_95: evaluationResults.mAP50_95 || 0,
           precision: evaluationResults.precision || 0,
           recall: evaluationResults.recall || 0,
-          f1_score: this.calculateF1Score(
+          f1_score: calculateF1Score(
             evaluationResults.precision || 0,
             evaluationResults.recall || 0
           )
@@ -256,7 +174,7 @@ export class ModelEvaluationService {
           total_epochs: 0,  // Not applicable for evaluation
           best_epoch: 0,
           training_time_seconds: evaluationTime,
-          model_size_mb: this.getModelSizeMB(modelPath)
+          model_size_mb: getModelSizeMB(modelPath)
         },
         evaluation_timestamp: new Date().toISOString(),
         model_version: modelVersion,
@@ -295,22 +213,22 @@ export class ModelEvaluationService {
       ]);
 
       // Calculate improvements
-      const mAP50Improvement = this.calculateImprovement(
+      const mAP50Improvement = calculateImprovement(
         metricsA.test_metrics.mAP50,
         metricsB.test_metrics.mAP50
       );
 
-      const precisionImprovement = this.calculateImprovement(
+      const precisionImprovement = calculateImprovement(
         metricsA.test_metrics.precision,
         metricsB.test_metrics.precision
       );
 
-      const recallImprovement = this.calculateImprovement(
+      const recallImprovement = calculateImprovement(
         metricsA.test_metrics.recall,
         metricsB.test_metrics.recall
       );
 
-      const f1Improvement = this.calculateImprovement(
+      const f1Improvement = calculateImprovement(
         metricsA.test_metrics.f1_score,
         metricsB.test_metrics.f1_score
       );
@@ -320,11 +238,11 @@ export class ModelEvaluationService {
       const isSignificant = Math.abs(avgImprovement) > this.DEPLOYMENT_THRESHOLDS.MIN_IMPROVEMENT_FOR_DEPLOYMENT;
 
       // Generate recommendation
-      const recommendation = this.generateRecommendation(metricsA, metricsB, avgImprovement, isSignificant);
+      const recommendation = generateRecommendation(metricsA, metricsB, avgImprovement, isSignificant);
 
       // Calculate performance metrics
-      const modelASizeMB = this.getModelSizeMB(modelAPath);
-      const modelBSizeMB = this.getModelSizeMB(modelBPath);
+      const modelASizeMB = getModelSizeMB(modelAPath);
+      const modelBSizeMB = getModelSizeMB(modelBPath);
 
       const result: ModelComparisonResult = {
         model_a: {
@@ -497,7 +415,7 @@ export class ModelEvaluationService {
 
       // Calculate trend using linear regression on F1 scores
       const f1Scores = historicalMetrics.map(m => m.test_metrics.f1_score).reverse();
-      const trend = this.calculateLinearTrend(f1Scores);
+      const trend = calculateLinearTrend(f1Scores);
 
       // Determine trend category
       let trendCategory: 'improving' | 'stable' | 'declining';
@@ -520,19 +438,19 @@ export class ModelEvaluationService {
           model_a: { version: bestModel.model_version, metrics: bestModel },
           model_b: { version: latestModel.model_version, metrics: latestModel },
           comparison: {
-            mAP50_improvement: this.calculateImprovement(
+            mAP50_improvement: calculateImprovement(
               bestModel.test_metrics.mAP50,
               latestModel.test_metrics.mAP50
             ),
-            precision_improvement: this.calculateImprovement(
+            precision_improvement: calculateImprovement(
               bestModel.test_metrics.precision,
               latestModel.test_metrics.precision
             ),
-            recall_improvement: this.calculateImprovement(
+            recall_improvement: calculateImprovement(
               bestModel.test_metrics.recall,
               latestModel.test_metrics.recall
             ),
-            f1_improvement: this.calculateImprovement(
+            f1_improvement: calculateImprovement(
               bestModel.test_metrics.f1_score,
               latestModel.test_metrics.f1_score
             ),
@@ -558,202 +476,4 @@ export class ModelEvaluationService {
     }
   }
 
-  // ============================================================================
-  // HELPER METHODS
-  // ============================================================================
-
-  private static calculateF1Score(precision: number, recall: number): number {
-    if (precision + recall === 0) return 0;
-    return 2 * (precision * recall) / (precision + recall);
-  }
-
-  private static calculateImprovement(baseValue: number, newValue: number): number {
-    if (baseValue === 0) return newValue > 0 ? 100 : 0;
-    return ((newValue - baseValue) / baseValue) * 100;
-  }
-
-  private static getModelSizeMB(modelPath: string): number {
-    try {
-      const stats = require('fs').statSync(modelPath);
-      return stats.size / (1024 * 1024);
-    } catch {
-      return 0;
-    }
-  }
-
-  private static calculateLinearTrend(values: number[]): number {
-    if (values.length < 2) return 0;
-
-    const n = values.length;
-    const indices = Array.from({ length: n }, (_, i) => i);
-
-    const sumX = indices.reduce((a, b) => a + b, 0);
-    const sumY = values.reduce((a, b) => a + b, 0);
-    const sumXY = indices.reduce((sum, x, i) => sum + x * values[i], 0);
-    const sumX2 = indices.reduce((sum, x) => sum + x * x, 0);
-
-    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-    return slope;
-  }
-
-  private static async parseMetricsFromLogs(outputDir: string): Promise<ModelEvaluationMetrics> {
-    // Fallback implementation for parsing metrics from log files
-    // This would parse the training output logs if JSON file is not available
-    const logPath = path.join(outputDir, 'training.log');
-
-    if (!existsSync(logPath)) {
-      throw new Error('No metrics file or training logs found');
-    }
-
-    const logContent = readFileSync(logPath, 'utf-8');
-
-    // Parse metrics using regex (example patterns for YOLO output)
-    const mAP50Match = logContent.match(/mAP50:\s*([\d.]+)/);
-    const mAP5095Match = logContent.match(/mAP50-95:\s*([\d.]+)/);
-    const precisionMatch = logContent.match(/Precision:\s*([\d.]+)/);
-    const recallMatch = logContent.match(/Recall:\s*([\d.]+)/);
-
-    const precision = parseFloat(precisionMatch?.[1] || '0');
-    const recall = parseFloat(recallMatch?.[1] || '0');
-
-    return {
-      test_metrics: {
-        mAP50: parseFloat(mAP50Match?.[1] || '0'),
-        mAP50_95: parseFloat(mAP5095Match?.[1] || '0'),
-        precision,
-        recall,
-        f1_score: this.calculateF1Score(precision, recall)
-      },
-      validation_metrics: {
-        val_loss: 0,
-        val_accuracy: 0
-      },
-      evaluation_timestamp: new Date().toISOString(),
-      model_version: 'parsed-from-logs',
-      evaluation_type: 'training'
-    };
-  }
-
-  private static generateRecommendation(
-    metricsA: ModelEvaluationMetrics,
-    metricsB: ModelEvaluationMetrics,
-    avgImprovement: number,
-    isSignificant: boolean
-  ): {
-    decision: 'deploy_a' | 'deploy_b' | 'no_change' | 'needs_more_testing';
-    reasoning: string[];
-  } {
-    const reasoning: string[] = [];
-
-    // Check if Model B meets minimum thresholds
-    const bMeetsThresholds =
-      metricsB.test_metrics.mAP50 >= this.DEPLOYMENT_THRESHOLDS.MIN_MAP50 &&
-      metricsB.test_metrics.precision >= this.DEPLOYMENT_THRESHOLDS.MIN_PRECISION &&
-      metricsB.test_metrics.recall >= this.DEPLOYMENT_THRESHOLDS.MIN_RECALL &&
-      metricsB.test_metrics.f1_score >= this.DEPLOYMENT_THRESHOLDS.MIN_F1;
-
-    // Check if Model A meets minimum thresholds
-    const aMeetsThresholds =
-      metricsA.test_metrics.mAP50 >= this.DEPLOYMENT_THRESHOLDS.MIN_MAP50 &&
-      metricsA.test_metrics.precision >= this.DEPLOYMENT_THRESHOLDS.MIN_PRECISION &&
-      metricsA.test_metrics.recall >= this.DEPLOYMENT_THRESHOLDS.MIN_RECALL &&
-      metricsA.test_metrics.f1_score >= this.DEPLOYMENT_THRESHOLDS.MIN_F1;
-
-    // Decision logic
-    if (!bMeetsThresholds && !aMeetsThresholds) {
-      reasoning.push('Neither model meets minimum deployment thresholds');
-      return { decision: 'needs_more_testing', reasoning };
-    }
-
-    if (!bMeetsThresholds && aMeetsThresholds) {
-      reasoning.push('Model B does not meet minimum deployment thresholds');
-      reasoning.push('Model A meets all deployment criteria');
-      return { decision: 'deploy_a', reasoning };
-    }
-
-    if (bMeetsThresholds && !isSignificant) {
-      reasoning.push('Model B meets thresholds but improvement is not statistically significant');
-      reasoning.push(`Average improvement: ${avgImprovement.toFixed(2)}%`);
-      return { decision: 'no_change', reasoning };
-    }
-
-    if (bMeetsThresholds && isSignificant && avgImprovement > 0) {
-      reasoning.push('Model B shows statistically significant improvement');
-      reasoning.push(`Average improvement: ${avgImprovement.toFixed(2)}%`);
-      reasoning.push(`mAP50: ${metricsB.test_metrics.mAP50.toFixed(3)} (Model B) vs ${metricsA.test_metrics.mAP50.toFixed(3)} (Model A)`);
-      return { decision: 'deploy_b', reasoning };
-    }
-
-    if (bMeetsThresholds && isSignificant && avgImprovement < 0) {
-      reasoning.push('Model B shows statistically significant degradation');
-      reasoning.push(`Average degradation: ${Math.abs(avgImprovement).toFixed(2)}%`);
-      return { decision: 'deploy_a', reasoning };
-    }
-
-    reasoning.push('Unable to make clear recommendation, more testing needed');
-    return { decision: 'needs_more_testing', reasoning };
-  }
-}
-
-// ============================================================================
-// STANDALONE EVALUATION FUNCTIONS
-// ============================================================================
-
-/**
- * Run quick evaluation on a model file
- */
-export async function quickEvaluate(
-  modelPath: string,
-  testImages: string[]
-): Promise<{
-  detections: number;
-  avgConfidence: number;
-  processingTimeMs: number;
-}> {
-  const startTime = Date.now();
-
-  // This would integrate with the actual YOLO inference service
-  // For now, returning placeholder
-
-  return {
-    detections: 0,
-    avgConfidence: 0,
-    processingTimeMs: Date.now() - startTime
-  };
-}
-
-/**
- * Validate model file integrity
- */
-export function validateModelFile(modelPath: string): {
-  valid: boolean;
-  errors: string[];
-} {
-  const errors: string[] = [];
-
-  if (!existsSync(modelPath)) {
-    errors.push('Model file does not exist');
-  }
-
-  const ext = path.extname(modelPath);
-  if (!['.pt', '.onnx', '.torchscript'].includes(ext)) {
-    errors.push(`Unsupported model format: ${ext}`);
-  }
-
-  try {
-    const stats = require('fs').statSync(modelPath);
-    if (stats.size > 500 * 1024 * 1024) {  // 500MB limit
-      errors.push('Model file exceeds maximum size limit (500MB)');
-    }
-    if (stats.size < 1024) {  // 1KB minimum
-      errors.push('Model file is suspiciously small');
-    }
-  } catch (error) {
-    errors.push('Cannot read model file stats');
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors
-  };
 }
