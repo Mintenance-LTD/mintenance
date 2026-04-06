@@ -265,7 +265,14 @@ export function useSettingsState() {
 
   const handleDeleteAccount = async (): Promise<void> => {
     try {
-      const response = await fetch('/api/user/delete-account', { method: 'DELETE', headers: csrfToken ? { 'x-csrf-token': csrfToken } : {} });
+      const response = await fetch('/api/user/delete-account', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
+        },
+        body: JSON.stringify({ confirmation: 'DELETE' }),
+      });
       if (response.ok) {
         toast.success('Account deleted successfully');
         window.location.href = '/login?deleted=true';

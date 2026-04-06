@@ -8,6 +8,7 @@ import {
   Platform,
   RefreshControl,
   StatusBar,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -92,7 +93,12 @@ export const TeamScreen: React.FC = () => {
 
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => navigation.navigate('AddTeamMember' as never)}
+        onPress={() =>
+          Alert.alert(
+            'Coming Soon',
+            'Team member management is coming soon. For now you can invite collaborators from the web app.'
+          )
+        }
         accessibilityLabel="Add team member"
       >
         <Ionicons name="person-add" size={24} color={theme.colors.textInverse} />
