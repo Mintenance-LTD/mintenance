@@ -266,22 +266,33 @@ class VideoService {
 
       logger.info('Uploading video via API', { storagePath, size: videoData.size });
 
-      // Upload via API endpoint
+      // Upload via API endpoint — server stores in Supabase Storage
+      // and triggers building surveyor AI assessment
       const formData = new FormData();
-      formData.append('file', videoData, fileName);
-      formData.append('path', storagePath);
+      formData.append('video', videoData, fileName);
       formData.append('assessmentId', assessmentId);
 
-      const uploadResult = await mobileApiClient.postFormData<{ url: string; path: string }>(
-        `/api/assessments/videos/upload`,
-        formData
+      const uploadResult = await mobileApiClient.postFormData<{
+        success: boolean;
+        assessmentId: string;
+        videoUrl: string;
+        status: string;
+      }>(`/api/assessments/videos/upload`, formData);
+
+      logger.info('Video uploaded successfully', {
+        url: uploadResult.videoUrl,
+        assessmentId: uploadResult.assessmentId,
+      });
+
+      // Store assessment ID for status polling
+      await AsyncStorage.setItem(
+        `video_assessment_${assessmentId}`,
+        uploadResult.assessmentId
       );
 
-      logger.info('Video uploaded successfully', { url: uploadResult.url });
-
       return {
-        url: uploadResult.url,
-        path: uploadResult.path,
+        url: uploadResult.videoUrl,
+        path: storagePath,
       };
     } catch (error) {
       logger.error('Video upload failed', { error });
@@ -485,6 +496,32 @@ class VideoService {
    */
   async getProcessingResults(videoId: string): Promise<unknown> {
     try {
+      // First check if we have a server-side assessment ID linked to this video
+      const serverAssessmentId = await AsyncStorage.getItem(`video_assessment_${videoId}`);
+
+      if (serverAssessmentId) {
+        // Poll server for AI assessment results
+        const res = await mobileApiClient.get<{
+          status: string;
+          isComplete: boolean;
+          isFailed: boolean;
+          assessment: unknown;
+        }>(`/api/assessments/${serverAssessmentId}/status`);
+
+        if (res.isComplete && res.assessment) {
+          return {
+            aggregated_assessment: res.assessment,
+            status: 'completed',
+          };
+        }
+        if (res.isFailed) {
+          return { status: 'failed', error: 'Assessment processing failed' };
+        }
+        // Still processing
+        return null;
+      }
+
+      // Fallback: check local storage (legacy path)
       const results = await AsyncStorage.getItem(`video_results_${videoId}`);
       return results ? JSON.parse(results) : null;
     } catch (error) {
