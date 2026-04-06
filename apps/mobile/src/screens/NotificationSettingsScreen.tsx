@@ -16,7 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '../components/ui/Button';
 import { mobileApiClient } from '../utils/mobileApiClient';
-import { supabase } from '../config/supabase';
+// supabase import removed — notification prefs now use /api/users/notification-preferences
 import { useAuth } from '../contexts/AuthContext';
 import { theme } from '../theme';
 
@@ -104,13 +104,13 @@ const NotificationSettingsScreen: React.FC = () => {
   const loadSettings = async () => {
     if (!user?.id) return;
     try {
-      const { data, error } = await supabase
-        .from('notification_preferences')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-      if (!error && data) {
-        setSettings((prev) => ({ ...prev, ...data }));
+      // Load from API endpoint which reads profiles.notification_preferences JSONB
+      // (same storage as save endpoint, preventing dual-schema mismatch)
+      const res = await mobileApiClient.get<{
+        preferences?: Record<string, unknown>;
+      }>('/api/users/notification-preferences');
+      if (res.preferences) {
+        setSettings((prev) => ({ ...prev, ...res.preferences }));
       }
     } catch {
       // Use defaults if no saved preferences

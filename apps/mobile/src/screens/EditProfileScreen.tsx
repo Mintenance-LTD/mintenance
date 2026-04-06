@@ -20,7 +20,7 @@ interface NominatimResult { lat: string; lon: string }
 
 const EditProfileScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
 
@@ -124,6 +124,8 @@ const EditProfileScreen: React.FC = () => {
 
       if (user && Object.keys(filteredUpdates).length > 0) {
         await AuthService.updateUserProfile(user.id, filteredUpdates as Parameters<typeof AuthService.updateUserProfile>[1]);
+        // Refresh auth context so dashboard/header picks up name/phone changes
+        await refreshUser();
         Alert.alert('Success', 'Profile updated successfully!', [
           { text: 'OK', onPress: () => navigation.goBack() },
         ]);
