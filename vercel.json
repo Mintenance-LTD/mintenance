@@ -47,6 +47,7 @@
     { "path": "/api/cron/pii-cleanup",                  "schedule": "0 3 * * *"   },
     { "path": "/api/cron/data-archival",                "schedule": "0 4 1 * *"   },
     { "path": "/api/cron/model-retraining",             "schedule": "0 5 * * *"   },
-    { "path": "/api/cron/vlm-retraining",               "schedule": "0 5 * * *"   }
+    { "path": "/api/cron/vlm-retraining",               "schedule": "0 5 * * *"   },
+    { "path": "/api/cron/contractor-payouts",           "schedule": "0 9 * * 5"   }
   ]
 }

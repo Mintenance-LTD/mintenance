@@ -66,7 +66,11 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
       setPhone('');
       setShowForm(false);
     },
-    onError: () => Alert.alert('Error', 'Failed to add tenant.'),
+    onError: (err: unknown) =>
+      Alert.alert(
+        'Error',
+        err instanceof Error ? err.message : 'Failed to add tenant.'
+      ),
   });
 
   const deleteMutation = useMutation({
@@ -289,6 +293,16 @@ const styles = StyleSheet.create({
   contactRow: { flexDirection: 'row', gap: 12, marginTop: 2 },
   contactLink: { fontSize: 13, color: '#3B82F6' },
   leaseDate: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2 },
-  inviteStatus: { fontSize: 11, color: '#d97706', fontWeight: '600', marginTop: 2 },
-  inviteAccepted: { fontSize: 11, color: theme.colors.primary, fontWeight: '600', marginTop: 2 },
+  inviteStatus: {
+    fontSize: 11,
+    color: '#d97706',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  inviteAccepted: {
+    fontSize: 11,
+    color: theme.colors.primary,
+    fontWeight: '600',
+    marginTop: 2,
+  },
 });

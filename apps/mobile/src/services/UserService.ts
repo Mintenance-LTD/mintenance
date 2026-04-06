@@ -24,15 +24,15 @@ interface DatabaseReviewRow {
 }
 interface DatabaseUserRow {
   id: string;
-  email: string;
+  email?: string; // not selected on cross-user reads (PII protection)
   first_name: string;
   last_name: string;
   role: 'homeowner' | 'contractor' | 'admin';
-  phone?: string;
+  phone?: string; // not selected on cross-user reads (PII protection)
   bio?: string;
   profile_image_url?: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   latitude?: number;
   longitude?: number;
   rating?: number;
@@ -167,7 +167,7 @@ export class UserService {
         .from('profiles')
         .select(
           `
-          *,
+          id, role, first_name, last_name, bio, city, country, profile_image_url, avatar_url, rating, total_jobs_completed, verified, admin_verified, skills, is_available, company_name, hourly_rate, years_experience, portfolio_images, created_at,
           contractor_skills (
             skill_name
           )
@@ -214,15 +214,15 @@ export class UserService {
 
       return {
         id: typedUser.id,
-        email: typedUser.email,
+        email: typedUser.email || '', // omitted on cross-user reads (PII)
         first_name: typedUser.first_name,
         last_name: typedUser.last_name,
         role: typedUser.role,
-        phone: typedUser.phone,
+        phone: typedUser.phone, // omitted on cross-user reads (PII)
         bio: typedUser.bio,
         profile_image_url: typedUser.profile_image_url,
         created_at: typedUser.created_at,
-        updated_at: typedUser.updated_at,
+        updated_at: typedUser.updated_at || typedUser.created_at,
         skills: typedUser.contractor_skills?.map((s) => ({
           skillName: s.skill_name,
         })),
@@ -322,7 +322,7 @@ export class UserService {
         .from('profiles')
         .select(
           `
-          *,
+          id, role, first_name, last_name, bio, city, country, profile_image_url, avatar_url, rating, total_jobs_completed, verified, admin_verified, skills, is_available, company_name, hourly_rate, years_experience, latitude, longitude, created_at,
           contractor_skills (
             skill_name
           )
@@ -352,15 +352,15 @@ export class UserService {
         .map(
           (contractor): UserProfile => ({
             id: contractor.id,
-            email: contractor.email,
+            email: contractor.email || '', // omitted on cross-user reads (PII)
             first_name: contractor.first_name,
             last_name: contractor.last_name,
             role: contractor.role,
-            phone: contractor.phone,
+            phone: contractor.phone, // omitted on cross-user reads (PII)
             bio: contractor.bio,
             profile_image_url: contractor.profile_image_url,
             created_at: contractor.created_at,
-            updated_at: contractor.updated_at,
+            updated_at: contractor.updated_at || contractor.created_at,
             skills: contractor.contractor_skills?.map((s) => ({
               skillName: s.skill_name,
             })),

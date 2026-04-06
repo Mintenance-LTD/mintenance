@@ -29,6 +29,7 @@ export interface AuthContextType {
   ) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (userData: Partial<User>) => Promise<void>;
+  refreshUser: () => Promise<void>;
   signInWithBiometrics: () => Promise<void>;
   isBiometricAvailable: () => Promise<boolean>;
   isBiometricEnabled: () => Promise<boolean>;

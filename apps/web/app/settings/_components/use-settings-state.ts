@@ -37,6 +37,12 @@ export function useSettingsState() {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loadingPayments, setLoadingPayments] = useState(false);
 
+  // Privacy settings (stored in profiles.settings JSONB)
+  const [privacySettings, setPrivacySettings] = useState<{
+    profileVisible: boolean;
+    shareActivityData: boolean;
+  }>({ profileVisible: true, shareActivityData: false });
+
   const [profileData, setProfileData] = useState<ProfileData>({
     first_name: '',
     last_name: '',
@@ -128,6 +134,43 @@ export function useSettingsState() {
       router.push('/login?redirect=/settings');
     }
   }, [loadingUser, user, router]);
+
+  // Load privacy settings from profiles.settings JSONB
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        const res = await fetch('/api/users/settings');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.data?.privacy) {
+            setPrivacySettings(json.data.privacy);
+          }
+        }
+      } catch {
+        // fall through — defaults are fine
+      }
+    })();
+  }, [user]);
+
+  const handleTogglePrivacy = async (key: 'profileVisible' | 'shareActivityData'): Promise<void> => {
+    const updated = { ...privacySettings, [key]: !privacySettings[key] };
+    setPrivacySettings(updated); // optimistic
+    try {
+      const res = await fetch('/api/users/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}) },
+        body: JSON.stringify({ privacy: updated }),
+      });
+      if (!res.ok) {
+        setPrivacySettings(privacySettings); // revert
+        toast.error('Failed to save privacy setting');
+      }
+    } catch {
+      setPrivacySettings(privacySettings); // revert
+      toast.error('Failed to save privacy setting');
+    }
+  };
 
   const handleResetProfile = (): void => {
     if (user) {
@@ -265,7 +308,14 @@ export function useSettingsState() {
 
   const handleDeleteAccount = async (): Promise<void> => {
     try {
-      const response = await fetch('/api/user/delete-account', { method: 'DELETE', headers: csrfToken ? { 'x-csrf-token': csrfToken } : {} });
+      const response = await fetch('/api/user/delete-account', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
+        },
+        body: JSON.stringify({ confirmation: 'DELETE' }),
+      });
       if (response.ok) {
         toast.success('Account deleted successfully');
         window.location.href = '/login?deleted=true';
@@ -447,5 +497,7 @@ export function useSettingsState() {
     handleCancelVerification,
     handleAddPhoneNumber,
     handleUpdatePhoneNumber,
+    privacySettings,
+    handleTogglePrivacy,
   };
 }

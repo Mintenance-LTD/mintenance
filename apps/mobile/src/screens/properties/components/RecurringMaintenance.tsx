@@ -3,7 +3,13 @@
  */
 import React, { useState } from 'react';
 import {
-  View, Text, TouchableOpacity, TextInput, StyleSheet, Alert, Platform,
+  View,
+  Text,
+  TouchableOpacity,
+  TextInput,
+  StyleSheet,
+  Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -39,38 +45,60 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
   const { data: schedules = [] } = useQuery({
     queryKey: ['recurring-maintenance', propertyId],
     queryFn: async () => {
-      const res = await mobileApiClient.get<{ schedules: Schedule[] } | Schedule[]>(
-        `/api/properties/${propertyId}/recurring-maintenance`
-      );
-      return Array.isArray(res) ? res : (res?.schedules || []);
+      const res = await mobileApiClient.get<
+        { schedules: Schedule[] } | Schedule[]
+      >(`/api/properties/${propertyId}/recurring-maintenance`);
+      return Array.isArray(res) ? res : res?.schedules || [];
     },
   });
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      await mobileApiClient.post(`/api/properties/${propertyId}/recurring-maintenance`, {
-        title: title.trim(),
-        frequency,
-        next_due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      });
+      await mobileApiClient.post(
+        `/api/properties/${propertyId}/recurring-maintenance`,
+        {
+          title: title.trim(),
+          frequency,
+          next_due_date: new Date(
+            Date.now() + 30 * 24 * 60 * 60 * 1000
+          ).toISOString(),
+        }
+      );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recurring-maintenance', propertyId] });
+      queryClient.invalidateQueries({
+        queryKey: ['recurring-maintenance', propertyId],
+      });
       setTitle('');
       setShowForm(false);
     },
-    onError: () => Alert.alert('Error', 'Failed to create schedule.'),
+    onError: (err: unknown) =>
+      Alert.alert(
+        'Error',
+        err instanceof Error ? err.message : 'Failed to create schedule.'
+      ),
   });
 
   const toggleMutation = useMutation({
-    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      await mobileApiClient.patch(`/api/properties/${propertyId}/recurring-maintenance`, {
-        scheduleId: id,
-        is_active: !is_active,
-      });
+    mutationFn: async ({
+      id,
+      is_active,
+    }: {
+      id: string;
+      is_active: boolean;
+    }) => {
+      await mobileApiClient.patch(
+        `/api/properties/${propertyId}/recurring-maintenance`,
+        {
+          scheduleId: id,
+          is_active: !is_active,
+        }
+      );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recurring-maintenance', propertyId] });
+      queryClient.invalidateQueries({
+        queryKey: ['recurring-maintenance', propertyId],
+      });
     },
   });
 
@@ -81,14 +109,20 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recurring-maintenance', propertyId] });
+      queryClient.invalidateQueries({
+        queryKey: ['recurring-maintenance', propertyId],
+      });
     },
   });
 
   const handleDelete = (id: string, itemTitle: string) => {
     Alert.alert('Delete Schedule', `Remove "${itemTitle}"?`, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteMutation.mutate(id) },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => deleteMutation.mutate(id),
+      },
     ]);
   };
 
@@ -105,7 +139,11 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
       <View style={styles.header}>
         <Text style={styles.sectionTitle}>RECURRING MAINTENANCE</Text>
         <TouchableOpacity onPress={() => setShowForm(!showForm)}>
-          <Ionicons name={showForm ? 'close' : 'add-circle-outline'} size={22} color={theme.colors.primary} />
+          <Ionicons
+            name={showForm ? 'close' : 'add-circle-outline'}
+            size={22}
+            color={theme.colors.primary}
+          />
         </TouchableOpacity>
       </View>
 
@@ -115,63 +153,121 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
             style={styles.input}
             value={title}
             onChangeText={setTitle}
-            placeholder="e.g. Boiler Service"
+            placeholder='e.g. Boiler Service'
             placeholderTextColor={theme.colors.textTertiary}
           />
           <View style={styles.freqRow}>
-            {(['weekly', 'monthly', 'quarterly', 'yearly'] as const).map(f => (
-              <TouchableOpacity
-                key={f}
-                style={[styles.freqChip, frequency === f && { backgroundColor: FREQ_COLORS[f] }]}
-                onPress={() => setFrequency(f)}
-              >
-                <Text style={[styles.freqText, frequency === f && styles.freqTextActive]}>
-                  {f.charAt(0).toUpperCase() + f.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {(['weekly', 'monthly', 'quarterly', 'yearly'] as const).map(
+              (f) => (
+                <TouchableOpacity
+                  key={f}
+                  style={[
+                    styles.freqChip,
+                    frequency === f && { backgroundColor: FREQ_COLORS[f] },
+                  ]}
+                  onPress={() => setFrequency(f)}
+                >
+                  <Text
+                    style={[
+                      styles.freqText,
+                      frequency === f && styles.freqTextActive,
+                    ]}
+                  >
+                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              )
+            )}
           </View>
-          <TouchableOpacity style={styles.createBtn} onPress={handleCreate} disabled={createMutation.isPending}>
-            <Text style={styles.createBtnText}>{createMutation.isPending ? 'Adding...' : 'Add Schedule'}</Text>
+          <TouchableOpacity
+            style={styles.createBtn}
+            onPress={handleCreate}
+            disabled={createMutation.isPending}
+          >
+            <Text style={styles.createBtnText}>
+              {createMutation.isPending ? 'Adding...' : 'Add Schedule'}
+            </Text>
           </TouchableOpacity>
         </View>
       )}
 
       {schedules.length === 0 && !showForm ? (
         <View style={styles.emptyWrap}>
-          <Ionicons name="repeat-outline" size={20} color={theme.colors.textTertiary} />
+          <Ionicons
+            name='repeat-outline'
+            size={20}
+            color={theme.colors.textTertiary}
+          />
           <Text style={styles.emptyText}>No recurring schedules yet</Text>
         </View>
       ) : (
-        schedules.map(s => (
-          <View key={s.id} style={[styles.scheduleRow, !s.is_active && styles.scheduleInactive]}>
+        schedules.map((s) => (
+          <View
+            key={s.id}
+            style={[
+              styles.scheduleRow,
+              !s.is_active && styles.scheduleInactive,
+            ]}
+          >
             <TouchableOpacity
               style={styles.toggleBtn}
-              onPress={() => toggleMutation.mutate({ id: s.id, is_active: s.is_active })}
+              onPress={() =>
+                toggleMutation.mutate({ id: s.id, is_active: s.is_active })
+              }
             >
               <Ionicons
                 name={s.is_active ? 'checkmark-circle' : 'ellipse-outline'}
                 size={22}
-                color={s.is_active ? theme.colors.primary : theme.colors.textTertiary}
+                color={
+                  s.is_active ? theme.colors.primary : theme.colors.textTertiary
+                }
               />
             </TouchableOpacity>
             <View style={styles.scheduleInfo}>
-              <Text style={[styles.scheduleTitle, !s.is_active && styles.textInactive]}>{s.title}</Text>
+              <Text
+                style={[
+                  styles.scheduleTitle,
+                  !s.is_active && styles.textInactive,
+                ]}
+              >
+                {s.title}
+              </Text>
               <View style={styles.scheduleMeta}>
-                <View style={[styles.freqBadge, { backgroundColor: (FREQ_COLORS[s.frequency] || '#999') + '20' }]}>
-                  <Text style={[styles.freqBadgeText, { color: FREQ_COLORS[s.frequency] || '#999' }]}>
+                <View
+                  style={[
+                    styles.freqBadge,
+                    {
+                      backgroundColor:
+                        (FREQ_COLORS[s.frequency] || '#999') + '20',
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.freqBadgeText,
+                      { color: FREQ_COLORS[s.frequency] || '#999' },
+                    ]}
+                  >
                     {s.frequency}
                   </Text>
                 </View>
                 {s.next_due_date && (
                   <Text style={styles.dueDate}>
-                    Due {new Date(s.next_due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                    Due{' '}
+                    {new Date(s.next_due_date).toLocaleDateString('en-GB', {
+                      day: 'numeric',
+                      month: 'short',
+                    })}
                   </Text>
                 )}
               </View>
             </View>
             <TouchableOpacity onPress={() => handleDelete(s.id, s.title)}>
-              <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
+              <Ionicons
+                name='trash-outline'
+                size={18}
+                color={theme.colors.error}
+              />
             </TouchableOpacity>
           </View>
         ))
@@ -182,45 +278,92 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface, borderRadius: 16, padding: 16, marginBottom: 16,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  sectionTitle: {
-    fontSize: 12, fontWeight: '700', color: theme.colors.textTertiary,
-    textTransform: 'uppercase', letterSpacing: 0.8,
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  form: { marginBottom: 12, padding: 12, backgroundColor: theme.colors.backgroundSecondary, borderRadius: 12 },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  form: {
+    marginBottom: 12,
+    padding: 12,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 12,
+  },
   input: {
-    backgroundColor: theme.colors.surface, borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 12, fontSize: 15, color: theme.colors.textPrimary, marginBottom: 10,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: theme.colors.textPrimary,
+    marginBottom: 10,
   },
   freqRow: { flexDirection: 'row', gap: 6, marginBottom: 10 },
   freqChip: {
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
     backgroundColor: theme.colors.backgroundSecondary,
   },
-  freqText: { fontSize: 12, fontWeight: '600', color: theme.colors.textSecondary },
+  freqText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
   freqTextActive: { color: '#FFFFFF' },
   createBtn: {
-    backgroundColor: theme.colors.primary, borderRadius: 20, paddingVertical: 10, alignItems: 'center',
+    backgroundColor: theme.colors.primary,
+    borderRadius: 20,
+    paddingVertical: 10,
+    alignItems: 'center',
   },
   createBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   emptyWrap: { alignItems: 'center', paddingVertical: 16, gap: 8 },
   emptyText: { fontSize: 14, color: theme.colors.textTertiary },
   scheduleRow: {
-    flexDirection: 'row', alignItems: 'center', paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
   },
   scheduleInactive: { opacity: 0.5 },
   toggleBtn: { marginRight: 10 },
   scheduleInfo: { flex: 1 },
-  scheduleTitle: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary },
+  scheduleTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
   textInactive: { textDecorationLine: 'line-through' },
-  scheduleMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
+  scheduleMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
   freqBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   freqBadgeText: { fontSize: 11, fontWeight: '600' },
   dueDate: { fontSize: 12, color: theme.colors.textTertiary },

@@ -231,6 +231,7 @@ export function UnifiedSidebar(props: UnifiedSidebarProps) {
                     badge: 'notifications'
                 },
                 { label: 'Profile', href: '/profile', icon: User, shortcut: 'g p' },
+                { label: 'Subscription', href: '/homeowner/subscription', icon: BarChart3 },
                 { label: 'Settings', href: '/settings', icon: Settings },
             ]
         }

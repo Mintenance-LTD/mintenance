@@ -1,32 +1,36 @@
 import {
-  createToken,
   verifyToken,
-  setAuthCookie,
   clearAuthCookie,
   createTokenPair,
-  rotateTokens,
   revokeAllTokens,
   createAuthCookieHeaders,
 } from './auth';
-import { DatabaseManager, type User, type CreateUserData } from './database';
+import { DatabaseManager, type User } from './database';
 import { config } from './config';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from './api/supabaseServer';
 import { getAppUrl } from './env';
+import type {
+  AuthResult,
+  LoginCredentials,
+  RegisterData,
+} from './auth-manager/types';
+import {
+  mapLoginAuthError,
+  mapRegisterAuthError,
+  mapRegistrationThrownError,
+} from './auth-manager/error-mappers';
+import {
+  buildLoginFallbackUser,
+  buildRegisterFallbackUser,
+} from './auth-manager/profile-helpers';
+import {
+  fetchProfileWithRetry,
+  ensureProfileExists,
+} from './auth-manager/profile-sync';
 
-export interface AuthResult {
-  success: boolean;
-  user?: User;
-  error?: string;
-  cookieHeaders?: Headers;
-}
-
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
-
-export interface RegisterData extends CreateUserData {}
+// Re-export public types to preserve the existing public API.
+export type { AuthResult, LoginCredentials, RegisterData };
 
 /**
  * Unified authentication manager for web applications
@@ -88,45 +92,8 @@ export class AuthManager {
           service: 'auth',
         });
 
-        // Handle specific Supabase Auth errors with better messages
-        if (
-          authError.message?.includes('Invalid login credentials') ||
-          authError.message?.includes('invalid_password')
-        ) {
-          return {
-            success: false,
-            error: 'Invalid email or password',
-          };
-        }
-
-        // Handle email confirmation requirement
-        if (
-          authError.message?.includes('email_not_confirmed') ||
-          authError.message?.includes('Email not confirmed') ||
-          authError.code === 'email_not_confirmed'
-        ) {
-          return {
-            success: false,
-            error:
-              'Please verify your email address before signing in. Check your inbox for a confirmation email.',
-          };
-        }
-
-        // Handle rate limiting
-        if (
-          authError.message?.includes('too many requests') ||
-          authError.message?.includes('rate limit')
-        ) {
-          return {
-            success: false,
-            error: 'Too many login attempts. Please try again later.',
-          };
-        }
-
-        return {
-          success: false,
-          error: authError.message || 'Login failed. Please try again.',
-        };
+        const mapped = mapLoginAuthError(authError);
+        return { success: false, error: mapped.error };
       }
 
       if (!authData.user) {
@@ -162,21 +129,7 @@ export class AuthManager {
         // Return fallback user from auth metadata
       }
 
-      // SECURITY: Fallback MUST NOT read role from user_metadata (client-writable).
-      // A malicious user could set role: 'admin' via supabase.auth.updateUser().
-      // Default to 'homeowner' -- the profile trigger should always create the row,
-      // so this fallback should rarely execute.
-      const user = userProfile || {
-        id: authData.user.id,
-        email: authData.user.email || email,
-        first_name: authData.user.user_metadata?.first_name || '',
-        last_name: authData.user.user_metadata?.last_name || '',
-        role: 'homeowner' as const,
-        created_at: authData.user.created_at || new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        verified: !!authData.user.email_confirmed_at,
-        phone: undefined,
-      };
+      const user = userProfile || buildLoginFallbackUser(authData.user, email);
 
       // Create and set JWT token pair from Supabase session
       const { accessToken, refreshToken } = await createTokenPair(
@@ -335,7 +288,6 @@ export class AuthManager {
           service: 'auth',
         });
 
-        // Handle specific Supabase Auth errors
         if (
           authError.message.includes('already registered') ||
           authError.message.includes('already exists') ||
@@ -346,26 +298,10 @@ export class AuthManager {
             email: userData.email,
             service: 'auth',
           });
-          return {
-            success: false,
-            error:
-              'An account with this email already exists. Please sign in instead.',
-          };
         }
 
-        // Handle other specific errors
-        if (authError.message.includes('Password should be at least')) {
-          return {
-            success: false,
-            error:
-              'Password is too short. Please use a password with at least 8 characters.',
-          };
-        }
-
-        return {
-          success: false,
-          error: authError.message || 'Registration failed. Please try again.',
-        };
+        const mapped = mapRegisterAuthError(authError);
+        return { success: false, error: mapped.error };
       }
 
       if (!authData.user) {
@@ -385,37 +321,9 @@ export class AuthManager {
       });
 
       // Wait for the database trigger to create profile in public.users
-      // Retry up to 3 times with increasing delays
-      let publicUserProfile = null;
-      let fetchError = null;
-      const maxRetries = 3;
-
-      for (let attempt = 0; attempt < maxRetries; attempt++) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, 500 * (attempt + 1))
-        );
-
-        const { data, error } = await serverSupabase
-          .from('profiles')
-          .select(
-            'id, email, first_name, last_name, role, created_at, updated_at, verified, phone'
-          )
-          .eq('id', authData.user.id)
-          .single();
-
-        if (data && !error) {
-          publicUserProfile = data;
-          fetchError = null;
-          break;
-        }
-
-        fetchError = error;
-        logger.warn(`Attempt ${attempt + 1} to fetch user profile failed`, {
-          userId: authData.user.id,
-          error: fetchError,
-          service: 'auth',
-        });
-      }
+      const { profile: fetchedProfile, lastError: fetchError } =
+        await fetchProfileWithRetry(authData.user.id);
+      let publicUserProfile = fetchedProfile;
 
       if (fetchError || !publicUserProfile) {
         logger.warn('User not found in public.users after trigger retries', {
@@ -425,103 +333,11 @@ export class AuthManager {
         });
 
         // Try to manually create the profile if trigger failed
-        try {
-          const { data: manualProfile, error: manualError } =
-            await serverSupabase
-              .from('profiles')
-              .insert({
-                id: authData.user.id,
-                email: authData.user.email || userData.email,
-                first_name: userData.first_name,
-                last_name: userData.last_name,
-                role: userData.role,
-                phone: userData.phone || null,
-                verified: authData.user.email_confirmed_at ? true : false,
-              })
-              .select(
-                'id, email, first_name, last_name, role, created_at, updated_at, verified, phone'
-              )
-              .single();
-
-          if (manualProfile && !manualError) {
-            logger.info('Manually created user profile after trigger failure', {
-              userId: authData.user.id,
-              service: 'auth',
-            });
-            publicUserProfile = manualProfile;
-          } else if (manualError) {
-            // Check if error is due to duplicate key (user already exists)
-            if (
-              manualError.code === '23505' ||
-              manualError.message?.includes('duplicate key') ||
-              manualError.message?.includes('already exists')
-            ) {
-              logger.warn(
-                'User profile already exists, fetching existing profile',
-                { userId: authData.user.id, service: 'auth' }
-              );
-              // Try to fetch the existing profile
-              const { data: existingProfile } = await serverSupabase
-                .from('profiles')
-                .select(
-                  'id, email, first_name, last_name, role, created_at, updated_at, verified, phone'
-                )
-                .eq('id', authData.user.id)
-                .single();
-
-              if (existingProfile) {
-                publicUserProfile = existingProfile;
-              }
-            } else {
-              logger.error(
-                'Failed to manually create user profile',
-                manualError,
-                { userId: authData.user.id, service: 'auth' }
-              );
-            }
-          }
-        } catch (manualError) {
-          logger.error('Failed to manually create user profile', manualError, {
-            userId: authData.user.id,
-            service: 'auth',
-          });
-          // Try to fetch existing profile as fallback
-          try {
-            const { data: existingProfile } = await serverSupabase
-              .from('profiles')
-              .select(
-                'id, email, first_name, last_name, role, created_at, updated_at, verified, phone'
-              )
-              .eq('id', authData.user.id)
-              .single();
-
-            if (existingProfile) {
-              logger.info('Found existing user profile as fallback', {
-                userId: authData.user.id,
-                service: 'auth',
-              });
-              publicUserProfile = existingProfile;
-            }
-          } catch (fetchError) {
-            logger.error('Failed to fetch existing user profile', fetchError, {
-              userId: authData.user.id,
-              service: 'auth',
-            });
-          }
-        }
+        publicUserProfile = await ensureProfileExists(authData.user, userData);
       }
 
-      const user = publicUserProfile || {
-        id: authData.user.id,
-        email: authData.user.email || userData.email,
-        first_name: userData.first_name,
-        last_name: userData.last_name,
-        role: userData.role,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        verified: authData.user.email_confirmed_at ? true : false,
-        phone: undefined,
-      };
+      const user =
+        publicUserProfile || buildRegisterFallbackUser(authData.user, userData);
 
       // Create and set JWT token pair for immediate login
       logger.info('Creating JWT tokens', { userId: user.id, service: 'auth' });
@@ -570,35 +386,20 @@ export class AuthManager {
 
       // Handle specific error types
       if (error instanceof Error) {
-        // Check for duplicate/conflict errors
-        if (
-          error.message.includes('already exists') ||
-          error.message.includes('duplicate key') ||
-          error.message.includes('unique constraint')
-        ) {
-          return {
-            success: false,
-            error:
-              'An account with this email already exists. Please sign in instead.',
-          };
-        }
-
-        // Check for refresh token storage errors
-        if (error.message.includes('Failed to store refresh token')) {
-          logger.error(
-            'Refresh token storage failed, but user was created',
-            error,
-            {
-              email: userData.email,
-              service: 'auth',
-            }
-          );
-          // User was created but token storage failed - this is recoverable
-          return {
-            success: false,
-            error:
-              'Account created but session initialization failed. Please try signing in.',
-          };
+        const mapped = mapRegistrationThrownError(error);
+        if (mapped) {
+          // Log specifically for refresh-token storage failures (recoverable)
+          if (error.message.includes('Failed to store refresh token')) {
+            logger.error(
+              'Refresh token storage failed, but user was created',
+              error,
+              {
+                email: userData.email,
+                service: 'auth',
+              }
+            );
+          }
+          return { success: false, error: mapped };
         }
       }
 
@@ -789,30 +590,6 @@ export class AuthManager {
    */
   isProduction(): boolean {
     return config.isProduction();
-  }
-
-  /**
-   * Get user-safe error messages (no internal details exposed)
-   */
-  private getSafeErrorMessage(error: unknown): string {
-    if (error instanceof Error) {
-      // Only expose specific known safe error messages
-      const safeMessages = [
-        'User not found',
-        'Invalid email or password',
-        'Email already exists',
-        'Password requirements not met',
-      ];
-
-      for (const safeMessage of safeMessages) {
-        if (error.message.includes(safeMessage)) {
-          return error.message;
-        }
-      }
-    }
-
-    // Default generic message for security
-    return 'An unexpected error occurred';
   }
 }
 

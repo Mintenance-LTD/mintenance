@@ -101,6 +101,8 @@ export type ProfileStackParamList = {
   NotificationSettings: undefined;
   PaymentMethods: undefined;
   AddPaymentMethod: undefined;
+  AddPaymentMethodV2: undefined;
+  // ContractorPayouts: removed — Payouts in BusinessNavigator handles this
   HelpCenter: undefined;
   InvoiceManagement: undefined;
   CreateInvoice: { invoiceId?: string } | undefined;
@@ -151,14 +153,11 @@ export type ProfileStackParamList = {
   Team: undefined;
   Marketing: undefined;
   MarketInsights: undefined;
-  // Social: ARCHIVED - social feature removed
-  Connections: undefined;
+  // Social/Connections: ARCHIVED - contractor-discovery feature removed
   Training: undefined;
   // PortfolioGallery: REMOVED - screen is archived, type entry cleaned up
   EscrowDashboard: undefined;
-  // Homeowner/shared feature parity screens
-  Favorites: undefined;
-  Discover: undefined;
+  // Favorites: ARCHIVED - contractor-discovery feature removed
   // GDPR/Account management screens
   MFASecurity: undefined;
   DataExport: undefined;

@@ -40,21 +40,21 @@ export const TrainingScreen: React.FC = () => {
     queryKey: ['contractor-training', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      // Training table may not exist — return empty array gracefully
       try {
         const { data, error } = await supabase
-          .from('contractor_training_modules')
-          .select('*')
-          .eq('contractor_id', user.id);
+          .from('contractor_training')
+          .select('id, course_name, provider, completion_date, hours, certificate_url, category, notes')
+          .eq('contractor_id', user.id)
+          .order('completion_date', { ascending: false });
         if (error) return [];
         return (data || []).map((m: Record<string, unknown>): TrainingModule => ({
           id: (m.id as string) || '',
-          title: (m.title as string) || '',
-          description: (m.description as string) || '',
+          title: (m.course_name as string) || '',
+          description: (m.provider as string) || (m.notes as string) || '',
           category: (m.category as string) || 'general',
-          completed: (m.completed as boolean) ?? false,
-          duration_minutes: (m.duration_minutes as number) || 0,
-          url: m.url as string | undefined,
+          completed: !!(m.completion_date),
+          duration_minutes: ((m.hours as number) || 0) * 60,
+          url: m.certificate_url as string | undefined,
         }));
       } catch {
         return [];

@@ -1,9 +1,9 @@
 /**
  * CreateQuote ViewModel
- * 
+ *
  * Business logic for quote creation and management.
  * Handles form state, line items, templates, and calculations.
- * 
+ *
  * @filesize Target: <180 lines
  * @compliance MVVM - Business logic only
  */
@@ -94,7 +94,8 @@ export interface CreateQuoteActions {
   goBack: () => void;
 }
 
-export interface CreateQuoteViewModel extends CreateQuoteState, CreateQuoteActions {}
+export interface CreateQuoteViewModel
+  extends CreateQuoteState, CreateQuoteActions {}
 
 /**
  * Custom hook providing Create Quote screen logic
@@ -144,13 +145,14 @@ export const useCreateQuoteViewModel = (
 
   const calculateTotals = useCallback(() => {
     const subtotalValue = lineItems.reduce((sum, item) => {
-      return sum + (item.quantity * item.unit_price);
+      return sum + item.quantity * item.unit_price;
     }, 0);
 
     const markupMultiplier = 1 + parseFloat(markupPercentage) / 100;
     const subtotalWithMarkup = subtotalValue * markupMultiplier;
 
-    const discountValue = subtotalWithMarkup * (parseFloat(discountPercentage) / 100);
+    const discountValue =
+      subtotalWithMarkup * (parseFloat(discountPercentage) / 100);
     const subtotalAfterDiscount = subtotalWithMarkup - discountValue;
 
     const taxValue = subtotalAfterDiscount * (parseFloat(taxRate) / 100);
@@ -174,27 +176,32 @@ export const useCreateQuoteViewModel = (
   }, [user]);
 
   const addLineItem = useCallback((item: LineItem) => {
-    setLineItems(prev => [...prev, { ...item, sort_order: prev.length }]);
+    setLineItems((prev) => [...prev, { ...item, sort_order: prev.length }]);
   }, []);
 
   const updateLineItem = useCallback((index: number, item: LineItem) => {
-    setLineItems(prev => prev.map((existing, i) => 
-      i === index ? { ...item, sort_order: existing.sort_order } : existing
-    ));
+    setLineItems((prev) =>
+      prev.map((existing, i) =>
+        i === index ? { ...item, sort_order: existing.sort_order } : existing
+      )
+    );
   }, []);
 
   const removeLineItem = useCallback((index: number) => {
-    setLineItems(prev => prev.filter((_, i) => i !== index));
+    setLineItems((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
-  const selectTemplate = useCallback((templateId: string) => {
-    const template = templates.find(t => t.id === templateId);
-    if (template) {
-      setSelectedTemplate(templateId);
-      setTermsAndConditions(template.terms_and_conditions || '');
-      setNotes((template as unknown as Record<string, string>).notes || '');
-    }
-  }, [templates]);
+  const selectTemplate = useCallback(
+    (templateId: string) => {
+      const template = templates.find((t) => t.id === templateId);
+      if (template) {
+        setSelectedTemplate(templateId);
+        setTermsAndConditions(template.terms_and_conditions || '');
+        setNotes((template as unknown as Record<string, string>).notes || '');
+      }
+    },
+    [templates]
+  );
 
   const saveQuote = useCallback(async () => {
     if (!user) return;
@@ -223,11 +230,32 @@ export const useCreateQuoteViewModel = (
       logger.info('Quote saved successfully', { quoteId: quoteData.job_id });
     } catch (error) {
       logger.error('Failed to save quote', error);
-      Alert.alert('Error', 'Failed to save quote. Please try again.');
+      Alert.alert(
+        'Error',
+        error instanceof Error
+          ? error.message
+          : 'Failed to save quote. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
-  }, [user, jobId, clientName, clientEmail, clientPhone, projectTitle, projectDescription, lineItems, markupPercentage, discountPercentage, taxRate, validUntil, termsAndConditions, notes, selectedTemplate]);
+  }, [
+    user,
+    jobId,
+    clientName,
+    clientEmail,
+    clientPhone,
+    projectTitle,
+    projectDescription,
+    lineItems,
+    markupPercentage,
+    discountPercentage,
+    taxRate,
+    validUntil,
+    termsAndConditions,
+    notes,
+    selectedTemplate,
+  ]);
 
   const sendQuote = useCallback(async () => {
     if (!user) return;
@@ -240,7 +268,12 @@ export const useCreateQuoteViewModel = (
       logger.info('Quote sent successfully', { clientEmail });
     } catch (error) {
       logger.error('Failed to send quote', error);
-      Alert.alert('Error', 'Failed to send quote. Please try again.');
+      Alert.alert(
+        'Error',
+        error instanceof Error
+          ? error.message
+          : 'Failed to send quote. Please try again.'
+      );
     } finally {
       setLoading(false);
     }

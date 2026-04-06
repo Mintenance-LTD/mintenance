@@ -80,6 +80,40 @@ const eslintConfig = defineConfig([
       // Many files use require() for dynamic imports and CJS-specific patterns.
       // Downgraded to warn while the codebase is migrated to ESM imports.
       '@typescript-eslint/no-require-imports': 'warn',
+
+      // Ban direct `createClient` imports from @supabase/supabase-js in app code.
+      // Use the canonical wrappers in @/lib/api/supabaseServer instead:
+      //   - createAnonClient() for public/anon operations
+      //   - createServerSupabaseClient() for service-role operations
+      //   - createUserScopedClient(jwt) for user-scoped (RLS-respecting) operations
+      // Type-only imports (e.g. `import type { SupabaseClient }`) are still allowed.
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@supabase/supabase-js',
+              importNames: ['createClient'],
+              message:
+                'Do not import createClient directly. Use createAnonClient / createServerSupabaseClient / createUserScopedClient from @/lib/api/supabaseServer.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // Exempt the canonical wrapper itself and test utilities — these are the
+  // legitimate places where createClient is imported.
+  {
+    files: [
+      '**/lib/api/supabaseServer.ts',
+      '**/lib/supabase/server.ts',
+      '**/test/integration/**',
+      '**/hooks/useRealtime.ts',
+    ],
+    rules: {
+      'no-restricted-imports': 'off',
     },
   },
 

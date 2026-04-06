@@ -206,8 +206,8 @@ const NotificationSettingsScreen: React.FC = () => {
       await mobileApiClient.patch('/api/users/notification-preferences', settings);
       Alert.alert('Success', 'Notification settings updated!');
       navigation.goBack();
-    } catch {
-      Alert.alert('Error', 'Failed to save notification settings. Please try again.');
+    } catch (err) {
+      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to save notification settings. Please try again.');
     } finally {
       setSaving(false);
     }

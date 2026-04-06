@@ -105,25 +105,29 @@ export const HomeownerDashboard: React.FC = () => {
     queryFn: async () => {
       const today = new Date().toISOString().split('T')[0];
       const { data: rows, error: err } = await supabase
-        .from('bookings')
+        .from('appointments')
         .select(
-          'id, title, date, time, contractor:profiles!contractor_id(full_name)'
+          'id, title, appointment_date, start_time, contractor:profiles!contractor_id(first_name, last_name)'
         )
-        .eq('homeowner_id', user!.id)
-        .gte('date', today)
-        .order('date', { ascending: true })
+        .eq('client_id', user!.id)
+        .gte('appointment_date', today)
+        .order('appointment_date', { ascending: true })
         .limit(10);
       if (err) return [];
       return (rows || []).map((r: Record<string, unknown>) => {
-        const contractor = r.contractor as Record<string, unknown> | null;
+        const contractor = r.contractor as {
+          first_name?: string;
+          last_name?: string;
+        } | null;
+        const name = contractor
+          ? `${contractor.first_name ?? ''} ${contractor.last_name ?? ''}`.trim()
+          : '';
         return {
           id: r.id as string,
           title: (r.title as string) || '',
-          date: r.date as string,
-          time: (r.time as string) || '',
-          contractor: contractor
-            ? { name: contractor.full_name as string }
-            : undefined,
+          date: r.appointment_date as string,
+          time: (r.start_time as string) || '',
+          contractor: name ? { name } : undefined,
         };
       });
     },

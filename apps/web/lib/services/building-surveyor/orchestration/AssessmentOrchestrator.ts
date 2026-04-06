@@ -10,27 +10,20 @@ import { logger } from '@mintenance/shared';
 import { memoryManager } from '../../ml-engine/memory/MemoryManager';
 import { MonitoringService } from '../../monitoring/MonitoringService';
 import { RoboflowDetectionService } from '../RoboflowDetectionService';
-import { SafetyAnalysisService } from '../SafetyAnalysisService';
-import { ComplianceService } from '../ComplianceService';
-import { InsuranceRiskService } from '../InsuranceRiskService';
 import { FeatureExtractionService } from './FeatureExtractionService';
 import { PromptBuilder } from './PromptBuilder';
 import { getConfig } from '../config/BuildingSurveyorConfig';
 import { SAM3Service } from '../SAM3Service';
 import { HybridInferenceService } from '../HybridInferenceService';
-import { KnowledgeDistillationService } from '../KnowledgeDistillationService';
-import { StudentShadowService } from '../distillation/StudentShadowService';
 import { GPT4CacheService } from '../../ai/GPT4CacheService';
+import { buildFinalAssessment } from './build-assessment';
+import { captureTrainingDataAsync } from './training-capture';
 import type {
     AssessmentContext,
     Phase1BuildingAssessment,
     RoboflowDetection,
     VisionAnalysisSummary,
     SAM3SegmentationData,
-    DamageSeverity,
-    UrgencyLevel,
-    HomeownerExplanation,
-    ContractorAdvice,
 } from '../types';
 import type { ContinuumMemoryConfig, MemoryQueryResult } from '../../ml-engine/memory/types';
 
@@ -494,26 +487,8 @@ export class AssessmentOrchestrator {
             const sam3Segmentation = sam3Data.segmentation;
             sam3Result = sam3Data.result;
 
-            const assessment = await this.buildFinalAssessment(
-                aiAssessment as {
-                    damageType?: string;
-                    severity?: string;
-                    confidence?: number;
-                    location?: string;
-                    description?: string;
-                    detectedItems?: string[];
-                    safetyHazards?: unknown[];
-                    complianceIssues?: unknown[];
-                    riskFactors?: unknown[];
-                    riskScore?: number;
-                    premiumImpact?: string;
-                    urgency?: string;
-                    recommendedActionTimeline?: string;
-                    estimatedTimeToWorsen?: string;
-                    urgencyReasoning?: string;
-                    homeownerExplanation?: unknown;
-                    contractorAdvice?: unknown;
-                },
+            const assessment = await buildFinalAssessment(
+                aiAssessment as Parameters<typeof buildFinalAssessment>[0],
                 context,
                 roboflowDetections,
                 visionAnalysis,
@@ -539,7 +514,7 @@ export class AssessmentOrchestrator {
             );
 
             // Capture training data asynchronously (non-blocking)
-            this.captureTrainingDataAsync(
+            captureTrainingDataAsync(
                 context?.assessmentId,
                 validatedImageUrls,
                 assessment,
@@ -590,227 +565,6 @@ export class AssessmentOrchestrator {
         }
     }
 
-    /**
-     * Build final assessment with all specialized analyses
-     */
-    private static async buildFinalAssessment(
-        aiAssessment: {
-            damageType?: string;
-            severity?: string;
-            confidence?: number;
-            location?: string;
-            description?: string;
-            detectedItems?: string[];
-            safetyHazards?: unknown[];
-            complianceIssues?: unknown[];
-            riskFactors?: unknown[];
-            riskScore?: number;
-            premiumImpact?: string;
-            urgency?: string;
-            recommendedActionTimeline?: string;
-            estimatedTimeToWorsen?: string;
-            urgencyReasoning?: string;
-            homeownerExplanation?: unknown;
-            contractorAdvice?: unknown;
-        },
-        context?: AssessmentContext,
-        roboflowDetections?: RoboflowDetection[],
-        visionAnalysis?: VisionAnalysisSummary | null,
-        sam3Segmentation?: SAM3SegmentationData
-    ): Promise<Phase1BuildingAssessment> {
-        const safetyAnalysis = SafetyAnalysisService.processSafetyHazards(
-            (aiAssessment.safetyHazards || []) as Array<{
-                type?: string;
-                severity?: string;
-                location?: string;
-                description?: string;
-                immediateAction?: string;
-                urgency?: string;
-            }>
-        );
-
-        const complianceAnalysis = ComplianceService.processCompliance(
-            (aiAssessment.complianceIssues || []) as Array<{
-                issue?: string;
-                regulation?: string;
-                severity?: string;
-                description?: string;
-                recommendation?: string;
-            }>
-        );
-
-        const insuranceRisk = InsuranceRiskService.processInsuranceRisk(
-            (aiAssessment.riskFactors || []) as Array<{ factor?: string; severity?: string; impact?: string }>,
-            aiAssessment.riskScore,
-            aiAssessment.premiumImpact
-        );
-
-        // Type-safe helper functions
-        const isValidSeverity = (s: string | undefined): s is DamageSeverity => {
-            return s === 'early' || s === 'midway' || s === 'full';
-        };
-
-        const isValidUrgency = (u: string | undefined): u is UrgencyLevel => {
-            return u === 'immediate' || u === 'urgent' || u === 'soon' || u === 'planned' || u === 'monitor';
-        };
-
-        const isValidHomeownerExplanation = (obj: unknown): obj is HomeownerExplanation => {
-            return (
-                typeof obj === 'object' &&
-                obj !== null &&
-                'whatIsIt' in obj &&
-                'whyItHappened' in obj &&
-                'whatToDo' in obj
-            );
-        };
-
-        const isValidContractorAdvice = (obj: unknown): obj is ContractorAdvice => {
-            return (
-                typeof obj === 'object' &&
-                obj !== null &&
-                'repairNeeded' in obj &&
-                'materials' in obj &&
-                'tools' in obj &&
-                'estimatedTime' in obj &&
-                'estimatedCost' in obj &&
-                'complexity' in obj
-            );
-        };
-
-        const defaultHomeownerExplanation: HomeownerExplanation = {
-            whatIsIt: 'Building damage detected',
-            whyItHappened: 'Cause unknown',
-            whatToDo: 'Consult a professional',
-        };
-
-        const defaultContractorAdvice: ContractorAdvice = {
-            repairNeeded: [],
-            materials: [],
-            tools: [],
-            estimatedTime: 'Unknown',
-            estimatedCost: {
-                min: 0,
-                max: 0,
-                recommended: 0,
-            },
-            complexity: 'medium',
-        };
-
-        // NEW: Enrich materials with database pricing before returning assessment
-        let finalContractorAdvice: ContractorAdvice;
-        if (isValidContractorAdvice(aiAssessment.contractorAdvice)) {
-            const contractorAdvice = aiAssessment.contractorAdvice;
-
-            // Normalize and enrich materials
-            const normalizedMaterials: import('../types').Material[] = (contractorAdvice.materials || []).map((material) => ({
-                name: material.name || 'unspecified material',
-                quantity: material.quantity || 'quantity not provided',
-                estimatedCost: material.estimatedCost ?? 0,
-                source: 'ai' as const,  // Default to AI source
-            }));
-
-            logger.info('BEFORE material enrichment in AssessmentOrchestrator', {
-                service: 'AssessmentOrchestrator',
-                materialsLength: normalizedMaterials.length,
-                materialsSample: normalizedMaterials.length > 0 ? normalizedMaterials[0] : null
-            });
-
-            let enrichedMaterials: import('../types').Material[] = normalizedMaterials;  // Default to AI materials
-            try {
-                if (normalizedMaterials.length > 0) {
-                    // Dynamic import to avoid circular dependencies
-                    const { enrichMaterialsWithDatabase } = await import('../material-enrichment');
-                    enrichedMaterials = await enrichMaterialsWithDatabase(normalizedMaterials);
-                }
-                logger.info('AFTER material enrichment in AssessmentOrchestrator', {
-                    service: 'AssessmentOrchestrator',
-                    enrichedLength: enrichedMaterials.length,
-                    hasDbMaterials: enrichedMaterials.some(m => m.source === 'database')
-                });
-            } catch (err) {
-                logger.error('Material database enrichment failed in AssessmentOrchestrator', err, {
-                    service: 'AssessmentOrchestrator',
-                    materialCount: normalizedMaterials.length,
-                    errorName: err instanceof Error ? err.name : 'unknown',
-                    errorMessage: err instanceof Error ? err.message : String(err)
-                });
-                // enrichedMaterials already set to normalizedMaterials above
-            }
-
-            finalContractorAdvice = {
-                ...contractorAdvice,
-                materials: enrichedMaterials,
-            };
-        } else {
-            finalContractorAdvice = defaultContractorAdvice;
-        }
-
-        return {
-            damageAssessment: {
-                damageType: aiAssessment.damageType || 'unknown_damage',
-                severity: isValidSeverity(aiAssessment.severity) ? aiAssessment.severity : 'early',
-                confidence: aiAssessment.confidence || 50,
-                location: aiAssessment.location || 'Unknown',
-                description: aiAssessment.description || 'No description available',
-                detectedItems: aiAssessment.detectedItems || [],
-            },
-            safetyHazards: safetyAnalysis,
-            compliance: complianceAnalysis,
-            insuranceRisk,
-            urgency: {
-                urgency: isValidUrgency(aiAssessment.urgency) ? aiAssessment.urgency : 'monitor',
-                recommendedActionTimeline: aiAssessment.recommendedActionTimeline || 'Monitor for changes',
-                estimatedTimeToWorsen: aiAssessment.estimatedTimeToWorsen,
-                reasoning: aiAssessment.urgencyReasoning || 'Standard assessment',
-                priorityScore: this.calculatePriorityScore(
-                    isValidUrgency(aiAssessment.urgency) ? aiAssessment.urgency : 'monitor',
-                    isValidSeverity(aiAssessment.severity) ? aiAssessment.severity : 'early',
-                    safetyAnalysis.overallSafetyScore
-                ),
-            },
-            homeownerExplanation: isValidHomeownerExplanation(aiAssessment.homeownerExplanation)
-                ? aiAssessment.homeownerExplanation
-                : defaultHomeownerExplanation,
-            contractorAdvice: finalContractorAdvice,
-            evidence: {
-                roboflowDetections,
-                visionAnalysis,
-                ...(sam3Segmentation && { sam3Segmentation }),
-            },
-        };
-    }
-
-    /**
-     * Calculate priority score based on urgency, severity, and safety
-     */
-    private static calculatePriorityScore(
-        urgency: string,
-        severity: string,
-        safetyScore: number
-    ): number {
-        const urgencyScores: Record<string, number> = {
-            immediate: 100,
-            urgent: 80,
-            soon: 60,
-            planned: 40,
-            monitor: 20,
-        };
-
-        const severityScores: Record<string, number> = {
-            full: 100,
-            midway: 60,
-            early: 30,
-        };
-
-        const urgencyScore = urgencyScores[urgency] || 50;
-        const severityScore = severityScores[severity] || 50;
-
-        return Math.round(
-            urgencyScore * 0.4 +
-            severityScore * 0.3 +
-            (100 - safetyScore) * 0.3
-        );
-    }
 
     /**
      * Trigger self-modification when accuracy drops
@@ -822,83 +576,4 @@ export class AssessmentOrchestrator {
         });
     }
 
-    /**
-     * Capture training data asynchronously (non-blocking)
-     * Records GPT-4 outputs and SAM3 masks for knowledge distillation,
-     * and runs student VLM shadow comparison if MINT_AI_VLM_ENDPOINT is set.
-     */
-    private static async captureTrainingDataAsync(
-        assessmentId: string | undefined,
-        imageUrls: string[],
-        assessment: Phase1BuildingAssessment,
-        sam3Result: Awaited<ReturnType<typeof SAM3Service.segmentDamageTypes>> | null,
-        context?: AssessmentContext,
-        promptMessages?: Array<{ role: string; content: unknown }>,
-        apiKey?: string
-    ): Promise<void> {
-        try {
-            // Only capture if we have an assessment ID (saved to database)
-            if (!assessmentId) {
-                logger.debug('Skipping training data capture - no assessment ID', {
-                    service: 'AssessmentOrchestrator',
-                });
-                return;
-            }
-
-            // Record GPT-4 Vision output for damage classifier training
-            await KnowledgeDistillationService.recordGPT4Output(
-                assessmentId,
-                assessment,
-                imageUrls,
-                context ? {
-                    location: context.location,
-                    propertyType: context.propertyType,
-                    ageOfProperty: context.ageOfProperty,
-                    propertyDetails: context.propertyDetails,
-                    region: context.region,
-                } : undefined
-            );
-
-            // Record SAM3 masks if available
-            if (sam3Result?.success) {
-                for (let i = 0; i < imageUrls.length && i < 4; i++) {
-                    await KnowledgeDistillationService.recordSAM3Output(
-                        assessmentId,
-                        imageUrls[i],
-                        sam3Result,
-                        i
-                    );
-                }
-            }
-
-            // Run student VLM shadow comparison (fire-and-forget)
-            if (process.env.MINT_AI_VLM_ENDPOINT && promptMessages && apiKey) {
-                StudentShadowService.runShadowComparison(
-                    assessmentId,
-                    imageUrls,
-                    assessment,
-                    promptMessages as import('../generator/AssessmentGenerator').GeneratorMessage[],
-                    apiKey
-                ).catch(err => {
-                    logger.debug('Shadow comparison failed (non-critical)', {
-                        service: 'AssessmentOrchestrator',
-                        error: err instanceof Error ? err.message : String(err),
-                    });
-                });
-            }
-
-            logger.debug('Training data captured successfully', {
-                service: 'AssessmentOrchestrator',
-                assessmentId,
-                hasSAM3Data: !!sam3Result?.success,
-            });
-        } catch (error) {
-            // Don't throw - this is non-critical background work
-            logger.warn('Training data capture failed (non-critical)', {
-                service: 'AssessmentOrchestrator',
-                assessmentId,
-                error,
-            });
-        }
-    }
 }

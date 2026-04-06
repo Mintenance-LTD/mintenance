@@ -36,13 +36,13 @@ export const DeleteAccountScreen: React.FC = () => {
   const [confirmText, setConfirmText] = useState('');
 
   const deleteMutation = useMutation({
-    mutationFn: () => mobileApiClient.post('/api/account/delete', {}),
+    mutationFn: () => mobileApiClient.post('/api/user/delete-account', { confirmation: 'DELETE' }),
     onSuccess: () => {
       Alert.alert('Account Deleted', 'Your account has been scheduled for deletion. You will be signed out.', [
         { text: 'OK', onPress: () => signOut?.() },
       ]);
     },
-    onError: () => Alert.alert('Error', 'Failed to delete account. Please contact support.'),
+    onError: (err: unknown) => Alert.alert('Error', err instanceof Error ? err.message : 'Failed to delete account. Please contact support.'),
   });
 
   const isConfirmed = confirmText.trim().toUpperCase() === 'DELETE';

@@ -19,6 +19,16 @@ export default tseslint.config(
     },
   },
 
+  // CLI scripts — console output is intentional, CommonJS required is fine
+  {
+    files: ['scripts/**/*.js', 'scripts/**/*.cjs'],
+    rules: {
+      'no-console': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^[_e]' }],
+    },
+  },
+
   {
     ignores: [
       'apps/**',

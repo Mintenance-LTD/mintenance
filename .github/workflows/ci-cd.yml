@@ -1,5 +1,20 @@
 name: Mintenance CI/CD Pipeline
 
+# Quality Gates (see docs/CI_QUALITY_GATES.md)
+#
+#   quality-checks  ──► pr-quality-gate  ──► MERGE BLOCKED if fails
+#        │
+#        ├─ TypeScript must compile
+#        ├─ ESLint must pass
+#        ├─ Web + Mobile tests must pass
+#        └─ Coverage thresholds (70/65/70/70) auto-enforced by vitest/jest
+#
+# Branch protection MUST require these status checks:
+#   - "Code Quality & Testing"
+#   - "PR Quality Gate"
+#   - "E2E Tests" (from e2e-tests.yml)
+#   - "Performance & Security Monitoring"
+
 on:
   push:
     branches: [main, master, develop]
@@ -43,10 +58,14 @@ jobs:
       - name: Lint (mobile)
         run: npm run lint:mobile
 
-      - name: Run web tests
+      - name: Check no untracked skipped tests (diff only)
+        run: node scripts/ci/check-no-skip.js --diff
+        if: github.event_name == 'pull_request'
+
+      - name: Run web tests (fails on coverage regression below thresholds)
         run: npm run test:web -- run --coverage
 
-      - name: Run mobile tests
+      - name: Run mobile tests (fails on coverage regression below thresholds)
         run: npm run test:mobile -- --coverage --watchAll=false
 
       - name: Upload coverage to Codecov
@@ -61,6 +80,71 @@ jobs:
 
       - name: Security audit
         run: npm audit --audit-level high
+
+  mobile-pr-smoke:
+    name: Mobile E2E Smoke (PR)
+    runs-on: ubuntu-latest
+    needs: quality-checks
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Detect mobile changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            mobile:
+              - 'apps/mobile/**'
+              - 'packages/shared/**'
+              - 'packages/shared-ui/**'
+              - 'packages/types/**'
+
+      - name: Setup Node.js
+        if: steps.filter.outputs.mobile == 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20.19.4'
+          cache: 'npm'
+
+      - name: Install dependencies
+        if: steps.filter.outputs.mobile == 'true'
+        run: npm ci
+        timeout-minutes: 10
+
+      - name: Setup Java for Android
+        if: steps.filter.outputs.mobile == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Enable KVM
+        if: steps.filter.outputs.mobile == 'true'
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run Detox smoke tests (auth + navigation only)
+        if: steps.filter.outputs.mobile == 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          profile: pixel_6
+          target: google_apis
+          script: |
+            cd apps/mobile
+            npm run e2e:build:android
+            npx detox test --configuration android.emu.debug --testNamePattern="auth|navigation"
+
+      - name: Skip (no mobile changes)
+        if: steps.filter.outputs.mobile != 'true'
+        run: echo "No mobile code changed — skipping Detox smoke tests."
 
   mobile-testing:
     name: Mobile E2E Testing
@@ -252,15 +336,21 @@ jobs:
   pr-quality-gate:
     name: PR Quality Gate
     runs-on: ubuntu-latest
-    needs: [quality-checks, performance-monitoring]
+    needs: [quality-checks, performance-monitoring, mobile-pr-smoke]
     if: github.event_name == 'pull_request'
+    # Always runs so a failure in any upstream job produces a failing required check.
+    # Mobile smoke is a "success-or-skipped" gate (skipped when no mobile files change).
 
     steps:
       - name: Check all jobs status
         run: |
           if [ "${{ needs.quality-checks.result }}" != "success" ] || \
-             [ "${{ needs.performance-monitoring.result }}" != "success" ]; then
+             [ "${{ needs.performance-monitoring.result }}" != "success" ] || \
+             [ "${{ needs.mobile-pr-smoke.result }}" = "failure" ]; then
             echo "❌ Quality checks failed - PR cannot be merged"
+            echo "  quality-checks: ${{ needs.quality-checks.result }}"
+            echo "  performance-monitoring: ${{ needs.performance-monitoring.result }}"
+            echo "  mobile-pr-smoke: ${{ needs.mobile-pr-smoke.result }}"
             exit 1
           else
             echo "✅ All quality checks passed - PR ready for review"
@@ -272,17 +362,23 @@ jobs:
           script: |
             const qualityChecks = '${{ needs.quality-checks.result }}';
             const performanceMonitoring = '${{ needs.performance-monitoring.result }}';
+            const mobileSmoke = '${{ needs.mobile-pr-smoke.result }}';
 
-            const statusEmoji = (status) => status === 'success' ? '✅' : '❌';
+            const statusEmoji = (status) => {
+              if (status === 'success') return '✅';
+              if (status === 'skipped') return '⏭️';
+              return '❌';
+            };
 
             const comment = `## 🔍 CI/CD Pipeline Results
 
             ${statusEmoji(qualityChecks)} **Code Quality & Testing**: ${qualityChecks}
             ${statusEmoji(performanceMonitoring)} **Performance & Security**: ${performanceMonitoring}
+            ${statusEmoji(mobileSmoke)} **Mobile E2E Smoke**: ${mobileSmoke}
 
             ---
 
-            ${qualityChecks === 'success' && performanceMonitoring === 'success'
+            ${qualityChecks === 'success' && performanceMonitoring === 'success' && mobileSmoke !== 'failure'
               ? '✅ **All checks passed!** This PR is ready for review and merge.'
               : '❌ **Some checks failed.** Please review the failed jobs and fix the issues.'}
             `;

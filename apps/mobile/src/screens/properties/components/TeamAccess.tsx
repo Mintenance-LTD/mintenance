@@ -63,7 +63,11 @@ export const TeamAccess: React.FC<Props> = ({ propertyId }) => {
       setEmail('');
       setShowForm(false);
     },
-    onError: () => Alert.alert('Error', 'Failed to invite team member.'),
+    onError: (err: unknown) =>
+      Alert.alert(
+        'Error',
+        err instanceof Error ? err.message : 'Failed to invite team member.'
+      ),
   });
 
   const removeMutation = useMutation({
