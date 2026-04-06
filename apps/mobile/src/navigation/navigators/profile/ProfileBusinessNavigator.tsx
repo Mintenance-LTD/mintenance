@@ -22,6 +22,7 @@ import { CertificationsScreen } from "../../../screens/contractor/Certifications
 import { TimeTrackingScreen } from "../../../screens/contractor/TimeTrackingScreen";
 import { AddTimeEntryScreen } from "../../../screens/contractor/AddTimeEntryScreen";
 import { AddCertificationScreen } from "../../../screens/contractor/AddCertificationScreen";
+import { DBSCheckScreen } from "../../../screens/contractor/DBSCheckScreen";
 import { ReportingScreen } from "../../../screens/contractor/ReportingScreen";
 import PayoutsScreen from "../../../screens/contractor/ContractorPayoutsScreen";
 import { BusinessProfileScreen } from "../../../screens/contractor/BusinessProfileScreen";
@@ -50,5 +51,6 @@ export const SafeCertificationsScreen = withScreenErrorBoundary(CertificationsSc
 export const SafeTimeTrackingScreen = withScreenErrorBoundary(TimeTrackingScreen, "Time Tracking", { fallbackRoute: "ProfileMain" });
 export const SafeAddTimeEntryScreen = withScreenErrorBoundary(AddTimeEntryScreen, "Add Time Entry", { fallbackRoute: "TimeTracking" });
 export const SafeAddCertificationScreen = withScreenErrorBoundary(AddCertificationScreen, "Add Certification", { fallbackRoute: "Certifications" });
+export const SafeDBSCheckScreen = withScreenErrorBoundary(DBSCheckScreen, "DBS Check", { fallbackRoute: "Certifications" });
 export const SafeReportingScreen = withScreenErrorBoundary(ReportingScreen, "Reporting", { fallbackRoute: "ProfileMain" });
 export const SafePayoutsScreen = withScreenErrorBoundary(PayoutsScreen, "Payouts", { fallbackRoute: "ProfileMain" });

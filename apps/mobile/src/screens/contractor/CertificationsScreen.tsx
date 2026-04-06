@@ -116,6 +116,17 @@ export const CertificationsScreen: React.FC = () => {
         }}
       />
 
+      {/* DBS Check entry point */}
+      <TouchableOpacity
+        style={styles.dbsButton}
+        onPress={() => navigation.navigate('DBSCheck' as never)}
+        accessibilityRole="button"
+      >
+        <Ionicons name="shield-checkmark-outline" size={18} color={theme.colors.primary} />
+        <Text style={styles.dbsButtonText}>DBS Background Check</Text>
+        <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
+      </TouchableOpacity>
+
       <TouchableOpacity
         style={styles.fab}
         onPress={() => navigation.navigate('AddCertification' as never)}
@@ -145,8 +156,26 @@ const styles = StyleSheet.create({
   certMeta: { flexDirection: 'row', justifyContent: 'space-between' },
   certDate: { fontSize: 12, color: theme.colors.textTertiary },
   credentialId: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 6 },
+  dbsButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 10,
+    marginHorizontal: 16,
+    marginBottom: 80,
+    padding: 14,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  dbsButtonText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: theme.colors.textPrimary,
+  },
   fab: {
-    position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center',
+    position: 'absolute' as const, bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: theme.colors.primary, justifyContent: 'center' as const, alignItems: 'center' as const,
     ...Platform.select({
       ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12 },
       android: { elevation: 8 },
