@@ -84,8 +84,13 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
               canPreventDefault: true,
             });
 
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
+            if (!event.defaultPrevented) {
+              if (isFocused) {
+                // Already on this tab — pop nested stack to root (standard tab behavior)
+                navigation.navigate(route.name, { screen: undefined });
+              } else {
+                navigation.navigate(route.name);
+              }
             }
           };
 

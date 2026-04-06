@@ -91,7 +91,7 @@ export class BidManagementService {
       .select(
         `
         *,
-        contractor:users(first_name, last_name, email)
+        contractor:profiles!bids_contractor_id_fkey(id, first_name, last_name, company_name, rating, city, profile_image_url)
       `
       )
       .eq('job_id', jobId)

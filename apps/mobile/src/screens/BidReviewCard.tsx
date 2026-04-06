@@ -75,12 +75,18 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
           style={styles.contractorHeader}
           onPress={() => {
             if (!contractor?.id) return;
+            // Navigate to Modal stack: BidReviewCard → JobsStack → TabNavigator → RootStack
+            // Need to traverse up to the root navigator that has 'Modal'
             const nav = navigation as {
-              getParent?: () =>
-                | { navigate: (name: string, params: unknown) => void }
-                | undefined;
+              getParent?: () => {
+                getParent?: () => {
+                  navigate: (name: string, params: unknown) => void;
+                } | undefined;
+                navigate: (name: string, params: unknown) => void;
+              } | undefined;
             };
-            nav.getParent?.()?.navigate('Modal', {
+            const rootNav = nav.getParent?.()?.getParent?.() || nav.getParent?.();
+            rootNav?.navigate('Modal', {
               screen: 'ContractorProfile',
               params: { contractorId: contractor.id },
             });

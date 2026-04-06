@@ -134,11 +134,23 @@ export const QuickJobPostScreen: React.FC = () => {
 
   const params = route.params as RouteParams;
 
-  const [title, setTitle] = useState('');
+  // Pre-fill from QuickJobModal selections (WHERE/WHEN/WHAT)
+  const categoryLabel = params?.category
+    ? params.category.charAt(0).toUpperCase() + params.category.slice(1)
+    : '';
+  const [title, setTitle] = useState(
+    categoryLabel ? `${categoryLabel} issue` : ''
+  );
   const [description, setDescription] = useState('');
   const [budget, setBudget] = useState('150');
   const [urgency, setUrgency] = useState(params?.urgency || 'this_week');
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  // Auto-select matching template if category matches
+  const matchingTemplate = params?.category
+    ? REPAIR_TEMPLATES.find((t) => t.category === params.category)
+    : null;
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(
+    matchingTemplate?.id || null
+  );
   const [submitting, setSubmitting] = useState(false);
 
   useUnsavedChanges(!!(title || description));
