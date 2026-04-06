@@ -318,4 +318,23 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     color: theme.colors.textInverse,
   },
+  quickActionsSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    paddingBottom: 24,
+  },
+  quickActionRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingVertical: 14,
+    borderBottomWidth: 0.5,
+    borderBottomColor: theme.colors.border,
+    gap: 12,
+  },
+  quickActionText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: theme.colors.textPrimary,
+  },
 });

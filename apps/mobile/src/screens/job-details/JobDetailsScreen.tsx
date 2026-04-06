@@ -497,6 +497,60 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
           </>
         )}
+
+        {/* === Quick Actions === */}
+        <View style={styles.divider} />
+        <View style={styles.quickActionsSection}>
+          {/* Timeline — always visible */}
+          <TouchableOpacity
+            style={styles.quickActionRow}
+            onPress={() => navigation.navigate('JobTimeline', { jobId: job.id })}
+            accessibilityRole='button'
+          >
+            <Ionicons name='time-outline' size={20} color={theme.colors.textSecondary} />
+            <Text style={styles.quickActionText}>View Timeline</Text>
+            <Ionicons name='chevron-forward' size={18} color={theme.colors.textTertiary} />
+          </TouchableOpacity>
+
+          {/* Edit job — homeowner, only if posted */}
+          {isOwner && job.status === 'posted' && (
+            <TouchableOpacity
+              style={styles.quickActionRow}
+              onPress={() => navigation.navigate('JobEdit', { jobId: job.id })}
+              accessibilityRole='button'
+            >
+              <Ionicons name='create-outline' size={20} color={theme.colors.textSecondary} />
+              <Text style={styles.quickActionText}>Edit Job</Text>
+              <Ionicons name='chevron-forward' size={18} color={theme.colors.textTertiary} />
+            </TouchableOpacity>
+          )}
+
+          {/* Sign-off — homeowner, when completed but not yet confirmed */}
+          {isOwner && job.status === 'completed' && !(job as CTAContext['job']).completion_confirmed_by_homeowner && (
+            <TouchableOpacity
+              style={styles.quickActionRow}
+              onPress={() => navigation.navigate('JobSignOff', { jobId: job.id })}
+              accessibilityRole='button'
+            >
+              <Ionicons name='checkmark-done-outline' size={20} color={theme.colors.primary} />
+              <Text style={styles.quickActionText}>Approve / Request Changes</Text>
+              <Ionicons name='chevron-forward' size={18} color={theme.colors.textTertiary} />
+            </TouchableOpacity>
+          )}
+
+          {/* Dispute — either party, when in_progress or completed */}
+          {(job.status === 'in_progress' || job.status === 'completed') && (
+            <TouchableOpacity
+              style={styles.quickActionRow}
+              onPress={() => navigation.navigate('Dispute', { jobId: job.id, jobTitle: job.title })}
+              accessibilityRole='button'
+            >
+              <Ionicons name='warning-outline' size={20} color={theme.colors.error} />
+              <Text style={[styles.quickActionText, { color: theme.colors.error }]}>Report a Problem</Text>
+              <Ionicons name='chevron-forward' size={18} color={theme.colors.textTertiary} />
+            </TouchableOpacity>
+          )}
+        </View>
       </ScrollView>
 
       {/* Single priority-based CTA -- only ever one renders */}

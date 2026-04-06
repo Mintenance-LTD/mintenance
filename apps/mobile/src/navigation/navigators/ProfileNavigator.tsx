@@ -10,7 +10,6 @@ import {
   SafePaymentMethodsScreen,
   SafeAddPaymentMethodScreen,
   SafeAddPaymentMethodV2Screen,
-  SafeContractorPayoutsScreen,
   SafeHelpCenterScreen,
   SafePropertiesScreen,
   SafePropertyDetailScreen,
@@ -107,11 +106,7 @@ export const ProfileNavigator = () => {
         component={SafeAddPaymentMethodV2Screen}
         options={{ headerShown: false }}
       />
-      <ProfileStack.Screen
-        name='ContractorPayouts'
-        component={SafeContractorPayoutsScreen}
-        options={{ headerShown: false }}
-      />
+      {/* ContractorPayouts: removed — Payouts route in BusinessNavigator handles this */}
       <ProfileStack.Screen
         name='HelpCenter'
         component={SafeHelpCenterScreen}

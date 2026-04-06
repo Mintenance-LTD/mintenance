@@ -102,7 +102,7 @@ export type ProfileStackParamList = {
   PaymentMethods: undefined;
   AddPaymentMethod: undefined;
   AddPaymentMethodV2: undefined;
-  ContractorPayouts: undefined;
+  // ContractorPayouts: removed — Payouts in BusinessNavigator handles this
   HelpCenter: undefined;
   InvoiceManagement: undefined;
   CreateInvoice: { invoiceId?: string } | undefined;

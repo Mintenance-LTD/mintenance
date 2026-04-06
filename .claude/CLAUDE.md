@@ -343,10 +343,10 @@ This is the complete user workflow from job creation to payment. All features MU
 
 **Key Status Transitions:**
 ```
-Job:     posted → assigned → in_progress → completed
-Bid:     pending → accepted/rejected
-Contract: draft → pending_X → accepted
-Escrow:  pending → held → release_pending → released
+Job:      posted → assigned → in_progress → completed (also: disputed, cancelled)
+Bid:      pending → accepted/rejected
+Contract: pending_contractor → pending_homeowner → accepted (created on bid acceptance)
+Escrow:   pending → held → release_pending → completed (code uses 'completed' not 'released')
 ```
 
 **Enforcement Gates:**
