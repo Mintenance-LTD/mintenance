@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect, FormEvent, Suspense } from 'react';
-import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { motion, useInView } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
@@ -177,13 +176,14 @@ function ComingSoonContent() {
             className='flex items-center gap-2'
             aria-label='Mintenance home'
           >
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
               src='/assets/icon.png'
               alt=''
               width={36}
               height={36}
               className='rounded-lg'
-              priority
+
             />
             <span className='text-lg font-semibold tracking-tight text-navy-900'>
               Mintenance
@@ -264,7 +264,8 @@ function ComingSoonContent() {
                 {/* Mobile: Homeowner */}
                 <div className='text-center'>
                   <div className='w-44 sm:w-56 rounded-3xl overflow-hidden shadow-2xl border-4 border-gray-200'>
-                    <Image
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                       src='/screenshots/mobile/homeowner-dashboard.png'
                       alt='Homeowner mobile app — track active projects and review bids'
                       width={280}
@@ -279,7 +280,8 @@ function ComingSoonContent() {
                 {/* Mobile: Contractor */}
                 <div className='text-center'>
                   <div className='w-44 sm:w-56 rounded-3xl overflow-hidden shadow-2xl border-4 border-gray-200'>
-                    <Image
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                       src='/screenshots/mobile/contractor-marketplace.png'
                       alt='Contractor mobile app — curated job marketplace with local listings'
                       width={280}
@@ -570,7 +572,8 @@ function ComingSoonContent() {
       >
         <div className='mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8'>
           <div className='mb-4 flex items-center justify-center gap-2'>
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
               src='/assets/icon.png'
               alt=''
               width={28}

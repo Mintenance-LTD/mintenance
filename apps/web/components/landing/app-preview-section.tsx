@@ -1,12 +1,11 @@
 'use client';
 
-import Image from 'next/image';
-
 /**
  * App Preview Section — shows real screenshots of the platform
  * in device mockup frames to build credibility and excitement.
  *
- * Used on: landing page (between hero and stats)
+ * Uses plain <img> tags (not next/image) since these are large static
+ * PNGs from /public that don't benefit from on-demand optimization.
  */
 export function AppPreviewSection() {
   return (
@@ -26,7 +25,7 @@ export function AppPreviewSection() {
 
         {/* Desktop + mobile showcase */}
         <div className="relative max-w-5xl mx-auto">
-          {/* Desktop frame — AI Assessment (most impressive feature) */}
+          {/* Desktop frame — AI Assessment */}
           <div className="relative bg-gray-900 rounded-2xl p-2 shadow-2xl mx-8">
             <div className="flex items-center gap-1.5 px-4 py-2.5">
               <div className="w-3 h-3 rounded-full bg-red-400" />
@@ -35,36 +34,35 @@ export function AppPreviewSection() {
               <div className="flex-1 mx-4 h-5 bg-gray-700 rounded-md" />
             </div>
             <div className="rounded-xl overflow-hidden">
-              <Image
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src="/screenshots/homeowner/ai-assessment.png"
                 alt="AI Building Assessment — damage detection, cost estimate, materials list, and insurance risk score"
-                width={1200}
-                height={650}
                 className="w-full h-auto"
-                priority
+                loading="eager"
               />
             </div>
           </div>
 
           {/* Floating mobile — homeowner dashboard (left) */}
           <div className="absolute -bottom-8 -left-4 w-40 sm:w-48 rounded-3xl overflow-hidden shadow-2xl border-4 border-white rotate-[-4deg] hidden md:block z-10">
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               src="/screenshots/mobile/homeowner-dashboard.png"
               alt="Homeowner mobile app — active projects, bids received"
-              width={240}
-              height={520}
               className="w-full h-auto"
+              loading="lazy"
             />
           </div>
 
           {/* Floating mobile — contractor dashboard (right) */}
           <div className="absolute -bottom-8 -right-4 w-40 sm:w-48 rounded-3xl overflow-hidden shadow-2xl border-4 border-white rotate-[4deg] hidden md:block z-10">
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               src="/screenshots/mobile/contractor-dashboard.png"
               alt="Contractor mobile app — portfolio stats, earnings, quick actions"
-              width={240}
-              height={520}
               className="w-full h-auto"
+              loading="lazy"
             />
           </div>
         </div>

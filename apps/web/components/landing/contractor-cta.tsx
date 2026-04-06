@@ -1,6 +1,5 @@
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 
 const BENEFITS = [
   {
@@ -76,7 +75,8 @@ export function ContractorCTA() {
                 <div className="flex-1 mx-3 h-4 bg-gray-700 rounded" />
               </div>
               <div className="rounded-xl overflow-hidden">
-                <Image
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                   src="/screenshots/contractor/discover-jobs.png"
                   alt="Contractor Discover Jobs — map view with available jobs, trade filters, and Quick Bid"
                   width={700}
@@ -87,7 +87,8 @@ export function ContractorCTA() {
             </div>
             {/* Floating mobile */}
             <div className="absolute -bottom-6 -right-4 w-36 rounded-2xl overflow-hidden shadow-xl border-4 border-white/20 hidden lg:block">
-              <Image
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src="/screenshots/mobile/contractor-business-hub.png"
                 alt="Mobile Business Hub — Finance, Invoices, Quotes, Clients"
                 width={180}
