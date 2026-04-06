@@ -201,9 +201,11 @@ export class AuthService {
       // Get user profile directly from Supabase
       if (data.user) {
         try {
+          // Explicit column list — avoids leaking stripe_connect_account_id,
+          // totp_secret_needs_rotation etc. if column privileges are tightened.
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select('*')
+            .select('id, email, first_name, last_name, role, phone, bio, profile_image_url, avatar_url, city, country, address, postcode, latitude, longitude, rating, total_jobs_completed, verified, admin_verified, skills, company_name, hourly_rate, years_experience, is_available, is_visible_on_map, created_at, updated_at, onboarding_completed, subscription_status, settings, notification_preferences')
             .eq('id', data.user.id)
             .single();
           if (!profileError && profileData) {
