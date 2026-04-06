@@ -256,10 +256,39 @@ export function useSettingsState() {
       toast.error('Passwords do not match');
       return;
     }
+    if (passwordData.newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
 
     setIsSaving(true);
     try {
-      // Implement password change API call
+      // Verify current password by signing in, then update via Supabase Auth
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+
+      // Verify current password
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: user?.email || '',
+        password: passwordData.currentPassword,
+      });
+      if (authError) {
+        toast.error('Current password is incorrect');
+        return;
+      }
+
+      // Update to new password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: passwordData.newPassword,
+      });
+      if (updateError) {
+        toast.error(updateError.message || 'Failed to change password');
+        return;
+      }
+
       toast.success('Password changed successfully');
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch {
@@ -272,10 +301,21 @@ export function useSettingsState() {
   const handleSaveNotifications = async (): Promise<void> => {
     setIsSaving(true);
     try {
-      // Implement notification preferences API call
+      const res = await fetch('/api/users/notification-preferences', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
+        },
+        body: JSON.stringify(notificationPrefs),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error?.message || data.message || 'Failed to save');
+      }
       toast.success('Notification preferences updated');
-    } catch {
-      toast.error('Error updating notification preferences');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error updating notification preferences');
     } finally {
       setIsSaving(false);
     }
