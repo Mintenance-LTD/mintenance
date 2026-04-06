@@ -96,24 +96,22 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
     (async () => {
       try {
         const { mobileApiClient } = await import('../../utils/mobileApiClient');
-        const res = await mobileApiClient.get<{
-          property?: {
-            type?: string;
-            bedrooms?: number | null;
-            year_built?: number | null;
-            notes?: string | null;
-          };
+        // API returns property data at root level (not nested under .property)
+        const p = await mobileApiClient.get<{
+          property_type?: string;
+          bedrooms?: number | null;
+          year_built?: number | null;
+          description?: string | null;
         }>(`/api/properties/${propertyId}`);
-        if (cancelled || !res.property) return;
-        const p = res.property;
+        if (cancelled || !p) return;
         setPropertyInfo((prev) => ({
-          propertyType: p.type || prev.propertyType,
+          propertyType: p.property_type || prev.propertyType,
           bedrooms: p.bedrooms != null ? String(p.bedrooms) : prev.bedrooms,
           yearBuilt:
             p.year_built != null ? String(p.year_built) : prev.yearBuilt,
-          description: p.notes || prev.description,
+          description: p.description || prev.description,
         }));
-        if (p.type) updateStepStatus('property_info', 'completed');
+        if (p.property_type) updateStepStatus('property_info', 'completed');
       } catch {
         /* pre-fill is non-critical; user can fill manually */
       }

@@ -142,6 +142,7 @@ export type ProfileStackParamList = {
   Expenses: undefined;
   Documents: undefined;
   Certifications: undefined;
+  DBSCheck: undefined;
   TimeTracking: undefined;
   AddTimeEntry: undefined;
   AddCertification: undefined;

@@ -60,6 +60,7 @@ import {
   SafeTimeTrackingScreen,
   SafeAddTimeEntryScreen,
   SafeAddCertificationScreen,
+  SafeDBSCheckScreen,
   SafeReportingScreen,
   SafePayoutsScreen,
 } from './profile/ProfileBusinessNavigator';
@@ -276,6 +277,11 @@ export const ProfileNavigator = () => {
         name='AddCertification'
         component={SafeAddCertificationScreen}
         options={{ headerShown: false, presentation: 'modal' }}
+      />
+      <ProfileStack.Screen
+        name='DBSCheck'
+        component={SafeDBSCheckScreen}
+        options={{ headerShown: false }}
       />
       <ProfileStack.Screen
         name='TimeTracking'
