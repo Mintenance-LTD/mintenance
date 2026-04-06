@@ -206,15 +206,12 @@ export function AccountSecuritySection({
               Add an extra layer of security to your account
             </p>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={twoFactorEnabled}
-              onChange={(e) => setTwoFactorEnabled(e.target.checked)}
-              className="sr-only peer"
-            />
-            <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-teal-600"></div>
-          </label>
+          <a
+            href="/settings/security/mfa"
+            className="px-4 py-2 text-sm font-medium text-teal-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition-colors"
+          >
+            {twoFactorEnabled ? 'Manage MFA' : 'Set up MFA'}
+          </a>
         </div>
       </div>
 

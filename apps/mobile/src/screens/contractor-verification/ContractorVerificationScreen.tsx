@@ -43,7 +43,7 @@ interface VerificationData {
 export const ContractorVerificationScreen: React.FC<
   VerificationScreenProps
 > = ({ navigation }) => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<VerificationData>({
     companyName: '',
@@ -124,6 +124,9 @@ export const ContractorVerificationScreen: React.FC<
       ).eq('id', user.id)) as { error: Error | null };
 
       if (error) throw error;
+
+      // Refresh auth context so verification_status + company fields sync
+      await refreshUser();
 
       Alert.alert(
         'Verification Submitted',
