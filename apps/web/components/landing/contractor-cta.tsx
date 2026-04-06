@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const BENEFITS = [
   {
@@ -65,13 +66,44 @@ export function ContractorCTA() {
             </Link>
           </div>
 
-          <div className="grid gap-6">
-            {CONTRACTOR_PROMISES.map((item) => (
-              <div key={item.label} className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
-                <p className="text-2xl font-bold text-white mb-2">{item.label}</p>
-                <p className="text-white/70 leading-relaxed">{item.description}</p>
+          <div className="relative">
+            {/* Contractor app screenshot in device frame */}
+            <div className="relative bg-gray-800 rounded-2xl p-2 shadow-2xl border border-white/10">
+              <div className="flex items-center gap-1.5 px-3 py-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+                <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
+                <div className="flex-1 mx-3 h-4 bg-gray-700 rounded" />
               </div>
-            ))}
+              <div className="rounded-xl overflow-hidden">
+                <Image
+                  src="/screenshots/contractor/discover-jobs.png"
+                  alt="Contractor Discover Jobs — map view with available jobs, trade filters, and Quick Bid"
+                  width={700}
+                  height={440}
+                  className="w-full h-auto"
+                />
+              </div>
+            </div>
+            {/* Floating mobile */}
+            <div className="absolute -bottom-6 -right-4 w-36 rounded-2xl overflow-hidden shadow-xl border-4 border-white/20 hidden lg:block">
+              <Image
+                src="/screenshots/mobile/contractor-business-hub.png"
+                alt="Mobile Business Hub — Finance, Invoices, Quotes, Clients"
+                width={180}
+                height={390}
+                className="w-full h-auto"
+              />
+            </div>
+            {/* Promise pills below */}
+            <div className="flex flex-wrap gap-3 mt-8 justify-center">
+              {CONTRACTOR_PROMISES.map((item) => (
+                <div key={item.label} className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20">
+                  <CheckCircleIcon />
+                  <span className="text-sm font-medium text-white">{item.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

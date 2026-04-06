@@ -249,6 +249,52 @@ function ComingSoonContent() {
           </div>
         </section>
 
+        {/* App Preview */}
+        <section className='py-16 bg-white'>
+          <div className='mx-auto max-w-5xl px-4 sm:px-6 lg:px-8'>
+            <AnimatedSection className='text-center mb-10'>
+              <p className='text-sm font-semibold text-teal-600 uppercase tracking-wider mb-2'>Coming to iOS &amp; Android</p>
+              <h2 className='text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl'>
+                A Sneak Peek at the App
+              </h2>
+            </AnimatedSection>
+
+            <AnimatedSection>
+              <div className='flex justify-center items-end gap-6 sm:gap-10'>
+                {/* Mobile: Homeowner */}
+                <div className='text-center'>
+                  <div className='w-44 sm:w-56 rounded-3xl overflow-hidden shadow-2xl border-4 border-gray-200'>
+                    <Image
+                      src='/screenshots/mobile/homeowner-dashboard.png'
+                      alt='Homeowner mobile app — track active projects and review bids'
+                      width={280}
+                      height={600}
+                      className='w-full h-auto'
+                    />
+                  </div>
+                  <p className='text-sm font-semibold text-gray-900 mt-4'>Homeowner</p>
+                  <p className='text-xs text-gray-500'>Post jobs &middot; Track progress</p>
+                </div>
+
+                {/* Mobile: Contractor */}
+                <div className='text-center'>
+                  <div className='w-44 sm:w-56 rounded-3xl overflow-hidden shadow-2xl border-4 border-gray-200'>
+                    <Image
+                      src='/screenshots/mobile/contractor-marketplace.png'
+                      alt='Contractor mobile app — curated job marketplace with local listings'
+                      width={280}
+                      height={600}
+                      className='w-full h-auto'
+                    />
+                  </div>
+                  <p className='text-sm font-semibold text-gray-900 mt-4'>Contractor</p>
+                  <p className='text-xs text-gray-500'>Find work &middot; Grow your business</p>
+                </div>
+              </div>
+            </AnimatedSection>
+          </div>
+        </section>
+
         {/* Features */}
         <section className='bg-navy-50/50 py-20 sm:py-28'>
           <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8'>
