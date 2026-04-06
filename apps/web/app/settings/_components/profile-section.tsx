@@ -109,13 +109,12 @@ export function ProfileSection({
             <input
               type='email'
               value={profileData.email}
-              onChange={(e) =>
-                setProfileData((prev) => ({ ...prev, email: e.target.value }))
-              }
-              className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent bg-white text-gray-900'
+              readOnly
+              disabled
+              className='w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed'
             />
             <p className='text-sm text-gray-500 mt-1'>
-              Your primary email for account notifications
+              Email cannot be changed. Contact support if you need to update it.
             </p>
           </div>
 
