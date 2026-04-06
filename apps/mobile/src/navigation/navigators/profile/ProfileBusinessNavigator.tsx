@@ -23,7 +23,7 @@ import { TimeTrackingScreen } from "../../../screens/contractor/TimeTrackingScre
 import { AddTimeEntryScreen } from "../../../screens/contractor/AddTimeEntryScreen";
 import { AddCertificationScreen } from "../../../screens/contractor/AddCertificationScreen";
 import { ReportingScreen } from "../../../screens/contractor/ReportingScreen";
-import { PayoutsScreen } from "../../../screens/contractor/PayoutsScreen";
+import PayoutsScreen from "../../../screens/contractor/ContractorPayoutsScreen";
 import { BusinessProfileScreen } from "../../../screens/contractor/BusinessProfileScreen";
 import { withScreenErrorBoundary } from "../../../components/ErrorBoundaryProvider";
 
