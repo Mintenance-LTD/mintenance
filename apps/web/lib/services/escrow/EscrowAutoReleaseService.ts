@@ -199,7 +199,83 @@ export class EscrowAutoReleaseService {
     const feeBreakdown = FeeCalculationService.calculateFees(escrow.amount || 0, { paymentType });
     const contractorAmountCents = Math.round(feeBreakdown.contractorAmount * 100);
 
-    // Create Stripe transfer
+    // Accumulation mode: skip direct transfer, credit the payout balance.
+    // The weekly cron (/api/cron/contractor-payouts) will issue the Stripe
+    // transfer once the contractor's pending balance crosses the threshold.
+    // See docs/STRIPE_CONNECT_INTEGRATION.md for the weekly payout model.
+    if (process.env.ESCROW_USE_PAYOUT_ACCUMULATION === 'true') {
+      const { accumulateEarnings } = await import(
+        '@/lib/stripe/connect/payouts'
+      );
+      await accumulateEarnings({
+        contractorId: job.contractor_id,
+        amountMinor: contractorAmountCents,
+        currency: 'GBP',
+        jobId: job.id,
+      });
+
+      // Still need to track platform fee + update escrow even though we
+      // didn't transfer now. The fee-transfer is handled on actual payout.
+      const chargeIdAcc = await this.getChargeId(escrow.payment_intent_id);
+      let feeTransferResultAcc;
+      try {
+        feeTransferResultAcc = await FeeTransferService.transferPlatformFee({
+          escrowTransactionId: escrow.id,
+          jobId: job.id,
+          contractorId: job.contractor_id,
+          amount: escrow.amount || 0,
+          paymentIntentId: escrow.payment_intent_id || '',
+          chargeId: chargeIdAcc,
+          paymentType,
+        });
+      } catch (error) {
+        logger.error('Failed to create fee transfer record (accumulation mode)', error, {
+          service: 'EscrowAutoReleaseService',
+          escrowId: escrow.id,
+        });
+      }
+
+      const { error: accUpdateErr } = await serverSupabase
+        .from('escrow_transactions')
+        .update({
+          status: 'completed',
+          released_at: new Date().toISOString(),
+          release_reason: 'auto_release_accumulated',
+          updated_at: new Date().toISOString(),
+          // transfer_id intentionally null — will be set by weekly payout
+          platform_fee: feeBreakdown.platformFee,
+          contractor_payout: feeBreakdown.contractorAmount,
+          stripe_processing_fee: feeBreakdown.stripeFee,
+          fee_transfer_status: feeTransferResultAcc?.status || 'pending',
+          fee_transfer_id: feeTransferResultAcc?.feeTransferId || null,
+          metadata: {
+            ...(typeof escrow.metadata === 'object' && escrow.metadata ? escrow.metadata : {}),
+            auto_released: true,
+            auto_released_at: new Date().toISOString(),
+            payout_mode: 'accumulated',
+          },
+        })
+        .eq('id', escrow.id);
+
+      if (accUpdateErr) {
+        logger.error('Failed to update escrow after accumulated release', {
+          service: 'EscrowAutoReleaseService',
+          escrowId: escrow.id,
+          error: accUpdateErr,
+        });
+        return false;
+      }
+
+      logger.info('Escrow auto-released via accumulation mode', {
+        service: 'EscrowAutoReleaseService',
+        escrowId: escrow.id,
+        contractorId: job.contractor_id,
+        amountMinor: contractorAmountCents,
+      });
+      return true;
+    }
+
+    // Direct-transfer mode (default): create Stripe transfer immediately
     const transfer = await stripe.transfers.create({
       amount: contractorAmountCents,
       currency: 'gbp',
