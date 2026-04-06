@@ -1,142 +1,181 @@
 'use client';
 
-import React, { useState } from 'react';
-import { StandardCard } from '@/components/ui/StandardCard';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { Label } from '@/components/ui/label';
+import React, { useEffect, useState } from 'react';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { GDPRForm } from './GDPRForm';
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements,
+} from '@stripe/react-stripe-js';
+import type { StripeElementsOptions } from '@stripe/stripe-js';
+import { StandardCard } from '@/components/ui/StandardCard';
+import { Button } from '@/components/ui/Button';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { getStripeClient } from '@/lib/stripe/elements/client';
 import { logger } from '@mintenance/shared';
 
+/**
+ * PaymentMethodForm — adds a homeowner's saved payment method using
+ * Stripe Elements. Supports cards + BACS Direct Debit.
+ *
+ * Flow:
+ *   1. Mount → POST /api/payments/setup-intent → receive clientSecret
+ *   2. Render <Elements> with clientSecret + <PaymentElement>
+ *   3. On submit: stripe.confirmSetup() redirects to return_url
+ *   4. Stripe webhook (setup_intent.succeeded) persists the payment method
+ */
 export function PaymentMethodForm() {
-  const [formData, setFormData] = useState({
-    firstName: '',
-    description: '',
-    paymentMethodType: '',
-    language: 'en',
-    date: '',
-    gdpr: '',
-  });
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const [showGDPR, setShowGDPR] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/payments/setup-intent', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-csrf-token': getCsrfToken(),
+          },
+        });
+        const data = await res.json();
+        if (cancelled) return;
+        if (!res.ok || !data.clientSecret) {
+          throw new Error(data.message ?? 'Failed to initialise payment form');
+        }
+        setClientSecret(data.clientSecret);
+      } catch (e) {
+        if (!cancelled) setError((e as Error).message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // TODO: Implement payment method creation with Stripe
-    // logger.info('Form data:', formData', { service: 'ui' });
+  if (loading) {
+    return (
+      <StandardCard>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+        </div>
+      </StandardCard>
+    );
+  }
+
+  if (error || !clientSecret) {
+    return (
+      <StandardCard>
+        <div
+          className="flex items-start gap-3 rounded border border-red-300 bg-red-50 p-4 text-sm text-red-900"
+          role="alert"
+        >
+          <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0" />
+          <div>
+            <div className="font-medium">Unable to load payment form</div>
+            <div className="mt-1">
+              {error ?? 'Please try again in a moment.'}
+            </div>
+          </div>
+        </div>
+      </StandardCard>
+    );
+  }
+
+  const options: StripeElementsOptions = {
+    clientSecret,
+    appearance: {
+      theme: 'stripe',
+      variables: { colorPrimary: '#0d9488' },
+    },
   };
 
   return (
     <StandardCard>
       <div className="space-y-6">
-        <h2 className="text-xl font-semibold text-gray-900">Add Payment Method</h2>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="firstName">First Name</Label>
-              <Input
-                id="firstName"
-                value={formData.firstName}
-                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                required
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Input
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="paymentMethodType">Payment Method Type</Label>
-            <Select
-              value={formData.paymentMethodType}
-              onValueChange={(value) => setFormData({ ...formData, paymentMethodType: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select payment method type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="bank_account">Bank Account</SelectItem>
-                <SelectItem value="card">Credit/Debit Card</SelectItem>
-                <SelectItem value="paypal">PayPal</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="language">Language</Label>
-              <Select
-                value={formData.language}
-                onValueChange={(value) => setFormData({ ...formData, language: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="es">Spanish</SelectItem>
-                  <SelectItem value="fr">French</SelectItem>
-                  <SelectItem value="de">German</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="date">Date</Label>
-              <Input
-                id="date"
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="gdpr">GDPR</Label>
-            <Select
-              value={formData.gdpr}
-              onValueChange={(value) => {
-                setFormData({ ...formData, gdpr: value });
-                setShowGDPR(value === 'yes');
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select GDPR option" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="yes">Yes</SelectItem>
-                <SelectItem value="no">No</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {showGDPR && <GDPRForm />}
-
-          <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline">
-              Cancel
-            </Button>
-            <Button type="submit">Add Payment Method</Button>
-          </div>
-        </form>
+        <h2 className="text-xl font-semibold text-gray-900">
+          Add Payment Method
+        </h2>
+        <Elements stripe={getStripeClient()} options={options}>
+          <AddPaymentMethodInner />
+        </Elements>
       </div>
     </StandardCard>
   );
 }
 
+/** The actual form, rendered inside <Elements> so it can access useStripe/useElements. */
+function AddPaymentMethodInner() {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+    setSubmitting(true);
+    setSubmitError(null);
+
+    const { error: submitErr } = await stripe.confirmSetup({
+      elements,
+      confirmParams: {
+        return_url: `${window.location.origin}/account/payment-methods/return`,
+      },
+    });
+
+    // confirmSetup only returns here on non-redirecting errors
+    if (submitErr) {
+      logger.warn('Stripe confirmSetup failed', {
+        service: 'ui',
+        type: submitErr.type,
+        code: submitErr.code,
+      });
+      setSubmitError(submitErr.message ?? 'Could not save payment method');
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <PaymentElement
+        options={{
+          layout: 'tabs',
+        }}
+      />
+      {submitError && (
+        <div
+          className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-900"
+          role="alert"
+        >
+          {submitError}
+        </div>
+      )}
+      <div className="flex justify-end gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => window.history.back()}
+          disabled={submitting}
+        >
+          Cancel
+        </Button>
+        <Button type="submit" disabled={!stripe || submitting}>
+          {submitting ? 'Saving…' : 'Save payment method'}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function getCsrfToken(): string {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(
+    /(?:^|; )(?:__Host-)?csrf-token=([^;]*)/,
+  );
+  return match ? decodeURIComponent(match[1]) : '';
+}

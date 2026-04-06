@@ -131,10 +131,10 @@ export const InsuranceScreen: React.FC = () => {
 
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => navigation.navigate('AddInsurance' as never)}
-        accessibilityLabel="Upload insurance document"
+        onPress={() => navigation.navigate('BusinessProfile' as never)}
+        accessibilityLabel="Add insurance details"
       >
-        <Ionicons name="cloud-upload" size={24} color={theme.colors.textInverse} />
+        <Ionicons name="add" size={26} color={theme.colors.textInverse} />
       </TouchableOpacity>
     </SafeAreaView>
   );

@@ -5,4 +5,3 @@
 
 export { VideoCallService } from './VideoCallService';
 export { BusinessDashboard } from './BusinessDashboard';
-export { AdvancedSearchService } from './AdvancedSearchService';

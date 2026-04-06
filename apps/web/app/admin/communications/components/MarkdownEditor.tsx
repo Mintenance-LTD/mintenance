@@ -8,23 +8,60 @@ const CONTENT_MAX_LENGTH = 5000;
 
 /**
  * Converts a subset of markdown to HTML for preview purposes.
- * The input is admin-authored content (not user-submitted), so XSS risk is minimal.
- * HTML entities are escaped before any markdown transformation.
+ * The input is admin-authored content, but an admin account could be
+ * compromised — we still sanitize URL schemes to prevent stored XSS
+ * via `javascript:` / `data:` / `vbscript:` protocol handlers.
  */
-function simpleMarkdownToHtml(md: string): string {
-  let html = md
+export function sanitizeUrlScheme(url: string): string {
+  // Strip whitespace and control chars (e.g. \x09 in "java\tscript:")
+  const cleaned = url.trim().replace(/[\x00-\x1f\x7f]/g, '');
+  // Allow only http, https, mailto, and relative URLs (/path, #anchor, ?query)
+  const safeSchemeRe = /^(https?:|mailto:|[/#?]|[^:]*$)/i;
+  // Reject if the URL starts with a dangerous scheme
+  if (!safeSchemeRe.test(cleaned)) return '#';
+  // Second check: anything containing a `:` before the first `/` or `#` that
+  // isn't http/https/mailto is untrusted
+  const colonIdx = cleaned.indexOf(':');
+  const slashIdx = cleaned.indexOf('/');
+  const hashIdx = cleaned.indexOf('#');
+  const hasSchemeColon =
+    colonIdx !== -1 &&
+    (slashIdx === -1 || colonIdx < slashIdx) &&
+    (hashIdx === -1 || colonIdx < hashIdx);
+  if (hasSchemeColon) {
+    const scheme = cleaned.slice(0, colonIdx).toLowerCase();
+    if (!['http', 'https', 'mailto'].includes(scheme)) return '#';
+  }
+  return cleaned;
+}
+
+/**
+ * Escapes HTML-significant characters to block raw tag injection.
+ */
+function escapeHtml(s: string): string {
+  return s
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
+
+export function simpleMarkdownToHtml(md: string): string {
+  let html = escapeHtml(md);
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
   html = html.replace(
     /^# (.+)$/gm,
     '<h3 style="font-size:18px;font-weight:600;margin:8px 0">$1</h3>'
   );
+  // Link: sanitize href scheme to block javascript:/data:/vbscript:
   html = html.replace(
     /\[([^\]]+)\]\(([^)]+)\)/g,
-    '<a href="$2" style="color:#0d9488;text-decoration:underline">$1</a>'
+    (_match, label: string, rawUrl: string) => {
+      const safeUrl = sanitizeUrlScheme(rawUrl);
+      return `<a href="${safeUrl}" style="color:#0d9488;text-decoration:underline">${label}</a>`;
+    }
   );
   html = html.replace(/\n/g, '<br/>');
   return html;

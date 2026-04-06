@@ -3,10 +3,19 @@
  * Combines React Query with multi-layer caching for optimal performance
  */
 
-import { useQuery, useMutation, useQueryClient, QueryKey } from '@tanstack/react-query';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  QueryKey,
+} from '@tanstack/react-query';
 import type { Job } from '@/types';
 import { CacheService } from '../services/CacheService';
-import { CACHE_TIMES, STALE_TIMES, QUERY_KEYS } from '../config/reactQuery.config';
+import {
+  CACHE_TIMES,
+  STALE_TIMES,
+  QUERY_KEYS,
+} from '../config/reactQuery.config';
 import { logger } from '../utils/logger';
 import { mobileApiClient } from '../utils/mobileApiClient';
 import { supabase } from '../config/supabase';
@@ -37,7 +46,9 @@ export function useCachedQuery<TData>({
 }: CachedQueryOptions<TData>) {
   const queryClient = useQueryClient();
   const cacheService = CacheService.getInstance();
-  const cacheKey = Array.isArray(queryKey) ? queryKey.join(':') : String(queryKey);
+  const cacheKey = Array.isArray(queryKey)
+    ? queryKey.join(':')
+    : String(queryKey);
 
   return useQuery<TData>({
     queryKey,
@@ -66,7 +77,9 @@ export function useCachedQuery<TData>({
         onSuccess?.(data);
         return data;
       } catch (error) {
-        logger.error('useCachedQuery', `Error fetching ${cacheKey}`, { error: error instanceof Error ? error.message : String(error) });
+        logger.error('useCachedQuery', `Error fetching ${cacheKey}`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
         onError?.(error as Error);
 
         // Try to return stale cached data on error
@@ -106,7 +119,9 @@ export function usePrefetchCached() {
     queryFn: () => Promise<TData>,
     options?: { cacheTime?: number }
   ) => {
-    const cacheKey = Array.isArray(queryKey) ? queryKey.join(':') : String(queryKey);
+    const cacheKey = Array.isArray(queryKey)
+      ? queryKey.join(':')
+      : String(queryKey);
     const cacheTime = options?.cacheTime || CACHE_TIMES.DYNAMIC;
 
     try {
@@ -128,7 +143,9 @@ export function usePrefetchCached() {
         gcTime: cacheTime,
       });
     } catch (error) {
-      logger.error('usePrefetchCached', `Error prefetching ${cacheKey}`, { error: error instanceof Error ? error.message : String(error) });
+      logger.error('usePrefetchCached', `Error prefetching ${cacheKey}`, {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   };
 }
@@ -160,15 +177,18 @@ export function useCachedMutation<TData, TVariables>({
     onMutate: async (variables) => {
       if (optimisticUpdate) {
         // Cancel outgoing refetches
-        await queryClient.cancelQueries({ queryKey: optimisticUpdate.queryKey });
+        await queryClient.cancelQueries({
+          queryKey: optimisticUpdate.queryKey,
+        });
 
         // Snapshot previous value
-        const previousValue = queryClient.getQueryData(optimisticUpdate.queryKey);
+        const previousValue = queryClient.getQueryData(
+          optimisticUpdate.queryKey
+        );
 
         // Optimistically update
-        queryClient.setQueryData(
-          optimisticUpdate.queryKey,
-          (old: unknown) => optimisticUpdate.updater(old, variables)
+        queryClient.setQueryData(optimisticUpdate.queryKey, (old: unknown) =>
+          optimisticUpdate.updater(old, variables)
         );
 
         return { previousValue };
@@ -181,7 +201,9 @@ export function useCachedMutation<TData, TVariables>({
         queryClient.setQueryData(optimisticUpdate.queryKey, ctx.previousValue);
       }
 
-      logger.error('useCachedMutation', 'Mutation error', { error: error.message });
+      logger.error('useCachedMutation', 'Mutation error', {
+        error: error.message,
+      });
       onError?.(error, variables);
     },
     onSuccess: async (data, variables) => {
@@ -220,7 +242,10 @@ export function useClearCache() {
   const queryClient = useQueryClient();
   const cacheService = CacheService.getInstance();
 
-  return async (options?: { clearReactQuery?: boolean; clearDisk?: boolean }) => {
+  return async (options?: {
+    clearReactQuery?: boolean;
+    clearDisk?: boolean;
+  }) => {
     try {
       if (options?.clearReactQuery !== false) {
         queryClient.clear();
@@ -232,7 +257,9 @@ export function useClearCache() {
 
       logger.info('useClearCache', 'Cache cleared successfully');
     } catch (error) {
-      logger.error('useClearCache', 'Error clearing cache', { error: error instanceof Error ? error.message : String(error) });
+      logger.error('useClearCache', 'Error clearing cache', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       throw error;
     }
   };
@@ -289,7 +316,10 @@ export function useJobsWithCache() {
         .from('jobs')
         .select('*')
         .order('created_at', { ascending: false });
-      if (error) { logger.error('useJobsWithCache', error.message); throw new Error(error.message); }
+      if (error) {
+        logger.error('useJobsWithCache', error.message);
+        throw new Error(error.message);
+      }
       return (data || []) as Job[];
     },
     ...CACHE_PATTERNS.DYNAMIC,
@@ -305,10 +335,15 @@ export function useContractorProfile(contractorId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(
+          'id, role, first_name, last_name, bio, city, country, profile_image_url, avatar_url, rating, total_jobs_completed, verified, admin_verified, skills, is_available, company_name, hourly_rate, years_experience, portfolio_images, created_at'
+        )
         .eq('id', contractorId)
         .single();
-      if (error) { logger.error('useContractorProfile', error.message); throw new Error(error.message); }
+      if (error) {
+        logger.error('useContractorProfile', error.message);
+        throw new Error(error.message);
+      }
       return data;
     },
     ...CACHE_PATTERNS.SEMI_STATIC,

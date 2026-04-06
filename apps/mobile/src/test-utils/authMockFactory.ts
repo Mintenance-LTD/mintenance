@@ -7,7 +7,9 @@ import { createStub } from './jest-globals';
 // ============================================================================
 
 export class AuthMockFactory {
-  static createCompleteAuthMock(overrides: Partial<AuthContextType> = {}): AuthContextType {
+  static createCompleteAuthMock(
+    overrides: Partial<AuthContextType> = {}
+  ): AuthContextType {
     return {
       user: null,
       session: null,
@@ -16,16 +18,24 @@ export class AuthMockFactory {
       signUp: createStub() as AuthContextType['signUp'],
       signOut: createStub() as AuthContextType['signOut'],
       updateProfile: createStub() as AuthContextType['updateProfile'],
-      signInWithBiometrics: createStub() as AuthContextType['signInWithBiometrics'],
-      isBiometricAvailable: (global.jest?.fn?.(() => Promise.resolve(false)) || (() => Promise.resolve(false))) as AuthContextType['isBiometricAvailable'],
-      isBiometricEnabled: (global.jest?.fn?.(() => Promise.resolve(false)) || (() => Promise.resolve(false))) as AuthContextType['isBiometricEnabled'],
+      refreshUser: createStub() as AuthContextType['refreshUser'],
+      signInWithBiometrics:
+        createStub() as AuthContextType['signInWithBiometrics'],
+      isBiometricAvailable: (global.jest?.fn?.(() => Promise.resolve(false)) ||
+        (() =>
+          Promise.resolve(false))) as AuthContextType['isBiometricAvailable'],
+      isBiometricEnabled: (global.jest?.fn?.(() => Promise.resolve(false)) ||
+        (() =>
+          Promise.resolve(false))) as AuthContextType['isBiometricEnabled'],
       enableBiometric: createStub() as AuthContextType['enableBiometric'],
       disableBiometric: createStub() as AuthContextType['disableBiometric'],
       ...overrides,
     };
   }
 
-  static createAuthenticatedHomeowner(overrides: Partial<User> = {}): AuthContextType {
+  static createAuthenticatedHomeowner(
+    overrides: Partial<User> = {}
+  ): AuthContextType {
     const homeowner: User = {
       id: 'homeowner-123',
       email: 'homeowner@example.com',
@@ -43,7 +53,9 @@ export class AuthMockFactory {
     });
   }
 
-  static createAuthenticatedContractor(overrides: Partial<User> = {}): AuthContextType {
+  static createAuthenticatedContractor(
+    overrides: Partial<User> = {}
+  ): AuthContextType {
     const contractor: User = {
       id: 'contractor-456',
       email: 'contractor@example.com',
@@ -79,9 +91,11 @@ export class AuthMockFactory {
 // CONVENIENCE EXPORTS
 // ============================================================================
 
-export const mockAuthNotAuthenticated = AuthMockFactory.createCompleteAuthMock();
+export const mockAuthNotAuthenticated =
+  AuthMockFactory.createCompleteAuthMock();
 export const mockAuthHomeowner = AuthMockFactory.createAuthenticatedHomeowner();
-export const mockAuthContractor = AuthMockFactory.createAuthenticatedContractor();
+export const mockAuthContractor =
+  AuthMockFactory.createAuthenticatedContractor();
 export const mockAuthLoading = AuthMockFactory.createLoadingState();
 export const mockAuthBiometric = AuthMockFactory.createBiometricEnabledMock();
 

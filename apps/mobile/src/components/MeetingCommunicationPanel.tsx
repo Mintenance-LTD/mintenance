@@ -102,7 +102,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
       loadCommunicationData(); // Refresh messages
     } catch (error) {
       logger.error('Error sending message:', error);
-      Alert.alert('Error', 'Failed to send message');
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to send message');
     }
   };
 
@@ -141,7 +141,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
       );
     } catch (error) {
       logger.error('Error rescheduling meeting:', error);
-      Alert.alert('Error', 'Failed to reschedule meeting');
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to reschedule meeting');
     } finally {
       setRescheduleLoading(false);
     }
@@ -164,7 +164,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
       );
     } catch (error) {
       logger.error('Error updating meeting status:', error);
-      Alert.alert('Error', 'Failed to update meeting status');
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to update meeting status');
     }
   };
 

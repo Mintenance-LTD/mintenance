@@ -250,6 +250,7 @@ export const updatePropertySchema = z.object({
       'terraced',
       'bungalow',
       'cottage',
+      'maisonette',
       'other',
     ])
     .optional(),

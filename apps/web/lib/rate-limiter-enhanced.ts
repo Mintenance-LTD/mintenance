@@ -189,23 +189,45 @@ export class EnhancedRateLimiter {
     if (this.initPromise) return this.initPromise;
 
     this.initPromise = (async () => {
+      const redisRequired =
+        process.env.REDIS_REQUIRED === 'true' ||
+        process.env.NODE_ENV === 'production';
+      const hasRedisConfig = !!process.env.UPSTASH_REDIS_REST_URL;
+
       try {
-        // Try Upstash first (preferred for production)
-        if (process.env.UPSTASH_REDIS_REST_URL) {
+        if (hasRedisConfig) {
           const upstash = new UpstashStore();
           await upstash.init();
           this.primaryStore = upstash;
           return;
         }
 
-        // No Redis available, use in-memory
-        logger.warn('No Redis configured, using in-memory rate limiting (not suitable for production)', {
-          service: 'rate-limiter',
-        });
+        // No Redis configured
+        if (redisRequired) {
+          const msg =
+            'Rate limiter requires Upstash Redis in production. ' +
+            'Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN, ' +
+            'or set REDIS_REQUIRED=false to explicitly opt out (single-instance deployments only).';
+          logger.error('[CRITICAL] ' + msg, new Error('REDIS_REQUIRED but not configured'), {
+            service: 'rate-limiter',
+            severity: 'CRITICAL',
+          });
+          throw new Error(msg);
+        }
+
+        logger.warn(
+          'No Redis configured, using in-memory rate limiting. ' +
+            'This is NOT suitable for multi-instance production deployments — ' +
+            'each instance tracks its own counters, effectively multiplying limits by instance count.',
+          { service: 'rate-limiter' },
+        );
       } catch (error) {
         logger.error('Failed to initialize primary rate limit store', error, {
           service: 'rate-limiter',
+          severity: redisRequired ? 'CRITICAL' : 'MEDIUM',
         });
+        // Re-throw in production so startup fails loudly
+        if (redisRequired) throw error;
       }
     })();
 
@@ -331,32 +353,28 @@ export class EnhancedRateLimiter {
       };
 
     } catch (error) {
-      logger.error('Rate limit check failed', error, {
-        service: 'rate-limiter',
-      });
+      // Policy: fail-OPEN on rate-limiter errors by design.
+      // Rationale: a rate-limiter outage should not take down the whole app.
+      // Mitigations:
+      //   1. REDIS_REQUIRED=true + init-time check (see init()) prevents
+      //      silently starting without Redis in production
+      //   2. Every fail-open decision is logged at CRITICAL severity so it's
+      //      visible in monitoring
+      //   3. Abuse is still bounded by edge-level rate limits (Cloudflare/WAF)
+      //      if configured upstream
+      logger.error(
+        '[CRITICAL] Rate limiter fail-open — request allowed despite check failure',
+        error,
+        { service: 'rate-limiter', severity: 'CRITICAL' },
+      );
 
-      // In production without Redis, allow requests but log the issue
-      // TODO: Set up Upstash Redis for proper distributed rate limiting
-      if (process.env.NODE_ENV === 'production') {
-        logger.warn('Rate limit check failed in production - allowing request', {
-          service: 'rate-limiter',
-        });
-        return {
-          allowed: true,
-          limit: 100,
-          remaining: 99,
-          resetTime: Date.now() + 60000,
-          tier: 'anonymous',
-        };
-      }
-
-      // Allow in development for easier debugging
+      const isProd = process.env.NODE_ENV === 'production';
       return {
         allowed: true,
-        limit: 1000,
-        remaining: 999,
+        limit: isProd ? 100 : 1000,
+        remaining: isProd ? 99 : 999,
         resetTime: Date.now() + 60000,
-        tier: 'authenticated',
+        tier: isProd ? 'anonymous' : 'authenticated',
       };
     }
   }
@@ -403,15 +421,19 @@ export class EnhancedRateLimiter {
   }
 
   /**
-   * Log rate limit violation
+   * Log rate limit violation to structured logger + persist to security_events
+   * for monitoring and audit trail. The event_type 'suspicious_activity' is
+   * reused from the security_events CHECK constraint (see 004_security_audit.sql).
    */
   private async logViolation(
     path: string,
     identifier: string,
     tier: RateLimitTier,
     attempts: number,
-    limit: number
+    limit: number,
   ): Promise<void> {
+    const severity: 'medium' | 'high' = attempts > limit * 2 ? 'high' : 'medium';
+
     logger.warn('Rate limit exceeded', {
       service: 'rate-limiter',
       path,
@@ -419,19 +441,35 @@ export class EnhancedRateLimiter {
       tier,
       attempts,
       limit,
-      severity: attempts > limit * 2 ? 'HIGH' : 'MEDIUM',
+      severity,
     });
 
-    // TODO: Store in security_events table for monitoring
+    // Fire-and-forget — do not block the request path on security-event writes.
+    void this.persistSecurityEvent({
+      event_type: 'suspicious_activity',
+      severity,
+      identifier,
+      details: {
+        kind: 'rate_limit_exceeded',
+        path,
+        tier,
+        attempts,
+        limit,
+        overage_factor: +(attempts / limit).toFixed(2),
+      },
+    });
   }
 
   /**
-   * Handle potential DDoS attack
+   * Handle potential DDoS attack — log at CRITICAL, persist security event.
+   * IP blocking is handled at the edge (Cloudflare/WAF), not here.
+   * If you need active IP blocking, configure it via CF_API_TOKEN
+   * (see docs/CI_QUALITY_GATES.md — not currently implemented).
    */
   private async handlePotentialDDoS(
     identifier: string,
     path: string,
-    attempts: number
+    attempts: number,
   ): Promise<void> {
     logger.error('[SECURITY] Potential DDoS detected', {
       service: 'rate-limiter',
@@ -441,9 +479,49 @@ export class EnhancedRateLimiter {
       severity: 'CRITICAL',
     });
 
-    // TODO: Implement automated blocking via Cloudflare API
-    // TODO: Send alert to security team
-    // TODO: Add to IP blacklist
+    void this.persistSecurityEvent({
+      event_type: 'suspicious_activity',
+      severity: 'critical',
+      identifier,
+      details: {
+        kind: 'ddos_suspected',
+        path,
+        attempts,
+      },
+    });
+  }
+
+  /**
+   * Persist a security event to Supabase. Fire-and-forget — never throws.
+   * Dynamic import of the server client keeps this module usable in edge
+   * runtimes that don't ship the Supabase SDK.
+   */
+  private async persistSecurityEvent(event: {
+    event_type: string;
+    severity: 'low' | 'medium' | 'high' | 'critical';
+    identifier: string;
+    details: Record<string, unknown>;
+  }): Promise<void> {
+    try {
+      const { serverSupabase } = await import('./api/supabaseServer');
+      // Best-effort: extract IP from "ip:x.x.x.x" or user id from "user:uuid"
+      const [kind, value] = event.identifier.split(':');
+      const ip_address = kind === 'ip' ? value : null;
+      const user_id = kind === 'user' ? value : null;
+
+      await serverSupabase.from('security_events').insert({
+        event_type: event.event_type,
+        severity: event.severity,
+        ip_address,
+        user_id,
+        details: event.details,
+      });
+    } catch (err) {
+      // Don't let a security-event write failure affect the request path.
+      logger.error('Failed to persist security event', err, {
+        service: 'rate-limiter',
+      });
+    }
   }
 
   /**

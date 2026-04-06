@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { logger } from '@mintenance/shared';
 import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
 import { supabase } from '@/lib/supabase';
 import { DynamicGoogleMap } from '@/components/maps';
 import {
@@ -19,41 +18,10 @@ import {
   createServiceAreaCircle,
 } from '@/lib/maps';
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
-
-/**
- * Contractor Map Marker Interface
- */
-interface ContractorMarker {
-  id: string;
-  name: string;
-  latitude: number;
-  longitude: number;
-  rating: number;
-  distance?: number;
-  skills: string[];
-  profileImage?: string;
-  city?: string;
-}
-
-interface ContractorMapData {
-  id: string;
-  first_name?: string;
-  last_name?: string;
-  latitude?: string | number;
-  longitude?: string | number;
-  is_visible_on_map?: boolean;
-  rating?: number;
-  category?: string;
-  profile_image_url?: string;
-  city?: string;
-  company_name?: string;
-  bio?: string;
-  email_verified?: boolean;
-  total_jobs_completed?: number;
-  is_available?: boolean;
-  contractor_skills?: Array<{ skill_name: string }>;
-  [key: string]: unknown;
-}
+import type { ContractorMarker, ContractorMapData } from './ContractorMapView/types';
+import { MapContractorCard } from './ContractorMapView/MapContractorCard';
+import { MapInfoCard } from './ContractorMapView/MapInfoCard';
+import { ContractorDetailsModal } from './ContractorMapView/ContractorDetailsModal';
 
 interface ContractorMapViewProps {
   contractors: ContractorMapData[];
@@ -114,7 +82,7 @@ export function ContractorMapView(props: ContractorMapViewProps) {
   const loadContractors = async () => {
     try {
       setLoading(true);
-      
+
       // Transform initial contractors or fetch from database
       if (initialContractors && initialContractors.length > 0) {
         const markers: ContractorMarker[] = initialContractors
@@ -163,20 +131,6 @@ export function ContractorMapView(props: ContractorMapViewProps) {
       setMapError('Failed to load contractors on map');
       setLoading(false);
     }
-  };
-
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371; // Earth's radius in km
-    const dLat = (lat2 - lat1) * (Math.PI / 180);
-    const dLon = (lon2 - lon1) * (Math.PI / 180);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * (Math.PI / 180)) *
-        Math.cos(lat2 * (Math.PI / 180)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
   };
 
   /**
@@ -290,7 +244,7 @@ export function ContractorMapView(props: ContractorMapViewProps) {
     setLoadingServiceAreas(true);
     try {
       const contractorIds = contractorsList.map((c) => c.id);
-      
+
       const response = await fetch('/api/contractors/service-areas-batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -330,92 +284,6 @@ export function ContractorMapView(props: ContractorMapViewProps) {
     }
   };
 
-  const renderContractorCard = (contractor: ContractorMarker) => {
-    const distance = userLocation
-      ? calculateDistance(
-          userLocation.lat,
-          userLocation.lng,
-          contractor.latitude,
-          contractor.longitude
-        )
-      : null;
-
-    return (
-      <button
-        type="button"
-        aria-label={`View profile for ${contractor.name}, rated ${contractor.rating} stars${distance ? `, ${distance.toFixed(1)} km away` : ''}`}
-        style={{
-          width: '100%',
-          textAlign: 'left',
-          padding: theme.spacing.md,
-          backgroundColor: theme.colors.backgroundSecondary,
-          borderRadius: '12px',
-          border: `1px solid ${theme.colors.border}`,
-          marginBottom: theme.spacing.sm,
-          cursor: 'pointer',
-          transition: 'all 0.2s',
-        }}
-        onClick={() => setSelectedContractor(contractor)}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = theme.colors.primary;
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = theme.colors.border;
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = 'none';
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.md }}>
-          <div
-            style={{
-              width: 50,
-              height: 50,
-              borderRadius: '50%',
-              backgroundColor: theme.colors.primary,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontWeight: 'bold',
-              fontSize: '20px',
-            }}
-          >
-            {contractor.name.charAt(0).toUpperCase()}
-          </div>
-          <div style={{ flex: 1 }}>
-            <h3
-              style={{
-                fontSize: theme.typography.fontSize.md,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.text,
-                marginBottom: 4,
-              }}
-            >
-              {contractor.name}
-            </h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.sm, fontSize: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Icon name="star" size={14} color={theme.colors.warning} />
-                <span style={{ color: theme.colors.textSecondary }}>{contractor.rating.toFixed(1)}</span>
-              </div>
-              {distance && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Icon name="dot" size={8} color={theme.colors.textSecondary} />
-                  <Icon name="mapPin" size={14} color={theme.colors.textSecondary} />
-                  <span style={{ color: theme.colors.textSecondary }}>
-                    {distance.toFixed(1)} km
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </button>
-    );
-  };
-
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: theme.spacing.xl }}>
@@ -447,11 +315,11 @@ export function ContractorMapView(props: ContractorMapViewProps) {
   }
 
   return (
-    <div 
-      style={{ 
-        display: 'flex', 
+    <div
+      style={{
+        display: 'flex',
         flexDirection: 'row',
-        gap: theme.spacing.lg, 
+        gap: theme.spacing.lg,
         height: 700,
       }}
       className="contractor-map-view"
@@ -504,75 +372,12 @@ export function ContractorMapView(props: ContractorMapViewProps) {
         </div>
 
         {/* Floating info card */}
-        <div
-          style={{
-            position: 'absolute',
-            top: theme.spacing.md,
-            left: theme.spacing.md,
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            padding: theme.spacing.md,
-            borderRadius: theme.borderRadius.lg,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            backdropFilter: 'blur(10px)',
-            zIndex: 10,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: theme.spacing[2],
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-            <Icon name="map" size={20} color={theme.colors.primary} />
-            <span style={{ fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.text }}>
-              {contractors.length} contractors
-            </span>
-          </div>
-          <button
-            onClick={() => setShowServiceAreas(!showServiceAreas)}
-            disabled={loadingServiceAreas}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing[1],
-              padding: `${theme.spacing[2]} ${theme.spacing[3]}`, // Touch-friendly padding
-              minHeight: '44px', // Touch target size
-              backgroundColor: showServiceAreas ? theme.colors.primary : theme.colors.backgroundSecondary,
-              color: showServiceAreas ? 'white' : theme.colors.text,
-              border: 'none',
-              borderRadius: theme.borderRadius.sm,
-              fontSize: theme.typography.fontSize.xs,
-              fontWeight: theme.typography.fontWeight.medium,
-              cursor: loadingServiceAreas ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s',
-              WebkitTapHighlightColor: 'transparent', // Remove tap highlight on mobile
-              opacity: loadingServiceAreas ? 0.6 : 1,
-            }}
-            aria-label={showServiceAreas ? 'Hide service areas' : 'Show service areas'}
-            aria-busy={loadingServiceAreas}
-            role="switch"
-            aria-checked={showServiceAreas}
-          >
-            {loadingServiceAreas ? (
-              <>
-                <div
-                  style={{
-                    width: 14,
-                    height: 14,
-                    border: '2px solid currentColor',
-                    borderTopColor: 'transparent',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite',
-                  }}
-                />
-                <span className="sr-only">Loading</span>
-              </>
-            ) : (
-              <>
-                <Icon name={showServiceAreas ? 'eye' : 'eyeOff'} size={14} />
-                {showServiceAreas ? 'Hide' : 'Show'} Coverage Areas
-              </>
-            )}
-          </button>
-        </div>
+        <MapInfoCard
+          contractorCount={contractors.length}
+          showServiceAreas={showServiceAreas}
+          loadingServiceAreas={loadingServiceAreas}
+          onToggleServiceAreas={() => setShowServiceAreas(!showServiceAreas)}
+        />
       </div>
 
       {/* Contractor List (Right Side - 30%) */}
@@ -607,7 +412,7 @@ export function ContractorMapView(props: ContractorMapViewProps) {
             Nearby ({contractors.length})
           </h2>
           {contractors.length === 0 ? (
-            <p 
+            <p
               style={{ color: theme.colors.textSecondary, textAlign: 'center', padding: theme.spacing.xl }}
               role="status"
               aria-live="polite"
@@ -618,7 +423,11 @@ export function ContractorMapView(props: ContractorMapViewProps) {
             <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
               {contractors.map((contractor) => (
                 <li key={contractor.id}>
-                  {renderContractorCard(contractor)}
+                  <MapContractorCard
+                    contractor={contractor}
+                    userLocation={userLocation}
+                    onSelect={setSelectedContractor}
+                  />
                 </li>
               ))}
             </ul>
@@ -628,115 +437,12 @@ export function ContractorMapView(props: ContractorMapViewProps) {
 
       {/* Selected Contractor Modal */}
       {selectedContractor && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
-          onClick={() => setSelectedContractor(null)}
-        >
-          <div
-            style={{
-              backgroundColor: theme.colors.surface,
-              borderRadius: '20px',
-              padding: theme.spacing.xl,
-              maxWidth: 500,
-              width: '90%',
-              maxHeight: '80vh',
-              overflowY: 'auto',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ textAlign: 'center', marginBottom: theme.spacing.lg }}>
-              <div
-                style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: '50%',
-                  backgroundColor: theme.colors.primary,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontWeight: 'bold',
-                  fontSize: '32px',
-                  margin: '0 auto 16px',
-                }}
-              >
-                {selectedContractor.name.charAt(0).toUpperCase()}
-              </div>
-              <h2
-                style={{
-                  fontSize: theme.typography.fontSize['2xl'],
-                  fontWeight: theme.typography.fontWeight.bold,
-                  color: theme.colors.text,
-                  marginBottom: theme.spacing.sm,
-                }}
-              >
-                {selectedContractor.name}
-              </h2>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: theme.typography.fontSize.lg }}>
-                <Icon name="star" size={20} color={theme.colors.warning} />
-                <span style={{ color: theme.colors.textSecondary }}>{selectedContractor.rating.toFixed(1)}</span>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: theme.spacing.lg }}>
-              <h3
-                style={{
-                  fontSize: theme.typography.fontSize.lg,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  color: theme.colors.text,
-                  marginBottom: theme.spacing.sm,
-                }}
-              >
-                Location
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: theme.colors.textSecondary }}>
-                  <Icon name="mapPin" size={16} color={theme.colors.textSecondary} />
-                  <span>{selectedContractor.city || 'Location not specified'}</span>
-                </div>
-                {userLocation && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: theme.colors.textSecondary }}>
-                    <Icon name="map" size={16} color={theme.colors.textSecondary} />
-                    <span>
-                      {calculateDistance(
-                        userLocation.lat,
-                        userLocation.lng,
-                        selectedContractor.latitude,
-                        selectedContractor.longitude
-                      ).toFixed(1)}{' '}
-                      km away
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: theme.spacing.sm }}>
-              <Button
-                variant="primary"
-                fullWidth
-                onClick={() => router.push(`/contractor/${selectedContractor.id}`)}
-              >
-                View Full Profile
-              </Button>
-              <Button variant="outline" fullWidth onClick={() => setSelectedContractor(null)}>
-                Close
-              </Button>
-            </div>
-          </div>
-        </div>
+        <ContractorDetailsModal
+          contractor={selectedContractor}
+          userLocation={userLocation}
+          onClose={() => setSelectedContractor(null)}
+          onViewProfile={(id) => router.push(`/contractor/${id}`)}
+        />
       )}
 
       {/* CSS Animation */}
@@ -753,4 +459,3 @@ export function ContractorMapView(props: ContractorMapViewProps) {
     </div>
   );
 }
-

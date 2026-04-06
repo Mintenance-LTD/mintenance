@@ -10,114 +10,13 @@
 
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { ModelEvaluationService, ModelEvaluationMetrics, ModelComparisonResult } from './ModelEvaluationService';
+import type { ABTestConfig, ABTestResult, ModelAssignment } from './ab-testing/types';
+import { calculateVariantMetrics, createInconclusiveResult } from './ab-testing/metrics';
+import { calculateStatisticalSignificance } from './ab-testing/statistics';
+import { generateABTestRecommendation } from './ab-testing/recommendations';
 
-// ============================================================================
-// TYPE DEFINITIONS
-// ============================================================================
-
-export interface ABTestConfig {
-  test_id: string;
-  name: string;
-  description: string;
-
-  // Model versions
-  control_model: {
-    version: string;
-    path: string;
-    metrics?: ModelEvaluationMetrics;
-  };
-
-  treatment_model: {
-    version: string;
-    path: string;
-    metrics?: ModelEvaluationMetrics;
-  };
-
-  // Traffic configuration
-  traffic_split: {
-    control_percentage: number;      // 0-100
-    treatment_percentage: number;     // 0-100
-    ramp_up_schedule?: {             // Gradual rollout
-      day: number;
-      percentage: number;
-    }[];
-  };
-
-  // Test parameters
-  minimum_sample_size: number;        // Per variant
-  maximum_duration_days: number;
-  confidence_level: number;           // e.g., 0.95
-
-  // Success criteria
-  success_metrics: {
-    primary_metric: 'mAP50' | 'precision' | 'recall' | 'f1_score' | 'latency';
-    minimum_improvement: number;       // Percentage
-    guardrail_metrics: {              // Metrics that shouldn't degrade
-      metric: string;
-      max_degradation: number;         // Percentage
-    }[];
-  };
-
-  // Auto-actions
-  auto_deploy_on_success: boolean;
-  auto_rollback_on_failure: boolean;
-
-  // Status
-  status: 'draft' | 'running' | 'paused' | 'completed' | 'rolled_back';
-  created_at: string;
-  started_at?: string;
-  completed_at?: string;
-}
-
-export interface ABTestResult {
-  test_id: string;
-  timestamp: string;
-
-  // Sample sizes
-  control_samples: number;
-  treatment_samples: number;
-
-  // Performance metrics
-  control_metrics: {
-    mAP50: number;
-    precision: number;
-    recall: number;
-    f1_score: number;
-    avg_latency_ms: number;
-    error_rate: number;
-  };
-
-  treatment_metrics: {
-    mAP50: number;
-    precision: number;
-    recall: number;
-    f1_score: number;
-    avg_latency_ms: number;
-    error_rate: number;
-  };
-
-  // Statistical analysis
-  statistical_significance: {
-    p_value: number;
-    confidence_interval: [number, number];
-    effect_size: number;
-    power: number;
-  };
-
-  // Decision
-  recommendation: 'continue' | 'deploy_treatment' | 'keep_control' | 'inconclusive';
-  confidence: number;
-  reasons: string[];
-}
-
-export interface ModelAssignment {
-  user_id?: string;
-  session_id: string;
-  assigned_model: 'control' | 'treatment';
-  assignment_timestamp: string;
-  assignment_method: 'random' | 'hash' | 'sticky';
-}
+// Re-export types for backward compatibility
+export type { ABTestConfig, ABTestResult, ModelAssignment } from './ab-testing/types';
 
 // ============================================================================
 // MAIN SERVICE CLASS
@@ -125,7 +24,6 @@ export interface ModelAssignment {
 
 export class ModelABTestingService {
   private static readonly MIN_SAMPLES_FOR_DECISION = 100;
-  private static readonly Z_SCORE_95 = 1.96;  // 95% confidence
 
   /**
    * Create a new A/B test
@@ -349,7 +247,7 @@ export class ModelABTestingService {
         .eq('test_id', testId);
 
       if (!inferences || inferences.length === 0) {
-        return this.createInconclusiveResult(testId, 'No data collected yet');
+        return createInconclusiveResult(testId, 'No data collected yet');
       }
 
       // Separate by variant
@@ -357,11 +255,11 @@ export class ModelABTestingService {
       const treatmentData = inferences.filter((i: Record<string, unknown>) => i.model_variant === 'treatment');
 
       // Calculate metrics for each variant
-      const controlMetrics = this.calculateVariantMetrics(controlData);
-      const treatmentMetrics = this.calculateVariantMetrics(treatmentData);
+      const controlMetrics = calculateVariantMetrics(controlData);
+      const treatmentMetrics = calculateVariantMetrics(treatmentData);
 
       // Perform statistical analysis
-      const significance = this.calculateStatisticalSignificance(
+      const significance = calculateStatisticalSignificance(
         controlMetrics,
         treatmentMetrics,
         controlData.length,
@@ -369,7 +267,7 @@ export class ModelABTestingService {
       );
 
       // Generate recommendation
-      const recommendation = this.generateABTestRecommendation(
+      const recommendation = generateABTestRecommendation(
         config,
         controlMetrics,
         treatmentMetrics,
@@ -529,215 +427,6 @@ export class ModelABTestingService {
       logger.error('Failed to rollback', { error, testId });
       throw error;
     }
-  }
-
-  // ============================================================================
-  // HELPER METHODS
-  // ============================================================================
-
-  private static calculateVariantMetrics(data: Record<string, unknown>[]): ABTestResult['control_metrics'] {
-    if (data.length === 0) {
-      return {
-        mAP50: 0,
-        precision: 0,
-        recall: 0,
-        f1_score: 0,
-        avg_latency_ms: 0,
-        error_rate: 0
-      };
-    }
-
-    const successfulInferences = data.filter((d: Record<string, unknown>) => d.success);
-    const avgLatency = data.reduce((sum: number, d: Record<string, unknown>) => sum + ((d.latency_ms as number) || 0), 0) / data.length;
-    const errorRate = (data.length - successfulInferences.length) / data.length;
-    const avgConfidence = successfulInferences.reduce((sum: number, d: Record<string, unknown>) => sum + ((d.avg_confidence as number) || 0), 0) /
-                         (successfulInferences.length || 1);
-
-    // These would come from actual model evaluation
-    // For now, using confidence as a proxy
-    return {
-      mAP50: avgConfidence * 0.9,  // Simplified
-      precision: avgConfidence * 0.85,
-      recall: avgConfidence * 0.88,
-      f1_score: avgConfidence * 0.86,
-      avg_latency_ms: avgLatency,
-      error_rate: errorRate
-    };
-  }
-
-  private static calculateStatisticalSignificance(
-    controlMetrics: ABTestResult['control_metrics'],
-    treatmentMetrics: ABTestResult['treatment_metrics'],
-    controlN: number,
-    treatmentN: number
-  ): ABTestResult['statistical_significance'] {
-    // Simplified statistical test - would use proper test in production
-    const controlMean = controlMetrics.f1_score;
-    const treatmentMean = treatmentMetrics.f1_score;
-
-    // Assumed standard deviations (would calculate from actual data)
-    const controlStd = 0.05;
-    const treatmentStd = 0.05;
-
-    // Calculate standard error
-    const se = Math.sqrt(
-      (controlStd * controlStd / controlN) +
-      (treatmentStd * treatmentStd / treatmentN)
-    );
-
-    // Calculate z-score
-    const z = (treatmentMean - controlMean) / (se || 0.001);
-
-    // Calculate p-value (two-tailed)
-    const pValue = 2 * (1 - this.normalCDF(Math.abs(z)));
-
-    // Calculate confidence interval
-    const margin = this.Z_SCORE_95 * se;
-    const diff = treatmentMean - controlMean;
-    const ci: [number, number] = [diff - margin, diff + margin];
-
-    // Calculate effect size (Cohen's d)
-    const pooledStd = Math.sqrt(
-      ((controlN - 1) * controlStd * controlStd +
-       (treatmentN - 1) * treatmentStd * treatmentStd) /
-      (controlN + treatmentN - 2)
-    );
-    const effectSize = (treatmentMean - controlMean) / (pooledStd || 0.001);
-
-    // Calculate statistical power (simplified)
-    const power = 1 - this.normalCDF(this.Z_SCORE_95 - Math.abs(z));
-
-    return {
-      p_value: pValue,
-      confidence_interval: ci,
-      effect_size: effectSize,
-      power: power
-    };
-  }
-
-  private static normalCDF(z: number): number {
-    // Approximation of the normal cumulative distribution function
-    const a1 = 0.254829592;
-    const a2 = -0.284496736;
-    const a3 = 1.421413741;
-    const a4 = -1.453152027;
-    const a5 = 1.061405429;
-    const p = 0.3275911;
-
-    const sign = z < 0 ? -1 : 1;
-    z = Math.abs(z) / Math.sqrt(2.0);
-
-    const t = 1.0 / (1.0 + p * z);
-    const t2 = t * t;
-    const t3 = t2 * t;
-    const t4 = t3 * t;
-    const t5 = t4 * t;
-    const y = 1.0 - ((((a5 * t5 + a4 * t4) + a3 * t3) + a2 * t2) + a1 * t) *
-              Math.exp(-z * z);
-
-    return 0.5 * (1.0 + sign * y);
-  }
-
-  private static generateABTestRecommendation(
-    config: ABTestConfig,
-    controlMetrics: ABTestResult['control_metrics'],
-    treatmentMetrics: ABTestResult['treatment_metrics'],
-    significance: ABTestResult['statistical_significance'],
-    controlN: number,
-    treatmentN: number
-  ): {
-    decision: 'continue' | 'deploy_treatment' | 'keep_control' | 'inconclusive';
-    confidence: number;
-    reasons: string[];
-  } {
-    const reasons: string[] = [];
-
-    // Check sample size
-    if (controlN < config.minimum_sample_size || treatmentN < config.minimum_sample_size) {
-      reasons.push(`Insufficient samples (need ${config.minimum_sample_size} per variant)`);
-      return { decision: 'continue', confidence: 0.3, reasons };
-    }
-
-    // Check statistical significance
-    const isSignificant = significance.p_value < (1 - config.confidence_level);
-
-    // Calculate improvement on primary metric
-    const primaryMetric = config.success_metrics.primary_metric;
-    const controlValue = controlMetrics[primaryMetric as keyof ABTestResult['control_metrics']] as number;
-    const treatmentValue = treatmentMetrics[primaryMetric as keyof ABTestResult['treatment_metrics']] as number;
-    const improvement = ((treatmentValue - controlValue) / controlValue) * 100;
-
-    // Check guardrail metrics
-    let guardrailViolation = false;
-    for (const guardrail of config.success_metrics.guardrail_metrics) {
-      const controlGuardrail = controlMetrics[guardrail.metric as keyof ABTestResult['control_metrics']] as number;
-      const treatmentGuardrail = treatmentMetrics[guardrail.metric as keyof ABTestResult['treatment_metrics']] as number;
-      const degradation = ((controlGuardrail - treatmentGuardrail) / controlGuardrail) * 100;
-
-      if (degradation > guardrail.max_degradation) {
-        guardrailViolation = true;
-        reasons.push(`Guardrail violation: ${guardrail.metric} degraded by ${degradation.toFixed(2)}%`);
-      }
-    }
-
-    // Make recommendation
-    if (guardrailViolation) {
-      reasons.push('Treatment violates guardrail metrics');
-      return { decision: 'keep_control', confidence: 0.9, reasons };
-    }
-
-    if (!isSignificant) {
-      reasons.push('Results not statistically significant');
-      return { decision: 'continue', confidence: 0.5, reasons };
-    }
-
-    if (improvement >= config.success_metrics.minimum_improvement) {
-      reasons.push(`Treatment shows ${improvement.toFixed(2)}% improvement on ${primaryMetric}`);
-      reasons.push('Statistical significance achieved');
-      return { decision: 'deploy_treatment', confidence: significance.power, reasons };
-    }
-
-    if (improvement < 0) {
-      reasons.push(`Treatment shows ${Math.abs(improvement).toFixed(2)}% degradation on ${primaryMetric}`);
-      return { decision: 'keep_control', confidence: significance.power, reasons };
-    }
-
-    reasons.push('Improvement below minimum threshold');
-    return { decision: 'continue', confidence: 0.6, reasons };
-  }
-
-  private static createInconclusiveResult(testId: string, reason: string): ABTestResult {
-    return {
-      test_id: testId,
-      timestamp: new Date().toISOString(),
-      control_samples: 0,
-      treatment_samples: 0,
-      control_metrics: {
-        mAP50: 0,
-        precision: 0,
-        recall: 0,
-        f1_score: 0,
-        avg_latency_ms: 0,
-        error_rate: 0
-      },
-      treatment_metrics: {
-        mAP50: 0,
-        precision: 0,
-        recall: 0,
-        f1_score: 0,
-        avg_latency_ms: 0,
-        error_rate: 0
-      },
-      statistical_significance: {
-        p_value: 1,
-        confidence_interval: [0, 0],
-        effect_size: 0,
-        power: 0
-      },
-      recommendation: 'inconclusive',
-      confidence: 0,
-      reasons: [reason]
-    };
   }
 
   private static async startMonitoring(testId: string): Promise<void> {

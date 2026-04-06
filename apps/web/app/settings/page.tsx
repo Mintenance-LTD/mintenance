@@ -149,6 +149,53 @@ export default function SettingsPage2025({
                 <div className="space-y-6">
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">Privacy</h1>
                   <p className="text-gray-600 mb-6">Manage your privacy and data</p>
+
+                  {/* Privacy Controls */}
+                  <div className="bg-white rounded-xl border border-gray-200 p-8 space-y-6">
+                    <h2 className="text-xl font-semibold text-gray-900">Privacy Controls</h2>
+
+                    <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                      <div>
+                        <p className="font-medium text-gray-900">Profile Visible</p>
+                        <p className="text-sm text-gray-500">Allow other users to see your profile in search results and contractor listings</p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={settings.privacySettings?.profileVisible ?? true}
+                        onClick={() => settings.handleTogglePrivacy('profileVisible')}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                          settings.privacySettings?.profileVisible !== false ? 'bg-teal-600' : 'bg-gray-200'
+                        }`}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          settings.privacySettings?.profileVisible !== false ? 'translate-x-6' : 'translate-x-1'
+                        }`} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between py-3">
+                      <div>
+                        <p className="font-medium text-gray-900">Share Activity Data</p>
+                        <p className="text-sm text-gray-500">Help improve Mintenance by sharing anonymised usage data</p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={settings.privacySettings?.shareActivityData ?? false}
+                        onClick={() => settings.handleTogglePrivacy('shareActivityData')}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                          settings.privacySettings?.shareActivityData ? 'bg-teal-600' : 'bg-gray-200'
+                        }`}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          settings.privacySettings?.shareActivityData ? 'translate-x-6' : 'translate-x-1'
+                        }`} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Data Export */}
                   <div className="bg-white rounded-xl border border-gray-200 p-8">
                     <h2 className="text-xl font-semibold text-gray-900 mb-4">Download your data</h2>
                     <p className="text-sm text-gray-600 mb-4">

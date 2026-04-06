@@ -47,20 +47,27 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
       const { data: row, error: err } = await supabase
         .from('jobs')
         .select(
-          'id, title, status, completion_confirmed_by_homeowner, contractor:profiles!contractor_id(full_name)'
+          'id, title, status, completion_confirmed_by_homeowner, contractor:profiles!contractor_id(first_name, last_name)'
         )
         .eq('id', jobId)
         .single();
       if (err) throw new Error(err.message);
       const r = row as Record<string, unknown>;
-      const contractor = r.contractor as Record<string, unknown> | null;
+      const contractor = r.contractor as {
+        first_name?: string;
+        last_name?: string;
+      } | null;
+      const contractor_name = contractor
+        ? `${contractor.first_name ?? ''} ${contractor.last_name ?? ''}`.trim() ||
+          undefined
+        : undefined;
       return {
         id: r.id as string,
         title: r.title as string,
         status: r.status as string,
         completion_confirmed_by_homeowner:
           (r.completion_confirmed_by_homeowner as boolean) ?? false,
-        contractor_name: contractor?.full_name as string | undefined,
+        contractor_name,
       };
     },
   });

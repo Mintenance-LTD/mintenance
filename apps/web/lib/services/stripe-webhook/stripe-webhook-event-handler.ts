@@ -27,6 +27,11 @@ import {
   handleDisputeUpdated,
   handleDisputeClosed,
 } from './dispute-handlers';
+import {
+  handleSetupIntentWebhookSucceeded,
+  handleSetupIntentWebhookFailed,
+  handlePaymentMethodDetached,
+} from './setup-intent-handlers';
 
 /**
  * Stripe Webhook Event Handler
@@ -103,6 +108,26 @@ export class StripeWebhookEventHandler {
           event.data.object as Stripe.Checkout.Session,
           this.stripe,
           notify
+        );
+        return;
+
+      // Setup Intent events (Elements flow)
+      case 'setup_intent.succeeded':
+        await handleSetupIntentWebhookSucceeded(
+          event.data.object as Stripe.SetupIntent,
+          notify,
+        );
+        return;
+      case 'setup_intent.setup_failed':
+        await handleSetupIntentWebhookFailed(
+          event.data.object as Stripe.SetupIntent,
+          notify,
+        );
+        return;
+      case 'payment_method.detached':
+        await handlePaymentMethodDetached(
+          event.data.object as Stripe.PaymentMethod,
+          notify,
         );
         return;
 

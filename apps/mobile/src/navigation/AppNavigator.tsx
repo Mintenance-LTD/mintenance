@@ -32,6 +32,7 @@ import BusinessNavigator from './navigators/BusinessNavigator';
 import ModalNavigator from './navigators/ModalNavigator';
 // Import core screens
 import HomeScreen from '../screens/HomeScreen';
+import { ExploreMapScreen } from '../screens/explore-map/ExploreMapScreen';
 
 // Import context and utilities
 import { useAuth } from '../contexts/AuthContext';
@@ -95,18 +96,22 @@ const AddActionScreen: React.FC = () => {
     useNavigation<BottomTabNavigationProp<RootTabParamList>>();
   const { user } = useAuth();
 
+  // Homeowner: AddTab is never the focused screen — tab-press listener opens
+  // the QuickJobModal then focus remains on previous tab. If we somehow land
+  // here anyway, redirect to Home.
   useFocusEffect(
     React.useCallback(() => {
-      // Redirect away - actual action handled by tab press listener
       if (user?.role === 'homeowner') {
         tabNavigation.navigate('HomeTab');
-      } else {
-        (tabNavigation.navigate as (...args: unknown[]) => void)('JobsTab', {
-          screen: 'ExploreMap',
-        });
       }
     }, [tabNavigation, user?.role])
   );
+
+  // Contractor: AddTab IS the destination — render the Find Jobs map inline so
+  // the tab indicator correctly highlights "Find Jobs".
+  if (user?.role === 'contractor') {
+    return <ExploreMapScreen />;
+  }
 
   return null;
 };
@@ -202,11 +207,10 @@ const TabNavigator: React.FC = () => {
                 haptics.buttonPress();
                 setShowQuickJobModal(true);
               } else {
-                // Contractors: centre button = Find Jobs (map of available jobs to bid on)
-                (tabNavigation.navigate as (...args: unknown[]) => void)(
-                  'JobsTab',
-                  { screen: 'ExploreMap' }
-                );
+                // Contractors: centre button = Find Jobs — focus the AddTab so the
+                // tab indicator highlights correctly and ExploreMap renders inline.
+                haptics.buttonPress();
+                tabNavigation.navigate('AddTab');
               }
             },
           })}

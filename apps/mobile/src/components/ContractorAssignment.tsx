@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { Job, Bid } from '@mintenance/types';
 
 interface BidWithExtras extends Bid {
@@ -33,6 +34,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
   onContractorAssigned,
 }) => {
   const { user } = useAuth();
+  const navigation = useNavigation();
   const [selectedBid, setSelectedBid] = useState<string | null>(null);
 
   // Get bids for this job
@@ -201,9 +203,14 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
           <TouchableOpacity
             style={styles.viewProfileButton}
             onPress={() => {
-              // Navigate to contractor profile
-              logger.info('View contractor profile', {
-                contractorId: bid.contractorId,
+              if (!bid.contractorId) return;
+              logger.info('View contractor profile', { contractorId: bid.contractorId });
+              const nav = navigation as {
+                getParent?: () => { navigate: (name: string, params: unknown) => void } | undefined;
+              };
+              nav.getParent?.()?.navigate('Modal', {
+                screen: 'ContractorProfile',
+                params: { contractorId: bid.contractorId },
               });
             }}
           >

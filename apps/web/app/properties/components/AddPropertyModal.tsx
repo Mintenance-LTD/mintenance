@@ -1,15 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
-import { logger } from '@mintenance/shared';
+import React from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
-
-interface AddPropertyModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
-}
+import { useAddPropertyForm } from './AddPropertyModal/useAddPropertyForm';
+import { AddressField } from './AddPropertyModal/AddressField';
+import { PhotoUploader } from './AddPropertyModal/PhotoUploader';
+import type { AddPropertyModalProps } from './AddPropertyModal/types';
 
 export function AddPropertyModal(props: AddPropertyModalProps) {
   // Defensive prop destructuring with defaults to prevent test crashes
@@ -18,244 +15,23 @@ export function AddPropertyModal(props: AddPropertyModalProps) {
     onClose = () => {},
     onSuccess = () => {},
   } = props || {};
-  const [formData, setFormData] = useState({
-    property_name: '',
-    address: '',
-    property_type: 'residential' as 'residential' | 'commercial' | 'rental',
-    is_primary: false,
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [locationSuggestions, setLocationSuggestions] = useState<Array<{ display_name: string; place_id: string }>>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
-  const [imagePreviews, setImagePreviews] = useState<Array<{ file: File; preview: string }>>([]);
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
-  const [isUploadingImages, setIsUploadingImages] = useState(false);
 
-  // Reset form when modal opens/closes
-  React.useEffect(() => {
-    if (!isOpen) {
-      setFormData({
-        property_name: '',
-        address: '',
-        property_type: 'residential',
-        is_primary: false,
-      });
-      setError('');
-      setLocationSuggestions([]);
-      setShowSuggestions(false);
-      // Clean up image previews
-      setImagePreviews(prev => {
-        prev.forEach(({ preview }) => URL.revokeObjectURL(preview));
-        return [];
-      });
-      setUploadedImages([]);
-    }
-     
-  }, [isOpen]);
-
-  // Debounced address search for autocomplete
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      if (formData.address.trim().length >= 3) {
-        searchAddresses(formData.address);
-      } else {
-        setLocationSuggestions([]);
-        setShowSuggestions(false);
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [formData.address]);
-
-  const searchAddresses = async (query: string) => {
-    if (query.length < 3) return;
-
-    setIsLoadingSuggestions(true);
-    try {
-      // Use geocoding API for address autocomplete
-      const response = await fetch(
-        `/api/geocoding/search?q=${encodeURIComponent(query)}`
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to search addresses');
-      }
-
-      interface LocationSuggestionItem {
-        display_name?: string;
-        address?: string;
-        name?: string;
-        place_id?: string;
-        osm_id?: string;
-      }
-
-      const data = await response.json();
-      if (Array.isArray(data)) {
-        setLocationSuggestions(data.map((item: LocationSuggestionItem) => ({
-          display_name: item.display_name || item.address || item.name || 'Unknown location',
-          place_id: item.place_id || item.osm_id || Math.random().toString(),
-        })));
-        setShowSuggestions(data.length > 0);
-      }
-    } catch (err) {
-      logger.error('Error fetching address suggestions:', err);
-      setLocationSuggestions([]);
-      setShowSuggestions(false);
-    } finally {
-      setIsLoadingSuggestions(false);
-    }
-  };
-
-  const handleSelectSuggestion = (suggestion: { display_name: string; place_id: string }) => {
-    setFormData(prev => ({ ...prev, address: suggestion.display_name }));
-    setShowSuggestions(false);
-    setLocationSuggestions([]);
-  };
-
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
-    // Validate file count
-    if (imagePreviews.length + files.length > 10) {
-      alert('Maximum 10 photos allowed');
-      return;
-    }
-
-    // Validate file types and sizes
-    const validFiles: File[] = [];
-    for (const file of files) {
-      if (!file.type.startsWith('image/')) {
-        alert(`${file.name} is not an image file`);
-        continue;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        alert(`${file.name} is too large. Maximum size is 5MB`);
-        continue;
-      }
-      validFiles.push(file);
-    }
-
-    // Create previews
-    const newPreviews = validFiles.map(file => ({
-      file,
-      preview: URL.createObjectURL(file),
-    }));
-
-    setImagePreviews(prev => [...prev, ...newPreviews]);
-    
-    // Reset input
-    e.target.value = '';
-  };
-
-  const removeImage = (index: number) => {
-    setImagePreviews(prev => {
-      const removed = prev[index];
-      URL.revokeObjectURL(removed.preview);
-      return prev.filter((_, i) => i !== index);
-    });
-    setUploadedImages(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const uploadImages = async (): Promise<string[]> => {
-    if (imagePreviews.length === 0) return [];
-
-    setIsUploadingImages(true);
-    try {
-      const formData = new FormData();
-      imagePreviews.forEach(({ file }) => {
-        formData.append('photos', file);
-      });
-
-      const response = await fetch('/api/properties/upload-photos', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.error || 'Failed to upload images';
-        const errorDetails = errorData.details ? `\n\nDetails: ${errorData.details}` : '';
-        throw new Error(`${errorMessage}${errorDetails}`);
-      }
-
-      const data = await response.json();
-      setUploadedImages(data.urls || []);
-      return data.urls || [];
-    } catch (error) {
-      logger.error('Error uploading images:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to upload images. Please try again.';
-      alert(errorMessage);
-      return [];
-    } finally {
-      setIsUploadingImages(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    // Validation
-    if (!formData.property_name.trim()) {
-      setError('Property name is required');
-      return;
-    }
-
-    if (!formData.address.trim()) {
-      setError('Address is required');
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      // Upload images first if there are any
-      let photoUrls: string[] = [];
-      if (imagePreviews.length > 0) {
-        photoUrls = await uploadImages();
-        if (photoUrls.length === 0 && imagePreviews.length > 0) {
-          // If upload failed but user selected images, ask if they want to continue
-          const shouldContinue = window.confirm(
-            'Failed to upload some photos. Do you want to continue without photos?'
-          );
-          if (!shouldContinue) {
-            setIsSubmitting(false);
-            return;
-          }
-        }
-      }
-
-      const response = await fetch('/api/properties', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          photos: photoUrls,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create property');
-      }
-
-      // Success - close modal and refresh
-      onSuccess();
-      onClose();
-    } catch (err: unknown) {
-      const error = err as Error;
-      setError(error.message || 'Failed to create property. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const {
+    formData,
+    setFormData,
+    isSubmitting,
+    error,
+    locationSuggestions,
+    showSuggestions,
+    setShowSuggestions,
+    isLoadingSuggestions,
+    imagePreviews,
+    isUploadingImages,
+    handleSelectSuggestion,
+    handleImageSelect,
+    removeImage,
+    handleSubmit,
+  } = useAddPropertyForm(isOpen, onClose, onSuccess);
 
   if (!isOpen) return null;
 
@@ -380,97 +156,15 @@ export function AddPropertyModal(props: AddPropertyModalProps) {
             />
           </div>
 
-          {/* Address with Autocomplete */}
-          <div style={{ position: 'relative' }}>
-            <label htmlFor="address" style={{
-              display: 'block',
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textPrimary,
-              marginBottom: theme.spacing[2],
-            }}>
-              Address *
-            </label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type="text"
-                id="address"
-                value={formData.address}
-                onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                onFocus={() => {
-                  if (locationSuggestions.length > 0) {
-                    setShowSuggestions(true);
-                  }
-                }}
-                placeholder="Enter property address"
-                required
-                style={{
-                  width: '100%',
-                  padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: theme.borderRadius.md,
-                  fontSize: theme.typography.fontSize.base,
-                  color: theme.colors.textPrimary,
-                  backgroundColor: theme.colors.surface,
-                }}
-              />
-              {isLoadingSuggestions && (
-                <div style={{
-                  position: 'absolute',
-                  right: theme.spacing[3],
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                }}>
-                  <Icon name="refresh" size={16} color={theme.colors.textSecondary} />
-                </div>
-              )}
-            </div>
-
-            {/* Address Suggestions */}
-            {showSuggestions && locationSuggestions.length > 0 && (
-              <div style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                right: 0,
-                marginTop: theme.spacing[1],
-                backgroundColor: theme.colors.surface,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.borderRadius.md,
-                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                zIndex: 100,
-                maxHeight: '200px',
-                overflowY: 'auto',
-              }}>
-                {locationSuggestions.map((suggestion) => (
-                  <button
-                    key={suggestion.place_id}
-                    type="button"
-                    onClick={() => handleSelectSuggestion(suggestion)}
-                    style={{
-                      width: '100%',
-                      padding: theme.spacing[3],
-                      textAlign: 'left',
-                      border: 'none',
-                      backgroundColor: 'transparent',
-                      cursor: 'pointer',
-                      fontSize: theme.typography.fontSize.sm,
-                      color: theme.colors.textPrimary,
-                      borderBottom: `1px solid ${theme.colors.border}`,
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                  >
-                    {suggestion.display_name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <AddressField
+            address={formData.address}
+            onAddressChange={(value) => setFormData(prev => ({ ...prev, address: value }))}
+            locationSuggestions={locationSuggestions}
+            showSuggestions={showSuggestions}
+            setShowSuggestions={setShowSuggestions}
+            isLoadingSuggestions={isLoadingSuggestions}
+            onSelectSuggestion={handleSelectSuggestion}
+          />
 
           {/* Property Type */}
           <div>
@@ -505,124 +199,13 @@ export function AddPropertyModal(props: AddPropertyModalProps) {
             </select>
           </div>
 
-          {/* Property Photos */}
-          <div>
-            <label htmlFor="property_photos" style={{
-              display: 'block',
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textPrimary,
-              marginBottom: theme.spacing[2],
-            }}>
-              Property Photos {imagePreviews.length > 0 && `(${imagePreviews.length}/10)`}
-            </label>
-            <input
-              type="file"
-              id="property_photos"
-              accept="image/*"
-              multiple
-              onChange={handleImageSelect}
-              disabled={isUploadingImages || isSubmitting}
-              style={{ display: 'none' }}
-            />
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: theme.spacing[3],
-            }}>
-              <label
-                htmlFor="property_photos"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: theme.spacing[2],
-                  padding: theme.spacing[4],
-                  border: `2px dashed ${theme.colors.border}`,
-                  borderRadius: theme.borderRadius.md,
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  cursor: (isUploadingImages || isSubmitting) ? 'not-allowed' : 'pointer',
-                  opacity: (isUploadingImages || isSubmitting) ? 0.5 : 1,
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isUploadingImages && !isSubmitting) {
-                    e.currentTarget.style.borderColor = theme.colors.primary;
-                    e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = theme.colors.border;
-                  e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-                }}
-              >
-                <Icon name="image" size={20} color={theme.colors.primary} />
-                <span style={{
-                  fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.textPrimary,
-                  fontWeight: theme.typography.fontWeight.medium,
-                }}>
-                  {isUploadingImages ? 'Uploading...' : 'Click to add photos (max 10)'}
-                </span>
-              </label>
-
-              {/* Image Previews */}
-              {imagePreviews.length > 0 && (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-                  gap: theme.spacing[2],
-                }}>
-                  {imagePreviews.map((preview, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        position: 'relative',
-                        aspectRatio: '1',
-                        borderRadius: theme.borderRadius.md,
-                        overflow: 'hidden',
-                        border: `1px solid ${theme.colors.border}`,
-                        backgroundColor: theme.colors.backgroundSecondary,
-                      }}
-                    >
-                      <img
-                        src={preview.preview}
-                        alt={`Property photo ${index + 1}`}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(index)}
-                        disabled={isUploadingImages || isSubmitting}
-                        style={{
-                          position: 'absolute',
-                          top: theme.spacing[1],
-                          right: theme.spacing[1],
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '50%',
-                          border: 'none',
-                          backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                          color: 'white',
-                          cursor: (isUploadingImages || isSubmitting) ? 'not-allowed' : 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          padding: 0,
-                        }}
-                      >
-                        <Icon name="x" size={14} color="white" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          <PhotoUploader
+            imagePreviews={imagePreviews}
+            isUploadingImages={isUploadingImages}
+            isSubmitting={isSubmitting}
+            onImageSelect={handleImageSelect}
+            onRemoveImage={removeImage}
+          />
 
           {/* Primary Property Checkbox */}
           <div style={{
@@ -703,4 +286,3 @@ export function AddPropertyModal(props: AddPropertyModalProps) {
     </div>
   );
 }
-

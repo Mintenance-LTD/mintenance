@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
-import { BadRequestError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
@@ -16,7 +15,15 @@ const bankAccountSchema = z.object({
 
 /**
  * POST /api/payments/bank-account
- * Register bank account details for contractor payouts (mobile compatibility)
+ * Register bank account details for contractor payouts.
+ *
+ * IMPLEMENTATION STATUS: Not yet wired to Stripe Connect. Full onboarding
+ * requires Stripe Connect Express account creation + KYC verification +
+ * external_account (bank) linking, which is a multi-step flow that must be
+ * driven from the Stripe Dashboard or Connect onboarding URL.
+ *
+ * Contractor-facing payout setup should use POST /api/payments/stripe-connect
+ * (Connect Express onboarding link) instead of this endpoint.
  */
 export const POST = withApiHandler(
   { rateLimit: { maxRequests: 10 } },
@@ -26,19 +33,25 @@ export const POST = withApiHandler(
       return validation;
     }
 
-    const { accountNumber, sortCode, accountHolderName } = validation.data;
+    const { sortCode, accountHolderName } = validation.data;
 
-    logger.info('Bank account details received', {
+    // Log the attempt (masked) for visibility, but do NOT silently accept.
+    logger.warn('Bank account endpoint called — Stripe Connect not wired up', {
       service: 'payments',
       userId: user.id,
-      sortCode: sortCode.substring(0, 2) + '****',
+      sortCodePrefix: sortCode.substring(0, 2) + '****',
       accountHolderName,
     });
 
-    // TODO: Integrate with Stripe Connect for actual bank account setup
-    return NextResponse.json({
-      success: true,
-      message: 'Bank account details received',
-    });
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'NOT_IMPLEMENTED',
+        message:
+          'Direct bank-account submission is not yet enabled. Please complete payout setup via the Stripe Connect onboarding flow.',
+        code: 'stripe_connect_pending',
+      },
+      { status: 501 },
+    );
   }
 );

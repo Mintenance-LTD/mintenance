@@ -177,11 +177,19 @@ export class ApiClient {
   }> {
     try {
       const data = await response.json();
-      return {
-        message: data.message || data.error || `HTTP ${response.status}`,
-        code: data.code,
-        details: data,
-      };
+      // Support both shapes:
+      //   { message, code }                     (legacy / supabase)
+      //   { error: { message, code }, timestamp } (Next.js APIError.toResponse)
+      //   { error: "plain string message" }     (ad-hoc fallback)
+      const nestedError =
+        data.error && typeof data.error === 'object' ? data.error : null;
+      const message =
+        data.message ||
+        nestedError?.message ||
+        (typeof data.error === 'string' ? data.error : null) ||
+        `HTTP ${response.status}`;
+      const code = data.code || nestedError?.code;
+      return { message, code, details: data };
     } catch {
       return {
         message: `HTTP ${response.status}: ${response.statusText}`,

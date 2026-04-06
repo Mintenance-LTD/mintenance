@@ -60,7 +60,11 @@ export interface BookingViewModel {
   // Actions
   setActiveTab: (tab: BookingStatus) => void;
   refreshBookings: () => Promise<void>;
-  cancelBooking: (bookingId: string, reason: string, customReason?: string) => Promise<void>;
+  cancelBooking: (
+    bookingId: string,
+    reason: string,
+    customReason?: string
+  ) => Promise<void>;
 
   // Utilities
   mapJobStatusToBookingStatus: (jobStatus: string) => BookingStatus;
@@ -103,9 +107,18 @@ export const useBookingViewModel = (user: User | null): BookingViewModel => {
         allJobs = await JobService.getJobsByHomeowner(user.id);
       } else if (user.role === 'contractor') {
         // Get jobs assigned to this contractor
-        const assignedJobs = await JobService.getJobsByStatus('assigned', user.id);
-        const inProgressJobs = await JobService.getJobsByStatus('in_progress', user.id);
-        const completedJobs = await JobService.getJobsByStatus('completed', user.id);
+        const assignedJobs = await JobService.getJobsByStatus(
+          'assigned',
+          user.id
+        );
+        const inProgressJobs = await JobService.getJobsByStatus(
+          'in_progress',
+          user.id
+        );
+        const completedJobs = await JobService.getJobsByStatus(
+          'completed',
+          user.id
+        );
         allJobs = [...assignedJobs, ...inProgressJobs, ...completedJobs];
       }
 
@@ -119,7 +132,9 @@ export const useBookingViewModel = (user: User | null): BookingViewModel => {
             // Get contractor information
             if (job.contractor_id) {
               try {
-                const contractorData = await UserService.getUserProfile(job.contractor_id);
+                const contractorData = await UserService.getUserProfile(
+                  job.contractor_id
+                );
                 contractorName = contractorData
                   ? `${contractorData.first_name || ''} ${contractorData.last_name || ''}`.trim()
                   : 'Unknown Contractor';
@@ -128,7 +143,10 @@ export const useBookingViewModel = (user: User | null): BookingViewModel => {
               }
             }
 
-            const locationStr = typeof job.location === 'string' ? job.location : JSON.stringify(job.location ?? '');
+            const locationStr =
+              typeof job.location === 'string'
+                ? job.location
+                : JSON.stringify(job.location ?? '');
             return {
               id: job.id,
               contractorName,
@@ -139,14 +157,17 @@ export const useBookingViewModel = (user: User | null): BookingViewModel => {
               time: formatBookingTime(job.created_at),
               status: mapJobStatusToBookingStatus(job.status),
               amount: job.budget ?? 0,
-              canCancel: job.status === 'assigned' && user!.role === 'homeowner',
-              canReschedule: job.status === 'assigned' && user!.role === 'homeowner',
+              canCancel:
+                job.status === 'assigned' && user!.role === 'homeowner',
+              canReschedule:
+                job.status === 'assigned' && user!.role === 'homeowner',
               estimatedDuration: estimateJobDuration(job.budget ?? 0),
               specialInstructions:
                 job.description.length > 100
                   ? `${job.description.substring(0, 100)}...`
                   : job.description,
-              rating: job.status === 'completed' ? Math.random() * 1 + 4 : undefined, // Mock rating for completed jobs
+              rating:
+                job.status === 'completed' ? Math.random() * 1 + 4 : undefined, // Mock rating for completed jobs
             };
           })
       );
@@ -167,38 +188,45 @@ export const useBookingViewModel = (user: User | null): BookingViewModel => {
   }, [loadBookings]);
 
   // Cancel booking
-  const cancelBooking = useCallback(async (
-    bookingId: string,
-    reason: string,
-    customReason?: string
-  ) => {
-    setCancelling(true);
-    try {
-      // Update job status to cancelled
-      await JobService.updateJobStatus(bookingId, 'cancelled');
+  const cancelBooking = useCallback(
+    async (bookingId: string, reason: string, customReason?: string) => {
+      setCancelling(true);
+      try {
+        // Update job status to cancelled
+        await JobService.updateJobStatus(bookingId, 'cancelled');
 
-      // Log cancellation reason
-      const cancellationData = {
-        bookingId,
-        reason,
-        customReason: reason === 'other' ? customReason : undefined,
-        cancelledBy: user?.id,
-        cancelledAt: new Date().toISOString(),
-      };
+        // Log cancellation reason
+        const cancellationData = {
+          bookingId,
+          reason,
+          customReason: reason === 'other' ? customReason : undefined,
+          cancelledBy: user?.id,
+          cancelledAt: new Date().toISOString(),
+        };
 
-      logger.info('Booking cancelled:', cancellationData);
+        logger.info('Booking cancelled:', cancellationData);
 
-      // Refresh bookings to reflect changes
-      await refreshBookings();
+        // Refresh bookings to reflect changes
+        await refreshBookings();
 
-      Alert.alert('Booking Cancelled', 'Your booking has been cancelled successfully.');
-    } catch (error) {
-      logger.error('Error cancelling booking:', error);
-      Alert.alert('Error', 'Failed to cancel booking. Please try again.');
-    } finally {
-      setCancelling(false);
-    }
-  }, [user, refreshBookings]);
+        Alert.alert(
+          'Booking Cancelled',
+          'Your booking has been cancelled successfully.'
+        );
+      } catch (error) {
+        logger.error('Error cancelling booking:', error);
+        Alert.alert(
+          'Error',
+          error instanceof Error
+            ? error.message
+            : 'Failed to cancel booking. Please try again.'
+        );
+      } finally {
+        setCancelling(false);
+      }
+    },
+    [user, refreshBookings]
+  );
 
   // Load bookings on user change
   useEffect(() => {
@@ -206,17 +234,20 @@ export const useBookingViewModel = (user: User | null): BookingViewModel => {
   }, [loadBookings]);
 
   // Utility functions
-  const mapJobStatusToBookingStatus = useCallback((jobStatus: string): BookingStatus => {
-    switch (jobStatus) {
-      case 'assigned':
-      case 'in_progress':
-        return 'upcoming';
-      case 'completed':
-        return 'completed';
-      default:
-        return 'cancelled';
-    }
-  }, []);
+  const mapJobStatusToBookingStatus = useCallback(
+    (jobStatus: string): BookingStatus => {
+      switch (jobStatus) {
+        case 'assigned':
+        case 'in_progress':
+          return 'upcoming';
+        case 'completed':
+          return 'completed';
+        default:
+          return 'cancelled';
+      }
+    },
+    []
+  );
 
   const estimateJobDuration = useCallback((budget: number): string => {
     if (budget < 100) return '1-2 hours';
@@ -242,23 +273,25 @@ export const useBookingViewModel = (user: User | null): BookingViewModel => {
   }, []);
 
   // Computed values
-  const filteredBookings = bookings.filter((booking) => booking.status === activeTab);
+  const filteredBookings = bookings.filter(
+    (booking) => booking.status === activeTab
+  );
 
   const tabs: TabInfo[] = [
     {
       id: 'upcoming',
       name: 'Upcoming',
-      count: bookings.filter((b) => b.status === 'upcoming').length
+      count: bookings.filter((b) => b.status === 'upcoming').length,
     },
     {
       id: 'completed',
       name: 'Completed',
-      count: bookings.filter((b) => b.status === 'completed').length
+      count: bookings.filter((b) => b.status === 'completed').length,
     },
     {
       id: 'cancelled',
       name: 'Cancelled',
-      count: bookings.filter((b) => b.status === 'cancelled').length
+      count: bookings.filter((b) => b.status === 'cancelled').length,
     },
   ];
 

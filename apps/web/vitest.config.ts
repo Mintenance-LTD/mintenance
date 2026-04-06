@@ -38,6 +38,8 @@ export default defineConfig({
       '**/playwright/**',
       '**/*.playwright.{test,spec}.{ts,tsx}',
       '**/*.spec.ts.old',
+      // Real-DB integration tests use a separate config (vitest.integration.config.ts)
+      '**/__tests__/integration-real/**',
     ],
 
     // Coverage configuration

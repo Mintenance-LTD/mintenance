@@ -19,6 +19,7 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "test:run": "vitest run",
+    "test:integration": "node scripts/run-integration-tests.js",
     "test:parallel": "vitest run --reporter=verbose",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
     "test:redis": "ts-node lib/redis-validator.ts",

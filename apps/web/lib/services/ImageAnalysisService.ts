@@ -4,6 +4,14 @@ import { logger } from '@mintenance/shared';
 import { getGoogleVisionConfig, validateGoogleVisionConfig } from '@/lib/config/google-vision.config';
 import { validateURLs } from '@/lib/security/url-validation';
 import { CircuitBreaker } from './building-surveyor/utils/CircuitBreaker';
+import {
+  extractMaintenanceFeatures,
+  detectPropertyType,
+  assessCondition,
+  assessComplexity,
+} from './image-analysis/feature-extractors';
+import { suggestCategoriesFromImages } from './image-analysis/category-suggestions';
+import { estimateCostFactors, calculateConfidence } from './image-analysis/scoring';
 
 export interface ImageAnalysisResult {
   labels: Array<{ description: string; score: number }>;
@@ -330,21 +338,21 @@ export class ImageAnalysisService {
         .slice(0, 15); // Top 15 objects
 
       // Extract detected features relevant to maintenance/repair
-      const maintenanceKeywords = this.extractMaintenanceFeatures(labels, objects, allText);
+      const maintenanceKeywords = extractMaintenanceFeatures(labels, objects, allText);
 
       // Determine property type, condition, and complexity
-      const propertyType = this.detectPropertyType(labels, objects);
-      const condition = this.assessCondition(labels, objects, allText);
-      const complexity = this.assessComplexity(labels, objects, allText);
+      const propertyType = detectPropertyType(labels, objects);
+      const condition = assessCondition(labels, objects, allText);
+      const complexity = assessComplexity(labels, objects, allText);
 
       // Suggest categories based on visual evidence
-      const suggestedCategories = this.suggestCategoriesFromImages(labels, objects, allText);
+      const suggestedCategories = suggestCategoriesFromImages(labels, objects, allText);
 
       // Estimate cost factors
-      const estimatedCostFactors = this.estimateCostFactors(condition, complexity, propertyType);
+      const estimatedCostFactors = estimateCostFactors(condition, complexity, propertyType);
 
       // Calculate overall confidence
-      const confidence = this.calculateConfidence(labels, objects);
+      const confidence = calculateConfidence(labels, objects);
 
       const result: ImageAnalysisResult = {
         labels,
@@ -448,273 +456,4 @@ export class ImageAnalysisService {
 
     return prunedCount;
   }
-
-  /**
-   * Extract maintenance-related features from analysis results
-   */
-  private static extractMaintenanceFeatures(
-    labels: Array<{ description: string; score: number }>,
-    objects: Array<{ name: string; score: number }>,
-    text: string[]
-  ): string[] {
-    const features: string[] = [];
-    const allTerms = [
-      ...labels.map(l => l.description.toLowerCase()),
-      ...objects.map(o => o.name.toLowerCase()),
-      ...text.map(t => t.toLowerCase()),
-    ].join(' ');
-
-    // Damage indicators
-    const damageKeywords = [
-      'broken', 'cracked', 'damaged', 'leak', 'leaking', 'rust', 'rusty',
-      'stain', 'stained', 'mold', 'mildew', 'water damage', 'hole', 'holes',
-      'worn', 'faded', 'peeling', 'chipped', 'missing', 'loose',
-    ];
-
-    damageKeywords.forEach(keyword => {
-      if (allTerms.includes(keyword)) {
-        features.push(keyword);
-      }
-    });
-
-    // Property features
-    const propertyFeatures = [
-      'window', 'door', 'roof', 'wall', 'floor', 'ceiling', 'pipe', 'pipe',
-      'faucet', 'sink', 'toilet', 'bathroom', 'kitchen', 'electrical outlet',
-      'light fixture', 'heating', 'cooling', 'ventilation',
-    ];
-
-    propertyFeatures.forEach(feature => {
-      if (allTerms.includes(feature)) {
-        features.push(feature);
-      }
-    });
-
-    return Array.from(new Set(features)).slice(0, 15); // Limit to 15 features
-  }
-
-  /**
-   * Detect property type from images
-   */
-  private static detectPropertyType(
-    labels: Array<{ description: string; score: number }>,
-    objects: Array<{ name: string; score: number }>
-  ): string | undefined {
-    const allTerms = [
-      ...labels.map(l => l.description.toLowerCase()),
-      ...objects.map(o => o.name.toLowerCase()),
-    ].join(' ');
-
-    if (allTerms.includes('apartment') || allTerms.includes('flat')) {
-      return 'apartment';
-    }
-    if (allTerms.includes('house') || allTerms.includes('home')) {
-      return 'house';
-    }
-    if (allTerms.includes('commercial') || allTerms.includes('office')) {
-      return 'commercial';
-    }
-
-    return undefined;
-  }
-
-  /**
-   * Assess property condition from visual evidence
-   */
-  private static assessCondition(
-    labels: Array<{ description: string; score: number }>,
-    objects: Array<{ name: string; score: number }>,
-    text: string[]
-  ): 'excellent' | 'good' | 'fair' | 'poor' {
-    const allTerms = [
-      ...labels.map(l => l.description.toLowerCase()),
-      ...objects.map(o => o.name.toLowerCase()),
-      ...text.map(t => t.toLowerCase()),
-    ].join(' ');
-
-    const poorIndicators = ['broken', 'damaged', 'cracked', 'rust', 'mold', 'water damage', 'hole'];
-    const fairIndicators = ['worn', 'faded', 'stain', 'old', 'dated'];
-    const goodIndicators = ['clean', 'well-maintained', 'modern', 'new'];
-
-    const poorCount = poorIndicators.filter(indicator => allTerms.includes(indicator)).length;
-    const fairCount = fairIndicators.filter(indicator => allTerms.includes(indicator)).length;
-    const goodCount = goodIndicators.filter(indicator => allTerms.includes(indicator)).length;
-
-    if (poorCount >= 3) return 'poor';
-    if (poorCount >= 1 || fairCount >= 2) return 'fair';
-    if (goodCount >= 2) return 'good';
-    return 'excellent';
-  }
-
-  /**
-   * Assess job complexity from visual evidence
-   */
-  private static assessComplexity(
-    labels: Array<{ description: string; score: number }>,
-    objects: Array<{ name: string; score: number }>,
-    text: string[]
-  ): 'simple' | 'moderate' | 'complex' {
-    const allTerms = [
-      ...labels.map(l => l.description.toLowerCase()),
-      ...objects.map(o => o.name.toLowerCase()),
-      ...text.map(t => t.toLowerCase()),
-    ].join(' ');
-
-    const complexIndicators = [
-      'multiple', 'extensive', 'major', 'renovation', 'installation',
-      'replacement', 'structural', 'electrical system', 'plumbing system',
-    ];
-    const simpleIndicators = ['simple', 'quick', 'minor', 'small', 'single'];
-
-    const complexCount = complexIndicators.filter(indicator => allTerms.includes(indicator)).length;
-    const simpleCount = simpleIndicators.filter(indicator => allTerms.includes(indicator)).length;
-
-    if (complexCount >= 2) return 'complex';
-    if (simpleCount >= 2) return 'simple';
-    return 'moderate';
-  }
-
-  /**
-   * Suggest job categories based on visual analysis
-   */
-  private static suggestCategoriesFromImages(
-    labels: Array<{ description: string; score: number }>,
-    objects: Array<{ name: string; score: number }>,
-    text: string[]
-  ): Array<{ category: string; confidence: number; reason: string }> {
-    const allTerms = [
-      ...labels.map(l => l.description.toLowerCase()),
-      ...objects.map(o => o.name.toLowerCase()),
-      ...text.map(t => t.toLowerCase()),
-    ].join(' ');
-
-    const categoryMappings: Record<string, { keywords: string[]; weight: number }> = {
-      plumbing: {
-        keywords: ['pipe', 'faucet', 'sink', 'toilet', 'bathroom', 'water', 'leak', 'drain', 'plumber'],
-        weight: 1.0,
-      },
-      electrical: {
-        keywords: ['outlet', 'switch', 'light', 'wiring', 'electrical', 'circuit', 'breaker', 'socket'],
-        weight: 1.0,
-      },
-      roofing: {
-        keywords: ['roof', 'gutter', 'shingle', 'tile', 'chimney', 'eaves', 'flashing'],
-        weight: 1.0,
-      },
-      painting: {
-        keywords: ['wall', 'paint', 'ceiling', 'brush', 'roller', 'decorating'],
-        weight: 0.8,
-      },
-      carpentry: {
-        keywords: ['door', 'window', 'cabinet', 'shelf', 'wood', 'frame', 'furniture'],
-        weight: 0.9,
-      },
-      hvac: {
-        keywords: ['heating', 'cooling', 'ventilation', 'air conditioning', 'thermostat', 'boiler'],
-        weight: 1.0,
-      },
-      flooring: {
-        keywords: ['floor', 'carpet', 'tile', 'laminate', 'wooden floor'],
-        weight: 0.9,
-      },
-      cleaning: {
-        keywords: ['clean', 'window', 'carpet', 'vacuum', 'dust'],
-        weight: 0.7,
-      },
-      gardening: {
-        keywords: ['garden', 'lawn', 'tree', 'plant', 'hedge', 'fence', 'landscaping'],
-        weight: 0.8,
-      },
-    };
-
-    const categoryScores: Record<string, { score: number; matchedKeywords: string[] }> = {};
-
-    Object.entries(categoryMappings).forEach(([category, config]) => {
-      const matchedKeywords = config.keywords.filter(keyword => allTerms.includes(keyword));
-      if (matchedKeywords.length > 0) {
-        categoryScores[category] = {
-          score: matchedKeywords.length * config.weight,
-          matchedKeywords,
-        };
-      }
-    });
-
-    // Sort by score and return top categories
-    return Object.entries(categoryScores)
-      .sort((a, b) => b[1].score - a[1].score)
-      .slice(0, 3)
-      .map(([category, data]) => ({
-        category,
-        confidence: Math.min(95, Math.round((data.score / 5) * 100)), // Normalize to 0-95%
-        reason: `Detected ${data.matchedKeywords.slice(0, 3).join(', ')}`,
-      }));
-  }
-
-  /**
-   * Estimate cost factors based on condition and complexity
-   */
-  private static estimateCostFactors(
-    condition: 'excellent' | 'good' | 'fair' | 'poor',
-    complexity: 'simple' | 'moderate' | 'complex',
-    propertyType?: string
-  ): {
-    sizeMultiplier: number;
-    complexityMultiplier: number;
-    conditionMultiplier: number;
-  } {
-    const conditionMultipliers = {
-      excellent: 1.0,
-      good: 1.1,
-      fair: 1.3,
-      poor: 1.6,
-    };
-
-    const complexityMultipliers = {
-      simple: 0.8,
-      moderate: 1.0,
-      complex: 1.5,
-    };
-
-    const sizeMultipliers = {
-      apartment: 0.9,
-      house: 1.0,
-      commercial: 1.2,
-    };
-
-    return {
-      sizeMultiplier: propertyType ? sizeMultipliers[propertyType as keyof typeof sizeMultipliers] || 1.0 : 1.0,
-      complexityMultiplier: complexityMultipliers[complexity],
-      conditionMultiplier: conditionMultipliers[condition],
-    };
-  }
-
-  /**
-   * Calculate overall confidence in image analysis
-   */
-  private static calculateConfidence(
-    labels: Array<{ description: string; score: number }>,
-    objects: Array<{ name: string; score: number }>
-  ): number {
-    if (labels.length === 0 && objects.length === 0) {
-      return 0;
-    }
-
-    // Average confidence from top labels and objects
-    const topLabels = labels.slice(0, 5);
-    const topObjects = objects.slice(0, 5);
-
-    const avgLabelScore = topLabels.length > 0
-      ? topLabels.reduce((sum, l) => sum + l.score, 0) / topLabels.length
-      : 0;
-
-    const avgObjectScore = topObjects.length > 0
-      ? topObjects.reduce((sum, o) => sum + o.score, 0) / topObjects.length
-      : 0;
-
-    // Weighted average (labels are more reliable)
-    const confidence = (avgLabelScore * 0.6 + avgObjectScore * 0.4) * 100;
-
-    return Math.min(95, Math.max(30, Math.round(confidence)));
-  }
 }
-

@@ -94,11 +94,14 @@ export const POST = withApiHandler(
       }
     }
 
-    // Verify geolocation against job location if both are available
+    // Verify geolocation against job location if both are available.
+    // ENFORCEMENT: if geolocation IS provided and job has coordinates, the
+    // contractor MUST be within 100m. If no geolocation was captured (user
+    // denied permission) we fall through — geolocation is best-effort.
     let geolocationVerified = false;
     if (geolocation && job.latitude && job.longitude) {
       const geoResult = await PhotoVerificationService.verifyGeolocation(
-        '', // URL not needed when passing geolocation directly
+        '',
         { lat: job.latitude, lng: job.longitude },
         geolocation
       );
@@ -110,10 +113,16 @@ export const POST = withApiHandler(
           distance: geoResult.distance,
           threshold: 100,
         });
+        throw new BadRequestError(
+          `You must be at the job location to upload before photos. ` +
+            `You are approximately ${Math.round(geoResult.distance)}m away ` +
+            `(maximum allowed: 100m).`
+        );
       }
     }
 
     const uploadedPhotos: Array<{ url: string; qualityScore: number }> = [];
+    const rejectedPhotos: Array<{ url: string; reason: string }> = [];
 
     for (const file of photoFiles) {
       // Validate file
@@ -156,10 +165,27 @@ export const POST = withApiHandler(
         continue;
       }
 
-      // Validate photo quality
+      // Validate photo quality (brightness, sharpness, resolution)
       const qualityResult = await PhotoVerificationService.validatePhotoQuality(
         urlData.publicUrl
       );
+
+      // ENFORCEMENT: reject photos that fail quality check.
+      // Delete the uploaded file from storage so we don't accumulate garbage.
+      if (!qualityResult.passed) {
+        await serverSupabase.storage.from('Job-storage').remove([fileName]);
+        rejectedPhotos.push({
+          url: urlData.publicUrl,
+          reason: qualityResult.issues.join('; ') || 'Photo quality too low',
+        });
+        logger.warn('Photo rejected: quality check failed', {
+          service: 'jobs',
+          jobId,
+          qualityScore: qualityResult.qualityScore,
+          issues: qualityResult.issues,
+        });
+        continue;
+      }
 
       // Save metadata
       await serverSupabase.from('job_photos_metadata').insert({
@@ -181,6 +207,13 @@ export const POST = withApiHandler(
     }
 
     if (uploadedPhotos.length === 0) {
+      if (rejectedPhotos.length > 0) {
+        throw new BadRequestError(
+          `All ${rejectedPhotos.length} photo(s) were rejected. ` +
+            `Reasons: ${rejectedPhotos.map((p) => p.reason).join(' | ')}. ` +
+            `Please retake photos with better lighting, focus, and resolution (min 800x600).`
+        );
+      }
       throw new Error('Failed to upload photos');
     }
 
@@ -188,6 +221,8 @@ export const POST = withApiHandler(
       success: true,
       photos: uploadedPhotos,
       count: uploadedPhotos.length,
+      rejected: rejectedPhotos.length,
+      ...(rejectedPhotos.length > 0 && { rejectedPhotos }),
     });
   }
 );

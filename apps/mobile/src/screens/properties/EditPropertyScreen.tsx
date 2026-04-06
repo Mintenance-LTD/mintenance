@@ -123,8 +123,12 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
       queryClient.invalidateQueries({ queryKey: ['properties'] });
       navigation.goBack();
     },
-    onError: () => {
-      Alert.alert('Error', 'Failed to update property. Please try again.');
+    onError: (err: unknown) => {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : 'Failed to update property. Please try again.';
+      Alert.alert('Error', msg);
     },
   });
 

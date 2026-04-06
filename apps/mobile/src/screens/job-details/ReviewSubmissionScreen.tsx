@@ -28,7 +28,10 @@ import { JobsStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
 
 type ScreenRouteProp = RouteProp<JobsStackParamList, 'ReviewSubmission'>;
-type ScreenNavigationProp = NativeStackNavigationProp<JobsStackParamList, 'ReviewSubmission'>;
+type ScreenNavigationProp = NativeStackNavigationProp<
+  JobsStackParamList,
+  'ReviewSubmission'
+>;
 
 interface Props {
   route: ScreenRouteProp;
@@ -37,14 +40,18 @@ interface Props {
 
 const MIN_COMMENT_LENGTH = 20;
 
-export const ReviewSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
+export const ReviewSubmissionScreen: React.FC<Props> = ({
+  route,
+  navigation,
+}) => {
   const { jobId, contractorName, jobTitle } = route.params;
   const insets = useSafeAreaInsets();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const isValid = rating >= 1 && rating <= 5 && comment.trim().length >= MIN_COMMENT_LENGTH;
+  const isValid =
+    rating >= 1 && rating <= 5 && comment.trim().length >= MIN_COMMENT_LENGTH;
 
   const handleSubmit = useCallback(async () => {
     if (!isValid) return;
@@ -59,9 +66,14 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({ route, navigation }) =
       Alert.alert('Review Submitted', 'Thank you for your feedback!', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
-    } catch {
+    } catch (err) {
       HapticService.error();
-      Alert.alert('Error', 'Failed to submit review. Please try again.');
+      Alert.alert(
+        'Error',
+        err instanceof Error
+          ? err.message
+          : 'Failed to submit review. Please try again.'
+      );
     } finally {
       setSubmitting(false);
     }
@@ -69,16 +81,23 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({ route, navigation }) =
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.surface} />
+      <StatusBar
+        barStyle='dark-content'
+        backgroundColor={theme.colors.surface}
+      />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityRole='button'
+          accessibilityLabel='Go back'
         >
-          <Ionicons name="arrow-back" size={22} color={theme.colors.textPrimary} />
+          <Ionicons
+            name='arrow-back'
+            size={22}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Leave a Review</Text>
         <View style={styles.headerSpacer} />
@@ -92,7 +111,7 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({ route, navigation }) =
           style={styles.scrollView}
           contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 }]}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps='handled'
         >
           {/* Job Info */}
           {(jobTitle || contractorName) && (
@@ -106,20 +125,29 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({ route, navigation }) =
 
           {/* Star Rating */}
           <View style={styles.ratingSection}>
-            <Text style={styles.sectionLabel}>How would you rate this job?</Text>
+            <Text style={styles.sectionLabel}>
+              How would you rate this job?
+            </Text>
             <View style={styles.starsRow}>
               {[1, 2, 3, 4, 5].map((star) => (
                 <TouchableOpacity
                   key={star}
-                  onPress={() => { setRating(star); HapticService.selection(); }}
-                  accessibilityRole="button"
+                  onPress={() => {
+                    setRating(star);
+                    HapticService.selection();
+                  }}
+                  accessibilityRole='button'
                   accessibilityLabel={`${star} star${star > 1 ? 's' : ''}`}
                   style={styles.starButton}
                 >
                   <Ionicons
                     name={star <= rating ? 'star' : 'star-outline'}
                     size={40}
-                    color={star <= rating ? theme.colors.accent : theme.colors.textTertiary}
+                    color={
+                      star <= rating
+                        ? theme.colors.accent
+                        : theme.colors.textTertiary
+                    }
                   />
                 </TouchableOpacity>
               ))}
@@ -140,11 +168,11 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({ route, navigation }) =
             <Text style={styles.sectionLabel}>Write your review</Text>
             <TextInput
               style={styles.commentInput}
-              placeholder="Share your experience with this job..."
+              placeholder='Share your experience with this job...'
               placeholderTextColor={theme.colors.textTertiary}
               multiline
               numberOfLines={6}
-              textAlignVertical="top"
+              textAlignVertical='top'
               value={comment}
               onChangeText={setComment}
               maxLength={500}
@@ -155,30 +183,45 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({ route, navigation }) =
                 comment.trim().length < MIN_COMMENT_LENGTH && comment.length > 0
                   ? styles.charCountWarning
                   : comment.length > 490
-                  ? styles.charCountNearLimit
-                  : null,
+                    ? styles.charCountNearLimit
+                    : null,
               ]}
             >
-              {comment.length}/500{comment.trim().length < MIN_COMMENT_LENGTH && comment.length > 0 ? ` · min ${MIN_COMMENT_LENGTH} chars required` : ''}
+              {comment.length}/500
+              {comment.trim().length < MIN_COMMENT_LENGTH && comment.length > 0
+                ? ` · min ${MIN_COMMENT_LENGTH} chars required`
+                : ''}
             </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
       {/* Submit Button */}
-      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+      <View
+        style={[
+          styles.bottomBar,
+          { paddingBottom: Math.max(insets.bottom, 20) },
+        ]}
+      >
         <TouchableOpacity
-          style={[styles.submitButton, (!isValid || submitting) && styles.submitButtonDisabled]}
+          style={[
+            styles.submitButton,
+            (!isValid || submitting) && styles.submitButtonDisabled,
+          ]}
           onPress={handleSubmit}
           disabled={!isValid || submitting}
-          accessibilityRole="button"
-          accessibilityLabel="Submit review"
+          accessibilityRole='button'
+          accessibilityLabel='Submit review'
         >
           {submitting ? (
             <ActivityIndicator color={theme.colors.textInverse} />
           ) : (
             <>
-              <Ionicons name="send" size={20} color={theme.colors.textInverse} />
+              <Ionicons
+                name='send'
+                size={20}
+                color={theme.colors.textInverse}
+              />
               <Text style={styles.submitButtonText}>Submit Review</Text>
             </>
           )}
@@ -235,7 +278,12 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 20,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -285,7 +333,12 @@ const styles = StyleSheet.create({
     minHeight: 140,
     lineHeight: 22,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -312,7 +365,12 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: theme.colors.border,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.08, shadowRadius: 12 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+      },
       android: { elevation: 8 },
     }),
   },

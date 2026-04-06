@@ -36,7 +36,11 @@ const PROPERTY_TYPES = [
   { value: 'flat', label: 'Flat', icon: 'business-outline' as const },
   { value: 'bungalow', label: 'Bungalow', icon: 'home-outline' as const },
   { value: 'maisonette', label: 'Maisonette', icon: 'layers-outline' as const },
-  { value: 'other', label: 'Other', icon: 'ellipsis-horizontal-outline' as const },
+  {
+    value: 'other',
+    label: 'Other',
+    icon: 'ellipsis-horizontal-outline' as const,
+  },
 ] as const;
 
 export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
@@ -57,14 +61,28 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
   const [latitude, setLatitude] = useState<number | undefined>();
   const [longitude, setLongitude] = useState<number | undefined>();
 
-  const hasUnsavedChanges = !!(address1 || city || postcode || notes || bedrooms || bathrooms);
+  const hasUnsavedChanges = !!(
+    address1 ||
+    city ||
+    postcode ||
+    notes ||
+    bedrooms ||
+    bathrooms
+  );
   useUnsavedChanges(hasUnsavedChanges);
 
   const createMutation = useMutation({
     mutationFn: async (data: Record<string, unknown>) => {
       if (!user?.id) throw new Error('Not authenticated');
-      const address = [data.address_line1, data.address_line2, data.city, data.county, data.postcode]
-        .filter(Boolean).join(', ');
+      const address = [
+        data.address_line1,
+        data.address_line2,
+        data.city,
+        data.county,
+        data.postcode,
+      ]
+        .filter(Boolean)
+        .join(', ');
       const propertyName = `${data.property_type || 'Property'} at ${data.address_line1}`;
 
       // Forward geocode address if we don't have coordinates yet
@@ -101,8 +119,13 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
       queryClient.invalidateQueries({ queryKey: ['properties'] });
       navigation.goBack();
     },
-    onError: () => {
-      Alert.alert('Error', 'Failed to add property. Please try again.');
+    onError: (err: unknown) => {
+      Alert.alert(
+        'Error',
+        err instanceof Error
+          ? err.message
+          : 'Failed to add property. Please try again.'
+      );
     },
   });
 
@@ -111,10 +134,15 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
       setLocating(true);
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission required', 'Please allow location access to use this feature.');
+        Alert.alert(
+          'Permission required',
+          'Please allow location access to use this feature.'
+        );
         return;
       }
-      const { coords } = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const { coords } = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
       setLatitude(coords.latitude);
       setLongitude(coords.longitude);
       const [result] = await Location.reverseGeocodeAsync({
@@ -122,14 +150,19 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
         longitude: coords.longitude,
       });
       if (result) {
-        const line1 = [result.streetNumber, result.street].filter(Boolean).join(' ');
+        const line1 = [result.streetNumber, result.street]
+          .filter(Boolean)
+          .join(' ');
         if (line1) setAddress1(line1);
         if (result.city) setCity(result.city);
         if (result.postalCode) setPostcode(result.postalCode.toUpperCase());
         if (result.region) setCounty(result.region);
       }
     } catch {
-      Alert.alert('Error', 'Could not fetch your location. Please enter your address manually.');
+      Alert.alert(
+        'Error',
+        'Could not fetch your location. Please enter your address manually.'
+      );
     } finally {
       setLocating(false);
     }
@@ -152,7 +185,10 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
     if (!isValidPostcode(postcode)) {
-      Alert.alert('Invalid Postcode', 'Please enter a valid UK postcode (e.g. SW1A 1AA).');
+      Alert.alert(
+        'Invalid Postcode',
+        'Please enter a valid UK postcode (e.g. SW1A 1AA).'
+      );
       return;
     }
 
@@ -176,7 +212,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <ScreenHeader
-        title="Add Property"
+        title='Add Property'
         onBackPress={() => navigation.goBack()}
       />
 
@@ -184,7 +220,10 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps='handled'
+        >
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>ADDRESS</Text>
 
@@ -193,13 +232,21 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
               style={styles.locationButton}
               onPress={handleUseMyLocation}
               disabled={locating}
-              accessibilityRole="button"
-              accessibilityLabel="Use current location to fill address"
+              accessibilityRole='button'
+              accessibilityLabel='Use current location to fill address'
             >
-              {locating
-                ? <ActivityIndicator size="small" color={theme.colors.textInverse} />
-                : <Ionicons name="location" size={18} color={theme.colors.textInverse} />
-              }
+              {locating ? (
+                <ActivityIndicator
+                  size='small'
+                  color={theme.colors.textInverse}
+                />
+              ) : (
+                <Ionicons
+                  name='location'
+                  size={18}
+                  color={theme.colors.textInverse}
+                />
+              )}
               <Text style={styles.locationButtonText}>
                 {locating ? 'Locating...' : 'Use Current Location'}
               </Text>
@@ -211,7 +258,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                 style={styles.input}
                 value={address1}
                 onChangeText={setAddress1}
-                placeholder="e.g. 42 High Street"
+                placeholder='e.g. 42 High Street'
                 placeholderTextColor={theme.colors.textTertiary}
               />
             </View>
@@ -222,7 +269,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                 style={styles.input}
                 value={address2}
                 onChangeText={setAddress2}
-                placeholder="e.g. Apartment 3B"
+                placeholder='e.g. Apartment 3B'
                 placeholderTextColor={theme.colors.textTertiary}
               />
             </View>
@@ -234,7 +281,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                   style={styles.input}
                   value={city}
                   onChangeText={setCity}
-                  placeholder="e.g. London"
+                  placeholder='e.g. London'
                   placeholderTextColor={theme.colors.textTertiary}
                 />
               </View>
@@ -245,7 +292,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                   style={styles.input}
                   value={county}
                   onChangeText={setCounty}
-                  placeholder="e.g. Greater London"
+                  placeholder='e.g. Greater London'
                   placeholderTextColor={theme.colors.textTertiary}
                 />
               </View>
@@ -257,9 +304,9 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                 style={[styles.input, styles.postcodeInput]}
                 value={postcode}
                 onChangeText={setPostcode}
-                placeholder="e.g. SW1A 1AA"
+                placeholder='e.g. SW1A 1AA'
                 placeholderTextColor={theme.colors.textTertiary}
-                autoCapitalize="characters"
+                autoCapitalize='characters'
               />
             </View>
           </View>
@@ -267,7 +314,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>PROPERTY TYPE</Text>
             <View style={styles.typeGrid}>
-              {PROPERTY_TYPES.map(type => (
+              {PROPERTY_TYPES.map((type) => (
                 <TouchableOpacity
                   key={type.value}
                   style={[
@@ -279,12 +326,17 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                   <Ionicons
                     name={type.icon}
                     size={18}
-                    color={propertyType === type.value ? theme.colors.textInverse : theme.colors.textSecondary}
+                    color={
+                      propertyType === type.value
+                        ? theme.colors.textInverse
+                        : theme.colors.textSecondary
+                    }
                   />
                   <Text
                     style={[
                       styles.typeChipText,
-                      propertyType === type.value && styles.typeChipTextSelected,
+                      propertyType === type.value &&
+                        styles.typeChipTextSelected,
                     ]}
                   >
                     {type.label}
@@ -303,9 +355,9 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                   style={styles.input}
                   value={bedrooms}
                   onChangeText={setBedrooms}
-                  placeholder="0"
+                  placeholder='0'
                   placeholderTextColor={theme.colors.textTertiary}
-                  keyboardType="number-pad"
+                  keyboardType='number-pad'
                 />
               </View>
               <View style={styles.rowSpacer} />
@@ -315,15 +367,15 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                   style={styles.input}
                   value={bathrooms}
                   onChangeText={setBathrooms}
-                  placeholder="0"
+                  placeholder='0'
                   placeholderTextColor={theme.colors.textTertiary}
-                  keyboardType="number-pad"
+                  keyboardType='number-pad'
                 />
               </View>
             </View>
 
             <DatePicker
-              label="Purchase / Build Date"
+              label='Purchase / Build Date'
               value={purchaseDate}
               onChange={setPurchaseDate}
             />
@@ -335,16 +387,19 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
               style={[styles.input, styles.textArea]}
               value={notes}
               onChangeText={setNotes}
-              placeholder="Any additional notes about the property..."
+              placeholder='Any additional notes about the property...'
               placeholderTextColor={theme.colors.textTertiary}
               multiline
               numberOfLines={4}
-              textAlignVertical="top"
+              textAlignVertical='top'
             />
           </View>
 
           <TouchableOpacity
-            style={[styles.submitButton, !isValid && styles.submitButtonDisabled]}
+            style={[
+              styles.submitButton,
+              !isValid && styles.submitButtonDisabled,
+            ]}
             onPress={handleSubmit}
             disabled={!isValid || createMutation.isPending}
           >
@@ -376,7 +431,12 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { MFAService } from '@/lib/mfa/mfa-service';
-import { createClient } from '@supabase/supabase-js';
+import { createAnonClient } from '@/lib/api/supabaseServer';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { logger } from '@mintenance/shared';
 import {
@@ -48,11 +48,9 @@ export const POST = withApiHandler(
     const { password } = validation.data;
 
     // AUDIT FIX: Verify password via Supabase Auth (not the legacy DatabaseManager.authenticateUser
-    // which never actually verified passwords)
-    const supabaseAuth = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    // which never actually verified passwords). createAnonClient wraps
+    // @supabase/supabase-js with the project's canonical config.
+    const supabaseAuth = createAnonClient();
     const { error: authError } = await supabaseAuth.auth.signInWithPassword({
       email: user.email,
       password,
