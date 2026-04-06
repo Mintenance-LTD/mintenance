@@ -111,10 +111,11 @@ export const useContractorProfileViewModel = (
     setLoading(true);
     setError(null);
     try {
+      // Cross-user read — only select publicly-safe columns (no phone/email/address)
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select(
-          'id, first_name, last_name, company_name, city, bio, phone, skills, hourly_rate, verified, portfolio_images, rating, total_jobs_completed'
+          'id, first_name, last_name, company_name, city, bio, skills, hourly_rate, verified, portfolio_images, rating, total_jobs_completed'
         )
         .eq('id', contractorId)
         .single();
@@ -132,7 +133,7 @@ export const useContractorProfileViewModel = (
         skills: profileData.skills,
         hourly_rate: profileData.hourly_rate,
         verified: profileData.verified,
-        phone: profileData.phone,
+        phone: undefined, // Phone not exposed in cross-user reads (PII protection)
         portfolio_images: profileData.portfolio_images,
       };
 
