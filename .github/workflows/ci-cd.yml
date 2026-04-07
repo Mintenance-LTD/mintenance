@@ -34,16 +34,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: '20.19.4'
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts=false
         timeout-minutes: 10
 
       - name: Build shared packages
@@ -70,7 +70,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: ${{ env.HAS_CODECOV == 'true' }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage/lcov.info
@@ -90,11 +90,11 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
       - name: Detect mobile changes
         id: filter
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
         with:
           filters: |
             mobile:
@@ -105,19 +105,19 @@ jobs:
 
       - name: Setup Node.js
         if: steps.filter.outputs.mobile == 'true'
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: '20.19.4'
           cache: 'npm'
 
       - name: Install dependencies
         if: steps.filter.outputs.mobile == 'true'
-        run: npm ci
+        run: npm ci --ignore-scripts=false
         timeout-minutes: 10
 
       - name: Setup Java for Android
         if: steps.filter.outputs.mobile == 'true'
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -131,7 +131,7 @@ jobs:
 
       - name: Run Detox smoke tests (auth + navigation only)
         if: steps.filter.outputs.mobile == 'true'
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@1dcd0090116d15e7c562f0bc8937c1596d5b2203 # v2
         with:
           api-level: 34
           arch: x86_64
@@ -154,25 +154,25 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: '20.19.4'
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts=false
 
       - name: Setup Java for Android
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f3f2d4b9464 # v3
         with:
           api-level: 34
           build-tools: 34.0.0
@@ -204,23 +204,23 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: '20.19.4'
           cache: 'npm'
 
       - name: Setup Expo
-        uses: expo/expo-github-action@v8
+        uses: expo/expo-github-action@f7ab52df0e03970fe1e260a2a5307c8f4dbd2587 # v8
         with:
           expo-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
           eas-version: latest
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts=false
         timeout-minutes: 10
 
       - name: Build shared packages
@@ -248,23 +248,23 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: '20.19.4'
           cache: 'npm'
 
       - name: Setup Expo
-        uses: expo/expo-github-action@v8
+        uses: expo/expo-github-action@f7ab52df0e03970fe1e260a2a5307c8f4dbd2587 # v8
         with:
           expo-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
           eas-version: latest
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts=false
         timeout-minutes: 10
 
       - name: Build shared packages
@@ -301,16 +301,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: '20.19.4'
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts=false
         timeout-minutes: 10
 
       - name: Run performance tests
@@ -357,7 +357,7 @@ jobs:
           fi
 
       - name: Comment on PR
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const qualityChecks = '${{ needs.quality-checks.result }}';
@@ -401,7 +401,7 @@ jobs:
     steps:
       - name: Notify team
         if: ${{ env.HAS_SLACK == 'true' }}
-        uses: 8398a7/action-slack@v3
+        uses: 8398a7/action-slack@77eaa4f1c608a7d68b38af4e3f739dcd8cba273e # v3
         with:
           status: ${{ job.status }}
           channel: '#mintenance-deployments'

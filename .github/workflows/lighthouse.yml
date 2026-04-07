@@ -18,16 +18,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: '20.19.4'
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts=false
         timeout-minutes: 10
 
       - name: Build web app
@@ -40,7 +40,7 @@ jobs:
           NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: dummy
 
       - name: Run Lighthouse CI
-        uses: treosh/lighthouse-ci-action@v12
+        uses: treosh/lighthouse-ci-action@2f8dda6cf4de56e82bd3b9a3cded48ef24558e31 # v12
         id: lighthouse
         with:
           configPath: apps/web/lighthouserc.js
@@ -52,7 +52,7 @@ jobs:
       - name: Format Lighthouse results
         id: format
         if: always() && github.event_name == 'pull_request'
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const results = ${{ steps.lighthouse.outputs.manifest }};
@@ -94,7 +94,7 @@ jobs:
 
       - name: Post PR comment
         if: always() && github.event_name == 'pull_request' && steps.format.outputs.comment
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const body = `${{ steps.format.outputs.comment }}`;
@@ -124,7 +124,7 @@ jobs:
 
       - name: Check accessibility gate
         if: always()
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const results = ${{ steps.lighthouse.outputs.manifest }};
