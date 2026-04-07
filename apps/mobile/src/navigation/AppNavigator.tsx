@@ -37,6 +37,8 @@ import { ExploreMapScreen } from '../screens/explore-map/ExploreMapScreen';
 // Import context and utilities
 import { useAuth } from '../contexts/AuthContext';
 import { useHaptics } from '../utils/haptics';
+import { useOnboardingGate } from '../hooks/useOnboardingGate';
+import { OnboardingModal } from '../components/onboarding/OnboardingModal';
 import { theme } from '../theme';
 import { useTheme } from '../design-system/theme';
 import {
@@ -125,6 +127,7 @@ const TabNavigator: React.FC = () => {
   const haptics = useHaptics();
   const [showQuickJobModal, setShowQuickJobModal] = useState(false);
   const { data: unreadMessageCount } = useUnreadMessageCount();
+  const onboarding = useOnboardingGate();
 
   // Store root navigation ref for QuickJobModal search callback
   const rootNavRef = React.useRef<NavigationProp<RootStackParamList> | null>(
@@ -159,6 +162,11 @@ const TabNavigator: React.FC = () => {
   return (
     <>
       <OfflineSyncStatus showWhenOnline compact position='top' />
+      <OnboardingModal
+        visible={onboarding.shouldShow}
+        userRole={user?.role || 'homeowner'}
+        onDismiss={onboarding.dismiss}
+      />
       <QuickJobModal
         visible={showQuickJobModal}
         onClose={() => setShowQuickJobModal(false)}
