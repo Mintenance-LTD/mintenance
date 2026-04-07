@@ -13,6 +13,7 @@ import { FAQSection } from '@/components/landing/faq-section';
 import { ContractorCTA } from '@/components/landing/contractor-cta';
 import { FinalCTA } from '@/components/landing/final-cta';
 import { ExitIntentModal } from '@/components/landing/exit-intent-modal';
+import { AppPreviewSection } from '@/components/landing/app-preview-section';
 import type { PlatformStats } from '@/components/landing/stats-section';
 
 /**
@@ -94,6 +95,7 @@ export default async function LandingPage() {
           hasRealStats={hasRealStats}
           statsLoading={false}
         />
+        <AppPreviewSection />
         <StatsSection stats={stats} />
         <BentoFeaturesSection />
         <ComparisonTable />

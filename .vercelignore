@@ -14,7 +14,7 @@ apps/web/.next
 apps/web/coverage
 apps/web/playwright-report
 dist
-Screenshots
+/Screenshots
 archive
 beta-testing-data
 credentials

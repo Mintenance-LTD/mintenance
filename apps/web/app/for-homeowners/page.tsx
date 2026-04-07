@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   Camera,
   Shield,
@@ -152,18 +151,20 @@ export default function ForHomeownersPage() {
               {/* Hero screenshot — web dashboard */}
               <div className="relative hidden lg:block">
                 <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-black/40 border border-white/10">
-                  <Image
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                     src="/screenshots/homeowner/dashboard.png"
                     alt="Mintenance homeowner dashboard showing active jobs, bids received, and project overview"
                     width={800}
                     height={500}
                     className="w-full h-auto"
-                    priority
+      
                   />
                 </div>
                 {/* Floating mobile screenshot */}
                 <div className="absolute -bottom-8 -left-12 w-48 rounded-3xl overflow-hidden shadow-2xl border-4 border-white/20 rotate-[-3deg]">
-                  <Image
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                     src="/screenshots/mobile/homeowner-dashboard.png"
                     alt="Mobile app showing homeowner dashboard"
                     width={240}
@@ -237,7 +238,8 @@ export default function ForHomeownersPage() {
                           <div className="flex-1 mx-3 h-5 bg-gray-700 rounded-md" />
                         </div>
                         <div className="rounded-lg overflow-hidden">
-                          <Image
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                             src={feature.screenshot}
                             alt={feature.screenshotAlt}
                             width={700}
@@ -250,7 +252,8 @@ export default function ForHomeownersPage() {
                       {/* Floating mobile screenshot (if available) */}
                       {feature.mobileScreenshot && (
                         <div className="absolute -bottom-6 -right-6 w-36 rounded-2xl overflow-hidden shadow-xl border-4 border-white hidden md:block">
-                          <Image
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                             src={feature.mobileScreenshot}
                             alt={feature.mobileAlt || ''}
                             width={180}
