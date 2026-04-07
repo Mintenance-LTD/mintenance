@@ -187,10 +187,10 @@ function ScreenShowcase({
             </div>
           )}
 
-          {/* Phone frame — floating bottom-left over the desktop */}
-          <div className={`${screen.desktop ? 'absolute -bottom-8 -left-6 z-10' : 'mx-auto'} w-36 sm:w-44 rounded-[1.5rem] overflow-hidden shadow-2xl border-4 border-gray-800 bg-gray-800`}>
-            <div className="flex justify-center py-1 bg-gray-800">
-              <div className="w-12 h-1 bg-gray-700 rounded-full" />
+          {/* Phone frame — small, tucked into bottom-left corner */}
+          <div className={`${screen.desktop ? 'absolute -bottom-6 -left-4 z-10 hidden md:block' : 'mx-auto'} w-24 sm:w-28 rounded-2xl overflow-hidden shadow-xl border-[3px] border-gray-800 bg-gray-800`}>
+            <div className="flex justify-center py-0.5 bg-gray-800">
+              <div className="w-8 h-0.5 bg-gray-700 rounded-full" />
             </div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
