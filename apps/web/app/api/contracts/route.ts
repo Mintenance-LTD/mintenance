@@ -167,11 +167,14 @@ export const POST = withApiHandler(
     let contractError;
 
     if (existingContract) {
-      // Allow updating draft or pending_homeowner contracts (contractor can resend)
+      // Allow updating when contractor can still edit:
+      // - draft: initial state
+      // - pending_contractor: auto-created on bid acceptance, contractor fills details
+      // - pending_homeowner: contractor can resend with updates
       // Block if already signed/accepted/rejected by homeowner
       if (
         !(
-          [CONTRACT_STATUS.DRAFT, CONTRACT_STATUS.PENDING_HOMEOWNER] as string[]
+          [CONTRACT_STATUS.DRAFT, CONTRACT_STATUS.PENDING_CONTRACTOR, CONTRACT_STATUS.PENDING_HOMEOWNER] as string[]
         ).includes(existingContract.status)
       ) {
         throw new BadRequestError(

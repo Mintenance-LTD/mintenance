@@ -4,6 +4,6 @@
  */
 
 export { OnboardingSwiper, homeownerSlides, contractorSlides } from './OnboardingSwiper';
-export { TutorialOverlay } from './TutorialOverlay';
+export { OnboardingModal } from './OnboardingModal';
 export { ProfileCompletionCard } from './ProfileCompletionCard';
-export { FeatureTooltip } from './FeatureTooltip';
+// TutorialOverlay and FeatureTooltip removed — unused placeholder code
