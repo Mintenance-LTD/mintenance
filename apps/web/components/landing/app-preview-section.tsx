@@ -36,8 +36,8 @@ export function AppPreviewSection() {
             <div className="rounded-xl overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/screenshots/homeowner/ai-assessment.png"
-                alt="AI Building Assessment — damage detection, cost estimate, materials list, and insurance risk score"
+                src="/screenshots/contractor/discover-jobs.png"
+                alt="Discover Jobs — browse available projects on a map, filter by trade, distance, and budget"
                 className="w-full h-auto"
                 loading="eager"
               />
@@ -74,8 +74,8 @@ export function AppPreviewSection() {
             <p className="text-xs text-gray-500">Post jobs &middot; Track progress</p>
           </div>
           <div className="text-center flex-1">
-            <p className="text-sm font-semibold text-gray-900">AI-Powered Assessment</p>
-            <p className="text-xs text-gray-500">Upload a photo &middot; Get instant analysis</p>
+            <p className="text-sm font-semibold text-gray-900">Discover Jobs Near You</p>
+            <p className="text-xs text-gray-500">Browse &middot; Filter &middot; Bid &middot; Get Paid</p>
           </div>
           <div className="text-center hidden md:block">
             <p className="text-sm font-semibold text-gray-900">Contractor App</p>
