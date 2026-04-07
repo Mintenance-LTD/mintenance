@@ -49,8 +49,18 @@ vi.mock('@/lib/rate-limiter', () => ({
 
 vi.mock('@mintenance/shared', () => ({
   logger: mocks.logger,
-  JOB_STATUS: { COMPLETED: 'completed', IN_PROGRESS: 'in_progress', ASSIGNED: 'assigned', POSTED: 'posted' },
-  ESCROW_STATUS: { PENDING: 'pending', HELD: 'held', RELEASE_PENDING: 'release_pending', RELEASED: 'released' },
+  JOB_STATUS: {
+    COMPLETED: 'completed',
+    IN_PROGRESS: 'in_progress',
+    ASSIGNED: 'assigned',
+    POSTED: 'posted',
+  },
+  ESCROW_STATUS: {
+    PENDING: 'pending',
+    HELD: 'held',
+    RELEASE_PENDING: 'release_pending',
+    RELEASED: 'released',
+  },
   validateEscrowTransition: vi.fn(),
   BUSINESS_RULES: {},
   RATE_LIMITS: {},
@@ -76,24 +86,65 @@ vi.mock('@/lib/email-service', () => ({
 
 vi.mock('@/lib/errors/api-error', async () => {
   class APIError extends Error {
-    constructor(public code: string, public userMessage: string, public statusCode: number = 500, public details?: unknown) {
-      super(userMessage); this.name = 'APIError';
+    constructor(
+      public code: string,
+      public userMessage: string,
+      public statusCode: number = 500,
+      public details?: unknown
+    ) {
+      super(userMessage);
+      this.name = 'APIError';
     }
-    toResponse() { return { error: { code: this.code, message: this.userMessage }, timestamp: new Date().toISOString() }; }
+    toResponse() {
+      return {
+        error: { code: this.code, message: this.userMessage },
+        timestamp: new Date().toISOString(),
+      };
+    }
   }
-  class UnauthorizedError extends APIError { constructor(m = 'Unauthorized') { super('UNAUTHORIZED', m, 401); } }
-  class ForbiddenError extends APIError { constructor(m = 'Forbidden') { super('FORBIDDEN', m, 403); } }
-  class NotFoundError extends APIError { constructor(m = 'Resource not found') { super('NOT_FOUND', m, 404); } }
-  class BadRequestError extends APIError { constructor(m = 'Bad Request', d?: unknown) { super('BAD_REQUEST', m, 400, d); } }
+  class UnauthorizedError extends APIError {
+    constructor(m = 'Unauthorized') {
+      super('UNAUTHORIZED', m, 401);
+    }
+  }
+  class ForbiddenError extends APIError {
+    constructor(m = 'Forbidden') {
+      super('FORBIDDEN', m, 403);
+    }
+  }
+  class NotFoundError extends APIError {
+    constructor(m = 'Resource not found') {
+      super('NOT_FOUND', m, 404);
+    }
+  }
+  class BadRequestError extends APIError {
+    constructor(m = 'Bad Request', d?: unknown) {
+      super('BAD_REQUEST', m, 400, d);
+    }
+  }
   return {
-    APIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError,
+    APIError,
+    UnauthorizedError,
+    ForbiddenError,
+    NotFoundError,
+    BadRequestError,
     handleAPIError: vi.fn((error: unknown) => {
       if (error instanceof APIError) {
         const { NextResponse } = require('next/server');
-        return NextResponse.json(error.toResponse(), { status: error.statusCode });
+        return NextResponse.json(error.toResponse(), {
+          status: error.statusCode,
+        });
       }
       const { NextResponse } = require('next/server');
-      return NextResponse.json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred' } }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'An unexpected error occurred',
+          },
+        },
+        { status: 500 }
+      );
     }),
   };
 });
@@ -139,7 +190,10 @@ function setupDefaultMocks() {
   mocks.getCurrentUserFromCookies.mockResolvedValue(homeownerUser);
   mocks.requireCSRF.mockResolvedValue(undefined);
   mocks.rateLimiterCheckRateLimit.mockResolvedValue({
-    allowed: true, remaining: 19, resetTime: Date.now() + 60000, retryAfter: 0,
+    allowed: true,
+    remaining: 19,
+    resetTime: Date.now() + 60000,
+    retryAfter: 0,
   });
   mocks.getIdempotencyKeyFromRequest.mockReturnValue('idem-key-123');
   mocks.checkIdempotency.mockResolvedValue({ isDuplicate: false });
@@ -148,17 +202,26 @@ function setupDefaultMocks() {
   mocks.sendWorkApprovedEmail.mockResolvedValue(true);
 }
 
-function setupConfirmMocks(overrides: {
-  jobData?: unknown;
-  jobError?: unknown;
-  updateError?: unknown;
-  escrowData?: unknown;
-  escrowUpdateError?: unknown;
-} = {}) {
-  const jobResult = { data: overrides.jobData ?? completedJob, error: overrides.jobError ?? null };
+function setupConfirmMocks(
+  overrides: {
+    jobData?: unknown;
+    jobError?: unknown;
+    updateError?: unknown;
+    escrowData?: unknown;
+    escrowUpdateError?: unknown;
+  } = {}
+) {
+  const jobResult = {
+    data: overrides.jobData ?? completedJob,
+    error: overrides.jobError ?? null,
+  };
   const updateResult = { error: overrides.updateError ?? null };
   const escrowResult = {
-    data: overrides.escrowData ?? { id: 'escrow-1', status: 'held', amount: 25000 },
+    data: overrides.escrowData ?? {
+      id: 'escrow-1',
+      status: 'held',
+      amount: 25000,
+    },
     error: null,
   };
   const escrowUpdateResult = { error: overrides.escrowUpdateError ?? null };
@@ -200,9 +263,23 @@ function setupConfirmMocks(overrides: {
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue({
-              data: { email: 'test@test.com', first_name: 'Test', last_name: 'User', company_name: 'Test Co' },
+              data: {
+                email: 'test@test.com',
+                first_name: 'Test',
+                last_name: 'User',
+                company_name: 'Test Co',
+              },
               error: null,
             }),
+          }),
+        }),
+      };
+    }
+    if (table === 'job_photos_metadata') {
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ count: 3, error: null }),
           }),
         }),
       };
@@ -227,7 +304,9 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
   it('should return 401 when user is not authenticated', async () => {
     mocks.getCurrentUserFromCookies.mockResolvedValue(null);
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/confirm-completion');
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/confirm-completion'
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(401);
   });
@@ -242,7 +321,9 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
       last_name: 'Contractor',
     });
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/confirm-completion');
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/confirm-completion'
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(403);
   });
@@ -251,7 +332,9 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
   it('should return 404 when job does not exist', async () => {
     setupConfirmMocks({ jobData: null, jobError: { message: 'not found' } });
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/bad-id/confirm-completion');
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/bad-id/confirm-completion'
+    );
     const res = await POST(req, segmentData('bad-id'));
     expect(res.status).toBe(404);
   });
@@ -267,7 +350,9 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
     });
     setupConfirmMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/confirm-completion');
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/confirm-completion'
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(403);
 
@@ -279,7 +364,9 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
   it('should return 400 when job is not in completed status', async () => {
     setupConfirmMocks({ jobData: { ...completedJob, status: 'in_progress' } });
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/confirm-completion');
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/confirm-completion'
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(400);
 
@@ -293,7 +380,9 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
       jobData: { ...completedJob, completion_confirmed_by_homeowner: true },
     });
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/confirm-completion');
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/confirm-completion'
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(400);
 
@@ -307,7 +396,9 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
       jobData: { ...completedJob, contractor_id: null },
     });
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/confirm-completion');
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/confirm-completion'
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(400);
 
@@ -317,7 +408,11 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
 
   // ---- Idempotency: duplicate request ----
   it('should return cached result for duplicate request', async () => {
-    const cachedResult = { success: true, message: 'Job completion confirmed successfully. Payment is being processed.' };
+    const cachedResult = {
+      success: true,
+      message:
+        'Job completion confirmed successfully. Payment is being processed.',
+    };
     mocks.checkIdempotency.mockResolvedValue({
       isDuplicate: true,
       cachedResult,
@@ -325,7 +420,9 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
 
     setupConfirmMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/confirm-completion');
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/confirm-completion'
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(200);
 
@@ -337,7 +434,9 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
   it('should confirm completion and initiate escrow release', async () => {
     setupConfirmMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/confirm-completion');
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/confirm-completion'
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(200);
 
@@ -350,7 +449,9 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
   it('should store the idempotency result after success', async () => {
     setupConfirmMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/confirm-completion');
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/confirm-completion'
+    );
     await POST(req, segmentData('job-1'));
 
     expect(mocks.storeIdempotencyResult).toHaveBeenCalledWith(
@@ -358,7 +459,7 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
       'confirm_completion',
       expect.objectContaining({ success: true }),
       'homeowner-1',
-      expect.objectContaining({ jobId: 'job-1' }),
+      expect.objectContaining({ jobId: 'job-1' })
     );
   });
 });

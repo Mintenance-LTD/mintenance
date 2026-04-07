@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "prepare": "npm rebuild esbuild sharp @sentry/cli onnxruntime-node protobufjs core-js fsevents msw detox 2>/dev/null || true",
     "dev": "npm run dev:web",
     "dev:web": "npm run dev -w @mintenance/web",
     "dev:mobile": "npm run dev -w @mintenance/mobile",

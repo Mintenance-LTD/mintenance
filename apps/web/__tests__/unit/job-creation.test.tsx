@@ -16,10 +16,20 @@ import toast from 'react-hot-toast';
  */
 
 // Mock dependencies
-vi.mock('next/navigation');
+vi.mock('next/navigation', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('next/navigation')>();
+  return {
+    ...actual,
+    useRouter: vi.fn(),
+    useSearchParams: vi.fn(() => new URLSearchParams()),
+  };
+});
 vi.mock('@/hooks/useCurrentUser');
 vi.mock('@/lib/hooks/useCSRF');
 vi.mock('@/app/jobs/create/utils/submitJob');
+vi.mock('@mintenance/shared', () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
+}));
 const { mockToast } = vi.hoisted(() => ({
   mockToast: {
     error: vi.fn(),
@@ -134,7 +144,8 @@ describe('CreateJobPage', () => {
       render(<CreateJobPage />);
 
       const titleInput = screen.getByPlaceholderText(/Fix leaking/i);
-      const descriptionTextarea = screen.getByPlaceholderText(/provide details/i);
+      const descriptionTextarea =
+        screen.getByPlaceholderText(/provide details/i);
 
       await user.type(titleInput, 'Fix bathroom leak');
       await user.type(descriptionTextarea, 'The tap is leaking constantly');
@@ -158,7 +169,9 @@ describe('CreateJobPage', () => {
       await user.upload(input, file);
 
       await waitFor(() => {
-        expect(screen.getByText(/Uploaded Photos \(1\/10\)/)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Uploaded Photos \(1\/10\)/)
+        ).toBeInTheDocument();
       });
     });
 
@@ -174,7 +187,8 @@ describe('CreateJobPage', () => {
       await user.upload(input, file);
 
       // The remove button is an X icon without accessible name, find it by its position in the upload preview
-      const previewContainer = screen.getByText(/Uploaded Photos/).parentElement!;
+      const previewContainer =
+        screen.getByText(/Uploaded Photos/).parentElement!;
       const removeButton = previewContainer.querySelector('button')!;
       await user.click(removeButton);
 
@@ -223,7 +237,9 @@ describe('CreateJobPage', () => {
 
       // Label not associated via htmlFor, find the input by type within the date section
       const dateLabel = screen.getByText(/Preferred start date/i);
-      const dateInput = dateLabel.parentElement!.querySelector('input[type="date"]') as HTMLInputElement;
+      const dateInput = dateLabel.parentElement!.querySelector(
+        'input[type="date"]'
+      ) as HTMLInputElement;
       await fireEvent.change(dateInput, { target: { value: dateString } });
 
       expect(dateInput).toHaveValue(dateString);
@@ -245,7 +261,10 @@ describe('CreateJobPage', () => {
 
     it('should submit job successfully', async () => {
       const user = userEvent.setup();
-      vi.mocked(submitJob).mockResolvedValue({ success: true, jobId: 'job-123' });
+      vi.mocked(submitJob).mockResolvedValue({
+        success: true,
+        jobId: 'job-123',
+      });
 
       render(<CreateJobPage />);
 
@@ -255,17 +274,21 @@ describe('CreateJobPage', () => {
       await user.click(postButton);
 
       await waitFor(() => {
-        expect(submitJob).toHaveBeenCalledWith(expect.objectContaining({
-          formData: expect.objectContaining({
-            title: 'Fix bathroom leak',
-            category: 'plumbing',
-            budget: '250',
-            property_id: 'prop-123',
-          }),
-          photoUrls: [],
-          csrfToken: 'test-token',
-        }));
-        expect(mockToast.success).toHaveBeenCalledWith('Job posted successfully!');
+        expect(submitJob).toHaveBeenCalledWith(
+          expect.objectContaining({
+            formData: expect.objectContaining({
+              title: 'Fix bathroom leak',
+              category: 'plumbing',
+              budget: '250',
+              property_id: 'prop-123',
+            }),
+            photoUrls: [],
+            csrfToken: 'test-token',
+          })
+        );
+        expect(mockToast.success).toHaveBeenCalledWith(
+          'Job posted successfully!'
+        );
         expect(mockRouter.push).toHaveBeenCalledWith('/jobs/job-123');
       });
     });
@@ -293,7 +316,9 @@ describe('CreateJobPage', () => {
       render(<CreateJobPage />);
 
       await completeStep1(user);
-      expect(screen.getByText('Add photos of your project')).toBeInTheDocument();
+      expect(
+        screen.getByText('Add photos of your project')
+      ).toBeInTheDocument();
 
       const backButton = screen.getByText('Back');
       await user.click(backButton);
@@ -374,7 +399,10 @@ describe('QuickJobPage', () => {
 
   it('should submit quick job', async () => {
     const user = userEvent.setup();
-    vi.mocked(submitJob).mockResolvedValue({ success: true, jobId: 'quick-job-123' });
+    vi.mocked(submitJob).mockResolvedValue({
+      success: true,
+      jobId: 'quick-job-123',
+    });
 
     render(<QuickJobPage />);
 
@@ -386,14 +414,16 @@ describe('QuickJobPage', () => {
     await user.click(submitButton);
 
     await waitFor(() => {
-      expect(submitJob).toHaveBeenCalledWith(expect.objectContaining({
-        formData: expect.objectContaining({
-          title: 'Leaky Tap/Pipe',
-          category: 'plumbing',
-        }),
-        photoUrls: [],
-        csrfToken: expect.any(String),
-      }));
+      expect(submitJob).toHaveBeenCalledWith(
+        expect.objectContaining({
+          formData: expect.objectContaining({
+            title: 'Leaky Tap/Pipe',
+            category: 'plumbing',
+          }),
+          photoUrls: [],
+          csrfToken: expect.any(String),
+        })
+      );
       expect(mockRouter.push).toHaveBeenCalledWith('/jobs/quick-job-123');
     });
   });
@@ -421,7 +451,10 @@ async function completeStep1(user: ReturnType<typeof userEvent.setup>) {
   await user.type(titleInput, 'Fix bathroom leak');
 
   const descriptionTextarea = screen.getByPlaceholderText(/provide details/i);
-  await user.type(descriptionTextarea, 'The bathroom tap has been leaking for a week and needs repair');
+  await user.type(
+    descriptionTextarea,
+    'The bathroom tap has been leaking for a week and needs repair'
+  );
 
   // Click Next
   const nextButton = screen.getByText('Next');

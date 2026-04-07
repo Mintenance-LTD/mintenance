@@ -59,7 +59,9 @@ export interface PlatformStats {
  * Get Featured Contractors (Top-rated, verified, active)
  * Optimized query with rating aggregation
  */
-export async function getFeaturedContractors(limit = 12): Promise<ContractorProfile[]> {
+export async function getFeaturedContractors(
+  limit = 12
+): Promise<ContractorProfile[]> {
   const supabase = createServerClient();
 
   try {
@@ -67,7 +69,9 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
     // Note: Removed admin_verified filter to get all contractors, not just verified ones
     const { data: contractors, error: contractorsError } = await supabase
       .from('profiles')
-      .select('id, first_name, last_name, company_name, profile_image_url, city, country, admin_verified, created_at, rating, total_jobs_completed')
+      .select(
+        'id, first_name, last_name, company_name, profile_image_url, city, country, admin_verified, created_at, rating, total_jobs_completed'
+      )
       .eq('role', 'contractor')
       .order('created_at', { ascending: false })
       .limit(limit * 2); // Get more to filter after
@@ -81,7 +85,7 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
         fullError: contractorsError,
         errorString: String(contractorsError),
         errorType: typeof contractorsError,
-        errorConstructor: contractorsError.constructor?.name
+        errorConstructor: contractorsError.constructor?.name,
       });
       return [];
     }
@@ -90,8 +94,8 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
       return [];
     }
 
-    const contractorIds = contractors.map(c => c.id);
-    
+    const contractorIds = contractors.map((c) => c.id);
+
     // Get skills for contractors
     const { data: skills, error: skillsError } = await supabase
       .from('contractor_skills')
@@ -99,35 +103,44 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
       .in('contractor_id', contractorIds);
 
     if (skillsError) {
-      logger.error('[getFeaturedContractors] Error fetching skills:', skillsError);
+      logger.error(
+        '[getFeaturedContractors] Error fetching skills:',
+        skillsError
+      );
     }
 
     // Group skills by contractor
     const skillsMap = new Map<string, string[]>();
-    skills?.forEach(skill => {
+    skills?.forEach((skill) => {
       if (!skillsMap.has(skill.contractor_id)) {
         skillsMap.set(skill.contractor_id, []);
       }
       skillsMap.get(skill.contractor_id)!.push(skill.skill_name);
     });
 
-    // Get ratings for contractors (reviews use reviewed_id to reference the contractor user)
+    // Get ratings for contractors (reviews use reviewee_id to reference the contractor user)
     const { data: reviews, error: reviewsError } = await supabase
       .from('reviews')
-      .select('reviewed_id, rating')
-      .in('reviewed_id', contractorIds);
+      .select('reviewee_id, rating')
+      .in('reviewee_id', contractorIds);
 
     if (reviewsError) {
-      logger.error('[getFeaturedContractors] Error fetching reviews:', reviewsError);
+      logger.error(
+        '[getFeaturedContractors] Error fetching reviews:',
+        reviewsError
+      );
     }
 
     // Aggregate ratings
     const ratingsMap = new Map<string, { total: number; count: number }>();
-    reviews?.forEach(review => {
-      const existing = ratingsMap.get(review.reviewed_id) || { total: 0, count: 0 };
-      ratingsMap.set(review.reviewed_id, {
+    reviews?.forEach((review) => {
+      const existing = ratingsMap.get(review.reviewee_id) || {
+        total: 0,
+        count: 0,
+      };
+      ratingsMap.set(review.reviewee_id, {
         total: existing.total + review.rating,
-        count: existing.count + 1
+        count: existing.count + 1,
       });
     });
 
@@ -143,18 +156,21 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
     }
 
     const jobsMap = new Map<string, number>();
-    jobs?.forEach(job => {
+    jobs?.forEach((job) => {
       jobsMap.set(job.contractor_id, (jobsMap.get(job.contractor_id) || 0) + 1);
     });
 
     // Build contractor profiles
     const profiles: ContractorProfile[] = contractors
-      .map(contractor => {
-        const contractorName = contractor.first_name && contractor.last_name
-          ? `${contractor.first_name} ${contractor.last_name}`.trim()
-          : 'Contractor';
+      .map((contractor) => {
+        const contractorName =
+          contractor.first_name && contractor.last_name
+            ? `${contractor.first_name} ${contractor.last_name}`.trim()
+            : 'Contractor';
         const ratingData = ratingsMap.get(contractor.id);
-        const rating = ratingData ? ratingData.total / ratingData.count : (contractor.rating || 0);
+        const rating = ratingData
+          ? ratingData.total / ratingData.count
+          : contractor.rating || 0;
         const reviewCount = ratingData?.count || 0;
         const contractorSkills = skillsMap.get(contractor.id) || [];
 
@@ -169,11 +185,12 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
           review_count: reviewCount,
           verified: contractor.admin_verified || false,
           skills: contractorSkills,
-          completed_jobs: jobsMap.get(contractor.id) || contractor.total_jobs_completed || 0,
-          response_time: '< 1 hour' // Mock for now
+          completed_jobs:
+            jobsMap.get(contractor.id) || contractor.total_jobs_completed || 0,
+          response_time: '< 1 hour', // Mock for now
         };
       })
-      .filter(p => p.rating >= 4.0 || p.completed_jobs >= 5) // Featured criteria
+      .filter((p) => p.rating >= 4.0 || p.completed_jobs >= 5) // Featured criteria
       .sort((a, b) => {
         // Sort by rating * review_count (relevance score)
         const scoreA = a.rating * Math.log(a.review_count + 1);
@@ -202,12 +219,21 @@ export async function searchContractors(params: {
   limit?: number;
 }): Promise<ContractorProfile[]> {
   const supabase = createServerClient();
-  const { service, location, minRating = 0, maxRate, skills, limit = 20 } = params;
+  const {
+    service,
+    location,
+    minRating = 0,
+    maxRate,
+    skills,
+    limit = 20,
+  } = params;
 
   try {
     let query = supabase
       .from('profiles')
-      .select('id, first_name, last_name, company_name, profile_image_url, city, country, admin_verified, created_at, rating, total_jobs_completed')
+      .select(
+        'id, first_name, last_name, company_name, profile_image_url, city, country, admin_verified, created_at, rating, total_jobs_completed'
+      )
       .eq('role', 'contractor');
 
     // Apply filters
@@ -229,7 +255,7 @@ export async function searchContractors(params: {
       return [];
     }
 
-    const contractorIds = contractors.map(c => c.id);
+    const contractorIds = contractors.map((c) => c.id);
 
     // Get skills for contractors
     const { data: skills } = await supabase
@@ -238,7 +264,7 @@ export async function searchContractors(params: {
       .in('contractor_id', contractorIds);
 
     const skillsMap = new Map<string, string[]>();
-    skills?.forEach(skill => {
+    skills?.forEach((skill) => {
       if (!skillsMap.has(skill.contractor_id)) {
         skillsMap.set(skill.contractor_id, []);
       }
@@ -248,15 +274,18 @@ export async function searchContractors(params: {
     // Get ratings for contractors
     const { data: reviews } = await supabase
       .from('reviews')
-      .select('reviewed_id, rating')
-      .in('reviewed_id', contractorIds);
+      .select('reviewee_id, rating')
+      .in('reviewee_id', contractorIds);
 
     const ratingsMap = new Map<string, { total: number; count: number }>();
-    reviews?.forEach(review => {
-      const existing = ratingsMap.get(review.reviewed_id) || { total: 0, count: 0 };
-      ratingsMap.set(review.reviewed_id, {
+    reviews?.forEach((review) => {
+      const existing = ratingsMap.get(review.reviewee_id) || {
+        total: 0,
+        count: 0,
+      };
+      ratingsMap.set(review.reviewee_id, {
         total: existing.total + review.rating,
-        count: existing.count + 1
+        count: existing.count + 1,
       });
     });
 
@@ -267,18 +296,21 @@ export async function searchContractors(params: {
       .eq('status', 'completed');
 
     const jobsMap = new Map<string, number>();
-    jobs?.forEach(job => {
+    jobs?.forEach((job) => {
       jobsMap.set(job.contractor_id, (jobsMap.get(job.contractor_id) || 0) + 1);
     });
 
     // Build and filter profiles
     const profiles: ContractorProfile[] = contractors
-      .map(contractor => {
-        const contractorName = contractor.first_name && contractor.last_name
-          ? `${contractor.first_name} ${contractor.last_name}`.trim()
-          : 'Contractor';
+      .map((contractor) => {
+        const contractorName =
+          contractor.first_name && contractor.last_name
+            ? `${contractor.first_name} ${contractor.last_name}`.trim()
+            : 'Contractor';
         const ratingData = ratingsMap.get(contractor.id);
-        const rating = ratingData ? ratingData.total / ratingData.count : (contractor.rating || 0);
+        const rating = ratingData
+          ? ratingData.total / ratingData.count
+          : contractor.rating || 0;
         const reviewCount = ratingData?.count || 0;
         const contractorSkills = skillsMap.get(contractor.id) || [];
 
@@ -293,11 +325,12 @@ export async function searchContractors(params: {
           review_count: reviewCount,
           verified: contractor.admin_verified || false,
           skills: contractorSkills,
-          completed_jobs: jobsMap.get(contractor.id) || contractor.total_jobs_completed || 0,
-          response_time: '< 1 hour'
+          completed_jobs:
+            jobsMap.get(contractor.id) || contractor.total_jobs_completed || 0,
+          response_time: '< 1 hour',
         };
       })
-      .filter(p => p.rating >= minRating)
+      .filter((p) => p.rating >= minRating)
       .sort((a, b) => b.rating - a.rating)
       .slice(0, limit);
 
@@ -318,7 +351,9 @@ export async function getAvailableJobs(limit = 20): Promise<JobListing[]> {
   try {
     const { data: jobs, error } = await supabase
       .from('jobs')
-      .select('id, title, description, budget, status, created_at, homeowner_id')
+      .select(
+        'id, title, description, budget, status, created_at, homeowner_id'
+      )
       .eq('status', 'posted')
       .is('contractor_id', null)
       .order('created_at', { ascending: false })
@@ -334,15 +369,23 @@ export async function getAvailableJobs(limit = 20): Promise<JobListing[]> {
     }
 
     // Get homeowner details
-    const homeownerIds = [...new Set(jobs.map(j => j.homeowner_id))];
+    const homeownerIds = [...new Set(jobs.map((j) => j.homeowner_id))];
     const { data: users } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, city')
       .in('id', homeownerIds);
 
-    const usersMap = new Map(users?.map(u => [u.id, { name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || 'User', city: u.city }]) || []);
+    const usersMap = new Map(
+      users?.map((u) => [
+        u.id,
+        {
+          name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || 'User',
+          city: u.city,
+        },
+      ]) || []
+    );
 
-    const jobListings: JobListing[] = jobs.map(job => ({
+    const jobListings: JobListing[] = jobs.map((job) => ({
       id: job.id,
       title: job.title,
       description: job.description,
@@ -353,7 +396,7 @@ export async function getAvailableJobs(limit = 20): Promise<JobListing[]> {
       property: null, // No property table in minimal schema
       photos: [],
       category: null,
-      priority: null
+      priority: null,
     }));
 
     return jobListings;
@@ -371,12 +414,19 @@ export async function getPlatformStats(): Promise<PlatformStats> {
 
   try {
     // Get counts in parallel
-    const [contractorsResult, jobsResult, homeownersResult, reviewsResult] = await Promise.all([
-      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'contractor'),
-      supabase.from('jobs').select('id', { count: 'exact', head: true }),
-      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'homeowner'),
-      supabase.from('reviews').select('rating')
-    ]);
+    const [contractorsResult, jobsResult, homeownersResult, reviewsResult] =
+      await Promise.all([
+        supabase
+          .from('profiles')
+          .select('id', { count: 'exact', head: true })
+          .eq('role', 'contractor'),
+        supabase.from('jobs').select('id', { count: 'exact', head: true }),
+        supabase
+          .from('profiles')
+          .select('id', { count: 'exact', head: true })
+          .eq('role', 'homeowner'),
+        supabase.from('reviews').select('rating'),
+      ]);
 
     const totalContractors = contractorsResult.count || 0;
     const totalJobs = jobsResult.count || 0;
@@ -384,15 +434,16 @@ export async function getPlatformStats(): Promise<PlatformStats> {
 
     // Calculate average rating
     const reviews = reviewsResult.data || [];
-    const averageRating = reviews.length > 0
-      ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-      : 0; // No reviews yet — do not fabricate a rating
+    const averageRating =
+      reviews.length > 0
+        ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+        : 0; // No reviews yet — do not fabricate a rating
 
     return {
       totalContractors,
       totalJobs,
       totalHomeowners,
-      averageRating: Math.round(averageRating * 10) / 10
+      averageRating: Math.round(averageRating * 10) / 10,
     };
   } catch (error) {
     logger.error('[getPlatformStats] Unexpected error:', error);
@@ -400,7 +451,7 @@ export async function getPlatformStats(): Promise<PlatformStats> {
       totalContractors: 0,
       totalJobs: 0,
       totalHomeowners: 0,
-      averageRating: 0
+      averageRating: 0,
     };
   }
 }
@@ -408,13 +459,17 @@ export async function getPlatformStats(): Promise<PlatformStats> {
 /**
  * Get Contractor Profile (Full Details)
  */
-export async function getContractorProfile(contractorId: string): Promise<ContractorProfile | null> {
+export async function getContractorProfile(
+  contractorId: string
+): Promise<ContractorProfile | null> {
   const supabase = createServerClient();
 
   try {
     const { data: contractor, error } = await supabase
       .from('profiles')
-      .select('id, first_name, last_name, company_name, profile_image_url, city, country, admin_verified, created_at, rating, total_jobs_completed')
+      .select(
+        'id, first_name, last_name, company_name, profile_image_url, city, country, admin_verified, created_at, rating, total_jobs_completed'
+      )
       .eq('id', contractorId)
       .eq('role', 'contractor')
       .single();
@@ -430,15 +485,16 @@ export async function getContractorProfile(contractorId: string): Promise<Contra
       .select('skill_name')
       .eq('contractor_id', contractorId);
 
-    // Get reviews (reviews use reviewed_id to reference the contractor user)
+    // Get reviews (reviews use reviewee_id to reference the contractor user)
     const { data: reviews } = await supabase
       .from('reviews')
       .select('rating')
-      .eq('reviewed_id', contractorId);
+      .eq('reviewee_id', contractorId);
 
     const ratingTotal = reviews?.reduce((sum, r) => sum + r.rating, 0) || 0;
     const reviewCount = reviews?.length || 0;
-    const rating = reviewCount > 0 ? ratingTotal / reviewCount : (contractor.rating || 0);
+    const rating =
+      reviewCount > 0 ? ratingTotal / reviewCount : contractor.rating || 0;
 
     // Get completed jobs count
     const { data: jobs } = await supabase
@@ -447,9 +503,10 @@ export async function getContractorProfile(contractorId: string): Promise<Contra
       .eq('contractor_id', contractorId)
       .eq('status', 'completed');
 
-    const contractorName = contractor.first_name && contractor.last_name
-      ? `${contractor.first_name} ${contractor.last_name}`.trim()
-      : 'Contractor';
+    const contractorName =
+      contractor.first_name && contractor.last_name
+        ? `${contractor.first_name} ${contractor.last_name}`.trim()
+        : 'Contractor';
 
     return {
       id: contractor.id,
@@ -461,9 +518,9 @@ export async function getContractorProfile(contractorId: string): Promise<Contra
       rating: Math.round(rating * 10) / 10,
       review_count: reviewCount,
       verified: contractor.admin_verified || false,
-      skills: skills?.map(s => s.skill_name) || [],
+      skills: skills?.map((s) => s.skill_name) || [],
       completed_jobs: jobs?.length || contractor.total_jobs_completed || 0,
-      response_time: '< 1 hour'
+      response_time: '< 1 hour',
     };
   } catch (error) {
     logger.error('[getContractorProfile] Unexpected error:', error);

@@ -298,7 +298,7 @@ vi.mock('@/lib/errors/api-error', async () => {
       public code: string,
       public userMessage: string,
       public statusCode: number = 500,
-      public details?: unknown,
+      public details?: unknown
     ) {
       super(userMessage);
       this.name = 'APIError';
@@ -311,28 +311,48 @@ vi.mock('@/lib/errors/api-error', async () => {
     }
   }
   class UnauthorizedError extends APIError {
-    constructor(m = 'Unauthorized') { super('UNAUTHORIZED', m, 401); }
+    constructor(m = 'Unauthorized') {
+      super('UNAUTHORIZED', m, 401);
+    }
   }
   class ForbiddenError extends APIError {
-    constructor(m = 'Forbidden') { super('FORBIDDEN', m, 403); }
+    constructor(m = 'Forbidden') {
+      super('FORBIDDEN', m, 403);
+    }
   }
   class NotFoundError extends APIError {
-    constructor(m = 'Resource not found') { super('NOT_FOUND', m, 404); }
+    constructor(m = 'Resource not found') {
+      super('NOT_FOUND', m, 404);
+    }
   }
   class BadRequestError extends APIError {
-    constructor(m = 'Bad Request', d?: unknown) { super('BAD_REQUEST', m, 400, d); }
+    constructor(m = 'Bad Request', d?: unknown) {
+      super('BAD_REQUEST', m, 400, d);
+    }
   }
   class InternalServerError extends APIError {
-    constructor(m = 'Internal Server Error') { super('INTERNAL_SERVER_ERROR', m, 500); }
+    constructor(m = 'Internal Server Error') {
+      super('INTERNAL_SERVER_ERROR', m, 500);
+    }
   }
   class ConflictError extends APIError {
-    constructor(m = 'Conflict') { super('CONFLICT', m, 409); }
+    constructor(m = 'Conflict') {
+      super('CONFLICT', m, 409);
+    }
   }
   class ValidationError extends APIError {
-    constructor(m = 'Validation Error', d?: unknown) { super('VALIDATION_ERROR', m, 422, d); }
+    constructor(m = 'Validation Error', d?: unknown) {
+      super('VALIDATION_ERROR', m, 422, d);
+    }
   }
   class RateLimitError extends APIError {
-    constructor(retryAfter = 60) { super('RATE_LIMIT', `Rate limit exceeded. Try again in ${retryAfter} seconds.`, 429); }
+    constructor(retryAfter = 60) {
+      super(
+        'RATE_LIMIT',
+        `Rate limit exceeded. Try again in ${retryAfter} seconds.`,
+        429
+      );
+    }
   }
   return {
     APIError,
@@ -351,8 +371,13 @@ vi.mock('@/lib/errors/api-error', async () => {
       }
       const { NextResponse: NR } = require('next/server');
       return NR.json(
-        { error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred' } },
-        { status: 500 },
+        {
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'An unexpected error occurred',
+          },
+        },
+        { status: 500 }
       );
     }),
   };
@@ -394,7 +419,10 @@ const contractor2User = {
 // ---------------------------------------------------------------------------
 // Request factory helpers
 // ---------------------------------------------------------------------------
-function createPostRequest(url: string, body: Record<string, unknown> = {}): NextRequest {
+function createPostRequest(
+  url: string,
+  body: Record<string, unknown> = {}
+): NextRequest {
   return new NextRequest(new URL(url, 'http://localhost:3000'), {
     method: 'POST',
     headers: {
@@ -440,7 +468,11 @@ function setupInfrastructureMocks(user = homeownerUser) {
     resetTime: Date.now() + 60000,
     retryAfter: 0,
   });
-  mocks.checkJobCreationRateLimit.mockResolvedValue({ allowed: true, remaining: 9, retryAfter: 0 });
+  mocks.checkJobCreationRateLimit.mockResolvedValue({
+    allowed: true,
+    remaining: 9,
+    retryAfter: 0,
+  });
   mocks.createNotification.mockResolvedValue('notif-id');
   mocks.sendBidAcceptedEmail.mockResolvedValue(true);
   mocks.sendJobStartedEmail.mockResolvedValue(true);
@@ -455,14 +487,22 @@ function setupInfrastructureMocks(user = homeownerUser) {
   mocks.validateStatusTransition.mockReturnValue(undefined);
   mocks.validateBidTransition.mockReturnValue(undefined);
   mocks.validateEscrowTransition.mockReturnValue(undefined);
-  mocks.validatePhotoQuality.mockResolvedValue({ passed: true, qualityScore: 85 });
+  mocks.validatePhotoQuality.mockResolvedValue({
+    passed: true,
+    qualityScore: 85,
+  });
   mocks.validatePhotoRequirements.mockResolvedValue({ passed: true });
-  mocks.verifyGeolocation.mockResolvedValue({ withinThreshold: true, distance: 10 });
+  mocks.verifyGeolocation.mockResolvedValue({
+    withinThreshold: true,
+    distance: 10,
+  });
   mocks.validateImageUpload.mockResolvedValue({ valid: true });
 
   // Storage mock: serverSupabase.storage.from('Job-storage').upload() / .getPublicUrl()
   mocks.supabaseStorageFrom.mockReturnValue({
-    upload: vi.fn().mockResolvedValue({ data: { path: 'test.jpg' }, error: null }),
+    upload: vi
+      .fn()
+      .mockResolvedValue({ data: { path: 'test.jpg' }, error: null }),
     getPublicUrl: vi.fn().mockReturnValue({
       data: { publicUrl: 'https://storage.example.com/test.jpg' },
     }),
@@ -486,7 +526,10 @@ function setupInfrastructureMocks(user = homeownerUser) {
 // 1. JOB POSTED: homeowner creates job -> status 'posted'
 // ============================================================================
 describe('Job Lifecycle - 1. Job posted', () => {
-  let jobsPOST: (req: NextRequest, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
+  let jobsPOST: (
+    req: NextRequest,
+    ctx: { params: Promise<Record<string, string>> }
+  ) => Promise<Response>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -500,7 +543,8 @@ describe('Job Lifecycle - 1. Job posted', () => {
     const newJob = {
       id: JOB_ID,
       title: 'Fix leaking bathroom tap',
-      description: 'The kitchen tap has been leaking for a week and needs repair',
+      description:
+        'The kitchen tap has been leaking for a week and needs repair',
       category: 'plumbing',
       budget: 200,
       status: 'posted',
@@ -512,7 +556,8 @@ describe('Job Lifecycle - 1. Job posted', () => {
 
     const req = createPostRequest('http://localhost:3000/api/jobs', {
       title: 'Fix leaking bathroom tap',
-      description: 'The kitchen tap has been leaking for a week and needs repair',
+      description:
+        'The kitchen tap has been leaking for a week and needs repair',
       category: 'plumbing',
       budget: 200,
       location: 'London, UK',
@@ -532,7 +577,10 @@ describe('Job Lifecycle - 1. Job posted', () => {
 // 2. BID SUBMITTED: contractor submits bid -> bid status 'pending'
 // ============================================================================
 describe('Job Lifecycle - 2. Bid submitted', () => {
-  let submitBidPOST: (req: NextRequest, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
+  let submitBidPOST: (
+    req: NextRequest,
+    ctx: { params: Promise<Record<string, string>> }
+  ) => Promise<Response>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -556,7 +604,12 @@ describe('Job Lifecycle - 2. Bid submitted', () => {
                   status: 'posted',
                   budget: 200,
                   homeowner_id: homeownerUser.id,
-                  homeowner: { id: homeownerUser.id, email: homeownerUser.email, first_name: 'Alice', last_name: 'Homeowner' },
+                  homeowner: {
+                    id: homeownerUser.id,
+                    email: homeownerUser.email,
+                    first_name: 'Alice',
+                    last_name: 'Homeowner',
+                  },
                   contractor_id: null,
                 },
                 error: null,
@@ -570,7 +623,9 @@ describe('Job Lifecycle - 2. Bid submitted', () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               single: vi.fn().mockResolvedValue({ data: null, error: null }),
-              neq: vi.fn().mockResolvedValue({ count: 0, data: [], error: null }),
+              neq: vi
+                .fn()
+                .mockResolvedValue({ count: 0, data: [], error: null }),
             }),
           }),
         };
@@ -579,15 +634,23 @@ describe('Job Lifecycle - 2. Bid submitted', () => {
     });
 
     mocks.processBid.mockResolvedValue({
-      bid: { id: BID_ID, status: 'pending', created_at: new Date().toISOString() },
+      bid: {
+        id: BID_ID,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+      },
       isUpdate: false,
     });
 
-    const req = createPostRequest('http://localhost:3000/api/contractor/submit-bid', {
-      jobId: JOB_ID,
-      bidAmount: 150,
-      proposalText: 'I can fix your tap quickly and efficiently. I have 10 years of plumbing experience.',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/contractor/submit-bid',
+      {
+        jobId: JOB_ID,
+        bidAmount: 150,
+        proposalText:
+          'I can fix your tap quickly and efficiently. I have 10 years of plumbing experience.',
+      }
+    );
 
     const res = await submitBidPOST(req, noSegment());
     expect(res.status).toBe(201);
@@ -604,7 +667,10 @@ describe('Job Lifecycle - 2. Bid submitted', () => {
 //    job 'assigned', contract auto-created
 // ============================================================================
 describe('Job Lifecycle - 3. Bid accepted', () => {
-  let acceptBidPOST: (req: NextRequest, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
+  let acceptBidPOST: (
+    req: NextRequest,
+    ctx: { params: Promise<Record<string, string>> }
+  ) => Promise<Response>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -615,7 +681,8 @@ describe('Job Lifecycle - 3. Bid accepted', () => {
   });
 
   it('should accept the winning bid, reject others, assign contractor, and create contract', async () => {
-    const updateCalls: Array<{ table: string; data: Record<string, unknown> }> = [];
+    const updateCalls: Array<{ table: string; data: Record<string, unknown> }> =
+      [];
 
     mocks.supabaseFrom.mockImplementation((table: string) => {
       if (table === 'jobs') {
@@ -623,7 +690,12 @@ describe('Job Lifecycle - 3. Bid accepted', () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               single: vi.fn().mockResolvedValue({
-                data: { homeowner_id: homeownerUser.id, status: 'posted', title: 'Fix leaking tap', amount: 150 },
+                data: {
+                  homeowner_id: homeownerUser.id,
+                  status: 'posted',
+                  title: 'Fix leaking tap',
+                  amount: 150,
+                },
                 error: null,
               }),
             }),
@@ -642,7 +714,13 @@ describe('Job Lifecycle - 3. Bid accepted', () => {
             eq: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
-                  data: { id: BID_ID, job_id: JOB_ID, contractor_id: contractorUser.id, status: 'pending', amount: 150 },
+                  data: {
+                    id: BID_ID,
+                    job_id: JOB_ID,
+                    contractor_id: contractorUser.id,
+                    status: 'pending',
+                    amount: 150,
+                  },
                   error: null,
                 }),
                 // For the "any already accepted?" check
@@ -671,7 +749,13 @@ describe('Job Lifecycle - 3. Bid accepted', () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               single: vi.fn().mockResolvedValue({
-                data: { first_name: 'Bob', last_name: 'Contractor', email: 'contractor@test.com', stripe_connect_account_id: 'acct_test', company_name: null },
+                data: {
+                  first_name: 'Bob',
+                  last_name: 'Contractor',
+                  email: 'contractor@test.com',
+                  stripe_connect_account_id: 'acct_test',
+                  company_name: null,
+                },
                 error: null,
               }),
             }),
@@ -697,7 +781,9 @@ describe('Job Lifecycle - 3. Bid accepted', () => {
           }),
           insert: vi.fn().mockReturnValue({
             select: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({ data: { id: 'thread-1' }, error: null }),
+              single: vi
+                .fn()
+                .mockResolvedValue({ data: { id: 'thread-1' }, error: null }),
             }),
           }),
           update: vi.fn().mockReturnValue({
@@ -714,7 +800,7 @@ describe('Job Lifecycle - 3. Bid accepted', () => {
     });
 
     const req = createPostRequest(
-      `http://localhost:3000/api/jobs/${JOB_ID}/bids/${BID_ID}/accept`,
+      `http://localhost:3000/api/jobs/${JOB_ID}/bids/${BID_ID}/accept`
     );
 
     const res = await acceptBidPOST(req, segmentData(JOB_ID, BID_ID));
@@ -742,7 +828,10 @@ describe('Job Lifecycle - 3. Bid accepted', () => {
 // 4. CONTRACT SIGNED: both parties sign -> contract status 'accepted'
 // ============================================================================
 describe('Job Lifecycle - 4. Contract signed by both parties', () => {
-  let acceptContractPOST: (req: NextRequest, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
+  let acceptContractPOST: (
+    req: NextRequest,
+    ctx: { params: Promise<Record<string, string>> }
+  ) => Promise<Response>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -804,22 +893,49 @@ describe('Job Lifecycle - 4. Contract signed by both parties', () => {
           }),
         };
       }
-      if (table === 'profiles') {
+      if (table === 'jobs') {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               single: vi.fn().mockResolvedValue({
-                data: { first_name: 'Bob', last_name: 'Contractor', email: 'contractor@test.com', company_name: null },
+                data: {
+                  title: 'Fix leaking tap',
+                  location: 'London',
+                  address: '123 Main St',
+                },
                 error: null,
               }),
             }),
           }),
         };
       }
-      return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
+      if (table === 'profiles') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  first_name: 'Bob',
+                  last_name: 'Contractor',
+                  email: 'contractor@test.com',
+                  company_name: null,
+                },
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: null, error: null }),
+      };
     });
 
-    const req = createPostRequest(`http://localhost:3000/api/contracts/${CONTRACT_ID}/accept`);
+    const req = createPostRequest(
+      `http://localhost:3000/api/contracts/${CONTRACT_ID}/accept`
+    );
     const res = await acceptContractPOST(req, segmentData(CONTRACT_ID));
     expect(res.status).toBe(200);
 
@@ -882,22 +998,50 @@ describe('Job Lifecycle - 4. Contract signed by both parties', () => {
           }),
         };
       }
-      if (table === 'profiles') {
+      if (table === 'jobs') {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               single: vi.fn().mockResolvedValue({
-                data: { first_name: 'Alice', last_name: 'Homeowner', email: 'homeowner@test.com', company_name: null },
+                data: {
+                  title: 'Fix leaking tap',
+                  location: 'London',
+                  address: '123 Main St',
+                },
                 error: null,
               }),
             }),
           }),
         };
       }
-      return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
+      if (table === 'profiles') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  first_name: 'Alice',
+                  last_name: 'Homeowner',
+                  email: 'homeowner@test.com',
+                  company_name: null,
+                  phone: null,
+                },
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: null, error: null }),
+      };
     });
 
-    const req = createPostRequest(`http://localhost:3000/api/contracts/${CONTRACT_ID}/accept`);
+    const req = createPostRequest(
+      `http://localhost:3000/api/contracts/${CONTRACT_ID}/accept`
+    );
     const res = await acceptContractPOST(req, segmentData(CONTRACT_ID));
     expect(res.status).toBe(200);
 
@@ -916,7 +1060,10 @@ describe('Job Lifecycle - 4. Contract signed by both parties', () => {
 // 5. PAYMENT INTO ESCROW: escrow status 'held'
 // ============================================================================
 describe('Job Lifecycle - 5. Payment into escrow', () => {
-  let getEscrowGET: (req: NextRequest, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
+  let getEscrowGET: (
+    req: NextRequest,
+    ctx: { params: Promise<Record<string, string>> }
+  ) => Promise<Response>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -933,7 +1080,11 @@ describe('Job Lifecycle - 5. Payment into escrow', () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               single: vi.fn().mockResolvedValue({
-                data: { id: JOB_ID, homeowner_id: homeownerUser.id, contractor_id: contractorUser.id },
+                data: {
+                  id: JOB_ID,
+                  homeowner_id: homeownerUser.id,
+                  contractor_id: contractorUser.id,
+                },
                 error: null,
               }),
             }),
@@ -967,7 +1118,9 @@ describe('Job Lifecycle - 5. Payment into escrow', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
-    const req = createGetRequest(`http://localhost:3000/api/jobs/${JOB_ID}/escrow`);
+    const req = createGetRequest(
+      `http://localhost:3000/api/jobs/${JOB_ID}/escrow`
+    );
     const res = await getEscrowGET(req, segmentData(JOB_ID));
     expect(res.status).toBe(200);
 
@@ -983,7 +1136,10 @@ describe('Job Lifecycle - 5. Payment into escrow', () => {
 // 6. BEFORE PHOTOS UPLOADED: photo metadata stored
 // ============================================================================
 describe('Job Lifecycle - 6. Before photos uploaded', () => {
-  let uploadBeforePOST: (req: NextRequest, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
+  let uploadBeforePOST: (
+    req: NextRequest,
+    ctx: { params: Promise<Record<string, string>> }
+  ) => Promise<Response>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -1026,10 +1182,15 @@ describe('Job Lifecycle - 6. Before photos uploaded', () => {
     });
 
     // Create a FormData-like request with a mock image file
-    const file = new File(['fake-image-data'], 'before-photo.jpg', { type: 'image/jpeg' });
+    const file = new File(['fake-image-data'], 'before-photo.jpg', {
+      type: 'image/jpeg',
+    });
     const formData = new FormData();
     formData.append('photos', file);
-    formData.append('geolocation', JSON.stringify({ lat: 51.5001, lng: -0.1001 }));
+    formData.append(
+      'geolocation',
+      JSON.stringify({ lat: 51.5001, lng: -0.1001 })
+    );
 
     const req = new NextRequest(
       new URL(`http://localhost:3000/api/jobs/${JOB_ID}/photos/before`),
@@ -1037,7 +1198,7 @@ describe('Job Lifecycle - 6. Before photos uploaded', () => {
         method: 'POST',
         headers: { 'x-forwarded-for': '127.0.0.1', 'x-csrf-token': 'test' },
         body: formData,
-      },
+      }
     );
 
     const res = await uploadBeforePOST(req, segmentData(JOB_ID));
@@ -1061,7 +1222,10 @@ describe('Job Lifecycle - 6. Before photos uploaded', () => {
 // 7. JOB STARTED: contractor starts job (requires photos + contract + escrow)
 // ============================================================================
 describe('Job Lifecycle - 7. Job started', () => {
-  let startJobPOST: (req: NextRequest, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
+  let startJobPOST: (
+    req: NextRequest,
+    ctx: { params: Promise<Record<string, string>> }
+  ) => Promise<Response>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -1140,7 +1304,12 @@ describe('Job Lifecycle - 7. Job started', () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               single: vi.fn().mockResolvedValue({
-                data: { first_name: 'Alice', last_name: 'Homeowner', email: 'homeowner@test.com', company_name: null },
+                data: {
+                  first_name: 'Alice',
+                  last_name: 'Homeowner',
+                  email: 'homeowner@test.com',
+                  company_name: null,
+                },
                 error: null,
               }),
             }),
@@ -1150,7 +1319,9 @@ describe('Job Lifecycle - 7. Job started', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
-    const req = createPostRequest(`http://localhost:3000/api/jobs/${JOB_ID}/start`);
+    const req = createPostRequest(
+      `http://localhost:3000/api/jobs/${JOB_ID}/start`
+    );
     const res = await startJobPOST(req, segmentData(JOB_ID));
     expect(res.status).toBe(200);
 
@@ -1159,7 +1330,10 @@ describe('Job Lifecycle - 7. Job started', () => {
     expect(body.message).toContain('started');
 
     // Verify status transition was validated
-    expect(mocks.validateStatusTransition).toHaveBeenCalledWith('assigned', 'in_progress');
+    expect(mocks.validateStatusTransition).toHaveBeenCalledWith(
+      'assigned',
+      'in_progress'
+    );
 
     // Verify notifications were sent
     expect(mocks.notifyJobStatusChange).toHaveBeenCalled();
@@ -1230,7 +1404,9 @@ describe('Job Lifecycle - 7. Job started', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
-    const req = createPostRequest(`http://localhost:3000/api/jobs/${JOB_ID}/start`);
+    const req = createPostRequest(
+      `http://localhost:3000/api/jobs/${JOB_ID}/start`
+    );
     const res = await startJobPOST(req, segmentData(JOB_ID));
     expect(res.status).toBe(400);
 
@@ -1278,7 +1454,9 @@ describe('Job Lifecycle - 7. Job started', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
-    const req = createPostRequest(`http://localhost:3000/api/jobs/${JOB_ID}/start`);
+    const req = createPostRequest(
+      `http://localhost:3000/api/jobs/${JOB_ID}/start`
+    );
     const res = await startJobPOST(req, segmentData(JOB_ID));
     expect(res.status).toBe(400);
 
@@ -1291,7 +1469,10 @@ describe('Job Lifecycle - 7. Job started', () => {
 // 8. AFTER PHOTOS UPLOADED: auto-completion -> status 'completed'
 // ============================================================================
 describe('Job Lifecycle - 8. After photos and auto-completion', () => {
-  let uploadAfterPOST: (req: NextRequest, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
+  let uploadAfterPOST: (
+    req: NextRequest,
+    ctx: { params: Promise<Record<string, string>> }
+  ) => Promise<Response>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -1362,7 +1543,12 @@ describe('Job Lifecycle - 8. After photos and auto-completion', () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               single: vi.fn().mockResolvedValue({
-                data: { first_name: 'Alice', last_name: 'Homeowner', email: 'homeowner@test.com', company_name: null },
+                data: {
+                  first_name: 'Alice',
+                  last_name: 'Homeowner',
+                  email: 'homeowner@test.com',
+                  company_name: null,
+                },
                 error: null,
               }),
             }),
@@ -1373,7 +1559,9 @@ describe('Job Lifecycle - 8. After photos and auto-completion', () => {
     });
 
     // Create FormData with mock image file
-    const file = new File(['fake-after-data'], 'after-photo.jpg', { type: 'image/jpeg' });
+    const file = new File(['fake-after-data'], 'after-photo.jpg', {
+      type: 'image/jpeg',
+    });
     const formData = new FormData();
     formData.append('photos', file);
 
@@ -1383,7 +1571,7 @@ describe('Job Lifecycle - 8. After photos and auto-completion', () => {
         method: 'POST',
         headers: { 'x-forwarded-for': '127.0.0.1', 'x-csrf-token': 'test' },
         body: formData,
-      },
+      }
     );
 
     const res = await uploadAfterPOST(req, segmentData(JOB_ID));
@@ -1411,7 +1599,7 @@ describe('Job Lifecycle - 8. After photos and auto-completion', () => {
       expect.objectContaining({
         userId: homeownerUser.id,
         type: 'job_completed',
-      }),
+      })
     );
   });
 });
@@ -1420,7 +1608,10 @@ describe('Job Lifecycle - 8. After photos and auto-completion', () => {
 // 9. HOMEOWNER APPROVES: escrow release triggered
 // ============================================================================
 describe('Job Lifecycle - 9. Homeowner approves completion', () => {
-  let confirmCompletionPOST: (req: NextRequest, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
+  let confirmCompletionPOST: (
+    req: NextRequest,
+    ctx: { params: Promise<Record<string, string>> }
+  ) => Promise<Response>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -1484,22 +1675,44 @@ describe('Job Lifecycle - 9. Homeowner approves completion', () => {
           }),
         };
       }
+      if (table === 'job_photos_metadata') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi
+                .fn()
+                .mockResolvedValue({ count: 3, data: null, error: null }),
+            }),
+          }),
+        };
+      }
       if (table === 'profiles') {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               single: vi.fn().mockResolvedValue({
-                data: { first_name: 'Bob', last_name: 'Contractor', email: 'contractor@test.com', company_name: null },
+                data: {
+                  first_name: 'Bob',
+                  last_name: 'Contractor',
+                  email: 'contractor@test.com',
+                  company_name: null,
+                },
                 error: null,
               }),
             }),
           }),
         };
       }
-      return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: null, error: null }),
+      };
     });
 
-    const req = createPostRequest(`http://localhost:3000/api/jobs/${JOB_ID}/confirm-completion`);
+    const req = createPostRequest(
+      `http://localhost:3000/api/jobs/${JOB_ID}/confirm-completion`
+    );
     const res = await confirmCompletionPOST(req, segmentData(JOB_ID));
     expect(res.status).toBe(200);
 
@@ -1513,7 +1726,10 @@ describe('Job Lifecycle - 9. Homeowner approves completion', () => {
     expect(escrowUpdate.status).toBe('release_pending');
 
     // Verify escrow transition was validated
-    expect(mocks.validateEscrowTransition).toHaveBeenCalledWith('held', 'release_pending');
+    expect(mocks.validateEscrowTransition).toHaveBeenCalledWith(
+      'held',
+      'release_pending'
+    );
 
     // Verify idempotency result was stored
     expect(mocks.storeIdempotencyResult).toHaveBeenCalled();
@@ -1544,7 +1760,9 @@ describe('Job Lifecycle - 9. Homeowner approves completion', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
-    const req = createPostRequest(`http://localhost:3000/api/jobs/${JOB_ID}/confirm-completion`);
+    const req = createPostRequest(
+      `http://localhost:3000/api/jobs/${JOB_ID}/confirm-completion`
+    );
     const res = await confirmCompletionPOST(req, segmentData(JOB_ID));
     expect(res.status).toBe(403);
   });
@@ -1573,7 +1791,9 @@ describe('Job Lifecycle - 9. Homeowner approves completion', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
-    const req = createPostRequest(`http://localhost:3000/api/jobs/${JOB_ID}/confirm-completion`);
+    const req = createPostRequest(
+      `http://localhost:3000/api/jobs/${JOB_ID}/confirm-completion`
+    );
     const res = await confirmCompletionPOST(req, segmentData(JOB_ID));
     expect(res.status).toBe(400);
   });
@@ -1583,7 +1803,10 @@ describe('Job Lifecycle - 9. Homeowner approves completion', () => {
 // 10. REVIEW SUBMITTED: both parties can review
 // ============================================================================
 describe('Job Lifecycle - 10. Reviews submitted', () => {
-  let reviewPOST: (req: NextRequest, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
+  let reviewPOST: (
+    req: NextRequest,
+    ctx: { params: Promise<Record<string, string>> }
+  ) => Promise<Response>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -1641,10 +1864,14 @@ describe('Job Lifecycle - 10. Reviews submitted', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
-    const req = createPostRequest(`http://localhost:3000/api/jobs/${JOB_ID}/review`, {
-      rating: 5,
-      comment: 'Excellent work! The tap is perfectly fixed and no more leaks.',
-    });
+    const req = createPostRequest(
+      `http://localhost:3000/api/jobs/${JOB_ID}/review`,
+      {
+        rating: 5,
+        comment:
+          'Excellent work! The tap is perfectly fixed and no more leaks.',
+      }
+    );
 
     const res = await reviewPOST(req, segmentData(JOB_ID));
     expect(res.status).toBe(200);
@@ -1658,7 +1885,7 @@ describe('Job Lifecycle - 10. Reviews submitted', () => {
       expect.objectContaining({
         userId: contractorUser.id,
         type: 'review',
-      }),
+      })
     );
   });
 
@@ -1711,10 +1938,14 @@ describe('Job Lifecycle - 10. Reviews submitted', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
-    const req = createPostRequest(`http://localhost:3000/api/jobs/${JOB_ID}/review`, {
-      rating: 4,
-      comment: 'Great homeowner. Clear instructions and easy to work with overall.',
-    });
+    const req = createPostRequest(
+      `http://localhost:3000/api/jobs/${JOB_ID}/review`,
+      {
+        rating: 4,
+        comment:
+          'Great homeowner. Clear instructions and easy to work with overall.',
+      }
+    );
 
     const res = await reviewPOST(req, segmentData(JOB_ID));
     expect(res.status).toBe(200);
@@ -1728,7 +1959,7 @@ describe('Job Lifecycle - 10. Reviews submitted', () => {
       expect.objectContaining({
         userId: homeownerUser.id,
         type: 'review',
-      }),
+      })
     );
   });
 
@@ -1774,10 +2005,14 @@ describe('Job Lifecycle - 10. Reviews submitted', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
-    const req = createPostRequest(`http://localhost:3000/api/jobs/${JOB_ID}/review`, {
-      rating: 5,
-      comment: 'Trying to leave a duplicate review here with enough characters.',
-    });
+    const req = createPostRequest(
+      `http://localhost:3000/api/jobs/${JOB_ID}/review`,
+      {
+        rating: 5,
+        comment:
+          'Trying to leave a duplicate review here with enough characters.',
+      }
+    );
 
     const res = await reviewPOST(req, segmentData(JOB_ID));
     expect(res.status).toBe(400);
@@ -1811,10 +2046,14 @@ describe('Job Lifecycle - 10. Reviews submitted', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
-    const req = createPostRequest(`http://localhost:3000/api/jobs/${JOB_ID}/review`, {
-      rating: 5,
-      comment: 'Trying to review a job that is not yet completed with enough chars.',
-    });
+    const req = createPostRequest(
+      `http://localhost:3000/api/jobs/${JOB_ID}/review`,
+      {
+        rating: 5,
+        comment:
+          'Trying to review a job that is not yet completed with enough chars.',
+      }
+    );
 
     const res = await reviewPOST(req, segmentData(JOB_ID));
     expect(res.status).toBe(400);

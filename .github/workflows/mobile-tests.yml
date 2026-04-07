@@ -26,16 +26,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: '20.19.4'
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts=false
 
       - name: Build shared packages
         run: npm run build:packages
@@ -56,7 +56,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: ${{ env.HAS_CODECOV == 'true' }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./apps/mobile/coverage/lcov.info
@@ -67,7 +67,7 @@ jobs:
 
       - name: Archive test results
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: mobile-test-results
           path: |
@@ -117,16 +117,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: '20.19.4'
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts=false
 
       - name: Build shared packages
         run: npm run build:packages
@@ -139,7 +139,7 @@ jobs:
 
       - name: Archive integration test results
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: integration-test-results
           path: apps/mobile/test-results/
@@ -151,16 +151,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: '20.19.4'
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts=false
 
       - name: Build shared packages
         run: npm run build:packages
@@ -204,28 +204,28 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: '20.19.4'
           cache: 'npm'
-      - run: npm ci
+      - run: npm ci --ignore-scripts=false
       - run: npm run build:packages
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f3f2d4b9464 # v3
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | \
             sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
       - name: Cache AVD
-        uses: actions/cache@v4
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
         id: avd-cache
         with:
           path: ~/.android/avd/*
           key: avd-pixel-8-api-34-${{ runner.os }}
       - name: Create AVD
         if: steps.avd-cache.outputs.cache-hit != 'true'
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@1dcd0090116d15e7c562f0bc8937c1596d5b2203 # v2
         with:
           api-level: 34
           target: google_apis
@@ -240,7 +240,7 @@ jobs:
           EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST }}
         run: npm run e2e:build:android
       - name: Run E2E tests
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@1dcd0090116d15e7c562f0bc8937c1596d5b2203 # v2
         with:
           api-level: 34
           target: google_apis
@@ -250,7 +250,7 @@ jobs:
           script: cd apps/mobile && npm run e2e:test:android
       - name: Upload artifacts
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: detox-android-results
           path: apps/mobile/artifacts/
@@ -263,16 +263,16 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: '20.19.4'
           cache: 'npm'
-      - run: npm ci
+      - run: npm ci --ignore-scripts=false
       - run: npm run build:packages
       - run: sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer
       - name: Cache CocoaPods
-        uses: actions/cache@v4
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
         with:
           path: apps/mobile/ios/Pods
           key: pods-${{ hashFiles('apps/mobile/ios/Podfile.lock') }}
@@ -289,7 +289,7 @@ jobs:
         working-directory: apps/mobile
       - name: Upload artifacts
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: detox-ios-results
           path: apps/mobile/artifacts/
@@ -303,7 +303,7 @@ jobs:
 
     steps:
       - name: Download test artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v5
         with:
           name: mobile-test-results
           path: test-results
@@ -343,7 +343,7 @@ jobs:
 
       - name: Comment on PR
         if: always()
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const unitTests = '${{ needs.unit-tests.result }}';

@@ -14,6 +14,8 @@ updates:
     labels:
       - "dependencies"
       - "automated"
+    # Prioritize security updates over feature updates
+    versioning-strategy: increase
     groups:
       development-dependencies:
         patterns:

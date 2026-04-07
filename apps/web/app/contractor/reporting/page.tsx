@@ -38,7 +38,7 @@ export default async function ContractorReportingPage2025() {
       serverSupabase
         .from('reviews')
         .select('id, rating, comment, created_at')
-        .eq('reviewed_id', user.id),
+        .eq('reviewee_id', user.id),
     ]);
 
   const jobs = jobsResult.data || [];

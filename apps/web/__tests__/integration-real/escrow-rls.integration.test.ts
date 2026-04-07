@@ -1,10 +1,10 @@
 // @vitest-environment node
 /**
- * REAL DATABASE integration test — verifies RLS policy on escrow_accounts.
+ * REAL DATABASE integration test — verifies RLS policy on escrow_transactions.
  *
- * Policy (from 20260206009000_core_rls_policies.sql):
- *   escrow_accounts.SELECT is allowed only to authenticated users whose
- *   auth.uid() matches payer_id or payee_id on the related payment.
+ * Policy (from 20260213040000_fix_schema_mismatches.sql):
+ *   escrow_transactions.SELECT is allowed only to authenticated users whose
+ *   auth.uid() matches payer_id or payee_id on the escrow record.
  *
  * This is a critical security boundary: escrow records contain payment amounts
  * and release state. A third-party user must NOT be able to view escrow for
@@ -20,20 +20,17 @@ import {
 import {
   createTestUser,
   createTestJob,
-  createTestPayment,
   createTestEscrow,
   type TestUser,
   type TestJob,
-  type TestPayment,
   type TestEscrow,
 } from '../../test/integration/fixtures';
 
-describe('escrow_accounts RLS (real DB)', () => {
+describe('escrow_transactions RLS (real DB)', () => {
   let homeowner: TestUser;
   let contractor: TestUser;
   let thirdParty: TestUser;
   let job: TestJob;
-  let payment: TestPayment;
   let escrow: TestEscrow;
 
   let homeownerClient: SupabaseClient;
@@ -45,7 +42,7 @@ describe('escrow_accounts RLS (real DB)', () => {
     if (!available) {
       throw new Error(
         'INTEGRATION_TESTS=1 was set but Supabase is not reachable at ' +
-          'http://localhost:54321. Run `supabase start` first.',
+          'http://localhost:54321. Run `supabase start` first.'
       );
     }
     homeowner = await createTestUser({ role: 'homeowner' });
@@ -53,36 +50,31 @@ describe('escrow_accounts RLS (real DB)', () => {
     thirdParty = await createTestUser({ role: 'homeowner' });
 
     job = await createTestJob({ homeowner_id: homeowner.id });
-    payment = await createTestPayment({
+    escrow = await createTestEscrow({
       job_id: job.id,
       payer_id: homeowner.id,
       payee_id: contractor.id,
-      amount: 500,
-    });
-    escrow = await createTestEscrow({
-      payment_id: payment.id,
       amount: 500,
       status: 'held',
     });
 
     homeownerClient = await createAuthenticatedClient(
       homeowner.email,
-      homeowner.password,
+      homeowner.password
     );
     contractorClient = await createAuthenticatedClient(
       contractor.email,
-      contractor.password,
+      contractor.password
     );
     thirdPartyClient = await createAuthenticatedClient(
       thirdParty.email,
-      thirdParty.password,
+      thirdParty.password
     );
   }, 30_000);
 
   afterAll(async () => {
-    // Cleanup in reverse order (escrow → payment → job → users)
+    // Cleanup in reverse order (escrow → job → users)
     await escrow?.cleanup();
-    await payment?.cleanup();
     await job?.cleanup();
     await homeowner?.cleanup();
     await contractor?.cleanup();
@@ -91,8 +83,8 @@ describe('escrow_accounts RLS (real DB)', () => {
 
   it('payer (homeowner) CAN read their escrow record', async () => {
     const { data, error } = await homeownerClient
-      .from('escrow_accounts')
-      .select('id, amount, status, payment_id')
+      .from('escrow_transactions')
+      .select('id, amount, status, job_id')
       .eq('id', escrow.id)
       .maybeSingle();
 
@@ -105,7 +97,7 @@ describe('escrow_accounts RLS (real DB)', () => {
 
   it('payee (contractor) CAN read their escrow record', async () => {
     const { data, error } = await contractorClient
-      .from('escrow_accounts')
+      .from('escrow_transactions')
       .select('id, amount, status')
       .eq('id', escrow.id)
       .maybeSingle();
@@ -117,7 +109,7 @@ describe('escrow_accounts RLS (real DB)', () => {
 
   it('third party CANNOT read someone else escrow record', async () => {
     const { data } = await thirdPartyClient
-      .from('escrow_accounts')
+      .from('escrow_transactions')
       .select('id')
       .eq('id', escrow.id)
       .maybeSingle();
@@ -129,12 +121,12 @@ describe('escrow_accounts RLS (real DB)', () => {
   it('third party CANNOT enumerate all escrow records', async () => {
     // Listing without filter — should return empty (only their own, which is none)
     const { data, error } = await thirdPartyClient
-      .from('escrow_accounts')
+      .from('escrow_transactions')
       .select('id');
 
     expect(error).toBeNull();
     expect(Array.isArray(data)).toBe(true);
-    // Third party has zero payments → zero visible escrows
+    // Third party has zero escrow entries → zero visible
     const visibleIds = (data ?? []).map((r) => r.id);
     expect(visibleIds).not.toContain(escrow.id);
   });
@@ -142,7 +134,7 @@ describe('escrow_accounts RLS (real DB)', () => {
   it('anonymous client CANNOT read any escrow record', async () => {
     const anon = createAnonClient();
     const { data } = await anon
-      .from('escrow_accounts')
+      .from('escrow_transactions')
       .select('id')
       .eq('id', escrow.id)
       .maybeSingle();
@@ -153,9 +145,11 @@ describe('escrow_accounts RLS (real DB)', () => {
   it('authenticated user CANNOT insert escrow record (service-role only)', async () => {
     // Only service_role can INSERT — regular users must go through API routes
     const { data, error } = await homeownerClient
-      .from('escrow_accounts')
+      .from('escrow_transactions')
       .insert({
-        payment_id: payment.id,
+        job_id: job.id,
+        payer_id: homeowner.id,
+        payee_id: contractor.id,
         amount: 9999,
         status: 'held',
       })
@@ -168,7 +162,7 @@ describe('escrow_accounts RLS (real DB)', () => {
 
   it('payee CANNOT update escrow status to released (service-role only)', async () => {
     const { error, count } = await contractorClient
-      .from('escrow_accounts')
+      .from('escrow_transactions')
       .update({ status: 'released' })
       .eq('id', escrow.id)
       .select('id', { count: 'exact', head: true });
@@ -177,11 +171,8 @@ describe('escrow_accounts RLS (real DB)', () => {
     expect(updated).toBe(false);
 
     // Verify status unchanged
-    const anon = createAnonClient();
-    void anon;
-    // Use contractor client to re-read (they have SELECT access but update should have failed)
     const { data } = await contractorClient
-      .from('escrow_accounts')
+      .from('escrow_transactions')
       .select('status')
       .eq('id', escrow.id)
       .single();

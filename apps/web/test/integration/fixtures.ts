@@ -175,7 +175,9 @@ export interface TestPayment {
 
 export interface TestEscrow {
   id: string;
-  payment_id: string;
+  job_id: string;
+  payer_id: string;
+  payee_id: string;
   cleanup: () => Promise<void>;
 }
 
@@ -198,7 +200,7 @@ export async function createTestPayment(opts: {
       payer_id: opts.payer_id,
       payee_id: opts.payee_id,
       amount: opts.amount ?? 250,
-      currency: 'GBP',
+      currency: 'gbp',
       status: opts.status ?? 'in_escrow',
       payment_method: 'stripe',
     })
@@ -220,18 +222,31 @@ export async function createTestPayment(opts: {
 }
 
 /**
- * Create a test escrow account linked to an existing payment.
+ * Create a test escrow transaction linked to a job with payer/payee.
+ * Uses the primary escrow_transactions table.
  */
 export async function createTestEscrow(opts: {
-  payment_id: string;
+  job_id: string;
+  payer_id: string;
+  payee_id: string;
   amount?: number;
-  status?: 'held' | 'releasing' | 'released' | 'refunded';
+  status?:
+    | 'pending'
+    | 'held'
+    | 'released'
+    | 'refunded'
+    | 'awaiting_homeowner_approval'
+    | 'pending_review'
+    | 'failed'
+    | 'cancelled';
 }): Promise<TestEscrow> {
   const admin = createServiceClient();
   const { data, error } = await admin
-    .from('escrow_accounts')
+    .from('escrow_transactions')
     .insert({
-      payment_id: opts.payment_id,
+      job_id: opts.job_id,
+      payer_id: opts.payer_id,
+      payee_id: opts.payee_id,
       amount: opts.amount ?? 250,
       status: opts.status ?? 'held',
     })
@@ -246,9 +261,11 @@ export async function createTestEscrow(opts: {
 
   return {
     id: escrowId,
-    payment_id: opts.payment_id,
+    job_id: opts.job_id,
+    payer_id: opts.payer_id,
+    payee_id: opts.payee_id,
     cleanup: async () => {
-      await admin.from('escrow_accounts').delete().eq('id', escrowId);
+      await admin.from('escrow_transactions').delete().eq('id', escrowId);
     },
   };
 }
@@ -260,7 +277,7 @@ export async function createTestEscrow(opts: {
 export async function wipeTestData(
   admin: SupabaseClient,
   table: string,
-  column: string,
+  column: string
 ): Promise<void> {
   await admin.from(table).delete().like(column, `${TEST_PREFIX}%`);
 }

@@ -1,4 +1,8 @@
-name: Dependency Security Updates
+name: Dependency Security Audit
+
+# This workflow ONLY audits — it does NOT auto-update packages.
+# Dependabot (.github/dependabot.yml) handles updates with per-package PRs.
+# Blind `npm update` was removed as a supply chain risk.
 
 on:
   schedule:
@@ -7,59 +11,37 @@ on:
   workflow_dispatch:
 
 jobs:
-  dependency-update:
+  dependency-audit:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
     - name: Setup Node.js
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
       with:
         node-version: '20.19.4'
         cache: 'npm'
 
     - name: Install dependencies
-      run: npm ci
+      run: npm ci --ignore-scripts=false
 
     - name: Check for outdated packages
       run: |
         npm outdated --json > outdated.json || true
         if [ -s outdated.json ]; then
-          echo "Outdated packages found:"
+          echo "::warning::Outdated packages found — review via Dependabot PRs"
           cat outdated.json
         else
-          echo "No outdated packages found"
+          echo "All packages up to date"
         fi
 
     - name: Run security audit
       run: npm audit --audit-level moderate
 
-    - name: Update dependencies
+    - name: Report audit results
+      if: failure()
       run: |
-        npm update
-        npm audit fix || echo "⚠️ Some security issues require manual review"
-
-    - name: Run tests
-      run: npm test
-
-    - name: Create security update PR
-      if: github.event_name == 'schedule'
-      uses: peter-evans/create-pull-request@v7
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        commit-message: 'Security: Update dependencies'
-        title: 'Security: Automated dependency updates'
-        body: |
-          This PR contains automated security updates for dependencies.
-          
-          ## Changes
-          - Updated outdated packages
-          - Applied security fixes
-          - Ran security audit
-          
-          ## Review Required
-          Please review the changes and test thoroughly before merging.
-        branch: security/update-dependencies-${{ github.run_number }}
-        delete-branch: true
+        echo "::error::npm audit found vulnerabilities above moderate threshold"
+        echo "Review Dependabot PRs or run 'npm audit fix' locally"

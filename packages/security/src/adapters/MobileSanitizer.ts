@@ -8,12 +8,17 @@ export class MobileSanitizer extends BaseSanitizer {
   // Comprehensive regex patterns for security
   private static readonly SCRIPT_TAGS = /<script[\s\S]*?>[\s\S]*?<\/script>/gi;
   private static readonly STYLE_TAGS = /<style[\s\S]*?>[\s\S]*?<\/style>/gi;
-  private static readonly EVENT_HANDLER_ATTRS = /\s*on\w+\s*=\s*["'][^"']*["']/gi;
-  private static readonly EVENT_HANDLER_ATTRS_UNQUOTED = /\s*on\w+\s*=\s*[^\s>]+/gi;
-  private static readonly DANGEROUS_PROTOCOLS = /\b(javascript|vbscript|data|file):/gi;
+  private static readonly EVENT_HANDLER_ATTRS =
+    /\s*on\w+\s*=\s*["'][^"']*["']/gi;
+  private static readonly EVENT_HANDLER_ATTRS_UNQUOTED =
+    /\s*on\w+\s*=\s*[^\s>]+/gi;
+  private static readonly DANGEROUS_PROTOCOLS =
+    /\b(javascript|vbscript|data|file):/gi;
   private static readonly IFRAME_TAGS = /<iframe[\s\S]*?>[\s\S]*?<\/iframe>/gi;
-  private static readonly OBJECT_EMBED_TAGS = /<(object|embed|applet)[\s\S]*?>[\s\S]*?<\/(object|embed|applet)>/gi;
-  private static readonly META_REFRESH = /<meta[^>]*http-equiv[^>]*refresh[^>]*>/gi;
+  private static readonly OBJECT_EMBED_TAGS =
+    /<(object|embed|applet)[\s\S]*?>[\s\S]*?<\/(object|embed|applet)>/gi;
+  private static readonly META_REFRESH =
+    /<meta[^>]*http-equiv[^>]*refresh[^>]*>/gi;
   private static readonly BASE_TAG = /<base[^>]*>/gi;
   private static readonly FORM_TAGS = /<form[\s\S]*?>[\s\S]*?<\/form>/gi;
   private static readonly ALL_TAGS = /<[^>]*>/g;
@@ -21,14 +26,17 @@ export class MobileSanitizer extends BaseSanitizer {
    * Sanitize HTML content using regex patterns
    * Less comprehensive than DOMPurify but suitable for React Native
    */
-  sanitizeHtml(input: string | undefined | null, options?: SanitizationOptions): string {
+  sanitizeHtml(
+    input: string | undefined | null,
+    options?: SanitizationOptions
+  ): string {
     if (!input || typeof input !== 'string') return '';
     // For mobile, we recommend not rendering HTML at all
     // All HTML should be sanitized server-side before sending to mobile
     if (process.env.NODE_ENV === 'development') {
       logger.warn(
         '[MobileSanitizer] HTML sanitization in mobile app detected. ' +
-        'Consider sanitizing HTML server-side for better security.'
+          'Consider sanitizing HTML server-side for better security.'
       );
     }
     // If stripTags is true or no HTML rendering is needed, return plain text
@@ -45,7 +53,10 @@ export class MobileSanitizer extends BaseSanitizer {
     sanitized = sanitized.replace(MobileSanitizer.BASE_TAG, '');
     sanitized = sanitized.replace(MobileSanitizer.FORM_TAGS, '');
     sanitized = sanitized.replace(MobileSanitizer.EVENT_HANDLER_ATTRS, '');
-    sanitized = sanitized.replace(MobileSanitizer.EVENT_HANDLER_ATTRS_UNQUOTED, '');
+    sanitized = sanitized.replace(
+      MobileSanitizer.EVENT_HANDLER_ATTRS_UNQUOTED,
+      ''
+    );
     sanitized = sanitized.replace(MobileSanitizer.DANGEROUS_PROTOCOLS, '');
     // If allowed tags are specified, remove all other tags
     if (options?.allowedTags && options.allowedTags.length > 0) {
@@ -66,7 +77,10 @@ export class MobileSanitizer extends BaseSanitizer {
    * Enhanced text sanitization for mobile
    * More comprehensive than base implementation
    */
-  static sanitizeTextEnhanced(input: string | undefined | null, maxLength?: number): string {
+  static sanitizeTextEnhanced(
+    input: string | undefined | null,
+    maxLength?: number
+  ): string {
     if (!input || typeof input !== 'string') return '';
     let text = String(input);
     // Remove script tags (case-insensitive, handles variations)
@@ -124,9 +138,9 @@ export class MobileSanitizer extends BaseSanitizer {
    * Sanitize object recursively
    * Useful for form data sanitization
    */
-  static sanitizeObject<T extends Record<string, any>>(
+  static sanitizeObject<T extends Record<string, unknown>>(
     obj: T,
-    fieldSanitizers?: Partial<Record<keyof T, (value: unknown) => any>>
+    fieldSanitizers?: Partial<Record<keyof T, (value: unknown) => unknown>>
   ): T {
     if (!obj || typeof obj !== 'object') return obj;
     const sanitized = { ...obj };
@@ -135,21 +149,29 @@ export class MobileSanitizer extends BaseSanitizer {
         const value = sanitized[key];
         // Use custom sanitizer if provided
         if (fieldSanitizers && fieldSanitizers[key]) {
-          sanitized[key] = fieldSanitizers[key]!(value);
+          sanitized[key] = fieldSanitizers[key]!(value) as T[Extract<
+            keyof T,
+            string
+          >];
         }
         // Recursively sanitize nested objects
         else if (value && typeof value === 'object' && !Array.isArray(value)) {
-          sanitized[key] = this.sanitizeObject(value) as any;
+          sanitized[key] = this.sanitizeObject(
+            value as Record<string, unknown>
+          ) as T[Extract<keyof T, string>];
         }
         // Sanitize arrays
         else if (Array.isArray(value)) {
           sanitized[key] = value.map((item: unknown) =>
             typeof item === 'string' ? this.sanitizeTextEnhanced(item) : item
-          ) as any;
+          ) as T[Extract<keyof T, string>];
         }
         // Default string sanitization
         else if (typeof value === 'string') {
-          sanitized[key] = this.sanitizeTextEnhanced(value) as any;
+          sanitized[key] = this.sanitizeTextEnhanced(value) as T[Extract<
+            keyof T,
+            string
+          >];
         }
       }
     }
@@ -170,7 +192,7 @@ export class MobileSanitizer extends BaseSanitizer {
       /<img[^>]*src[^>]*onerror/gi,
       /<svg[^>]*onload/gi,
     ];
-    return xssPatterns.some(pattern => pattern.test(input));
+    return xssPatterns.some((pattern) => pattern.test(input));
   }
   /**
    * Mobile-specific: Sanitize for React Native Text component

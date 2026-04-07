@@ -205,7 +205,11 @@ vi.mock('@/lib/payment-state-machine', () => ({
     validateTransition: mocks.validateTransition,
   },
   PaymentAction: { COMPLETE: 'COMPLETE' },
-  PaymentState: { COMPLETED: 'completed', HELD: 'held', RELEASE_PENDING: 'release_pending' },
+  PaymentState: {
+    COMPLETED: 'completed',
+    HELD: 'held',
+    RELEASE_PENDING: 'release_pending',
+  },
 }));
 
 vi.mock('@/lib/idempotency', () => ({
@@ -255,7 +259,7 @@ vi.mock('@/lib/errors/api-error', async () => {
       public code: string,
       public userMessage: string,
       public statusCode: number = 500,
-      public details?: unknown,
+      public details?: unknown
     ) {
       super(userMessage);
       this.name = 'APIError';
@@ -268,22 +272,34 @@ vi.mock('@/lib/errors/api-error', async () => {
     }
   }
   class UnauthorizedError extends APIError {
-    constructor(m = 'Unauthorized') { super('UNAUTHORIZED', m, 401); }
+    constructor(m = 'Unauthorized') {
+      super('UNAUTHORIZED', m, 401);
+    }
   }
   class ForbiddenError extends APIError {
-    constructor(m = 'Forbidden') { super('FORBIDDEN', m, 403); }
+    constructor(m = 'Forbidden') {
+      super('FORBIDDEN', m, 403);
+    }
   }
   class NotFoundError extends APIError {
-    constructor(m = 'Resource not found') { super('NOT_FOUND', m, 404); }
+    constructor(m = 'Resource not found') {
+      super('NOT_FOUND', m, 404);
+    }
   }
   class BadRequestError extends APIError {
-    constructor(m = 'Bad Request', d?: unknown) { super('BAD_REQUEST', m, 400, d); }
+    constructor(m = 'Bad Request', d?: unknown) {
+      super('BAD_REQUEST', m, 400, d);
+    }
   }
   class InternalServerError extends APIError {
-    constructor(m = 'Internal Server Error') { super('INTERNAL_SERVER_ERROR', m, 500); }
+    constructor(m = 'Internal Server Error') {
+      super('INTERNAL_SERVER_ERROR', m, 500);
+    }
   }
   class ConflictError extends APIError {
-    constructor(m = 'Conflict') { super('CONFLICT', m, 409); }
+    constructor(m = 'Conflict') {
+      super('CONFLICT', m, 409);
+    }
   }
   return {
     APIError,
@@ -300,8 +316,13 @@ vi.mock('@/lib/errors/api-error', async () => {
       }
       const { NextResponse: NR } = require('next/server');
       return NR.json(
-        { error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred' } },
-        { status: 500 },
+        {
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'An unexpected error occurred',
+          },
+        },
+        { status: 500 }
       );
     }),
   };
@@ -374,7 +395,10 @@ function baseEscrowRow(statusOverride: string = 'pending') {
 // ---------------------------------------------------------------------------
 // Request factory helpers
 // ---------------------------------------------------------------------------
-function createPostRequest(url: string, body: Record<string, unknown> = {}): NextRequest {
+function createPostRequest(
+  url: string,
+  body: Record<string, unknown> = {}
+): NextRequest {
   return new NextRequest(new URL(url, 'http://localhost:3000'), {
     method: 'POST',
     headers: {
@@ -422,7 +446,10 @@ function setupInfrastructureMocks(user = homeownerUser) {
   mocks.requiresMFA.mockResolvedValue({ required: false });
   mocks.evaluateAutoRelease.mockResolvedValue({ message: 'ok' });
   mocks.calculateAutoReleaseDate.mockResolvedValue(undefined);
-  mocks.transferPlatformFee.mockResolvedValue({ status: 'transferred', feeTransferId: 'fee-1' });
+  mocks.transferPlatformFee.mockResolvedValue({
+    status: 'transferred',
+    feeTransferId: 'fee-1',
+  });
   mocks.notifyPaymentEvent.mockResolvedValue(undefined);
   mocks.notifyPaymentSetupRequired.mockResolvedValue(undefined);
 }
@@ -431,7 +458,10 @@ function setupInfrastructureMocks(user = homeownerUser) {
 // 1. CREATION FLOW: payment intent confirmed -> escrow status "held"
 // ============================================================================
 describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
-  let confirmIntentPOST: (req: NextRequest, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
+  let confirmIntentPOST: (
+    req: NextRequest,
+    ctx: { params: Promise<Record<string, string>> }
+  ) => Promise<Response>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -501,7 +531,11 @@ describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               single: vi.fn().mockResolvedValue({
-                data: { first_name: 'Alice', last_name: 'Homeowner', email: 'homeowner@test.com' },
+                data: {
+                  first_name: 'Alice',
+                  last_name: 'Homeowner',
+                  email: 'homeowner@test.com',
+                },
                 error: null,
               }),
             }),
@@ -511,10 +545,13 @@ describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
-    const req = createPostRequest('http://localhost:3000/api/payments/confirm-intent', {
-      paymentIntentId: PAYMENT_INTENT_ID,
-      jobId: JOB_ID,
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/confirm-intent',
+      {
+        paymentIntentId: PAYMENT_INTENT_ID,
+        jobId: JOB_ID,
+      }
+    );
 
     const res = await confirmIntentPOST(req, noSegment());
     expect(res.status).toBe(200);
@@ -568,7 +605,11 @@ describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               single: vi.fn().mockResolvedValue({
-                data: { first_name: 'Alice', last_name: 'Homeowner', email: 'a@t.com' },
+                data: {
+                  first_name: 'Alice',
+                  last_name: 'Homeowner',
+                  email: 'a@t.com',
+                },
                 error: null,
               }),
             }),
@@ -578,10 +619,13 @@ describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
-    const req = createPostRequest('http://localhost:3000/api/payments/confirm-intent', {
-      paymentIntentId: PAYMENT_INTENT_ID,
-      jobId: JOB_ID,
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/confirm-intent',
+      {
+        paymentIntentId: PAYMENT_INTENT_ID,
+        jobId: JOB_ID,
+      }
+    );
     const res = await confirmIntentPOST(req, noSegment());
     expect(res.status).toBe(200);
 
@@ -605,7 +649,9 @@ describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({ data: baseJobRow, error: null }),
+              single: vi
+                .fn()
+                .mockResolvedValue({ data: baseJobRow, error: null }),
             }),
           }),
         };
@@ -627,10 +673,13 @@ describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
-    const req = createPostRequest('http://localhost:3000/api/payments/confirm-intent', {
-      paymentIntentId: PAYMENT_INTENT_ID,
-      jobId: JOB_ID,
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/confirm-intent',
+      {
+        paymentIntentId: PAYMENT_INTENT_ID,
+        jobId: JOB_ID,
+      }
+    );
     const res = await confirmIntentPOST(req, noSegment());
     expect(res.status).toBe(400);
 
@@ -643,14 +692,21 @@ describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
 // 2. HAPPY PATH RELEASE: held -> homeowner approves -> release_pending -> released
 // ============================================================================
 describe('Escrow Lifecycle - 2. Happy path release', () => {
-  let approveEscrowPOST: (req: NextRequest, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
-  let getEscrowGET: (req: NextRequest, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
+  let approveEscrowPOST: (
+    req: NextRequest,
+    ctx: { params: Promise<Record<string, string>> }
+  ) => Promise<Response>;
+  let getEscrowGET: (
+    req: NextRequest,
+    ctx: { params: Promise<Record<string, string>> }
+  ) => Promise<Response>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     setupInfrastructureMocks(homeownerUser);
 
-    const approveRoute = await import('@/app/api/escrow/[id]/homeowner/approve/route');
+    const approveRoute =
+      await import('@/app/api/escrow/[id]/homeowner/approve/route');
     approveEscrowPOST = approveRoute.POST;
     const escrowRoute = await import('@/app/api/jobs/[id]/escrow/route');
     getEscrowGET = escrowRoute.GET;
@@ -658,7 +714,9 @@ describe('Escrow Lifecycle - 2. Happy path release', () => {
 
   it('should allow homeowner to approve escrow and return success', async () => {
     // validateRequest returns parsed data
-    mocks.validateRequest.mockResolvedValue({ data: { comments: 'Work looks great!' } });
+    mocks.validateRequest.mockResolvedValue({
+      data: { comments: 'Work looks great!' },
+    });
     mocks.approveCompletion.mockResolvedValue(undefined);
 
     // Supabase: escrow_transactions with jobs join
@@ -678,9 +736,12 @@ describe('Escrow Lifecycle - 2. Happy path release', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
-    const req = createPostRequest('http://localhost:3000/api/escrow/escrow-001/homeowner/approve', {
-      comments: 'Work looks great!',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/escrow/escrow-001/homeowner/approve',
+      {
+        comments: 'Work looks great!',
+      }
+    );
     const res = await approveEscrowPOST(req, segmentData(ESCROW_ID));
     expect(res.status).toBe(200);
 
@@ -692,7 +753,7 @@ describe('Escrow Lifecycle - 2. Happy path release', () => {
     expect(mocks.approveCompletion).toHaveBeenCalledWith(
       ESCROW_ID,
       'homeowner-1',
-      'Work looks great!',
+      'Work looks great!'
     );
   });
 
@@ -713,7 +774,11 @@ describe('Escrow Lifecycle - 2. Happy path release', () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               single: vi.fn().mockResolvedValue({
-                data: { id: JOB_ID, homeowner_id: 'homeowner-1', contractor_id: 'contractor-1' },
+                data: {
+                  id: JOB_ID,
+                  homeowner_id: 'homeowner-1',
+                  contractor_id: 'contractor-1',
+                },
                 error: null,
               }),
             }),
@@ -725,7 +790,9 @@ describe('Escrow Lifecycle - 2. Happy path release', () => {
           eq: vi.fn().mockReturnValue({
             order: vi.fn().mockReturnValue({
               limit: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({ data: heldEscrow, error: null }),
+                maybeSingle: vi
+                  .fn()
+                  .mockResolvedValue({ data: heldEscrow, error: null }),
               }),
             }),
           }),
@@ -747,7 +814,10 @@ describe('Escrow Lifecycle - 2. Happy path release', () => {
 // 3. DISPUTE PATH: homeowner requests changes -> escrow stays held
 // ============================================================================
 describe('Escrow Lifecycle - 3. Dispute path', () => {
-  let approveEscrowPOST: (req: NextRequest, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
+  let approveEscrowPOST: (
+    req: NextRequest,
+    ctx: { params: Promise<Record<string, string>> }
+  ) => Promise<Response>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -785,7 +855,9 @@ describe('Escrow Lifecycle - 3. Dispute path', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
-    const req = createPostRequest('http://localhost:3000/api/escrow/escrow-001/homeowner/approve');
+    const req = createPostRequest(
+      'http://localhost:3000/api/escrow/escrow-001/homeowner/approve'
+    );
     const res = await approveEscrowPOST(req, segmentData(ESCROW_ID));
     expect(res.status).toBe(403);
 
@@ -797,8 +869,12 @@ describe('Escrow Lifecycle - 3. Dispute path', () => {
   });
 
   it('should keep escrow status unchanged when approval service throws (dispute scenario)', async () => {
-    mocks.validateRequest.mockResolvedValue({ data: { comments: 'Not satisfactory' } });
-    mocks.approveCompletion.mockRejectedValue(new Error('Approval rejected by business rule'));
+    mocks.validateRequest.mockResolvedValue({
+      data: { comments: 'Not satisfactory' },
+    });
+    mocks.approveCompletion.mockRejectedValue(
+      new Error('Approval rejected by business rule')
+    );
 
     mocks.supabaseFrom.mockImplementation((table: string) => {
       if (table === 'escrow_transactions') {
@@ -816,15 +892,20 @@ describe('Escrow Lifecycle - 3. Dispute path', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
-    const req = createPostRequest('http://localhost:3000/api/escrow/escrow-001/homeowner/approve', {
-      comments: 'Not satisfactory',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/escrow/escrow-001/homeowner/approve',
+      {
+        comments: 'Not satisfactory',
+      }
+    );
     const res = await approveEscrowPOST(req, segmentData(ESCROW_ID));
     expect(res.status).toBe(500);
   });
 
   it('should allow homeowner to approve after contractor re-submits work', async () => {
-    mocks.validateRequest.mockResolvedValue({ data: { comments: 'Fixed now, approved' } });
+    mocks.validateRequest.mockResolvedValue({
+      data: { comments: 'Fixed now, approved' },
+    });
     mocks.approveCompletion.mockResolvedValue(undefined);
 
     mocks.supabaseFrom.mockImplementation((table: string) => {
@@ -843,15 +924,22 @@ describe('Escrow Lifecycle - 3. Dispute path', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
-    const req = createPostRequest('http://localhost:3000/api/escrow/escrow-001/homeowner/approve', {
-      comments: 'Fixed now, approved',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/escrow/escrow-001/homeowner/approve',
+      {
+        comments: 'Fixed now, approved',
+      }
+    );
     const res = await approveEscrowPOST(req, segmentData(ESCROW_ID));
     expect(res.status).toBe(200);
 
     const body = await res.json();
     expect(body.success).toBe(true);
-    expect(mocks.approveCompletion).toHaveBeenCalledWith(ESCROW_ID, 'homeowner-1', 'Fixed now, approved');
+    expect(mocks.approveCompletion).toHaveBeenCalledWith(
+      ESCROW_ID,
+      'homeowner-1',
+      'Fixed now, approved'
+    );
   });
 });
 
@@ -863,7 +951,10 @@ describe('Escrow Lifecycle - 4. Seven-day auto-release', () => {
   // import. Since we mock the module, we verify the correct functions are invoked by
   // the release-escrow route when homeowner_approval is false.
 
-  let releaseEscrowPOST: (req: NextRequest, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
+  let releaseEscrowPOST: (
+    req: NextRequest,
+    ctx: { params: Promise<Record<string, string>> }
+  ) => Promise<Response>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -904,7 +995,9 @@ describe('Escrow Lifecycle - 4. Seven-day auto-release', () => {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({ data: escrow, error: null }),
+                single: vi
+                  .fn()
+                  .mockResolvedValue({ data: escrow, error: null }),
               }),
             }),
           };
@@ -915,7 +1008,10 @@ describe('Escrow Lifecycle - 4. Seven-day auto-release', () => {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
-                  data: { homeowner_approval: true, cooling_off_ends_at: '2026-03-01T00:00:00Z' },
+                  data: {
+                    homeowner_approval: true,
+                    cooling_off_ends_at: '2026-03-01T00:00:00Z',
+                  },
                   error: null,
                 }),
               }),
@@ -976,10 +1072,13 @@ describe('Escrow Lifecycle - 4. Seven-day auto-release', () => {
       latest_charge: 'ch_test123',
     });
 
-    const req = createPostRequest('http://localhost:3000/api/payments/release-escrow', {
-      escrowTransactionId: ESCROW_ID,
-      releaseReason: 'job_completed',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/release-escrow',
+      {
+        escrowTransactionId: ESCROW_ID,
+        releaseReason: 'job_completed',
+      }
+    );
     const res = await releaseEscrowPOST(req, noSegment());
 
     // The route should have called checkAutoApprovalEligibility and processAutoApproval
@@ -993,7 +1092,9 @@ describe('Escrow Lifecycle - 4. Seven-day auto-release', () => {
     });
     mocks.validateTransition.mockReturnValue({ valid: true });
     mocks.checkAutoApprovalEligibility.mockResolvedValue(false);
-    mocks.getBlockingReasons.mockResolvedValue(['Waiting for homeowner approval']);
+    mocks.getBlockingReasons.mockResolvedValue([
+      'Waiting for homeowner approval',
+    ]);
 
     const escrow = {
       ...baseEscrowRow('held'),
@@ -1018,10 +1119,13 @@ describe('Escrow Lifecycle - 4. Seven-day auto-release', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
-    const req = createPostRequest('http://localhost:3000/api/payments/release-escrow', {
-      escrowTransactionId: ESCROW_ID,
-      releaseReason: 'job_completed',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/release-escrow',
+      {
+        escrowTransactionId: ESCROW_ID,
+        releaseReason: 'job_completed',
+      }
+    );
     const res = await releaseEscrowPOST(req, noSegment());
     expect(res.status).toBe(403);
 
@@ -1034,7 +1138,10 @@ describe('Escrow Lifecycle - 4. Seven-day auto-release', () => {
 // 5. DOUBLE-RELEASE PREVENTION
 // ============================================================================
 describe('Escrow Lifecycle - 5. Double-release prevention', () => {
-  let releaseEscrowPOST: (req: NextRequest, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
+  let releaseEscrowPOST: (
+    req: NextRequest,
+    ctx: { params: Promise<Record<string, string>> }
+  ) => Promise<Response>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -1049,8 +1156,8 @@ describe('Escrow Lifecycle - 5. Double-release prevention', () => {
       success: true,
       transferId: TRANSFER_ID,
       originalAmount: 250,
-      platformFee: 12.50,
-      contractorAmount: 233.70,
+      platformFee: 12.5,
+      contractorAmount: 233.7,
     };
 
     mocks.checkIdempotency.mockResolvedValue({
@@ -1061,10 +1168,13 @@ describe('Escrow Lifecycle - 5. Double-release prevention', () => {
       data: { escrowTransactionId: ESCROW_ID, releaseReason: 'job_completed' },
     });
 
-    const req = createPostRequest('http://localhost:3000/api/payments/release-escrow', {
-      escrowTransactionId: ESCROW_ID,
-      releaseReason: 'job_completed',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/release-escrow',
+      {
+        escrowTransactionId: ESCROW_ID,
+        releaseReason: 'job_completed',
+      }
+    );
     const res = await releaseEscrowPOST(req, noSegment());
     expect(res.status).toBe(200);
 
@@ -1097,7 +1207,9 @@ describe('Escrow Lifecycle - 5. Double-release prevention', () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({ data: releasedEscrow, error: null }),
+              single: vi
+                .fn()
+                .mockResolvedValue({ data: releasedEscrow, error: null }),
             }),
           }),
         };
@@ -1105,10 +1217,13 @@ describe('Escrow Lifecycle - 5. Double-release prevention', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
-    const req = createPostRequest('http://localhost:3000/api/payments/release-escrow', {
-      escrowTransactionId: ESCROW_ID,
-      releaseReason: 'job_completed',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/release-escrow',
+      {
+        escrowTransactionId: ESCROW_ID,
+        releaseReason: 'job_completed',
+      }
+    );
     const res = await releaseEscrowPOST(req, noSegment());
     expect(res.status).toBe(400);
 
@@ -1122,10 +1237,13 @@ describe('Escrow Lifecycle - 5. Double-release prevention', () => {
       data: { escrowTransactionId: ESCROW_ID, releaseReason: 'job_completed' },
     });
 
-    const req = createPostRequest('http://localhost:3000/api/payments/release-escrow', {
-      escrowTransactionId: ESCROW_ID,
-      releaseReason: 'job_completed',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/release-escrow',
+      {
+        escrowTransactionId: ESCROW_ID,
+        releaseReason: 'job_completed',
+      }
+    );
     const res = await releaseEscrowPOST(req, noSegment());
     expect(res.status).toBe(409);
 
@@ -1167,10 +1285,10 @@ describe('Escrow Lifecycle - 6. Fee calculation verification', () => {
   it('should calculate 5 % platform fee on a 100 GBP payment', () => {
     const result = FeeCalculationService.calculateFees(100);
 
-    expect(result.platformFee).toBe(5.00);       // 100 * 0.05 = 5.00
-    expect(result.stripeFee).toBe(1.70);          // 100 * 0.015 + 0.20 = 1.70
-    expect(result.totalFees).toBe(6.70);          // 5.00 + 1.70
-    expect(result.contractorAmount).toBe(93.30);  // 100 - 6.70
+    expect(result.platformFee).toBe(5.0); // 100 * 0.05 = 5.00
+    expect(result.stripeFee).toBe(1.7); // 100 * 0.015 + 0.20 = 1.70
+    expect(result.totalFees).toBe(6.7); // 5.00 + 1.70
+    expect(result.contractorAmount).toBe(93.3); // 100 - 6.70
     expect(result.originalAmount).toBe(100);
     expect(result.platformFeeRate).toBe(0.05);
     expect(result.paymentType).toBe('final');
@@ -1180,27 +1298,27 @@ describe('Escrow Lifecycle - 6. Fee calculation verification', () => {
     const result = FeeCalculationService.calculateFees(5);
 
     // 5 * 0.05 = 0.25, but min is 0.50
-    expect(result.platformFee).toBe(0.50);
-    expect(result.stripeFee).toBe(0.28);          // 5 * 0.015 + 0.20 = 0.275 -> 0.28
+    expect(result.platformFee).toBe(0.5);
+    expect(result.stripeFee).toBe(0.28); // 5 * 0.015 + 0.20 = 0.275 -> 0.28
     expect(result.totalFees).toBe(0.78);
-    expect(result.contractorAmount).toBe(4.22);   // 5 - 0.78
+    expect(result.contractorAmount).toBe(4.22); // 5 - 0.78
   });
 
   it('should enforce maximum platform fee of 50.00', () => {
     const result = FeeCalculationService.calculateFees(2000);
 
     // 2000 * 0.05 = 100, but max is 50
-    expect(result.platformFee).toBe(50.00);
-    expect(result.stripeFee).toBe(30.20);         // 2000 * 0.015 + 0.20 = 30.20
-    expect(result.totalFees).toBe(80.20);
-    expect(result.contractorAmount).toBe(1919.80); // 2000 - 80.20
+    expect(result.platformFee).toBe(50.0);
+    expect(result.stripeFee).toBe(30.2); // 2000 * 0.015 + 0.20 = 30.20
+    expect(result.totalFees).toBe(80.2);
+    expect(result.contractorAmount).toBe(1919.8); // 2000 - 80.20
   });
 
   it('should calculate correct fees for a typical 250 GBP plumbing job', () => {
     const result = FeeCalculationService.calculateFees(250);
 
-    expect(result.platformFee).toBe(12.50);       // 250 * 0.05 = 12.50
-    expect(result.stripeFee).toBe(3.95);          // 250 * 0.015 + 0.20 = 3.95
+    expect(result.platformFee).toBe(12.5); // 250 * 0.05 = 12.50
+    expect(result.stripeFee).toBe(3.95); // 250 * 0.015 + 0.20 = 3.95
     expect(result.totalFees).toBe(16.45);
     expect(result.contractorAmount).toBe(233.55); // 250 - 16.45
   });
@@ -1209,45 +1327,59 @@ describe('Escrow Lifecycle - 6. Fee calculation verification', () => {
     const result = FeeCalculationService.calculateFeesInCents(25000); // 250 GBP in pence
 
     expect(result.originalAmount).toBe(25000);
-    expect(result.platformFee).toBe(1250);         // 12.50 GBP in pence
-    expect(result.stripeFee).toBe(395);             // 3.95 GBP in pence
-    expect(result.contractorAmount).toBe(23355);    // 233.55 GBP in pence
+    expect(result.platformFee).toBe(1250); // 12.50 GBP in pence
+    expect(result.stripeFee).toBe(395); // 3.95 GBP in pence
+    expect(result.contractorAmount).toBe(23355); // 233.55 GBP in pence
   });
 
   it('should handle deposit payment type with same 5 % rate', () => {
-    const result = FeeCalculationService.calculateFees(100, { paymentType: 'deposit' });
+    const result = FeeCalculationService.calculateFees(100, {
+      paymentType: 'deposit',
+    });
 
-    expect(result.platformFee).toBe(5.00);
+    expect(result.platformFee).toBe(5.0);
     expect(result.paymentType).toBe('deposit');
     expect(result.platformFeeRate).toBe(0.05);
   });
 
   it('should allow custom platform fee rate override', () => {
-    const result = FeeCalculationService.calculateFees(100, { platformFeeRate: 0.10 });
+    const result = FeeCalculationService.calculateFees(100, {
+      platformFeeRate: 0.1,
+    });
 
-    expect(result.platformFee).toBe(10.00);
-    expect(result.platformFeeRate).toBe(0.10);
+    expect(result.platformFee).toBe(10.0);
+    expect(result.platformFeeRate).toBe(0.1);
   });
 
   it('should throw on non-positive amount', () => {
-    expect(() => FeeCalculationService.calculateFees(0)).toThrow('must be greater than 0');
-    expect(() => FeeCalculationService.calculateFees(-10)).toThrow('must be greater than 0');
+    expect(() => FeeCalculationService.calculateFees(0)).toThrow(
+      'must be greater than 0'
+    );
+    expect(() => FeeCalculationService.calculateFees(-10)).toThrow(
+      'must be greater than 0'
+    );
   });
 
   it('should calculate net platform revenue (platform fee - Stripe fee)', () => {
     const result = FeeCalculationService.calculateFees(100);
 
     // netPlatformRevenue = platformFee - stripeFee = 5.00 - 1.70 = 3.30
-    expect(result.netPlatformRevenue).toBe(3.30);
+    expect(result.netPlatformRevenue).toBe(3.3);
   });
 
   it('should validate fee configuration bounds', () => {
-    expect(() => FeeCalculationService.validateFeeConfig({ platformFeeRate: 1.5 }))
-      .toThrow('between 0 and 1');
-    expect(() => FeeCalculationService.validateFeeConfig({ minPlatformFee: -1 }))
-      .toThrow('>= 0');
-    expect(() => FeeCalculationService.validateFeeConfig({ minPlatformFee: 100, maxPlatformFee: 50 }))
-      .toThrow('cannot exceed');
+    expect(() =>
+      FeeCalculationService.validateFeeConfig({ platformFeeRate: 1.5 })
+    ).toThrow('between 0 and 1');
+    expect(() =>
+      FeeCalculationService.validateFeeConfig({ minPlatformFee: -1 })
+    ).toThrow('>= 0');
+    expect(() =>
+      FeeCalculationService.validateFeeConfig({
+        minPlatformFee: 100,
+        maxPlatformFee: 50,
+      })
+    ).toThrow('cannot exceed');
   });
 });
 
@@ -1255,7 +1387,10 @@ describe('Escrow Lifecycle - 6. Fee calculation verification', () => {
 // 7. ADMIN OVERRIDE
 // ============================================================================
 describe('Escrow Lifecycle - 7. Admin override', () => {
-  let releaseEscrowPOST: (req: NextRequest, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
+  let releaseEscrowPOST: (
+    req: NextRequest,
+    ctx: { params: Promise<Record<string, string>> }
+  ) => Promise<Response>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -1293,7 +1428,9 @@ describe('Escrow Lifecycle - 7. Admin override', () => {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({ data: escrow, error: null }),
+                single: vi
+                  .fn()
+                  .mockResolvedValue({ data: escrow, error: null }),
               }),
             }),
           };
@@ -1361,10 +1498,13 @@ describe('Escrow Lifecycle - 7. Admin override', () => {
       latest_charge: 'ch_admin123',
     });
 
-    const req = createPostRequest('http://localhost:3000/api/payments/release-escrow', {
-      escrowTransactionId: ESCROW_ID,
-      releaseReason: 'admin_override',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/release-escrow',
+      {
+        escrowTransactionId: ESCROW_ID,
+        releaseReason: 'admin_override',
+      }
+    );
     const res = await releaseEscrowPOST(req, noSegment());
 
     // Admin should bypass all the homeowner/photo/geo checks
@@ -1379,7 +1519,9 @@ describe('Escrow Lifecycle - 7. Admin override', () => {
       data: { escrowTransactionId: ESCROW_ID, releaseReason: 'admin_override' },
     });
     mocks.validateTransition.mockReturnValue({ valid: true });
-    mocks.requireAdminFromDatabase.mockRejectedValue(new Error('Not admin in DB'));
+    mocks.requireAdminFromDatabase.mockRejectedValue(
+      new Error('Not admin in DB')
+    );
 
     const escrow = {
       ...baseEscrowRow('held'),
@@ -1400,10 +1542,13 @@ describe('Escrow Lifecycle - 7. Admin override', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
-    const req = createPostRequest('http://localhost:3000/api/payments/release-escrow', {
-      escrowTransactionId: ESCROW_ID,
-      releaseReason: 'admin_override',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/release-escrow',
+      {
+        escrowTransactionId: ESCROW_ID,
+        releaseReason: 'admin_override',
+      }
+    );
     const res = await releaseEscrowPOST(req, noSegment());
     expect(res.status).toBe(403);
 
@@ -1424,7 +1569,11 @@ describe('Escrow Lifecycle - 7. Admin override', () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               single: vi.fn().mockResolvedValue({
-                data: { id: JOB_ID, homeowner_id: 'someone-else', contractor_id: 'also-else' },
+                data: {
+                  id: JOB_ID,
+                  homeowner_id: 'someone-else',
+                  contractor_id: 'also-else',
+                },
                 error: null,
               }),
             }),
@@ -1476,7 +1625,10 @@ describe('Escrow Lifecycle - 8. Refund flow (before job starts)', () => {
    * Also test that the release-escrow route blocks when escrow is refunded
    * (terminal state).
    */
-  let releaseEscrowPOST: (req: NextRequest, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
+  let releaseEscrowPOST: (
+    req: NextRequest,
+    ctx: { params: Promise<Record<string, string>> }
+  ) => Promise<Response>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -1493,7 +1645,8 @@ describe('Escrow Lifecycle - 8. Refund flow (before job starts)', () => {
     });
     mocks.validateTransition.mockReturnValue({
       valid: false,
-      error: "Cannot transition from 'refunded' to 'completed'. Valid transitions: none (terminal state)",
+      error:
+        "Cannot transition from 'refunded' to 'completed'. Valid transitions: none (terminal state)",
     });
 
     const refundedEscrow = {
@@ -1507,7 +1660,9 @@ describe('Escrow Lifecycle - 8. Refund flow (before job starts)', () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({ data: refundedEscrow, error: null }),
+              single: vi
+                .fn()
+                .mockResolvedValue({ data: refundedEscrow, error: null }),
             }),
           }),
         };
@@ -1515,10 +1670,13 @@ describe('Escrow Lifecycle - 8. Refund flow (before job starts)', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
-    const req = createPostRequest('http://localhost:3000/api/payments/release-escrow', {
-      escrowTransactionId: ESCROW_ID,
-      releaseReason: 'job_completed',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/release-escrow',
+      {
+        escrowTransactionId: ESCROW_ID,
+        releaseReason: 'job_completed',
+      }
+    );
     const res = await releaseEscrowPOST(req, noSegment());
     expect(res.status).toBe(400);
 
@@ -1532,7 +1690,10 @@ describe('Escrow Lifecycle - 8. Refund flow (before job starts)', () => {
 // CROSS-CUTTING: Contractor cannot directly release escrow
 // ============================================================================
 describe('Escrow Lifecycle - Contractor release request', () => {
-  let releaseEscrowPOST: (req: NextRequest, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
+  let releaseEscrowPOST: (
+    req: NextRequest,
+    ctx: { params: Promise<Record<string, string>> }
+  ) => Promise<Response>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -1542,48 +1703,22 @@ describe('Escrow Lifecycle - Contractor release request', () => {
     releaseEscrowPOST = mod.POST;
   });
 
-  it('should return 202 and notify homeowner instead of directly releasing', async () => {
+  it('should return 403 because contractors are not allowed to release escrow directly', async () => {
+    // The release-escrow route uses withApiHandler({ roles: ['homeowner', 'admin'] }),
+    // so contractors are blocked at the middleware level before reaching the handler.
     mocks.validateRequest.mockResolvedValue({
       data: { escrowTransactionId: ESCROW_ID, releaseReason: 'job_completed' },
     });
-    mocks.validateTransition.mockReturnValue({ valid: true });
 
-    const escrow = {
-      ...baseEscrowRow('held'),
-      homeowner_approval: true,
-      jobs: baseJobRow,
-    };
-
-    mocks.supabaseFrom.mockImplementation((table: string) => {
-      if (table === 'escrow_transactions') {
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({ data: escrow, error: null }),
-            }),
-          }),
-        };
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/release-escrow',
+      {
+        escrowTransactionId: ESCROW_ID,
+        releaseReason: 'job_completed',
       }
-      return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
-    });
-
-    const req = createPostRequest('http://localhost:3000/api/payments/release-escrow', {
-      escrowTransactionId: ESCROW_ID,
-      releaseReason: 'job_completed',
-    });
-    const res = await releaseEscrowPOST(req, noSegment());
-    expect(res.status).toBe(202);
-
-    const body = await res.json();
-    expect(body.message).toContain('homeowner for approval');
-
-    // Notification should have been sent to the homeowner
-    expect(mocks.createNotification).toHaveBeenCalledWith(
-      expect.objectContaining({
-        userId: 'homeowner-1',
-        type: 'payment_release_requested',
-      }),
     );
+    const res = await releaseEscrowPOST(req, noSegment());
+    expect(res.status).toBe(403);
 
     // Stripe transfer should NOT have happened
     expect(mocks.stripeTransfersCreate).not.toHaveBeenCalled();
@@ -1617,10 +1752,13 @@ describe('Escrow Lifecycle - Contractor release request', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
-    const req = createPostRequest('http://localhost:3000/api/payments/release-escrow', {
-      escrowTransactionId: ESCROW_ID,
-      releaseReason: 'job_completed',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/release-escrow',
+      {
+        escrowTransactionId: ESCROW_ID,
+        releaseReason: 'job_completed',
+      }
+    );
     const res = await releaseEscrowPOST(req, noSegment());
     expect(res.status).toBe(403);
   });
@@ -1637,7 +1775,10 @@ describe('Escrow Lifecycle - State machine transitions', () => {
   let isValidEscrowTransition: (from: string, to: string) => boolean;
 
   beforeEach(async () => {
-    const actual = await vi.importActual<typeof import('@mintenance/shared')>('@mintenance/shared');
+    const actual =
+      await vi.importActual<typeof import('@mintenance/shared')>(
+        '@mintenance/shared'
+      );
     isValidEscrowTransition = actual.isValidEscrowTransition;
   });
 
@@ -1670,11 +1811,15 @@ describe('Escrow Lifecycle - State machine transitions', () => {
   });
 
   it('should allow held -> awaiting_homeowner_approval', () => {
-    expect(isValidEscrowTransition('held', 'awaiting_homeowner_approval')).toBe(true);
+    expect(isValidEscrowTransition('held', 'awaiting_homeowner_approval')).toBe(
+      true
+    );
   });
 
   it('should allow awaiting_homeowner_approval -> release_pending', () => {
-    expect(isValidEscrowTransition('awaiting_homeowner_approval', 'release_pending')).toBe(true);
+    expect(
+      isValidEscrowTransition('awaiting_homeowner_approval', 'release_pending')
+    ).toBe(true);
   });
 
   it('should allow release_pending -> held (rollback on Stripe failure)', () => {

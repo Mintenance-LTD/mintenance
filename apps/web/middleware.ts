@@ -1,17 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyJWT, ConfigManager, SessionValidator } from '@mintenance/auth';
 import { logger } from '@mintenance/shared';
-import { tokenBlacklist } from '@/lib/auth/token-blacklist';
-import {
-  checkRateLimit,
-  createRateLimitHeaders,
-  type RateLimitResult,
-} from '@/lib/rate-limiter-enhanced';
-import {
-  handlePreflightRequest,
-  addCorsHeaders,
-  shouldSkipCors,
-} from '@/lib/cors';
+import { shouldSkipCors, addCorsHeaders } from '@/lib/cors';
 import { securityMonitor } from '@/lib/security-monitor';
 import { isPublicRoute } from './middleware/public-routes';
 import { validateRequestBody } from './middleware/body-validation';
@@ -27,48 +16,22 @@ import {
   isValidJwtFormat,
   redirectToLogin,
 } from './middleware/helpers';
-
-// Lazy-initialized ConfigManager to avoid module-level throws that crash the middleware Edge Function
-let configManager: ConfigManager | null = null;
-let configInitError: string | null = null;
-
-function getConfigManager(): ConfigManager | null {
-  if (configManager) return configManager;
-  if (configInitError) return null;
-
-  try {
-    configManager = ConfigManager.getInstance();
-    const jwtSecret = configManager.get('JWT_SECRET');
-    if (!jwtSecret) {
-      configInitError = 'JWT_SECRET not available in configuration';
-      logger.error('CRITICAL: ' + configInitError, undefined, {
-        service: 'middleware',
-      });
-      configManager = null;
-      return null;
-    }
-    return configManager;
-  } catch (error) {
-    configInitError = error instanceof Error ? error.message : 'Unknown error';
-    logger.error(
-      'CRITICAL: Middleware configuration initialization failed',
-      error,
-      { service: 'middleware' }
-    );
-    return null;
-  }
-}
+import { getConfigManager, getConfigInitError } from './middleware/config';
+import { validateCsrf, setCsrfCookie } from './middleware/csrf';
+import { handleApiRateLimit } from './middleware/rate-limit';
+import {
+  handleSupabaseAuth,
+  verifyJwtToken,
+  checkTokenBlacklist,
+  enforceSessionTimeouts,
+} from './middleware/auth';
 
 import type { JWTPayload } from '@mintenance/types';
 
-/**
- * Middleware to check for valid JWT in cookies and redirect unauthenticated users
- */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // AUDIT FIX: Single isDevelopment declaration — was previously redefined 3 times
-  // at lines 100, 315, 552. Hoisted here for consistency and to prevent silent divergence.
   const isDevelopment = process.env.NODE_ENV !== 'production';
 
   // Coming Soon mode: redirect all traffic to /coming-soon in production
@@ -80,7 +43,6 @@ export async function middleware(request: NextRequest) {
     if (!isAllowed) {
       return NextResponse.redirect(new URL('/coming-soon', request.url));
     }
-    // Allow the coming-soon page and its assets through without auth
     return NextResponse.next();
   }
 
@@ -92,13 +54,11 @@ export async function middleware(request: NextRequest) {
 
   // Public route check MUST happen before ConfigManager so that login,
   // CSRF, session-status, and diag routes work even if config fails.
-  // Skip auth middleware for public routes — no ConfigManager needed
   if (isPublicRoute(pathname)) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-pathname', pathname);
 
-    // SECURITY: Generate nonce for public routes too (same as authenticated routes)
-    // Prevents XSS via inline script injection on login/register pages
+    // SECURITY: Generate nonce for public routes too
     const publicNonce = crypto.randomUUID().replace(/-/g, '');
     requestHeaders.set('x-csp-nonce', publicNonce);
 
@@ -106,16 +66,16 @@ export async function middleware(request: NextRequest) {
       request: { headers: requestHeaders },
     });
 
-    // Generate or refresh CSRF token (always set to ensure httpOnly:false is applied)
+    // Generate or refresh CSRF token
     const csrfCookieName = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
     const existingCsrf = request.cookies.get(csrfCookieName)?.value;
     const csrfToken = existingCsrf || crypto.randomUUID();
     response.cookies.set(csrfCookieName, csrfToken, {
       httpOnly: false, // SECURITY: Must be false for double-submit cookie pattern
-      secure: !isDevelopment, // Only secure in production
+      secure: !isDevelopment,
       sameSite: 'strict',
       path: '/',
-      maxAge: 24 * 60 * 60, // 24 hours
+      maxAge: 24 * 60 * 60,
     });
 
     if (!isDevelopment) {
@@ -135,152 +95,29 @@ export async function middleware(request: NextRequest) {
     logger.error(
       'Middleware: Configuration unavailable - rejecting request',
       undefined,
-      {
-        service: 'middleware',
-        pathname,
-        configError: configInitError,
-      }
+      { service: 'middleware', pathname, configError: getConfigInitError() }
     );
     return new NextResponse('Service Unavailable', { status: 503 });
   }
 
   // Skip middleware for static files only
-  // SECURITY: All API routes including webhooks should go through rate limiting
   const isStaticFile =
     /\.(svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2|ttf|eot)$/i.test(
       pathname
     );
-
-  if (
-    pathname.startsWith('/_next') ||
-    isStaticFile // Only skip for actual static file extensions
-  ) {
+  if (pathname.startsWith('/_next') || isStaticFile) {
     return NextResponse.next();
   }
 
   // ============================================================================
-  // CORS HANDLING FOR ALL API ROUTES (VULN-007 Security Fix)
+  // CORS + RATE LIMITING FOR ALL API ROUTES (VULN-007 Security Fix)
   // ============================================================================
   if (pathname.startsWith('/api/')) {
-    // Skip CORS for certain endpoints (webhooks, health checks)
-    const skipCors = shouldSkipCors(pathname);
-
-    // Handle CORS preflight (OPTIONS) requests
-    // SECURITY: This must happen BEFORE rate limiting to avoid counting preflight requests
-    if (request.method === 'OPTIONS' && !skipCors) {
-      return handlePreflightRequest(request);
-    }
-
-    try {
-      // Skip middleware rate limiting for authenticated endpoints that have their own rate limiters.
-      // The middleware rate limiter runs BEFORE auth, so all users are classified as 'anonymous'.
-      // Endpoints with anonymous:0 in rate-limits.ts get auto-blocked. These routes handle
-      // their own rate limiting after authentication is verified.
-      // Exact-match paths that skip middleware rate limiting
-      const RATE_LIMIT_SKIP_EXACT = new Set([
-        '/api/auth/session-status',
-        '/api/auth/extend-session',
-      ]);
-      // Prefix paths — any pathname starting with these skips middleware rate limiting
-      const RATE_LIMIT_SKIP_PREFIXES = [
-        '/api/notifications',
-        '/api/messages',
-        '/api/payments',
-        '/api/contractors',
-        '/api/jobs',
-        '/api/contractor/',
-        '/api/bids',
-        '/api/user/',
-        '/api/account',
-        '/api/upload',
-        '/api/ai/',
-        '/api/building-surveyor',
-        '/api/admin',
-        '/api/escrow',
-        '/api/properties',
-        '/api/subscriptions',
-      ];
-      const skipMiddlewareRateLimit =
-        RATE_LIMIT_SKIP_EXACT.has(pathname) ||
-        RATE_LIMIT_SKIP_PREFIXES.some((prefix) => pathname.startsWith(prefix));
-
-      // Perform rate limit check (unless explicitly skipped)
-      const rateLimitResult = skipMiddlewareRateLimit
-        ? ({
-            allowed: true,
-            limit: 0,
-            remaining: 0,
-            resetTime: Date.now() + 60000,
-            tier: 'anonymous',
-          } as RateLimitResult)
-        : await checkRateLimit(request);
-
-      if (!rateLimitResult.allowed) {
-        logger.warn('API rate limit exceeded', {
-          service: 'middleware',
-          pathname,
-          tier: rateLimitResult.tier,
-          remaining: rateLimitResult.remaining,
-        });
-
-        // Return 429 Too Many Requests
-        return new NextResponse(
-          JSON.stringify({
-            error: 'Too Many Requests',
-            message: 'Rate limit exceeded. Please try again later.',
-            retryAfter: rateLimitResult.retryAfter,
-          }),
-          {
-            status: 429,
-            headers: {
-              'Content-Type': 'application/json',
-              ...createRateLimitHeaders(rateLimitResult),
-            },
-          }
-        );
-      }
-
-      // Add rate limit headers to successful responses for API routes
-      const requestHeaders = new Headers(request.headers);
-      Object.entries(createRateLimitHeaders(rateLimitResult)).forEach(
-        ([key, value]) => {
-          requestHeaders.set(key, value);
-        }
-      );
-
-      // Special handling for webhook endpoints (skip auth but apply rate limiting)
-      if (pathname.startsWith('/api/webhooks')) {
-        const response = NextResponse.next({
-          request: { headers: requestHeaders },
-        });
-        // Add CORS headers to webhook responses (if not skipped)
-        return skipCors ? response : addCorsHeaders(response, request);
-      }
-
-      // For other API routes, continue with normal processing
-      // CORS headers will be added by the API route handler or error handler
-      // We set a marker header to indicate CORS has been processed
-      requestHeaders.set('x-cors-processed', 'true');
-
-      // Continue with normal API processing (auth will be checked below for non-public routes)
-    } catch (error) {
-      logger.error('Rate limiting failed in middleware', error, {
-        service: 'middleware',
-        pathname,
-      });
-
-      // In production, fail closed for security
-      if (process.env.NODE_ENV === 'production') {
-        return new NextResponse('Service Unavailable', { status: 503 });
-      }
-    }
+    const rateLimitResult = await handleApiRateLimit(request, pathname);
+    if (rateLimitResult.response) return rateLimitResult.response;
   }
 
   // Mobile clients send Bearer token in Authorization header instead of cookies.
-  // Let these API requests through — actual token verification happens in route
-  // handlers via getUserFromRequest() → getCurrentUserFromBearerToken().
-  // SECURITY FIX: Require valid JWT format (3-part dot-separated base64url) before
-  // waiving CSRF. A fake/malformed "Bearer invalid" header no longer bypasses CSRF.
   const bearerToken = extractBearerToken(request);
   if (pathname.startsWith('/api/') && isValidJwtFormat(bearerToken)) {
     const requestHeaders = new Headers(request.headers);
@@ -313,303 +150,61 @@ export async function middleware(request: NextRequest) {
     )?.value;
 
     if (!token && !supabaseAuthCookie) {
-      // No token found, redirect to login
       return redirectToLogin(request);
     }
 
     // If only Supabase token exists, validate it using @supabase/ssr
     if (!token && supabaseAuthCookie) {
-      try {
-        // Use @supabase/ssr createServerClient for proper token validation
-        const { createServerClient } = await import('@supabase/ssr');
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-        if (!supabaseUrl || !supabaseAnonKey) {
-          logger.error('Supabase credentials not configured', undefined, {
-            service: 'middleware',
-            pathname,
-          });
-          return redirectToLogin(request);
-        }
-
-        const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-          cookies: {
-            get(name: string) {
-              return request.cookies.get(name)?.value;
-            },
-            set(name: string, value: string, options: any) {
-              // Not needed in middleware - cookies handled by response
-            },
-            remove(name: string, options: any) {
-              // Not needed in middleware - cookies handled by response
-            },
-          },
-        });
-
-        const {
-          data: { user },
-          error,
-        } = await supabase.auth.getUser();
-
-        if (error || !user) {
-          return redirectToLogin(request);
-        }
-
-        // SECURITY: Validate CSRF for state-changing requests (same check as JWT path)
-        if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method)) {
-          const csrfCookieName = isDevelopment
-            ? 'csrf-token'
-            : '__Host-csrf-token';
-          const headerToken = request.headers.get('x-csrf-token');
-          const cookieToken = request.cookies.get(csrfCookieName)?.value;
-
-          if (!headerToken || !cookieToken || headerToken !== cookieToken) {
-            logger.warn('CSRF token validation failed (Supabase auth path)', {
-              service: 'middleware',
-              method: request.method,
-              pathname,
-              hasHeaderToken: !!headerToken,
-              hasCookieToken: !!cookieToken,
-            });
-            return NextResponse.json(
-              { error: 'CSRF token mismatch' },
-              { status: 403 }
-            );
-          }
-        }
-
-        // Add user info to request headers from Supabase session
-        // SECURITY: Read role from profiles table (not user_metadata which is client-writable)
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-        const requestHeaders = new Headers(request.headers);
-        requestHeaders.set('x-user-id', user.id);
-        requestHeaders.set('x-user-email', user.email || '');
-        requestHeaders.set('x-user-role', profileData?.role || 'homeowner');
-        requestHeaders.set('x-pathname', pathname);
-
-        const response = NextResponse.next({
-          request: { headers: requestHeaders },
-        });
-
-        // Refresh CSRF cookie with httpOnly:false on protected routes too
-        const csrfName = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
-        const csrfValue =
-          request.cookies.get(csrfName)?.value || crypto.randomUUID();
-        response.cookies.set(csrfName, csrfValue, {
-          httpOnly: false,
-          secure: !isDevelopment,
-          sameSite: 'strict',
-          path: '/',
-          maxAge: 24 * 60 * 60,
-        });
-
-        return response;
-      } catch (parseError) {
-        logger.error('Failed to validate Supabase auth token', parseError, {
-          service: 'middleware',
-          pathname,
-        });
-        return redirectToLogin(request);
-      }
+      return handleSupabaseAuth(request, pathname, isDevelopment);
     }
 
     // Verify the JWT token using shared auth package
-    // At this point, token must be defined (undefined case handled above)
     if (!token) {
       return redirectToLogin(request);
     }
-    let jwtPayload;
-    try {
-      const jwtSecret = cfg.getRequired('JWT_SECRET');
-      jwtPayload = await verifyJWT(token, jwtSecret);
-    } catch (configError) {
-      logger.error(
-        'JWT verification failed due to configuration error',
-        configError,
-        {
-          service: 'middleware',
-          pathname,
-        }
-      );
-      return redirectToLogin(request);
-    }
 
+    const jwtPayload = await verifyJwtToken(token, cfg, request, pathname);
     if (!jwtPayload) {
       return redirectToLogin(request);
     }
 
     // SECURITY: Check if token is blacklisted (e.g., after logout)
-    try {
-      const isBlacklisted = await tokenBlacklist.isTokenBlacklisted(token);
-      if (isBlacklisted) {
-        logger.warn('Blacklisted token attempt blocked', {
-          service: 'middleware',
-          pathname,
-          userId: jwtPayload.sub,
-        });
-        return redirectToLogin(request);
-      }
-    } catch (blacklistError) {
-      // SECURITY: Fail closed for payment platform - if blacklist check fails, reject token
-      // This prevents compromised tokens from being used if Redis is unavailable
-      logger.error(
-        'CRITICAL: Token blacklist check failed - rejecting request for security',
-        {
-          service: 'middleware',
-          pathname,
-          error: blacklistError,
-          securityRisk:
-            'Cannot verify token is not blacklisted - failing closed',
-        }
-      );
+    const isBlacklisted = await checkTokenBlacklist(
+      token,
+      pathname,
+      jwtPayload.sub
+    );
+    if (isBlacklisted) {
       return redirectToLogin(request);
     }
 
     // Check if token is expired (additional check)
     const now = Math.floor(Date.now() / 1000);
     if (jwtPayload.exp && jwtPayload.exp < now) {
-      // Token expired, redirect to login
       return redirectToLogin(request);
     }
 
     // VULN-009: Check session timeouts (Phase 3: hard enforcement mode)
-    // Validates absolute session timeout (12 hours) and idle timeout (30 minutes)
-    // - Soft enforcement (default): Violations logged but requests proceed
-    // - Hard enforcement (ENFORCE_SESSION_TIMEOUTS=true): Force logout on violation
-    if (jwtPayload.sessionStart && jwtPayload.lastActivity) {
-      const sessionValidation = SessionValidator.validateSession({
-        sessionStart: jwtPayload.sessionStart,
-        lastActivity: jwtPayload.lastActivity,
-      });
-
-      if (!sessionValidation.isValid) {
-        // Determine enforcement mode from environment variable
-        // SECURITY FIX: Default to enforcing timeouts in production.
-        // Set ENFORCE_SESSION_TIMEOUTS=false to explicitly disable (e.g., during rollout).
-        const enforceTimeouts =
-          process.env.ENFORCE_SESSION_TIMEOUTS !== 'false' &&
-          process.env.NODE_ENV === 'production';
-
-        // Log violation (both soft and hard enforcement)
-        securityMonitor
-          .logSuspiciousActivity(
-            request,
-            `Session timeout violation: ${sessionValidation.reason}`,
-            jwtPayload.sub,
-            {
-              violations: sessionValidation.violations,
-              sessionAgeMs: sessionValidation.metadata.sessionAgeMs,
-              idleTimeMs: sessionValidation.metadata.idleTimeMs,
-              hardEnforcement: enforceTimeouts, // Phase 3: track enforcement mode
-              timeoutMessage:
-                SessionValidator.getTimeoutMessage(sessionValidation),
-            }
-          )
-          .catch((err) => {
-            // Catch logging errors to prevent middleware failures
-            logger.error('Failed to log session timeout violation', err, {
-              service: 'middleware',
-              userId: jwtPayload.sub,
-            });
-          });
-
-        // Hard enforcement: force logout on timeout violation
-        if (enforceTimeouts) {
-          // Blacklist token to prevent reuse (defense in depth)
-          try {
-            await tokenBlacklist.blacklistToken(token);
-            logger.info('Token blacklisted on session timeout', {
-              service: 'middleware',
-              userId: jwtPayload.sub,
-              violations: sessionValidation.violations.join(', '),
-            });
-          } catch (error) {
-            logger.error(
-              'CRITICAL: Token blacklist failed on forced logout',
-              error,
-              {
-                service: 'middleware',
-                userId: jwtPayload.sub,
-                securityRisk:
-                  'Token may be reused until JWT expiry (max 1 hour)',
-              }
-            );
-            // Continue with logout anyway (user experience > blacklist failure)
-          }
-
-          // Differentiate response based on request type
-          if (pathname.startsWith('/api/')) {
-            // API request: Return JSON 401 with timeout details
-            return NextResponse.json(
-              {
-                error: 'Session Timeout',
-                code: 'SESSION_TIMEOUT',
-                message: SessionValidator.getTimeoutMessage(sessionValidation),
-                violations: sessionValidation.violations,
-                sessionAgeHours: Math.floor(
-                  (sessionValidation.metadata.sessionAgeMs || 0) /
-                    (60 * 60 * 1000)
-                ),
-                idleMinutes: Math.floor(
-                  (sessionValidation.metadata.idleTimeMs || 0) / (60 * 1000)
-                ),
-              },
-              { status: 401 }
-            );
-          } else {
-            // Page request: Redirect to login (preserves admin routes)
-            return redirectToLogin(request);
-          }
-        }
-        // Soft enforcement (default): Continue with request
-      }
-    }
+    const timeoutResponse = await enforceSessionTimeouts(
+      jwtPayload,
+      token,
+      request,
+      pathname
+    );
+    if (timeoutResponse) return timeoutResponse;
 
     // Validate CSRF token for state-changing requests
-    if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method)) {
-      const csrfCookieName = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
+    const csrfResponse = validateCsrf(request, isDevelopment, 'JWT auth path');
+    if (csrfResponse) return csrfResponse;
 
-      const headerToken = request.headers.get('x-csrf-token');
-      const cookieToken = request.cookies.get(csrfCookieName)?.value;
-
-      if (!headerToken || !cookieToken || headerToken !== cookieToken) {
-        logger.warn('CSRF token validation failed', {
-          service: 'middleware',
-          method: request.method,
-          pathname: pathname,
-          hasHeaderToken: !!headerToken,
-          hasCookieToken: !!cookieToken,
-          tokensMatch: headerToken === cookieToken,
-        });
-        return NextResponse.json(
-          { error: 'CSRF token mismatch' },
-          { status: 403 }
-        );
-      }
-    }
-
-    // Token is valid, add user info to the request headers so server components can read it
+    // Token is valid, add user info to the request headers
     const requestHeaders = new Headers(request.headers);
-    if (jwtPayload.sub) {
-      requestHeaders.set('x-user-id', jwtPayload.sub);
-    }
-    if (jwtPayload.email) {
-      requestHeaders.set('x-user-email', jwtPayload.email);
-    }
-    if (jwtPayload.role) {
-      requestHeaders.set('x-user-role', jwtPayload.role);
-    }
+    if (jwtPayload.sub) requestHeaders.set('x-user-id', jwtPayload.sub);
+    if (jwtPayload.email) requestHeaders.set('x-user-email', jwtPayload.email);
+    if (jwtPayload.role) requestHeaders.set('x-user-role', jwtPayload.role);
 
-    // Add request ID for tracing
     const requestId = crypto.randomUUID();
     requestHeaders.set('x-request-id', requestId);
-
-    // Add pathname for consistent server-side rendering
     requestHeaders.set('x-pathname', pathname);
 
     // Generate CSP nonce for script security
@@ -624,27 +219,15 @@ export async function middleware(request: NextRequest) {
       request: { headers: requestHeaders },
     });
 
-    // Refresh CSRF cookie with httpOnly:false on protected routes
-    const csrfCookieNameJwt = isDevelopment
-      ? 'csrf-token'
-      : '__Host-csrf-token';
-    const csrfValueJwt =
-      request.cookies.get(csrfCookieNameJwt)?.value || crypto.randomUUID();
-    response.cookies.set(csrfCookieNameJwt, csrfValueJwt, {
-      httpOnly: false,
-      secure: !isDevelopment,
-      sameSite: 'strict',
-      path: '/',
-      maxAge: 24 * 60 * 60,
-    });
+    setCsrfCookie(response, request, isDevelopment);
 
     response.headers.set(
       'Content-Security-Policy',
-      buildAuthenticatedCSP(isDevelopment),
+      buildAuthenticatedCSP(isDevelopment)
     );
     response.headers.set(
       'Content-Security-Policy-Report-Only',
-      buildStrictReportOnlyCSP(isDevelopment),
+      buildStrictReportOnlyCSP(isDevelopment)
     );
 
     // API versioning header for all /api/ routes
@@ -662,15 +245,10 @@ export async function middleware(request: NextRequest) {
       service: 'middleware',
       pathname: request.nextUrl.pathname,
     });
-    // Invalid token, redirect to login
     return redirectToLogin(request);
   }
 }
 
-
-/**
- * Configure which paths the middleware should run on
- */
 export const config = {
   matcher: [
     /*
