@@ -32,13 +32,31 @@ export default async function CustomerDetailPage({
     redirect('/contractor/customers');
   }
 
-  // Fetch jobs with this customer
-  const { data: jobs } = await serverSupabase
+  // Fetch jobs with this customer — from direct assignment OR accepted bids
+  const { data: directJobs } = await serverSupabase
     .from('jobs')
     .select('id, title, description, status, category, budget, final_price, created_at, completed_at')
     .eq('contractor_id', user.id)
     .eq('homeowner_id', customerId)
     .order('created_at', { ascending: false });
+
+  // Also get jobs via bids (covers pre-assignment stage)
+  const { data: bidJobs } = await serverSupabase
+    .from('bids')
+    .select('job:jobs!inner(id, title, description, status, category, budget, final_price, created_at, completed_at)')
+    .eq('contractor_id', user.id)
+    .eq('jobs.homeowner_id', customerId);
+
+  // Deduplicate
+  const jobMap = new Map<string, Record<string, unknown>>();
+  for (const j of directJobs || []) jobMap.set(j.id, j as Record<string, unknown>);
+  for (const b of bidJobs || []) {
+    const j = (b as Record<string, unknown>).job as Record<string, unknown> | null;
+    if (j?.id && !jobMap.has(j.id as string)) jobMap.set(j.id as string, j);
+  }
+  const jobs = [...jobMap.values()].sort(
+    (a, b) => new Date(b.created_at as string).getTime() - new Date(a.created_at as string).getTime()
+  );
 
   // Fetch messages
   const { data: recentMessages } = await serverSupabase
@@ -159,32 +177,40 @@ export default async function CustomerDetailPage({
             </div>
           ) : (
             <div className="space-y-3">
-              {(jobs || []).map((job) => (
-                <Link
-                  key={job.id}
-                  href={`/contractor/jobs/${job.id}`}
-                  className="block bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-medium text-gray-900">{job.title}</h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        {job.category ? job.category.charAt(0).toUpperCase() + job.category.slice(1) : 'General'}
-                        {' \u00b7 '}
-                        {new Date(job.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </p>
+              {jobs.map((job) => {
+                const id = job.id as string;
+                const title = (job.title as string) || 'Untitled';
+                const cat = (job.category as string) || 'general';
+                const status = (job.status as string) || 'posted';
+                const date = job.created_at as string;
+                const price = (job.final_price as number) || (job.budget as number) || 0;
+                return (
+                  <Link
+                    key={id}
+                    href={`/contractor/jobs/${id}`}
+                    className="block bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-medium text-gray-900">{title}</h3>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                          {' \u00b7 '}
+                          {new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg font-semibold text-gray-900">
+                          {'\u00A3'}{price.toLocaleString('en-GB')}
+                        </span>
+                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_COLORS[status] || 'bg-gray-100 text-gray-600'}`}>
+                          {status.replace('_', ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg font-semibold text-gray-900">
-                        {'\u00A3'}{((job.final_price as number) || (job.budget as number) || 0).toLocaleString('en-GB')}
-                      </span>
-                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_COLORS[job.status] || 'bg-gray-100 text-gray-600'}`}>
-                        {job.status.replace('_', ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>
