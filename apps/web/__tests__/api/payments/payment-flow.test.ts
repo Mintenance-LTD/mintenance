@@ -226,22 +226,34 @@ vi.mock('@/lib/errors/api-error', async () => {
     }
   }
   class UnauthorizedError extends APIError {
-    constructor(message = 'Unauthorized') { super('UNAUTHORIZED', message, 401); }
+    constructor(message = 'Unauthorized') {
+      super('UNAUTHORIZED', message, 401);
+    }
   }
   class ForbiddenError extends APIError {
-    constructor(message = 'Forbidden') { super('FORBIDDEN', message, 403); }
+    constructor(message = 'Forbidden') {
+      super('FORBIDDEN', message, 403);
+    }
   }
   class NotFoundError extends APIError {
-    constructor(resource = 'Resource') { super('NOT_FOUND', `${resource} not found`, 404); }
+    constructor(resource = 'Resource') {
+      super('NOT_FOUND', `${resource} not found`, 404);
+    }
   }
   class BadRequestError extends APIError {
-    constructor(message = 'Bad Request', details?: unknown) { super('BAD_REQUEST', message, 400, details); }
+    constructor(message = 'Bad Request', details?: unknown) {
+      super('BAD_REQUEST', message, 400, details);
+    }
   }
   class ConflictError extends APIError {
-    constructor(message: string, details?: unknown) { super('CONFLICT', message, 409, details); }
+    constructor(message: string, details?: unknown) {
+      super('CONFLICT', message, 409, details);
+    }
   }
   class InternalServerError extends APIError {
-    constructor(message = 'An unexpected error occurred') { super('INTERNAL_SERVER_ERROR', message, 500); }
+    constructor(message = 'An unexpected error occurred') {
+      super('INTERNAL_SERVER_ERROR', message, 500);
+    }
   }
   return {
     APIError,
@@ -253,19 +265,30 @@ vi.mock('@/lib/errors/api-error', async () => {
     InternalServerError,
     ValidationError: BadRequestError,
     RateLimitError: class extends APIError {
-      constructor(retryAfter?: number) { super('RATE_LIMIT_EXCEEDED', 'Too many requests', 429); }
+      constructor(retryAfter?: number) {
+        super('RATE_LIMIT_EXCEEDED', 'Too many requests', 429);
+      }
     },
     ServiceUnavailableError: class extends APIError {
-      constructor(service = 'Service') { super('SERVICE_UNAVAILABLE', `${service} unavailable`, 503); }
+      constructor(service = 'Service') {
+        super('SERVICE_UNAVAILABLE', `${service} unavailable`, 503);
+      }
     },
     handleAPIError: vi.fn((error: unknown) => {
       if (error instanceof APIError) {
         const { NextResponse } = require('next/server');
-        return NextResponse.json(error.toResponse(), { status: error.statusCode });
+        return NextResponse.json(error.toResponse(), {
+          status: error.statusCode,
+        });
       }
       const { NextResponse } = require('next/server');
       return NextResponse.json(
-        { error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred' } },
+        {
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'An unexpected error occurred',
+          },
+        },
         { status: 500 }
       );
     }),
@@ -292,9 +315,43 @@ vi.mock('@/lib/errors/payment-errors', () => ({
 // Loggers
 vi.mock('@mintenance/shared', () => ({
   logger: mocks.logger,
-  BUSINESS_RULES: { MAX_JOBS_PER_HOUR: 20, LOGIN_LOCKOUT_DURATION_MINUTES: 15, MAX_LOGIN_ATTEMPTS: 5, MAX_PASSWORD_RESETS_PER_HOUR: 3 },
-  RATE_LIMITS: { WEBHOOK_REQUESTS_PER_MINUTE: 60, API_REQUESTS_PER_MINUTE: 100, REDIS_TIMEOUT_MS: 5000, REDIS_EXPIRE_TIMEOUT_MS: 5000, MAX_FALLBACK_ENTRIES: 10000, PRODUCTION_FALLBACK_RETRY_AFTER: 60, AI_ANALYSIS_PER_MINUTE: 10, AI_SEARCH_PER_MINUTE: 30, AI_SUGGESTIONS_PER_MINUTE: 20 },
+  BUSINESS_RULES: {
+    MAX_JOBS_PER_HOUR: 20,
+    LOGIN_LOCKOUT_DURATION_MINUTES: 15,
+    MAX_LOGIN_ATTEMPTS: 5,
+    MAX_PASSWORD_RESETS_PER_HOUR: 3,
+  },
+  RATE_LIMITS: {
+    WEBHOOK_REQUESTS_PER_MINUTE: 60,
+    API_REQUESTS_PER_MINUTE: 100,
+    REDIS_TIMEOUT_MS: 5000,
+    REDIS_EXPIRE_TIMEOUT_MS: 5000,
+    MAX_FALLBACK_ENTRIES: 10000,
+    PRODUCTION_FALLBACK_RETRY_AFTER: 60,
+    AI_ANALYSIS_PER_MINUTE: 10,
+    AI_SEARCH_PER_MINUTE: 30,
+    AI_SUGGESTIONS_PER_MINUTE: 20,
+  },
   TIME_MS: { MINUTE: 60000, HOUR: 3600000 },
+  JOB_STATUS: {
+    POSTED: 'posted',
+    ASSIGNED: 'assigned',
+    IN_PROGRESS: 'in_progress',
+    COMPLETED: 'completed',
+    CANCELLED: 'cancelled',
+  },
+  ESCROW_STATUS: {
+    PENDING: 'pending',
+    HELD: 'held',
+    RELEASE_PENDING: 'release_pending',
+    RELEASED: 'released',
+    REFUNDED: 'refunded',
+    AWAITING_HOMEOWNER_APPROVAL: 'awaiting_homeowner_approval',
+    PENDING_REVIEW: 'pending_review',
+    FAILED: 'failed',
+    CANCELLED: 'cancelled',
+  },
+  validateEscrowTransition: vi.fn(),
 }));
 
 vi.mock('@/lib/logger', () => ({
@@ -390,12 +447,22 @@ vi.mock('@/lib/services/contractor/PaymentSetupNotificationService', () => ({
   },
 }));
 
+vi.mock('@/lib/email-service', () => ({
+  EmailService: {
+    sendPaymentReleasedEmail: vi.fn().mockResolvedValue(true),
+    sendPaymentConfirmationEmail: vi.fn().mockResolvedValue(true),
+    sendPaymentReceivedEmail: vi.fn().mockResolvedValue(true),
+    sendRefundConfirmationEmail: vi.fn().mockResolvedValue(true),
+  },
+}));
+
 // Environment
 vi.mock('@/lib/env', () => ({
   env: {
     STRIPE_SECRET_KEY: 'sk_test_mock_key_for_testing',
     NODE_ENV: 'test',
-    JWT_SECRET: 'Test_JWT_Secret_1234567890_abcdefghij_KLMNOPQRSTUVWXYZ!@#$%^&*',
+    JWT_SECRET:
+      'Test_JWT_Secret_1234567890_abcdefghij_KLMNOPQRSTUVWXYZ!@#$%^&*',
     NEXT_PUBLIC_SUPABASE_URL: 'https://test.supabase.co',
     SUPABASE_SERVICE_ROLE_KEY: 'test-service-role-key',
     STRIPE_WEBHOOK_SECRET: 'whsec_mock',
@@ -480,7 +547,10 @@ function setupDefaultMocks() {
 
   // Idempotency - no duplicate
   mocks.getIdempotencyKeyFromRequest.mockReturnValue('idempotency-key-123');
-  mocks.checkIdempotency.mockResolvedValue({ isDuplicate: false, idempotencyKey: 'idempotency-key-123' });
+  mocks.checkIdempotency.mockResolvedValue({
+    isDuplicate: false,
+    idempotencyKey: 'idempotency-key-123',
+  });
   mocks.storeIdempotencyResult.mockResolvedValue(undefined);
 
   // Payment monitoring - no anomalies
@@ -520,17 +590,29 @@ function setupDefaultMocks() {
  * Supports multiple table calls with different return data via a table map.
  */
 function createSupabaseChain(
-  tableDataMap: Record<string, {
-    selectReturn?: { data: unknown; error: unknown };
-    insertReturn?: { data: unknown; error: unknown };
-    updateReturn?: { data: unknown; error: unknown };
-  }>
+  tableDataMap: Record<
+    string,
+    {
+      selectReturn?: { data: unknown; error: unknown };
+      insertReturn?: { data: unknown; error: unknown };
+      updateReturn?: { data: unknown; error: unknown };
+    }
+  >
 ) {
   mocks.supabaseFrom.mockImplementation((tableName: string) => {
     const tableConfig = tableDataMap[tableName] || {};
-    const selectReturn = tableConfig.selectReturn || { data: null, error: null };
-    const insertReturn = tableConfig.insertReturn || { data: null, error: null };
-    const updateReturn = tableConfig.updateReturn || { data: null, error: null };
+    const selectReturn = tableConfig.selectReturn || {
+      data: null,
+      error: null,
+    };
+    const insertReturn = tableConfig.insertReturn || {
+      data: null,
+      error: null,
+    };
+    const updateReturn = tableConfig.updateReturn || {
+      data: null,
+      error: null,
+    };
 
     const createUpdateChain = () => ({
       eq: vi.fn().mockReturnValue({
@@ -592,7 +674,7 @@ describe('FeeCalculationService', () => {
       const result = FeeCalculationService.calculateFees(100);
 
       // Stripe fee: 100 * 0.015 + 0.20 = 1.50 + 0.20 = 1.70
-      expect(result.stripeFee).toBe(1.70);
+      expect(result.stripeFee).toBe(1.7);
       expect(result.stripeFeeRate).toBe(0.015);
     });
 
@@ -614,7 +696,7 @@ describe('FeeCalculationService', () => {
       const result = FeeCalculationService.calculateFees(1000);
 
       // Stripe fee: 1000 * 0.015 + 0.20 = 15.00 + 0.20 = 15.20
-      expect(result.stripeFee).toBe(15.20);
+      expect(result.stripeFee).toBe(15.2);
     });
   });
 
@@ -623,7 +705,7 @@ describe('FeeCalculationService', () => {
       const result = FeeCalculationService.calculateFees(100);
 
       // Platform fee: 100 * 0.05 = 5.00
-      expect(result.platformFee).toBe(5.00);
+      expect(result.platformFee).toBe(5.0);
       expect(result.platformFeeRate).toBe(0.05);
     });
 
@@ -632,7 +714,7 @@ describe('FeeCalculationService', () => {
 
       // 5% of 5 = 0.25, which is below min 0.50
       // Should clamp to 0.50
-      expect(result.platformFee).toBe(0.50);
+      expect(result.platformFee).toBe(0.5);
     });
 
     it('should enforce maximum platform fee of 50.00 for large payments', () => {
@@ -640,19 +722,19 @@ describe('FeeCalculationService', () => {
 
       // 5% of 2000 = 100, which exceeds max 50.00
       // Should clamp to 50.00
-      expect(result.platformFee).toBe(50.00);
+      expect(result.platformFee).toBe(50.0);
     });
 
     it('should apply exactly the minimum fee at the threshold', () => {
       // 5% of 10 = 0.50 (exactly the minimum)
       const result = FeeCalculationService.calculateFees(10);
-      expect(result.platformFee).toBe(0.50);
+      expect(result.platformFee).toBe(0.5);
     });
 
     it('should apply exactly the maximum fee at the threshold', () => {
       // 5% of 1000 = 50.00 (exactly the maximum)
       const result = FeeCalculationService.calculateFees(1000);
-      expect(result.platformFee).toBe(50.00);
+      expect(result.platformFee).toBe(50.0);
     });
   });
 
@@ -664,8 +746,8 @@ describe('FeeCalculationService', () => {
       // Stripe fee: 1.70
       // Total fees: 6.70
       // Contractor gets: 100 - 6.70 = 93.30
-      expect(result.totalFees).toBe(6.70);
-      expect(result.contractorAmount).toBe(93.30);
+      expect(result.totalFees).toBe(6.7);
+      expect(result.contractorAmount).toBe(93.3);
     });
 
     it('should correctly calculate contractor payout for 500 GBP', () => {
@@ -675,15 +757,15 @@ describe('FeeCalculationService', () => {
       // Stripe fee: 500 * 0.015 + 0.20 = 7.50 + 0.20 = 7.70
       // Total fees: 32.70
       // Contractor gets: 500 - 32.70 = 467.30
-      expect(result.platformFee).toBe(25.00);
-      expect(result.stripeFee).toBe(7.70);
-      expect(result.totalFees).toBe(32.70);
-      expect(result.contractorAmount).toBe(467.30);
+      expect(result.platformFee).toBe(25.0);
+      expect(result.stripeFee).toBe(7.7);
+      expect(result.totalFees).toBe(32.7);
+      expect(result.contractorAmount).toBe(467.3);
     });
 
     it('should floor contractor amount to zero when fees exceed payment', () => {
       // Very small amount where fees could exceed payment
-      const result = FeeCalculationService.calculateFees(0.50);
+      const result = FeeCalculationService.calculateFees(0.5);
 
       // Platform fee: min 0.50
       // Stripe fee: 0.50 * 0.015 + 0.20 = 0.0075 + 0.20 = 0.21 (rounded)
@@ -695,13 +777,17 @@ describe('FeeCalculationService', () => {
 
   describe('Payment Type Variants', () => {
     it('should apply same 5% rate for deposit payments', () => {
-      const result = FeeCalculationService.calculateFees(100, { paymentType: 'deposit' });
+      const result = FeeCalculationService.calculateFees(100, {
+        paymentType: 'deposit',
+      });
       expect(result.platformFeeRate).toBe(0.05);
       expect(result.paymentType).toBe('deposit');
     });
 
     it('should apply same 5% rate for milestone payments', () => {
-      const result = FeeCalculationService.calculateFees(100, { paymentType: 'milestone' });
+      const result = FeeCalculationService.calculateFees(100, {
+        paymentType: 'milestone',
+      });
       expect(result.platformFeeRate).toBe(0.05);
       expect(result.paymentType).toBe('milestone');
     });
@@ -714,18 +800,23 @@ describe('FeeCalculationService', () => {
 
   describe('Custom Fee Overrides', () => {
     it('should accept custom platform fee rate', () => {
-      const result = FeeCalculationService.calculateFees(100, { platformFeeRate: 0.10 });
+      const result = FeeCalculationService.calculateFees(100, {
+        platformFeeRate: 0.1,
+      });
 
       // Platform fee: 100 * 0.10 = 10.00
-      expect(result.platformFee).toBe(10.00);
-      expect(result.platformFeeRate).toBe(0.10);
+      expect(result.platformFee).toBe(10.0);
+      expect(result.platformFeeRate).toBe(0.1);
     });
 
     it('should accept custom Stripe fee rate', () => {
-      const result = FeeCalculationService.calculateFees(100, { stripeFeeRate: 0.029, stripeFixedFee: 0.30 });
+      const result = FeeCalculationService.calculateFees(100, {
+        stripeFeeRate: 0.029,
+        stripeFixedFee: 0.3,
+      });
 
       // Stripe fee: 100 * 0.029 + 0.30 = 2.90 + 0.30 = 3.20
-      expect(result.stripeFee).toBe(3.20);
+      expect(result.stripeFee).toBe(3.2);
     });
   });
 
@@ -747,11 +838,15 @@ describe('FeeCalculationService', () => {
 
   describe('Edge Cases', () => {
     it('should throw for zero amount', () => {
-      expect(() => FeeCalculationService.calculateFees(0)).toThrow('Payment amount must be greater than 0');
+      expect(() => FeeCalculationService.calculateFees(0)).toThrow(
+        'Payment amount must be greater than 0'
+      );
     });
 
     it('should throw for negative amount', () => {
-      expect(() => FeeCalculationService.calculateFees(-50)).toThrow('Payment amount must be greater than 0');
+      expect(() => FeeCalculationService.calculateFees(-50)).toThrow(
+        'Payment amount must be greater than 0'
+      );
     });
 
     it('should round all results to two decimal places', () => {
@@ -768,23 +863,30 @@ describe('FeeCalculationService', () => {
 
   describe('Fee Config Validation', () => {
     it('should reject platform fee rate above 1', () => {
-      expect(() => FeeCalculationService.validateFeeConfig({ platformFeeRate: 1.5 }))
-        .toThrow('Platform fee rate must be between 0 and 1');
+      expect(() =>
+        FeeCalculationService.validateFeeConfig({ platformFeeRate: 1.5 })
+      ).toThrow('Platform fee rate must be between 0 and 1');
     });
 
     it('should reject negative platform fee rate', () => {
-      expect(() => FeeCalculationService.validateFeeConfig({ platformFeeRate: -0.1 }))
-        .toThrow('Platform fee rate must be between 0 and 1');
+      expect(() =>
+        FeeCalculationService.validateFeeConfig({ platformFeeRate: -0.1 })
+      ).toThrow('Platform fee rate must be between 0 and 1');
     });
 
     it('should reject min > max platform fee', () => {
-      expect(() => FeeCalculationService.validateFeeConfig({ minPlatformFee: 100, maxPlatformFee: 50 }))
-        .toThrow('Minimum platform fee cannot exceed maximum platform fee');
+      expect(() =>
+        FeeCalculationService.validateFeeConfig({
+          minPlatformFee: 100,
+          maxPlatformFee: 50,
+        })
+      ).toThrow('Minimum platform fee cannot exceed maximum platform fee');
     });
 
     it('should reject negative Stripe fee rate', () => {
-      expect(() => FeeCalculationService.validateFeeConfig({ stripeFeeRate: -0.01 }))
-        .toThrow('Stripe fee rate must be between 0 and 1');
+      expect(() =>
+        FeeCalculationService.validateFeeConfig({ stripeFeeRate: -0.01 })
+      ).toThrow('Stripe fee rate must be between 0 and 1');
     });
   });
 
@@ -800,26 +902,26 @@ describe('FeeCalculationService', () => {
     });
 
     it('should return Stripe fixed fee of 0.20', () => {
-      expect(FeeCalculationService.getStripeFixedFee()).toBe(0.20);
+      expect(FeeCalculationService.getStripeFixedFee()).toBe(0.2);
     });
 
     it('should calculate platform fee only', () => {
       const fee = FeeCalculationService.calculatePlatformFee(200);
       // 200 * 0.05 = 10.00
-      expect(fee).toBe(10.00);
+      expect(fee).toBe(10.0);
     });
 
     it('should calculate Stripe fee only', () => {
       const fee = FeeCalculationService.calculateStripeFee(200);
       // 200 * 0.015 + 0.20 = 3.00 + 0.20 = 3.20
-      expect(fee).toBe(3.20);
+      expect(fee).toBe(3.2);
     });
 
     it('should calculate contractor payout', () => {
       const payout = FeeCalculationService.calculateContractorPayout(200);
       // Platform: 10.00, Stripe: 3.20, Total: 13.20
       // Contractor: 200 - 13.20 = 186.80
-      expect(payout).toBe(186.80);
+      expect(payout).toBe(186.8);
     });
   });
 });
@@ -847,7 +949,9 @@ describe('POST /api/payments/refund', () => {
         },
       });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/refund');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/refund'
+      );
       const response = await POST(request);
       const body = await response.json();
 
@@ -901,12 +1005,16 @@ describe('POST /api/payments/refund', () => {
         },
       });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/refund');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/refund'
+      );
       const response = await POST(request);
       const body = await response.json();
 
       expect(response.status).toBe(403);
-      expect(body.error).toContain('Only the homeowner who paid can request a refund');
+      expect(body.error).toContain(
+        'Only the homeowner who paid can request a refund'
+      );
     });
 
     it('should reject refund from a user who is neither homeowner nor contractor', async () => {
@@ -937,7 +1045,9 @@ describe('POST /api/payments/refund', () => {
         },
       });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/refund');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/refund'
+      );
       const response = await POST(request);
 
       // The ForbiddenError is thrown and caught by the error handler
@@ -981,12 +1091,16 @@ describe('POST /api/payments/refund', () => {
         },
       });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/refund');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/refund'
+      );
       const response = await POST(request);
       const body = await response.json();
 
       expect(response.status).toBe(400);
-      expect(body.error).toContain('Cannot refund payment with status: completed');
+      expect(body.error).toContain(
+        'Cannot refund payment with status: completed'
+      );
       expect(body.error).toContain('Only held payments can be refunded');
     });
 
@@ -1024,12 +1138,16 @@ describe('POST /api/payments/refund', () => {
         },
       });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/refund');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/refund'
+      );
       const response = await POST(request);
       const body = await response.json();
 
       expect(response.status).toBe(400);
-      expect(body.error).toContain('Cannot refund payment with status: refunded');
+      expect(body.error).toContain(
+        'Cannot refund payment with status: refunded'
+      );
     });
   });
 
@@ -1071,12 +1189,16 @@ describe('POST /api/payments/refund', () => {
           },
         });
 
-        const request = createMockRequest('http://localhost:3000/api/payments/refund');
+        const request = createMockRequest(
+          'http://localhost:3000/api/payments/refund'
+        );
         const response = await POST(request);
         const body = await response.json();
 
         expect(response.status).toBe(400);
-        expect(body.error).toContain(`Cannot refund payment for job with status: ${status}`);
+        expect(body.error).toContain(
+          `Cannot refund payment for job with status: ${status}`
+        );
       });
     });
 
@@ -1131,7 +1253,9 @@ describe('POST /api/payments/refund', () => {
           amount: 25000,
         });
 
-        const request = createMockRequest('http://localhost:3000/api/payments/refund');
+        const request = createMockRequest(
+          'http://localhost:3000/api/payments/refund'
+        );
         const response = await POST(request);
         const body = await response.json();
 
@@ -1157,13 +1281,16 @@ describe('POST /api/payments/refund', () => {
         },
       });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/refund');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/refund'
+      );
       const response = await POST(request);
       const body = await response.json();
 
       expect(response.status).toBe(429);
       // body.error is { code, message } object from handleAPIError
-      const errorMsg = typeof body.error === 'string' ? body.error : body.error?.message;
+      const errorMsg =
+        typeof body.error === 'string' ? body.error : body.error?.message;
       expect(errorMsg).toContain('Too many requests');
     });
   });
@@ -1192,7 +1319,9 @@ describe('POST /api/payments/release-escrow', () => {
         },
       });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/release-escrow');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/release-escrow'
+      );
       const response = await POST(request);
 
       expect(response.status).toBeGreaterThanOrEqual(400);
@@ -1246,7 +1375,9 @@ describe('POST /api/payments/release-escrow', () => {
         },
       });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/release-escrow');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/release-escrow'
+      );
       const response = await POST(request);
 
       // ForbiddenError caught by error handler
@@ -1296,10 +1427,12 @@ describe('POST /api/payments/release-escrow', () => {
             error: null,
           },
           updateReturn: {
-            data: [{
-              id: '660e8400-e29b-41d4-a716-446655440001',
-              status: 'completed',
-            }],
+            data: [
+              {
+                id: '660e8400-e29b-41d4-a716-446655440001',
+                status: 'completed',
+              },
+            ],
             error: null,
           },
         },
@@ -1336,10 +1469,11 @@ describe('POST /api/payments/release-escrow', () => {
         latest_charge: 'ch_test_123',
       });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/release-escrow');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/release-escrow'
+      );
       const response = await POST(request);
       const body = await response.json();
-
       // Should succeed or return a valid response (may depend on optimistic lock)
       // The route does many DB operations; we check it reaches the transfer step
       expect(mocks.stripeTransfersCreate).toHaveBeenCalled();
@@ -1364,7 +1498,9 @@ describe('POST /api/payments/release-escrow', () => {
         },
       });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/release-escrow');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/release-escrow'
+      );
       const response = await POST(request);
 
       expect(response.status).toBeGreaterThanOrEqual(400);
@@ -1387,7 +1523,9 @@ describe('POST /api/payments/release-escrow', () => {
         },
       });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/release-escrow');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/release-escrow'
+      );
       const response = await POST(request);
       const body = await response.json();
 
@@ -1422,7 +1560,9 @@ describe('POST /api/payments/create-intent', () => {
         },
       });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/create-intent');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/create-intent'
+      );
       const response = await POST(request);
 
       expect(response.status).toBeGreaterThanOrEqual(400);
@@ -1440,7 +1580,9 @@ describe('POST /api/payments/create-intent', () => {
         retryAfter: 60,
       });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/create-intent');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/create-intent'
+      );
       const response = await POST(request);
       const body = await response.json();
 
@@ -1457,7 +1599,9 @@ describe('POST /api/payments/create-intent', () => {
         retryAfter: 60,
       });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/create-intent');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/create-intent'
+      );
       const response = await POST(request);
 
       expect(response.headers.get('Retry-After')).toBeDefined();
@@ -1506,7 +1650,9 @@ describe('POST /api/payments/create-intent', () => {
         },
       });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/create-intent');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/create-intent'
+      );
       const response = await POST(request);
 
       // The ForbiddenError is caught and processed through createPaymentErrorResponse
@@ -1561,7 +1707,9 @@ describe('POST /api/payments/create-intent', () => {
         },
       });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/create-intent');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/create-intent'
+      );
       const response = await POST(request);
       const body = await response.json();
 
@@ -1604,7 +1752,9 @@ describe('POST /api/payments/create-intent', () => {
         },
       });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/create-intent');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/create-intent'
+      );
       const response = await POST(request);
       const body = await response.json();
 
@@ -1637,9 +1787,12 @@ describe('GET /api/payments/methods', () => {
         resetTime: Date.now() + 3600000,
       });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/methods', {
-        method: 'GET',
-      });
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/methods',
+        {
+          method: 'GET',
+        }
+      );
       const response = await GET(request);
       const body = await response.json();
 
@@ -1666,9 +1819,12 @@ describe('GET /api/payments/methods', () => {
         ),
       });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/methods', {
-        method: 'GET',
-      });
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/methods',
+        {
+          method: 'GET',
+        }
+      );
       const response = await GET(request);
 
       expect(response.status).toBe(429);
@@ -1736,9 +1892,12 @@ describe('GET /api/payments/methods', () => {
         ],
       });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/methods', {
-        method: 'GET',
-      });
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/methods',
+        {
+          method: 'GET',
+        }
+      );
       const response = await GET(request);
       const body = await response.json();
 
@@ -1783,7 +1942,9 @@ describe('POST /api/payments/add-method', () => {
         },
       });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/add-method');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/add-method'
+      );
       const response = await POST(request);
       const body = await response.json();
 
@@ -1801,7 +1962,9 @@ describe('POST /api/payments/add-method', () => {
         retryAfter: 60,
       });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/add-method');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/add-method'
+      );
       const response = await POST(request);
       const body = await response.json();
 
@@ -1845,7 +2008,9 @@ describe('POST /api/payments/add-method', () => {
 
       mocks.stripeCustomersUpdate.mockResolvedValue({ id: 'cus_test_123' });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/add-method');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/add-method'
+      );
       const response = await POST(request);
       const body = await response.json();
 
@@ -1902,7 +2067,9 @@ describe('POST /api/payments/add-method', () => {
         },
       });
 
-      const request = createMockRequest('http://localhost:3000/api/payments/add-method');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/add-method'
+      );
       const response = await POST(request);
       const body = await response.json();
 
@@ -1939,7 +2106,9 @@ describe('Cross-Cutting Payment Security', () => {
       });
 
       const { POST } = await import('@/app/api/payments/refund/route');
-      const request = createMockRequest('http://localhost:3000/api/payments/refund');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/refund'
+      );
       const response = await POST(request);
 
       // CSRF error is caught and turned into an error response
@@ -1968,7 +2137,9 @@ describe('Cross-Cutting Payment Security', () => {
       });
 
       const { POST } = await import('@/app/api/payments/refund/route');
-      const request = createMockRequest('http://localhost:3000/api/payments/refund');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/refund'
+      );
       const response = await POST(request);
       const body = await response.json();
 
@@ -1989,7 +2160,9 @@ describe('Cross-Cutting Payment Security', () => {
       });
 
       const { POST } = await import('@/app/api/payments/refund/route');
-      const request = createMockRequest('http://localhost:3000/api/payments/refund');
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/refund'
+      );
       const response = await POST(request);
       const body = await response.json();
 
@@ -2002,7 +2175,10 @@ describe('Cross-Cutting Payment Security', () => {
     const endpoints = [
       { name: 'create-intent', path: '@/app/api/payments/create-intent/route' },
       { name: 'refund', path: '@/app/api/payments/refund/route' },
-      { name: 'release-escrow', path: '@/app/api/payments/release-escrow/route' },
+      {
+        name: 'release-escrow',
+        path: '@/app/api/payments/release-escrow/route',
+      },
       { name: 'add-method', path: '@/app/api/payments/add-method/route' },
     ];
 
@@ -2027,7 +2203,9 @@ describe('Cross-Cutting Payment Security', () => {
 
         const mod = await import(path);
         const handler = mod.POST;
-        const request = createMockRequest(`http://localhost:3000/api/payments/${name}`);
+        const request = createMockRequest(
+          `http://localhost:3000/api/payments/${name}`
+        );
         const response = await handler(request);
 
         expect(response.status).toBeGreaterThanOrEqual(400);
@@ -2074,11 +2252,19 @@ describe('Refund DB Retry Logic', () => {
       return {
         eq: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue(
-              shouldFail
-                ? { data: null, error: { message: 'Temporary DB error' } }
-                : { data: { id: '660e8400-e29b-41d4-a716-446655440001', status: 'refunded' }, error: null }
-            ),
+            single: vi
+              .fn()
+              .mockResolvedValue(
+                shouldFail
+                  ? { data: null, error: { message: 'Temporary DB error' } }
+                  : {
+                      data: {
+                        id: '660e8400-e29b-41d4-a716-446655440001',
+                        status: 'refunded',
+                      },
+                      error: null,
+                    }
+              ),
           }),
         }),
       };
@@ -2127,13 +2313,27 @@ describe('Refund DB Retry Logic', () => {
         };
       }
       return {
-        select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: null, error: null }) }) }),
+        select: vi
+          .fn()
+          .mockReturnValue({
+            eq: vi
+              .fn()
+              .mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: null, error: null }),
+              }),
+          }),
         insert: vi.fn().mockReturnValue({ error: null }),
-        update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: null, error: null }) }),
+        update: vi
+          .fn()
+          .mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+          }),
       };
     });
 
-    const request = createMockRequest('http://localhost:3000/api/payments/refund');
+    const request = createMockRequest(
+      'http://localhost:3000/api/payments/refund'
+    );
     const response = await POST(request);
     const body = await response.json();
 

@@ -18,9 +18,13 @@ import {
   RateLimitResult,
 } from './core/RateLimiter';
 // Detect platform
-const isReactNative = typeof navigator !== 'undefined' && navigator.product === 'ReactNative';
+const isReactNative =
+  typeof navigator !== 'undefined' && navigator.product === 'ReactNative';
 const isWeb = typeof window !== 'undefined' && typeof document !== 'undefined';
-const isServer = typeof window === 'undefined' && typeof process !== 'undefined' && !isReactNative;
+const isServer =
+  typeof window === 'undefined' &&
+  typeof process !== 'undefined' &&
+  !isReactNative;
 const isMobile = isReactNative;
 // Select appropriate adapter
 const PlatformSanitizer = isServer || isWeb ? WebSanitizer : MobileSanitizer;
@@ -33,7 +37,10 @@ export const sanitize = {
    * HTML sanitization
    * Uses DOMPurify on web/server, regex on mobile
    */
-  html: (input: string | undefined | null, options?: SanitizationOptions): string => {
+  html: (
+    input: string | undefined | null,
+    options?: SanitizationOptions
+  ): string => {
     const sanitizer = new PlatformSanitizer();
     return sanitizer.sanitizeHtml(input, options);
   },
@@ -273,7 +280,9 @@ export const utils = {
    */
   sanitizeFields: <T extends Record<string, unknown>>(
     data: T,
-    schema: Partial<Record<keyof T, 'text' | 'email' | 'phone' | 'url' | 'number'>>
+    schema: Partial<
+      Record<keyof T, 'text' | 'email' | 'phone' | 'url' | 'number'>
+    >
   ): T => {
     const result = { ...data } as Record<string, unknown>;
     for (const [key, type] of Object.entries(schema)) {
@@ -303,7 +312,7 @@ export const utils = {
   /**
    * Create a Zod transformer for sanitization
    */
-  createZodTransformer: (sanitizer: (input: unknown) => any) => {
+  createZodTransformer: <T>(sanitizer: (input: unknown) => T) => {
     return (val: unknown) => sanitizer(val);
   },
   /**
@@ -336,9 +345,14 @@ export const utils = {
       logger.warn('[Security Threat]', logData);
     }
     // In production, send to monitoring service
-    const globalObj = typeof global !== 'undefined' ? global as Record<string, unknown> : undefined;
+    const globalObj =
+      typeof global !== 'undefined'
+        ? (global as Record<string, unknown>)
+        : undefined;
     if (globalObj?.securityLogger) {
-      const securityLogger = globalObj.securityLogger as { warn: (msg: string, data: unknown) => void };
+      const securityLogger = globalObj.securityLogger as {
+        warn: (msg: string, data: unknown) => void;
+      };
       securityLogger.warn('Security threat detected', logData);
     }
   },
@@ -346,7 +360,8 @@ export const utils = {
 /**
  * Default instances
  */
-export const defaultRateLimiter = RateLimiterFactory.getInstance('sanitization');
+export const defaultRateLimiter =
+  RateLimiterFactory.getInstance('sanitization');
 export const sqlRateLimiter = RateLimiterFactory.getInstance('sql');
 export const authRateLimiter = RateLimiterFactory.getInstance('auth');
 // Cleanup on process exit (Node.js only, not React Native)

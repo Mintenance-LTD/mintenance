@@ -1,36 +1,28 @@
 /**
  * Multi-Factor Authentication (MFA) Service
  *
- * Provides TOTP, SMS, email, and backup code functionality for MFA.
- * Uses otpauth library (replaces unmaintained speakeasy@2.0.0).
- *
- * Dependencies: npm install otpauth qrcode @types/qrcode
+ * Thin facade that delegates to focused modules in ./service/.
+ * All existing imports of `MFAService` from `@/lib/mfa/mfa-service` continue
+ * to work unchanged.
  */
 
-if (typeof window !== 'undefined') {
-  throw new Error('[ServerOnly] mfa-service.ts must not run in the browser');
-}
-
-import bcrypt from 'bcryptjs';
-import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
-import * as OTPAuth from 'otpauth';
-import QRCode from 'qrcode';
-import { encryptField } from '@/lib/encryption/field-encryption';
-
 import {
-  TOTP_WINDOW,
-  PRE_MFA_SESSION_DURATION,
-  TRUSTED_DEVICE_DURATION,
-  TOTP_ISSUER,
-  TOTP_ALGORITHM,
-  TOTP_DIGITS,
-  TOTP_PERIOD,
-  TOTP_SECRET_SIZE,
-} from './service/constants';
-import { tryDecryptTOTPSecret } from './service/totp-crypto';
-import { createBackupCodeArray } from './service/backup-codes';
-import { generateSecureToken } from './service/tokens';
+  enrollTOTP,
+  verifyTOTPEnrollment,
+  verifyMFA,
+} from './service/mfa-totp';
+import { generateBackupCodes } from './service/mfa-recovery';
+import {
+  createTrustedDevice,
+  validateTrustedDevice,
+} from './service/mfa-trusted-devices';
+import {
+  createPreMFASession,
+  validatePreMFASession,
+  deletePreMFASession,
+} from './service/mfa-sessions';
+import { getMFAStatus, disableMFA } from './service/mfa-status';
+
 import type {
   TOTPEnrollmentData,
   MFAVerificationResult,
@@ -38,712 +30,84 @@ import type {
   TrustedDeviceData,
 } from './service/types';
 
-/**
- * MFA Service
- *
- * Handles all MFA operations including TOTP enrollment, verification,
- * backup codes, and session management.
- */
+export type {
+  TOTPEnrollmentData,
+  MFAVerificationResult,
+  PreMFASession,
+  TrustedDeviceData,
+};
+
 export class MFAService {
-  private static readonly TOTP_WINDOW = TOTP_WINDOW;
-  private static readonly PRE_MFA_SESSION_DURATION = PRE_MFA_SESSION_DURATION;
-  private static readonly TRUSTED_DEVICE_DURATION = TRUSTED_DEVICE_DURATION;
-
-  /**
-   * Enroll user in TOTP MFA
-   * Generates secret and QR code for authenticator app setup
-   */
-  static async enrollTOTP(userId: string): Promise<TOTPEnrollmentData> {
-    try {
-      // Get user information for QR code label
-      const { data: user, error: userError } = await serverSupabase
-        .from('profiles')
-        .select('email, first_name, last_name')
-        .eq('id', userId)
-        .single();
-
-      if (userError || !user) {
-        logger.error('Failed to get user for TOTP enrollment', userError, {
-          service: 'mfa',
-          userId,
-        });
-        throw new Error('User not found');
-      }
-
-      // Generate TOTP secret using otpauth
-      const totp = new OTPAuth.TOTP({
-        issuer: TOTP_ISSUER,
-        label: user.email,
-        algorithm: TOTP_ALGORITHM,
-        digits: TOTP_DIGITS,
-        period: TOTP_PERIOD,
-        secret: new OTPAuth.Secret({ size: TOTP_SECRET_SIZE }),
-      });
-
-      const secret = {
-        base32: totp.secret.base32,
-        otpauth_url: totp.toString(),
-      };
-
-      // Generate QR code
-      const qrCodeDataUrl = await QRCode.toDataURL(secret.otpauth_url);
-
-      // Generate backup codes
-      const backupCodes = createBackupCodeArray();
-
-      // Encrypt TOTP secret at rest using AES-256-GCM before storing
-      const encryptedSecret = encryptField(secret.base32, 'totp_secret');
-      const { error: updateError } = await serverSupabase
-        .from('profiles')
-        .update({
-          totp_secret: JSON.stringify(encryptedSecret),
-          mfa_method: 'totp',
-          mfa_enrolled_at: new Date().toISOString(),
-          // Don't enable MFA yet - wait for verification
-        })
-        .eq('id', userId);
-
-      if (updateError) {
-        logger.error('Failed to store TOTP secret', updateError, {
-          service: 'mfa',
-          userId,
-        });
-        throw new Error('Failed to store TOTP secret');
-      }
-
-      // Store backup codes (hashed)
-      await this.storeBackupCodes(userId, backupCodes);
-
-      logger.info('TOTP enrollment initiated', {
-        service: 'mfa',
-        userId,
-        email: user.email,
-      });
-
-      return {
-        secret: secret.base32,
-        qrCodeDataUrl,
-        backupCodes,
-      };
-    } catch (error) {
-      logger.error('TOTP enrollment failed', error, {
-        service: 'mfa',
-        userId,
-      });
-      throw error;
-    }
+  static enrollTOTP(userId: string): Promise<TOTPEnrollmentData> {
+    return enrollTOTP(userId);
   }
 
-  /**
-   * Verify TOTP enrollment
-   * Confirms user can successfully use their authenticator app
-   */
-  static async verifyTOTPEnrollment(
+  static verifyTOTPEnrollment(
     userId: string,
     token: string
   ): Promise<{ success: boolean; error?: string }> {
-    try {
-      // Get user's TOTP secret
-      const { data: user, error: userError } = await serverSupabase
-        .from('profiles')
-        .select('totp_secret, mfa_enabled')
-        .eq('id', userId)
-        .single();
-
-      if (userError || !user || !user.totp_secret) {
-        return { success: false, error: 'TOTP not set up' };
-      }
-
-      // Don't allow re-enrollment if already enabled
-      if (user.mfa_enabled) {
-        return { success: false, error: 'MFA already enabled' };
-      }
-
-      // Decrypt secret (handles both encrypted and legacy plaintext values)
-      const plainSecret = tryDecryptTOTPSecret(user.totp_secret);
-
-      // Verify token using otpauth (constant-time comparison)
-      const totp = new OTPAuth.TOTP({
-        issuer: TOTP_ISSUER,
-        algorithm: TOTP_ALGORITHM,
-        digits: TOTP_DIGITS,
-        period: TOTP_PERIOD,
-        secret: OTPAuth.Secret.fromBase32(plainSecret),
-      });
-
-      const delta = totp.validate({ token, window: this.TOTP_WINDOW });
-      const verified = delta !== null;
-
-      if (!verified) {
-        await this.recordVerificationAttempt(userId, 'totp', false);
-        return { success: false, error: 'Invalid verification code' };
-      }
-
-      // Enable MFA
-      const { error: updateError } = await serverSupabase
-        .from('profiles')
-        .update({
-          mfa_enabled: true,
-        })
-        .eq('id', userId);
-
-      if (updateError) {
-        logger.error('Failed to enable MFA', updateError, {
-          service: 'mfa',
-          userId,
-        });
-        throw new Error('Failed to enable MFA');
-      }
-
-      await this.recordVerificationAttempt(userId, 'totp', true);
-
-      logger.info('TOTP enrollment completed', {
-        service: 'mfa',
-        userId,
-      });
-
-      return { success: true };
-    } catch (error) {
-      logger.error('TOTP verification failed', error, {
-        service: 'mfa',
-        userId,
-      });
-      throw error;
-    }
+    return verifyTOTPEnrollment(userId, token);
   }
 
-  /**
-   * Verify MFA code during login
-   * Supports TOTP, backup codes, SMS, and email
-   */
-  static async verifyMFA(
+  static verifyMFA(
     userId: string,
     code: string,
     method: 'totp' | 'backup_code' | 'sms' | 'email',
     ipAddress?: string,
     userAgent?: string
   ): Promise<MFAVerificationResult> {
-    try {
-      // Check rate limiting
-      const { data: rateLimitOk } = await serverSupabase
-        .rpc('check_mfa_rate_limit', { p_user_id: userId });
-
-      if (!rateLimitOk) {
-        logger.warn('MFA rate limit exceeded', {
-          service: 'mfa',
-          userId,
-          method,
-        });
-        return {
-          success: false,
-          error: 'Too many failed attempts. Please try again in 15 minutes.',
-        };
-      }
-
-      let verified = false;
-      let requiresNewBackupCodes = false;
-
-      switch (method) {
-        case 'totp':
-          verified = await this.verifyTOTP(userId, code);
-          break;
-
-        case 'backup_code':
-          const backupResult = await this.verifyBackupCode(userId, code);
-          verified = backupResult.verified;
-          requiresNewBackupCodes = backupResult.requiresNewCodes;
-          break;
-
-        case 'sms':
-        case 'email':
-          verified = await this.verifyPendingCode(userId, code, method);
-          break;
-
-        default:
-          return { success: false, error: 'Invalid MFA method' };
-      }
-
-      // Record attempt
-      await this.recordVerificationAttempt(
-        userId,
-        method,
-        verified,
-        ipAddress,
-        userAgent
-      );
-
-      if (!verified) {
-        return { success: false, error: 'Invalid verification code' };
-      }
-
-      logger.info('MFA verification successful', {
-        service: 'mfa',
-        userId,
-        method,
-      });
-
-      return { success: true, requiresNewBackupCodes };
-    } catch (error) {
-      logger.error('MFA verification failed', error, {
-        service: 'mfa',
-        userId,
-        method,
-      });
-      throw error;
-    }
+    return verifyMFA(userId, code, method, ipAddress, userAgent);
   }
 
-  /**
-   * Generate new backup codes
-   * Should be called when user runs low or after using one
-   */
-  static async generateBackupCodes(userId: string): Promise<string[]> {
-    try {
-      // Delete old unused backup codes
-      await serverSupabase
-        .from('mfa_backup_codes')
-        .delete()
-        .eq('user_id', userId)
-        .is('used_at', null);
-
-      // Generate new codes
-      const backupCodes = createBackupCodeArray();
-      await this.storeBackupCodes(userId, backupCodes);
-
-      logger.info('Backup codes regenerated', {
-        service: 'mfa',
-        userId,
-      });
-
-      return backupCodes;
-    } catch (error) {
-      logger.error('Failed to generate backup codes', error, {
-        service: 'mfa',
-        userId,
-      });
-      throw error;
-    }
+  static generateBackupCodes(userId: string): Promise<string[]> {
+    return generateBackupCodes(userId);
   }
 
-  /**
-   * Disable MFA for user
-   * Requires password confirmation (should be done at API level)
-   */
-  static async disableMFA(userId: string): Promise<void> {
-    try {
-      await serverSupabase.rpc('disable_user_mfa', { p_user_id: userId });
-
-      logger.info('MFA disabled', {
-        service: 'mfa',
-        userId,
-      });
-    } catch (error) {
-      logger.error('Failed to disable MFA', error, {
-        service: 'mfa',
-        userId,
-      });
-      throw error;
-    }
+  static disableMFA(userId: string): Promise<void> {
+    return disableMFA(userId);
   }
 
-  /**
-   * Create pre-MFA session token
-   * Used after password verification but before MFA completion
-   */
-  static async createPreMFASession(
+  static createPreMFASession(
     userId: string,
     ipAddress?: string,
     userAgent?: string
   ): Promise<PreMFASession> {
-    try {
-      const sessionToken = generateSecureToken();
-      const expiresAt = new Date(Date.now() + this.PRE_MFA_SESSION_DURATION);
-
-      const { error } = await serverSupabase
-        .from('pre_mfa_sessions')
-        .insert({
-          user_id: userId,
-          session_token: sessionToken,
-          ip_address: ipAddress,
-          user_agent: userAgent,
-          expires_at: expiresAt.toISOString(),
-        });
-
-      if (error) {
-        logger.error('Failed to create pre-MFA session', error, {
-          service: 'mfa',
-          userId,
-        });
-        throw new Error('Failed to create pre-MFA session');
-      }
-
-      logger.info('Pre-MFA session created', {
-        service: 'mfa',
-        userId,
-      });
-
-      return { sessionToken, expiresAt };
-    } catch (error) {
-      logger.error('Pre-MFA session creation failed', error, {
-        service: 'mfa',
-        userId,
-      });
-      throw error;
-    }
+    return createPreMFASession(userId, ipAddress, userAgent);
   }
 
-  /**
-   * Validate pre-MFA session token
-   * Returns user ID if valid, null otherwise
-   */
-  static async validatePreMFASession(
-    sessionToken: string
-  ): Promise<string | null> {
-    try {
-      const { data, error } = await serverSupabase
-        .from('pre_mfa_sessions')
-        .select('user_id, expires_at')
-        .eq('session_token', sessionToken)
-        .single();
-
-      if (error || !data) {
-        return null;
-      }
-
-      // Check expiration
-      if (new Date(data.expires_at) < new Date()) {
-        // Clean up expired session
-        await serverSupabase
-          .from('pre_mfa_sessions')
-          .delete()
-          .eq('session_token', sessionToken);
-        return null;
-      }
-
-      return data.user_id;
-    } catch (error) {
-      logger.error('Pre-MFA session validation failed', error, {
-        service: 'mfa',
-      });
-      return null;
-    }
+  static validatePreMFASession(sessionToken: string): Promise<string | null> {
+    return validatePreMFASession(sessionToken);
   }
 
-  /**
-   * Delete pre-MFA session (after successful MFA or expiration)
-   */
-  static async deletePreMFASession(sessionToken: string): Promise<void> {
-    try {
-      await serverSupabase
-        .from('pre_mfa_sessions')
-        .delete()
-        .eq('session_token', sessionToken);
-    } catch (error) {
-      logger.error('Failed to delete pre-MFA session', error, {
-        service: 'mfa',
-      });
-    }
+  static deletePreMFASession(sessionToken: string): Promise<void> {
+    return deletePreMFASession(sessionToken);
   }
 
-  /**
-   * Create trusted device token
-   * Allows user to skip MFA on this device for 30 days
-   */
-  static async createTrustedDevice(
+  static createTrustedDevice(
     userId: string,
     deviceName?: string,
     deviceFingerprint?: string,
     ipAddress?: string,
     userAgent?: string
   ): Promise<TrustedDeviceData> {
-    try {
-      const deviceToken = generateSecureToken();
-      const expiresAt = new Date(Date.now() + this.TRUSTED_DEVICE_DURATION);
-
-      const { error } = await serverSupabase
-        .from('trusted_devices')
-        .insert({
-          user_id: userId,
-          device_token: deviceToken,
-          device_name: deviceName,
-          device_fingerprint: deviceFingerprint,
-          ip_address: ipAddress,
-          user_agent: userAgent,
-          expires_at: expiresAt.toISOString(),
-        });
-
-      if (error) {
-        logger.error('Failed to create trusted device', error, {
-          service: 'mfa',
-          userId,
-        });
-        throw new Error('Failed to create trusted device');
-      }
-
-      logger.info('Trusted device created', {
-        service: 'mfa',
-        userId,
-      });
-
-      return { deviceToken, deviceName, expiresAt };
-    } catch (error) {
-      logger.error('Trusted device creation failed', error, {
-        service: 'mfa',
-        userId,
-      });
-      throw error;
-    }
+    return createTrustedDevice(
+      userId,
+      deviceName,
+      deviceFingerprint,
+      ipAddress,
+      userAgent
+    );
   }
 
-  /**
-   * Validate trusted device token
-   * Returns user ID if valid, null otherwise.
-   * Security: Validates IP address and user agent hash to prevent token theft.
-   */
-  static async validateTrustedDevice(
+  static validateTrustedDevice(
     deviceToken: string,
     ipAddress?: string,
     userAgent?: string
   ): Promise<string | null> {
-    try {
-      const { data, error } = await serverSupabase
-        .from('trusted_devices')
-        .select('user_id, expires_at, ip_address, user_agent')
-        .eq('device_token', deviceToken)
-        .single();
-
-      if (error || !data) {
-        return null;
-      }
-
-      // Check expiration
-      if (new Date(data.expires_at) < new Date()) {
-        // Clean up expired device
-        await serverSupabase
-          .from('trusted_devices')
-          .delete()
-          .eq('device_token', deviceToken);
-        return null;
-      }
-
-      // Security: Validate IP address binding (if stored)
-      if (data.ip_address && ipAddress && data.ip_address !== ipAddress) {
-        logger.warn('Trusted device IP mismatch — rejecting token', {
-          service: 'mfa',
-          userId: data.user_id,
-          storedIp: data.ip_address,
-          requestIp: ipAddress,
-        });
-        return null;
-      }
-
-      // Security: Validate user agent binding (if stored)
-      if (data.user_agent && userAgent && data.user_agent !== userAgent) {
-        logger.warn('Trusted device user agent mismatch — rejecting token', {
-          service: 'mfa',
-          userId: data.user_id,
-        });
-        return null;
-      }
-
-      // Update last used timestamp
-      await serverSupabase
-        .from('trusted_devices')
-        .update({ last_used_at: new Date().toISOString() })
-        .eq('device_token', deviceToken);
-
-      return data.user_id;
-    } catch (error) {
-      logger.error('Trusted device validation failed', error, {
-        service: 'mfa',
-      });
-      return null;
-    }
+    return validateTrustedDevice(deviceToken, ipAddress, userAgent);
   }
 
-  /**
-   * Get MFA status for user
-   */
-  static async getMFAStatus(userId: string) {
-    try {
-      const { data: user, error } = await serverSupabase
-        .from('profiles')
-        .select('mfa_enabled, mfa_method, mfa_enrolled_at, phone_number')
-        .eq('id', userId)
-        .single();
-
-      if (error || !user) {
-        throw new Error('User not found');
-      }
-
-      // Get backup codes count
-      const { data: backupCodesCount } = await serverSupabase
-        .rpc('get_unused_backup_codes_count', { p_user_id: userId });
-
-      // Get trusted devices count
-      const { count: trustedDevicesCount } = await serverSupabase
-        .from('trusted_devices')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .gt('expires_at', new Date().toISOString());
-
-      return {
-        enabled: user.mfa_enabled,
-        method: user.mfa_method,
-        enrolledAt: user.mfa_enrolled_at,
-        phoneNumber: user.phone_number,
-        backupCodesCount: backupCodesCount || 0,
-        trustedDevicesCount: trustedDevicesCount || 0,
-      };
-    } catch (error) {
-      logger.error('Failed to get MFA status', error, {
-        service: 'mfa',
-        userId,
-      });
-      throw error;
-    }
-  }
-
-  // ============================================================================
-  // Private helper methods
-  // ============================================================================
-
-  private static async storeBackupCodes(
-    userId: string,
-    codes: string[]
-  ): Promise<void> {
-    const hashedCodes = await Promise.all(
-      codes.map(async (code) => ({
-        user_id: userId,
-        code_hash: await bcrypt.hash(code, 10),
-      }))
-    );
-
-    const { error } = await serverSupabase
-      .from('mfa_backup_codes')
-      .insert(hashedCodes);
-
-    if (error) {
-      throw new Error('Failed to store backup codes');
-    }
-  }
-
-  private static async verifyTOTP(
-    userId: string,
-    token: string
-  ): Promise<boolean> {
-    const { data: user } = await serverSupabase
-      .from('profiles')
-      .select('totp_secret')
-      .eq('id', userId)
-      .single();
-
-    if (!user || !user.totp_secret) {
-      return false;
-    }
-
-    // Decrypt secret (handles both encrypted and legacy plaintext values)
-    const plainSecret = tryDecryptTOTPSecret(user.totp_secret);
-
-    const totp = new OTPAuth.TOTP({
-      issuer: TOTP_ISSUER,
-      algorithm: TOTP_ALGORITHM,
-      digits: TOTP_DIGITS,
-      period: TOTP_PERIOD,
-      secret: OTPAuth.Secret.fromBase32(plainSecret),
-    });
-
-    const delta = totp.validate({ token, window: this.TOTP_WINDOW });
-    return delta !== null;
-  }
-
-  private static async verifyBackupCode(
-    userId: string,
-    code: string
-  ): Promise<{ verified: boolean; requiresNewCodes: boolean }> {
-    const { data: backupCodes } = await serverSupabase
-      .from('mfa_backup_codes')
-      .select('id, code_hash')
-      .eq('user_id', userId)
-      .is('used_at', null);
-
-    if (!backupCodes || backupCodes.length === 0) {
-      return { verified: false, requiresNewCodes: false };
-    }
-
-    // Try to match code
-    for (const record of backupCodes) {
-      const match = await bcrypt.compare(code, record.code_hash);
-      if (match) {
-        // Mark as used
-        await serverSupabase
-          .from('mfa_backup_codes')
-          .update({ used_at: new Date().toISOString() })
-          .eq('id', record.id);
-
-        // Check if running low on backup codes
-        const requiresNewCodes = backupCodes.length <= 2;
-
-        return { verified: true, requiresNewCodes };
-      }
-    }
-
-    return { verified: false, requiresNewCodes: false };
-  }
-
-  private static async verifyPendingCode(
-    userId: string,
-    code: string,
-    method: 'sms' | 'email'
-  ): Promise<boolean> {
-    const { data: pending } = await serverSupabase
-      .from('mfa_pending_verifications')
-      .select('id, code_hash, expires_at')
-      .eq('user_id', userId)
-      .eq('method', method)
-      .gt('expires_at', new Date().toISOString())
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (!pending) {
-      return false;
-    }
-
-    const match = await bcrypt.compare(code, pending.code_hash);
-
-    if (match) {
-      // Delete used code
-      await serverSupabase
-        .from('mfa_pending_verifications')
-        .delete()
-        .eq('id', pending.id);
-      return true;
-    }
-
-    return false;
-  }
-
-  private static async recordVerificationAttempt(
-    userId: string,
-    method: string,
-    success: boolean,
-    ipAddress?: string,
-    userAgent?: string
-  ): Promise<void> {
-    try {
-      await serverSupabase.rpc('record_mfa_verification_attempt', {
-        p_user_id: userId,
-        p_method: method,
-        p_success: success,
-        p_ip_address: ipAddress || null,
-        p_user_agent: userAgent || null,
-      });
-    } catch (error) {
-      logger.error('Failed to record MFA attempt', error, {
-        service: 'mfa',
-        userId,
-      });
-    }
+  static getMFAStatus(userId: string) {
+    return getMFAStatus(userId);
   }
 }
