@@ -164,7 +164,10 @@ const ContractorPayoutsScreen: React.FC = () => {
         )}
 
         {(!status || !status.detailsSubmitted) && (
-          <NoAccountCard onStart={startOnboarding} busy={busy} />
+          <>
+            <NoAccountCard onStart={startOnboarding} busy={busy} />
+            <PayoutInfoSection />
+          </>
         )}
 
         {status &&
@@ -336,6 +339,45 @@ const ReadyCard: React.FC<{
   );
 };
 
+const PayoutInfoSection: React.FC = () => (
+  <View style={styles.infoSection}>
+    <Text style={styles.infoTitle}>How payouts work</Text>
+    <View style={styles.infoItem}>
+      <View style={styles.infoIconWrap}>
+        <Ionicons name="shield-checkmark" size={18} color={theme.colors.primary} />
+      </View>
+      <View style={styles.infoTextWrap}>
+        <Text style={styles.infoItemTitle}>Escrow-protected</Text>
+        <Text style={styles.infoItemDesc}>
+          Homeowner payment is held in escrow before you start. You always get paid for completed work.
+        </Text>
+      </View>
+    </View>
+    <View style={styles.infoItem}>
+      <View style={styles.infoIconWrap}>
+        <Ionicons name="calendar" size={18} color={theme.colors.primary} />
+      </View>
+      <View style={styles.infoTextWrap}>
+        <Text style={styles.infoItemTitle}>Weekly payouts</Text>
+        <Text style={styles.infoItemDesc}>
+          Completed job payments are transferred to your bank every Friday via Stripe.
+        </Text>
+      </View>
+    </View>
+    <View style={styles.infoItem}>
+      <View style={styles.infoIconWrap}>
+        <Ionicons name="lock-closed" size={18} color={theme.colors.primary} />
+      </View>
+      <View style={styles.infoTextWrap}>
+        <Text style={styles.infoItemTitle}>Secure & private</Text>
+        <Text style={styles.infoItemDesc}>
+          Stripe handles all bank details and tax documents. Mintenance never sees your financial data.
+        </Text>
+      </View>
+    </View>
+  </View>
+);
+
 function formatMoney(minor: number, currency: string): string {
   return new Intl.NumberFormat('en-GB', {
     style: 'currency',
@@ -352,8 +394,8 @@ function formatRequirement(key: string): string {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
-  content: { padding: 16, gap: 16 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  content: { padding: 16, paddingTop: 24, paddingBottom: 40, gap: 16 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
   title: { fontSize: 22, fontWeight: '600', color: theme.colors.textPrimary },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   card: {
@@ -426,6 +468,42 @@ const styles = StyleSheet.create({
     borderColor: '#fecaca',
   },
   errorText: { fontSize: 14, color: '#991b1b' },
+  infoSection: {
+    gap: 16,
+    marginTop: 8,
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: theme.colors.textPrimary,
+  },
+  infoItem: {
+    flexDirection: 'row' as const,
+    gap: 12,
+  },
+  infoIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: theme.colors.primaryLight ?? '#d1fae5',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    marginTop: 2,
+  },
+  infoTextWrap: {
+    flex: 1,
+  },
+  infoItemTitle: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: theme.colors.textPrimary,
+    marginBottom: 2,
+  },
+  infoItemDesc: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    lineHeight: 18,
+  },
 });
 
 export default ContractorPayoutsScreen;
