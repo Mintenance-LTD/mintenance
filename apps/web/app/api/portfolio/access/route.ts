@@ -17,6 +17,6 @@ export const GET = withApiHandler({}, async (_request, { user }) => {
     earlyAccessEligible: access.earlyAccessEligible || false,
     reasonCode: access.reasonCode || null,
     message: access.message || null,
-    upgradeUrl: '/pricing?feature=portfolio_mode',
+    upgradeUrl: '/subscription?feature=portfolio_mode',
   });
 });
