@@ -28,7 +28,8 @@ export class SqlProtection {
   }> = [
     // SQL Commands
     {
-      regex: /\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE)\b/gi,
+      regex:
+        /\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE)\b/gi,
       severity: 'high',
       description: 'SQL command keywords detected',
     },
@@ -40,7 +41,8 @@ export class SqlProtection {
     },
     // Boolean-based blind SQL injection
     {
-      regex: /(\bOR\b|\bAND\b)\s*(\d+\s*=\s*\d+|\w+\s*=\s*\w+|'[^']*'\s*=\s*'[^']*')/gi,
+      regex:
+        /(\bOR\b|\bAND\b)\s*(\d+\s*=\s*\d+|\w+\s*=\s*\w+|'[^']*'\s*=\s*'[^']*')/gi,
       severity: 'high',
       description: 'Boolean-based blind injection pattern',
     },
@@ -64,7 +66,8 @@ export class SqlProtection {
     },
     // File operations
     {
-      regex: /\b(OPENROWSET|OPENDATASOURCE|BULK\s+INSERT|LOAD_FILE|INTO\s+OUTFILE|INTO\s+DUMPFILE)\b/gi,
+      regex:
+        /\b(OPENROWSET|OPENDATASOURCE|BULK\s+INSERT|LOAD_FILE|INTO\s+OUTFILE|INTO\s+DUMPFILE)\b/gi,
       severity: 'critical',
       description: 'File operation attempt detected',
     },
@@ -205,7 +208,9 @@ export class SqlProtection {
    * Validate numeric input
    */
   static validateNumeric(input: string, allowDecimal = false): boolean {
-    const pattern = allowDecimal ? this.SAFE_PATTERNS.decimal : this.SAFE_PATTERNS.numbers;
+    const pattern = allowDecimal
+      ? this.SAFE_PATTERNS.decimal
+      : this.SAFE_PATTERNS.numbers;
     return pattern.test(input);
   }
   /**
@@ -214,7 +219,7 @@ export class SqlProtection {
    */
   static createParameterizedQuery(
     template: string,
-    params: Record<string, any>
+    params: Record<string, unknown>
   ): { query: string; values: unknown[] } {
     let query = template;
     const values: unknown[] = [];
@@ -243,7 +248,9 @@ export class SqlProtection {
     // Remove multiple spaces
     sanitized = sanitized.replace(/\s+/g, ' ').trim();
     // Final length check
-    return sanitized.length > maxLength ? sanitized.substring(0, maxLength) : sanitized;
+    return sanitized.length > maxLength
+      ? sanitized.substring(0, maxLength)
+      : sanitized;
   }
   /**
    * Log security threats for monitoring
@@ -275,7 +282,7 @@ export class SqlProtection {
    * Batch validate multiple inputs
    */
   static batchValidate(inputs: string[]): SqlScanResult[] {
-    return inputs.map(input => this.scanForInjection(input));
+    return inputs.map((input) => this.scanForInjection(input));
   }
   /**
    * Check if any threats are critical

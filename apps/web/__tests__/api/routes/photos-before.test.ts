@@ -68,24 +68,65 @@ vi.mock('@/lib/utils/fileValidation', () => ({
 
 vi.mock('@/lib/errors/api-error', async () => {
   class APIError extends Error {
-    constructor(public code: string, public userMessage: string, public statusCode: number = 500, public details?: unknown) {
-      super(userMessage); this.name = 'APIError';
+    constructor(
+      public code: string,
+      public userMessage: string,
+      public statusCode: number = 500,
+      public details?: unknown
+    ) {
+      super(userMessage);
+      this.name = 'APIError';
     }
-    toResponse() { return { error: { code: this.code, message: this.userMessage }, timestamp: new Date().toISOString() }; }
+    toResponse() {
+      return {
+        error: { code: this.code, message: this.userMessage },
+        timestamp: new Date().toISOString(),
+      };
+    }
   }
-  class UnauthorizedError extends APIError { constructor(m = 'Unauthorized') { super('UNAUTHORIZED', m, 401); } }
-  class ForbiddenError extends APIError { constructor(m = 'Forbidden') { super('FORBIDDEN', m, 403); } }
-  class NotFoundError extends APIError { constructor(m = 'Resource not found') { super('NOT_FOUND', m, 404); } }
-  class BadRequestError extends APIError { constructor(m = 'Bad Request', d?: unknown) { super('BAD_REQUEST', m, 400, d); } }
+  class UnauthorizedError extends APIError {
+    constructor(m = 'Unauthorized') {
+      super('UNAUTHORIZED', m, 401);
+    }
+  }
+  class ForbiddenError extends APIError {
+    constructor(m = 'Forbidden') {
+      super('FORBIDDEN', m, 403);
+    }
+  }
+  class NotFoundError extends APIError {
+    constructor(m = 'Resource not found') {
+      super('NOT_FOUND', m, 404);
+    }
+  }
+  class BadRequestError extends APIError {
+    constructor(m = 'Bad Request', d?: unknown) {
+      super('BAD_REQUEST', m, 400, d);
+    }
+  }
   return {
-    APIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError,
+    APIError,
+    UnauthorizedError,
+    ForbiddenError,
+    NotFoundError,
+    BadRequestError,
     handleAPIError: vi.fn((error: unknown) => {
       if (error instanceof APIError) {
         const { NextResponse } = require('next/server');
-        return NextResponse.json(error.toResponse(), { status: error.statusCode });
+        return NextResponse.json(error.toResponse(), {
+          status: error.statusCode,
+        });
       }
       const { NextResponse } = require('next/server');
-      return NextResponse.json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred' } }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'An unexpected error occurred',
+          },
+        },
+        { status: 500 }
+      );
     }),
   };
 });
@@ -122,7 +163,7 @@ function createMockFile(name: string, size: number, type: string): File {
 function createFormDataRequest(
   url: string,
   files: File[],
-  geolocation?: { lat: number; lng: number },
+  geolocation?: { lat: number; lng: number }
 ): NextRequest {
   const formData = new FormData();
   for (const file of files) {
@@ -160,23 +201,40 @@ function setupDefaultMocks() {
   mocks.getCurrentUserFromCookies.mockResolvedValue(contractorUser);
   mocks.requireCSRF.mockResolvedValue(undefined);
   mocks.rateLimiterCheckRateLimit.mockResolvedValue({
-    allowed: true, remaining: 19, resetTime: Date.now() + 60000, retryAfter: 0,
+    allowed: true,
+    remaining: 19,
+    resetTime: Date.now() + 60000,
+    retryAfter: 0,
   });
   mocks.validateImageUpload.mockResolvedValue({ valid: true });
-  mocks.verifyGeolocation.mockResolvedValue({ withinThreshold: true, distance: 50 });
-  mocks.validatePhotoQuality.mockResolvedValue({ passed: true, qualityScore: 85 });
+  mocks.verifyGeolocation.mockResolvedValue({
+    withinThreshold: true,
+    distance: 50,
+  });
+  mocks.validatePhotoQuality.mockResolvedValue({
+    passed: true,
+    qualityScore: 85,
+  });
 
   // Storage mock
   mocks.supabaseStorageFrom.mockReturnValue({
-    upload: vi.fn().mockResolvedValue({ data: { path: 'test-path.jpg' }, error: null }),
-    getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: 'https://example.com/photo.jpg' } }),
+    upload: vi
+      .fn()
+      .mockResolvedValue({ data: { path: 'test-path.jpg' }, error: null }),
+    getPublicUrl: vi
+      .fn()
+      .mockReturnValue({
+        data: { publicUrl: 'https://example.com/photo.jpg' },
+      }),
   });
 }
 
-function setupJobMock(overrides: {
-  jobData?: unknown;
-  jobError?: unknown;
-} = {}) {
+function setupJobMock(
+  overrides: {
+    jobData?: unknown;
+    jobError?: unknown;
+  } = {}
+) {
   const jobResult = {
     data: overrides.jobData ?? {
       id: 'job-1',
@@ -224,7 +282,10 @@ describe('POST /api/jobs/[id]/photos/before', () => {
     setupJobMock();
 
     const file = createMockFile('photo.jpg', 1024, 'image/jpeg');
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/job-1/photos/before', [file]);
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/before',
+      [file]
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(401);
   });
@@ -234,7 +295,10 @@ describe('POST /api/jobs/[id]/photos/before', () => {
     setupJobMock({ jobData: null, jobError: { message: 'not found' } });
 
     const file = createMockFile('photo.jpg', 1024, 'image/jpeg');
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/bad-id/photos/before', [file]);
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/bad-id/photos/before',
+      [file]
+    );
     const res = await POST(req, segmentData('bad-id'));
     expect(res.status).toBe(404);
   });
@@ -242,11 +306,19 @@ describe('POST /api/jobs/[id]/photos/before', () => {
   // ---- Authorization: wrong contractor ----
   it('should return 403 when contractor is not assigned to the job', async () => {
     setupJobMock({
-      jobData: { id: 'job-1', contractor_id: 'other-contractor', latitude: null, longitude: null },
+      jobData: {
+        id: 'job-1',
+        contractor_id: 'other-contractor',
+        latitude: null,
+        longitude: null,
+      },
     });
 
     const file = createMockFile('photo.jpg', 1024, 'image/jpeg');
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/job-1/photos/before', [file]);
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/before',
+      [file]
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(403);
 
@@ -258,7 +330,10 @@ describe('POST /api/jobs/[id]/photos/before', () => {
   it('should return 400 when no photos are provided', async () => {
     setupJobMock();
 
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/job-1/photos/before', []);
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/before',
+      []
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(400);
 
@@ -271,9 +346,12 @@ describe('POST /api/jobs/[id]/photos/before', () => {
     setupJobMock();
 
     const files = Array.from({ length: 11 }, (_, i) =>
-      createMockFile(`photo${i}.jpg`, 1024, 'image/jpeg'),
+      createMockFile(`photo${i}.jpg`, 1024, 'image/jpeg')
     );
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/job-1/photos/before', files);
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/before',
+      files
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(400);
 
@@ -299,10 +377,16 @@ describe('POST /api/jobs/[id]/photos/before', () => {
   // ---- Invalid magic bytes ----
   it('should return 400 when file fails magic byte validation', async () => {
     setupJobMock();
-    mocks.validateImageUpload.mockResolvedValue({ valid: false, error: 'Not a valid image file' });
+    mocks.validateImageUpload.mockResolvedValue({
+      valid: false,
+      error: 'Not a valid image file',
+    });
 
     const file = createMockFile('malicious.jpg', 1024, 'image/jpeg');
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/job-1/photos/before', [file]);
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/before',
+      [file]
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(400);
 
@@ -315,7 +399,10 @@ describe('POST /api/jobs/[id]/photos/before', () => {
     setupJobMock();
 
     const file = createMockFile('doc.pdf', 1024, 'application/pdf');
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/job-1/photos/before', [file]);
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/before',
+      [file]
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(400);
 
@@ -328,7 +415,10 @@ describe('POST /api/jobs/[id]/photos/before', () => {
     setupJobMock();
 
     const file = createMockFile('image.bmp', 1024, 'image/jpeg');
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/job-1/photos/before', [file]);
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/before',
+      [file]
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(400);
 
@@ -341,7 +431,10 @@ describe('POST /api/jobs/[id]/photos/before', () => {
     setupJobMock();
 
     const file = createMockFile('kitchen-leak.jpg', 5000, 'image/jpeg');
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/job-1/photos/before', [file]);
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/before',
+      [file]
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(200);
 
@@ -361,7 +454,10 @@ describe('POST /api/jobs/[id]/photos/before', () => {
       createMockFile('photo1.jpg', 2000, 'image/jpeg'),
       createMockFile('photo2.png', 3000, 'image/png'),
     ];
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/job-1/photos/before', files);
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/before',
+      files
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(200);
 
@@ -379,7 +475,7 @@ describe('POST /api/jobs/[id]/photos/before', () => {
     const req = createFormDataRequest(
       'http://localhost:3000/api/jobs/job-1/photos/before',
       [file],
-      { lat: 51.5074, lng: -0.1278 },
+      { lat: 51.5074, lng: -0.1278 }
     );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(200);
@@ -387,24 +483,30 @@ describe('POST /api/jobs/[id]/photos/before', () => {
     expect(mocks.verifyGeolocation).toHaveBeenCalledWith(
       '',
       { lat: 51.5074, lng: -0.1278 },
-      expect.objectContaining({ lat: 51.5074, lng: -0.1278 }),
+      expect.objectContaining({ lat: 51.5074, lng: -0.1278 })
     );
   });
 
-  // ---- Geolocation warning logged but upload continues ----
-  it('should log a warning when geolocation is outside threshold but still upload', async () => {
+  // ---- Geolocation outside threshold rejects upload ----
+  it('should return 400 when geolocation is outside threshold', async () => {
     setupJobMock();
-    mocks.verifyGeolocation.mockResolvedValue({ withinThreshold: false, distance: 500 });
+    mocks.verifyGeolocation.mockResolvedValue({
+      withinThreshold: false,
+      distance: 500,
+    });
 
     const file = createMockFile('photo.jpg', 1024, 'image/jpeg');
     const req = createFormDataRequest(
       'http://localhost:3000/api/jobs/job-1/photos/before',
       [file],
-      { lat: 52.0, lng: 0.0 },
+      { lat: 52.0, lng: 0.0 }
     );
     const res = await POST(req, segmentData('job-1'));
-    // Upload should still succeed - geolocation warning doesn't block upload
-    expect(res.status).toBe(200);
+    // Implementation enforces geolocation - rejects uploads outside 100m threshold
+    expect(res.status).toBe(400);
+
+    const body = await res.json();
+    expect(body.error.message).toContain('job location');
   });
 
   // ---- Upload error skips file but continues ----
@@ -413,12 +515,17 @@ describe('POST /api/jobs/[id]/photos/before', () => {
 
     // Make storage upload fail
     mocks.supabaseStorageFrom.mockReturnValue({
-      upload: vi.fn().mockResolvedValue({ data: null, error: { message: 'Storage error' } }),
+      upload: vi
+        .fn()
+        .mockResolvedValue({ data: null, error: { message: 'Storage error' } }),
       getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: null } }),
     });
 
     const file = createMockFile('photo.jpg', 1024, 'image/jpeg');
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/job-1/photos/before', [file]);
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/before',
+      [file]
+    );
     const res = await POST(req, segmentData('job-1'));
     // When all uploads fail, uploadedPhotos is empty -> throws Error('Failed to upload photos') -> 500
     expect(res.status).toBe(500);
@@ -434,11 +541,19 @@ describe('POST /api/jobs/[id]/photos/before', () => {
       last_name: 'User',
     });
     setupJobMock({
-      jobData: { id: 'job-1', contractor_id: 'contractor-1', latitude: null, longitude: null },
+      jobData: {
+        id: 'job-1',
+        contractor_id: 'contractor-1',
+        latitude: null,
+        longitude: null,
+      },
     });
 
     const file = createMockFile('photo.jpg', 1024, 'image/jpeg');
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/job-1/photos/before', [file]);
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/before',
+      [file]
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(200);
   });

@@ -120,7 +120,7 @@ export async function searchContractors(
     let query = supabase
       .from('profiles')
       .select(
-        'id, role, first_name, last_name, bio, city, country, profile_image_url, avatar_url, rating, total_jobs_completed, verified, admin_verified, skills, is_available, company_name, hourly_rate, years_experience, portfolio_images, created_at, contractor_skills(id, skill_name, created_at), reviews:reviews!reviewed_id(id, rating, comment, created_at)'
+        'id, role, first_name, last_name, bio, city, country, profile_image_url, avatar_url, rating, total_jobs_completed, verified, admin_verified, skills, is_available, company_name, hourly_rate, years_experience, portfolio_images, created_at, contractor_skills(id, skill_name, created_at), reviews:reviews!reviewee_id(id, rating, comment, created_at)'
       )
       .eq('role', 'contractor')
       .eq('is_available', true);

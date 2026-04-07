@@ -22,18 +22,18 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
       with:
         fetch-depth: 0
 
     - name: Setup Node.js
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
       with:
         node-version: '20.19.4'
         cache: 'npm'
 
     - name: Install dependencies
-      run: npm ci
+      run: npm ci --ignore-scripts=false
       timeout-minutes: 10
 
     - name: Run security audit
@@ -41,7 +41,7 @@ jobs:
 
     - name: Run Snyk security scan
       if: ${{ env.HAS_SNYK == 'true' }}
-      uses: snyk/actions/node@master
+      uses: snyk/actions/node@9adf32b1121593767fc3c057af55b55db032dc04 # master
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       continue-on-error: true
@@ -49,12 +49,12 @@ jobs:
         args: --severity-threshold=high
 
     - name: Run CodeQL Analysis
-      uses: github/codeql-action/init@v4
+      uses: github/codeql-action/init@c10b8064de6f491fea524254123dbe5e09572f13 # v4
       with:
         languages: javascript
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v4
+      uses: github/codeql-action/analyze@c10b8064de6f491fea524254123dbe5e09572f13 # v4
 
     - name: Run ESLint security rules
       run: |
@@ -62,7 +62,7 @@ jobs:
         npx eslint . --ext .ts,.tsx --format json --output-file eslint-security-report.json || true
 
     - name: Check for secrets
-      uses: trufflesecurity/trufflehog@main
+      uses: trufflesecurity/trufflehog@bff3d2670b362bbb4a0bcdeffea146cbc2ad3abd # main
       with:
         path: ./
         base: main
@@ -75,7 +75,7 @@ jobs:
         npx depcheck --ignores="@types/*,eslint-*,prettier,*test*,*spec*" || true
 
     - name: Upload security reports
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
       if: always()
       with:
         name: security-reports
@@ -86,7 +86,7 @@ jobs:
 
     - name: Comment PR with security findings
       if: github.event_name == 'pull_request'
-      uses: actions/github-script@v8
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
       with:
         script: |
           const fs = require('fs');
@@ -149,7 +149,7 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
     - name: Setup Supabase CLI
       run: |
@@ -171,7 +171,7 @@ jobs:
         grep -r "SECURITY DEFINER" supabase/migrations/ || true
 
     - name: Upload database security report
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
       with:
         name: database-security-report
         path: |
@@ -186,7 +186,7 @@ jobs:
     steps:
     - name: Notify security team
       if: ${{ secrets.SLACK_WEBHOOK != '' }}
-      uses: 8398a7/action-slack@v3
+      uses: 8398a7/action-slack@77eaa4f1c608a7d68b38af4e3f739dcd8cba273e # v3
       with:
         status: failure
         channel: '#security-alerts'

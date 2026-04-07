@@ -72,7 +72,7 @@ export async function fetchContractorStats(
       .from('jobs')
       .select('id, status, budget, created_at, updated_at')
       .eq('contractor_id', contractorId),
-    client.from('reviews').select('rating').eq('reviewed_id', contractorId),
+    client.from('reviews').select('rating').eq('reviewee_id', contractorId),
     client
       .from('jobs')
       .select(
@@ -136,7 +136,7 @@ export async function fetchContractorReviews(
     .select(
       'id, rating, comment, created_at, reviewer:profiles!reviewer_id(first_name, last_name, profile_image_url)'
     )
-    .eq('reviewed_id', contractorId)
+    .eq('reviewee_id', contractorId)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 }
