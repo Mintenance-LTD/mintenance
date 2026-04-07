@@ -75,7 +75,7 @@ jobs:
         npx depcheck --ignores="@types/*,eslint-*,prettier,*test*,*spec*" || true
 
     - name: Upload security reports
-      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       if: always()
       with:
         name: security-reports
@@ -171,7 +171,7 @@ jobs:
         grep -r "SECURITY DEFINER" supabase/migrations/ || true
 
     - name: Upload database security report
-      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       with:
         name: database-security-report
         path: |

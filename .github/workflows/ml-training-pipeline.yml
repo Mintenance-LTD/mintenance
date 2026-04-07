@@ -144,7 +144,7 @@ jobs:
 
       - name: Upload dataset artifact
         if: steps.validation.outputs.proceed == 'true'
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v4
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4
         with:
           name: training-dataset-${{ steps.dataset.outputs.version }}
           path: /tmp/training-data
@@ -162,7 +162,7 @@ jobs:
 
       - name: Upload data report
         if: always()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v4
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4
         with:
           name: data-report-${{ steps.dataset.outputs.version }}
           path: /tmp/data-report.html
@@ -273,7 +273,7 @@ jobs:
             --output /tmp/model-package.tar.gz
 
       - name: Upload model artifact
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v4
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4
         with:
           name: model-${{ steps.training.outputs.version }}
           path: /tmp/model-package.tar.gz

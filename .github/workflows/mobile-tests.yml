@@ -67,7 +67,7 @@ jobs:
 
       - name: Archive test results
         if: always()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: mobile-test-results
           path: |
@@ -139,7 +139,7 @@ jobs:
 
       - name: Archive integration test results
         if: always()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: integration-test-results
           path: apps/mobile/test-results/
@@ -250,7 +250,7 @@ jobs:
           script: cd apps/mobile && npm run e2e:test:android
       - name: Upload artifacts
         if: always()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: detox-android-results
           path: apps/mobile/artifacts/
@@ -289,7 +289,7 @@ jobs:
         working-directory: apps/mobile
       - name: Upload artifacts
         if: always()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: detox-ios-results
           path: apps/mobile/artifacts/
