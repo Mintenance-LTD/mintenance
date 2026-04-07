@@ -165,10 +165,10 @@ function ScreenShowcase({
         </div>
 
         {/* Screenshot side */}
-        <div className="relative flex justify-center">
-          {/* Desktop frame behind (if available) */}
+        <div className="relative">
+          {/* Desktop frame — primary, full width */}
           {screen.desktop && (
-            <div className="hidden lg:block absolute -top-4 -right-4 w-[85%] bg-gray-900 rounded-xl p-1.5 shadow-xl opacity-90">
+            <div className="bg-gray-900 rounded-xl p-1.5 shadow-2xl">
               <div className="flex items-center gap-1 px-2 py-1.5">
                 <div className="w-2 h-2 rounded-full bg-red-400" />
                 <div className="w-2 h-2 rounded-full bg-yellow-400" />
@@ -187,10 +187,10 @@ function ScreenShowcase({
             </div>
           )}
 
-          {/* Phone frame in front */}
-          <div className="relative z-10 w-48 sm:w-56 rounded-[2rem] overflow-hidden shadow-2xl border-[5px] border-gray-800 bg-gray-800">
-            <div className="flex justify-center py-1.5 bg-gray-800">
-              <div className="w-16 h-1 bg-gray-700 rounded-full" />
+          {/* Phone frame — floating bottom-left over the desktop */}
+          <div className={`${screen.desktop ? 'absolute -bottom-8 -left-6 z-10' : 'mx-auto'} w-36 sm:w-44 rounded-[1.5rem] overflow-hidden shadow-2xl border-4 border-gray-800 bg-gray-800`}>
+            <div className="flex justify-center py-1 bg-gray-800">
+              <div className="w-12 h-1 bg-gray-700 rounded-full" />
             </div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
