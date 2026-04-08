@@ -46,8 +46,8 @@
     "@expo/vector-icons": "^15.0.3",
     "@mintenance/ai-core": "file:../../packages/ai-core",
     "@mintenance/api-client": "file:../../packages/api-client",
-    "@mintenance/data-access": "file:../../packages/data-access",
     "@mintenance/api-contracts": "file:../../packages/api-contracts",
+    "@mintenance/data-access": "file:../../packages/data-access",
     "@mintenance/design-tokens": "file:../../packages/design-tokens",
     "@mintenance/security": "file:../../packages/security",
     "@mintenance/shared": "file:../../packages/shared",
@@ -109,6 +109,7 @@
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
     "react-native-svg": "15.12.1",
+    "react-native-swiper": "^1.6.0",
     "react-native-swiper-flatlist": "^3.2.5",
     "react-native-web": "^0.21.0",
     "zod": "^3.23.4"
