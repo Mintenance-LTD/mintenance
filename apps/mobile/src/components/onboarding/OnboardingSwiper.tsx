@@ -43,8 +43,7 @@ export function OnboardingSwiper({
   userType = 'homeowner',
 }: OnboardingSwiperProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  // react-native-swiper lacks type definitions
-  const swiperRef = useRef<{ scrollBy: (index: number) => void }>(null);
+  const swiperRef = useRef<Swiper>(null);
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   const isLastSlide = currentIndex === slides.length - 1;
@@ -100,14 +99,15 @@ export function OnboardingSwiper({
             key={slide.id}
             style={[
               styles.slide,
-              { backgroundColor: slide.backgroundColor || theme.colors.backgroundSecondary },
+              {
+                backgroundColor:
+                  slide.backgroundColor || theme.colors.backgroundSecondary,
+              },
             ]}
           >
             {/* Icon or Image */}
             <View style={styles.imageContainer}>
-              {slide.icon && (
-                <Text style={styles.icon}>{slide.icon}</Text>
-              )}
+              {slide.icon && <Text style={styles.icon}>{slide.icon}</Text>}
               {/* Could render Image component here if slide.image is provided */}
             </View>
 
