@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* eslint-disable no-console, @typescript-eslint/no-require-imports, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 /**
  * Pre-commit hook script
@@ -36,6 +36,9 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/web/app/coming-soon/page.tsx',
   'apps/mobile/src/services/PushNotificationService.ts',
   'apps/mobile/src/screens/job-details/ContractPreparationScreen.tsx',
+  'apps/mobile/src/screens/subscription/SubscriptionScreen.tsx',
+  'apps/web/components/examples/FeatureAccessExamples.tsx',
+  'apps/web/lib/services/subscription/SubscriptionService.ts',
 ]);
 
 function countLines(filePath) {

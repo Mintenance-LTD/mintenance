@@ -8,7 +8,11 @@ import { theme } from '../theme';
 import { supabase } from '../config/supabase';
 import { logger } from '@mintenance/shared';
 
-export type SubscriptionTier = 'trial' | 'basic' | 'professional' | 'enterprise';
+export type SubscriptionTier =
+  | 'trial'
+  | 'basic'
+  | 'professional'
+  | 'enterprise';
 export type UserRole = 'homeowner' | 'contractor' | 'admin';
 
 export interface FeatureLimit {
@@ -76,7 +80,8 @@ export const MOBILE_FEATURES: Record<string, FeatureDefinition> = {
       professional: 100,
       enterprise: 'unlimited',
     },
-    upgradeMessage: "You've reached your monthly bid limit. Upgrade to submit more bids.",
+    upgradeMessage:
+      "You've reached your monthly bid limit. Upgrade to submit more bids.",
   },
   CONTRACTOR_DISCOVERY_CARD: {
     id: 'CONTRACTOR_DISCOVERY_CARD',
@@ -152,22 +157,22 @@ export const TIER_PRICING = {
   },
   basic: {
     name: 'Basic',
-    price: 29,
+    price: 0,
     period: 'month',
-    description: 'Essential features for contractors',
+    description: 'Get started and build your reputation',
   },
   professional: {
     name: 'Professional',
-    price: 79,
+    price: 29,
     period: 'month',
-    description: 'Advanced features for growing businesses',
+    description: 'For growing contractor businesses',
     popular: true,
   },
   enterprise: {
-    name: 'Enterprise',
-    price: 199,
+    name: 'Business',
+    price: 99,
     period: 'month',
-    description: 'Complete solution for businesses',
+    description: 'For established businesses and teams',
   },
 } as const;
 
@@ -180,7 +185,8 @@ export class FeatureAccessManager {
     tier: SubscriptionTier;
     status: string;
   } | null = null;
-  private usage: Map<string, { used: number; limit: number | 'unlimited' }> = new Map();
+  private usage: Map<string, { used: number; limit: number | 'unlimited' }> =
+    new Map();
 
   private constructor() {}
 
@@ -202,9 +208,23 @@ export class FeatureAccessManager {
 
     try {
       // Fetch subscription
-      const { data: subData } = await (supabase
-        .from('contractor_subscriptions')
-        .select('plan_type, status') as unknown as { eq: (...a: unknown[]) => { in: (...a: unknown[]) => { order: (...a: unknown[]) => { limit: (...a: unknown[]) => { maybeSingle: () => Promise<{ data: { plan_type: string; status: string } | null }> } } } } })
+      const { data: subData } = await (
+        supabase
+          .from('contractor_subscriptions')
+          .select('plan_type, status') as unknown as {
+          eq: (...a: unknown[]) => {
+            in: (...a: unknown[]) => {
+              order: (...a: unknown[]) => {
+                limit: (...a: unknown[]) => {
+                  maybeSingle: () => Promise<{
+                    data: { plan_type: string; status: string } | null;
+                  }>;
+                };
+              };
+            };
+          };
+        }
+      )
         .eq('contractor_id', userId)
         .in('status', ['trial', 'active', 'past_due'])
         .order('created_at', { ascending: false })
@@ -225,22 +245,44 @@ export class FeatureAccessManager {
       }
 
       // Fetch usage
-      const { data: usageData } = await (supabase
-        .from('feature_usage')
-        .select('*') as unknown as { eq: (...a: unknown[]) => { gte: (...a: unknown[]) => Promise<{ data: { feature_id: string; used_count: number; limit_count: number }[] | null }> } })
+      const { data: usageData } = await (
+        supabase.from('feature_usage').select('*') as unknown as {
+          eq: (...a: unknown[]) => {
+            gte: (
+              ...a: unknown[]
+            ) => Promise<{
+              data:
+                | {
+                    feature_id: string;
+                    used_count: number;
+                    limit_count: number;
+                  }[]
+                | null;
+            }>;
+          };
+        }
+      )
         .eq('user_id', userId)
         .gte('reset_date', new Date().toISOString());
 
       if (usageData) {
-        usageData.forEach((item: { feature_id: string; used_count: number; limit_count: number }) => {
-          this.usage.set(item.feature_id, {
-            used: item.used_count,
-            limit: item.limit_count,
-          });
-        });
+        usageData.forEach(
+          (item: {
+            feature_id: string;
+            used_count: number;
+            limit_count: number;
+          }) => {
+            this.usage.set(item.feature_id, {
+              used: item.used_count,
+              limit: item.limit_count,
+            });
+          }
+        );
       }
     } catch (err) {
-      logger.error('[FeatureAccess] Initialization failed', err, { service: 'mobile' });
+      logger.error('[FeatureAccess] Initialization failed', err, {
+        service: 'mobile',
+      });
       // Default to trial on error
       this.subscription = {
         tier: 'trial',
@@ -322,16 +364,29 @@ export class FeatureAccessManager {
   /**
    * Track usage for a metered feature
    */
-  async trackUsage(userId: string, featureId: string, incrementBy: number = 1): Promise<boolean> {
+  async trackUsage(
+    userId: string,
+    featureId: string,
+    incrementBy: number = 1
+  ): Promise<boolean> {
     try {
-      const { error } = await (supabase as unknown as { rpc: (fn: string, params: Record<string, unknown>) => Promise<{ error: Error | null }> }).rpc('increment_feature_usage', {
+      const { error } = await (
+        supabase as unknown as {
+          rpc: (
+            fn: string,
+            params: Record<string, unknown>
+          ) => Promise<{ error: Error | null }>;
+        }
+      ).rpc('increment_feature_usage', {
         p_user_id: userId,
         p_feature_id: featureId,
         p_increment: incrementBy,
       });
 
       if (error) {
-        logger.error('[FeatureAccess] Failed to track usage', error, { service: 'mobile' });
+        logger.error('[FeatureAccess] Failed to track usage', error, {
+          service: 'mobile',
+        });
         return false;
       }
 
@@ -346,7 +401,9 @@ export class FeatureAccessManager {
 
       return true;
     } catch (err) {
-      logger.error('[FeatureAccess] Error tracking usage', err, { service: 'mobile' });
+      logger.error('[FeatureAccess] Error tracking usage', err, {
+        service: 'mobile',
+      });
       return false;
     }
   }
@@ -375,7 +432,12 @@ export class FeatureAccessManager {
     }
 
     const currentTier = this.subscription.tier;
-    const tierOrder: SubscriptionTier[] = ['trial', 'basic', 'professional', 'enterprise'];
+    const tierOrder: SubscriptionTier[] = [
+      'trial',
+      'basic',
+      'professional',
+      'enterprise',
+    ];
     const currentIndex = tierOrder.indexOf(currentTier);
     const upgradeTiers: SubscriptionTier[] = [];
 
@@ -387,7 +449,11 @@ export class FeatureAccessManager {
       // Check if this tier has better access
       if (limit === 'unlimited' && currentLimit !== 'unlimited') {
         upgradeTiers.push(tier);
-      } else if (typeof limit === 'number' && typeof currentLimit === 'number' && limit > currentLimit) {
+      } else if (
+        typeof limit === 'number' &&
+        typeof currentLimit === 'number' &&
+        limit > currentLimit
+      ) {
         upgradeTiers.push(tier);
       } else if (limit === true && currentLimit === false) {
         upgradeTiers.push(tier);
@@ -429,7 +495,9 @@ export async function canPerformAction(
     const feature = manager.getFeature(featureId);
     return {
       allowed: false,
-      message: feature?.upgradeMessage || 'This feature is not available on your current plan.',
+      message:
+        feature?.upgradeMessage ||
+        'This feature is not available on your current plan.',
     };
   }
 
@@ -439,7 +507,9 @@ export async function canPerformAction(
 /**
  * Format limit for display
  */
-export function formatLimit(limit: number | boolean | 'unlimited' | undefined): string {
+export function formatLimit(
+  limit: number | boolean | 'unlimited' | undefined
+): string {
   if (limit === 'unlimited') return 'Unlimited';
   if (typeof limit === 'number') return limit.toString();
   if (limit === true) return 'Full Access';
@@ -452,11 +522,11 @@ export function formatLimit(limit: number | boolean | 'unlimited' | undefined): 
 export function getCategoryColor(category: string): string {
   const colors: Record<string, string> = {
     'Job Management': theme.colors.info,
-    'Bidding': theme.colors.primary,
-    'Discovery': theme.colors.info,
-    'Social': theme.colors.warning,
-    'Portfolio': theme.colors.error,
-    'Communication': theme.colors.info,
+    Bidding: theme.colors.primary,
+    Discovery: theme.colors.info,
+    Social: theme.colors.warning,
+    Portfolio: theme.colors.error,
+    Communication: theme.colors.info,
     'AI & Search': theme.colors.info,
   };
   return colors[category] || theme.colors.textSecondary;
