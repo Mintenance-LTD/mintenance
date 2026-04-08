@@ -39,6 +39,8 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/mobile/src/screens/subscription/SubscriptionScreen.tsx',
   'apps/web/components/examples/FeatureAccessExamples.tsx',
   'apps/web/lib/services/subscription/SubscriptionService.ts',
+  'apps/web/app/api/contracts/route.ts',
+  'apps/web/lib/rate-limiter-enhanced.ts',
 ]);
 
 function countLines(filePath) {

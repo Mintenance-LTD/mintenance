@@ -89,11 +89,15 @@ export async function uploadContractorImage(
     formData.append('type', type);
 
     const response = await mobileApiClient.postFormData<{
-      url: string;
+      success?: boolean;
+      data?: { profile_image_url?: string; cover_image_url?: string };
+      url?: string;
       public_url?: string;
     }>('/api/contractor/update-profile', formData);
 
-    return response.public_url ?? response.url;
+    // API returns { success, data: profileObject } — extract image URL from profile
+    const imageUrl = response.data?.profile_image_url;
+    return imageUrl ?? response.public_url ?? response.url ?? '';
   } catch (error) {
     logger.error('Error uploading contractor image:', error);
     throw error;

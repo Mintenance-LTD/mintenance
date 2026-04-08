@@ -13,7 +13,12 @@
  */
 
 import { logger } from '@mintenance/shared';
-import { getRateLimitConfig, getUserTier, shouldBypassRateLimit, type RateLimitTier } from './constants/rate-limits';
+import {
+  getRateLimitConfig,
+  getUserTier,
+  shouldBypassRateLimit,
+  type RateLimitTier,
+} from './constants/rate-limits';
 import type { NextRequest } from 'next/server';
 
 // Types
@@ -62,7 +67,10 @@ class UpstashStore implements RateLimitStore {
     if (this.initialized) return;
 
     try {
-      if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+      if (
+        !process.env.UPSTASH_REDIS_REST_URL ||
+        !process.env.UPSTASH_REDIS_REST_TOKEN
+      ) {
         throw new Error('Upstash Redis credentials not configured');
       }
 
@@ -75,9 +83,13 @@ class UpstashStore implements RateLimitStore {
       // Test connection
       await this.client.ping();
       this.initialized = true;
-      logger.info('Upstash Redis rate limiter initialized', { service: 'rate-limiter' });
+      logger.info('Upstash Redis rate limiter initialized', {
+        service: 'rate-limiter',
+      });
     } catch (error) {
-      logger.error('Failed to initialize Upstash Redis', error, { service: 'rate-limiter' });
+      logger.error('Failed to initialize Upstash Redis', error, {
+        service: 'rate-limiter',
+      });
       throw error;
     }
   }
@@ -137,7 +149,7 @@ class InMemoryStore implements RateLimitStore {
   async expire(key: string, seconds: number): Promise<void> {
     const entry = this.store.get(key);
     if (entry) {
-      entry.expiry = Date.now() + (seconds * 1000);
+      entry.expiry = Date.now() + seconds * 1000;
     }
   }
 
@@ -208,10 +220,14 @@ export class EnhancedRateLimiter {
             'Rate limiter requires Upstash Redis in production. ' +
             'Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN, ' +
             'or set REDIS_REQUIRED=false to explicitly opt out (single-instance deployments only).';
-          logger.error('[CRITICAL] ' + msg, new Error('REDIS_REQUIRED but not configured'), {
-            service: 'rate-limiter',
-            severity: 'CRITICAL',
-          });
+          logger.error(
+            '[CRITICAL] ' + msg,
+            new Error('REDIS_REQUIRED but not configured'),
+            {
+              service: 'rate-limiter',
+              severity: 'CRITICAL',
+            }
+          );
           throw new Error(msg);
         }
 
@@ -219,7 +235,7 @@ export class EnhancedRateLimiter {
           'No Redis configured, using in-memory rate limiting. ' +
             'This is NOT suitable for multi-instance production deployments — ' +
             'each instance tracks its own counters, effectively multiplying limits by instance count.',
-          { service: 'rate-limiter' },
+          { service: 'rate-limiter' }
         );
       } catch (error) {
         logger.error('Failed to initialize primary rate limit store', error, {
@@ -266,12 +282,17 @@ export class EnhancedRateLimiter {
   ): Promise<RateLimitResult> {
     try {
       // Extract request details
-      const path = typeof request === 'string' ? request : new URL(request.url).pathname;
+      const path =
+        typeof request === 'string' ? request : new URL(request.url).pathname;
       const identifier = options.identifier || this.getIdentifier(request);
       const tier = options.tier || this.getTierFromRequest(request);
 
       // Check bypass rules
-      if (!options.bypassCheck && typeof request !== 'string' && shouldBypassRateLimit(request)) {
+      if (
+        !options.bypassCheck &&
+        typeof request !== 'string' &&
+        shouldBypassRateLimit(request)
+      ) {
         return {
           allowed: true,
           limit: Number.MAX_SAFE_INTEGER,
@@ -311,9 +332,10 @@ export class EnhancedRateLimiter {
       // Note: In-memory fallback is per-instance only on Vercel, so each
       // serverless instance tracks independently. 75% is reasonable since
       // requests are distributed across instances anyway.
-      const effectiveLimit = isUsingFallback && process.env.NODE_ENV === 'production'
-        ? Math.max(3, Math.ceil(limit * 0.75)) // 75% of normal limit, minimum 3
-        : limit;
+      const effectiveLimit =
+        isUsingFallback && process.env.NODE_ENV === 'production'
+          ? Math.max(3, Math.ceil(limit * 0.75)) // 75% of normal limit, minimum 3
+          : limit;
 
       // Generate rate limit key
       const window = Math.floor(Date.now() / config.windowMs);
@@ -331,7 +353,9 @@ export class EnhancedRateLimiter {
       const allowed = count <= effectiveLimit;
       const remaining = Math.max(0, effectiveLimit - count);
       const resetTime = (window + 1) * config.windowMs;
-      const retryAfter = allowed ? undefined : Math.ceil((resetTime - Date.now()) / 1000);
+      const retryAfter = allowed
+        ? undefined
+        : Math.ceil((resetTime - Date.now()) / 1000);
 
       // Log violations
       if (!allowed) {
@@ -351,30 +375,32 @@ export class EnhancedRateLimiter {
         retryAfter,
         tier,
       };
-
     } catch (error) {
-      // Policy: fail-OPEN on rate-limiter errors by design.
-      // Rationale: a rate-limiter outage should not take down the whole app.
+      // Policy: fail-CLOSED on rate-limiter errors in production.
+      // Rationale: for a financial platform, allowing unlimited requests
+      // during a rate-limiter outage creates a DDoS vector.
+      // In development, fail open to avoid blocking local dev.
       // Mitigations:
       //   1. REDIS_REQUIRED=true + init-time check (see init()) prevents
       //      silently starting without Redis in production
-      //   2. Every fail-open decision is logged at CRITICAL severity so it's
+      //   2. Every fail-closed decision is logged at CRITICAL severity so it's
       //      visible in monitoring
-      //   3. Abuse is still bounded by edge-level rate limits (Cloudflare/WAF)
-      //      if configured upstream
+      //   3. retryAfter tells clients when to retry
+      const isProd = process.env.NODE_ENV === 'production';
+
       logger.error(
-        '[CRITICAL] Rate limiter fail-open — request allowed despite check failure',
+        `[CRITICAL] Rate limiter error — request ${isProd ? 'BLOCKED' : 'allowed (dev)'} due to check failure`,
         error,
-        { service: 'rate-limiter', severity: 'CRITICAL' },
+        { service: 'rate-limiter', severity: 'CRITICAL' }
       );
 
-      const isProd = process.env.NODE_ENV === 'production';
       return {
-        allowed: true,
+        allowed: !isProd,
         limit: isProd ? 100 : 1000,
-        remaining: isProd ? 99 : 999,
+        remaining: 0,
         resetTime: Date.now() + 60000,
-        tier: isProd ? 'anonymous' : 'authenticated',
+        retryAfter: 60,
+        tier: 'anonymous' as const,
       };
     }
   }
@@ -394,10 +420,11 @@ export class EnhancedRateLimiter {
     }
 
     // Fall back to IP address
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
-               request.headers.get('x-real-ip') ||
-               request.headers.get('cf-connecting-ip') || // Cloudflare
-               'unknown';
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0] ||
+      request.headers.get('x-real-ip') ||
+      request.headers.get('cf-connecting-ip') || // Cloudflare
+      'unknown';
 
     return `ip:${ip}`;
   }
@@ -430,9 +457,10 @@ export class EnhancedRateLimiter {
     identifier: string,
     tier: RateLimitTier,
     attempts: number,
-    limit: number,
+    limit: number
   ): Promise<void> {
-    const severity: 'medium' | 'high' = attempts > limit * 2 ? 'high' : 'medium';
+    const severity: 'medium' | 'high' =
+      attempts > limit * 2 ? 'high' : 'medium';
 
     logger.warn('Rate limit exceeded', {
       service: 'rate-limiter',
@@ -469,7 +497,7 @@ export class EnhancedRateLimiter {
   private async handlePotentialDDoS(
     identifier: string,
     path: string,
-    attempts: number,
+    attempts: number
   ): Promise<void> {
     logger.error('[SECURITY] Potential DDoS detected', {
       service: 'rate-limiter',
@@ -539,7 +567,9 @@ export class EnhancedRateLimiter {
     // Legacy X-RateLimit-* headers for compatibility
     headers['X-RateLimit-Limit'] = result.limit.toString();
     headers['X-RateLimit-Remaining'] = result.remaining.toString();
-    headers['X-RateLimit-Reset'] = Math.ceil(result.resetTime / 1000).toString();
+    headers['X-RateLimit-Reset'] = Math.ceil(
+      result.resetTime / 1000
+    ).toString();
 
     // Add Retry-After header when rate limited
     if (!result.allowed && result.retryAfter) {
@@ -563,7 +593,12 @@ export class EnhancedRateLimiter {
     const window = Math.floor(Date.now() / config.windowMs);
 
     // Reset for all tiers
-    const tiers: RateLimitTier[] = ['anonymous', 'authenticated', 'admin', 'premium'];
+    const tiers: RateLimitTier[] = [
+      'anonymous',
+      'authenticated',
+      'admin',
+      'premium',
+    ];
     for (const tier of tiers) {
       const key = `rl:${path}:${tier}:${identifier}:${window}`;
       await store.expire(key, 0); // Expire immediately
@@ -599,28 +634,40 @@ export async function checkRateLimit(
   return getRateLimiter().checkLimit(request, options);
 }
 
-export function createRateLimitHeaders(result: RateLimitResult): Record<string, string> {
+export function createRateLimitHeaders(
+  result: RateLimitResult
+): Record<string, string> {
   return getRateLimiter().createHeaders(result);
 }
 
 // Export specific rate limit checkers for common use cases
-export async function checkLoginRateLimit(request: NextRequest | string): Promise<RateLimitResult> {
+export async function checkLoginRateLimit(
+  request: NextRequest | string
+): Promise<RateLimitResult> {
   return checkRateLimit(request, { path: '/api/auth/login' });
 }
 
-export async function checkPasswordResetRateLimit(request: NextRequest | string): Promise<RateLimitResult> {
+export async function checkPasswordResetRateLimit(
+  request: NextRequest | string
+): Promise<RateLimitResult> {
   return checkRateLimit(request, { path: '/api/auth/forgot-password' });
 }
 
-export async function checkJobCreationRateLimit(request: NextRequest | string): Promise<RateLimitResult> {
+export async function checkJobCreationRateLimit(
+  request: NextRequest | string
+): Promise<RateLimitResult> {
   return checkRateLimit(request, { path: '/api/jobs' });
 }
 
-export async function checkApiRateLimit(request: NextRequest): Promise<RateLimitResult> {
+export async function checkApiRateLimit(
+  request: NextRequest
+): Promise<RateLimitResult> {
   return checkRateLimit(request);
 }
 
-export async function checkWebhookRateLimit(identifier: string): Promise<RateLimitResult> {
+export async function checkWebhookRateLimit(
+  identifier: string
+): Promise<RateLimitResult> {
   return checkRateLimit(identifier, { path: '/api/webhooks/*' });
 }
 

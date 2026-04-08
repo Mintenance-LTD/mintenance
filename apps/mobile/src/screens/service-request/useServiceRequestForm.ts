@@ -19,21 +19,28 @@ export function useServiceRequestForm(onSuccess: () => void) {
   const initialPropertyId = route.params?.propertyId;
   const initialPriority = route.params?.priority;
 
-  const [selectedCategory, setSelectedCategory] = useState<ServiceCategory | null>(null);
+  const [selectedCategory, setSelectedCategory] =
+    useState<ServiceCategory | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [budget, setBudget] = useState('');
-  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>(initialPriority ?? 'medium');
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>(
+    initialPriority ?? 'medium'
+  );
   const [photos, setPhotos] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(
+    null
+  );
 
   const { data: properties } = useQuery({
     queryKey: ['properties', user?.id],
     queryFn: async () => {
-      const res = await apiClient.get<{ properties: Property[] }>('/api/properties');
+      const res = await apiClient.get<{ properties: Property[] }>(
+        '/api/properties'
+      );
       return res.properties ?? [];
     },
     enabled: !!user,
@@ -50,6 +57,22 @@ export function useServiceRequestForm(onSuccess: () => void) {
     }
   }, [initialPropertyId, properties, selectedProperty]);
 
+  // Auto-select primary property when form loads (if no explicit property passed)
+  useEffect(() => {
+    if (
+      !selectedProperty &&
+      !initialPropertyId &&
+      properties &&
+      properties.length > 0
+    ) {
+      const primary = properties.find((p) => p.is_primary) ?? properties[0];
+      if (primary) {
+        setSelectedProperty(primary);
+        setLocation(primary.address ?? '');
+      }
+    }
+  }, [properties, selectedProperty, initialPropertyId]);
+
   const handleCategorySelect = (category: ServiceCategory) => {
     setSelectedCategory(category);
     setSelectedSubcategory('');
@@ -63,8 +86,10 @@ export function useServiceRequestForm(onSuccess: () => void) {
   };
 
   const requestPermissions = async (): Promise<boolean> => {
-    const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
-    const { status: libraryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const { status: cameraStatus } =
+      await ImagePicker.requestCameraPermissionsAsync();
+    const { status: libraryStatus } =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (cameraStatus !== 'granted' || libraryStatus !== 'granted') {
       Alert.alert(
         'Permissions Required',
@@ -114,7 +139,10 @@ export function useServiceRequestForm(onSuccess: () => void) {
 
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
-        { options: ['Cancel', 'Take Photo', 'Choose from Library'], cancelButtonIndex: 0 },
+        {
+          options: ['Cancel', 'Take Photo', 'Choose from Library'],
+          cancelButtonIndex: 0,
+        },
         (buttonIndex) => {
           if (buttonIndex === 1) pickImageFromCamera();
           else if (buttonIndex === 2) pickImageFromLibrary();
@@ -134,7 +162,13 @@ export function useServiceRequestForm(onSuccess: () => void) {
   };
 
   const handleSubmit = async () => {
-    if (!selectedCategory || !selectedSubcategory || !description || !location || !budget) {
+    if (
+      !selectedCategory ||
+      !selectedSubcategory ||
+      !description ||
+      !location ||
+      !budget
+    ) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
@@ -155,18 +189,23 @@ export function useServiceRequestForm(onSuccess: () => void) {
       for (const photoUri of photos) {
         const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
         const formData = new FormData();
-        formData.append('file', {
+        formData.append('photos', {
           uri: photoUri,
           name: fileName,
           type: 'image/jpeg',
         } as unknown as Blob);
 
-        const uploadResponse = await mobileApiClient.postFormData<{ url: string; public_url?: string }>(
-          '/api/jobs/upload-photos',
-          formData
-        );
-        const photoUrl = uploadResponse.public_url ?? uploadResponse.url;
-        uploadedPhotoUrls.push(photoUrl);
+        const uploadResponse = await mobileApiClient.postFormData<{
+          urls?: string[];
+          url?: string;
+          public_url?: string;
+        }>('/api/jobs/upload-photos', formData);
+        const photoUrl =
+          uploadResponse.urls?.[0] ??
+          uploadResponse.public_url ??
+          uploadResponse.url ??
+          '';
+        if (photoUrl) uploadedPhotoUrls.push(photoUrl);
       }
 
       // Capture device geolocation for contractor proximity matching
@@ -189,7 +228,9 @@ export function useServiceRequestForm(onSuccess: () => void) {
         budget: budgetNumber,
         homeownerId: user.id,
         category: selectedCategory.id,
-        subcategory: selectedSubcategory ? sanitize.text(selectedSubcategory, 100) : undefined,
+        subcategory: selectedSubcategory
+          ? sanitize.text(selectedSubcategory, 100)
+          : undefined,
         priority,
         photos: uploadedPhotoUrls,
         property_id: selectedProperty?.id,
@@ -203,7 +244,10 @@ export function useServiceRequestForm(onSuccess: () => void) {
         [{ text: 'OK', onPress: onSuccess }]
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to post service request';
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Failed to post service request';
       Alert.alert('Error', message);
     } finally {
       setLoading(false);
@@ -213,14 +257,20 @@ export function useServiceRequestForm(onSuccess: () => void) {
   return {
     selectedCategory,
     selectedSubcategory,
-    title, setTitle,
-    description, setDescription,
-    location, setLocation,
-    budget, setBudget,
-    priority, setPriority,
+    title,
+    setTitle,
+    description,
+    setDescription,
+    location,
+    setLocation,
+    budget,
+    setBudget,
+    priority,
+    setPriority,
     photos,
     loading,
-    selectedProperty, setSelectedProperty,
+    selectedProperty,
+    setSelectedProperty,
     properties,
     handleCategorySelect,
     handleSubcategorySelect,

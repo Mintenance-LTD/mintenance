@@ -1,6 +1,6 @@
 /**
  * Card Component - Native Implementation
- * 
+ *
  * React Native-specific Card component using design tokens
  */
 import React, { useState } from 'react';
@@ -16,7 +16,7 @@ import { mobileTokens } from '@mintenance/design-tokens';
 import type { NativeCardProps, CardVariant, CardPadding } from './types';
 /**
  * Card Component for React Native
- * 
+ *
  * Uses design tokens for consistent styling across platforms
  */
 export const Card = React.forwardRef<View, NativeCardProps>(
@@ -40,7 +40,13 @@ export const Card = React.forwardRef<View, NativeCardProps>(
   ) => {
     const [scaleAnimation] = useState(new Animated.Value(1));
     const [isPressed, setIsPressed] = useState(false);
-    const cardStyles = getCardStyles(variant, padding, interactive, disabled, isPressed);
+    const cardStyles = getCardStyles(
+      variant,
+      padding,
+      interactive,
+      disabled,
+      isPressed
+    );
     const handlePressIn = () => {
       if (disabled) return;
       setIsPressed(true);
@@ -64,10 +70,8 @@ export const Card = React.forwardRef<View, NativeCardProps>(
     if (interactive || onPress || onLongPress) {
       return (
         <Animated.View
-          ref={ref as any}
-          style={[
-            { transform: [{ scale: scaleAnimation }] },
-          ]}
+          ref={ref as React.Ref<Animated.View>}
+          style={[{ transform: [{ scale: scaleAnimation }] }]}
         >
           <TouchableOpacity
             style={[cardStyles, style as ViewStyle]}
@@ -79,7 +83,13 @@ export const Card = React.forwardRef<View, NativeCardProps>(
             activeOpacity={1}
             accessibilityLabel={accessibilityLabel}
             accessibilityHint={accessibilityHint}
-            accessibilityRole={accessibilityRole === 'article' ? undefined : (accessibilityRole === 'none' ? undefined : accessibilityRole) || 'button'}
+            accessibilityRole={
+              accessibilityRole === 'article'
+                ? undefined
+                : (accessibilityRole === 'none'
+                    ? undefined
+                    : accessibilityRole) || 'button'
+            }
             accessibilityState={{ disabled, selected: isPressed }}
             testID={testID}
           >
@@ -95,7 +105,13 @@ export const Card = React.forwardRef<View, NativeCardProps>(
         style={[cardStyles, style as ViewStyle]}
         accessibilityLabel={accessibilityLabel}
         accessibilityHint={accessibilityHint}
-        accessibilityRole={accessibilityRole === 'article' ? undefined : (accessibilityRole === 'none' ? undefined : accessibilityRole)}
+        accessibilityRole={
+          accessibilityRole === 'article'
+            ? undefined
+            : accessibilityRole === 'none'
+              ? undefined
+              : accessibilityRole
+        }
         testID={testID}
       >
         {children}
@@ -110,27 +126,21 @@ export interface CardHeaderProps {
   style?: ViewStyle;
 }
 export const CardHeader: React.FC<CardHeaderProps> = ({ children, style }) => (
-  <View style={[styles.header, style]}>
-    {children}
-  </View>
+  <View style={[styles.header, style]}>{children}</View>
 );
 export interface CardBodyProps {
   children: React.ReactNode;
   style?: ViewStyle;
 }
 export const CardBody: React.FC<CardBodyProps> = ({ children, style }) => (
-  <View style={[styles.body, style]}>
-    {children}
-  </View>
+  <View style={[styles.body, style]}>{children}</View>
 );
 export interface CardFooterProps {
   children: React.ReactNode;
   style?: ViewStyle;
 }
 export const CardFooter: React.FC<CardFooterProps> = ({ children, style }) => (
-  <View style={[styles.footer, style]}>
-    {children}
-  </View>
+  <View style={[styles.footer, style]}>{children}</View>
 );
 // Style functions using design tokens
 const getCardStyles = (

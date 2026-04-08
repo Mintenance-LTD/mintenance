@@ -24,7 +24,7 @@ export class WebSanitizer extends BaseSanitizer {
       try {
         const { JSDOM } = require('jsdom');
         const domWindow = new JSDOM('').window;
-        this.purifyInstance = DOMPurify(domWindow as any);
+        this.purifyInstance = DOMPurify(domWindow as unknown as Window);
         return this.purifyInstance;
       } catch (error) {
         throw new Error(
@@ -38,17 +38,40 @@ export class WebSanitizer extends BaseSanitizer {
    * Sanitize HTML content using DOMPurify
    * Removes XSS vectors while preserving safe HTML
    */
-  sanitizeHtml(input: string | undefined | null, options?: SanitizationOptions): string {
+  sanitizeHtml(
+    input: string | undefined | null,
+    options?: SanitizationOptions
+  ): string {
     if (!input || typeof input !== 'string') return '';
     const purify = WebSanitizer.getPurify();
     // Default configuration
     const defaultConfig: DOMPurify.Config = {
       ALLOWED_TAGS: options?.allowedTags || [
-        'p', 'br', 'strong', 'em', 'u', 's',
-        'ul', 'ol', 'li',
-        'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-        'blockquote', 'a', 'code', 'pre',
-        'table', 'thead', 'tbody', 'tr', 'th', 'td',
+        'p',
+        'br',
+        'strong',
+        'em',
+        'u',
+        's',
+        'ul',
+        'ol',
+        'li',
+        'h1',
+        'h2',
+        'h3',
+        'h4',
+        'h5',
+        'h6',
+        'blockquote',
+        'a',
+        'code',
+        'pre',
+        'table',
+        'thead',
+        'tbody',
+        'tr',
+        'th',
+        'td',
       ],
       ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'id'],
       ALLOW_DATA_ATTR: false,
@@ -114,9 +137,14 @@ export class WebSanitizer extends BaseSanitizer {
    * Server-side specific HTML sanitization
    * Throws error if used client-side
    */
-  static sanitizeHtmlServer(input: string | undefined | null, options?: SanitizationOptions): string {
+  static sanitizeHtmlServer(
+    input: string | undefined | null,
+    options?: SanitizationOptions
+  ): string {
     if (typeof window !== 'undefined') {
-      throw new Error('sanitizeHtmlServer can only be used server-side. Use sanitizeHtml instead.');
+      throw new Error(
+        'sanitizeHtmlServer can only be used server-side. Use sanitizeHtml instead.'
+      );
     }
     const instance = new WebSanitizer();
     return instance.sanitizeHtml(input, options);
@@ -144,7 +172,7 @@ export class WebSanitizer extends BaseSanitizer {
   static getDOMPurifyVersion(): string | null {
     try {
       const purify = this.getPurify();
-      return (purify as any).version || null;
+      return (purify as unknown as { version?: string }).version || null;
     } catch {
       return null;
     }

@@ -3,7 +3,13 @@
  * animated typing indicator, and contextual empty state.
  */
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from 'react';
 import {
   View,
   FlatList,
@@ -33,7 +39,11 @@ import { ResponsiveContainer, useResponsive } from '../components/responsive';
 import { ChatHeader } from './messaging/components/ChatHeader';
 import { MessageBubble } from './messaging/components/MessageBubble';
 import { MessageComposer } from './messaging/components/MessageComposer';
-import { MessagingLoading, MessagingError, MessagingEmpty } from './messaging/components/MessagingStates';
+import {
+  MessagingLoading,
+  MessagingError,
+  MessagingEmpty,
+} from './messaging/components/MessagingStates';
 import { useVideoCall } from './messaging/hooks/useVideoCall';
 import { getDateKey, getDateLabel } from './messaging/utils';
 import { supabase } from '../config/supabase';
@@ -101,22 +111,31 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
     });
   }, []);
 
-  const sendMessageAsync = useCallback(async (params: {
-    jobId: string;
-    receiverId: string;
-    messageText: string;
-    senderId: string;
-    messageType: string;
-    callId?: string;
-    callDuration?: number;
-    scheduledTime?: string;
-  }) => {
-    const { callId: _callId, callDuration: _callDuration, scheduledTime: _scheduledTime, messageType, ...rest } = params;
-    await sendMessageMutation.mutateAsync({
-      ...rest,
-      messageType: (messageType as 'text' | 'image' | 'file') || 'text',
-    });
-  }, [sendMessageMutation]);
+  const sendMessageAsync = useCallback(
+    async (params: {
+      jobId: string;
+      receiverId: string;
+      messageText: string;
+      senderId: string;
+      messageType: string;
+      callId?: string;
+      callDuration?: number;
+      scheduledTime?: string;
+    }) => {
+      const {
+        callId: _callId,
+        callDuration: _callDuration,
+        scheduledTime: _scheduledTime,
+        messageType,
+        ...rest
+      } = params;
+      await sendMessageMutation.mutateAsync({
+        ...rest,
+        messageType: (messageType as 'text' | 'image' | 'file') || 'text',
+      });
+    },
+    [sendMessageMutation]
+  );
 
   const videoCall = useVideoCall({
     jobId,
@@ -145,13 +164,21 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
 
     const channel = supabase.channel(`typing:${jobId}`);
     channel
-      .on('broadcast', { event: 'typing' }, (payload: { payload?: { userId?: string } }) => {
-        if (payload.payload?.userId !== user.id) {
-          setIsOtherUserTyping(true);
-          if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-          typingTimeoutRef.current = setTimeout(() => setIsOtherUserTyping(false), 3000);
+      .on(
+        'broadcast',
+        { event: 'typing' },
+        (payload: { payload?: { userId?: string } }) => {
+          if (payload.payload?.userId !== user.id) {
+            setIsOtherUserTyping(true);
+            if (typingTimeoutRef.current)
+              clearTimeout(typingTimeoutRef.current);
+            typingTimeoutRef.current = setTimeout(
+              () => setIsOtherUserTyping(false),
+              3000
+            );
+          }
         }
-      })
+      )
       .subscribe();
 
     return () => {
@@ -169,11 +196,16 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
       typingBroadcastRef.current = null;
     }, 2000);
 
-    supabase.channel(`typing:${jobId}`).send({
-      type: 'broadcast',
-      event: 'typing',
-      payload: { userId: user.id },
-    }).catch(() => { /* ignore realtime errors */ });
+    supabase
+      .channel(`typing:${jobId}`)
+      .send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: { userId: user.id },
+      })
+      .catch(() => {
+        /* ignore realtime errors */
+      });
   }, [jobId, user?.id]);
 
   useEffect(() => {
@@ -187,17 +219,22 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [messages, user?.id, jobId]);
 
-  const markMessageFailed = useCallback((tempId: string) => {
-    queryClient.setQueryData(
-      queryKeys.messages.conversation(jobId),
-      (oldData: Message[] | undefined) => {
-        if (!oldData) return oldData;
-        return oldData.map((msg) =>
-          msg.id === tempId ? { ...msg, deliveryStatus: 'failed' as const } : msg
-        );
-      }
-    );
-  }, [jobId, queryClient]);
+  const markMessageFailed = useCallback(
+    (tempId: string) => {
+      queryClient.setQueryData(
+        queryKeys.messages.conversation(jobId),
+        (oldData: Message[] | undefined) => {
+          if (!oldData) return oldData;
+          return oldData.map((msg) =>
+            msg.id === tempId
+              ? { ...msg, deliveryStatus: 'failed' as const }
+              : msg
+          );
+        }
+      );
+    },
+    [jobId, queryClient]
+  );
 
   const handleSendMessage = async (text?: string) => {
     const messageText = (text ?? newMessage).trim();
@@ -221,7 +258,10 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
         queryKeys.messages.conversation(jobId)
       );
       const failedMsg = currentMessages?.find(
-        (m) => m.id.startsWith('temp_message_') && m.senderId === user.id && m.messageText === messageText
+        (m) =>
+          m.id.startsWith('temp_message_') &&
+          m.senderId === user.id &&
+          m.messageText === messageText
       );
       if (failedMsg) {
         markMessageFailed(failedMsg.id);
@@ -232,40 +272,54 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
-  const handleRetryMessage = useCallback(async (failedMessage: Message) => {
-    if (!user) return;
+  const handleRetryMessage = useCallback(
+    async (failedMessage: Message) => {
+      if (!user) return;
 
-    queryClient.setQueryData(
-      queryKeys.messages.conversation(jobId),
-      (oldData: Message[] | undefined) => {
-        if (!oldData) return oldData;
-        return oldData.filter((msg) => msg.id !== failedMessage.id);
-      }
-    );
+      queryClient.setQueryData(
+        queryKeys.messages.conversation(jobId),
+        (oldData: Message[] | undefined) => {
+          if (!oldData) return oldData;
+          return oldData.filter((msg) => msg.id !== failedMessage.id);
+        }
+      );
 
-    try {
-      await sendMessageMutation.mutateAsync({
-        jobId,
-        receiverId: otherUserId,
-        messageText: failedMessage.messageText,
-        senderId: user.id,
-        messageType: (failedMessage.messageType as 'text' | 'image' | 'file') || 'text',
-        attachmentUrl: failedMessage.attachmentUrl,
-      });
-      scrollToEnd();
-    } catch (err) {
-      logger.error('Retry failed:', err);
-      const currentMessages: Message[] | undefined = queryClient.getQueryData(
-        queryKeys.messages.conversation(jobId)
-      );
-      const retryMsg = currentMessages?.find(
-        (m) => m.id.startsWith('temp_message_') && m.messageText === failedMessage.messageText
-      );
-      if (retryMsg) {
-        markMessageFailed(retryMsg.id);
+      try {
+        await sendMessageMutation.mutateAsync({
+          jobId,
+          receiverId: otherUserId,
+          messageText: failedMessage.messageText,
+          senderId: user.id,
+          messageType:
+            (failedMessage.messageType as 'text' | 'image' | 'file') || 'text',
+          attachmentUrl: failedMessage.attachmentUrl,
+        });
+        scrollToEnd();
+      } catch (err) {
+        logger.error('Retry failed:', err);
+        const currentMessages: Message[] | undefined = queryClient.getQueryData(
+          queryKeys.messages.conversation(jobId)
+        );
+        const retryMsg = currentMessages?.find(
+          (m) =>
+            m.id.startsWith('temp_message_') &&
+            m.messageText === failedMessage.messageText
+        );
+        if (retryMsg) {
+          markMessageFailed(retryMsg.id);
+        }
       }
-    }
-  }, [user, jobId, otherUserId, sendMessageMutation, scrollToEnd, queryClient, markMessageFailed]);
+    },
+    [
+      user,
+      jobId,
+      otherUserId,
+      sendMessageMutation,
+      scrollToEnd,
+      queryClient,
+      markMessageFailed,
+    ]
+  );
 
   const handleChangeText = (value: string) => {
     if (composerError) setComposerError(null);
@@ -277,7 +331,10 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
     if (!user) return;
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Please allow photo access to attach images.');
+      Alert.alert(
+        'Permission Required',
+        'Please allow photo access to attach images.'
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -291,19 +348,23 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
 
     try {
       const formData = new FormData();
-      formData.append('file', {
+      formData.append('photos', {
         uri: asset.uri,
         name: `${Date.now()}.${ext}`,
         type: `image/${ext}`,
       } as unknown as Blob);
       formData.append('job_id', jobId);
 
-      const uploadResponse = await mobileApiClient.postFormData<{ url: string; public_url?: string }>(
-        '/api/jobs/upload-photos',
-        formData
-      );
+      const uploadResponse = await mobileApiClient.postFormData<{
+        urls?: string[];
+        url?: string;
+        public_url?: string;
+      }>('/api/jobs/upload-photos', formData);
 
-      const imageUrl = uploadResponse.public_url ?? uploadResponse.url;
+      const imageUrl =
+        uploadResponse.urls?.[0] ??
+        uploadResponse.public_url ??
+        uploadResponse.url;
 
       await sendMessageMutation.mutateAsync({
         jobId,
@@ -357,19 +418,38 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
     } finally {
       setQuoteSending(false);
     }
-  }, [user, quoteAmount, quoteDescription, jobId, otherUserId, otherUserName, sendMessageMutation, scrollToEnd]);
+  }, [
+    user,
+    quoteAmount,
+    quoteDescription,
+    jobId,
+    otherUserId,
+    otherUserName,
+    sendMessageMutation,
+    scrollToEnd,
+  ]);
 
-  const renderMessage = useCallback(({ item, index }: { item: Message; index: number }) => (
-    <MessageBubble
-      item={item}
-      isFromCurrentUser={item.senderId === user?.id}
-      isDesktop={isDesktop}
-      onCallAccept={videoCall.handleCallAccept}
-      onCallDecline={videoCall.handleCallDecline}
-      onRetry={handleRetryMessage}
-      showDateSeparator={dateSeparators.get(index)}
-    />
-  ), [user?.id, isDesktop, videoCall.handleCallAccept, videoCall.handleCallDecline, handleRetryMessage, dateSeparators]);
+  const renderMessage = useCallback(
+    ({ item, index }: { item: Message; index: number }) => (
+      <MessageBubble
+        item={item}
+        isFromCurrentUser={item.senderId === user?.id}
+        isDesktop={isDesktop}
+        onCallAccept={videoCall.handleCallAccept}
+        onCallDecline={videoCall.handleCallDecline}
+        onRetry={handleRetryMessage}
+        showDateSeparator={dateSeparators.get(index)}
+      />
+    ),
+    [
+      user?.id,
+      isDesktop,
+      videoCall.handleCallAccept,
+      videoCall.handleCallDecline,
+      handleRetryMessage,
+      dateSeparators,
+    ]
+  );
 
   if (loading) return <MessagingLoading />;
   if (error) return <MessagingError onRetry={() => navigation.goBack()} />;
@@ -400,7 +480,11 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
                 params: { jobId },
               });
             }}
-            onSendQuote={user?.role === 'contractor' ? () => setShowQuoteModal(true) : undefined}
+            onSendQuote={
+              user?.role === 'contractor'
+                ? () => setShowQuoteModal(true)
+                : undefined
+            }
           />
 
           <FlatList
@@ -426,7 +510,9 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
             }}
           />
 
-          {isOtherUserTyping && <TypingIndicator otherUserName={otherUserName} />}
+          {isOtherUserTyping && (
+            <TypingIndicator otherUserName={otherUserName} />
+          )}
 
           <MessageComposer
             value={newMessage}
@@ -473,7 +559,14 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
         onSend={handleQuickQuoteSend}
         onOpenFullQuote={() => {
           setShowQuoteModal(false);
-          (navigation as { navigate: (screen: string, params?: Record<string, unknown>) => void }).navigate('CreateQuote', { jobId });
+          (
+            navigation as {
+              navigate: (
+                screen: string,
+                params?: Record<string, unknown>
+              ) => void;
+            }
+          ).navigate('CreateQuote', { jobId });
         }}
       />
     </View>

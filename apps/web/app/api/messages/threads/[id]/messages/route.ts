@@ -13,8 +13,8 @@ import { sanitizeMessage } from '@/lib/sanitizer';
 import {
   MESSAGE_TYPES,
   normalizeMessageType,
-  SupabaseMessageRow,
-  mapMessageRow,
+  ActualMessageRow,
+  mapActualMessageRow,
 } from '@/app/api/messages/utils';
 import { validateRequest } from '@/lib/validation/validator';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -57,13 +57,25 @@ export const GET = withApiHandler(
       throw new NotFoundError('Thread not found or access denied');
     }
 
-    // Fetch messages directly by job_id (actual DB schema)
+    // Find the message thread for this job
+    const { data: threadData } = await serverSupabase
+      .from('message_threads')
+      .select('id')
+      .eq('job_id', jobId)
+      .single();
+
+    if (!threadData) {
+      // No thread yet — return empty messages
+      return NextResponse.json({ messages: [] });
+    }
+
+    // Fetch messages by thread_id (actual DB schema)
     const { data: messageData, error: messagesError } = await serverSupabase
       .from('messages')
       .select(
-        'id, job_id, sender_id, receiver_id, content, message_type, attachment_url, read, created_at'
+        'id, thread_id, sender_id, content, message_type, metadata, read_by, created_at'
       )
-      .eq('job_id', jobId)
+      .eq('thread_id', threadData.id)
       .order('created_at', { ascending: true });
 
     if (messagesError) {
@@ -75,8 +87,8 @@ export const GET = withApiHandler(
       throw messagesError;
     }
 
-    const messages = (messageData ?? []).map((row: SupabaseMessageRow) =>
-      mapMessageRow(row)
+    const messages = (messageData ?? []).map((row: ActualMessageRow) =>
+      mapActualMessageRow(row, jobId, user.id)
     );
 
     return NextResponse.json({ messages });
@@ -159,22 +171,48 @@ export const POST = withApiHandler(
       }
     }
 
-    // Insert message using actual DB schema (job_id, sender_id, receiver_id, content, attachment_url, read)
+    // Find or create message thread for this job
+    let { data: threadData } = await serverSupabase
+      .from('message_threads')
+      .select('id')
+      .eq('job_id', jobId)
+      .single();
+
+    if (!threadData) {
+      const { data: newThread } = await serverSupabase
+        .from('message_threads')
+        .insert({
+          job_id: jobId,
+          participant_ids: [user.id, receiverId].filter(Boolean),
+          last_message_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single();
+      threadData = newThread;
+    }
+
+    if (!threadData) {
+      throw new BadRequestError('Failed to find or create message thread');
+    }
+
+    // Insert message using actual DB schema (thread_id, sender_id, content, metadata, read_by)
     const insertPayload: Record<string, unknown> = {
-      job_id: jobId,
+      thread_id: threadData.id,
       sender_id: user.id,
-      receiver_id: receiverId,
       content: messageText,
       message_type: messageType,
-      attachment_url: attachmentUrl || null,
-      read: false,
+      metadata: {
+        receiver_id: receiverId,
+        attachment_url: attachmentUrl || undefined,
+      },
+      read_by: [] as string[],
     };
 
     const { data: inserted, error: insertError } = await serverSupabase
       .from('messages')
       .insert(insertPayload)
       .select(
-        'id, job_id, sender_id, receiver_id, content, message_type, attachment_url, read, created_at'
+        'id, thread_id, sender_id, content, message_type, metadata, read_by, created_at'
       )
       .single();
 
@@ -189,7 +227,11 @@ export const POST = withApiHandler(
     }
 
     // Map to frontend response format
-    const message = mapMessageRow(inserted as unknown as SupabaseMessageRow);
+    const message = mapActualMessageRow(
+      inserted as ActualMessageRow,
+      jobId,
+      user.id
+    );
 
     // Update message_thread last_message_at (if thread exists)
     Promise.resolve(
