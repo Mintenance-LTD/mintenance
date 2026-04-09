@@ -267,21 +267,25 @@ export const POST = withApiHandler(
     }
 
     // Validate bid amount doesn't exceed job budget
+    // Use pre-tax subtotal for comparison (bidAmount may include VAT from client)
     if (job.budget) {
-      const bidAmountCents = Math.round(validatedData.bidAmount * 100);
+      const preTaxAmount = validatedData.subtotal ?? validatedData.bidAmount;
+      const preTaxCents = Math.round(preTaxAmount * 100);
       const budgetCents = Math.round(job.budget * 100);
 
-      if (bidAmountCents > budgetCents) {
+      if (preTaxCents > budgetCents) {
         logger.warn('Bid amount exceeds job budget', {
           service: 'contractor',
           jobId: validatedData.jobId,
           bidAmount: validatedData.bidAmount,
+          subtotal: validatedData.subtotal,
+          preTaxAmount,
           jobBudget: job.budget,
           contractorId: user.id,
         });
         return NextResponse.json(
           {
-            error: `Bid amount (£${validatedData.bidAmount.toFixed(2)}) cannot exceed job budget (£${job.budget.toFixed(2)})`,
+            error: `Bid amount (£${preTaxAmount.toFixed(2)}) cannot exceed job budget (£${job.budget.toFixed(2)})`,
           },
           { status: 400 }
         );
