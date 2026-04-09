@@ -25,27 +25,37 @@ export const POST = withApiHandler(
     }
 
     // Check if this contractor has already viewed this job
-    // DB schema: job_views(id, job_id, viewer_id, ip_address, user_agent, referrer, viewed_at)
+    // Live DB schema: job_views(id, job_id, viewer_id, viewed_at, view_count, last_viewed_at, updated_at)
     const { data: existingView } = await serverSupabase
       .from('job_views')
-      .select('id, viewed_at')
+      .select('id, view_count, viewed_at')
       .eq('job_id', jobId)
       .eq('viewer_id', user.id)
       .single();
 
     const isFirstView = !existingView;
+    const now = new Date().toISOString();
 
-    // Insert new view record (no upsert — schema doesn't have view_count)
     let viewError;
     if (isFirstView) {
       const { error } = await serverSupabase.from('job_views').insert({
         job_id: jobId,
         viewer_id: user.id,
-        ip_address:
-          request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
-        user_agent: request.headers.get('user-agent')?.slice(0, 500) || null,
-        referrer: request.headers.get('referer')?.slice(0, 500) || null,
+        viewed_at: now,
+        last_viewed_at: now,
+        view_count: 1,
       });
+      viewError = error;
+    } else {
+      // Update existing view — increment view_count
+      const { error } = await serverSupabase
+        .from('job_views')
+        .update({
+          last_viewed_at: now,
+          view_count: (existingView.view_count || 0) + 1,
+          updated_at: now,
+        })
+        .eq('id', existingView.id);
       viewError = error;
     }
 
