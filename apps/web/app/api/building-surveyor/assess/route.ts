@@ -152,9 +152,10 @@ export const POST = withApiHandler(
     }
 
     // Custom rate limit for expensive AI operations (5/min)
+    // SECURITY: Use authenticated user ID as primary identifier (not spoofable x-forwarded-for)
     const identifier =
+      user.id ||
       request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      request.headers.get('x-real-ip') ||
       'anonymous';
 
     const rateLimitResult = await deps.rateLimiter.checkRateLimit({
@@ -194,9 +195,56 @@ export const POST = withApiHandler(
       domain: bodyDomain,
     } = validationResult.data;
 
+    // SECURITY: Validate image URLs — whitelist domains, block SSRF
+    const ALLOWED_IMAGE_HOSTS = [
+      process.env.NEXT_PUBLIC_SUPABASE_URL
+        ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
+        : '',
+      'storage.googleapis.com',
+      'images.unsplash.com',
+    ].filter(Boolean);
+
     for (const url of imageUrls) {
-      if (!url.startsWith('http://') && !url.startsWith('https://'))
+      if (!url.startsWith('https://'))
+        throw new deps.BadRequestError('Image URLs must use HTTPS');
+
+      let parsed: URL;
+      try {
+        parsed = new URL(url);
+      } catch {
         throw new deps.BadRequestError('Invalid image URL format');
+      }
+
+      // Block internal/private IPs (SSRF protection)
+      const host = parsed.hostname;
+      if (
+        host === 'localhost' ||
+        host === '127.0.0.1' ||
+        host === '::1' ||
+        host.startsWith('10.') ||
+        host.startsWith('192.168.') ||
+        /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+        host === '169.254.169.254' || // AWS metadata
+        host.endsWith('.internal') ||
+        host.endsWith('.local')
+      ) {
+        throw new deps.BadRequestError(
+          'Image URL points to a restricted address'
+        );
+      }
+
+      // Whitelist check (if configured)
+      if (
+        ALLOWED_IMAGE_HOSTS.length > 0 &&
+        !ALLOWED_IMAGE_HOSTS.some((allowed) => host.endsWith(allowed))
+      ) {
+        deps.logger.warn('Image URL from non-whitelisted host', {
+          service: 'building-surveyor-api',
+          host,
+          userId: user.id,
+        });
+        // Allow but log — don't hard-block to avoid breaking legitimate URLs
+      }
     }
 
     // Check in-memory cache first
@@ -530,15 +578,13 @@ export const POST = withApiHandler(
         ).data?.id;
 
       if (savedAssessmentId) {
-        await deps.serverSupabase
-          .from('assessment_images')
-          .insert(
-            imageUrls.map((url, index) => ({
-              assessment_id: savedAssessmentId,
-              image_url: url,
-              image_index: index,
-            }))
-          );
+        await deps.serverSupabase.from('assessment_images').insert(
+          imageUrls.map((url, index) => ({
+            assessment_id: savedAssessmentId,
+            image_url: url,
+            image_index: index,
+          }))
+        );
 
         const autoValidationResult =
           await deps.DataCollectionService.autoValidateIfHighConfidence(

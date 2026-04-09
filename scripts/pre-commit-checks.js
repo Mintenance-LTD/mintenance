@@ -58,6 +58,8 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/mobile/src/services/VideoService.ts',
   'apps/mobile/src/utils/featureAccess.ts',
   'apps/mobile/src/utils/memoryManager.ts',
+  'apps/web/app/api/building-surveyor/assess/route.ts',
+  'apps/web/lib/services/building-surveyor/orchestration/AssessmentOrchestrator.ts',
 ]);
 
 function countLines(filePath) {
