@@ -301,7 +301,7 @@ export const POST = withApiHandler(
               jobTitle,
               messagePreview:
                 messagePreview + (messageText.length > 80 ? '...' : ''),
-              viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://mintenance.com')}/messages?jobId=${jobId}`,
+              viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://mintenance.com')}/messages/${jobId}?userId=${user.id}&userName=${encodeURIComponent(senderName)}`,
             });
           }
         } catch (emailError) {

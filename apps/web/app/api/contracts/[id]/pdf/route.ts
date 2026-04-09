@@ -6,6 +6,9 @@ import { NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import jsPDF from 'jspdf';
 
+// Allow up to 60 seconds for PDF generation (jsPDF is CPU-intensive)
+export const maxDuration = 60;
+
 /**
  * GET /api/contracts/[id]/pdf
  * Generate and return a PDF of the contract
@@ -21,14 +24,16 @@ export const GET = withApiHandler(
 
     const { data: contract, error } = await serverSupabase
       .from('contracts')
-      .select(`
+      .select(
+        `
         id, job_id, contractor_id, homeowner_id, status, title, description, amount,
         start_date, end_date, terms, contractor_signed_at, homeowner_signed_at,
         contractor_company_name, contractor_license_registration, contractor_license_type,
         created_at, updated_at,
         contractor:profiles!contractor_id(first_name, last_name, company_name, insurance_number),
         homeowner:profiles!homeowner_id(first_name, last_name)
-      `)
+      `
+      )
       .eq('id', contractId)
       .or(`contractor_id.eq.${user.id},homeowner_id.eq.${user.id}`)
       .single();
@@ -41,25 +46,35 @@ export const GET = withApiHandler(
     const contractor = c.contractor as Record<string, string | null> | null;
     const homeowner = c.homeowner as Record<string, string | null> | null;
 
-    const contractorName = contractor?.company_name
-      || (contractor?.first_name && contractor?.last_name ? `${contractor.first_name} ${contractor.last_name}` : null)
-      || (c.contractor_company_name as string)
-      || 'Contractor';
-    const homeownerName = homeowner?.first_name && homeowner?.last_name
-      ? `${homeowner.first_name} ${homeowner.last_name}`
-      : 'Homeowner';
+    const contractorName =
+      contractor?.company_name ||
+      (contractor?.first_name && contractor?.last_name
+        ? `${contractor.first_name} ${contractor.last_name}`
+        : null) ||
+      (c.contractor_company_name as string) ||
+      'Contractor';
+    const homeownerName =
+      homeowner?.first_name && homeowner?.last_name
+        ? `${homeowner.first_name} ${homeowner.last_name}`
+        : 'Homeowner';
 
     const formatDate = (d: string | null) => {
       if (!d) return 'N/A';
       return new Date(d as string).toLocaleDateString('en-GB', {
-        day: 'numeric', month: 'long', year: 'numeric',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
       });
     };
 
     const formatDateTime = (d: string | null) => {
       if (!d) return '';
       return new Date(d as string).toLocaleString('en-GB', {
-        day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
       });
     };
 
@@ -67,7 +82,11 @@ export const GET = withApiHandler(
       `£${Number(amount).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
     // Generate PDF
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+    });
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 20;
     const contentWidth = pageWidth - margin * 2;
@@ -95,8 +114,14 @@ export const GET = withApiHandler(
     doc.text('CONTRACT AGREEMENT', margin, 18);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Ref: ${(c.id as string).slice(0, 8).toUpperCase()}  |  ${formatDate(c.created_at as string)}`, margin, 28);
-    doc.text('Facilitated by Mintenance', pageWidth - margin, 28, { align: 'right' });
+    doc.text(
+      `Ref: ${(c.id as string).slice(0, 8).toUpperCase()}  |  ${formatDate(c.created_at as string)}`,
+      margin,
+      28
+    );
+    doc.text('Facilitated by Mintenance', pageWidth - margin, 28, {
+      align: 'right',
+    });
 
     y = 45;
     doc.setTextColor(0, 0, 0);
@@ -117,14 +142,23 @@ export const GET = withApiHandler(
     if (c.contractor_license_registration) {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
-      doc.text(`License: ${c.contractor_license_registration}${c.contractor_license_type ? ` (${c.contractor_license_type})` : ''}`, margin + 30, y);
+      doc.text(
+        `License: ${c.contractor_license_registration}${c.contractor_license_type ? ` (${c.contractor_license_type})` : ''}`,
+        margin + 30,
+        y
+      );
       y += 5;
     }
 
-    const insuranceProvider = (c.terms as Record<string, unknown>)?.insurance_provider as string | undefined;
+    const insuranceProvider = (c.terms as Record<string, unknown>)
+      ?.insurance_provider as string | undefined;
     const insuranceNumber = contractor?.insurance_number;
     if (insuranceProvider || insuranceNumber) {
-      doc.text(`Insurance: ${insuranceProvider || 'Yes'}${insuranceNumber ? ` — ${insuranceNumber}` : ''}`, margin + 30, y);
+      doc.text(
+        `Insurance: ${insuranceProvider || 'Yes'}${insuranceNumber ? ` — ${insuranceNumber}` : ''}`,
+        margin + 30,
+        y
+      );
       y += 5;
     }
 
@@ -155,7 +189,10 @@ export const GET = withApiHandler(
     if (c.description) {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
-      const descLines = doc.splitTextToSize(c.description as string, contentWidth);
+      const descLines = doc.splitTextToSize(
+        c.description as string,
+        contentWidth
+      );
       checkPage(descLines.length * 5 + 5);
       doc.text(descLines, margin, y);
       y += descLines.length * 5 + 5;
@@ -172,11 +209,19 @@ export const GET = withApiHandler(
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Contract Amount: ${formatCurrency(c.amount as number)}`, margin, y);
+    doc.text(
+      `Contract Amount: ${formatCurrency(c.amount as number)}`,
+      margin,
+      y
+    );
     y += 6;
     doc.setFontSize(9);
     doc.setTextColor(100, 100, 100);
-    doc.text('Payment held in escrow via Mintenance until work is completed and approved.', margin, y);
+    doc.text(
+      'Payment held in escrow via Mintenance until work is completed and approved.',
+      margin,
+      y
+    );
     doc.setTextColor(0, 0, 0);
     y += 10;
 
@@ -193,11 +238,19 @@ export const GET = withApiHandler(
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       if (c.start_date) {
-        doc.text(`Start Date: ${formatDate(c.start_date as string)}`, margin, y);
+        doc.text(
+          `Start Date: ${formatDate(c.start_date as string)}`,
+          margin,
+          y
+        );
         y += 6;
       }
       if (c.end_date) {
-        doc.text(`Completion Date: ${formatDate(c.end_date as string)}`, margin, y);
+        doc.text(
+          `Completion Date: ${formatDate(c.end_date as string)}`,
+          margin,
+          y
+        );
         y += 6;
       }
       y += 4;
@@ -206,14 +259,20 @@ export const GET = withApiHandler(
 
     // Section 5: Additional Terms
     const terms = c.terms as Record<string, unknown> | null;
-    const hiddenKeys = ['insurance_provider', 'insurance_policy_number', 'source', 'bid_id', 'created_from'];
+    const hiddenKeys = [
+      'insurance_provider',
+      'insurance_policy_number',
+      'source',
+      'bid_id',
+      'created_from',
+    ];
     const visibleTerms = terms
       ? Object.entries(terms).filter(([key]) => !hiddenKeys.includes(key))
       : [];
 
     if (visibleTerms.length > 0) {
       checkPage(20 + visibleTerms.length * 6);
-      const sectionNum = (c.start_date || c.end_date) ? '5' : '4';
+      const sectionNum = c.start_date || c.end_date ? '5' : '4';
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.text(`${sectionNum}. ADDITIONAL TERMS`, margin, y);
@@ -222,7 +281,9 @@ export const GET = withApiHandler(
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
       for (const [key, value] of visibleTerms) {
-        const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        const label = key
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, (l) => l.toUpperCase());
         const val = typeof value === 'string' ? value : JSON.stringify(value);
         const lines = doc.splitTextToSize(`${label}: ${val}`, contentWidth);
         checkPage(lines.length * 5);
@@ -235,9 +296,14 @@ export const GET = withApiHandler(
 
     // Signatures
     checkPage(50);
-    const sigSectionNum = visibleTerms.length > 0
-      ? ((c.start_date || c.end_date) ? '6' : '5')
-      : ((c.start_date || c.end_date) ? '5' : '4');
+    const sigSectionNum =
+      visibleTerms.length > 0
+        ? c.start_date || c.end_date
+          ? '6'
+          : '5'
+        : c.start_date || c.end_date
+          ? '5'
+          : '4';
 
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
@@ -250,7 +316,11 @@ export const GET = withApiHandler(
     doc.text('Contractor:', margin, y);
     doc.setFont('helvetica', 'normal');
     if (c.contractor_signed_at) {
-      doc.text(`Signed by ${contractorName} on ${formatDateTime(c.contractor_signed_at as string)}`, margin + 30, y);
+      doc.text(
+        `Signed by ${contractorName} on ${formatDateTime(c.contractor_signed_at as string)}`,
+        margin + 30,
+        y
+      );
     } else {
       doc.setTextColor(150, 150, 150);
       doc.text('Awaiting signature', margin + 30, y);
@@ -263,7 +333,11 @@ export const GET = withApiHandler(
     doc.text('Homeowner:', margin, y);
     doc.setFont('helvetica', 'normal');
     if (c.homeowner_signed_at) {
-      doc.text(`Signed by ${homeownerName} on ${formatDateTime(c.homeowner_signed_at as string)}`, margin + 30, y);
+      doc.text(
+        `Signed by ${homeownerName} on ${formatDateTime(c.homeowner_signed_at as string)}`,
+        margin + 30,
+        y
+      );
     } else {
       doc.setTextColor(150, 150, 150);
       doc.text('Awaiting signature', margin + 30, y);
@@ -275,8 +349,16 @@ export const GET = withApiHandler(
     addLine();
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
-    doc.text('This contract is facilitated by Mintenance. Payments are held in escrow.', margin, y + 3);
-    doc.text('By signing, both parties agree to the terms above.', margin, y + 8);
+    doc.text(
+      'This contract is facilitated by Mintenance. Payments are held in escrow.',
+      margin,
+      y + 3
+    );
+    doc.text(
+      'By signing, both parties agree to the terms above.',
+      margin,
+      y + 8
+    );
 
     const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
     const filename = `Contract-${(c.id as string).slice(0, 8).toUpperCase()}.pdf`;
@@ -289,5 +371,5 @@ export const GET = withApiHandler(
         'Content-Length': String(pdfBuffer.length),
       },
     });
-  },
+  }
 );

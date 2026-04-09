@@ -45,5 +45,21 @@ export function redirectToLogin(request: NextRequest): NextResponse {
   const loginPath = isAdminRoute ? '/admin/login' : '/login';
   const loginUrl = new URL(loginPath, request.url);
   loginUrl.searchParams.set('redirect', pathname);
-  return NextResponse.redirect(loginUrl);
+
+  const response = NextResponse.redirect(loginUrl);
+
+  // CRITICAL: Clear old auth cookies to prevent blacklisted token from blocking re-login.
+  // Without this, session timeout blacklists the token but the cookie persists,
+  // causing a loop where every request reads the old blacklisted token.
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  const authCookie = isDevelopment
+    ? 'mintenance-auth'
+    : '__Host-mintenance-auth';
+  const refreshCookie = isDevelopment
+    ? 'mintenance-refresh'
+    : '__Host-mintenance-refresh';
+  response.cookies.delete(authCookie);
+  response.cookies.delete(refreshCookie);
+
+  return response;
 }
