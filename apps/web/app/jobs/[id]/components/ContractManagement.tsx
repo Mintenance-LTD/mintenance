@@ -777,31 +777,19 @@ export function ContractManagement(props: ContractManagementProps) {
         </div>
       </div>
 
-      {/* ── Modal ── */}
+      {/* ── Inline Contract Detail (replaces modal) ── */}
       {isModalOpen && (
-        <div
-          className='fixed inset-0 z-50 flex items-start justify-center overflow-y-auto'
-          onClick={() => setIsModalOpen(false)}
-        >
-          {/* Backdrop */}
-          <div className='fixed inset-0 bg-black/50 backdrop-blur-sm' />
-
-          {/* Modal Content */}
-          <div
-            className='relative w-full max-w-2xl mx-4 my-8 z-10'
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close button */}
+        <div className='mt-4'>
+          <div className='flex justify-end mb-2'>
             <button
               onClick={() => setIsModalOpen(false)}
-              className='absolute -top-3 -right-3 z-20 w-8 h-8 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors'
+              className='flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200'
               type='button'
             >
-              <X className='w-4 h-4 text-gray-500' />
+              <X className='w-3.5 h-3.5' /> Close
             </button>
-
-            {contractDetail}
           </div>
+          {contractDetail}
         </div>
       )}
     </>
