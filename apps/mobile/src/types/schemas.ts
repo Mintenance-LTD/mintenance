@@ -5,22 +5,35 @@ import { BUSINESS_RULES } from '@mintenance/shared';
 // BASE SCHEMAS
 // ============================================================================
 
-export const EmailSchema = z.string().email('Invalid email format').min(1, 'Email is required');
+export const EmailSchema = z
+  .string()
+  .email('Invalid email format')
+  .min(1, 'Email is required');
 
-export const PasswordSchema = z.string()
+export const PasswordSchema = z
+  .string()
   .min(8, 'Password must be at least 8 characters')
-  .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain uppercase, lowercase, and number');
+  .regex(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+    'Password must contain uppercase, lowercase, and number'
+  );
 
-export const NameSchema = z.string()
+export const NameSchema = z
+  .string()
   .min(1, 'Name is required')
   .max(50, 'Name must be less than 50 characters')
-  .regex(/^[a-zA-Z\s\-']+$/, 'Name can only contain letters, spaces, hyphens, and apostrophes');
+  .regex(
+    /^[a-zA-Z\s\-']+$/,
+    'Name can only contain letters, spaces, hyphens, and apostrophes'
+  );
 
-export const PhoneSchema = z.string()
+export const PhoneSchema = z
+  .string()
   .regex(/^\+?[\d\s\-\(\)]+$/, 'Invalid phone number format')
   .optional();
 
-export const MoneySchema = z.number()
+export const MoneySchema = z
+  .number()
   .positive('Amount must be positive')
   .finite('Amount must be a valid number')
   .refine((val) => val <= 1000000, 'Amount cannot exceed $1,000,000');
@@ -53,13 +66,18 @@ export const UserSchema = z.object({
 });
 
 export const UserProfileSchema = UserSchema.extend({
-  address: z.object({
-    street: z.string().min(1, 'Street address is required'),
-    city: z.string().min(1, 'City is required'),
-    state: z.string().min(2, 'State is required').max(2, 'State must be 2 characters'),
-    zip_code: z.string().regex(/^\d{5}(-\d{4})?$/, 'Invalid ZIP code format'),
-    country: z.string().default('US'),
-  }).optional(),
+  address: z
+    .object({
+      street: z.string().min(1, 'Street address is required'),
+      city: z.string().min(1, 'City is required'),
+      state: z
+        .string()
+        .min(2, 'State is required')
+        .max(2, 'State must be 2 characters'),
+      zip_code: z.string().regex(/^\d{5}(-\d{4})?$/, 'Invalid ZIP code format'),
+      country: z.string().default('US'),
+    })
+    .optional(),
   bio: z.string().max(500, 'Bio must be less than 500 characters').optional(),
   skills: z.array(z.string()).optional(),
   rating: z.number().min(0).max(5).optional(),
@@ -90,41 +108,46 @@ export const UpdateUserSchema = UserSchema.partial().omit({
 // JOB SCHEMAS
 // ============================================================================
 
-export const JobCategorySchema = z.enum([
-  'plumbing',
-  'electrical',
-  'hvac',
-  'carpentry',
-  'painting',
-  'landscaping',
-  'cleaning',
-  'appliance_repair',
-  'roofing',
-  'flooring',
-  'other',
-], {
-  errorMap: () => ({ message: 'Invalid job category' }),
-});
+export const JobCategorySchema = z.enum(
+  [
+    'plumbing',
+    'electrical',
+    'hvac',
+    'carpentry',
+    'painting',
+    'landscaping',
+    'cleaning',
+    'appliance_repair',
+    'roofing',
+    'flooring',
+    'other',
+  ],
+  {
+    errorMap: () => ({ message: 'Invalid job category' }),
+  }
+);
 
 export const JobPrioritySchema = z.enum(['low', 'medium', 'high', 'urgent'], {
-  errorMap: () => ({ message: 'Priority must be low, medium, high, or urgent' }),
+  errorMap: () => ({
+    message: 'Priority must be low, medium, high, or urgent',
+  }),
 });
 
-export const JobStatusSchema = z.enum([
-  'draft',
-  'posted',
-  'in_progress',
-  'completed',
-  'cancelled',
-  'disputed',
-], {
-  errorMap: () => ({ message: 'Invalid job status' }),
-});
+export const JobStatusSchema = z.enum(
+  ['draft', 'posted', 'in_progress', 'completed', 'cancelled', 'disputed'],
+  {
+    errorMap: () => ({ message: 'Invalid job status' }),
+  }
+);
 
 export const JobSchema = z.object({
   id: UUIDSchema,
-  title: z.string().min(1, 'Title is required').max(100, 'Title must be less than 100 characters'),
-  description: z.string()
+  title: z
+    .string()
+    .min(1, 'Title is required')
+    .max(100, 'Title must be less than 100 characters'),
+  description: z
+    .string()
     .min(10, 'Description must be at least 10 characters')
     .max(2000, 'Description must be less than 2000 characters'),
   category: JobCategorySchema,
@@ -134,12 +157,20 @@ export const JobSchema = z.object({
   location: z.object({
     address: z.string().min(1, 'Address is required'),
     city: z.string().min(1, 'City is required'),
-    state: z.string().min(2, 'State is required').max(2, 'State must be 2 characters'),
+    state: z
+      .string()
+      .min(2, 'State is required')
+      .max(2, 'State must be 2 characters'),
     zip_code: z.string().regex(/^\d{5}(-\d{4})?$/, 'Invalid ZIP code format'),
     latitude: z.number().min(-90).max(90).optional(),
     longitude: z.number().min(-180).max(180).optional(),
   }),
-  photos: z.array(z.string().url('Invalid photo URL')).max(BUSINESS_RULES.MAX_PHOTOS_PER_JOB, `Maximum ${BUSINESS_RULES.MAX_PHOTOS_PER_JOB} photos allowed`),
+  photos: z
+    .array(z.string().url('Invalid photo URL'))
+    .max(
+      BUSINESS_RULES.MAX_PHOTOS_PER_JOB,
+      `Maximum ${BUSINESS_RULES.MAX_PHOTOS_PER_JOB} photos allowed`
+    ),
   requirements: z.array(z.string()).optional(),
   preferred_start_date: DateSchema.optional(),
   estimated_duration: z.string().optional(),
@@ -151,8 +182,12 @@ export const JobSchema = z.object({
 });
 
 export const CreateJobSchema = z.object({
-  title: z.string().min(1, 'Title is required').max(100, 'Title must be less than 100 characters'),
-  description: z.string()
+  title: z
+    .string()
+    .min(1, 'Title is required')
+    .max(100, 'Title must be less than 100 characters'),
+  description: z
+    .string()
     .min(10, 'Description must be at least 10 characters')
     .max(2000, 'Description must be less than 2000 characters'),
   category: JobCategorySchema,
@@ -161,10 +196,19 @@ export const CreateJobSchema = z.object({
   location: z.object({
     address: z.string().min(1, 'Address is required'),
     city: z.string().min(1, 'City is required'),
-    state: z.string().min(2, 'State is required').max(2, 'State must be 2 characters'),
+    state: z
+      .string()
+      .min(2, 'State is required')
+      .max(2, 'State must be 2 characters'),
     zip_code: z.string().regex(/^\d{5}(-\d{4})?$/, 'Invalid ZIP code format'),
   }),
-  photos: z.array(z.string().url('Invalid photo URL')).max(BUSINESS_RULES.MAX_PHOTOS_PER_JOB, `Maximum ${BUSINESS_RULES.MAX_PHOTOS_PER_JOB} photos allowed`).default([]),
+  photos: z
+    .array(z.string().url('Invalid photo URL'))
+    .max(
+      BUSINESS_RULES.MAX_PHOTOS_PER_JOB,
+      `Maximum ${BUSINESS_RULES.MAX_PHOTOS_PER_JOB} photos allowed`
+    )
+    .default([]),
   requirements: z.array(z.string()).optional(),
   preferred_start_date: DateSchema.optional(),
   estimated_duration: z.string().optional(),
@@ -196,15 +240,12 @@ export const JobFilterSchema = z.object({
 // BID SCHEMAS
 // ============================================================================
 
-export const BidStatusSchema = z.enum([
-  'pending',
-  'accepted',
-  'rejected',
-  'withdrawn',
-  'expired',
-], {
-  errorMap: () => ({ message: 'Invalid bid status' }),
-});
+export const BidStatusSchema = z.enum(
+  ['pending', 'accepted', 'rejected', 'withdrawn', 'expired'],
+  {
+    errorMap: () => ({ message: 'Invalid bid status' }),
+  }
+);
 
 export const BidSchema = z.object({
   id: UUIDSchema,
@@ -212,22 +253,32 @@ export const BidSchema = z.object({
   contractor_id: UUIDSchema,
   amount: MoneySchema,
   estimated_duration: z.string().min(1, 'Estimated duration is required'),
-  proposal: z.string()
+  proposal: z
+    .string()
     .min(20, 'Proposal must be at least 20 characters')
     .max(1000, 'Proposal must be less than 1000 characters'),
   status: BidStatusSchema.default('pending'),
   materials_cost: MoneySchema.optional(),
   labor_cost: MoneySchema.optional(),
-  timeline: z.object({
-    start_date: DateSchema,
-    end_date: DateSchema,
-    milestones: z.array(z.object({
-      description: z.string().min(1, 'Milestone description required'),
-      date: DateSchema,
-      amount: MoneySchema.optional(),
-    })).optional(),
-  }).optional(),
-  attachments: z.array(z.string().url('Invalid attachment URL')).max(5, 'Maximum 5 attachments').optional(),
+  timeline: z
+    .object({
+      start_date: DateSchema,
+      end_date: DateSchema,
+      milestones: z
+        .array(
+          z.object({
+            description: z.string().min(1, 'Milestone description required'),
+            date: DateSchema,
+            amount: MoneySchema.optional(),
+          })
+        )
+        .optional(),
+    })
+    .optional(),
+  attachments: z
+    .array(z.string().url('Invalid attachment URL'))
+    .max(5, 'Maximum 5 attachments')
+    .optional(),
   created_at: DateSchema,
   updated_at: DateSchema,
   expires_at: DateSchema.optional(),
@@ -237,21 +288,31 @@ export const CreateBidSchema = z.object({
   job_id: UUIDSchema,
   amount: MoneySchema,
   estimated_duration: z.string().min(1, 'Estimated duration is required'),
-  proposal: z.string()
+  proposal: z
+    .string()
     .min(20, 'Proposal must be at least 20 characters')
     .max(1000, 'Proposal must be less than 1000 characters'),
   materials_cost: MoneySchema.optional(),
   labor_cost: MoneySchema.optional(),
-  timeline: z.object({
-    start_date: DateSchema,
-    end_date: DateSchema,
-    milestones: z.array(z.object({
-      description: z.string().min(1, 'Milestone description required'),
-      date: DateSchema,
-      amount: MoneySchema.optional(),
-    })).optional(),
-  }).optional(),
-  attachments: z.array(z.string().url('Invalid attachment URL')).max(5, 'Maximum 5 attachments').optional(),
+  timeline: z
+    .object({
+      start_date: DateSchema,
+      end_date: DateSchema,
+      milestones: z
+        .array(
+          z.object({
+            description: z.string().min(1, 'Milestone description required'),
+            date: DateSchema,
+            amount: MoneySchema.optional(),
+          })
+        )
+        .optional(),
+    })
+    .optional(),
+  attachments: z
+    .array(z.string().url('Invalid attachment URL'))
+    .max(5, 'Maximum 5 attachments')
+    .optional(),
 });
 
 // ============================================================================
@@ -268,13 +329,20 @@ export const MessageSchema = z.object({
   sender_id: UUIDSchema,
   recipient_id: UUIDSchema,
   type: MessageTypeSchema.default('text'),
-  content: z.string().min(1, 'Message content is required').max(2000, 'Message too long'),
-  attachments: z.array(z.object({
-    url: z.string().url('Invalid attachment URL'),
-    type: z.string(),
-    name: z.string(),
-    size: z.number().positive(),
-  })).optional(),
+  content: z
+    .string()
+    .min(1, 'Message content is required')
+    .max(2000, 'Message too long'),
+  attachments: z
+    .array(
+      z.object({
+        url: z.string().url('Invalid attachment URL'),
+        type: z.string(),
+        name: z.string(),
+        size: z.number().positive(),
+      })
+    )
+    .optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
   read_at: DateSchema.optional(),
   created_at: DateSchema,
@@ -285,29 +353,32 @@ export const CreateMessageSchema = z.object({
   conversation_id: UUIDSchema,
   recipient_id: UUIDSchema,
   type: MessageTypeSchema.default('text'),
-  content: z.string().min(1, 'Message content is required').max(2000, 'Message too long'),
-  attachments: z.array(z.object({
-    url: z.string().url('Invalid attachment URL'),
-    type: z.string(),
-    name: z.string(),
-    size: z.number().positive(),
-  })).optional(),
+  content: z
+    .string()
+    .min(1, 'Message content is required')
+    .max(2000, 'Message too long'),
+  attachments: z
+    .array(
+      z.object({
+        url: z.string().url('Invalid attachment URL'),
+        type: z.string(),
+        name: z.string(),
+        size: z.number().positive(),
+      })
+    )
+    .optional(),
 });
 
 // ============================================================================
 // PAYMENT SCHEMAS
 // ============================================================================
 
-export const PaymentStatusSchema = z.enum([
-  'pending',
-  'processing',
-  'completed',
-  'failed',
-  'cancelled',
-  'refunded',
-], {
-  errorMap: () => ({ message: 'Invalid payment status' }),
-});
+export const PaymentStatusSchema = z.enum(
+  ['pending', 'processing', 'completed', 'failed', 'cancelled', 'refunded'],
+  {
+    errorMap: () => ({ message: 'Invalid payment status' }),
+  }
+);
 
 export const PaymentMethodSchema = z.enum(['card', 'bank_transfer', 'escrow'], {
   errorMap: () => ({ message: 'Invalid payment method' }),
@@ -321,7 +392,10 @@ export const PaymentSchema = z.object({
   amount: MoneySchema,
   fee: MoneySchema.default(0),
   net_amount: MoneySchema,
-  currency: z.string().length(3, 'Currency must be 3 characters').default('USD'),
+  currency: z
+    .string()
+    .length(3, 'Currency must be 3 characters')
+    .default('USD'),
   method: PaymentMethodSchema,
   status: PaymentStatusSchema.default('pending'),
   stripe_payment_intent_id: z.string().optional(),
@@ -405,9 +479,13 @@ export type CreatePayment = z.infer<typeof CreatePaymentSchema>;
 export type PaymentStatus = z.infer<typeof PaymentStatusSchema>;
 export type PaymentMethod = z.infer<typeof PaymentMethodSchema>;
 
-export type ApiSuccess<T = unknown> = z.infer<typeof ApiSuccessSchema> & { data: T };
+export type ApiSuccess<T = unknown> = z.infer<typeof ApiSuccessSchema> & {
+  data: T;
+};
 export type ApiError = z.infer<typeof ApiErrorSchema>;
-export type PaginatedResponse<T = unknown> = z.infer<typeof PaginatedResponseSchema> & { data: T[] };
+export type PaginatedResponse<T = unknown> = z.infer<
+  typeof PaginatedResponseSchema
+> & { data: T[] };
 
 // ============================================================================
 // VALIDATION UTILITIES
@@ -429,7 +507,7 @@ export const validateSchema = <T>(schema: z.ZodSchema<T>, data: unknown): T => {
     return schema.parse(data);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const firstError = error.errors[0];
+      const firstError = error.errors[0]!;
       throw new ValidationError(
         firstError.message,
         firstError.path.join('.'),
@@ -474,10 +552,14 @@ export const isValidUUID = (id: string): boolean => {
   return UUIDSchema.safeParse(id).success;
 };
 
-export const isValidJobCategory = (category: string): category is JobCategory => {
+export const isValidJobCategory = (
+  category: string
+): category is JobCategory => {
   return JobCategorySchema.safeParse(category).success;
 };
 
-export const isValidUserRole = (role: string): role is z.infer<typeof UserRoleSchema> => {
+export const isValidUserRole = (
+  role: string
+): role is z.infer<typeof UserRoleSchema> => {
   return UserRoleSchema.safeParse(role).success;
 };

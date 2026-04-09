@@ -42,7 +42,9 @@ export async function uploadProfilePhotoExample() {
   const compressed = await compressProfilePhoto(imageUri);
 
   if (compressed.error) {
-    logger.error('Compression failed:', compressed.error, { service: 'mobile' });
+    logger.error('Compression failed:', compressed.error, {
+      service: 'mobile',
+    });
     return;
   }
 
@@ -73,15 +75,14 @@ export async function uploadJobPhotosExample(jobId: string) {
     return;
   }
 
-  const imageUris = result.assets.map(asset => asset.uri);
+  const imageUris = result.assets.map((asset) => asset.uri);
 
   // 2. Compress with progress tracking
   const onProgress: ProgressCallback = (processed, total, currentFile) => {
     const percentage = Math.round((processed / total) * 100);
-    logger.info(
-      `Compressing: ${percentage}% (${processed}/${total})`,
-      { service: 'mobile' }
-    );
+    logger.info(`Compressing: ${percentage}% (${processed}/${total})`, {
+      service: 'mobile',
+    });
     // Update UI progress indicator here
   };
 
@@ -90,28 +91,28 @@ export async function uploadJobPhotosExample(jobId: string) {
   // 3. Show overall stats
   logger.info(
     `Total: ${batchResult.results.length} images\n` +
-    `Success: ${batchResult.successCount}\n` +
-    `Failed: ${batchResult.failureCount}\n` +
-    `Original size: ${(batchResult.totalOriginalSize / 1024 / 1024).toFixed(2)} MB\n` +
-    `Compressed size: ${(batchResult.totalCompressedSize / 1024 / 1024).toFixed(2)} MB\n` +
-    `Saved: ${((1 - batchResult.totalCompressionRatio) * 100).toFixed(0)}%\n` +
-    `Time: ${(batchResult.duration / 1000).toFixed(1)}s`,
+      `Success: ${batchResult.successCount}\n` +
+      `Failed: ${batchResult.failureCount}\n` +
+      `Original size: ${(batchResult.totalOriginalSize / 1024 / 1024).toFixed(2)} MB\n` +
+      `Compressed size: ${(batchResult.totalCompressedSize / 1024 / 1024).toFixed(2)} MB\n` +
+      `Saved: ${((1 - batchResult.totalCompressionRatio) * 100).toFixed(0)}%\n` +
+      `Time: ${(batchResult.duration / 1000).toFixed(1)}s`,
     { service: 'mobile' }
   );
 
   // 4. Upload compressed images
   const compressedUris = batchResult.results
-    .filter(r => !r.error)
-    .map(r => r.uri);
+    .filter((r) => !r.error)
+    .map((r) => r.uri);
 
   // Convert to ImagePickerAsset format expected by PhotoUploadService
   const compressedAssets = compressedUris.map((uri, index) => ({
     uri,
-    width: batchResult.results[index].width,
-    height: batchResult.results[index].height,
+    width: batchResult.results[index]!.width,
+    height: batchResult.results[index]!.height,
     assetId: null,
     fileName: `compressed_${index}.jpg`,
-    fileSize: batchResult.results[index].compressedSize,
+    fileSize: batchResult.results[index]!.compressedSize,
     type: 'image' as const,
     duration: null,
   }));
@@ -142,7 +143,9 @@ export async function uploadPropertyAssessmentExample(assessmentId: string) {
   const compressed = await compressPropertyAssessmentPhoto(photo.uri);
 
   if (compressed.error) {
-    logger.error('Compression failed:', compressed.error, { service: 'mobile' });
+    logger.error('Compression failed:', compressed.error, {
+      service: 'mobile',
+    });
     return;
   }
 
@@ -272,7 +275,7 @@ export async function completeUploadFlowExample(jobId: string) {
   }
 
   // 3. Compress all photos with progress
-  const imageUris = photos.map(p => p.uri);
+  const imageUris = photos.map((p) => p.uri);
   const progressCallback: ProgressCallback = (processed, total) => {
     logger.info(`Processing: ${processed}/${total}`, { service: 'mobile' });
     // Update UI progress bar
@@ -286,7 +289,7 @@ export async function completeUploadFlowExample(jobId: string) {
 
   // 4. Convert back to ImagePickerAsset format
   const compressedAssets = compressionResult.results
-    .filter(r => !r.error)
+    .filter((r) => !r.error)
     .map((result, index) => ({
       uri: result.uri,
       width: result.width,
@@ -305,20 +308,23 @@ export async function completeUploadFlowExample(jobId: string) {
   );
 
   // 6. Show results
-  const successCount = uploadResults.filter(r => r.success).length;
-  logger.info(
-    `Uploaded ${successCount}/${uploadResults.length} photos`,
-    { service: 'mobile' }
-  );
+  const successCount = uploadResults.filter((r) => r.success).length;
+  logger.info(`Uploaded ${successCount}/${uploadResults.length} photos`, {
+    service: 'mobile',
+  });
 
   return {
     compressionStats: {
       savedMB: (
-        (compressionResult.totalOriginalSize - compressionResult.totalCompressedSize) /
+        (compressionResult.totalOriginalSize -
+          compressionResult.totalCompressedSize) /
         1024 /
         1024
       ).toFixed(2),
-      savedPercentage: ((1 - compressionResult.totalCompressionRatio) * 100).toFixed(0),
+      savedPercentage: (
+        (1 - compressionResult.totalCompressionRatio) *
+        100
+      ).toFixed(0),
     },
     uploadResults,
   };
@@ -437,7 +443,9 @@ export async function errorHandlingExample(imageUri: string) {
     return result.uri;
   } catch (error) {
     // Unexpected error
-    logger.error('Unexpected error during compression:', error, { service: 'mobile' });
+    logger.error('Unexpected error during compression:', error, {
+      service: 'mobile',
+    });
 
     // Fallback: use original image
     return imageUri;

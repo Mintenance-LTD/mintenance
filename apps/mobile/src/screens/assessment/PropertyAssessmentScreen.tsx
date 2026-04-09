@@ -170,7 +170,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
       allowsEditing: false,
     });
     if (!result.canceled && result.assets?.[0]) {
-      setPhotos((prev) => [...prev, result.assets[0].uri]);
+      setPhotos((prev) => [...prev, result.assets[0]!.uri]);
       updateStepStatus('photos', 'completed');
     }
   };

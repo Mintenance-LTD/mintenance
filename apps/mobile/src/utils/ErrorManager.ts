@@ -47,8 +47,11 @@ class ErrorManagerService {
 
   public handleNetworkError(error: unknown): void {
     let message = 'Network error occurred';
-    
-    const status = error && typeof error === 'object' && 'status' in error ? (error as { status: number }).status : undefined;
+
+    const status =
+      error && typeof error === 'object' && 'status' in error
+        ? (error as { status: number }).status
+        : undefined;
 
     if (!navigator.onLine) {
       message = 'No internet connection. Please check your network.';
@@ -67,9 +70,10 @@ class ErrorManagerService {
   }
 
   public handleValidationError(errors: string[]): void {
-    const message = errors.length === 1 
-      ? errors[0] 
-      : `Please fix: ${errors.join(', ')}`;
+    const message =
+      errors.length === 1
+        ? (errors[0] ?? 'Validation error')
+        : `Please fix: ${errors.join(', ')}`;
 
     this.handleError(message, {
       category: ErrorCategory.VALIDATION,
@@ -79,24 +83,22 @@ class ErrorManagerService {
 
   private showUserError(errorInfo: ErrorInfo): void {
     if (this.isShowingError) return;
-    
+
     this.isShowingError = true;
-    
-    Alert.alert(
-      'Error',
-      errorInfo.message,
-      [
-        {
-          text: 'OK',
-          onPress: () => { this.isShowingError = false; },
+
+    Alert.alert('Error', errorInfo.message, [
+      {
+        text: 'OK',
+        onPress: () => {
+          this.isShowingError = false;
         },
-      ]
-    );
+      },
+    ]);
   }
 
   private logError(errorInfo: ErrorInfo): void {
     logger.error('Error:', errorInfo);
-    
+
     try {
       captureException(new Error(errorInfo.message), {
         tags: {

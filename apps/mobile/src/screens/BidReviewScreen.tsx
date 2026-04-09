@@ -91,7 +91,8 @@ export const BidReviewScreen: React.FC = () => {
       const data = await BidService.getBidsByJob(jobId, 'pending');
       setBids(data);
       if (data.length === 0) setAllReviewed(true);
-      if (data.length > 0 && data[0].job?.title) setJobTitle(data[0].job.title);
+      if (data.length > 0 && data[0]?.job?.title)
+        setJobTitle(data[0].job.title);
 
       // Fetch linked quotes for line items display
       const contractorIds = data.map((b) => b.contractor_id).filter(Boolean);

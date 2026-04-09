@@ -179,8 +179,13 @@ export const formatCurrency = (
   language?: Language
 ): string => {
   const lang = language || getCurrentLanguage();
-  const getCurrenciesFn = (RNLocalize as Record<string, (...args: unknown[]) => unknown>).getCurrencies;
-  const deviceCurrency = typeof getCurrenciesFn === 'function' ? (getCurrenciesFn() as string[])?.[0] : undefined;
+  const getCurrenciesFn = (
+    RNLocalize as Record<string, (...args: unknown[]) => unknown>
+  ).getCurrencies;
+  const deviceCurrency =
+    typeof getCurrenciesFn === 'function'
+      ? (getCurrenciesFn() as string[])?.[0]
+      : undefined;
   const resolvedCurrency = currency || deviceCurrency || 'USD';
 
   try {
@@ -207,7 +212,7 @@ export const formatDate = (date: Date, language?: Language): string => {
     }).format(date);
   } catch (error) {
     // Fallback to ISO string
-    return date.toISOString().split('T')[0];
+    return date.toISOString().split('T')[0] ?? '';
   }
 };
 

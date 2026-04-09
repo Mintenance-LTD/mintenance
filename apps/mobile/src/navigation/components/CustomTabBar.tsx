@@ -65,7 +65,9 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
 
       <View style={styles.tabRow}>
         {state.routes.map((route, index) => {
-          const { options } = descriptors[route.key];
+          const descriptor = descriptors[route.key];
+          if (!descriptor) return null;
+          const { options } = descriptor;
           const label =
             options.tabBarLabel !== undefined
               ? options.tabBarLabel

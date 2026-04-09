@@ -68,7 +68,7 @@ export const ServiceAreasScreen: React.FC<Props> = ({ navigation }) => {
       : 0;
 
   const locationLabel = (area: ServiceArea): string => {
-    if (area.cities?.length) return area.cities[0];
+    if (area.cities?.length) return area.cities[0] ?? 'No location';
     if (area.center_latitude != null && area.center_longitude != null)
       return `${area.center_latitude.toFixed(2)}, ${area.center_longitude.toFixed(2)}`;
     return 'No location';

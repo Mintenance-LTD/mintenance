@@ -173,7 +173,7 @@ export async function fetchReportingData(
     .map(([key, val]) => {
       const [, m] = key.split('-');
       return {
-        month: monthNames[parseInt(m, 10) - 1],
+        month: monthNames[parseInt(m ?? '0', 10) - 1] ?? 'Unknown',
         count: val.count,
         earnings: val.earnings,
       };
@@ -184,7 +184,7 @@ export async function fetchReportingData(
     .filter((j) => j.status === 'completed')
     .forEach((j) => {
       const cat = j.category || 'Other';
-      catMap[cat] = (catMap[cat] || 0) + 1;
+      catMap[cat] = (catMap[cat] ?? 0) + 1;
     });
   const categoryBreakdown = Object.entries(catMap)
     .sort((a, b) => b[1] - a[1])

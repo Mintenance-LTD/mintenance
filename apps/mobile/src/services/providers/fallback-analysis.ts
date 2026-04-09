@@ -64,7 +64,7 @@ export function generateRealisticEquipment(job: Job): DetectedEquipmentItem[] {
       const location =
         equipment.locations[
           Math.floor(Math.random() * equipment.locations.length)
-        ];
+        ] ?? '';
 
       detectedItems.push({
         name: equipment.name,
@@ -231,11 +231,7 @@ export function generateIntelligentFallback(job: Job): AIAnalysis {
       'Clean and organize work area when complete',
     ],
     estimatedComplexity: 'Low' as const,
-    suggestedTools: [
-      'Basic tool kit',
-      'Safety equipment',
-      'Cleaning supplies',
-    ],
+    suggestedTools: ['Basic tool kit', 'Safety equipment', 'Cleaning supplies'],
     estimatedDuration: '1-2 hours',
   };
 

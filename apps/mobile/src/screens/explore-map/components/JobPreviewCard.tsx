@@ -69,7 +69,8 @@ export const JobPreviewCard: React.FC<JobPreviewCardProps> = ({
 }) => {
   const catKey = job.category.toLowerCase();
   const iconName = CATEGORY_ICONS[catKey] ?? 'construct';
-  const colors = CATEGORY_COLORS[catKey] ?? CATEGORY_COLORS.general;
+  const colors = CATEGORY_COLORS[catKey] ??
+    CATEGORY_COLORS.general ?? { icon: '#6B7280', bg: '#F3F4F6' };
   const amt =
     job.budget_max ??
     job.budget_min ??

@@ -98,7 +98,8 @@ const CarouselCard: React.FC<{
         ? `£${amt.toLocaleString()}`
         : 'TBD';
   const catKey = job.category.toLowerCase();
-  const catMarker = CATEGORY_MARKERS[catKey] ?? CATEGORY_MARKERS.general;
+  const catMarker = CATEGORY_MARKERS[catKey] ??
+    CATEGORY_MARKERS.general ?? { icon: 'construct' as const, bg: '#6B7280' };
 
   return (
     <Pressable
@@ -233,9 +234,11 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
 
         {viewModel.jobs.map((job) => {
           const isSelected = viewModel.selectedJob?.id === job.id;
-          const cat =
-            CATEGORY_MARKERS[job.category.toLowerCase()] ??
-            CATEGORY_MARKERS.general;
+          const cat = CATEGORY_MARKERS[job.category.toLowerCase()] ??
+            CATEGORY_MARKERS.general ?? {
+              icon: 'construct' as const,
+              bg: '#6B7280',
+            };
           const isUrgent = job.urgency === 'urgent';
 
           return (

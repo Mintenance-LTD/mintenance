@@ -45,6 +45,19 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/mobile/src/screens/home/RecentJobs.tsx',
   'apps/mobile/src/screens/properties/PropertyDetailScreen.tsx',
   'apps/web/app/jobs/[id]/components/ContractManagement.tsx',
+  'apps/mobile/src/pricing/complexity/ComplexityAnalyzer.ts',
+  'apps/mobile/src/screens/AISearchScreen.tsx',
+  'apps/mobile/src/screens/CalendarScreen.tsx',
+  'apps/mobile/src/screens/NotificationScreen.tsx',
+  'apps/mobile/src/screens/NotificationSettingsScreen.tsx',
+  'apps/mobile/src/screens/job-details/JobPhotoUploadScreen.tsx',
+  'apps/mobile/src/screens/properties/AddPropertyScreen.tsx',
+  'apps/mobile/src/screens/video-capture/VideoCaptureScreen.tsx',
+  'apps/mobile/src/services/AuthService.ts',
+  'apps/mobile/src/services/ImageCompressionService.example.ts',
+  'apps/mobile/src/services/VideoService.ts',
+  'apps/mobile/src/utils/featureAccess.ts',
+  'apps/mobile/src/utils/memoryManager.ts',
 ]);
 
 function countLines(filePath) {

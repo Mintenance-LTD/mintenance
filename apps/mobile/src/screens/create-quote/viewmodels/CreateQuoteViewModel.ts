@@ -140,7 +140,7 @@ export const useCreateQuoteViewModel = (
   const setDefaultValidUntil = useCallback(() => {
     const date = new Date();
     date.setDate(date.getDate() + 30); // 30 days from now
-    setValidUntil(date.toISOString().split('T')[0]);
+    setValidUntil(date.toISOString().split('T')[0] ?? '');
   }, []);
 
   const calculateTotals = useCallback(() => {

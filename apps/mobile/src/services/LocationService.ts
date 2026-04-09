@@ -84,10 +84,11 @@ export class LocationService {
       if (addressResults && addressResults.length > 0) {
         const result = addressResults[0];
         return {
-          address: `${result.streetNumber || ''} ${result.street || ''}`.trim(),
-          city: result.city || undefined,
-          state: result.region || undefined,
-          postalCode: result.postalCode || undefined,
+          address:
+            `${result?.streetNumber || ''} ${result?.street || ''}`.trim(),
+          city: result?.city || undefined,
+          state: result?.region || undefined,
+          postalCode: result?.postalCode || undefined,
         };
       }
       return {};

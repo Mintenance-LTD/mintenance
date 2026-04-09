@@ -275,7 +275,7 @@ export class BundleAnalyzer {
       const history = await this.getBundleHistory();
       if (history.length === 0) return true;
 
-      const lastAnalysis = history[history.length - 1];
+      const lastAnalysis = history[history.length - 1]!;
       const timeSinceLastAnalysis = Date.now() - lastAnalysis.timestamp;
 
       return timeSinceLastAnalysis > this.ANALYSIS_INTERVAL;
@@ -303,8 +303,8 @@ export class BundleAnalyzer {
       };
     }
 
-    const current = history[history.length - 1];
-    const previous = history[history.length - 2];
+    const current = history[history.length - 1]!;
+    const previous = history[history.length - 2]!;
     const sizeChange = current.totalSize - previous.totalSize;
     const changePercentage = (sizeChange / previous.totalSize) * 100;
 
@@ -403,7 +403,10 @@ export class DynamicImportManager {
       return module;
     } catch (error) {
       const loadTime = Date.now() - startTime;
-      logger.error(`Module ${moduleName} loading failed after ${loadTime}ms`, error as Error);
+      logger.error(
+        `Module ${moduleName} loading failed after ${loadTime}ms`,
+        error as Error
+      );
 
       if (fallback) {
         return fallback;

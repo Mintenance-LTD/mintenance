@@ -35,7 +35,7 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
   const [hours, setHours] = useState('');
   const [hourlyRate, setHourlyRate] = useState('');
   const [billable, setBillable] = useState(true);
-  const [date] = useState(new Date().toISOString().split('T')[0]);
+  const [date] = useState(new Date().toISOString().split('T')[0] ?? '');
   const [startTime] = useState(() => {
     const now = new Date();
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -46,7 +46,10 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleSave = async () => {
     if (!isValid) {
-      toast.error('Missing fields', 'Please enter a task description and hours.');
+      toast.error(
+        'Missing fields',
+        'Please enter a task description and hours.'
+      );
       return;
     }
 
@@ -80,10 +83,16 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.surface} />
+      <StatusBar
+        barStyle='dark-content'
+        backgroundColor={theme.colors.surface}
+      />
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name='close' size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Time Entry</Text>
         <TouchableOpacity
@@ -91,18 +100,26 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
           onPress={handleSave}
           disabled={loading || !isValid}
         >
-          <Text style={[styles.saveButtonText, (!isValid || loading) && styles.saveButtonDisabled]}>
+          <Text
+            style={[
+              styles.saveButtonText,
+              (!isValid || loading) && styles.saveButtonDisabled,
+            ]}
+          >
             {loading ? 'Saving\u2026' : 'Save'}
           </Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps='handled'
+      >
         <View style={styles.card}>
           <Text style={styles.fieldLabel}>Task Description *</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. Plumbing inspection at Oak Lane"
+            placeholder='e.g. Plumbing inspection at Oak Lane'
             placeholderTextColor={theme.colors.textTertiary}
             value={taskDescription}
             onChangeText={setTaskDescription}
@@ -111,9 +128,18 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
 
           <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Date</Text>
           <View style={styles.readonlyRow}>
-            <Ionicons name="calendar-outline" size={18} color={theme.colors.textTertiary} />
+            <Ionicons
+              name='calendar-outline'
+              size={18}
+              color={theme.colors.textTertiary}
+            />
             <Text style={styles.readonlyValue}>
-              {new Date(date).toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
+              {new Date(date).toLocaleDateString('en-GB', {
+                weekday: 'long',
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+              })}
             </Text>
           </View>
 
@@ -121,25 +147,27 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.inputRow}>
             <TextInput
               style={[styles.input, styles.inputSmall]}
-              placeholder="0.0"
+              placeholder='0.0'
               placeholderTextColor={theme.colors.textTertiary}
               value={hours}
               onChangeText={setHours}
-              keyboardType="decimal-pad"
+              keyboardType='decimal-pad'
             />
             <Text style={styles.inputSuffix}>hours</Text>
           </View>
 
-          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Hourly Rate (\u00A3)</Text>
+          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>
+            Hourly Rate (\u00A3)
+          </Text>
           <View style={styles.inputRow}>
             <Text style={styles.inputPrefix}>\u00A3</Text>
             <TextInput
               style={[styles.input, styles.inputSmall]}
-              placeholder="0.00"
+              placeholder='0.00'
               placeholderTextColor={theme.colors.textTertiary}
               value={hourlyRate}
               onChangeText={setHourlyRate}
-              keyboardType="decimal-pad"
+              keyboardType='decimal-pad'
             />
           </View>
 
@@ -147,7 +175,10 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Estimated total</Text>
               <Text style={styles.totalValue}>
-                \u00A3{(parseFloat(hours || '0') * parseFloat(hourlyRate || '0')).toFixed(2)}
+                \u00A3
+                {(
+                  parseFloat(hours || '0') * parseFloat(hourlyRate || '0')
+                ).toFixed(2)}
               </Text>
             </View>
           ) : null}
@@ -155,12 +186,17 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.switchRow}>
             <View>
               <Text style={styles.fieldLabel}>Billable</Text>
-              <Text style={styles.switchSubtitle}>Include this time in client invoices</Text>
+              <Text style={styles.switchSubtitle}>
+                Include this time in client invoices
+              </Text>
             </View>
             <Switch
               value={billable}
               onValueChange={setBillable}
-              trackColor={{ false: theme.colors.border, true: theme.colors.textPrimary }}
+              trackColor={{
+                false: theme.colors.border,
+                true: theme.colors.textPrimary,
+              }}
               thumbColor={theme.colors.surface}
             />
           </View>
@@ -183,9 +219,17 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
   },
   headerButton: { padding: 8, width: 60 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
   saveButton: { alignItems: 'flex-end' },
-  saveButtonText: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
   saveButtonDisabled: { opacity: 0.5 },
   content: { padding: 16 },
   card: {
@@ -193,7 +237,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -214,7 +263,11 @@ const styles = StyleSheet.create({
   },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   inputSmall: { width: 120 },
-  inputPrefix: { fontSize: 18, fontWeight: '600', color: theme.colors.textSecondary },
+  inputPrefix: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
   inputSuffix: { fontSize: 14, color: theme.colors.textSecondary },
   readonlyRow: {
     flexDirection: 'row',
@@ -236,7 +289,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   totalLabel: { fontSize: 14, color: theme.colors.textSecondary },
-  totalValue: { fontSize: 17, fontWeight: '700', color: theme.colors.textPrimary },
+  totalValue: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -246,7 +303,11 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: theme.colors.border,
   },
-  switchSubtitle: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2 },
+  switchSubtitle: {
+    fontSize: 12,
+    color: theme.colors.textTertiary,
+    marginTop: 2,
+  },
 });
 
 export default AddTimeEntryScreen;

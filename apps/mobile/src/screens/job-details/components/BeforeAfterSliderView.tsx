@@ -28,6 +28,7 @@ export const BeforeAfterSliderView: React.FC<BeforeAfterSliderViewProps> = ({
   onSelectPair,
 }) => {
   const currentPair = photoPairs[activePairIndex];
+  if (!currentPair) return null;
 
   return (
     <>

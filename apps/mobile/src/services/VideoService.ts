@@ -80,13 +80,13 @@ class VideoService {
         'Start with a wide shot of the property',
         'Slowly pan across the front facade',
         'Focus on roof, walls, and foundation',
-        'Capture any visible exterior damage'
+        'Capture any visible exterior damage',
       ],
       tips: [
         'Keep camera steady',
         'Move slowly for better AI analysis',
-        'Ensure good lighting'
-      ]
+        'Ensure good lighting',
+      ],
     },
     {
       phase: 'interior',
@@ -96,13 +96,13 @@ class VideoService {
         'Walk through main living areas',
         'Point camera at ceilings and walls',
         'Focus on high-risk areas (bathrooms, kitchen)',
-        'Capture plumbing and electrical fixtures'
+        'Capture plumbing and electrical fixtures',
       ],
       tips: [
         'Turn on all lights',
         'Open curtains for natural light',
-        'Move systematically room by room'
-      ]
+        'Move systematically room by room',
+      ],
     },
     {
       phase: 'damage_detail',
@@ -112,13 +112,13 @@ class VideoService {
         'Zoom in on any visible damage',
         'Hold camera steady for 3-5 seconds per area',
         'Capture different angles of damage',
-        'Include context around damage areas'
+        'Include context around damage areas',
       ],
       tips: [
         'Use flashlight for dark areas',
         'Get close but maintain focus',
-        'Narrate what you see (audio helps AI)'
-      ]
+        'Narrate what you see (audio helps AI)',
+      ],
     },
     {
       phase: 'overview',
@@ -127,13 +127,10 @@ class VideoService {
       instructions: [
         'Quick recap of main areas',
         'Any missed critical points',
-        'Overall property condition shot'
+        'Overall property condition shot',
       ],
-      tips: [
-        'Summarize key findings',
-        'End with exterior shot'
-      ]
-    }
+      tips: ['Summarize key findings', 'End with exterior shot'],
+    },
   ];
 
   private constructor() {
@@ -152,7 +149,7 @@ class VideoService {
     await this.loadQueue();
 
     // Set up network listener for offline queue processing
-    NetInfo.addEventListener(state => {
+    NetInfo.addEventListener((state) => {
       if (state.isConnected && state.isInternetReachable) {
         this.processQueue();
       }
@@ -177,7 +174,11 @@ class VideoService {
       targetFps?: number;
       resolution?: { width: number; height: number };
     }
-  ): Promise<{ success: boolean; outputPath: string; metadata: VideoMetadata }> {
+  ): Promise<{
+    success: boolean;
+    outputPath: string;
+    metadata: VideoMetadata;
+  }> {
     try {
       const metadata = await this.getVideoMetadata(inputPath);
 
@@ -264,7 +265,10 @@ class VideoService {
       const fileName = `${assessmentId}_${Date.now()}.mp4`;
       const storagePath = `assessments/${assessmentId}/videos/${fileName}`;
 
-      logger.info('Uploading video via API', { storagePath, size: videoData.size });
+      logger.info('Uploading video via API', {
+        storagePath,
+        size: videoData.size,
+      });
 
       // Upload via API endpoint — server stores in Supabase Storage
       // and triggers building surveyor AI assessment
@@ -309,19 +313,28 @@ class VideoService {
   ): Promise<string> {
     try {
       // Import the SAM2VideoService (would be copied from web version)
-      const response = await fetch(`${this.getSAM2ServiceUrl()}/process-video-url`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          video_url: videoUrl,
-          damage_types: damageTypes || ['water damage', 'crack', 'rot', 'mold', 'structural damage'],
-          extraction_fps: 2.0,
-          confidence_threshold: 0.5,
-          max_duration_seconds: 60,
-        }),
-      });
+      const response = await fetch(
+        `${this.getSAM2ServiceUrl()}/process-video-url`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            video_url: videoUrl,
+            damage_types: damageTypes || [
+              'water damage',
+              'crack',
+              'rot',
+              'mold',
+              'structural damage',
+            ],
+            extraction_fps: 2.0,
+            confidence_threshold: 0.5,
+            max_duration_seconds: 60,
+          }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error('SAM2 processing failed');
@@ -377,7 +390,7 @@ class VideoService {
       assessmentId: options?.assessmentId,
       createdAt: new Date().toISOString(),
       retryCount: 0,
-      status: 'pending'
+      status: 'pending',
     };
 
     this.uploadQueue.push(queueItem);
@@ -406,7 +419,7 @@ class VideoService {
       while (this.uploadQueue.length > 0) {
         const item = this.uploadQueue[0];
 
-        if (item.status === 'failed' && item.retryCount >= 3) {
+        if (item?.status === 'failed' && item.retryCount >= 3) {
           // Move to failed items after max retries
           this.uploadQueue.shift();
           continue;
@@ -414,17 +427,17 @@ class VideoService {
 
         try {
           // Update status
-          item.status = 'uploading';
-          this.currentUpload = item;
+          item!.status = 'uploading';
+          this.currentUpload = item!;
 
           // Upload video
           const { url } = await this.uploadVideo(
-            item.videoPath,
-            item.assessmentId || 'unknown'
+            item!.videoPath,
+            item!.assessmentId || 'unknown'
           );
 
           // Process with SAM2
-          item.status = 'processing';
+          item!.status = 'processing';
           const processingId = await this.processSAM2Video(url);
 
           // Wait for processing to complete
@@ -433,7 +446,9 @@ class VideoService {
           const maxAttempts = 60; // 2 minutes with 2-second intervals
 
           while (!processingComplete && attempts < maxAttempts) {
-            const status = await this.getSAM2ProcessingStatus(processingId) as {
+            const status = (await this.getSAM2ProcessingStatus(
+              processingId
+            )) as {
               status: string;
               result?: unknown;
               error?: string;
@@ -441,26 +456,25 @@ class VideoService {
 
             if (status.status === 'completed') {
               processingComplete = true;
-              item.status = 'completed';
+              item!.status = 'completed';
 
               // Store results
-              await this.storeProcessingResults(item.id, status.result);
+              await this.storeProcessingResults(item!.id, status.result);
             } else if (status.status === 'failed') {
               throw new Error(status.error || 'Processing failed');
             }
 
             attempts++;
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await new Promise((resolve) => setTimeout(resolve, 2000));
           }
 
           // Remove from queue on success
           this.uploadQueue.shift();
           this.currentUpload = null;
-
         } catch (error) {
           logger.error('Queue processing error', { error, item });
-          item.retryCount++;
-          item.status = 'failed';
+          item!.retryCount++;
+          item!.status = 'failed';
 
           // Move to end of queue for retry
           this.uploadQueue.push(this.uploadQueue.shift()!);
@@ -497,7 +511,9 @@ class VideoService {
   async getProcessingResults(videoId: string): Promise<unknown> {
     try {
       // First check if we have a server-side assessment ID linked to this video
-      const serverAssessmentId = await AsyncStorage.getItem(`video_assessment_${videoId}`);
+      const serverAssessmentId = await AsyncStorage.getItem(
+        `video_assessment_${videoId}`
+      );
 
       if (serverAssessmentId) {
         // Poll server for AI assessment results
@@ -599,14 +615,21 @@ class VideoService {
       processing: 0,
       completed: 0,
       failed: 0,
-      current: this.currentUpload
+      current: this.currentUpload,
     };
 
-    this.uploadQueue.forEach(item => {
-      status[item.status === 'pending' ? 'pending' :
-             item.status === 'uploading' ? 'uploading' :
-             item.status === 'processing' ? 'processing' :
-             item.status === 'completed' ? 'completed' : 'failed']++;
+    this.uploadQueue.forEach((item) => {
+      status[
+        item.status === 'pending'
+          ? 'pending'
+          : item.status === 'uploading'
+            ? 'uploading'
+            : item.status === 'processing'
+              ? 'processing'
+              : item.status === 'completed'
+                ? 'completed'
+                : 'failed'
+      ]++;
     });
 
     return status;
@@ -616,7 +639,9 @@ class VideoService {
    * Clear completed items from queue
    */
   async clearCompleted() {
-    this.uploadQueue = this.uploadQueue.filter(item => item.status !== 'completed');
+    this.uploadQueue = this.uploadQueue.filter(
+      (item) => item.status !== 'completed'
+    );
     await this.saveQueue();
   }
 
@@ -624,7 +649,7 @@ class VideoService {
    * Retry failed items
    */
   async retryFailed() {
-    this.uploadQueue.forEach(item => {
+    this.uploadQueue.forEach((item) => {
       if (item.status === 'failed') {
         item.status = 'pending';
         item.retryCount = 0;

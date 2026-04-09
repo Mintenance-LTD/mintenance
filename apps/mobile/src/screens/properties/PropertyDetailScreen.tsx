@@ -291,8 +291,17 @@ export const PropertyDetailScreen: React.FC<Props> = ({
                 accessibilityLabel={`View ${job.title}`}
                 activeOpacity={0.7}
               >
-                <View style={[styles.jobCatIcon, { backgroundColor: cat.bg }]}>
-                  <Ionicons name={cat.icon} size={18} color={cat.color} />
+                <View
+                  style={[
+                    styles.jobCatIcon,
+                    { backgroundColor: cat?.bg ?? '#F5F5F5' },
+                  ]}
+                >
+                  <Ionicons
+                    name={cat?.icon ?? 'construct-outline'}
+                    size={18}
+                    color={cat?.color ?? '#616161'}
+                  />
                 </View>
                 <View style={styles.jobRowInfo}>
                   <Text style={styles.jobRowTitle} numberOfLines={1}>

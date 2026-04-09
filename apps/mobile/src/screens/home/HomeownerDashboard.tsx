@@ -169,7 +169,7 @@ export const HomeownerDashboard: React.FC = () => {
   }
 
   const userName = user?.first_name || user?.firstName || 'there';
-  const userInitial = userName[0].toUpperCase();
+  const userInitial = (userName[0] ?? 't').toUpperCase();
   const hour = new Date().getHours();
   const greeting =
     hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';

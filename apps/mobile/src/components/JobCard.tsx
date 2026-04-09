@@ -118,8 +118,18 @@ export const JobCard: React.FC<JobCardProps> = ({
 
       {/* Bottom row: status + priority + photos */}
       <View style={styles.bottomRow}>
-        <View style={[styles.statusPill, { backgroundColor: statusColors.bg }]}>
-          <Text style={[styles.statusText, { color: statusColors.text }]}>
+        <View
+          style={[
+            styles.statusPill,
+            { backgroundColor: statusColors?.bg ?? '#E5E7EB' },
+          ]}
+        >
+          <Text
+            style={[
+              styles.statusText,
+              { color: statusColors?.text ?? '#6B7280' },
+            ]}
+          >
             {statusLabel}
           </Text>
         </View>

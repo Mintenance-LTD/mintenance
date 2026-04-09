@@ -30,7 +30,7 @@ const AVATAR_COLORS = [
 
 const getAvatarColor = (name: string): string => {
   const charCode = name.charCodeAt(0) || 0;
-  return AVATAR_COLORS[charCode % AVATAR_COLORS.length];
+  return AVATAR_COLORS[charCode % AVATAR_COLORS.length] ?? '#6B7280';
 };
 
 const getInitial = (name: string): string =>
@@ -51,7 +51,7 @@ const getBidLabel = (
 ): { text: string; color: string; bg: string } | null => {
   if (allBids.length < 2) return null;
   const sorted = [...allBids].sort((a, b) => a.amount - b.amount);
-  if (sorted[0].id === bid.id)
+  if (sorted[0]?.id === bid.id)
     return {
       text: 'Best Price',
       color: theme.colors.primary,

@@ -115,7 +115,11 @@ export const SustainabilityScoreWidget: React.FC<
   }
 
   const formatted = formatESGScore(scoreData);
-  const insights = jobAnalysis ? getSustainabilityInsights(jobAnalysis as unknown as import('../services/SustainabilityEngine').JobSustainabilityAnalysis) : [];
+  const insights = jobAnalysis
+    ? getSustainabilityInsights(
+        jobAnalysis as unknown as import('../services/SustainabilityEngine').JobSustainabilityAnalysis
+      )
+    : [];
   const currentLevel = calculateLevel(scoreData.overall_score);
   const nextMilestone = getNextMilestone(scoreData.overall_score);
 
@@ -247,8 +251,8 @@ export const SustainabilityScoreWidget: React.FC<
         <View style={styles.gamificationContainer}>
           <View style={styles.levelContainer}>
             <Text style={styles.currentLevel}>
-              Current Level: {currentLevel.icon}{' '}
-              {currentLevel.level.toUpperCase()}
+              Current Level: {currentLevel?.icon}{' '}
+              {currentLevel?.level.toUpperCase()}
             </Text>
             <Text style={styles.nextMilestone}>
               Next: {nextMilestone.icon} {nextMilestone.level.toUpperCase()}(
@@ -261,7 +265,7 @@ export const SustainabilityScoreWidget: React.FC<
                 styles.progressFill,
                 {
                   width: `${nextMilestone.progress}%`,
-                  backgroundColor: currentLevel.color,
+                  backgroundColor: currentLevel?.color,
                 },
               ]}
             />
@@ -451,9 +455,16 @@ export const SustainabilityScoreWidget: React.FC<
             disabled={isRecalculating}
           >
             {isRecalculating ? (
-              <ActivityIndicator color={theme.colors.textPrimary} size='small' />
+              <ActivityIndicator
+                color={theme.colors.textPrimary}
+                size='small'
+              />
             ) : (
-              <Ionicons name='refresh' size={16} color={theme.colors.textPrimary} />
+              <Ionicons
+                name='refresh'
+                size={16}
+                color={theme.colors.textPrimary}
+              />
             )}
             <Text style={styles.recalculateText}>
               {isRecalculating ? 'Updating...' : 'Recalculate'}
@@ -469,6 +480,5 @@ export const SustainabilityScoreWidget: React.FC<
     </View>
   );
 };
-
 
 export default SustainabilityScoreWidget;

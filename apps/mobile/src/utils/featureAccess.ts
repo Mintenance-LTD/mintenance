@@ -248,9 +248,7 @@ export class FeatureAccessManager {
       const { data: usageData } = await (
         supabase.from('feature_usage').select('*') as unknown as {
           eq: (...a: unknown[]) => {
-            gte: (
-              ...a: unknown[]
-            ) => Promise<{
+            gte: (...a: unknown[]) => Promise<{
               data:
                 | {
                     feature_id: string;
@@ -442,7 +440,7 @@ export class FeatureAccessManager {
     const upgradeTiers: SubscriptionTier[] = [];
 
     for (let i = currentIndex + 1; i < tierOrder.length; i++) {
-      const tier = tierOrder[i];
+      const tier = tierOrder[i]!;
       const limit = feature.limits[tier];
       const currentLimit = feature.limits[currentTier];
 

@@ -11,7 +11,7 @@ export function extractNumberFromText(
   pattern: RegExp
 ): number | null {
   const match = text.match(pattern);
-  return match ? parseInt(match[1], 10) : null;
+  return match?.[1] ? parseInt(match[1], 10) : null;
 }
 
 /**
@@ -21,7 +21,7 @@ export function extractListFromText(text: string, pattern: RegExp): string[] {
   const match = text.match(pattern);
   if (!match) return [];
 
-  return match[1]
+  return match[1]!
     .split(/[,\n\u2022\-*]/)
     .map((item) => item.trim())
     .filter((item) => item.length > 0)
@@ -72,7 +72,7 @@ export function extractSafetyConcerns(text: string): {
     ];
   }
 
-  const concerns = match[1]
+  const concerns = match[1]!
     .split(/[,\n\u2022\-*]/)
     .map((c) => c.trim())
     .filter((c) => c.length > 0);
@@ -90,7 +90,7 @@ export function extractSafetyConcerns(text: string): {
 export function extractComplexity(text: string): 'Low' | 'Medium' | 'High' {
   const match = text.match(/complexity[:\s]*(low|medium|high)/i);
   if (match) {
-    const complexity = match[1].toLowerCase();
+    const complexity = match[1]!.toLowerCase();
     return (complexity.charAt(0).toUpperCase() + complexity.slice(1)) as
       | 'Low'
       | 'Medium'
@@ -104,5 +104,5 @@ export function extractComplexity(text: string): 'Low' | 'Medium' | 'High' {
  */
 export function extractDuration(text: string): string {
   const match = text.match(/duration[:\s]*([^\n]*)/i);
-  return match ? match[1].trim() : '2-4 hours';
+  return match?.[1] ? match[1].trim() : '2-4 hours';
 }

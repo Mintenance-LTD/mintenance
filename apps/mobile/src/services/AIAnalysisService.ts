@@ -43,7 +43,10 @@ export class AIAnalysisService {
       }
       return this.generateEnhancedAnalysis(job);
     } catch (error) {
-      logger.error('AI analysis failed, falling back to category analysis:', error);
+      logger.error(
+        'AI analysis failed, falling back to category analysis:',
+        error
+      );
       return this.generateCategoryBasedAnalysis(job);
     }
   }
@@ -52,12 +55,15 @@ export class AIAnalysisService {
    * Analyze via web API (server-side AI)
    */
   private static async analyzeViaAPI(job: Job): Promise<AIAnalysis | null> {
-    const response = await mobileApiClient.post<{ analysis?: AIAnalysis }>('/api/ai/analyze', {
-      jobId: job.id,
-      category: job.category,
-      description: job.description,
-      photos: job.photos,
-    });
+    const response = await mobileApiClient.post<{ analysis?: AIAnalysis }>(
+      '/api/ai/analyze',
+      {
+        jobId: job.id,
+        category: job.category,
+        description: job.description,
+        photos: job.photos,
+      }
+    );
     return response.analysis || null;
   }
 
@@ -394,7 +400,7 @@ export class AIAnalysisService {
       name: item.name,
       confidence: item.baseConfidence + Math.floor(Math.random() * 10) - 5, // ±5% variation
       location:
-        item.locations[Math.floor(Math.random() * item.locations.length)],
+        item.locations[Math.floor(Math.random() * item.locations.length)] ?? '',
     }));
   }
 

@@ -66,7 +66,7 @@ const STATUS_CONFIG: Record<string, StatusConfig> = {
   },
 };
 
-const DEFAULT_STATUS: StatusConfig = STATUS_CONFIG.posted;
+const DEFAULT_STATUS: StatusConfig = STATUS_CONFIG.posted!;
 
 const JOB_WORKFLOW: {
   status: string;

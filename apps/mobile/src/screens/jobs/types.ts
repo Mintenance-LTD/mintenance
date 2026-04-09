@@ -133,7 +133,7 @@ export const STATUS_STYLES: Record<
         label: badge.label,
         bg: badge.bg,
         text: badge.text,
-        icon: STATUS_ICONS[key],
+        icon: STATUS_ICONS[key] ?? 'ellipse',
       },
     ];
   })

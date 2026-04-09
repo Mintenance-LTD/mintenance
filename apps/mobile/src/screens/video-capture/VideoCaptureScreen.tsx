@@ -357,7 +357,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
       </SafeAreaView>
 
       {/* Guidance Overlay */}
-      {showGuidance && isRecording && (
+      {showGuidance && isRecording && currentPhase && (
         <Reanimated.View style={[styles.guidanceOverlay, guidanceStyle]}>
           <View style={styles.guidanceCard}>
             <View style={styles.guidanceHeader}>
@@ -387,14 +387,14 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
               ))}
             </View>
 
-            {currentPhase.tips.length > 0 && (
+            {(currentPhase.tips?.length ?? 0) > 0 && (
               <View style={styles.tipsContainer}>
                 <Icon
                   name='lightbulb-outline'
                   size={20}
                   color={theme.colors.accent}
                 />
-                <Text style={styles.tipText}>{currentPhase.tips[0]}</Text>
+                <Text style={styles.tipText}>{currentPhase.tips?.[0]}</Text>
               </View>
             )}
           </View>
