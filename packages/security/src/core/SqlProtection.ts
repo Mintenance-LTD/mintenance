@@ -273,8 +273,20 @@ export class SqlProtection {
       }
       // In production, this should send to a security monitoring service
       // Example: Sentry, Datadog, CloudWatch, etc.
-      if (typeof global !== 'undefined' && (global as any).securityLogger) {
-        (global as any).securityLogger.warn('SQL injection attempt', logData);
+      const globalObj =
+        typeof global !== 'undefined'
+          ? (global as unknown as Record<string, unknown>)
+          : undefined;
+      if (
+        globalObj?.securityLogger &&
+        typeof (globalObj.securityLogger as { warn?: unknown }).warn ===
+          'function'
+      ) {
+        (
+          globalObj.securityLogger as {
+            warn: (msg: string, data: unknown) => void;
+          }
+        ).warn('SQL injection attempt', logData);
       }
     }
   }

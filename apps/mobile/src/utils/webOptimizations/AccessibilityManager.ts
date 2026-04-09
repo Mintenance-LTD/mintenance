@@ -21,7 +21,10 @@ export class AccessibilityManager {
     if (Platform.OS !== 'web') return;
 
     try {
-      logger.info('AccessibilityManager', 'Initializing accessibility features');
+      logger.info(
+        'AccessibilityManager',
+        'Initializing accessibility features'
+      );
 
       // Setup keyboard navigation
       if (this.config.enableKeyboardNavigation) {
@@ -44,9 +47,16 @@ export class AccessibilityManager {
         this.setupAriaLiveRegions();
       }
 
-      logger.info('AccessibilityManager', 'Accessibility initialized successfully');
+      logger.info(
+        'AccessibilityManager',
+        'Accessibility initialized successfully'
+      );
     } catch (error) {
-      logger.error('AccessibilityManager', 'Failed to initialize accessibility', { error: error instanceof Error ? error.message : String(error) });
+      logger.error(
+        'AccessibilityManager',
+        'Failed to initialize accessibility',
+        { error: error instanceof Error ? error.message : String(error) }
+      );
     }
   }
 
@@ -88,10 +98,14 @@ export class AccessibilityManager {
    */
   private handleEscapeKey(): void {
     // Find topmost modal
-    const modals = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+    const modals = document.querySelectorAll(
+      '[role="dialog"][aria-modal="true"]'
+    );
     if (modals.length > 0) {
-      const topModal = modals[modals.length - 1];
-      const closeButton = topModal.querySelector('[aria-label*="close" i], [data-close]');
+      const topModal = modals[modals.length - 1]!;
+      const closeButton = topModal.querySelector(
+        '[aria-label*="close" i], [data-close]'
+      );
 
       if (closeButton) {
         (closeButton as HTMLElement).click();
@@ -171,7 +185,9 @@ export class AccessibilityManager {
 
     skipLink.addEventListener('click', (e) => {
       e.preventDefault();
-      const mainContent = document.getElementById('main-content') || document.querySelector('main');
+      const mainContent =
+        document.getElementById('main-content') ||
+        document.querySelector('main');
 
       if (mainContent) {
         mainContent.setAttribute('tabindex', '-1');
@@ -200,7 +216,9 @@ export class AccessibilityManager {
     });
 
     // Reduced motion preference
-    const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const reducedMotionQuery = window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    );
     this.handleReducedMotion(reducedMotionQuery.matches);
     reducedMotionQuery.addEventListener('change', (e) => {
       this.handleReducedMotion(e.matches);
@@ -296,7 +314,8 @@ export class AccessibilityManager {
   announce(message: string, priority: 'polite' | 'assertive' = 'polite'): void {
     if (Platform.OS !== 'web') return;
 
-    const regionId = priority === 'assertive' ? 'aria-live-assertive' : 'aria-live-polite';
+    const regionId =
+      priority === 'assertive' ? 'aria-live-assertive' : 'aria-live-polite';
     const liveRegion = document.getElementById(regionId);
 
     if (liveRegion) {
@@ -307,7 +326,10 @@ export class AccessibilityManager {
         liveRegion.textContent = '';
       }, 3000);
 
-      logger.debug('AccessibilityManager', 'Announcement made', { message, priority });
+      logger.debug('AccessibilityManager', 'Announcement made', {
+        message,
+        priority,
+      });
     }
   }
 
@@ -322,7 +344,9 @@ export class AccessibilityManager {
     if (focusableElements.length === 0) return;
 
     const firstElement = focusableElements[0] as HTMLElement;
-    const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+    const lastElement = focusableElements[
+      focusableElements.length - 1
+    ] as HTMLElement;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Tab') return;
@@ -348,7 +372,9 @@ export class AccessibilityManager {
     // Focus first element
     firstElement.focus();
 
-    logger.debug('AccessibilityManager', 'Focus trapped', { element: element.id });
+    logger.debug('AccessibilityManager', 'Focus trapped', {
+      element: element.id,
+    });
   }
 
   /**
@@ -357,7 +383,9 @@ export class AccessibilityManager {
   releaseFocusTrap(): void {
     const element = this.focusTrapStack.pop();
     if (element) {
-      logger.debug('AccessibilityManager', 'Focus trap released', { element: element.id });
+      logger.debug('AccessibilityManager', 'Focus trap released', {
+        element: element.id,
+      });
     }
   }
 

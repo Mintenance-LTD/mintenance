@@ -8,7 +8,14 @@
  */
 
 import React, { useRef } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Dimensions, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  FlatList,
+  Dimensions,
+  StyleSheet,
+} from 'react-native';
 import type { SpecialOffer } from '../viewmodels/EnhancedHomeViewModel';
 import { theme } from '../../../theme';
 
@@ -26,11 +33,13 @@ export const SpecialOffersCarousel: React.FC<SpecialOffersCarouselProps> = ({
   const [currentIndex, setCurrentIndex] = React.useState(0);
   const flatListRef = useRef<FlatList>(null);
 
-  const onViewRef = React.useRef((info: { viewableItems: Array<{ index: number | null }> }) => {
-    if (info.viewableItems.length > 0) {
-      setCurrentIndex(info.viewableItems[0].index || 0);
+  const onViewRef = React.useRef(
+    (info: { viewableItems: Array<{ index: number | null }> }) => {
+      if (info.viewableItems.length > 0) {
+        setCurrentIndex(info.viewableItems[0]?.index ?? 0);
+      }
     }
-  });
+  );
 
   const viewConfigRef = React.useRef({ viewAreaCoveragePercentThreshold: 50 });
 

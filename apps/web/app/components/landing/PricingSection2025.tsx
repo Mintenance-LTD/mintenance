@@ -8,64 +8,52 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 const plans = [
   {
-    name: 'Free',
+    name: 'Basic',
     price: '£0',
     period: 'forever',
     description: 'Free forever - no credit card required',
-    features: ['5 bids per month', 'Basic profile', 'Email support', 'Job browsing', 'Messaging', '3 portfolio photos'],
+    features: [
+      '10 bids per month',
+      'Basic profile',
+      'Email support',
+      'Job browsing',
+      'Messaging',
+      '3 portfolio photos',
+    ],
     cta: 'Start Free',
     popular: false,
     gradient: 'from-gray-500 to-gray-600',
   },
   {
-    name: 'Basic',
-    price: '£29',
-    period: 'per month',
-    description: 'For independent contractors',
-    features: [
-      '20 bids per month',
-      'Enhanced profile',
-      'Discovery card',
-      'Priority support',
-      '20 portfolio photos',
-      'Invoice management',
-    ],
-    cta: 'Upgrade to Basic',
-    popular: false,
-    gradient: 'from-[#0066CC] to-[#0052A3]',
-  },
-  {
     name: 'Professional',
-    price: '£79',
+    price: '£29',
     period: 'per month',
     description: 'Most popular for growing businesses',
     features: [
-      '100 bids per month',
-      'Premium profile with badge',
-      'Social feed access',
-      'CRM tools',
-      'Advanced analytics',
-      '100 portfolio photos',
+      'Unlimited job bids',
+      'Featured in search results',
+      'Advanced analytics dashboard',
       'Priority support',
+      'Lead recommendations',
+      'Custom quote templates',
     ],
-    cta: 'Upgrade to Professional',
+    cta: 'Go Professional',
     popular: true,
     gradient: 'from-[#10B981] to-emerald-600',
   },
   {
-    name: 'Enterprise',
-    price: '£199',
+    name: 'Business',
+    price: '£99',
     period: 'per month',
-    description: 'For established companies',
+    description: 'For established businesses and teams',
     features: [
-      'Unlimited bids',
-      'Featured listing',
+      'Everything in Professional',
       'Dedicated account manager',
+      'Team member accounts (up to 10)',
       'API access',
-      'Custom integrations',
-      'Team management',
-      'White-label options',
-      'Training & onboarding',
+      'Custom branding',
+      'White-label invoicing',
+      'Advanced automation tools',
     ],
     cta: 'Contact Sales',
     popular: false,
@@ -74,29 +62,32 @@ const plans = [
 ];
 
 export function PricingSection2025() {
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>(
+    'monthly'
+  );
   const prefersReducedMotion = useReducedMotion();
 
   return (
-    <section className="py-24 bg-gradient-to-b from-white to-gray-50">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+    <section className='py-24 bg-gradient-to-b from-white to-gray-50'>
+      <div className='container mx-auto px-4 sm:px-6 lg:px-8'>
         {/* Header */}
         <motion.div
-          className="text-center mb-16"
+          className='text-center mb-16'
           initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
           whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          <h2 className='text-4xl md:text-5xl font-bold text-gray-900 mb-4'>
             Simple, Transparent Pricing
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-            Start free forever. Upgrade anytime for more contractor bid capacity and features. Always free for homeowners.
+          <p className='text-xl text-gray-600 max-w-3xl mx-auto mb-8'>
+            Start free forever. Upgrade anytime for more contractor bid capacity
+            and features. Always free for homeowners.
           </p>
 
           {/* Billing Toggle */}
-          <div className="inline-flex items-center p-1 bg-gray-200 rounded-2xl">
+          <div className='inline-flex items-center p-1 bg-gray-200 rounded-2xl'>
             <button
               onClick={() => setBillingCycle('monthly')}
               className={`px-6 py-2 rounded-xl font-semibold transition-all duration-300 ${
@@ -116,8 +107,8 @@ export function PricingSection2025() {
               }`}
             >
               Annual
-              <span className="px-2 py-0.5 bg-[#10B981] text-white text-xs rounded-full">
-                Save 20%
+              <span className='px-2 py-0.5 bg-[#10B981] text-white text-xs rounded-full'>
+                Save 17%
               </span>
             </button>
           </div>
@@ -125,37 +116,44 @@ export function PricingSection2025() {
 
         {/* Homeowner Pricing Banner */}
         <motion.div
-          className="mb-12 p-6 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl text-white text-center"
-          initial={!prefersReducedMotion ? { opacity: 0, scale: 0.95 } : undefined}
-          whileInView={!prefersReducedMotion ? { opacity: 1, scale: 1 } : undefined}
+          className='mb-12 p-6 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl text-white text-center'
+          initial={
+            !prefersReducedMotion ? { opacity: 0, scale: 0.95 } : undefined
+          }
+          whileInView={
+            !prefersReducedMotion ? { opacity: 1, scale: 1 } : undefined
+          }
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <h3 className="text-2xl font-bold mb-2">Always Free for Homeowners</h3>
-          <p className="text-emerald-50 mb-4">
-            Free plan: unlimited job posts, up to 5 quotes per job, and up to 3 properties.
-            Premium unlocks unlimited properties and landlord portfolio workflows.
+          <h3 className='text-2xl font-bold mb-2'>
+            Always Free for Homeowners
+          </h3>
+          <p className='text-emerald-50 mb-4'>
+            Free plan: unlimited job posts, up to 5 quotes per job, and up to 3
+            properties. Premium unlocks unlimited properties and landlord
+            portfolio workflows.
           </p>
-          <p className="text-emerald-100 text-sm mb-4">
+          <p className='text-emerald-100 text-sm mb-4'>
             Launch offer: first 100 homeowners get full premium features.
           </p>
-          <div className="flex items-center justify-center gap-8 text-sm">
+          <div className='flex items-center justify-center gap-8 text-sm'>
             <div>
-              <span className="font-bold">Unlimited</span> job posts
+              <span className='font-bold'>Unlimited</span> job posts
             </div>
-            <div className="h-4 w-px bg-white/30" />
+            <div className='h-4 w-px bg-white/30' />
             <div>
-              <span className="font-bold">5 quotes</span> per job (free)
+              <span className='font-bold'>5 quotes</span> per job (free)
             </div>
-            <div className="h-4 w-px bg-white/30" />
+            <div className='h-4 w-px bg-white/30' />
             <div>
-              <span className="font-bold">3 properties</span> on free
+              <span className='font-bold'>3 properties</span> on free
             </div>
           </div>
         </motion.div>
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+        <div className='grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto'>
           {plans.map((plan, index) => (
             <PricingCard
               key={plan.name}
@@ -169,23 +167,28 @@ export function PricingSection2025() {
 
         {/* Comparison Table Link */}
         <motion.div
-          className="text-center mt-12"
+          className='text-center mt-12'
           initial={!prefersReducedMotion ? { opacity: 0 } : undefined}
           whileInView={!prefersReducedMotion ? { opacity: 1 } : undefined}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.3 }}
         >
           <Link
-            href="/pricing"
-            className="inline-flex items-center gap-2 text-[#0066CC] font-semibold hover:gap-3 transition-all"
+            href='/pricing'
+            className='inline-flex items-center gap-2 text-[#0066CC] font-semibold hover:gap-3 transition-all'
           >
             View detailed feature comparison
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className='w-4 h-4'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+            >
               <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
+                strokeLinecap='round'
+                strokeLinejoin='round'
                 strokeWidth={2}
-                d="M9 5l7 7-7 7"
+                d='M9 5l7 7-7 7'
               />
             </svg>
           </Link>
@@ -201,14 +204,15 @@ function PricingCard({
   billingCycle,
   prefersReducedMotion,
 }: {
-  plan: typeof plans[0];
+  plan: (typeof plans)[0];
   index: number;
   billingCycle: 'monthly' | 'annual';
   prefersReducedMotion: boolean;
 }) {
+  // Annual pricing: ~17% discount (matches /pricing page)
   const annualPrice =
     billingCycle === 'annual' && plan.price !== '£0'
-      ? `£${Math.round(parseInt(plan.price.replace('£', '')) * 0.8)}`
+      ? `£${Math.round(parseInt(plan.price.replace('£', '')) * 10)}`
       : plan.price;
 
   return (
@@ -224,32 +228,44 @@ function PricingCard({
     >
       {/* Popular Badge */}
       {plan.popular && (
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-[#10B981] to-emerald-600 text-white text-sm font-bold rounded-full shadow-lg flex items-center gap-1">
-          <Zap className="w-3 h-3" />
+        <div className='absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-[#10B981] to-emerald-600 text-white text-sm font-bold rounded-full shadow-lg flex items-center gap-1'>
+          <Zap className='w-3 h-3' />
           MOST POPULAR
         </div>
       )}
 
       {/* Plan Name */}
-      <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
-      <p className="text-gray-600 text-sm mb-6">{plan.description}</p>
+      <h3 className='text-2xl font-bold text-gray-900 mb-2'>{plan.name}</h3>
+      <p className='text-gray-600 text-sm mb-6'>{plan.description}</p>
 
       {/* Price */}
-      <div className="mb-6">
-        <div className="flex items-baseline gap-1">
-          <span className="text-5xl font-bold text-gray-900">{annualPrice}</span>
-          <span className="text-gray-600">/{plan.period}</span>
+      <div className='mb-6'>
+        <div className='flex items-baseline gap-1'>
+          <span className='text-5xl font-bold text-gray-900'>
+            {annualPrice}
+          </span>
+          <span className='text-gray-600'>
+            /
+            {billingCycle === 'annual' && plan.price !== '£0'
+              ? 'year'
+              : plan.period}
+          </span>
         </div>
         {billingCycle === 'annual' && plan.price !== '£0' && (
-          <p className="text-sm text-emerald-600 font-medium mt-1">
-            Save £{(parseInt(plan.price.replace('£', '')) * 0.2 * 12).toFixed(0)} per year
+          <p className='text-sm text-emerald-600 font-medium mt-1'>
+            Save £
+            {(
+              parseInt(plan.price.replace('£', '')) * 12 -
+              parseInt(plan.price.replace('£', '')) * 10
+            ).toFixed(0)}{' '}
+            per year
           </p>
         )}
       </div>
 
       {/* CTA Button */}
       <Link
-        href="/register?role=contractor"
+        href='/register?role=contractor'
         className={`block w-full py-3 px-6 rounded-xl font-bold text-center transition-all duration-300 mb-6 ${
           plan.popular
             ? 'bg-gradient-to-r from-[#10B981] to-emerald-600 text-white hover:shadow-xl hover:scale-105'
@@ -260,15 +276,15 @@ function PricingCard({
       </Link>
 
       {/* Features */}
-      <ul className="space-y-3">
+      <ul className='space-y-3'>
         {plan.features.map((feature) => (
-          <li key={feature} className="flex items-start gap-3">
+          <li key={feature} className='flex items-start gap-3'>
             <div
               className={`flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-br ${plan.gradient} flex items-center justify-center mt-0.5`}
             >
-              <Check className="w-3 h-3 text-white" />
+              <Check className='w-3 h-3 text-white' />
             </div>
-            <span className="text-gray-700 text-sm">{feature}</span>
+            <span className='text-gray-700 text-sm'>{feature}</span>
           </li>
         ))}
       </ul>

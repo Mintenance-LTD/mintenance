@@ -23,22 +23,30 @@ import type { MessageThread } from '../services/MessagingService';
 import type { MessagingStackParamList } from '../navigation/types';
 import { theme } from '../theme';
 
-const AVATAR_COLORS = ['#222222', '#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444'];
+const AVATAR_COLORS = [
+  '#222222',
+  '#10B981',
+  '#3B82F6',
+  '#8B5CF6',
+  '#F59E0B',
+  '#EF4444',
+];
 
 function getAvatarColor(name: string): string {
-  return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
+  return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length] ?? '#222222';
 }
 
 function getInitials(name: string): string {
   const parts = name.trim().split(' ');
   if (parts.length >= 2) {
-    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+    return `${parts[0]?.[0] ?? ''}${parts[parts.length - 1]?.[0] ?? ''}`.toUpperCase();
   }
   return name.substring(0, 2).toUpperCase();
 }
 
 const MessagesListScreen: React.FC = () => {
-  const navigation = useNavigation<NativeStackNavigationProp<MessagingStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<MessagingStackParamList>>();
   const { user } = useAuth();
   const haptics = useHaptics();
   const [refreshing, setRefreshing] = useState(false);
@@ -56,15 +64,21 @@ const MessagesListScreen: React.FC = () => {
   const filteredConversations = useMemo(() => {
     // Sort by most recent message first
     const sorted = [...conversations].sort((a, b) => {
-      const aTime = a.lastMessage?.createdAt ? new Date(a.lastMessage.createdAt).getTime() : 0;
-      const bTime = b.lastMessage?.createdAt ? new Date(b.lastMessage.createdAt).getTime() : 0;
+      const aTime = a.lastMessage?.createdAt
+        ? new Date(a.lastMessage.createdAt).getTime()
+        : 0;
+      const bTime = b.lastMessage?.createdAt
+        ? new Date(b.lastMessage.createdAt).getTime()
+        : 0;
       return bTime - aTime;
     });
 
     if (!searchQuery.trim()) return sorted;
     const q = searchQuery.toLowerCase();
     return sorted.filter((thread) => {
-      const other = thread.participants.find((p) => p.id !== user?.id) || thread.participants[0];
+      const other =
+        thread.participants.find((p) => p.id !== user?.id) ||
+        thread.participants[0];
       return (
         other?.name?.toLowerCase().includes(q) ||
         thread.jobTitle?.toLowerCase().includes(q)
@@ -96,7 +110,9 @@ const MessagesListScreen: React.FC = () => {
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle} accessibilityRole='header'>Messages</Text>
+          <Text style={styles.headerTitle} accessibilityRole='header'>
+            Messages
+          </Text>
           <TouchableOpacity
             style={styles.searchButton}
             accessibilityRole='button'
@@ -138,7 +154,12 @@ const MessagesListScreen: React.FC = () => {
               accessibilityRole='button'
               accessibilityLabel='Retry loading messages'
             >
-              <Ionicons name='refresh' size={18} color={theme.colors.textInverse} style={styles.retryIcon} />
+              <Ionicons
+                name='refresh'
+                size={18}
+                color={theme.colors.textInverse}
+                style={styles.retryIcon}
+              />
               <Text style={styles.retryText}>Retry</Text>
             </TouchableOpacity>
           </View>
@@ -163,7 +184,12 @@ const MessagesListScreen: React.FC = () => {
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <View style={styles.emptyIconWrap}>
-                  <Ionicons name='chatbubbles-outline' size={32} color={theme.colors.textSecondary} accessible={false} />
+                  <Ionicons
+                    name='chatbubbles-outline'
+                    size={32}
+                    color={theme.colors.textSecondary}
+                    accessible={false}
+                  />
                 </View>
                 <Text style={styles.emptyText}>No conversations yet</Text>
                 <Text style={styles.emptySubtext}>
@@ -173,7 +199,9 @@ const MessagesListScreen: React.FC = () => {
             }
             renderItem={({ item: thread }) => {
               const otherParticipant =
-                thread.participants.find((p) => p.id !== user?.id) || thread.participants[0];
+                thread.participants.find((p) => p.id !== user?.id) ??
+                thread.participants[0];
+              if (!otherParticipant) return null;
               const formatTime = (timestamp: string) => {
                 const date = new Date(timestamp);
                 const now = new Date();
@@ -208,12 +236,23 @@ const MessagesListScreen: React.FC = () => {
                   accessibilityHint='Double tap to open conversation'
                 >
                   <View style={styles.avatarContainer}>
-                    <View style={[styles.avatarCircle, { backgroundColor: getAvatarColor(otherParticipant.name) }]}>
+                    <View
+                      style={[
+                        styles.avatarCircle,
+                        {
+                          backgroundColor: getAvatarColor(
+                            otherParticipant.name
+                          ),
+                        },
+                      ]}
+                    >
                       <Text style={styles.avatarInitials}>
                         {getInitials(otherParticipant.name)}
                       </Text>
                     </View>
-                    {thread.unreadCount > 0 && <View style={styles.unreadDot} />}
+                    {thread.unreadCount > 0 && (
+                      <View style={styles.unreadDot} />
+                    )}
                   </View>
 
                   <View style={styles.conversationContent}>
@@ -236,7 +275,8 @@ const MessagesListScreen: React.FC = () => {
                       ]}
                       numberOfLines={1}
                     >
-                      {thread.lastMessage?.messageText || 'Start the conversation'}
+                      {thread.lastMessage?.messageText ||
+                        'Start the conversation'}
                     </Text>
 
                     {thread.unreadCount > 0 && (
@@ -248,13 +288,17 @@ const MessagesListScreen: React.FC = () => {
                     )}
                   </View>
 
-                  <Ionicons name='chevron-forward' size={14} color={theme.colors.textTertiary} />
+                  <Ionicons
+                    name='chevron-forward'
+                    size={14}
+                    color={theme.colors.textTertiary}
+                  />
                 </TouchableOpacity>
               );
             }}
           />
         )}
-    </View>
+      </View>
     </SafeAreaView>
   );
 };

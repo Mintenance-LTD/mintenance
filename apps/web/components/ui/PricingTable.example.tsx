@@ -2,7 +2,7 @@
 
 /**
  * Example Usage of PricingTable and ResponsiveGrid Components
- * 
+ *
  * This file demonstrates how to use the new components with proper typography
  * and responsive design patterns.
  */
@@ -17,7 +17,7 @@ const examplePlans: PricingPlan[] = [
   {
     id: 'basic',
     name: 'Basic',
-    price: 19.99,
+    price: 0,
     currency: 'GBP',
     period: 'month',
     features: [
@@ -31,24 +31,24 @@ const examplePlans: PricingPlan[] = [
   {
     id: 'professional',
     name: 'Professional',
-    price: 49.99,
+    price: 29,
     currency: 'GBP',
     period: 'month',
     features: [
-      'Up to 50 jobs',
-      '20 active jobs',
+      'Unlimited jobs',
+      'Unlimited active jobs',
       'Priority support',
       'Advanced analytics',
-      'Mobile app access',
-      'Custom reports',
+      'Lead recommendations',
+      'Custom quote templates',
     ],
     recommended: true,
     badge: 'MOST POPULAR',
   },
   {
-    id: 'enterprise',
-    name: 'Enterprise',
-    price: 99.99,
+    id: 'business',
+    name: 'Business',
+    price: 99,
     currency: 'GBP',
     period: 'month',
     features: [
@@ -70,13 +70,13 @@ export function PricingExample() {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className='w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12'>
       {/* Page Heading */}
-      <div className="text-center mb-12">
-        <h1 className="text-heading-lg font-[640] text-gray-900 mb-4 tracking-tighter">
+      <div className='text-center mb-12'>
+        <h1 className='text-heading-lg font-[640] text-gray-900 mb-4 tracking-tighter'>
           Choose Your Plan
         </h1>
-        <p className="text-subheading-md font-[560] text-gray-600">
+        <p className='text-subheading-md font-[560] text-gray-600'>
           Select the perfect plan for your business needs
         </p>
       </div>
@@ -93,19 +93,14 @@ export function PricingExample() {
 
 export function ResponsiveGridExample() {
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <h2 className="text-heading-md font-[640] text-gray-900 mb-8 tracking-tighter">
+    <div className='w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12'>
+      <h2 className='text-heading-md font-[640] text-gray-900 mb-8 tracking-tighter'>
         Responsive Grid Layout Example
       </h2>
 
       <ResponsiveGrid
         areas={{
-          mobile: [
-            ['header'],
-            ['main'],
-            ['sidebar'],
-            ['footer'],
-          ],
+          mobile: [['header'], ['main'], ['sidebar'], ['footer']],
           tablet: [
             ['header', 'header'],
             ['sidebar', 'main'],
@@ -117,59 +112,54 @@ export function ResponsiveGridExample() {
             ['footer', 'footer', 'footer'],
           ],
         }}
-        gap="lg"
-        className="min-h-[600px]"
+        gap='lg'
+        className='min-h-[600px]'
       >
         <GridArea
-          area="header"
-          className="bg-primary-600 text-white p-6 rounded-lg flex items-center justify-center"
+          area='header'
+          className='bg-primary-600 text-white p-6 rounded-lg flex items-center justify-center'
         >
-          <h3 className="text-subheading-lg font-[560]">Header</h3>
+          <h3 className='text-subheading-lg font-[560]'>Header</h3>
         </GridArea>
 
-        <GridArea
-          area="sidebar"
-          className="bg-gray-100 p-6 rounded-lg"
-        >
-          <h3 className="text-subheading-md font-[560] mb-4">Sidebar</h3>
-          <p className="text-base font-[460] text-gray-700 leading-normal">
-            Sidebar content goes here. This area adapts to different screen sizes.
+        <GridArea area='sidebar' className='bg-gray-100 p-6 rounded-lg'>
+          <h3 className='text-subheading-md font-[560] mb-4'>Sidebar</h3>
+          <p className='text-base font-[460] text-gray-700 leading-normal'>
+            Sidebar content goes here. This area adapts to different screen
+            sizes.
           </p>
         </GridArea>
 
         <GridArea
-          area="main"
-          className="bg-white border-2 border-gray-200 p-6 rounded-lg"
+          area='main'
+          className='bg-white border-2 border-gray-200 p-6 rounded-lg'
         >
-          <h3 className="text-subheading-md font-[560] mb-4">Main Content</h3>
-          <p className="text-base font-[460] text-gray-700 leading-normal mb-4">
+          <h3 className='text-subheading-md font-[560] mb-4'>Main Content</h3>
+          <p className='text-base font-[460] text-gray-700 leading-normal mb-4'>
             Main content area. This is the primary focus of the layout.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-gray-50 p-4 rounded">
-              <p className="text-sm font-[460] text-gray-600">Widget 1</p>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            <div className='bg-gray-50 p-4 rounded'>
+              <p className='text-sm font-[460] text-gray-600'>Widget 1</p>
             </div>
-            <div className="bg-gray-50 p-4 rounded">
-              <p className="text-sm font-[460] text-gray-600">Widget 2</p>
+            <div className='bg-gray-50 p-4 rounded'>
+              <p className='text-sm font-[460] text-gray-600'>Widget 2</p>
             </div>
           </div>
         </GridArea>
 
-        <GridArea
-          area="aside"
-          className="bg-accent-50 p-6 rounded-lg"
-        >
-          <h3 className="text-subheading-md font-[560] mb-4">Aside</h3>
-          <p className="text-base font-[460] text-gray-700 leading-normal">
+        <GridArea area='aside' className='bg-accent-50 p-6 rounded-lg'>
+          <h3 className='text-subheading-md font-[560] mb-4'>Aside</h3>
+          <p className='text-base font-[460] text-gray-700 leading-normal'>
             Additional content or widgets appear here on desktop.
           </p>
         </GridArea>
 
         <GridArea
-          area="footer"
-          className="bg-gray-800 text-white p-6 rounded-lg flex items-center justify-center"
+          area='footer'
+          className='bg-gray-800 text-white p-6 rounded-lg flex items-center justify-center'
         >
-          <p className="text-sm font-[460]">Footer Content</p>
+          <p className='text-sm font-[460]'>Footer Content</p>
         </GridArea>
       </ResponsiveGrid>
     </div>
@@ -178,12 +168,11 @@ export function ResponsiveGridExample() {
 
 export function CombinedExample() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className='min-h-screen bg-gray-50'>
       <PricingExample />
-      <div className="mt-16">
+      <div className='mt-16'>
         <ResponsiveGridExample />
       </div>
     </div>
   );
 }
-

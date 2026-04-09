@@ -8,7 +8,7 @@ import {
   ErrorPattern,
   ErrorTrend,
   ErrorSeverity,
-  ErrorCategory
+  ErrorCategory,
 } from './ErrorTypes';
 
 export class ErrorReportGenerator {
@@ -44,7 +44,7 @@ export class ErrorReportGenerator {
         report += `- **Impact Score:** ${pattern.metrics.impactScore}/100\n`;
         report += `- **Trend:** ${pattern.metrics.trend}\n`;
         if (pattern.recommendations.length > 0) {
-          report += `- **Top Recommendation:** ${pattern.recommendations[0].title}\n`;
+          report += `- **Top Recommendation:** ${pattern.recommendations[0]!.title}\n`;
         }
         report += '\n';
       });
@@ -61,7 +61,7 @@ export class ErrorReportGenerator {
     report += '\n';
 
     // Insights
-    const allInsights = topPatterns.flatMap(p => p.insights).slice(0, 5);
+    const allInsights = topPatterns.flatMap((p) => p.insights).slice(0, 5);
     if (allInsights.length > 0) {
       report += `## 💡 Key Insights\n\n`;
       allInsights.forEach((insight, index) => {
@@ -72,8 +72,8 @@ export class ErrorReportGenerator {
 
     // Recommendations
     const allRecommendations = topPatterns
-      .flatMap(p => p.recommendations)
-      .filter(r => r.priority === 'critical' || r.priority === 'high')
+      .flatMap((p) => p.recommendations)
+      .filter((r) => r.priority === 'critical' || r.priority === 'high')
       .slice(0, 5);
 
     if (allRecommendations.length > 0) {
@@ -96,12 +96,18 @@ export class ErrorReportGenerator {
    */
   private getSeverityEmoji(severity: ErrorSeverity): string {
     switch (severity) {
-      case ErrorSeverity.FATAL: return '🚨';
-      case ErrorSeverity.ERROR: return '🔴';
-      case ErrorSeverity.WARNING: return '🟡';
-      case ErrorSeverity.INFO: return '🔵';
-      case ErrorSeverity.DEBUG: return '⚪';
-      default: return '❓';
+      case ErrorSeverity.FATAL:
+        return '🚨';
+      case ErrorSeverity.ERROR:
+        return '🔴';
+      case ErrorSeverity.WARNING:
+        return '🟡';
+      case ErrorSeverity.INFO:
+        return '🔵';
+      case ErrorSeverity.DEBUG:
+        return '⚪';
+      default:
+        return '❓';
     }
   }
 }

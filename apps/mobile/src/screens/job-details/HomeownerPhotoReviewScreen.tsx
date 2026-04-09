@@ -71,33 +71,38 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
       const pairs: PhotoPair[] = [];
       const pairCount = Math.min(beforePhotos.length, afterPhotos.length);
       for (let i = 0; i < pairCount; i++) {
+        const bp = beforePhotos[i];
+        const ap = afterPhotos[i];
+        if (!bp || !ap) continue;
         pairs.push({
           before: {
-            url: beforePhotos[i].photo_url,
-            id: beforePhotos[i].id,
-            timestamp: beforePhotos[i].created_at,
+            url: bp.photo_url,
+            id: bp.id,
+            timestamp: bp.created_at,
           },
           after: {
-            url: afterPhotos[i].photo_url,
-            id: afterPhotos[i].id,
-            timestamp: afterPhotos[i].created_at,
+            url: ap.photo_url,
+            id: ap.id,
+            timestamp: ap.created_at,
           },
         });
       }
 
       // Add unpaired after photos reusing the first before photo as context
+      const firstBefore = beforePhotos[0];
       for (let i = pairCount; i < afterPhotos.length; i++) {
-        if (beforePhotos.length > 0) {
+        const ap = afterPhotos[i];
+        if (firstBefore && ap) {
           pairs.push({
             before: {
-              url: beforePhotos[0].photo_url,
-              id: beforePhotos[0].id,
-              timestamp: beforePhotos[0].created_at,
+              url: firstBefore.photo_url,
+              id: firstBefore.id,
+              timestamp: firstBefore.created_at,
             },
             after: {
-              url: afterPhotos[i].photo_url,
-              id: afterPhotos[i].id,
-              timestamp: afterPhotos[i].created_at,
+              url: ap.photo_url,
+              id: ap.id,
+              timestamp: ap.created_at,
             },
           });
         }

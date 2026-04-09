@@ -34,10 +34,12 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
 
 function parseTime(timeStr: string): number {
   const [hours, minutes] = timeStr.split(':').map(Number);
-  return hours * 60 + minutes;
+  return (hours ?? 0) * 60 + (minutes ?? 0);
 }
 
-export async function getNotificationPreferences(userId: string): Promise<NotificationPreferences> {
+export async function getNotificationPreferences(
+  userId: string
+): Promise<NotificationPreferences> {
   try {
     const { data, error } = await supabase
       .from('profiles')
@@ -50,7 +52,10 @@ export async function getNotificationPreferences(userId: string): Promise<Notifi
     }
 
     if (!data?.notification_preferences) {
-      addBreadcrumb('Fetched notification preferences', 'debug', { userId, preferences: DEFAULT_PREFERENCES });
+      addBreadcrumb('Fetched notification preferences', 'debug', {
+        userId,
+        preferences: DEFAULT_PREFERENCES,
+      });
       return DEFAULT_PREFERENCES;
     }
 
@@ -59,7 +64,10 @@ export async function getNotificationPreferences(userId: string): Promise<Notifi
       ...(data.notification_preferences as Partial<NotificationPreferences>),
     };
 
-    addBreadcrumb('Fetched notification preferences', 'debug', { userId, preferences });
+    addBreadcrumb('Fetched notification preferences', 'debug', {
+      userId,
+      preferences,
+    });
     return preferences;
   } catch (error) {
     logger.error('Failed to get notification preferences', error);
@@ -81,7 +89,8 @@ export async function updateNotificationPreferences(
 
     const merged = {
       ...DEFAULT_PREFERENCES,
-      ...(current?.notification_preferences as Partial<NotificationPreferences> || {}),
+      ...((current?.notification_preferences as Partial<NotificationPreferences>) ||
+        {}),
       ...preferences,
     };
 

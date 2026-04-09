@@ -14,7 +14,7 @@ import {
   ErrorTrend,
   UserErrorProfile,
   ErrorCategory,
-  ErrorSeverity
+  ErrorSeverity,
 } from './ErrorTypes';
 import { ErrorReportGenerator } from './ErrorReportGenerator';
 import { ErrorTrendAnalysis } from './ErrorTrendAnalysis';
@@ -54,11 +54,11 @@ export class ErrorAnalytics {
           frequency: 0,
           trend: 'stable',
           impactScore: 0,
-          resolution: 'pending'
+          resolution: 'pending',
         },
         insights: [],
         recommendations: [],
-        tags: []
+        tags: [],
       };
       this.errorPatterns.set(signature, pattern);
     }
@@ -73,11 +73,15 @@ export class ErrorAnalytics {
     }
 
     // Calculate frequency (errors per hour)
-    const hoursSinceFirst = Math.max(1, (Date.now() - pattern.metrics.firstSeen) / (1000 * 60 * 60));
+    const hoursSinceFirst = Math.max(
+      1,
+      (Date.now() - pattern.metrics.firstSeen) / (1000 * 60 * 60)
+    );
     pattern.metrics.frequency = pattern.metrics.count / hoursSinceFirst;
 
     // Calculate impact score
-    pattern.metrics.impactScore = this.trendAnalysis.calculateImpactScore(pattern);
+    pattern.metrics.impactScore =
+      this.trendAnalysis.calculateImpactScore(pattern);
 
     // Update trend
     pattern.metrics.trend = this.trendAnalysis.calculateTrend(pattern);
@@ -94,14 +98,20 @@ export class ErrorAnalytics {
   addOccurrence(occurrence: ErrorOccurrence): void {
     this.recentOccurrences.push(occurrence);
     if (this.recentOccurrences.length > this.maxOccurrences) {
-      this.recentOccurrences = this.recentOccurrences.slice(-this.maxOccurrences / 2);
+      this.recentOccurrences = this.recentOccurrences.slice(
+        -this.maxOccurrences / 2
+      );
     }
   }
 
   /**
    * Update user profile
    */
-  updateUserProfile(userId: string, signature: string, category: ErrorCategory): void {
+  updateUserProfile(
+    userId: string,
+    signature: string,
+    category: ErrorCategory
+  ): void {
     let profile = this.userProfiles.get(userId);
 
     if (!profile) {
@@ -113,7 +123,7 @@ export class ErrorAnalytics {
         mostCommonCategories: [],
         averageSessionHealth: 1,
         lastErrorDate: Date.now(),
-        errorFrequency: 0
+        errorFrequency: 0,
       };
       this.userProfiles.set(userId, profile);
     }
@@ -128,19 +138,25 @@ export class ErrorAnalytics {
 
     // Update category frequency
     const categoryCount = profile.errorPatterns
-      .map(sig => this.errorPatterns.get(sig)?.category)
+      .map((sig) => this.errorPatterns.get(sig)?.category)
       .filter(Boolean)
-      .reduce((acc, cat) => {
-        acc[cat!] = (acc[cat!] || 0) + 1;
-        return acc;
-      }, {} as Record<ErrorCategory, number>);
+      .reduce(
+        (acc, cat) => {
+          acc[cat!] = (acc[cat!] || 0) + 1;
+          return acc;
+        },
+        {} as Record<ErrorCategory, number>
+      );
 
     profile.mostCommonCategories = Object.keys(categoryCount)
-      .sort((a, b) => categoryCount[b as ErrorCategory] - categoryCount[a as ErrorCategory])
+      .sort(
+        (a, b) =>
+          categoryCount[b as ErrorCategory] - categoryCount[a as ErrorCategory]
+      )
       .slice(0, 3) as ErrorCategory[];
 
     // Calculate session health (simplified)
-    profile.averageSessionHealth = Math.max(0, 1 - (profile.errorFrequency / 10));
+    profile.averageSessionHealth = Math.max(0, 1 - profile.errorFrequency / 10);
   }
 
   /**
@@ -157,27 +173,29 @@ export class ErrorAnalytics {
   /**
    * Get error patterns with insights
    */
-  getErrorPatterns(options: {
-    limit?: number;
-    category?: ErrorCategory;
-    severity?: ErrorSeverity;
-    timeRange?: number;
-    sortBy?: 'frequency' | 'impact' | 'recent';
-  } = {}): ErrorPattern[] {
+  getErrorPatterns(
+    options: {
+      limit?: number;
+      category?: ErrorCategory;
+      severity?: ErrorSeverity;
+      timeRange?: number;
+      sortBy?: 'frequency' | 'impact' | 'recent';
+    } = {}
+  ): ErrorPattern[] {
     let patterns = Array.from(this.errorPatterns.values());
 
     // Apply filters
     if (options.category) {
-      patterns = patterns.filter(p => p.category === options.category);
+      patterns = patterns.filter((p) => p.category === options.category);
     }
 
     if (options.severity) {
-      patterns = patterns.filter(p => p.severity === options.severity);
+      patterns = patterns.filter((p) => p.severity === options.severity);
     }
 
     if (options.timeRange) {
       const cutoff = Date.now() - options.timeRange;
-      patterns = patterns.filter(p => p.metrics.lastSeen > cutoff);
+      patterns = patterns.filter((p) => p.metrics.lastSeen > cutoff);
     }
 
     // Sort patterns
@@ -206,10 +224,12 @@ export class ErrorAnalytics {
   /**
    * Get user error profiles
    */
-  getUserErrorProfiles(options: {
-    limit?: number;
-    sortBy?: 'errorCount' | 'errorRate' | 'recent';
-  } = {}): UserErrorProfile[] {
+  getUserErrorProfiles(
+    options: {
+      limit?: number;
+      sortBy?: 'errorCount' | 'errorRate' | 'recent';
+    } = {}
+  ): UserErrorProfile[] {
     let profiles = Array.from(this.userProfiles.values());
 
     // Sort profiles
@@ -251,7 +271,7 @@ export class ErrorAnalytics {
         title: 'Multiple Users Affected',
         description: `This error affects ${pattern.metrics.uniqueUsers.size} users, suggesting a systemic issue rather than user-specific problem.`,
         confidence: 0.8,
-        data: { userCount: pattern.metrics.uniqueUsers.size }
+        data: { userCount: pattern.metrics.uniqueUsers.size },
       });
     }
 
@@ -262,7 +282,7 @@ export class ErrorAnalytics {
         title: 'High Frequency Error',
         description: `This error occurs ${pattern.metrics.frequency.toFixed(1)} times per hour, indicating a critical issue.`,
         confidence: 0.9,
-        data: { frequency: pattern.metrics.frequency }
+        data: { frequency: pattern.metrics.frequency },
       });
     }
 
@@ -284,17 +304,20 @@ export class ErrorAnalytics {
   performCleanup(oneWeekAgo: number): void {
     // Clean old occurrences
     this.recentOccurrences = this.recentOccurrences.filter(
-      occurrence => occurrence.timestamp > oneWeekAgo
+      (occurrence) => occurrence.timestamp > oneWeekAgo
     );
 
     // Clean old pattern occurrences
     for (const pattern of this.errorPatterns.values()) {
       pattern.occurrences = pattern.occurrences.filter(
-        occurrence => occurrence.timestamp > oneWeekAgo
+        (occurrence) => occurrence.timestamp > oneWeekAgo
       );
 
       // Remove patterns with no recent occurrences
-      if (pattern.occurrences.length === 0 && pattern.metrics.lastSeen < oneWeekAgo) {
+      if (
+        pattern.occurrences.length === 0 &&
+        pattern.metrics.lastSeen < oneWeekAgo
+      ) {
         this.errorPatterns.delete(pattern.signature);
       }
     }
@@ -311,7 +334,7 @@ export class ErrorAnalytics {
     return {
       patternsCount: this.errorPatterns.size,
       occurrencesCount: this.recentOccurrences.length,
-      userProfilesCount: this.userProfiles.size
+      userProfilesCount: this.userProfiles.size,
     };
   }
 
@@ -329,25 +352,34 @@ export class ErrorAnalytics {
    */
 
   private analyzeErrorContext(pattern: ErrorPattern): ErrorInsight | null {
-    const screens = pattern.occurrences.map(o => o.context.screen).filter(Boolean);
+    const screens = pattern.occurrences
+      .map((o) => o.context.screen)
+      .filter(Boolean);
 
     if (screens.length > 0) {
-      const screenCounts = screens.reduce((acc, screen) => {
-        acc[screen!] = (acc[screen!] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      const maxScreen = Object.keys(screenCounts).reduce((a, b) =>
-        screenCounts[a] > screenCounts[b] ? a : b
+      const screenCounts = screens.reduce(
+        (acc, screen) => {
+          const key = screen ?? 'unknown';
+          acc[key] = (acc[key] ?? 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
       );
 
-      if (screenCounts[maxScreen] / screens.length > 0.7) {
+      const maxScreen = Object.keys(screenCounts).reduce((a, b) =>
+        (screenCounts[a] ?? 0) > (screenCounts[b] ?? 0) ? a : b
+      );
+
+      if ((screenCounts[maxScreen] ?? 0) / screens.length > 0.7) {
         return {
           type: 'pattern',
           title: 'Screen-Specific Error',
-          description: `${Math.round(screenCounts[maxScreen] / screens.length * 100)}% of errors occur on ${maxScreen} screen.`,
+          description: `${Math.round(((screenCounts[maxScreen] ?? 0) / screens.length) * 100)}% of errors occur on ${maxScreen} screen.`,
           confidence: 0.85,
-          data: { screen: maxScreen, concentration: screenCounts[maxScreen] / screens.length }
+          data: {
+            screen: maxScreen,
+            concentration: (screenCounts[maxScreen] ?? 0) / screens.length,
+          },
         };
       }
     }
@@ -355,7 +387,10 @@ export class ErrorAnalytics {
     return null;
   }
 
-  private generateRecommendations(pattern: ErrorPattern, insights: ErrorInsight[]): ErrorRecommendation[] {
+  private generateRecommendations(
+    pattern: ErrorPattern,
+    insights: ErrorInsight[]
+  ): ErrorRecommendation[] {
     const recommendations: ErrorRecommendation[] = [];
 
     if (pattern.metrics.frequency > 10) {
@@ -363,14 +398,15 @@ export class ErrorAnalytics {
         priority: 'critical',
         category: 'fix',
         title: 'Implement Circuit Breaker',
-        description: 'High error frequency detected. Implement circuit breaker pattern to prevent cascade failures.',
+        description:
+          'High error frequency detected. Implement circuit breaker pattern to prevent cascade failures.',
         actions: [
           'Add error rate monitoring',
           'Implement fallback mechanisms',
-          'Add automatic service degradation'
+          'Add automatic service degradation',
         ],
         estimatedEffort: 'medium',
-        potentialImpact: 'high'
+        potentialImpact: 'high',
       });
     }
 
@@ -379,18 +415,21 @@ export class ErrorAnalytics {
         priority: 'high',
         category: 'fix',
         title: 'Priority Bug Fix',
-        description: 'Multiple users affected. This should be prioritized for immediate fix.',
+        description:
+          'Multiple users affected. This should be prioritized for immediate fix.',
         actions: [
           'Assign to senior developer',
           'Add comprehensive logging',
-          'Create reproduction test case'
+          'Create reproduction test case',
         ],
         estimatedEffort: 'high',
-        potentialImpact: 'high'
+        potentialImpact: 'high',
       });
     }
 
-    const screenInsight = insights.find(i => i.type === 'pattern' && i.data.screen);
+    const screenInsight = insights.find(
+      (i) => i.type === 'pattern' && i.data.screen
+    );
     if (screenInsight) {
       recommendations.push({
         priority: 'medium',
@@ -400,10 +439,10 @@ export class ErrorAnalytics {
         actions: [
           'Review screen component code',
           'Check for memory leaks',
-          'Validate user interactions'
+          'Validate user interactions',
         ],
         estimatedEffort: 'medium',
-        potentialImpact: 'medium'
+        potentialImpact: 'medium',
       });
     }
 
@@ -422,9 +461,13 @@ export class ErrorAnalytics {
     const topPatterns = this.getErrorPatterns({ limit: 10, sortBy: 'impact' });
     const criticalPatterns = this.getErrorPatterns({
       severity: ErrorSeverity.FATAL,
-      timeRange: 24 * 60 * 60 * 1000
+      timeRange: 24 * 60 * 60 * 1000,
     });
 
-    return this.reportGenerator.generateAnalyticsReport(trends, topPatterns, criticalPatterns);
+    return this.reportGenerator.generateAnalyticsReport(
+      trends,
+      topPatterns,
+      criticalPatterns
+    );
   }
 }

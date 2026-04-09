@@ -22,7 +22,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { LoadingSpinner, ErrorView } from '../components/shared';
-import { NotificationService, NotificationData } from '../services/NotificationService';
+import {
+  NotificationService,
+  NotificationData,
+} from '../services/NotificationService';
 import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
 import { theme, gradients, semanticBg } from '../theme';
@@ -51,59 +54,98 @@ function formatRelativeTime(timestamp: string): string {
 }
 
 const ICON_COLORS: Record<string, { icon: string; bg: string }> = {
-  job_update:        { icon: '#3B82F6', bg: '#DBEAFE' },
-  bid_received:      { icon: theme.colors.primary, bg: theme.colors.primaryLight },
-  bid_accepted:      { icon: theme.colors.primary, bg: theme.colors.primaryLight },
-  contract_created:  { icon: '#8B5CF6', bg: '#EDE9FE' },
-  contract_accepted: { icon: theme.colors.primary, bg: theme.colors.primaryLight },
+  job_update: { icon: '#3B82F6', bg: '#DBEAFE' },
+  bid_received: { icon: theme.colors.primary, bg: theme.colors.primaryLight },
+  bid_accepted: { icon: theme.colors.primary, bg: theme.colors.primaryLight },
+  contract_created: { icon: '#8B5CF6', bg: '#EDE9FE' },
+  contract_accepted: {
+    icon: theme.colors.primary,
+    bg: theme.colors.primaryLight,
+  },
   meeting_scheduled: { icon: '#8B5CF6', bg: '#EDE9FE' },
-  payment_received:  { icon: theme.colors.accent, bg: theme.colors.accentLight },
-  message_received:  { icon: '#06B6D4', bg: '#CFFAFE' },
-  new_message:       { icon: '#06B6D4', bg: '#CFFAFE' },
-  new_job:           { icon: '#3B82F6', bg: '#DBEAFE' },
-  job_posted:        { icon: '#3B82F6', bg: '#DBEAFE' },
-  job_completed:     { icon: theme.colors.primary, bg: theme.colors.primaryLight },
-  escrow_released:   { icon: theme.colors.accent, bg: theme.colors.accentLight },
-  quote_sent:        { icon: '#EC4899', bg: '#FCE7F3' },
-  system:            { icon: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary },
+  payment_received: { icon: theme.colors.accent, bg: theme.colors.accentLight },
+  message_received: { icon: '#06B6D4', bg: '#CFFAFE' },
+  new_message: { icon: '#06B6D4', bg: '#CFFAFE' },
+  new_job: { icon: '#3B82F6', bg: '#DBEAFE' },
+  job_posted: { icon: '#3B82F6', bg: '#DBEAFE' },
+  job_completed: { icon: theme.colors.primary, bg: theme.colors.primaryLight },
+  escrow_released: { icon: theme.colors.accent, bg: theme.colors.accentLight },
+  quote_sent: { icon: '#EC4899', bg: '#FCE7F3' },
+  system: {
+    icon: theme.colors.textSecondary,
+    bg: theme.colors.backgroundSecondary,
+  },
 };
 
-const getIconName = (type: NotificationData['type']): keyof typeof Ionicons.glyphMap => {
+const getIconName = (
+  type: NotificationData['type']
+): keyof typeof Ionicons.glyphMap => {
   switch (type) {
-    case 'job_update': return 'briefcase-outline';
-    case 'bid_received': return 'cash-outline';
-    case 'bid_accepted' as NotificationData['type']: return 'checkmark-circle-outline';
-    case 'contract_created' as NotificationData['type']: return 'document-outline';
-    case 'contract_accepted' as NotificationData['type']: return 'shield-checkmark-outline';
-    case 'new_job' as NotificationData['type']: return 'briefcase-outline';
-    case 'new_message' as NotificationData['type']: return 'chatbubble-outline';
-    case 'job_posted' as NotificationData['type']: return 'add-circle-outline';
-    case 'job_completed' as NotificationData['type']: return 'checkmark-done-outline';
-    case 'escrow_released' as NotificationData['type']: return 'wallet-outline';
-    case 'meeting_scheduled': return 'calendar-outline';
-    case 'payment_received': return 'card-outline';
-    case 'message_received': return 'chatbubble-outline';
-    case 'quote_sent': return 'document-text-outline';
-    case 'system': return 'information-circle-outline';
-    default: return 'notifications-outline';
+    case 'job_update':
+      return 'briefcase-outline';
+    case 'bid_received':
+      return 'cash-outline';
+    case 'bid_accepted' as NotificationData['type']:
+      return 'checkmark-circle-outline';
+    case 'contract_created' as NotificationData['type']:
+      return 'document-outline';
+    case 'contract_accepted' as NotificationData['type']:
+      return 'shield-checkmark-outline';
+    case 'new_job' as NotificationData['type']:
+      return 'briefcase-outline';
+    case 'new_message' as NotificationData['type']:
+      return 'chatbubble-outline';
+    case 'job_posted' as NotificationData['type']:
+      return 'add-circle-outline';
+    case 'job_completed' as NotificationData['type']:
+      return 'checkmark-done-outline';
+    case 'escrow_released' as NotificationData['type']:
+      return 'wallet-outline';
+    case 'meeting_scheduled':
+      return 'calendar-outline';
+    case 'payment_received':
+      return 'card-outline';
+    case 'message_received':
+      return 'chatbubble-outline';
+    case 'quote_sent':
+      return 'document-text-outline';
+    case 'system':
+      return 'information-circle-outline';
+    default:
+      return 'notifications-outline';
   }
 };
 
-const filterNotifications = (notifications: NotificationData[], tab: FilterTab): NotificationData[] => {
+const filterNotifications = (
+  notifications: NotificationData[],
+  tab: FilterTab
+): NotificationData[] => {
   switch (tab) {
     case 'unread':
-      return notifications.filter(n => !n.read);
+      return notifications.filter((n) => !n.read);
     case 'jobs':
-      return notifications.filter(n =>
-        ['job_update', 'bid_received', 'quote_sent', 'new_job', 'job_posted', 'job_completed', 'bid_accepted', 'contract_created', 'contract_accepted'].includes(n.type)
+      return notifications.filter((n) =>
+        [
+          'job_update',
+          'bid_received',
+          'quote_sent',
+          'new_job',
+          'job_posted',
+          'job_completed',
+          'bid_accepted',
+          'contract_created',
+          'contract_accepted',
+        ].includes(n.type)
       );
     case 'payments':
-      return notifications.filter(n =>
+      return notifications.filter((n) =>
         ['payment_received', 'escrow_released'].includes(n.type)
       );
     case 'messages':
-      return notifications.filter(n =>
-        ['message_received', 'meeting_scheduled', 'new_message'].includes(n.type)
+      return notifications.filter((n) =>
+        ['message_received', 'meeting_scheduled', 'new_message'].includes(
+          n.type
+        )
       );
     default:
       return notifications;
@@ -111,7 +153,12 @@ const filterNotifications = (notifications: NotificationData[], tab: FilterTab):
 };
 
 function stripEmoji(text: string): string {
-  return text.replace(/[\u{1F600}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{FE00}-\u{FE0F}]|[\u{1F000}-\u{1FFFF}]|[\u200D]|[\u{E0020}-\u{E007F}]/gu, '').trim();
+  return text
+    .replace(
+      /[\u{1F600}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{FE00}-\u{FE0F}]|[\u{1F000}-\u{1FFFF}]|[\u200D]|[\u{E0020}-\u{E007F}]/gu,
+      ''
+    )
+    .trim();
 }
 
 interface CompactNotificationProps {
@@ -120,37 +167,62 @@ interface CompactNotificationProps {
   onMarkRead?: () => void;
 }
 
-const CompactNotification: React.FC<CompactNotificationProps> = ({ notification, onPress, onMarkRead }) => {
-  const colors = ICON_COLORS[notification.type] || ICON_COLORS.system;
+const CompactNotification: React.FC<CompactNotificationProps> = ({
+  notification,
+  onPress,
+  onMarkRead,
+}) => {
+  const colors = ICON_COLORS[notification.type] ??
+    ICON_COLORS.system ?? {
+      icon: theme.colors.textSecondary,
+      bg: theme.colors.backgroundSecondary,
+    };
   return (
     <TouchableOpacity
       style={[styles.notifCard, !notification.read && styles.notifCardUnread]}
       onPress={onPress}
       activeOpacity={0.7}
-      accessibilityRole="button"
+      accessibilityRole='button'
       accessibilityLabel={`${notification.read ? '' : 'Unread: '}${notification.title}`}
     >
       <View style={[styles.iconCircle, { backgroundColor: colors.bg }]}>
-        <Ionicons name={getIconName(notification.type)} size={20} color={colors.icon} />
+        <Ionicons
+          name={getIconName(notification.type)}
+          size={20}
+          color={colors.icon}
+        />
       </View>
       <View style={styles.notifContent}>
         <View style={styles.notifHeader}>
-          <Text style={[styles.notifTitle, !notification.read && styles.notifTitleUnread]} numberOfLines={1}>
+          <Text
+            style={[
+              styles.notifTitle,
+              !notification.read && styles.notifTitleUnread,
+            ]}
+            numberOfLines={1}
+          >
             {stripEmoji(notification.title)}
           </Text>
-          <Text style={styles.notifTime}>{formatRelativeTime(notification.createdAt)}</Text>
+          <Text style={styles.notifTime}>
+            {formatRelativeTime(notification.createdAt)}
+          </Text>
         </View>
-        <Text style={styles.notifBody} numberOfLines={2}>{notification.body}</Text>
+        <Text style={styles.notifBody} numberOfLines={2}>
+          {notification.body}
+        </Text>
       </View>
       {!notification.read && (
         <TouchableOpacity
           style={styles.markReadBtn}
-          onPress={(e) => { e.stopPropagation(); onMarkRead?.(); }}
+          onPress={(e) => {
+            e.stopPropagation();
+            onMarkRead?.();
+          }}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityRole="button"
-          accessibilityLabel="Mark as read"
+          accessibilityRole='button'
+          accessibilityLabel='Mark as read'
         >
-          <Ionicons name="checkmark" size={14} color={theme.colors.primary} />
+          <Ionicons name='checkmark' size={14} color={theme.colors.primary} />
         </TouchableOpacity>
       )}
     </TouchableOpacity>
@@ -200,10 +272,10 @@ export const NotificationScreen: React.FC = () => {
   const handleNotificationPress = async (notification: NotificationData) => {
     if (!notification.read) {
       await NotificationService.markAsRead(notification.id);
-      setNotifications(prev =>
-        prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n))
       );
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
     }
 
     const data = notification.data as Record<string, string> | undefined;
@@ -292,21 +364,17 @@ export const NotificationScreen: React.FC = () => {
 
   const handleMarkAllAsRead = async () => {
     if (!user) return;
-    Alert.alert(
-      'Mark All as Read',
-      'Mark all notifications as read?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Mark All',
-          onPress: async () => {
-            await NotificationService.markAllAsRead(user.id);
-            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-            setUnreadCount(0);
-          },
+    Alert.alert('Mark All as Read', 'Mark all notifications as read?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Mark All',
+        onPress: async () => {
+          await NotificationService.markAllAsRead(user.id);
+          setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+          setUnreadCount(0);
         },
-      ]
-    );
+      },
+    ]);
   };
 
   useEffect(() => {
@@ -314,7 +382,7 @@ export const NotificationScreen: React.FC = () => {
   }, [user]);
 
   if (loading) {
-    return <LoadingSpinner message="Loading notifications..." />;
+    return <LoadingSpinner message='Loading notifications...' />;
   }
 
   if (error) {
@@ -343,10 +411,14 @@ export const NotificationScreen: React.FC = () => {
             <TouchableOpacity
               style={styles.markAllButton}
               onPress={handleMarkAllAsRead}
-              accessibilityRole="button"
-              accessibilityLabel="Mark all as read"
+              accessibilityRole='button'
+              accessibilityLabel='Mark all as read'
             >
-              <Ionicons name="checkmark-done-outline" size={18} color={theme.colors.primary} />
+              <Ionicons
+                name='checkmark-done-outline'
+                size={18}
+                color={theme.colors.primary}
+              />
               <Text style={styles.markAllText}>Mark All</Text>
             </TouchableOpacity>
           )}
@@ -367,7 +439,7 @@ export const NotificationScreen: React.FC = () => {
               key={tab.key}
               style={[styles.tab, isActive && styles.tabActive]}
               onPress={() => setActiveTab(tab.key)}
-              accessibilityRole="tab"
+              accessibilityRole='tab'
               accessibilityLabel={`Filter ${tab.label}${count != null && count > 0 ? `, ${count} notifications` : ''}`}
               accessibilityState={{ selected: isActive }}
             >
@@ -383,7 +455,12 @@ export const NotificationScreen: React.FC = () => {
       {filteredNotifications.length === 0 ? (
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconWrap}>
-            <Ionicons name="notifications-off-outline" size={32} color={theme.colors.textSecondary} accessible={false} />
+            <Ionicons
+              name='notifications-off-outline'
+              size={32}
+              color={theme.colors.textSecondary}
+              accessible={false}
+            />
           </View>
           <Text style={styles.emptyTitle}>
             {activeTab === 'unread' ? 'All caught up!' : 'No notifications'}
@@ -397,20 +474,27 @@ export const NotificationScreen: React.FC = () => {
       ) : (
         <FlatList
           data={filteredNotifications}
-          keyExtractor={item => item.id}
+          keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <CompactNotification
               notification={item}
               onPress={() => handleNotificationPress(item)}
               onMarkRead={() => {
                 NotificationService.markAsRead(item.id);
-                setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, read: true } : n));
-                setUnreadCount(prev => Math.max(0, prev - 1));
+                setNotifications((prev) =>
+                  prev.map((n) => (n.id === item.id ? { ...n, read: true } : n))
+                );
+                setUnreadCount((prev) => Math.max(0, prev - 1));
               }}
             />
           )}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={theme.colors.primary}
+              colors={[theme.colors.primary]}
+            />
           }
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}

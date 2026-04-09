@@ -136,7 +136,8 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   const renderRecord = ({ item }: { item: EscrowRecord }) => {
-    const statusStyle = STATUS_COLORS[item.status] ?? STATUS_COLORS.held;
+    const statusStyle = STATUS_COLORS[item.status] ??
+      STATUS_COLORS.held ?? { bg: '#F3F4F6', text: '#6B7280' };
     return (
       <View style={styles.recordCard}>
         <View style={styles.recordHeader}>

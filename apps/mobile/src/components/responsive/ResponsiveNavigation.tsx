@@ -1,5 +1,11 @@
 import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useResponsive, useSidebarLayout } from '../../hooks/useResponsive';
@@ -46,7 +52,9 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
       }
 
       if (shouldShowSidebar && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
-        const currentIndex = items.findIndex(item => item.route === activeRoute);
+        const currentIndex = items.findIndex(
+          (item) => item.route === activeRoute
+        );
         if (currentIndex !== -1) {
           let newIndex;
           if (e.key === 'ArrowUp') {
@@ -57,7 +65,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
 
           if (e.ctrlKey) {
             e.preventDefault();
-            onNavigate(items[newIndex].route);
+            onNavigate(items[newIndex]?.route ?? '');
           }
         }
       }
@@ -79,7 +87,12 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
     if (!shouldShowSidebar) return null;
 
     return (
-      <View style={[styles.sidebar, { width: sidebarWidth, paddingTop: insets.top }]}>
+      <View
+        style={[
+          styles.sidebar,
+          { width: sidebarWidth, paddingTop: insets.top },
+        ]}
+      >
         <View style={styles.sidebarHeader}>
           <Text style={styles.appTitle}>Mintenance</Text>
           {user && (
@@ -105,7 +118,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
                   isActive && styles.sidebarItemActive,
                 ]}
                 onPress={() => onNavigate(item.route)}
-                accessibilityRole="button"
+                accessibilityRole='button'
                 accessibilityLabel={item.title}
                 accessibilityState={{ selected: isActive }}
               >
@@ -113,7 +126,11 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
                   <Ionicons
                     name={item.icon}
                     size={20}
-                    color={isActive ? theme.colors.textPrimary : theme.colors.textSecondary}
+                    color={
+                      isActive
+                        ? theme.colors.textPrimary
+                        : theme.colors.textSecondary
+                    }
                   />
                   <Text
                     style={[
@@ -152,7 +169,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
               key={item.key}
               style={styles.tabItem}
               onPress={() => onNavigate(item.route)}
-              accessibilityRole="button"
+              accessibilityRole='button'
               accessibilityLabel={item.title}
               accessibilityState={{ selected: isActive }}
             >
@@ -160,7 +177,11 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
                 <Ionicons
                   name={item.icon}
                   size={24}
-                  color={isActive ? theme.colors.textPrimary : theme.colors.textSecondary}
+                  color={
+                    isActive
+                      ? theme.colors.textPrimary
+                      : theme.colors.textSecondary
+                  }
                 />
                 {item.badge && item.badge > 0 && (
                   <View style={styles.tabBadge}>
@@ -171,10 +192,7 @@ export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
                 )}
               </View>
               <Text
-                style={[
-                  styles.tabText,
-                  isActive && styles.tabTextActive,
-                ]}
+                style={[styles.tabText, isActive && styles.tabTextActive]}
                 numberOfLines={1}
               >
                 {item.title}

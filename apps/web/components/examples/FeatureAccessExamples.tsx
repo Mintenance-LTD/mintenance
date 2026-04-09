@@ -24,13 +24,13 @@ import { logger } from '@mintenance/shared';
 // =====================================================
 export function ProtectedSocialFeedPage() {
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6">Contractor Community</h1>
+    <div className='container mx-auto py-8'>
+      <h1 className='text-3xl font-bold mb-6'>Contractor Community</h1>
 
-      <FeatureGate featureId="CONTRACTOR_SOCIAL_FEED">
+      <FeatureGate featureId='CONTRACTOR_SOCIAL_FEED'>
         {/* This content only shows to Professional+ users */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2">
+        <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+          <div className='md:col-span-2'>
             <FeedContent />
           </div>
           <div>
@@ -48,20 +48,17 @@ export function ProtectedSocialFeedPage() {
 // =====================================================
 export function DashboardWithUpgradeBanner() {
   return (
-    <div className="space-y-6">
+    <div className='space-y-6'>
       {/* Basic analytics - available to all */}
       <div>
-        <h2 className="text-2xl font-semibold mb-4">Overview</h2>
+        <h2 className='text-2xl font-semibold mb-4'>Overview</h2>
         <BasicMetricsCards />
       </div>
 
       {/* Advanced analytics - shows banner if locked */}
-      <FeatureGate
-        featureId="CONTRACTOR_ADVANCED_ANALYTICS"
-        mode="banner"
-      >
+      <FeatureGate featureId='CONTRACTOR_ADVANCED_ANALYTICS' mode='banner'>
         <div>
-          <h2 className="text-2xl font-semibold mb-4">Advanced Analytics</h2>
+          <h2 className='text-2xl font-semibold mb-4'>Advanced Analytics</h2>
           <AdvancedChartsAndGraphs />
         </div>
       </FeatureGate>
@@ -90,55 +87,53 @@ export function BidSubmissionForm({ jobId }: { jobId: string }) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white rounded-xl shadow-sm">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-semibold">Submit Your Bid</h2>
+    <div className='max-w-2xl mx-auto p-6 bg-white rounded-xl shadow-sm'>
+      <div className='flex items-center justify-between mb-6'>
+        <h2 className='text-2xl font-semibold'>Submit Your Bid</h2>
         {remaining !== 'unlimited' && (
-          <div className="text-sm text-gray-600">
+          <div className='text-sm text-gray-600'>
             Bids remaining this month:{' '}
-            <span className="font-semibold text-primary-600">
-              {remaining}
-            </span>
+            <span className='font-semibold text-primary-600'>{remaining}</span>
           </div>
         )}
       </div>
 
-      <form className="space-y-4">
+      <form className='space-y-4'>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className='block text-sm font-medium text-gray-700 mb-2'>
             Bid Amount (£)
           </label>
           <input
-            type="number"
+            type='number'
             value={bidAmount}
             onChange={(e) => setBidAmount(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-            placeholder="Enter your bid amount"
+            className='w-full px-4 py-2 border border-gray-300 rounded-lg'
+            placeholder='Enter your bid amount'
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className='block text-sm font-medium text-gray-700 mb-2'>
             Description
           </label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={4}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-            placeholder="Describe your approach to this job..."
+            className='w-full px-4 py-2 border border-gray-300 rounded-lg'
+            placeholder='Describe your approach to this job...'
           />
         </div>
 
         {/* Protected submit button with automatic usage tracking */}
         <FeatureButton
-          featureId="CONTRACTOR_BID_LIMIT"
+          featureId='CONTRACTOR_BID_LIMIT'
           trackUsage={true}
           onClick={handleSubmit}
           disabled={!bidAmount || !description}
-          className="w-full py-3 bg-primary-600 text-white rounded-lg
+          className='w-full py-3 bg-primary-600 text-white rounded-lg
                    font-semibold hover:bg-primary-700 transition-colors
-                   disabled:opacity-50 disabled:cursor-not-allowed"
+                   disabled:opacity-50 disabled:cursor-not-allowed'
         >
           Submit Bid
         </FeatureButton>
@@ -158,23 +153,19 @@ export function AnalyticsDashboard() {
   }
 
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">Analytics Dashboard</h1>
+    <div className='p-6'>
+      <h1 className='text-3xl font-bold mb-6'>Analytics Dashboard</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8'>
         {/* Always show basic metrics */}
-        <MetricCard title="Total Jobs" value="24" />
-        <MetricCard title="Active Bids" value="8" />
-        <MetricCard title="Win Rate" value="65%" />
-        <MetricCard title="Avg Response" value="2.4h" />
+        <MetricCard title='Total Jobs' value='24' />
+        <MetricCard title='Active Bids' value='8' />
+        <MetricCard title='Win Rate' value='65%' />
+        <MetricCard title='Avg Response' value='2.4h' />
       </div>
 
       {/* Conditional rendering based on feature access */}
-      {hasAccess ? (
-        <AdvancedAnalytics />
-      ) : (
-        <BasicAnalytics />
-      )}
+      {hasAccess ? <AdvancedAnalytics /> : <BasicAnalytics />}
     </div>
   );
 }
@@ -198,14 +189,14 @@ export function PortfolioGallery() {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className='p-6'>
+      <div className='flex items-center justify-between mb-6'>
         <div>
-          <h2 className="text-2xl font-semibold">Portfolio</h2>
-          <p className="text-gray-600 text-sm mt-1">
+          <h2 className='text-2xl font-semibold'>Portfolio</h2>
+          <p className='text-gray-600 text-sm mt-1'>
             Showcase your best work
             {remaining !== 'unlimited' && (
-              <span className="ml-2 text-primary-600 font-medium">
+              <span className='ml-2 text-primary-600 font-medium'>
                 ({remaining} slots remaining)
               </span>
             )}
@@ -213,17 +204,17 @@ export function PortfolioGallery() {
         </div>
 
         <FeatureButton
-          featureId="CONTRACTOR_PORTFOLIO_PHOTOS"
+          featureId='CONTRACTOR_PORTFOLIO_PHOTOS'
           trackUsage={true}
           onClick={handleUploadClick}
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg
-                   font-semibold hover:bg-primary-700"
+          className='px-4 py-2 bg-primary-600 text-white rounded-lg
+                   font-semibold hover:bg-primary-700'
         >
           Upload Photo
         </FeatureButton>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'>
         <PortfolioImages />
       </div>
     </div>
@@ -235,15 +226,13 @@ export function PortfolioGallery() {
 // =====================================================
 export function SubscriptionComparisonPage() {
   return (
-    <div className="max-w-6xl mx-auto p-8">
-      <h1 className="text-4xl font-bold text-center mb-12">
-        Choose Your Plan
-      </h1>
+    <div className='max-w-6xl mx-auto p-8'>
+      <h1 className='text-4xl font-bold text-center mb-12'>Choose Your Plan</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className='grid grid-cols-1 md:grid-cols-3 gap-8'>
         {/* Basic Tier */}
         <PlanCard
-          name="Basic"
+          name='Basic'
           price={29}
           features={[
             { id: 'CONTRACTOR_BID_LIMIT', name: '20 bids per month' },
@@ -255,11 +244,11 @@ export function SubscriptionComparisonPage() {
 
         {/* Professional Tier */}
         <PlanCard
-          name="Professional"
-          price={79}
+          name='Professional'
+          price={29}
           popular
           features={[
-            { id: 'CONTRACTOR_BID_LIMIT', name: '100 bids per month' },
+            { id: 'CONTRACTOR_BID_LIMIT', name: 'Unlimited bids' },
             { id: 'CONTRACTOR_SOCIAL_FEED', name: 'Social Feed Access' },
             { id: 'CONTRACTOR_ADVANCED_ANALYTICS', name: 'Advanced Analytics' },
             { id: 'CONTRACTOR_CRM', name: 'CRM Tools' },
@@ -267,15 +256,18 @@ export function SubscriptionComparisonPage() {
           ]}
         />
 
-        {/* Enterprise Tier */}
+        {/* Business Tier */}
         <PlanCard
-          name="Enterprise"
-          price={199}
+          name='Business'
+          price={99}
           features={[
             { id: 'CONTRACTOR_BID_LIMIT', name: 'Unlimited bids' },
             { id: 'CONTRACTOR_TEAM_MANAGEMENT', name: 'Team Management' },
             { id: 'CONTRACTOR_API_ACCESS', name: 'API Access' },
-            { id: 'CONTRACTOR_DEDICATED_ACCOUNT_MANAGER', name: 'Account Manager' },
+            {
+              id: 'CONTRACTOR_DEDICATED_ACCOUNT_MANAGER',
+              name: 'Account Manager',
+            },
             { id: 'CONTRACTOR_PHONE_SUPPORT', name: 'Phone Support' },
           ]}
         />
@@ -319,14 +311,17 @@ export function SettingsPage() {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-8">Settings</h1>
+    <div className='max-w-4xl mx-auto p-8'>
+      <h1 className='text-3xl font-bold mb-8'>Settings</h1>
 
-      <div className="space-y-8">
+      <div className='space-y-8'>
         {sections.map((section) => (
-          <div key={section.title} className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-4">{section.title}</h2>
-            <div className="space-y-3">
+          <div
+            key={section.title}
+            className='bg-white rounded-xl shadow-sm p-6'
+          >
+            <h2 className='text-xl font-semibold mb-4'>{section.title}</h2>
+            <div className='space-y-3'>
               {section.features.map((feature) => {
                 const hasAccess =
                   feature.available ||
@@ -335,10 +330,10 @@ export function SettingsPage() {
                 return (
                   <div
                     key={feature.id}
-                    className="flex items-center justify-between py-3 border-b last:border-b-0"
+                    className='flex items-center justify-between py-3 border-b last:border-b-0'
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="font-medium text-gray-900">
+                    <div className='flex items-center gap-3'>
+                      <span className='font-medium text-gray-900'>
                         {feature.name}
                       </span>
                       {!feature.available && (
@@ -376,11 +371,9 @@ export function SettingsPage() {
 // =====================================================
 
 // Create protected versions of components
-const ProtectedCRM = withFeatureAccess(
-  CRMDashboard,
-  'CONTRACTOR_CRM',
-  { mode: 'banner' }
-);
+const ProtectedCRM = withFeatureAccess(CRMDashboard, 'CONTRACTOR_CRM', {
+  mode: 'banner',
+});
 
 const ProtectedAPIAccess = withFeatureAccess(
   APIDocumentation,
@@ -390,25 +383,25 @@ const ProtectedAPIAccess = withFeatureAccess(
 
 export function BusinessToolsPage() {
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-8">Business Tools</h1>
+    <div className='p-8'>
+      <h1 className='text-3xl font-bold mb-8'>Business Tools</h1>
 
-      <div className="space-y-8">
+      <div className='space-y-8'>
         {/* Quote Builder - Available to all */}
         <section>
-          <h2 className="text-2xl font-semibold mb-4">Quote Builder</h2>
+          <h2 className='text-2xl font-semibold mb-4'>Quote Builder</h2>
           <QuoteBuilderTool />
         </section>
 
         {/* CRM - Shows banner if locked */}
         <section>
-          <h2 className="text-2xl font-semibold mb-4">Customer Management</h2>
+          <h2 className='text-2xl font-semibold mb-4'>Customer Management</h2>
           <ProtectedCRM />
         </section>
 
         {/* API - Hidden if locked */}
         <section>
-          <h2 className="text-2xl font-semibold mb-4">Developer API</h2>
+          <h2 className='text-2xl font-semibold mb-4'>Developer API</h2>
           <ProtectedAPIAccess />
         </section>
       </div>
@@ -421,52 +414,64 @@ export function BusinessToolsPage() {
 // =====================================================
 
 function FeedContent() {
-  return <div className="bg-gray-50 p-6 rounded-lg">Social feed content...</div>;
+  return (
+    <div className='bg-gray-50 p-6 rounded-lg'>Social feed content...</div>
+  );
 }
 
 function TrendingTopics() {
-  return <div className="bg-white p-4 rounded-lg shadow-sm">Trending topics...</div>;
+  return (
+    <div className='bg-white p-4 rounded-lg shadow-sm'>Trending topics...</div>
+  );
 }
 
 function RecommendedConnections() {
-  return <div className="bg-white p-4 rounded-lg shadow-sm mt-4">Connections...</div>;
+  return (
+    <div className='bg-white p-4 rounded-lg shadow-sm mt-4'>Connections...</div>
+  );
 }
 
 function BasicMetricsCards() {
-  return <div className="grid grid-cols-4 gap-4">Metrics...</div>;
+  return <div className='grid grid-cols-4 gap-4'>Metrics...</div>;
 }
 
 function AdvancedChartsAndGraphs() {
-  return <div className="space-y-6">Advanced charts...</div>;
+  return <div className='space-y-6'>Advanced charts...</div>;
 }
 
 function BasicAnalytics() {
-  return <div className="bg-gray-50 p-8 rounded-lg">Basic analytics view...</div>;
+  return (
+    <div className='bg-gray-50 p-8 rounded-lg'>Basic analytics view...</div>
+  );
 }
 
 function AdvancedAnalytics() {
-  return <div className="space-y-6">Advanced analytics with detailed insights...</div>;
+  return (
+    <div className='space-y-6'>
+      Advanced analytics with detailed insights...
+    </div>
+  );
 }
 
 function LoadingSpinner() {
   return (
-    <div className="flex items-center justify-center p-12">
-      <div className="animate-spin h-12 w-12 border-4 border-primary-600 rounded-full border-t-transparent" />
+    <div className='flex items-center justify-center p-12'>
+      <div className='animate-spin h-12 w-12 border-4 border-primary-600 rounded-full border-t-transparent' />
     </div>
   );
 }
 
 function MetricCard({ title, value }: { title: string; value: string }) {
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm">
-      <p className="text-sm text-gray-600 mb-2">{title}</p>
-      <p className="text-3xl font-bold text-gray-900">{value}</p>
+    <div className='bg-white p-6 rounded-lg shadow-sm'>
+      <p className='text-sm text-gray-600 mb-2'>{title}</p>
+      <p className='text-3xl font-bold text-gray-900'>{value}</p>
     </div>
   );
 }
 
 function PortfolioImages() {
-  return <div className="bg-gray-200 h-48 rounded-lg">Portfolio images...</div>;
+  return <div className='bg-gray-200 h-48 rounded-lg'>Portfolio images...</div>;
 }
 
 function PlanCard({
@@ -488,30 +493,34 @@ function PlanCard({
     `}
     >
       {popular && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <span className="px-4 py-1 bg-primary-600 text-white text-xs font-semibold rounded-full">
+        <div className='absolute -top-3 left-1/2 -translate-x-1/2'>
+          <span className='px-4 py-1 bg-primary-600 text-white text-xs font-semibold rounded-full'>
             POPULAR
           </span>
         </div>
       )}
 
-      <h3 className="text-2xl font-bold mb-2">{name}</h3>
-      <div className="mb-6">
-        <span className="text-4xl font-bold">£{price}</span>
-        <span className="text-gray-600">/month</span>
+      <h3 className='text-2xl font-bold mb-2'>{name}</h3>
+      <div className='mb-6'>
+        <span className='text-4xl font-bold'>£{price}</span>
+        <span className='text-gray-600'>/month</span>
       </div>
 
-      <ul className="space-y-3">
+      <ul className='space-y-3'>
         {features.map((feature) => (
-          <li key={feature.id} className="flex items-start gap-2">
-            <svg className="w-5 h-5 text-green-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+          <li key={feature.id} className='flex items-start gap-2'>
+            <svg
+              className='w-5 h-5 text-green-500 mt-0.5'
+              fill='currentColor'
+              viewBox='0 0 20 20'
+            >
               <path
-                fillRule="evenodd"
-                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                clipRule="evenodd"
+                fillRule='evenodd'
+                d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z'
+                clipRule='evenodd'
               />
             </svg>
-            <span className="text-sm text-gray-700">{feature.name}</span>
+            <span className='text-sm text-gray-700'>{feature.name}</span>
           </li>
         ))}
       </ul>
@@ -533,13 +542,23 @@ function PlanCard({
 }
 
 function QuoteBuilderTool() {
-  return <div className="bg-white p-6 rounded-lg shadow-sm">Quote builder interface...</div>;
+  return (
+    <div className='bg-white p-6 rounded-lg shadow-sm'>
+      Quote builder interface...
+    </div>
+  );
 }
 
 function CRMDashboard() {
-  return <div className="bg-white p-6 rounded-lg shadow-sm">CRM dashboard...</div>;
+  return (
+    <div className='bg-white p-6 rounded-lg shadow-sm'>CRM dashboard...</div>
+  );
 }
 
 function APIDocumentation() {
-  return <div className="bg-white p-6 rounded-lg shadow-sm">API documentation...</div>;
+  return (
+    <div className='bg-white p-6 rounded-lg shadow-sm'>
+      API documentation...
+    </div>
+  );
 }

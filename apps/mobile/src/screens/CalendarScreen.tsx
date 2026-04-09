@@ -253,7 +253,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
     const map: Record<string, Set<string>> = {};
     schedule?.forEach((item) => {
       if (!map[item.date]) map[item.date] = new Set();
-      map[item.date].add(item.type);
+      map[item.date]!.add(item.type);
     });
     return map;
   }, [schedule]);

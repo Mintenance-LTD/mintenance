@@ -9,7 +9,9 @@ function getStripe(): Stripe {
     if (!process.env.STRIPE_SECRET_KEY) {
       throw new Error('STRIPE_SECRET_KEY is not configured');
     }
-    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' });
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2024-04-10',
+    });
   }
   return _stripe;
 }
@@ -38,7 +40,14 @@ export interface Subscription {
   contractorId: string;
   planType: SubscriptionPlan;
   planName: string;
-  status: 'free' | 'trial' | 'active' | 'past_due' | 'canceled' | 'expired' | 'unpaid';
+  status:
+    | 'free'
+    | 'trial'
+    | 'active'
+    | 'past_due'
+    | 'canceled'
+    | 'expired'
+    | 'unpaid';
   amount: number;
   currency: string;
   trialStart: Date | null;
@@ -63,11 +72,14 @@ export interface SubscriptionPlanDetails {
  * Service for managing contractor subscriptions
  */
 export class SubscriptionService {
-  private static readonly PLAN_PRICING: Record<SubscriptionPlan, { amount: number; name: string }> = {
+  private static readonly PLAN_PRICING: Record<
+    SubscriptionPlan,
+    { amount: number; name: string }
+  > = {
     free: { amount: 0, name: 'Free' },
-    basic: { amount: 2900, name: 'Basic' }, // £29
-    professional: { amount: 7900, name: 'Professional' }, // £79
-    enterprise: { amount: 19900, name: 'Enterprise' }, // £199
+    basic: { amount: 0, name: 'Basic' }, // Free tier
+    professional: { amount: 2900, name: 'Professional' }, // £29
+    enterprise: { amount: 9900, name: 'Business' }, // £99
   };
 
   /**
@@ -89,11 +101,12 @@ export class SubscriptionService {
       }
 
       return (features || []).map((feature) => {
-        const planPricing = this.PLAN_PRICING[feature.plan_type as SubscriptionPlan];
+        const planPricing =
+          this.PLAN_PRICING[feature.plan_type as SubscriptionPlan];
         const amountInPence = planPricing?.amount || 0;
         // Convert from pence to pounds for display (free tier is 0)
         const priceInPounds = amountInPence / 100;
-        
+
         return {
           planType: feature.plan_type as SubscriptionPlan,
           name: planPricing?.name || feature.plan_type,
@@ -122,13 +135,22 @@ export class SubscriptionService {
   /**
    * Get contractor's current subscription
    */
-  static async getContractorSubscription(contractorId: string): Promise<Subscription | null> {
+  static async getContractorSubscription(
+    contractorId: string
+  ): Promise<Subscription | null> {
     try {
       const { data: subscription, error } = await serverSupabase
         .from('contractor_subscriptions')
         .select('*')
         .eq('contractor_id', contractorId)
-        .in('status', ['free', 'trial', 'active', 'incomplete', 'unpaid', 'past_due'])
+        .in('status', [
+          'free',
+          'trial',
+          'active',
+          'incomplete',
+          'unpaid',
+          'past_due',
+        ])
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -160,15 +182,21 @@ export class SubscriptionService {
         status: subscription.status as Subscription['status'],
         amount: parseFloat(subscription.amount.toString()),
         currency: subscription.currency,
-        trialStart: subscription.trial_start ? new Date(subscription.trial_start) : null,
-        trialEnd: subscription.trial_end ? new Date(subscription.trial_end) : null,
+        trialStart: subscription.trial_start
+          ? new Date(subscription.trial_start)
+          : null,
+        trialEnd: subscription.trial_end
+          ? new Date(subscription.trial_end)
+          : null,
         currentPeriodStart: subscription.current_period_start
           ? new Date(subscription.current_period_start)
           : null,
         currentPeriodEnd: subscription.current_period_end
           ? new Date(subscription.current_period_end)
           : null,
-        canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at) : null,
+        canceledAt: subscription.canceled_at
+          ? new Date(subscription.canceled_at)
+          : null,
         cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
         stripeSubscriptionId: subscription.stripe_subscription_id,
         features: features || {
@@ -194,11 +222,16 @@ export class SubscriptionService {
   /**
    * Get subscription features for a contractor
    */
-  static async getSubscriptionFeatures(contractorId: string): Promise<SubscriptionFeatures | null> {
+  static async getSubscriptionFeatures(
+    contractorId: string
+  ): Promise<SubscriptionFeatures | null> {
     try {
-      const { data, error } = await serverSupabase.rpc('get_subscription_features', {
-        p_contractor_id: contractorId,
-      });
+      const { data, error } = await serverSupabase.rpc(
+        'get_subscription_features',
+        {
+          p_contractor_id: contractorId,
+        }
+      );
 
       if (error || !data || data.length === 0) {
         return null;
@@ -248,7 +281,10 @@ export class SubscriptionService {
       }
 
       // Create or get Stripe Price ID
-      const priceId = await this.getOrCreateStripePrice(planType, planPricing.amount);
+      const priceId = await this.getOrCreateStripePrice(
+        planType,
+        planPricing.amount
+      );
 
       // Create Stripe subscription
       const subscription = await stripe.subscriptions.create({
@@ -265,7 +301,9 @@ export class SubscriptionService {
       });
 
       const invoice = subscription.latest_invoice as Stripe.Invoice;
-      const paymentIntent = (invoice as Stripe.Invoice & { payment_intent?: Stripe.PaymentIntent })?.payment_intent;
+      const paymentIntent = (
+        invoice as Stripe.Invoice & { payment_intent?: Stripe.PaymentIntent }
+      )?.payment_intent;
 
       return {
         subscriptionId: subscription.id,
@@ -317,15 +355,19 @@ export class SubscriptionService {
         .in('status', ['free', 'trial', 'active']);
 
       // Determine status based on plan type
-      const status = planType === 'free' 
-        ? 'free' 
-        : (trialEnd && trialEnd > new Date() ? 'trial' : 'active');
+      const status =
+        planType === 'free'
+          ? 'free'
+          : trialEnd && trialEnd > new Date()
+            ? 'trial'
+            : 'active';
 
       const { data: subscription, error } = await serverSupabase
         .from('contractor_subscriptions')
         .insert({
           contractor_id: contractorId,
-          stripe_subscription_id: planType === 'free' ? null : stripeSubscriptionId,
+          stripe_subscription_id:
+            planType === 'free' ? null : stripeSubscriptionId,
           stripe_customer_id: planType === 'free' ? null : stripeCustomerId,
           stripe_price_id: planType === 'free' ? null : stripePriceId,
           plan_type: planType,
@@ -333,8 +375,17 @@ export class SubscriptionService {
           status: status,
           amount: planPricing.amount / 100, // Convert from pence to pounds
           currency: 'gbp',
-          trial_start: planType === 'free' ? null : (user?.trial_started_at ? new Date(user.trial_started_at) : null),
-          trial_end: planType === 'free' ? null : (trialEnd || (user?.trial_ends_at ? new Date(user.trial_ends_at) : null)),
+          trial_start:
+            planType === 'free'
+              ? null
+              : user?.trial_started_at
+                ? new Date(user.trial_started_at)
+                : null,
+          trial_end:
+            planType === 'free'
+              ? null
+              : trialEnd ||
+                (user?.trial_ends_at ? new Date(user.trial_ends_at) : null),
         })
         .select('id')
         .single();
@@ -374,7 +425,11 @@ export class SubscriptionService {
     contractorId: string,
     newPlanType: SubscriptionPlan,
     existingStripeSubscriptionId: string
-  ): Promise<{ subscriptionId: string; clientSecret: string | null; requiresPayment: boolean }> {
+  ): Promise<{
+    subscriptionId: string;
+    clientSecret: string | null;
+    requiresPayment: boolean;
+  }> {
     try {
       const planPricing = this.PLAN_PRICING[newPlanType];
       if (!planPricing) {
@@ -384,7 +439,9 @@ export class SubscriptionService {
       // Retrieve current subscription
       let currentSubscription: Stripe.Subscription;
       try {
-        currentSubscription = await stripe.subscriptions.retrieve(existingStripeSubscriptionId);
+        currentSubscription = await stripe.subscriptions.retrieve(
+          existingStripeSubscriptionId
+        );
       } catch (stripeError: unknown) {
         const err = stripeError as Error & { code?: string };
         logger.error('Failed to retrieve Stripe subscription', {
@@ -394,22 +451,32 @@ export class SubscriptionService {
           error: err.message,
           stripeErrorCode: err.code,
         });
-        throw new Error(`Failed to retrieve subscription: ${err.message || 'Subscription not found'}`);
+        throw new Error(
+          `Failed to retrieve subscription: ${err.message || 'Subscription not found'}`
+        );
       }
 
       // Check if subscription is in a state that allows updates
       const allowedStatuses = ['active', 'trialing', 'past_due'];
       if (!allowedStatuses.includes(currentSubscription.status)) {
-        logger.warn('Attempting to update subscription with non-standard status', {
-          service: 'SubscriptionService',
-          contractorId,
-          subscriptionId: existingStripeSubscriptionId,
-          status: currentSubscription.status,
-          allowedStatuses,
-        });
+        logger.warn(
+          'Attempting to update subscription with non-standard status',
+          {
+            service: 'SubscriptionService',
+            contractorId,
+            subscriptionId: existingStripeSubscriptionId,
+            status: currentSubscription.status,
+            allowedStatuses,
+          }
+        );
         // For incomplete subscriptions, we should handle differently
-        if (currentSubscription.status === 'incomplete' || currentSubscription.status === 'incomplete_expired') {
-          throw new Error(`Cannot update incomplete subscription. Please cancel and create a new subscription. Current status: ${currentSubscription.status}`);
+        if (
+          currentSubscription.status === 'incomplete' ||
+          currentSubscription.status === 'incomplete_expired'
+        ) {
+          throw new Error(
+            `Cannot update incomplete subscription. Please cancel and create a new subscription. Current status: ${currentSubscription.status}`
+          );
         }
         // For other statuses, log but try to proceed
         logger.warn('Proceeding with update despite non-standard status', {
@@ -424,25 +491,31 @@ export class SubscriptionService {
       }
 
       // Get or create new Stripe Price ID
-      const newPriceId = await this.getOrCreateStripePrice(newPlanType, planPricing.amount);
+      const newPriceId = await this.getOrCreateStripePrice(
+        newPlanType,
+        planPricing.amount
+      );
 
       // Update subscription with new plan
       let updatedSubscription: Stripe.Subscription;
       try {
-        updatedSubscription = await stripe.subscriptions.update(existingStripeSubscriptionId, {
-          items: [
-            {
-              id: currentItemId,
-              price: newPriceId,
+        updatedSubscription = await stripe.subscriptions.update(
+          existingStripeSubscriptionId,
+          {
+            items: [
+              {
+                id: currentItemId,
+                price: newPriceId,
+              },
+            ],
+            metadata: {
+              ...currentSubscription.metadata,
+              planType: newPlanType,
             },
-          ],
-          metadata: {
-            ...currentSubscription.metadata,
-            planType: newPlanType,
-          },
-          proration_behavior: 'always_invoice', // Charge/credit for prorated amount
-          expand: ['latest_invoice.payment_intent'],
-        });
+            proration_behavior: 'always_invoice', // Charge/credit for prorated amount
+            expand: ['latest_invoice.payment_intent'],
+          }
+        );
       } catch (updateError: unknown) {
         const err = updateError as Error & { code?: string; type?: string };
         logger.error('Failed to update Stripe subscription', {
@@ -453,7 +526,9 @@ export class SubscriptionService {
           stripeErrorCode: err.code,
           stripeErrorType: err.type,
         });
-        throw new Error(`Failed to update subscription: ${err.message || 'Unknown error'}`);
+        throw new Error(
+          `Failed to update subscription: ${err.message || 'Unknown error'}`
+        );
       }
 
       // Get payment intent if invoice requires payment
@@ -465,25 +540,35 @@ export class SubscriptionService {
 
       if (invoice && typeof invoice !== 'string') {
         // Invoice is expanded - access payment_intent through type assertion
-        const expandedInvoice = invoice as Stripe.Invoice & { payment_intent?: Stripe.PaymentIntent | string | null };
+        const expandedInvoice = invoice as Stripe.Invoice & {
+          payment_intent?: Stripe.PaymentIntent | string | null;
+        };
         const paymentIntentValue = expandedInvoice.payment_intent;
-        
+
         if (paymentIntentValue) {
           if (typeof paymentIntentValue === 'string') {
             // Payment intent is just an ID - we'd need to retrieve it
             // For subscription updates with proration, payment is usually handled automatically
             // But we should check the invoice status
-            requiresPayment = expandedInvoice.status === 'open' || expandedInvoice.status === 'draft';
-          } else if (paymentIntentValue && typeof paymentIntentValue === 'object') {
+            requiresPayment =
+              expandedInvoice.status === 'open' ||
+              expandedInvoice.status === 'draft';
+          } else if (
+            paymentIntentValue &&
+            typeof paymentIntentValue === 'object'
+          ) {
             // Payment intent is expanded
             const paymentIntent = paymentIntentValue as Stripe.PaymentIntent;
             clientSecret = paymentIntent.client_secret || null;
-            requiresPayment = paymentIntent.status !== 'succeeded' && 
-                            paymentIntent.status !== 'processing';
+            requiresPayment =
+              paymentIntent.status !== 'succeeded' &&
+              paymentIntent.status !== 'processing';
           }
         } else {
           // No payment intent - check invoice status
-          requiresPayment = expandedInvoice.status === 'open' || expandedInvoice.status === 'draft';
+          requiresPayment =
+            expandedInvoice.status === 'open' ||
+            expandedInvoice.status === 'draft';
         }
       }
 
@@ -572,7 +657,9 @@ export class SubscriptionService {
   /**
    * Create free tier subscription for contractor
    */
-  static async createFreeTierSubscription(contractorId: string): Promise<string> {
+  static async createFreeTierSubscription(
+    contractorId: string
+  ): Promise<string> {
     return this.saveSubscription(
       contractorId,
       'free',
@@ -609,4 +696,3 @@ export class SubscriptionService {
     return price.id;
   }
 }
-

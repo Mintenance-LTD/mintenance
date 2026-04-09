@@ -18,7 +18,12 @@ import {
   Animated,
 } from 'react-native';
 import { styles } from './videoCaptureStyles';
-import { CameraView, CameraType, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
+import {
+  CameraView,
+  CameraType,
+  useCameraPermissions,
+  useMicrophonePermissions,
+} from 'expo-camera';
 import { useIsFocused } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -64,7 +69,9 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [currentPhaseIndex, setCurrentPhaseIndex] = useState(0);
   const [phaseProgress, setPhaseProgress] = useState(0);
-  const [capturedVideo, setCapturedVideo] = useState<CapturedVideo | null>(null);
+  const [capturedVideo, setCapturedVideo] = useState<CapturedVideo | null>(
+    null
+  );
 
   // UI state
   const [showGuidance, setShowGuidance] = useState(true);
@@ -83,7 +90,9 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
   const phaseTimerRef = useRef<NodeJS.Timeout>(undefined);
 
   // Get current guidance phase
-  const currentPhase = VideoService.guidancePhases[currentPhaseIndex];
+  const currentPhase =
+    VideoService.guidancePhases[currentPhaseIndex] ??
+    VideoService.guidancePhases[0];
 
   const hasPermission = cameraPermission?.granted && micPermission?.granted;
 
@@ -124,7 +133,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
 
       // Start recording timer
       timerRef.current = setInterval(() => {
-        setRecordingDuration(prev => {
+        setRecordingDuration((prev) => {
           const newDuration = prev + 1;
           if (newDuration >= VideoService.MAX_DURATION) {
             stopRecording();
@@ -183,9 +192,10 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const updatePhaseProgress = () => {
     phaseTimerRef.current = setInterval(() => {
-      setPhaseProgress(prev => {
+      setPhaseProgress((prev) => {
         const newProgress = prev + 1;
-        const phaseDuration = VideoService.guidancePhases[currentPhaseIndex].duration;
+        const phaseDuration =
+          VideoService.guidancePhases[currentPhaseIndex]?.duration ?? 10;
 
         if (newProgress >= phaseDuration) {
           const nextIndex = currentPhaseIndex + 1;
@@ -215,7 +225,10 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
     setUploadProgress(0);
 
     try {
-      const compressedPath = capturedVideo.uri.replace('.mp4', '_compressed.mp4');
+      const compressedPath = capturedVideo.uri.replace(
+        '.mp4',
+        '_compressed.mp4'
+      );
       const compressionResult = await VideoService.compressVideo(
         capturedVideo.uri,
         compressedPath
@@ -236,14 +249,20 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
 
       logger.info('Video queued for processing', { videoId });
 
-      Alert.alert('Video Uploaded', 'Your video has been queued for processing.');
+      Alert.alert(
+        'Video Uploaded',
+        'Your video has been queued for processing.'
+      );
 
       if (onComplete) {
         onComplete(videoId);
       }
     } catch (error) {
       logger.error('Video processing failed', { error });
-      Alert.alert('Processing Error', 'Failed to process video. Please try again.');
+      Alert.alert(
+        'Processing Error',
+        'Failed to process video. Please try again.'
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -279,7 +298,11 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.permissionContainer}>
-          <Icon name="videocam-off" size={64} color={theme.colors.textTertiary} />
+          <Icon
+            name='videocam-off'
+            size={64}
+            color={theme.colors.textTertiary}
+          />
           <Text style={styles.permissionText}>Camera permission required</Text>
           <TouchableOpacity
             style={styles.permissionButton}
@@ -298,8 +321,8 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
         <CameraView
           ref={cameraRef}
           style={StyleSheet.absoluteFill}
-          facing="back"
-          mode="video"
+          facing='back'
+          mode='video'
           enableTorch={torchOn}
         />
       )}
@@ -310,7 +333,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
           style={styles.closeButton}
           onPress={() => (navigation as { goBack: () => void }).goBack()}
         >
-          <Icon name="close" size={28} color="white" />
+          <Icon name='close' size={28} color='white' />
         </TouchableOpacity>
 
         <View style={styles.timerContainer}>
@@ -319,7 +342,8 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
               <View style={[styles.recordingDot, { backgroundColor: 'red' }]} />
             )}
             <Text style={styles.timerText}>
-              {formatDuration(recordingDuration)} / {formatDuration(VideoService.MAX_DURATION)}
+              {formatDuration(recordingDuration)} /{' '}
+              {formatDuration(VideoService.MAX_DURATION)}
             </Text>
           </View>
         </View>
@@ -328,38 +352,49 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
           style={styles.helpButton}
           onPress={() => setShowGuidance(!showGuidance)}
         >
-          <Icon name="help-outline" size={28} color="white" />
+          <Icon name='help-outline' size={28} color='white' />
         </TouchableOpacity>
       </SafeAreaView>
 
       {/* Guidance Overlay */}
-      {showGuidance && isRecording && (
+      {showGuidance && isRecording && currentPhase && (
         <Reanimated.View style={[styles.guidanceOverlay, guidanceStyle]}>
           <View style={styles.guidanceCard}>
             <View style={styles.guidanceHeader}>
               <Text style={styles.phaseTitle}>{currentPhase.title}</Text>
               <Text style={styles.phaseTimer}>
-                {formatDuration(phaseProgress)} / {formatDuration(currentPhase.duration)}
+                {formatDuration(phaseProgress)} /{' '}
+                {formatDuration(currentPhase.duration)}
               </Text>
             </View>
 
             <View style={styles.progressBar}>
-              <Reanimated.View style={[styles.progressFill, progressBarStyle]} />
+              <Reanimated.View
+                style={[styles.progressFill, progressBarStyle]}
+              />
             </View>
 
             <View style={styles.instructionsList}>
               {currentPhase.instructions.map((instruction, index) => (
                 <View key={index} style={styles.instructionItem}>
-                  <Icon name="check-circle" size={16} color={theme.colors.primary} />
+                  <Icon
+                    name='check-circle'
+                    size={16}
+                    color={theme.colors.primary}
+                  />
                   <Text style={styles.instructionText}>{instruction}</Text>
                 </View>
               ))}
             </View>
 
-            {currentPhase.tips.length > 0 && (
+            {(currentPhase.tips?.length ?? 0) > 0 && (
               <View style={styles.tipsContainer}>
-                <Icon name="lightbulb-outline" size={20} color={theme.colors.accent} />
-                <Text style={styles.tipText}>{currentPhase.tips[0]}</Text>
+                <Icon
+                  name='lightbulb-outline'
+                  size={20}
+                  color={theme.colors.accent}
+                />
+                <Text style={styles.tipText}>{currentPhase.tips?.[0]}</Text>
               </View>
             )}
           </View>
@@ -385,7 +420,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
         {!isRecording ? (
           <>
             <TouchableOpacity style={styles.secondaryButton}>
-              <Icon name="photo-library" size={28} color="white" />
+              <Icon name='photo-library' size={28} color='white' />
             </TouchableOpacity>
 
             <TouchableOpacity onPress={startRecording}>
@@ -398,7 +433,11 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
               style={styles.secondaryButton}
               onPress={() => setTorchOn(!torchOn)}
             >
-              <Icon name={torchOn ? 'flash-on' : 'flash-off'} size={28} color="white" />
+              <Icon
+                name={torchOn ? 'flash-on' : 'flash-off'}
+                size={28}
+                color='white'
+              />
             </TouchableOpacity>
           </>
         ) : (
@@ -407,7 +446,9 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
 
             <TouchableOpacity onPress={stopRecording}>
               <Reanimated.View style={[styles.recordButton, recordButtonStyle]}>
-                <View style={[styles.recordButtonInner, styles.recordButtonStop]} />
+                <View
+                  style={[styles.recordButtonInner, styles.recordButtonStop]}
+                />
               </Reanimated.View>
             </TouchableOpacity>
 
@@ -415,7 +456,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
               style={styles.secondaryButton}
               onPress={() => setShowGuidance(!showGuidance)}
             >
-              <Icon name="info" size={28} color="white" />
+              <Icon name='info' size={28} color='white' />
             </TouchableOpacity>
           </>
         )}
@@ -424,7 +465,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
       {/* Video Preview Modal */}
       <Modal
         visible={showPreview && !!capturedVideo}
-        animationType="slide"
+        animationType='slide'
         onRequestClose={() => setShowPreview(false)}
       >
         <View style={styles.previewContainer}>
@@ -434,13 +475,15 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
 
           <View style={styles.videoPreviewContainer}>
             <View style={styles.videoPlaceholder}>
-              <Icon name="play-circle-outline" size={64} color={theme.colors.textTertiary} />
+              <Icon
+                name='play-circle-outline'
+                size={64}
+                color={theme.colors.textTertiary}
+              />
               <Text style={styles.videoInfo}>
                 Duration: {formatDuration(recordingDuration)}
               </Text>
-              <Text style={styles.videoInfo}>
-                Quality: HD (720p)
-              </Text>
+              <Text style={styles.videoInfo}>Quality: HD (720p)</Text>
             </View>
           </View>
 
@@ -449,7 +492,11 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
               style={[styles.actionButton, styles.retakeButton]}
               onPress={retakeVideo}
             >
-              <Icon name="refresh" size={24} color={theme.colors.textTertiary} />
+              <Icon
+                name='refresh'
+                size={24}
+                color={theme.colors.textTertiary}
+              />
               <Text style={styles.actionButtonText}>Retake</Text>
             </TouchableOpacity>
 
@@ -465,7 +512,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
                 </>
               ) : (
                 <>
-                  <Icon name="check" size={24} color="white" />
+                  <Icon name='check' size={24} color='white' />
                   <Text style={styles.confirmButtonText}>Use Video</Text>
                 </>
               )}
@@ -476,6 +523,5 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
     </View>
   );
 };
-
 
 export default VideoCaptureScreen;

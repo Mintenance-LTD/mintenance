@@ -341,21 +341,22 @@ function validateEnv(): Env {
         process.env.NEXT_PHASE === 'phase-production-build' ||
         process.env.NEXT_PHASE === 'phase-development-build';
 
+      const isProdRuntime =
+        !isBuildTime && process.env.NODE_ENV === 'production';
       if (!parsed.ENCRYPTION_MASTER_KEY) {
+        if (isProdRuntime)
+          throw new Error('ENCRYPTION_MASTER_KEY is required in production.');
         logger.warn(
-          'ENCRYPTION_MASTER_KEY not configured — PII field encryption will fail at runtime',
-          {
-            service: 'env-validation',
-          }
+          'ENCRYPTION_MASTER_KEY not configured — PII encryption will fail at runtime',
+          { service: 'env-validation' }
         );
       }
-
       if (!parsed.CSRF_SECRET) {
+        if (isProdRuntime)
+          throw new Error('CSRF_SECRET is required in production.');
         logger.warn(
           'CSRF_SECRET not configured — CSRF protection may not work correctly',
-          {
-            service: 'env-validation',
-          }
+          { service: 'env-validation' }
         );
       }
 

@@ -91,9 +91,10 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
       if (!lat && address) {
         try {
           const geoResults = await Location.geocodeAsync(address);
-          if (geoResults.length > 0) {
-            lat = geoResults[0].latitude;
-            lng = geoResults[0].longitude;
+          const firstResult = geoResults[0];
+          if (firstResult) {
+            lat = firstResult.latitude;
+            lng = firstResult.longitude;
           }
         } catch {
           // Geocoding failed — continue without coordinates

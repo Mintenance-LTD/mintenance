@@ -460,7 +460,7 @@ export class MemoryManager {
 
     // Identify issues
     const issues: string[] = [];
-    if (current.percentage > 90) {
+    if (current!.percentage > 90) {
       issues.push('Critical memory usage detected');
     }
     if (trend === 'increasing') {
@@ -477,7 +477,7 @@ export class MemoryManager {
     }
 
     return {
-      current,
+      current: current!,
       average,
       peak,
       trend,
@@ -556,6 +556,9 @@ export const withMemoryTracking = <P extends object>(
       };
     }, []);
 
-    return React.createElement(WrappedComponent as React.ComponentType<Record<string, unknown>>, { ...props, ref });
+    return React.createElement(
+      WrappedComponent as React.ComponentType<Record<string, unknown>>,
+      { ...props, ref }
+    );
   });
 };

@@ -187,7 +187,7 @@ export class ComplexityAnalyzer {
       const matches = text.matchAll(pattern);
       for (const match of matches) {
         if (match[1] || match[2]) {
-          skills.add((match[1] || match[2]).trim());
+          skills.add((match[1] ?? match[2] ?? '').trim());
         }
       }
     });

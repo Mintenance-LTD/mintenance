@@ -24,7 +24,7 @@ module.exports = {
   'apps/web/**/__tests__/**/*.{ts,tsx}': (filenames) =>
     `npm run test -w @mintenance/web -- --bail 1 ${filenames.join(' ')}`,
   'apps/mobile/**/__tests__/**/*.{ts,tsx}': (filenames) =>
-    `npm run test -w @mintenance/mobile -- ${filenames.join(' ')}`,
+    `npm run test -w @mintenance/mobile -- --passWithNoTests ${filenames.join(' ')}`,
 
   // Package files - verify dependencies
   // Use a function to prevent lint-staged from appending file paths to the command,

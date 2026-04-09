@@ -12,6 +12,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Pressable,
   Animated,
   Easing,
   StatusBar,
@@ -90,19 +91,20 @@ const CarouselCard: React.FC<{
   onDetails: () => void;
 }> = ({ job, isSelected, onPress, onBid, onDetails }) => {
   const amt = job.budget_max ?? job.budget_min ?? job.budget;
-  const budgetText = job.budget_min && job.budget_max && job.budget_max !== job.budget_min
-    ? `£${job.budget_min.toLocaleString()} – £${job.budget_max.toLocaleString()}`
-    : amt
-      ? `£${amt.toLocaleString()}`
-      : 'TBD';
+  const budgetText =
+    job.budget_min && job.budget_max && job.budget_max !== job.budget_min
+      ? `£${job.budget_min.toLocaleString()} – £${job.budget_max.toLocaleString()}`
+      : amt
+        ? `£${amt.toLocaleString()}`
+        : 'TBD';
   const catKey = job.category.toLowerCase();
-  const catMarker = CATEGORY_MARKERS[catKey] ?? CATEGORY_MARKERS.general;
+  const catMarker = CATEGORY_MARKERS[catKey] ??
+    CATEGORY_MARKERS.general ?? { icon: 'construct' as const, bg: '#6B7280' };
 
   return (
-    <TouchableOpacity
+    <Pressable
       style={[styles.carouselCard, isSelected && styles.carouselCardSelected]}
       onPress={onPress}
-      activeOpacity={0.95}
     >
       <View style={styles.carouselCardHeader}>
         <Text style={styles.carouselBudget}>{budgetText}</Text>
@@ -122,11 +124,25 @@ const CarouselCard: React.FC<{
         {job.distance} km · {timeAgo(job.created_at)}
       </Text>
       <View style={styles.carouselActions}>
-        <TouchableOpacity style={styles.carouselBidBtn} onPress={onBid}>
+        <TouchableOpacity
+          style={styles.carouselBidBtn}
+          onPress={(e) => {
+            e.stopPropagation();
+            onBid();
+          }}
+          activeOpacity={0.7}
+        >
           <Ionicons name='flash' size={13} color='#FFF' />
           <Text style={styles.carouselBidText}>Quick Bid</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.carouselDetailsBtn} onPress={onDetails}>
+        <TouchableOpacity
+          style={styles.carouselDetailsBtn}
+          onPress={(e) => {
+            e.stopPropagation();
+            onDetails();
+          }}
+          activeOpacity={0.7}
+        >
           <Text style={styles.carouselDetailsText}>Details</Text>
           <Ionicons
             name='arrow-forward'
@@ -135,7 +151,7 @@ const CarouselCard: React.FC<{
           />
         </TouchableOpacity>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 
@@ -218,9 +234,11 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
 
         {viewModel.jobs.map((job) => {
           const isSelected = viewModel.selectedJob?.id === job.id;
-          const cat =
-            CATEGORY_MARKERS[job.category.toLowerCase()] ??
-            CATEGORY_MARKERS.general;
+          const cat = CATEGORY_MARKERS[job.category.toLowerCase()] ??
+            CATEGORY_MARKERS.general ?? {
+              icon: 'construct' as const,
+              bg: '#6B7280',
+            };
           const isUrgent = job.urgency === 'urgent';
 
           return (

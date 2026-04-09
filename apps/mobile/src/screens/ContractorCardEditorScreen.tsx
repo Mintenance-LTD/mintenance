@@ -111,7 +111,7 @@ export const ContractorCardEditorScreen: React.FC<
         if (type === 'logo') {
           setProfile((prev) => ({
             ...prev,
-            companyLogo: result.assets[0].uri,
+            companyLogo: result.assets[0]?.uri ?? '',
           }));
         } else {
           const newImages = result.assets.map((asset) => asset.uri);

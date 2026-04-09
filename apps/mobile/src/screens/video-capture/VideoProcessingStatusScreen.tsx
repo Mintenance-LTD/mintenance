@@ -65,7 +65,10 @@ interface QueueStatus {
 }
 
 interface Props {
-  navigation: { goBack: () => void; navigate: (screen: string, params?: Record<string, unknown>) => void };
+  navigation: {
+    goBack: () => void;
+    navigate: (screen: string, params?: Record<string, unknown>) => void;
+  };
   route: {
     params: {
       videoId: string;
@@ -76,7 +79,13 @@ interface Props {
 }
 
 interface ProcessingStage {
-  stage: 'queued' | 'uploading' | 'processing' | 'analyzing' | 'completed' | 'failed';
+  stage:
+    | 'queued'
+    | 'uploading'
+    | 'processing'
+    | 'analyzing'
+    | 'completed'
+    | 'failed';
   title: string;
   description: string;
   icon: string;
@@ -116,11 +125,17 @@ const PROCESSING_STAGES: ProcessingStage[] = [
   },
 ];
 
-export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route }) => {
+export const VideoProcessingStatusScreen: React.FC<Props> = ({
+  navigation,
+  route,
+}) => {
   const { videoId, assessmentId, propertyId } = route.params;
 
-  const [currentStage, setCurrentStage] = useState<ProcessingStage>(PROCESSING_STAGES[0]);
-  const [processingResults, setProcessingResults] = useState<ProcessingResults | null>(null);
+  const [currentStage, setCurrentStage] = useState<ProcessingStage>(
+    PROCESSING_STAGES[0]!
+  );
+  const [processingResults, setProcessingResults] =
+    useState<ProcessingResults | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [queueStatus, setQueueStatus] = useState<QueueStatus | null>(null);
   const [isComplete, setIsComplete] = useState(false);
@@ -173,7 +188,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
 
       if (results) {
         setProcessingResults(results);
-        setCurrentStage(PROCESSING_STAGES[4]); // Completed
+        setCurrentStage(PROCESSING_STAGES[4]!); // Completed
         setIsComplete(true);
 
         // Stop polling
@@ -188,11 +203,11 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
         if (status.current?.id === videoId) {
           switch (status.current.status) {
             case 'uploading':
-              setCurrentStage(PROCESSING_STAGES[1]);
+              setCurrentStage(PROCESSING_STAGES[1]!);
               progressAnimation.value = withTiming(0.25, { duration: 500 });
               break;
             case 'processing':
-              setCurrentStage(PROCESSING_STAGES[2]);
+              setCurrentStage(PROCESSING_STAGES[2]!);
               progressAnimation.value = withTiming(0.5, { duration: 500 });
               break;
             case 'failed':
@@ -217,7 +232,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
 
   const handleRetry = async () => {
     setError(null);
-    setCurrentStage(PROCESSING_STAGES[0]);
+    setCurrentStage(PROCESSING_STAGES[0]!);
     await VideoService.retryFailed();
     startPolling();
   };
@@ -255,7 +270,11 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
           <View
             style={[
               styles.severityBadge,
-              { backgroundColor: severityColors[data.severity_estimate] || theme.colors.textTertiary },
+              {
+                backgroundColor:
+                  severityColors[data.severity_estimate] ||
+                  theme.colors.textTertiary,
+              },
             ]}
           >
             <Text style={styles.severityText}>{data.severity_estimate}</Text>
@@ -283,7 +302,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          <Icon name='arrow-back' size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Video Processing</Text>
         <View style={styles.placeholder} />
@@ -304,25 +323,29 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
                 currentStage.stage === 'completed'
                   ? theme.colors.primary
                   : currentStage.stage === 'failed'
-                  ? theme.colors.error
-                  : theme.colors.textPrimary
+                    ? theme.colors.error
+                    : theme.colors.textPrimary
               }
             />
           </Animated.View>
 
           <Text style={styles.statusTitle}>{currentStage.title}</Text>
-          <Text style={styles.statusDescription}>{currentStage.description}</Text>
+          <Text style={styles.statusDescription}>
+            {currentStage.description}
+          </Text>
 
           {!isComplete && !error && (
             <>
               <View style={styles.progressContainer}>
                 <View style={styles.progressBar}>
-                  <Animated.View style={[styles.progressFill, progressBarStyle]} />
+                  <Animated.View
+                    style={[styles.progressFill, progressBarStyle]}
+                  />
                 </View>
               </View>
 
               <ActivityIndicator
-                size="small"
+                size='small'
                 color={theme.colors.textPrimary}
                 style={styles.loader}
               />
@@ -332,8 +355,11 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
           {error && (
             <View style={styles.errorContainer}>
               <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-                <Icon name="refresh" size={20} color="white" />
+              <TouchableOpacity
+                style={styles.retryButton}
+                onPress={handleRetry}
+              >
+                <Icon name='refresh' size={20} color='white' />
                 <Text style={styles.retryButtonText}>Retry</Text>
               </TouchableOpacity>
             </View>
@@ -350,11 +376,15 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
                 <Text style={styles.queueStatLabel}>Pending</Text>
               </View>
               <View style={styles.queueStat}>
-                <Text style={styles.queueStatValue}>{queueStatus.uploading}</Text>
+                <Text style={styles.queueStatValue}>
+                  {queueStatus.uploading}
+                </Text>
                 <Text style={styles.queueStatLabel}>Uploading</Text>
               </View>
               <View style={styles.queueStat}>
-                <Text style={styles.queueStatValue}>{queueStatus.processing}</Text>
+                <Text style={styles.queueStatValue}>
+                  {queueStatus.processing}
+                </Text>
                 <Text style={styles.queueStatLabel}>Processing</Text>
               </View>
             </View>
@@ -368,7 +398,11 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
             style={styles.resultsCard}
           >
             <View style={styles.resultsHeader}>
-              <Icon name="assessment" size={24} color={theme.colors.textPrimary} />
+              <Icon
+                name='assessment'
+                size={24}
+                color={theme.colors.textPrimary}
+              />
               <Text style={styles.resultsTitle}>Assessment Results</Text>
             </View>
 
@@ -378,9 +412,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
                 <View style={styles.overallAssessment}>
                   <View style={styles.assessmentRow}>
                     <Text style={styles.assessmentLabel}>Severity:</Text>
-                    <Text
-                      style={styles.assessmentValue}
-                    >
+                    <Text style={styles.assessmentValue}>
                       {processingResults.aggregated_assessment.overall_severity.toUpperCase()}
                     </Text>
                   </View>
@@ -393,16 +425,25 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
                   <View style={styles.assessmentRow}>
                     <Text style={styles.assessmentLabel}>Damages Found:</Text>
                     <Text style={styles.assessmentValue}>
-                      {processingResults.aggregated_assessment.total_unique_damages}
+                      {
+                        processingResults.aggregated_assessment
+                          .total_unique_damages
+                      }
                     </Text>
                   </View>
                 </View>
 
                 {/* Damage Summary */}
-                {Object.keys(processingResults.aggregated_assessment.damage_summary).length > 0 && (
+                {Object.keys(
+                  processingResults.aggregated_assessment.damage_summary
+                ).length > 0 && (
                   <View style={styles.damageSection}>
-                    <Text style={styles.damageSectionTitle}>Damage Details</Text>
-                    {Object.entries(processingResults.aggregated_assessment.damage_summary).map(
+                    <Text style={styles.damageSectionTitle}>
+                      Damage Details
+                    </Text>
+                    {Object.entries(
+                      processingResults.aggregated_assessment.damage_summary
+                    ).map(
                       ([type, data]) =>
                         data.instance_count > 0 && renderDamageItem(type, data)
                     )}
@@ -410,16 +451,25 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
                 )}
 
                 {/* High Priority Damages */}
-                {processingResults.aggregated_assessment.high_priority_damages.length > 0 && (
+                {processingResults.aggregated_assessment.high_priority_damages
+                  .length > 0 && (
                   <View style={styles.prioritySection}>
                     <View style={styles.priorityHeader}>
-                      <Icon name="warning" size={20} color={theme.colors.error} />
+                      <Icon
+                        name='warning'
+                        size={20}
+                        color={theme.colors.error}
+                      />
                       <Text style={styles.priorityTitle}>High Priority</Text>
                     </View>
                     {processingResults.aggregated_assessment.high_priority_damages.map(
                       (damage: string) => (
                         <View key={damage} style={styles.priorityItem}>
-                          <Icon name="chevron-right" size={16} color={theme.colors.error} />
+                          <Icon
+                            name='chevron-right'
+                            size={16}
+                            color={theme.colors.error}
+                          />
                           <Text style={styles.priorityText}>{damage}</Text>
                         </View>
                       )
@@ -431,14 +481,30 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
                 <View style={styles.metadataSection}>
                   <Text style={styles.metadataTitle}>Video Information</Text>
                   <Text style={styles.metadataText}>
-                    Duration: {processingResults.aggregated_assessment.video_metadata.duration_seconds.toFixed(1)}s
+                    Duration:{' '}
+                    {processingResults.aggregated_assessment.video_metadata.duration_seconds.toFixed(
+                      1
+                    )}
+                    s
                   </Text>
                   <Text style={styles.metadataText}>
-                    Frames Analyzed: {processingResults.aggregated_assessment.video_metadata.processed_frames}
+                    Frames Analyzed:{' '}
+                    {
+                      processingResults.aggregated_assessment.video_metadata
+                        .processed_frames
+                    }
                   </Text>
                   <Text style={styles.metadataText}>
-                    Resolution: {processingResults.aggregated_assessment.video_metadata.resolution.width}x
-                    {processingResults.aggregated_assessment.video_metadata.resolution.height}
+                    Resolution:{' '}
+                    {
+                      processingResults.aggregated_assessment.video_metadata
+                        .resolution.width
+                    }
+                    x
+                    {
+                      processingResults.aggregated_assessment.video_metadata
+                        .resolution.height
+                    }
                   </Text>
                 </View>
               </>
@@ -468,7 +534,11 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
         {/* Tips Section */}
         {!isComplete && !error && (
           <View style={styles.tipsCard}>
-            <Icon name="info-outline" size={20} color={theme.colors.textSecondary} />
+            <Icon
+              name='info-outline'
+              size={20}
+              color={theme.colors.textSecondary}
+            />
             <Text style={styles.tipsText}>
               AI processing typically takes 1-2 minutes for a 60-second video.
               You can leave this screen and come back later to check results.
@@ -479,6 +549,5 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
     </SafeAreaView>
   );
 };
-
 
 export default VideoProcessingStatusScreen;

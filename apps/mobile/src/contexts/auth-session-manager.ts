@@ -14,7 +14,7 @@ export const parseJWT = (token: string): { exp?: number } | null => {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
-    const base64Url = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const base64Url = parts[1]!.replace(/-/g, '+').replace(/_/g, '/');
     const decoded = atob(base64Url);
     return JSON.parse(decoded);
   } catch {
@@ -36,7 +36,9 @@ export const isTokenExpiredOrExpiring = (accessToken: string): boolean => {
  * Extract only the essential fields from a session to keep SecureStore
  * values under the 2 KB limit (full JWTs can exceed 2048 bytes).
  */
-const extractEssentialSession = (sessionData: unknown): Record<string, unknown> | null => {
+const extractEssentialSession = (
+  sessionData: unknown
+): Record<string, unknown> | null => {
   if (!sessionData || typeof sessionData !== 'object') return null;
   const s = sessionData as Record<string, unknown>;
   return {
@@ -62,16 +64,10 @@ export const saveSessionToSecureStore = async (
     const essential = extractEssentialSession(sessionData);
     if (!essential) return;
 
-    await SecureStore.setItemAsync(
-      SESSION_KEY,
-      JSON.stringify(essential)
-    );
+    await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(essential));
 
     const expiryTime = Date.now() + SESSION_DURATION_MS;
-    await SecureStore.setItemAsync(
-      SESSION_EXPIRY_KEY,
-      expiryTime.toString()
-    );
+    await SecureStore.setItemAsync(SESSION_EXPIRY_KEY, expiryTime.toString());
 
     logger.info('[AUTH] Session persisted to SecureStore');
   } catch (error) {

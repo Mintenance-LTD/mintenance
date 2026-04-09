@@ -1,9 +1,9 @@
 /**
  * Geohash Utility
- * 
+ *
  * Simplified geohash encoding for spatial indexing.
  * For production, consider using a proper geohash library like 'ngeohash'.
- * 
+ *
  * @filesize Target: <150 lines
  * @compliance Single Responsibility - Geohash encoding only
  */
@@ -17,7 +17,11 @@ const BASE32 = '0123456789bcdefghjkmnpqrstuvwxyz';
  * @param precision - Number of characters (default: 7, ~153m accuracy)
  * @returns Geohash string
  */
-export function encodeGeohash(lat: number, lon: number, precision: number = 7): string {
+export function encodeGeohash(
+  lat: number,
+  lon: number,
+  precision: number = 7
+): string {
   let latMin = -90;
   let latMax = 90;
   let lonMin = -180;
@@ -32,7 +36,7 @@ export function encodeGeohash(lat: number, lon: number, precision: number = 7): 
       // Even bit: longitude
       const lonMid = (lonMin + lonMax) / 2;
       if (lon >= lonMid) {
-        ch |= (1 << (4 - bit));
+        ch |= 1 << (4 - bit);
         lonMin = lonMid;
       } else {
         lonMax = lonMid;
@@ -41,7 +45,7 @@ export function encodeGeohash(lat: number, lon: number, precision: number = 7): 
       // Odd bit: latitude
       const latMid = (latMin + latMax) / 2;
       if (lat >= latMid) {
-        ch |= (1 << (4 - bit));
+        ch |= 1 << (4 - bit);
         latMin = latMid;
       } else {
         latMax = latMid;
@@ -70,11 +74,11 @@ export function getGeohashNeighbors(geohash: string): string[] {
   // Simplified implementation
   // For production, use a proper geohash library that handles edge cases
   const neighbors: string[] = [];
-  
+
   // This is a placeholder - proper implementation would calculate
   // north, south, east, west, northeast, northwest, southeast, southwest
   // neighbors accounting for geohash boundaries
-  
+
   return neighbors;
 }
 
@@ -97,7 +101,7 @@ export function getGeohashBounds(geohash: string): {
 
   for (let i = 0; i < geohash.length; i++) {
     const ch = geohash[i];
-    const bits = BASE32.indexOf(ch);
+    const bits = BASE32.indexOf(ch ?? '');
 
     for (let j = 0; j < 5; j++) {
       const bit = (bits >> (4 - j)) & 1;

@@ -13,16 +13,19 @@ import InputValidationMiddleware from '../middleware/InputValidationMiddleware';
 import { logger } from './logger';
 
 // Conditional import for FileSystem to handle test environments
-let FileSystem: { getInfoAsync: (uri: string) => Promise<{ exists: boolean; size?: number }> };
+let FileSystem: {
+  getInfoAsync: (uri: string) => Promise<{ exists: boolean; size?: number }>;
+};
 try {
   FileSystem = require('expo-file-system');
 } catch (error) {
   // Mock FileSystem for test environments
   FileSystem = {
-    getInfoAsync: () => Promise.resolve({
-      exists: true,
-      size: 1024,
-    }),
+    getInfoAsync: () =>
+      Promise.resolve({
+        exists: true,
+        size: 1024,
+      }),
   };
 }
 
@@ -70,7 +73,7 @@ class SecurityManagerService {
       pattern: options.pattern,
       allowEmpty: false,
       sanitize: true,
-      fieldName: options.fieldName
+      fieldName: options.fieldName,
     });
 
     // Additional SQL injection check
@@ -97,8 +100,16 @@ class SecurityManagerService {
   /**
    * ⚠️ SECURITY CRITICAL: Check rate limits
    */
-  public static checkRateLimit(identifier: string, maxAttempts: number, windowMs: number): boolean {
-    const rateLimit = InputValidationMiddleware.validateRateLimit(identifier, maxAttempts, windowMs);
+  public static checkRateLimit(
+    identifier: string,
+    maxAttempts: number,
+    windowMs: number
+  ): boolean {
+    const rateLimit = InputValidationMiddleware.validateRateLimit(
+      identifier,
+      maxAttempts,
+      windowMs
+    );
     return rateLimit.allowed;
   }
 
@@ -107,10 +118,10 @@ class SecurityManagerService {
    */
   public static hasPermission(userRole: string, requiredRole: string): boolean {
     const roleHierarchy: Record<string, number> = {
-      'guest': 0,
-      'homeowner': 1,
-      'contractor': 1,
-      'admin': 2
+      guest: 0,
+      homeowner: 1,
+      contractor: 1,
+      admin: 2,
     };
 
     const userLevel = roleHierarchy[userRole] || 0;
@@ -129,18 +140,27 @@ class SecurityManagerService {
 
     // Handle arrays
     if (Array.isArray(data)) {
-      return data.map(item => this.sanitizeForLogging(item));
+      return data.map((item) => this.sanitizeForLogging(item));
     }
 
     const sanitized: Record<string, unknown> = {};
-    const sensitiveKeys = ['password', 'token', 'secret', 'key', 'creditcard', 'ssn', 'apikey', 'credit'];
+    const sensitiveKeys = [
+      'password',
+      'token',
+      'secret',
+      'key',
+      'creditcard',
+      'ssn',
+      'apikey',
+      'credit',
+    ];
 
     for (const key of Object.keys(data as Record<string, unknown>)) {
       const value = (data as Record<string, unknown>)[key];
       const keyLower = key.toLowerCase();
 
       // Check if key matches any sensitive pattern (case-insensitive)
-      if (sensitiveKeys.some(sensitive => keyLower.includes(sensitive))) {
+      if (sensitiveKeys.some((sensitive) => keyLower.includes(sensitive))) {
         sanitized[key] = '[REDACTED]';
       } else if (typeof value === 'object' && value !== null) {
         // Recursively sanitize nested objects
@@ -194,7 +214,9 @@ class SecurityManagerService {
   /**
    * Validate file upload
    */
-  public async validateFileUpload(fileUri: string): Promise<FileValidationResult> {
+  public async validateFileUpload(
+    fileUri: string
+  ): Promise<FileValidationResult> {
     const errors: string[] = [];
 
     try {
@@ -207,15 +229,21 @@ class SecurityManagerService {
 
       // Check file size
       if (fileInfo.size && fileInfo.size > SECURITY_CONFIG.MAX_FILE_SIZE) {
-        errors.push(`File size exceeds maximum allowed size of ${SECURITY_CONFIG.MAX_FILE_SIZE / (1024 * 1024)}MB`);
+        errors.push(
+          `File size exceeds maximum allowed size of ${SECURITY_CONFIG.MAX_FILE_SIZE / (1024 * 1024)}MB`
+        );
       }
 
       // Extract file extension and validate type
       const fileName = fileUri.split('/').pop() || '';
       const fileParts = fileName.split('.');
       // File must have at least 2 parts (name and extension) to have a valid extension
-      const hasExtension = fileParts.length > 1 && fileParts[fileParts.length - 1].length > 0;
-      const fileExtension = hasExtension ? fileParts.pop()?.toLowerCase() : undefined;
+      const hasExtension =
+        fileParts.length > 1 &&
+        (fileParts[fileParts.length - 1]?.length ?? 0) > 0;
+      const fileExtension = hasExtension
+        ? fileParts.pop()?.toLowerCase()
+        : undefined;
 
       if (!hasExtension) {
         errors.push('File must have a valid extension');
@@ -291,7 +319,10 @@ class SecurityManagerService {
   /**
    * Rate limiting for API calls with AsyncStorage persistence
    */
-  private rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+  private rateLimitMap = new Map<
+    string,
+    { count: number; resetTime: number }
+  >();
   private readonly RATE_LIMIT_STORAGE_KEY = '@rate_limit_data';
   private rateLimitLoaded = false;
 
@@ -331,20 +362,30 @@ class SecurityManagerService {
       this.rateLimitMap.forEach((value, key) => {
         data[key] = value;
       });
-      await AsyncStorage.setItem(this.RATE_LIMIT_STORAGE_KEY, JSON.stringify(data));
+      await AsyncStorage.setItem(
+        this.RATE_LIMIT_STORAGE_KEY,
+        JSON.stringify(data)
+      );
     } catch (error) {
       logger.error('Failed to save rate limit data:', error);
     }
   }
 
-  public async checkRateLimit(identifier: string, maxRequests = 60, windowMs = 60000): Promise<boolean> {
+  public async checkRateLimit(
+    identifier: string,
+    maxRequests = 60,
+    windowMs = 60000
+  ): Promise<boolean> {
     await this.loadRateLimitData();
 
     const now = Date.now();
     const entry = this.rateLimitMap.get(identifier);
 
     if (!entry || now > entry.resetTime) {
-      this.rateLimitMap.set(identifier, { count: 1, resetTime: now + windowMs });
+      this.rateLimitMap.set(identifier, {
+        count: 1,
+        resetTime: now + windowMs,
+      });
       await this.saveRateLimitData();
       return true;
     }
@@ -382,17 +423,40 @@ class SecurityManagerService {
     }
 
     const suspiciousPatterns = [
-      /[<>:"\\|?*]/,  // Invalid characters
+      /[<>:"\\|?*]/, // Invalid characters
     ];
 
     // Check for reserved Windows filenames (with or without extension)
-    const nameWithoutExtension = filename.split('.')[0].toLowerCase();
-    const reservedNames = ['con', 'prn', 'aux', 'nul', 'com1', 'com2', 'com3', 'com4', 'com5', 'com6', 'com7', 'com8', 'com9', 'lpt1', 'lpt2', 'lpt3', 'lpt4', 'lpt5', 'lpt6', 'lpt7', 'lpt8', 'lpt9'];
+    const nameWithoutExtension = (filename.split('.')[0] ?? '').toLowerCase();
+    const reservedNames = [
+      'con',
+      'prn',
+      'aux',
+      'nul',
+      'com1',
+      'com2',
+      'com3',
+      'com4',
+      'com5',
+      'com6',
+      'com7',
+      'com8',
+      'com9',
+      'lpt1',
+      'lpt2',
+      'lpt3',
+      'lpt4',
+      'lpt5',
+      'lpt6',
+      'lpt7',
+      'lpt8',
+      'lpt9',
+    ];
     if (reservedNames.includes(nameWithoutExtension)) {
       return true;
     }
 
-    return suspiciousPatterns.some(pattern => pattern.test(filename));
+    return suspiciousPatterns.some((pattern) => pattern.test(filename));
   }
 
   /**
@@ -402,10 +466,12 @@ class SecurityManagerService {
     rateLimitStatus: { identifier: string; count: number; resetTime: number }[];
     securityConfig: typeof SECURITY_CONFIG;
   } {
-    const rateLimitStatus = Array.from(this.rateLimitMap.entries()).map(([identifier, data]) => ({
-      identifier,
-      ...data,
-    }));
+    const rateLimitStatus = Array.from(this.rateLimitMap.entries()).map(
+      ([identifier, data]) => ({
+        identifier,
+        ...data,
+      })
+    );
 
     return {
       rateLimitStatus,

@@ -355,8 +355,8 @@ export class ServiceAreasService {
         const distance = this.haversineDistance(
           currentLocation.latitude,
           currentLocation.longitude,
-          unvisited[i].latitude,
-          unvisited[i].longitude
+          unvisited[i]!.latitude,
+          unvisited[i]!.longitude
         );
 
         if (distance < nearestDistance) {
@@ -366,7 +366,7 @@ export class ServiceAreasService {
       }
 
       totalDistance += nearestDistance;
-      currentLocation = unvisited.splice(nearestIndex, 1)[0];
+      currentLocation = unvisited.splice(nearestIndex, 1)[0]!;
       visited.push(currentLocation);
     }
 

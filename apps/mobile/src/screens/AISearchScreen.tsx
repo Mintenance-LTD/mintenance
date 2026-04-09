@@ -18,22 +18,40 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader, ErrorView } from '../components/shared';
-import { AISearchService, SearchResult, SearchFilters, SearchSuggestion } from '../services/AISearchService';
+import {
+  AISearchService,
+  SearchResult,
+  SearchFilters,
+  SearchSuggestion,
+} from '../services/AISearchService';
 import { logger } from '../utils/logger';
 import { theme } from '../theme';
 
-const RESULT_TYPE_CONFIG: Record<string, { icon: string; color: string; bg: string }> = {
+const RESULT_TYPE_CONFIG: Record<
+  string,
+  { icon: string; color: string; bg: string }
+> = {
   job: { icon: 'briefcase-outline', color: '#3B82F6', bg: '#DBEAFE' },
-  contractor: { icon: 'person-outline', color: theme.colors.primary, bg: theme.colors.primaryLight },
+  contractor: {
+    icon: 'person-outline',
+    color: theme.colors.primary,
+    bg: theme.colors.primaryLight,
+  },
   service: { icon: 'construct-outline', color: '#8B5CF6', bg: '#EDE9FE' },
-  default: { icon: 'search-outline', color: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary },
+  default: {
+    icon: 'search-outline',
+    color: theme.colors.textSecondary,
+    bg: theme.colors.backgroundSecondary,
+  },
 };
 
 export const AISearchScreen: React.FC = () => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
-  const [trendingSearches, setTrendingSearches] = useState<SearchSuggestion[]>([]);
+  const [trendingSearches, setTrendingSearches] = useState<SearchSuggestion[]>(
+    []
+  );
   const [loading, setLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filters, setFilters] = useState<SearchFilters>({});
@@ -66,7 +84,10 @@ export const AISearchScreen: React.FC = () => {
 
   const loadSuggestions = async () => {
     try {
-      const suggestionList = await AISearchService.getSearchSuggestions(query, 8);
+      const suggestionList = await AISearchService.getSearchSuggestions(
+        query,
+        8
+      );
       setSuggestions(suggestionList);
       setShowSuggestions(true);
     } catch (error) {
@@ -82,7 +103,11 @@ export const AISearchScreen: React.FC = () => {
     setShowSuggestions(false);
 
     try {
-      const searchResults = await AISearchService.search(searchQuery, filters, 20);
+      const searchResults = await AISearchService.search(
+        searchQuery,
+        filters,
+        20
+      );
       setResults(searchResults);
     } catch (err) {
       setError('Search failed. Please try again.');
@@ -123,11 +148,13 @@ export const AISearchScreen: React.FC = () => {
         accessibilityRole='button'
         accessibilityLabel={`${item.type}: ${item.title}. ${item.description}. ${Math.round(item.relevanceScore * 100)}% match`}
       >
-        <View style={[styles.resultIconWrap, { backgroundColor: config.bg }]}>
+        <View style={[styles.resultIconWrap, { backgroundColor: config?.bg }]}>
           <Ionicons
-            name={config.icon as keyof typeof Ionicons.glyphMap}
+            name={
+              (config?.icon ?? 'help-circle') as keyof typeof Ionicons.glyphMap
+            }
             size={20}
-            color={config.color}
+            color={config?.color}
           />
         </View>
         <View style={styles.resultDetails}>
@@ -138,20 +165,32 @@ export const AISearchScreen: React.FC = () => {
           <View style={styles.resultMetadata}>
             {item.metadata.location && (
               <View style={styles.metadataItem}>
-                <Ionicons name="location-outline" size={13} color={theme.colors.textTertiary} />
-                <Text style={styles.metadataText}>{item.metadata.location}</Text>
+                <Ionicons
+                  name='location-outline'
+                  size={13}
+                  color={theme.colors.textTertiary}
+                />
+                <Text style={styles.metadataText}>
+                  {item.metadata.location}
+                </Text>
               </View>
             )}
             {item.metadata.price && (
               <View style={styles.metadataItem}>
-                <Ionicons name="cash-outline" size={13} color={theme.colors.textTertiary} />
+                <Ionicons
+                  name='cash-outline'
+                  size={13}
+                  color={theme.colors.textTertiary}
+                />
                 <Text style={styles.metadataText}>${item.metadata.price}</Text>
               </View>
             )}
             {item.metadata.rating && (
               <View style={styles.metadataItem}>
-                <Ionicons name="star" size={13} color={theme.colors.accent} />
-                <Text style={styles.metadataText}>{item.metadata.rating.toFixed(1)}</Text>
+                <Ionicons name='star' size={13} color={theme.colors.accent} />
+                <Text style={styles.metadataText}>
+                  {item.metadata.rating.toFixed(1)}
+                </Text>
               </View>
             )}
           </View>
@@ -174,13 +213,23 @@ export const AISearchScreen: React.FC = () => {
     >
       <View style={styles.suggestionIconWrap}>
         <Ionicons
-          name={item.type === 'query' ? 'search-outline' : item.type === 'category' ? 'grid-outline' : 'location-outline'}
+          name={
+            item.type === 'query'
+              ? 'search-outline'
+              : item.type === 'category'
+                ? 'grid-outline'
+                : 'location-outline'
+          }
           size={16}
           color={theme.colors.textSecondary}
         />
       </View>
       <Text style={styles.suggestionText}>{item.text}</Text>
-      <Ionicons name="arrow-forward" size={16} color={theme.colors.textTertiary} />
+      <Ionicons
+        name='arrow-forward'
+        size={16}
+        color={theme.colors.textTertiary}
+      />
     </TouchableOpacity>
   );
 
@@ -191,22 +240,31 @@ export const AISearchScreen: React.FC = () => {
       accessibilityRole='button'
       accessibilityLabel={`Trending search: ${item.text}`}
     >
-      <Ionicons name="trending-up" size={14} color={theme.colors.accent} style={{ marginRight: 6 }} />
+      <Ionicons
+        name='trending-up'
+        size={14}
+        color={theme.colors.accent}
+        style={{ marginRight: 6 }}
+      />
       <Text style={styles.trendingText}>{item.text}</Text>
     </TouchableOpacity>
   );
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScreenHeader title="AI Search" />
+      <ScreenHeader title='AI Search' />
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
-          <Ionicons name="search-outline" size={20} color={theme.colors.textTertiary} />
+          <Ionicons
+            name='search-outline'
+            size={20}
+            color={theme.colors.textTertiary}
+          />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search jobs, contractors, services..."
+            placeholder='Search jobs, contractors, services...'
             placeholderTextColor={theme.colors.textTertiary}
             value={query}
             onChangeText={(text) => {
@@ -214,7 +272,7 @@ export const AISearchScreen: React.FC = () => {
               handleSearch();
             }}
             onSubmitEditing={() => performSearch()}
-            returnKeyType="search"
+            returnKeyType='search'
             accessibilityLabel='AI search'
             accessibilityHint='Type to search for jobs, contractors, or services'
           />
@@ -224,18 +282,35 @@ export const AISearchScreen: React.FC = () => {
               accessibilityRole='button'
               accessibilityLabel='Clear search'
             >
-              <Ionicons name="close-circle" size={20} color={theme.colors.textTertiary} />
+              <Ionicons
+                name='close-circle'
+                size={20}
+                color={theme.colors.textTertiary}
+              />
             </TouchableOpacity>
           )}
         </View>
         <TouchableOpacity
-          style={[styles.filterButton, showFilters && styles.filterButtonActive]}
+          style={[
+            styles.filterButton,
+            showFilters && styles.filterButtonActive,
+          ]}
           onPress={() => setShowFilters(!showFilters)}
           accessibilityRole='button'
-          accessibilityLabel={showFilters ? 'Hide search filters' : 'Show search filters'}
+          accessibilityLabel={
+            showFilters ? 'Hide search filters' : 'Show search filters'
+          }
           accessibilityState={{ expanded: showFilters }}
         >
-          <Ionicons name="options-outline" size={20} color={showFilters ? theme.colors.textInverse : theme.colors.textSecondary} />
+          <Ionicons
+            name='options-outline'
+            size={20}
+            color={
+              showFilters
+                ? theme.colors.textInverse
+                : theme.colors.textSecondary
+            }
+          />
         </TouchableOpacity>
       </View>
 
@@ -248,7 +323,11 @@ export const AISearchScreen: React.FC = () => {
               <Text style={styles.filterValueText}>
                 {filters.category || 'All Categories'}
               </Text>
-              <Ionicons name="chevron-down" size={16} color={theme.colors.textTertiary} />
+              <Ionicons
+                name='chevron-down'
+                size={16}
+                color={theme.colors.textTertiary}
+              />
             </TouchableOpacity>
           </View>
 
@@ -258,7 +337,11 @@ export const AISearchScreen: React.FC = () => {
               <Text style={styles.filterValueText}>
                 {filters.location || 'Any Location'}
               </Text>
-              <Ionicons name="chevron-down" size={16} color={theme.colors.textTertiary} />
+              <Ionicons
+                name='chevron-down'
+                size={16}
+                color={theme.colors.textTertiary}
+              />
             </TouchableOpacity>
           </View>
 
@@ -276,7 +359,7 @@ export const AISearchScreen: React.FC = () => {
       {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size='large' color={theme.colors.primary} />
           <Text style={styles.loadingText}>Searching with AI...</Text>
         </View>
       ) : error ? (
@@ -314,7 +397,12 @@ export const AISearchScreen: React.FC = () => {
       ) : (
         <View style={styles.noResultsContainer}>
           <View style={styles.noResultsIconWrap}>
-            <Ionicons name="search-outline" size={32} color={theme.colors.textTertiary} accessible={false} />
+            <Ionicons
+              name='search-outline'
+              size={32}
+              color={theme.colors.textTertiary}
+              accessible={false}
+            />
           </View>
           <Text style={styles.noResultsTitle}>No Results Found</Text>
           <Text style={styles.noResultsSubtitle}>

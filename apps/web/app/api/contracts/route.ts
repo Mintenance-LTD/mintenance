@@ -174,7 +174,11 @@ export const POST = withApiHandler(
       // Block if already signed/accepted/rejected by homeowner
       if (
         !(
-          [CONTRACT_STATUS.DRAFT, CONTRACT_STATUS.PENDING_CONTRACTOR, CONTRACT_STATUS.PENDING_HOMEOWNER] as string[]
+          [
+            CONTRACT_STATUS.DRAFT,
+            CONTRACT_STATUS.PENDING_CONTRACTOR,
+            CONTRACT_STATUS.PENDING_HOMEOWNER,
+          ] as string[]
         ).includes(existingContract.status)
       ) {
         throw new BadRequestError(
@@ -349,12 +353,16 @@ export const POST = withApiHandler(
         .eq('id', threadData.id);
 
       const messagePayload = {
-        job_id: job_id,
+        thread_id: threadData.id,
         sender_id: user.id,
-        receiver_id: job.homeowner_id,
         content: contractMessageText,
         message_type: 'system',
-        read: false,
+        read_by: [] as string[],
+        metadata: {
+          job_id,
+          contract_id: contract?.id,
+          receiver_id: job.homeowner_id,
+        },
       };
 
       let messageInserted = false;

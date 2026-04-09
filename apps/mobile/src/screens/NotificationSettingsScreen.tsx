@@ -28,22 +28,62 @@ interface IconConfig {
 
 const SETTING_ICONS: Record<string, IconConfig> = {
   notifications: { name: 'notifications', color: '#3B82F6', bg: '#DBEAFE' },
-  briefcase: { name: 'briefcase', color: theme.colors.primary, bg: theme.colors.primaryLight },
-  pricetag: { name: 'pricetag', color: theme.colors.accent, bg: theme.colors.accentLight },
+  briefcase: {
+    name: 'briefcase',
+    color: theme.colors.primary,
+    bg: theme.colors.primaryLight,
+  },
+  pricetag: {
+    name: 'pricetag',
+    color: theme.colors.accent,
+    bg: theme.colors.accentLight,
+  },
   chatbubble: { name: 'chatbubble', color: '#8B5CF6', bg: '#EDE9FE' },
   refresh: { name: 'refresh', color: '#3B82F6', bg: '#DBEAFE' },
-  card: { name: 'card', color: theme.colors.primary, bg: theme.colors.primaryLight },
+  card: {
+    name: 'card',
+    color: theme.colors.primary,
+    bg: theme.colors.primaryLight,
+  },
   mail: { name: 'mail', color: theme.colors.error, bg: '#FEE2E2' },
-  calendar: { name: 'calendar', color: theme.colors.accent, bg: theme.colors.accentLight },
-  'shield-checkmark': { name: 'shield-checkmark', color: theme.colors.error, bg: '#FEE2E2' },
+  calendar: {
+    name: 'calendar',
+    color: theme.colors.accent,
+    bg: theme.colors.accentLight,
+  },
+  'shield-checkmark': {
+    name: 'shield-checkmark',
+    color: theme.colors.error,
+    bg: '#FEE2E2',
+  },
   'volume-high': { name: 'volume-high', color: '#3B82F6', bg: '#DBEAFE' },
   'phone-portrait': { name: 'phone-portrait', color: '#8B5CF6', bg: '#EDE9FE' },
-  megaphone: { name: 'megaphone', color: theme.colors.accent, bg: theme.colors.accentLight },
-  'information-circle': { name: 'information-circle', color: '#3B82F6', bg: '#DBEAFE' },
+  megaphone: {
+    name: 'megaphone',
+    color: theme.colors.accent,
+    bg: theme.colors.accentLight,
+  },
+  'information-circle': {
+    name: 'information-circle',
+    color: '#3B82F6',
+    bg: '#DBEAFE',
+  },
   'moon-outline': { name: 'moon-outline', color: '#8B5CF6', bg: '#EDE9FE' },
-  'time-outline': { name: 'time-outline', color: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary },
-  'checkmark-circle': { name: 'checkmark-circle', color: theme.colors.primary, bg: theme.colors.primaryLight },
-  'close-circle': { name: 'close-circle', color: theme.colors.error, bg: '#FEE2E2' },
+  'time-outline': {
+    name: 'time-outline',
+    color: theme.colors.textSecondary,
+    bg: theme.colors.backgroundSecondary,
+  },
+  'checkmark-circle': {
+    name: 'checkmark-circle',
+    color: theme.colors.primary,
+    bg: theme.colors.primaryLight,
+  },
+  'close-circle': {
+    name: 'close-circle',
+    color: theme.colors.error,
+    bg: '#FEE2E2',
+  },
 };
 
 const NotificationSettingsScreen: React.FC = () => {
@@ -86,14 +126,17 @@ const NotificationSettingsScreen: React.FC = () => {
   const [showEndPicker, setShowEndPicker] = useState(false);
 
   const parseTime = (timeStr: string) => {
-    const [h, m] = timeStr.split(':').map(Number);
+    const [h, m] = timeStr.split(':').map(Number) as [number, number];
     const d = new Date();
     d.setHours(h, m, 0, 0);
     return d;
   };
 
   const formatTime = (timeStr: string) =>
-    parseTime(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    parseTime(timeStr).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
 
   useEffect(() => {
     if (user?.id) {
@@ -203,11 +246,19 @@ const NotificationSettingsScreen: React.FC = () => {
     }
     setSaving(true);
     try {
-      await mobileApiClient.patch('/api/users/notification-preferences', settings);
+      await mobileApiClient.patch(
+        '/api/users/notification-preferences',
+        settings
+      );
       Alert.alert('Success', 'Notification settings updated!');
       navigation.goBack();
     } catch (err) {
-      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to save notification settings. Please try again.');
+      Alert.alert(
+        'Error',
+        err instanceof Error
+          ? err.message
+          : 'Failed to save notification settings. Please try again.'
+      );
     } finally {
       setSaving(false);
     }
@@ -241,11 +292,17 @@ const NotificationSettingsScreen: React.FC = () => {
     onToggle: () => void;
     disabled?: boolean;
   }) => {
-    const iconConfig = SETTING_ICONS[icon] || { name: icon as keyof typeof Ionicons.glyphMap, color: theme.colors.textSecondary, bg: theme.colors.backgroundSecondary };
+    const iconConfig = SETTING_ICONS[icon] || {
+      name: icon as keyof typeof Ionicons.glyphMap,
+      color: theme.colors.textSecondary,
+      bg: theme.colors.backgroundSecondary,
+    };
     return (
       <View style={[styles.settingRow, disabled && styles.disabledRow]}>
         <View style={styles.settingLeft}>
-          <View style={[styles.iconContainer, { backgroundColor: iconConfig.bg }]}>
+          <View
+            style={[styles.iconContainer, { backgroundColor: iconConfig.bg }]}
+          >
             <Ionicons
               name={iconConfig.name}
               size={18}
@@ -253,7 +310,9 @@ const NotificationSettingsScreen: React.FC = () => {
             />
           </View>
           <View style={styles.settingInfo}>
-            <Text style={[styles.settingTitle, disabled && styles.disabledText]}>
+            <Text
+              style={[styles.settingTitle, disabled && styles.disabledText]}
+            >
               {title}
             </Text>
             {description && (
@@ -277,15 +336,22 @@ const NotificationSettingsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.surface} />
+      <StatusBar
+        barStyle='dark-content'
+        backgroundColor={theme.colors.surface}
+      />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityRole='button'
+          accessibilityLabel='Go back'
         >
-          <Ionicons name='arrow-back' size={24} color={theme.colors.textPrimary} />
+          <Ionicons
+            name='arrow-back'
+            size={24}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notification Settings</Text>
         <Button
@@ -437,30 +503,60 @@ const NotificationSettingsScreen: React.FC = () => {
                 onPress={() => setShowStartPicker(true)}
               >
                 <View style={styles.settingLeft}>
-                  <View style={[styles.iconContainer, { backgroundColor: theme.colors.backgroundSecondary }]}>
-                    <Ionicons name='time-outline' size={18} color={theme.colors.textSecondary} />
+                  <View
+                    style={[
+                      styles.iconContainer,
+                      { backgroundColor: theme.colors.backgroundSecondary },
+                    ]}
+                  >
+                    <Ionicons
+                      name='time-outline'
+                      size={18}
+                      color={theme.colors.textSecondary}
+                    />
                   </View>
                   <View style={styles.settingInfo}>
                     <Text style={styles.settingTitle}>Start Time</Text>
-                    <Text style={styles.settingDescription}>{formatTime(settings.quietHoursStart)}</Text>
+                    <Text style={styles.settingDescription}>
+                      {formatTime(settings.quietHoursStart)}
+                    </Text>
                   </View>
                 </View>
-                <Ionicons name='chevron-forward' size={16} color={theme.colors.textTertiary} />
+                <Ionicons
+                  name='chevron-forward'
+                  size={16}
+                  color={theme.colors.textTertiary}
+                />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.settingRow}
                 onPress={() => setShowEndPicker(true)}
               >
                 <View style={styles.settingLeft}>
-                  <View style={[styles.iconContainer, { backgroundColor: theme.colors.backgroundSecondary }]}>
-                    <Ionicons name='time-outline' size={18} color={theme.colors.textSecondary} />
+                  <View
+                    style={[
+                      styles.iconContainer,
+                      { backgroundColor: theme.colors.backgroundSecondary },
+                    ]}
+                  >
+                    <Ionicons
+                      name='time-outline'
+                      size={18}
+                      color={theme.colors.textSecondary}
+                    />
                   </View>
                   <View style={styles.settingInfo}>
                     <Text style={styles.settingTitle}>End Time</Text>
-                    <Text style={styles.settingDescription}>{formatTime(settings.quietHoursEnd)}</Text>
+                    <Text style={styles.settingDescription}>
+                      {formatTime(settings.quietHoursEnd)}
+                    </Text>
                   </View>
                 </View>
-                <Ionicons name='chevron-forward' size={16} color={theme.colors.textTertiary} />
+                <Ionicons
+                  name='chevron-forward'
+                  size={16}
+                  color={theme.colors.textTertiary}
+                />
               </TouchableOpacity>
             </>
           )}
@@ -469,15 +565,18 @@ const NotificationSettingsScreen: React.FC = () => {
         {showStartPicker && (
           <DateTimePicker
             value={parseTime(settings.quietHoursStart)}
-            mode="time"
+            mode='time'
             is24Hour
-            display="default"
+            display='default'
             onChange={(_e, d) => {
               setShowStartPicker(false);
               if (d) {
                 const hh = String(d.getHours()).padStart(2, '0');
                 const mm = String(d.getMinutes()).padStart(2, '0');
-                setSettings((prev) => ({ ...prev, quietHoursStart: `${hh}:${mm}` }));
+                setSettings((prev) => ({
+                  ...prev,
+                  quietHoursStart: `${hh}:${mm}`,
+                }));
               }
             }}
           />
@@ -485,15 +584,18 @@ const NotificationSettingsScreen: React.FC = () => {
         {showEndPicker && (
           <DateTimePicker
             value={parseTime(settings.quietHoursEnd)}
-            mode="time"
+            mode='time'
             is24Hour
-            display="default"
+            display='default'
             onChange={(_e, d) => {
               setShowEndPicker(false);
               if (d) {
                 const hh = String(d.getHours()).padStart(2, '0');
                 const mm = String(d.getMinutes()).padStart(2, '0');
-                setSettings((prev) => ({ ...prev, quietHoursEnd: `${hh}:${mm}` }));
+                setSettings((prev) => ({
+                  ...prev,
+                  quietHoursEnd: `${hh}:${mm}`,
+                }));
               }
             }}
           />
@@ -503,34 +605,72 @@ const NotificationSettingsScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
 
-          <TouchableOpacity style={styles.actionButton} onPress={handleEnableAll}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleEnableAll}
+          >
             <View style={styles.actionLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: theme.colors.primaryLight }]}>
-                <Ionicons name='checkmark-circle' size={18} color={theme.colors.primary} />
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: theme.colors.primaryLight },
+                ]}
+              >
+                <Ionicons
+                  name='checkmark-circle'
+                  size={18}
+                  color={theme.colors.primary}
+                />
               </View>
               <Text style={styles.actionText}>Enable All Notifications</Text>
             </View>
-            <Ionicons name='chevron-forward' size={16} color={theme.colors.textTertiary} />
+            <Ionicons
+              name='chevron-forward'
+              size={16}
+              color={theme.colors.textTertiary}
+            />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton} onPress={handleDisableAll}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleDisableAll}
+          >
             <View style={styles.actionLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: '#FEE2E2' }]}>
-                <Ionicons name='close-circle' size={18} color={theme.colors.error} />
+              <View
+                style={[styles.iconContainer, { backgroundColor: '#FEE2E2' }]}
+              >
+                <Ionicons
+                  name='close-circle'
+                  size={18}
+                  color={theme.colors.error}
+                />
               </View>
               <Text style={styles.actionText}>Disable All Notifications</Text>
             </View>
-            <Ionicons name='chevron-forward' size={16} color={theme.colors.textTertiary} />
+            <Ionicons
+              name='chevron-forward'
+              size={16}
+              color={theme.colors.textTertiary}
+            />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton} onPress={handleResetToDefaults}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleResetToDefaults}
+          >
             <View style={styles.actionLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: '#DBEAFE' }]}>
+              <View
+                style={[styles.iconContainer, { backgroundColor: '#DBEAFE' }]}
+              >
                 <Ionicons name='refresh' size={18} color='#3B82F6' />
               </View>
               <Text style={styles.actionText}>Reset to Defaults</Text>
             </View>
-            <Ionicons name='chevron-forward' size={16} color={theme.colors.textTertiary} />
+            <Ionicons
+              name='chevron-forward'
+              size={16}
+              color={theme.colors.textTertiary}
+            />
           </TouchableOpacity>
         </View>
 
