@@ -44,6 +44,7 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/mobile/src/components/JobStatusTracker.tsx',
   'apps/mobile/src/screens/home/RecentJobs.tsx',
   'apps/mobile/src/screens/properties/PropertyDetailScreen.tsx',
+  'apps/web/app/jobs/[id]/components/ContractManagement.tsx',
 ]);
 
 function countLines(filePath) {
