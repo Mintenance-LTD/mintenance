@@ -9,7 +9,7 @@ export class ReactNativeMockFactory {
       Version: '16.0',
       select: jest.fn(<T extends Record<string, unknown>>(obj: T): unknown => {
         const typed = obj as Record<string, unknown>;
-        return (typed.ios !== undefined ? typed.ios : typed.default);
+        return typed.ios !== undefined ? typed.ios : typed.default;
       }),
       isPad: false,
       isTVOS: false,
@@ -47,17 +47,19 @@ export class ReactNativeMockFactory {
     }
 
     return {
-      alert: jest.fn((
-        title: string,
-        message?: string,
-        buttons?: AlertButton[],
-        options?: Record<string, unknown>
-      ) => {
-        // Simulate pressing first button
-        if (buttons && buttons.length > 0 && buttons[0].onPress) {
-          buttons[0].onPress();
+      alert: jest.fn(
+        (
+          title: string,
+          message?: string,
+          buttons?: AlertButton[],
+          options?: Record<string, unknown>
+        ) => {
+          // Simulate pressing first button
+          if (buttons && buttons.length > 0 && buttons[0]?.onPress) {
+            buttons[0]?.onPress();
+          }
         }
-      }),
+      ),
       prompt: jest.fn(),
     };
   }
@@ -275,7 +277,11 @@ export class ReactNativeMockFactory {
     const NativeModules = this.createNativeModulesMock();
 
     // Mock React Native components
-    const mockComponent = jest.fn(({ children }: { children: unknown; [key: string]: unknown }) => children) as unknown as jest.MockedFunction<(props: { children: unknown; [key: string]: unknown }) => unknown> & { displayName: string };
+    const mockComponent = jest.fn(
+      ({ children }: { children: unknown; [key: string]: unknown }) => children
+    ) as unknown as jest.MockedFunction<
+      (props: { children: unknown; [key: string]: unknown }) => unknown
+    > & { displayName: string };
     mockComponent.displayName = 'MockComponent';
 
     return {
@@ -339,7 +345,8 @@ export class ReactNativeMockFactory {
         ValueXY: jest.fn(),
         timing: jest.fn(() => ({
           start: jest.fn(
-            (callback?: (result: { finished: boolean }) => void) => callback && callback({ finished: true })
+            (callback?: (result: { finished: boolean }) => void) =>
+              callback && callback({ finished: true })
           ),
           stop: jest.fn(),
           reset: jest.fn(),
@@ -347,14 +354,16 @@ export class ReactNativeMockFactory {
 
         spring: jest.fn(() => ({
           start: jest.fn(
-            (callback?: (result: { finished: boolean }) => void) => callback && callback({ finished: true })
+            (callback?: (result: { finished: boolean }) => void) =>
+              callback && callback({ finished: true })
           ),
           stop: jest.fn(),
           reset: jest.fn(),
         })),
         decay: jest.fn(() => ({
           start: jest.fn(
-            (callback?: (result: { finished: boolean }) => void) => callback && callback({ finished: true })
+            (callback?: (result: { finished: boolean }) => void) =>
+              callback && callback({ finished: true })
           ),
           stop: jest.fn(),
           reset: jest.fn(),

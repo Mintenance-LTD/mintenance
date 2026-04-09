@@ -8,8 +8,8 @@ export const uploadPhotosToStorage = async (
   const urls: string[] = [];
   for (let i = 0; i < photos.length; i++) {
     try {
-      const uri = photos[i];
-      const ext = uri.split('.').pop() || 'jpg';
+      const uri = photos[i]!;
+      const ext = uri.split('.').pop() ?? 'jpg';
       const filePath = `assessments/${assessmentDbId}/${i}.${ext}`;
       const response = await fetch(uri);
       const blob = await response.blob();
@@ -17,7 +17,10 @@ export const uploadPhotosToStorage = async (
 
       const { error } = await supabase.storage
         .from('assessment-photos')
-        .upload(filePath, arrayBuffer, { contentType: `image/${ext}`, upsert: true });
+        .upload(filePath, arrayBuffer, {
+          contentType: `image/${ext}`,
+          upsert: true,
+        });
 
       if (!error) {
         const { data: urlData } = supabase.storage

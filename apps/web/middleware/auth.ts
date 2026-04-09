@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyJWT, SessionValidator } from '@mintenance/auth';
-import type { ConfigManager } from '@mintenance/auth';
+import type { ConfigManager, JWTPayload } from '@mintenance/auth';
 import { logger } from '@mintenance/shared';
 import { tokenBlacklist } from '@/lib/auth/token-blacklist';
 import { securityMonitor } from '@/lib/security-monitor';
@@ -39,10 +39,10 @@ export async function handleSupabaseAuth(
         get(name: string) {
           return request.cookies.get(name)?.value;
         },
-        set(_name: string, _value: string, _options: any) {
+        set(_name: string, _value: string, _options: Record<string, unknown>) {
           // Not needed in middleware - cookies handled by response
         },
-        remove(_name: string, _options: any) {
+        remove(_name: string, _options: Record<string, unknown>) {
           // Not needed in middleware - cookies handled by response
         },
       },
@@ -98,7 +98,7 @@ export async function verifyJwtToken(
   cfg: ConfigManager,
   request: NextRequest,
   pathname: string
-): Promise<any | null> {
+): Promise<JWTPayload | null> {
   try {
     const jwtSecret = cfg.getRequired('JWT_SECRET');
     return await verifyJWT(token, jwtSecret);
@@ -144,7 +144,7 @@ export async function checkTokenBlacklist(
 }
 
 export async function enforceSessionTimeouts(
-  jwtPayload: any,
+  jwtPayload: JWTPayload,
   token: string,
   request: NextRequest,
   pathname: string

@@ -86,10 +86,16 @@ export class PhotoUploadService {
 
         let response: { photoId?: string; url?: string };
         try {
-          response = await mobileApiClient.postFormData<{
+          const rawResponse = await mobileApiClient.postFormData<{
             photoId?: string;
             url?: string;
+            photos?: { url: string; qualityScore?: number }[];
           }>(`/api/jobs/${jobId}/photos/before`, formData);
+          // API returns { photos: [{url, qualityScore}] } — normalize to { url }
+          response = {
+            photoId: rawResponse.photoId,
+            url: rawResponse.photos?.[0]?.url ?? rawResponse.url,
+          };
         } catch (uploadError) {
           const apiError = parseError(uploadError);
           results.push({
@@ -362,9 +368,7 @@ export class PhotoUploadService {
     return result.assets[0] || null;
   }
 
-  static async getJobPhotos(
-    jobId: string
-  ): Promise<
+  static async getJobPhotos(jobId: string): Promise<
     Array<{
       id: string;
       photo_url: string;

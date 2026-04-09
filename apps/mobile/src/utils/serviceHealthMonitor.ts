@@ -61,10 +61,10 @@ export class ServiceHealthMonitor {
 
   private readonly defaultThresholds: HealthThresholds = {
     responseTimeWarning: 1000, // 1 second
-    responseTimeError: 3000,   // 3 seconds
-    errorRateWarning: 5,       // 5%
-    errorRateError: 15,        // 15%
-    uptimeWarning: 99,         // 99%
+    responseTimeError: 3000, // 3 seconds
+    errorRateWarning: 5, // 5%
+    errorRateError: 15, // 15%
+    uptimeWarning: 99, // 99%
   };
 
   static getInstance(): ServiceHealthMonitor {
@@ -92,10 +92,12 @@ export class ServiceHealthMonitor {
       metadata: {
         errorCount: 0,
         requestCount: 0,
-      }
+      },
     });
 
-    logger.info(`Registered service for health monitoring: ${serviceCheck.serviceName}`);
+    logger.info(
+      `Registered service for health monitoring: ${serviceCheck.serviceName}`
+    );
   }
 
   unregisterService(serviceName: string): void {
@@ -120,12 +122,15 @@ export class ServiceHealthMonitor {
 
     try {
       if (serviceCheck.healthCheckFunction) {
-        isHealthy = await Promise.race([
+        isHealthy = (await Promise.race([
           serviceCheck.healthCheckFunction(),
-          this.createTimeoutPromise(serviceCheck.timeout)
-        ]) as boolean;
+          this.createTimeoutPromise(serviceCheck.timeout),
+        ])) as boolean;
       } else if (serviceCheck.healthCheckUrl) {
-        isHealthy = await this.checkUrlHealth(serviceCheck.healthCheckUrl, serviceCheck.timeout);
+        isHealthy = await this.checkUrlHealth(
+          serviceCheck.healthCheckUrl,
+          serviceCheck.timeout
+        );
       } else {
         // Default health check - just assume healthy if no specific check
         isHealthy = true;
@@ -141,13 +146,17 @@ export class ServiceHealthMonitor {
     // Update request and error counts
     const newRequestCount = (currentStatus.metadata?.requestCount || 0) + 1;
     const newErrorCount = isHealthy
-      ? (currentStatus.metadata?.errorCount || 0)
+      ? currentStatus.metadata?.errorCount || 0
       : (currentStatus.metadata?.errorCount || 0) + 1;
 
     const errorRate = (newErrorCount / newRequestCount) * 100;
 
     // Determine health status based on thresholds
-    const status = this.determineHealthStatus(responseTime, errorRate, isHealthy);
+    const status = this.determineHealthStatus(
+      responseTime,
+      errorRate,
+      isHealthy
+    );
 
     const updatedStatus: ServiceHealthStatus = {
       serviceName,
@@ -160,18 +169,21 @@ export class ServiceHealthMonitor {
         ...currentStatus.metadata,
         errorCount: newErrorCount,
         requestCount: newRequestCount,
-      }
+      },
     };
 
     this.healthStatuses.set(serviceName, updatedStatus);
 
     // Log health status changes
     if (currentStatus.status !== status) {
-      logger.warn(`Service ${serviceName} status changed: ${currentStatus.status} → ${status}`, {
-        responseTime,
-        errorRate,
-        error: error?.message
-      });
+      logger.warn(
+        `Service ${serviceName} status changed: ${currentStatus.status} → ${status}`,
+        {
+          responseTime,
+          errorRate,
+          error: error?.message,
+        }
+      );
     }
 
     return updatedStatus;
@@ -180,14 +192,14 @@ export class ServiceHealthMonitor {
   async checkAllServices(): Promise<ServiceHealthStatus[]> {
     const healthChecks = Array.from(this.healthChecks.keys());
     const results = await Promise.allSettled(
-      healthChecks.map(serviceName => this.checkServiceHealth(serviceName))
+      healthChecks.map((serviceName) => this.checkServiceHealth(serviceName))
     );
 
     return results.map((result, index) => {
       if (result.status === 'fulfilled') {
         return result.value;
       } else {
-        const serviceName = healthChecks[index];
+        const serviceName = healthChecks[index] ?? 'unknown';
         logger.error(`Health check failed for ${serviceName}:`, result.reason);
 
         // Return unhealthy status
@@ -197,7 +209,7 @@ export class ServiceHealthMonitor {
           lastCheck: new Date().toISOString(),
           responseTime: -1,
           errorRate: 100,
-          uptime: 0
+          uptime: 0,
         };
 
         this.healthStatuses.set(serviceName, failedStatus);
@@ -225,7 +237,9 @@ export class ServiceHealthMonitor {
       }
     }, intervalMs);
 
-    logger.info(`Started service health monitoring with ${intervalMs}ms interval`);
+    logger.info(
+      `Started service health monitoring with ${intervalMs}ms interval`
+    );
   }
 
   stopMonitoring(): void {
@@ -243,9 +257,13 @@ export class ServiceHealthMonitor {
 
   getSystemHealthReport(): SystemHealthReport {
     const services = Array.from(this.healthStatuses.values());
-    const healthyCount = services.filter(s => s.status === 'healthy').length;
-    const degradedCount = services.filter(s => s.status === 'degraded').length;
-    const unhealthyCount = services.filter(s => s.status === 'unhealthy').length;
+    const healthyCount = services.filter((s) => s.status === 'healthy').length;
+    const degradedCount = services.filter(
+      (s) => s.status === 'degraded'
+    ).length;
+    const unhealthyCount = services.filter(
+      (s) => s.status === 'unhealthy'
+    ).length;
 
     let overall: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
     if (unhealthyCount > 0) {
@@ -263,7 +281,7 @@ export class ServiceHealthMonitor {
         healthyServices: healthyCount,
         degradedServices: degradedCount,
         unhealthyServices: unhealthyCount,
-      }
+      },
     };
   }
 
@@ -290,7 +308,7 @@ export class ServiceHealthMonitor {
 
     const newRequestCount = (currentStatus.metadata?.requestCount || 0) + 1;
     const newErrorCount = success
-      ? (currentStatus.metadata?.errorCount || 0)
+      ? currentStatus.metadata?.errorCount || 0
       : (currentStatus.metadata?.errorCount || 0) + 1;
 
     const errorRate = (newErrorCount / newRequestCount) * 100;
@@ -307,14 +325,14 @@ export class ServiceHealthMonitor {
         ...currentStatus.metadata,
         errorCount: newErrorCount,
         requestCount: newRequestCount,
-      }
+      },
     });
 
     logger.debug(`Recorded operation for ${serviceName}.${operationName}`, {
       responseTime,
       success,
       errorRate,
-      status
+      status,
     });
   }
 
@@ -329,7 +347,7 @@ export class ServiceHealthMonitor {
 
       const response = await fetch(url, {
         signal: controller.signal,
-        method: 'HEAD'
+        method: 'HEAD',
       });
 
       clearTimeout(timeoutId);
@@ -350,14 +368,18 @@ export class ServiceHealthMonitor {
     errorRate: number,
     operationSuccessful: boolean
   ): 'healthy' | 'degraded' | 'unhealthy' {
-    if (!operationSuccessful ||
-        responseTime > this.defaultThresholds.responseTimeError ||
-        errorRate > this.defaultThresholds.errorRateError) {
+    if (
+      !operationSuccessful ||
+      responseTime > this.defaultThresholds.responseTimeError ||
+      errorRate > this.defaultThresholds.errorRateError
+    ) {
       return 'unhealthy';
     }
 
-    if (responseTime > this.defaultThresholds.responseTimeWarning ||
-        errorRate > this.defaultThresholds.errorRateWarning) {
+    if (
+      responseTime > this.defaultThresholds.responseTimeWarning ||
+      errorRate > this.defaultThresholds.errorRateWarning
+    ) {
       return 'degraded';
     }
 
@@ -383,13 +405,15 @@ export function initializeCoreServiceHealthChecks(): void {
     timeout: 5000,
     healthCheckFunction: async () => {
       try {
-        const result = await mobileApiClient.get<{ status: string }>('/api/health');
+        const result = await mobileApiClient.get<{ status: string }>(
+          '/api/health'
+        );
         return result?.status === 'ok' || result?.status === 'healthy';
       } catch {
         return false;
       }
     },
-    dependencies: ['api']
+    dependencies: ['api'],
   });
 
   // Authentication service
@@ -405,7 +429,7 @@ export function initializeCoreServiceHealthChecks(): void {
         return false;
       }
     },
-    dependencies: ['Database']
+    dependencies: ['Database'],
   });
 
   // Start monitoring with 30-second intervals

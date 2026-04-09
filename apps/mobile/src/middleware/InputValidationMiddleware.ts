@@ -71,7 +71,7 @@ export class InputValidationMiddleware {
       pattern = VALIDATION_PATTERNS.safeText,
       allowEmpty = false,
       sanitize = true,
-      fieldName = 'input'
+      fieldName = 'input',
     } = options;
 
     const errors: string[] = [];
@@ -111,7 +111,7 @@ export class InputValidationMiddleware {
         logger.warn('InputValidation', 'SQL injection attempt detected', {
           fieldName,
           pattern: sqlPattern.source,
-          input: sanitizedInput.substring(0, 100)
+          input: sanitizedInput.substring(0, 100),
         });
         break;
       }
@@ -124,7 +124,7 @@ export class InputValidationMiddleware {
         logger.warn('InputValidation', 'XSS attempt detected', {
           fieldName,
           pattern: xssPattern.source,
-          input: sanitizedInput.substring(0, 100)
+          input: sanitizedInput.substring(0, 100),
         });
         break;
       }
@@ -155,7 +155,7 @@ export class InputValidationMiddleware {
       isValid: errors.length === 0,
       sanitized: sanitizedInput,
       errors,
-      warnings
+      warnings,
     };
   }
 
@@ -167,7 +167,7 @@ export class InputValidationMiddleware {
       pattern: VALIDATION_PATTERNS.email,
       maxLength: 254,
       fieldName: 'email',
-      sanitize: false
+      sanitize: false,
     });
 
     // Additional email-specific validation
@@ -178,7 +178,7 @@ export class InputValidationMiddleware {
         result.errors.push('Invalid email format');
       } else {
         const [localPart, domain] = emailParts;
-        if (localPart.length > 64 || domain.length > 253) {
+        if ((localPart?.length ?? 0) > 64 || (domain?.length ?? 0) > 253) {
           result.isValid = false;
           result.errors.push('Email address too long');
         }
@@ -196,7 +196,7 @@ export class InputValidationMiddleware {
       pattern: VALIDATION_PATTERNS.phone,
       maxLength: 20,
       fieldName: 'phone number',
-      sanitize: true
+      sanitize: true,
     });
   }
 
@@ -209,7 +209,7 @@ export class InputValidationMiddleware {
       maxLength: 36,
       minLength: 36,
       fieldName: 'UUID',
-      sanitize: false
+      sanitize: false,
     });
   }
 
@@ -222,7 +222,7 @@ export class InputValidationMiddleware {
       minLength: 3,
       pattern: /^[a-zA-Z0-9\s.,&-]+$/,
       fieldName: 'job title',
-      sanitize: true
+      sanitize: true,
     });
   }
 
@@ -234,7 +234,7 @@ export class InputValidationMiddleware {
       maxLength: 2000,
       minLength: 10,
       fieldName: 'job description',
-      sanitize: true
+      sanitize: true,
     });
   }
 
@@ -271,7 +271,7 @@ export class InputValidationMiddleware {
       isValid: errors.length === 0,
       sanitized: Math.round(numAmount * 100) / 100, // Round to 2 decimal places
       errors,
-      warnings
+      warnings,
     };
   }
 
@@ -289,7 +289,7 @@ export class InputValidationMiddleware {
     const {
       maxSize = 10 * 1024 * 1024, // 10MB default
       allowedTypes = ['image/jpeg', 'image/png', 'image/webp'],
-      maxNameLength = 255
+      maxNameLength = 255,
     } = options;
 
     const errors: string[] = [];
@@ -305,15 +305,28 @@ export class InputValidationMiddleware {
     }
 
     // Check for dangerous file extensions
-    const dangerousExtensions = ['.exe', '.bat', '.cmd', '.scr', '.pif', '.js', '.jar', '.php'];
-    const fileExt = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    const dangerousExtensions = [
+      '.exe',
+      '.bat',
+      '.cmd',
+      '.scr',
+      '.pif',
+      '.js',
+      '.jar',
+      '.php',
+    ];
+    const fileExt = file.name
+      .toLowerCase()
+      .substring(file.name.lastIndexOf('.'));
     if (dangerousExtensions.includes(fileExt)) {
       errors.push('File type not allowed for security reasons');
     }
 
     // Validate file size
     if (file.size > maxSize) {
-      errors.push(`File size cannot exceed ${Math.round(maxSize / 1024 / 1024)}MB`);
+      errors.push(
+        `File size cannot exceed ${Math.round(maxSize / 1024 / 1024)}MB`
+      );
     }
 
     // Validate file type
@@ -331,7 +344,7 @@ export class InputValidationMiddleware {
       isValid: errors.length === 0,
       sanitized: { ...file, name: sanitizedName },
       errors,
-      warnings
+      warnings,
     };
   }
 
@@ -341,7 +354,11 @@ export class InputValidationMiddleware {
   static validateObject(
     obj: Record<string, unknown>,
     schema: Record<string, ValidationOptions>
-  ): { isValid: boolean; sanitized: Record<string, unknown>; errors: Record<string, string[]> } {
+  ): {
+    isValid: boolean;
+    sanitized: Record<string, unknown>;
+    errors: Record<string, string[]>;
+  } {
     const sanitized: Record<string, unknown> = {};
     const errors: Record<string, string[]> = {};
     let isValid = true;
@@ -357,9 +374,14 @@ export class InputValidationMiddleware {
       } else if (fieldName.includes('phone')) {
         result = this.validatePhone(String(value ?? ''));
       } else if (fieldName.includes('amount') || fieldName.includes('price')) {
-        result = this.validateAmount(typeof value === 'number' ? value : String(value ?? ''));
+        result = this.validateAmount(
+          typeof value === 'number' ? value : String(value ?? '')
+        );
       } else {
-        result = this.validateText(String(value ?? ''), { ...options, fieldName });
+        result = this.validateText(String(value ?? ''), {
+          ...options,
+          fieldName,
+        });
       }
 
       if (!result.isValid) {
@@ -390,12 +412,14 @@ export class InputValidationMiddleware {
     // NOTE: Current in-memory rate limit resets on app restart.
     // Use expo-sqlite to persist the rate limit window across restarts.
     // Issue: "[Mobile Security] Implement persistent rate limiting in InputValidationMiddleware"
-    logger.warn('Rate limiting should be implemented with persistent storage for production');
+    logger.warn(
+      'Rate limiting should be implemented with persistent storage for production'
+    );
 
     return {
       allowed: true,
       remainingAttempts: maxAttempts - 1,
-      resetTime: now + windowMs
+      resetTime: now + windowMs,
     };
   }
 }

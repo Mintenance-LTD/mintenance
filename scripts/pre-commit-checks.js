@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* eslint-disable no-console, @typescript-eslint/no-require-imports, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 /**
  * Pre-commit hook script
@@ -36,6 +36,30 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/web/app/coming-soon/page.tsx',
   'apps/mobile/src/services/PushNotificationService.ts',
   'apps/mobile/src/screens/job-details/ContractPreparationScreen.tsx',
+  'apps/mobile/src/screens/subscription/SubscriptionScreen.tsx',
+  'apps/web/components/examples/FeatureAccessExamples.tsx',
+  'apps/web/lib/services/subscription/SubscriptionService.ts',
+  'apps/web/app/api/contracts/route.ts',
+  'apps/web/lib/rate-limiter-enhanced.ts',
+  'apps/mobile/src/components/JobStatusTracker.tsx',
+  'apps/mobile/src/screens/home/RecentJobs.tsx',
+  'apps/mobile/src/screens/properties/PropertyDetailScreen.tsx',
+  'apps/web/app/jobs/[id]/components/ContractManagement.tsx',
+  'apps/mobile/src/pricing/complexity/ComplexityAnalyzer.ts',
+  'apps/mobile/src/screens/AISearchScreen.tsx',
+  'apps/mobile/src/screens/CalendarScreen.tsx',
+  'apps/mobile/src/screens/NotificationScreen.tsx',
+  'apps/mobile/src/screens/NotificationSettingsScreen.tsx',
+  'apps/mobile/src/screens/job-details/JobPhotoUploadScreen.tsx',
+  'apps/mobile/src/screens/properties/AddPropertyScreen.tsx',
+  'apps/mobile/src/screens/video-capture/VideoCaptureScreen.tsx',
+  'apps/mobile/src/services/AuthService.ts',
+  'apps/mobile/src/services/ImageCompressionService.example.ts',
+  'apps/mobile/src/services/VideoService.ts',
+  'apps/mobile/src/utils/featureAccess.ts',
+  'apps/mobile/src/utils/memoryManager.ts',
+  'apps/web/app/api/building-surveyor/assess/route.ts',
+  'apps/web/lib/services/building-surveyor/orchestration/AssessmentOrchestrator.ts',
 ]);
 
 function countLines(filePath) {

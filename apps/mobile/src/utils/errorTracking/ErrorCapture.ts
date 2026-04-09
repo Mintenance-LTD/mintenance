@@ -11,7 +11,7 @@ import {
   ErrorOccurrence,
   Breadcrumb,
   ErrorCategory,
-  ErrorSeverity
+  ErrorSeverity,
 } from './ErrorTypes';
 
 export class ErrorCapture {
@@ -32,16 +32,11 @@ export class ErrorCapture {
     this.sessionBreadcrumbs.set(this.currentSessionId, []);
 
     // Track session start
-    this.addBreadcrumb(
-      'Session started',
-      'session',
-      'info',
-      {
-        sessionId: this.currentSessionId,
-        platform: Platform.OS,
-        timestamp: Date.now()
-      }
-    );
+    this.addBreadcrumb('Session started', 'session', 'info', {
+      sessionId: this.currentSessionId,
+      platform: Platform.OS,
+      timestamp: Date.now(),
+    });
   }
 
   /**
@@ -72,8 +67,9 @@ export class ErrorCapture {
       context,
       stackTrace: error.stack || '',
       environment: this.getEnvironmentInfo(),
-      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
-      breadcrumbs: this.getSessionBreadcrumbs()
+      userAgent:
+        typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+      breadcrumbs: this.getSessionBreadcrumbs(),
     };
   }
 
@@ -91,11 +87,12 @@ export class ErrorCapture {
       category,
       message,
       level,
-      data
+      data,
     };
 
     // Add to session breadcrumbs
-    const sessionBreadcrumbs = this.sessionBreadcrumbs.get(this.currentSessionId) || [];
+    const sessionBreadcrumbs =
+      this.sessionBreadcrumbs.get(this.currentSessionId) || [];
     sessionBreadcrumbs.push(breadcrumb);
 
     // Keep only last 50 breadcrumbs per session
@@ -128,7 +125,10 @@ export class ErrorCapture {
    */
   cleanOldBreadcrumbs(oneWeekAgo: number): void {
     for (const [sessionId, breadcrumbs] of this.sessionBreadcrumbs.entries()) {
-      if (breadcrumbs.length === 0 || breadcrumbs[breadcrumbs.length - 1].timestamp < oneWeekAgo) {
+      if (
+        breadcrumbs.length === 0 ||
+        breadcrumbs[breadcrumbs.length - 1]!.timestamp < oneWeekAgo
+      ) {
         this.sessionBreadcrumbs.delete(sessionId);
       }
     }
@@ -167,9 +167,11 @@ export class ErrorCapture {
       platform: Platform.OS,
       version: Platform.Version.toString(),
       device: Platform.OS === 'ios' ? 'iOS Device' : 'Android Device',
-      network: typeof navigator !== 'undefined' && 'connection' in navigator
-        ? (navigator as unknown as Record<string, { effectiveType?: string }>).connection?.effectiveType
-        : 'unknown'
+      network:
+        typeof navigator !== 'undefined' && 'connection' in navigator
+          ? (navigator as unknown as Record<string, { effectiveType?: string }>)
+              .connection?.effectiveType
+          : 'unknown',
     };
   }
 
@@ -186,12 +188,9 @@ export class ErrorCapture {
     if (typeof console !== 'undefined') {
       const originalError = console.error;
       console.error = (...args) => {
-        this.addBreadcrumb(
-          `Console error: ${args[0]}`,
-          'console',
-          'error',
-          { args: args.slice(1) }
-        );
+        this.addBreadcrumb(`Console error: ${args[0]}`, 'console', 'error', {
+          args: args.slice(1),
+        });
         originalError.apply(console, args);
       };
     }

@@ -263,7 +263,8 @@ interface UrgencyFooterProps {
 }
 
 export function UrgencyFooter({ urgency, timeline }: UrgencyFooterProps) {
-  const u = URGENCY_COLORS[urgency] ?? URGENCY_COLORS.monitor;
+  const u = URGENCY_COLORS[urgency] ??
+    URGENCY_COLORS.monitor ?? { bg: '#EFF6FF', text: '#2563EB', icon: 'eye' };
   return (
     <View style={[s.urgencyBar, { backgroundColor: u.bg }]}>
       <Ionicons

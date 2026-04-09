@@ -129,8 +129,10 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
       for (let i = 0; i < assets.length; i++) {
         setUploadProgress((i / assets.length) * 100);
         try {
+          const asset = assets[i];
+          if (!asset) continue;
           const result = await uploadFn.call(PhotoUploadService, jobId, [
-            assets[i],
+            asset,
           ]);
           results.push(...result);
         } catch {
@@ -147,9 +149,10 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
           const updatedPhotos = [...prev];
           let resultIndex = 0;
           for (let i = 0; i < updatedPhotos.length; i++) {
-            if (!updatedPhotos[i].uploaded) {
+            const photo = updatedPhotos[i];
+            if (photo && !photo.uploaded) {
               if (results[resultIndex]?.success) {
-                updatedPhotos[i] = { ...updatedPhotos[i], uploaded: true };
+                updatedPhotos[i] = { ...photo, uploaded: true };
               }
               resultIndex++;
             }

@@ -1,12 +1,13 @@
 /**
  * Assessment Orchestrator
- * 
+ *
  * Handles the flow control and orchestration of building damage assessments.
  * Coordinates between detection services, feature extraction, memory systems,
  * and GPT-4 Vision analysis.
  */
 
 import { logger } from '@mintenance/shared';
+import { z } from 'zod';
 import { memoryManager } from '../../ml-engine/memory/MemoryManager';
 import { MonitoringService } from '../../monitoring/MonitoringService';
 import { RoboflowDetectionService } from '../RoboflowDetectionService';
@@ -19,561 +20,633 @@ import { GPT4CacheService } from '../../ai/GPT4CacheService';
 import { buildFinalAssessment } from './build-assessment';
 import { captureTrainingDataAsync } from './training-capture';
 import type {
-    AssessmentContext,
-    Phase1BuildingAssessment,
-    RoboflowDetection,
-    VisionAnalysisSummary,
-    SAM3SegmentationData,
+  AssessmentContext,
+  Phase1BuildingAssessment,
+  RoboflowDetection,
+  VisionAnalysisSummary,
+  SAM3SegmentationData,
 } from '../types';
-import type { ContinuumMemoryConfig, MemoryQueryResult } from '../../ml-engine/memory/types';
+import type {
+  ContinuumMemoryConfig,
+  MemoryQueryResult,
+} from '../../ml-engine/memory/types';
 
 // Simple URL validation utility
-async function validateURLs(urls: string[], strict: boolean = false): Promise<{
-    valid: string[];
-    invalid: Array<{ url: string; error: string }>;
+async function validateURLs(
+  urls: string[],
+  strict: boolean = false
+): Promise<{
+  valid: string[];
+  invalid: Array<{ url: string; error: string }>;
 }> {
-    const valid: string[] = [];
-    const invalid: Array<{ url: string; error: string }> = [];
+  const valid: string[] = [];
+  const invalid: Array<{ url: string; error: string }> = [];
 
-    for (const url of urls) {
-        try {
-            new URL(url);
-            valid.push(url);
-        } catch (error) {
-            invalid.push({ url, error: 'Invalid URL format' });
-        }
+  for (const url of urls) {
+    try {
+      new URL(url);
+      valid.push(url);
+    } catch (error) {
+      invalid.push({ url, error: 'Invalid URL format' });
     }
+  }
 
-    return { valid, invalid };
+  return { valid, invalid };
 }
 
 // Google Cloud Vision removed — GPT-4o handles visual analysis directly.
 
 export class AssessmentOrchestrator {
-    private static readonly AGENT_NAME = 'building-surveyor';
-    private static memorySystemInitialized = false;
+  private static readonly AGENT_NAME = 'building-surveyor';
+  private static memorySystemInitialized = false;
 
-    /**
-     * Initialize the orchestrator and its dependencies
-     */
-    static async initialize(): Promise<void> {
-        await this.initializeMemorySystem();
-        await FeatureExtractionService.initialize();
-    }
+  /**
+   * Initialize the orchestrator and its dependencies
+   */
+  static async initialize(): Promise<void> {
+    await this.initializeMemorySystem();
+    await FeatureExtractionService.initialize();
+  }
 
-    /**
-     * Initialize continuum memory system for building surveyor
-     */
-    private static async initializeMemorySystem(): Promise<void> {
-        if (this.memorySystemInitialized) return;
+  /**
+   * Initialize continuum memory system for building surveyor
+   */
+  private static async initializeMemorySystem(): Promise<void> {
+    if (this.memorySystemInitialized) return;
 
-        const config = getConfig();
+    const config = getConfig();
 
-        try {
-            const memoryConfig: ContinuumMemoryConfig = {
-                agentName: this.AGENT_NAME,
-                defaultChunkSize: 10,
-                defaultLearningRate: 0.001,
-                levels: [
-                    {
-                        level: 0,
-                        frequency: 1,
-                        chunkSize: 10,
-                        learningRate: 0.01,
-                        mlpConfig: {
-                            inputSize: 40,
-                            hiddenSizes: [64, 32],
-                            outputSize: 5,
-                            activation: 'relu',
-                        },
-                    },
-                    {
-                        level: 1,
-                        frequency: 16,
-                        chunkSize: 100,
-                        learningRate: 0.005,
-                        mlpConfig: {
-                            inputSize: 40,
-                            hiddenSizes: [128, 64],
-                            outputSize: 5,
-                            activation: 'relu',
-                        },
-                    },
-                    {
-                        level: 2,
-                        frequency: 1000000,
-                        chunkSize: 1000,
-                        learningRate: 0.001,
-                        mlpConfig: {
-                            inputSize: 40,
-                            hiddenSizes: [256, 128, 64],
-                            outputSize: 5,
-                            activation: 'relu',
-                        },
-                    },
-                ],
-            };
+    try {
+      const memoryConfig: ContinuumMemoryConfig = {
+        agentName: this.AGENT_NAME,
+        defaultChunkSize: 10,
+        defaultLearningRate: 0.001,
+        levels: [
+          {
+            level: 0,
+            frequency: 1,
+            chunkSize: 10,
+            learningRate: 0.01,
+            mlpConfig: {
+              inputSize: 40,
+              hiddenSizes: [64, 32],
+              outputSize: 5,
+              activation: 'relu',
+            },
+          },
+          {
+            level: 1,
+            frequency: 16,
+            chunkSize: 100,
+            learningRate: 0.005,
+            mlpConfig: {
+              inputSize: 40,
+              hiddenSizes: [128, 64],
+              outputSize: 5,
+              activation: 'relu',
+            },
+          },
+          {
+            level: 2,
+            frequency: 1000000,
+            chunkSize: 1000,
+            learningRate: 0.001,
+            mlpConfig: {
+              inputSize: 40,
+              hiddenSizes: [256, 128, 64],
+              outputSize: 5,
+              activation: 'relu',
+            },
+          },
+        ],
+      };
 
-            const memorySystem = await memoryManager.getOrCreateMemorySystem(memoryConfig);
+      const memorySystem =
+        await memoryManager.getOrCreateMemorySystem(memoryConfig);
 
-            if (config.useTitans) {
-                memorySystem.enableTitans(true);
-                logger.info('Titans enabled for building surveyor', {
-                    agentName: this.AGENT_NAME,
-                });
-            }
-
-            this.memorySystemInitialized = true;
-
-            logger.info('AssessmentOrchestrator memory system initialized', {
-                agentName: this.AGENT_NAME,
-                levels: memoryConfig.levels.length,
-                useLearnedFeatures: config.useLearnedFeatures,
-                useTitans: config.useTitans,
-            });
-        } catch (error) {
-            logger.error('Failed to initialize memory system', error, {
-                service: 'AssessmentOrchestrator',
-            });
-        }
-    }
-
-    /**
-     * Run a task with timeout
-     */
-    private static async runWithTimeout<T>(
-        task: () => Promise<T>,
-        timeoutMs: number,
-        taskName: string
-    ): Promise<{ success: boolean; data?: T; error?: unknown; timedOut: boolean; durationMs: number }> {
-        const startTime = Date.now();
-
-        try {
-            const result = await Promise.race([
-                task(),
-                new Promise<never>((_, reject) =>
-                    setTimeout(() => reject(new Error(`${taskName} timeout`)), timeoutMs)
-                ),
-            ]);
-
-            return {
-                success: true,
-                data: result,
-                timedOut: false,
-                durationMs: Date.now() - startTime,
-            };
-        } catch (error) {
-            const isTimeout = error instanceof Error && error.message.includes('timeout');
-            return {
-                success: false,
-                error,
-                timedOut: isTimeout,
-                durationMs: Date.now() - startTime,
-            };
-        }
-    }
-
-    /**
-     * Record a metric
-     */
-    private static recordMetric(metric: string, payload: Record<string, unknown>): void {
-        MonitoringService.record(metric, {
-            agentName: this.AGENT_NAME,
-            ...payload,
+      if (config.useTitans) {
+        memorySystem.enableTitans(true);
+        logger.info('Titans enabled for building surveyor', {
+          agentName: this.AGENT_NAME,
         });
+      }
+
+      this.memorySystemInitialized = true;
+
+      logger.info('AssessmentOrchestrator memory system initialized', {
+        agentName: this.AGENT_NAME,
+        levels: memoryConfig.levels.length,
+        useLearnedFeatures: config.useLearnedFeatures,
+        useTitans: config.useTitans,
+      });
+    } catch (error) {
+      logger.error('Failed to initialize memory system', error, {
+        service: 'AssessmentOrchestrator',
+      });
     }
+  }
 
-    /**
-     * Orchestrate a complete building damage assessment
-     */
-    static async assessDamage(
-        imageUrls: string[],
-        context?: AssessmentContext
-    ): Promise<Phase1BuildingAssessment> {
-        const startedAt = Date.now();
-        const config = getConfig();
+  /**
+   * Run a task with timeout
+   */
+  private static async runWithTimeout<T>(
+    task: () => Promise<T>,
+    timeoutMs: number,
+    taskName: string
+  ): Promise<{
+    success: boolean;
+    data?: T;
+    error?: unknown;
+    timedOut: boolean;
+    durationMs: number;
+  }> {
+    const startTime = Date.now();
 
-        try {
-            await this.initialize();
+    try {
+      const result = await Promise.race([
+        task(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(`${taskName} timeout`)), timeoutMs)
+        ),
+      ]);
 
-            if (!config.openaiApiKey) {
-                logger.warn('OpenAI API key not configured', {
-                    service: 'AssessmentOrchestrator',
-                });
-                throw new Error('AI assessment service is not configured');
-            }
-
-            if (!imageUrls || imageUrls.length === 0) {
-                throw new Error('At least one image is required for assessment');
-            }
-
-            const urlValidation = await validateURLs(imageUrls, true);
-            if (urlValidation.invalid.length > 0) {
-                logger.warn('Invalid image URLs rejected for building assessment', {
-                    service: 'AssessmentOrchestrator',
-                    invalidUrls: urlValidation.invalid,
-                });
-                throw new Error(`Invalid image URLs: ${urlValidation.invalid.map(i => i.error).join(', ')}`);
-            }
-
-            const validatedImageUrls = urlValidation.valid;
-
-            // Use hybrid inference if enabled
-            if (config.useHybridInference) {
-                logger.info('Using hybrid inference routing', {
-                    service: 'AssessmentOrchestrator',
-                });
-
-                const result = await HybridInferenceService.assessDamage(
-                    validatedImageUrls,
-                    context
-                );
-
-                logger.info('Hybrid inference completed', {
-                    service: 'AssessmentOrchestrator',
-                    route: result.route,
-                    confidence: result.confidence,
-                    durationMs: Date.now() - startedAt,
-                });
-
-                return result.assessment;
-            }
-
-            // Otherwise, use standard GPT-4 Vision pipeline
-            logger.info('Using standard GPT-4 Vision pipeline', {
-                service: 'AssessmentOrchestrator',
-            });
-
-            // Run Roboflow detection (Google Vision removed — GPT-4o handles visual analysis)
-            const roboflowResult = await this.runWithTimeout(
-                () => RoboflowDetectionService.detect(validatedImageUrls),
-                config.detectorTimeoutMs,
-                'roboflow-detect',
-            );
-
-            const roboflowDetections =
-                roboflowResult.success && Array.isArray(roboflowResult.data)
-                    ? roboflowResult.data
-                    : [];
-            const visionAnalysis: VisionAnalysisSummary | null = null;
-
-            if (!roboflowResult.success) {
-                logger.warn('Roboflow detection unavailable', {
-                    service: 'AssessmentOrchestrator',
-                    timedOut: roboflowResult.timedOut,
-                });
-            }
-
-            this.recordMetric('detector.roboflow', {
-                success: roboflowResult.success,
-                durationMs: roboflowResult.durationMs,
-                timedOut: roboflowResult.timedOut,
-                detectionCount: roboflowDetections.length,
-            });
-
-            const features = await FeatureExtractionService.extractFeatures(
-                validatedImageUrls,
-                context,
-                undefined,
-                roboflowDetections,
-                visionAnalysis,
-            );
-
-            const memoryAdjustments: number[] = [0, 0, 0, 0, 0];
-            try {
-                const memorySystem = memoryManager.getMemorySystem(this.AGENT_NAME);
-
-                let processedFeatures = features;
-                if (config.useTitans && memorySystem) {
-                    processedFeatures = await memorySystem.processWithTitans(features);
-                }
-
-                // Parallelize memory queries across all levels for performance
-                const memoryPromises = [0, 1, 2].map(level =>
-                    memoryManager.query(this.AGENT_NAME, processedFeatures.slice(0, 40), level)
-                );
-
-                const memoryResults = await Promise.all(memoryPromises);
-                const validMemoryResults = memoryResults.filter(
-                    result => result.values && result.values.length === 5
-                );
-
-                if (validMemoryResults.length > 0) {
-                    let totalWeight = 0;
-                    const combined = [0, 0, 0, 0, 0];
-                    for (const result of validMemoryResults) {
-                        const weight = result.confidence;
-                        totalWeight += weight;
-                        for (let i = 0; i < 5; i++) {
-                            combined[i] += result.values[i] * weight;
-                        }
-                    }
-                    if (totalWeight > 0) {
-                        for (let i = 0; i < 5; i++) {
-                            memoryAdjustments[i] = combined[i] / totalWeight;
-                        }
-                    }
-                }
-            } catch (memoryError) {
-                logger.warn('Memory query failed, continuing without adjustments', {
-                    service: 'AssessmentOrchestrator',
-                    error: memoryError,
-                });
-            }
-
-            // Start SAM3 health check in parallel (non-blocking)
-            const sam3HealthPromise = process.env.ENABLE_SAM3_SEGMENTATION === 'true' && validatedImageUrls.length > 0
-                ? SAM3Service.healthCheck().catch(() => false)
-                : Promise.resolve(false);
-
-            // Check cache first
-            const cachedResponse = await GPT4CacheService.getCached(validatedImageUrls, context);
-
-            let aiAssessment: Record<string, unknown>;
-            let gptDuration = 0;
-
-            if (cachedResponse) {
-                // Use cached response
-                logger.info('Using cached GPT-4 response', {
-                    service: 'AssessmentOrchestrator',
-                    savedCost: cachedResponse.savedCost,
-                    hitCount: cachedResponse.hitCount,
-                });
-
-                aiAssessment = cachedResponse.assessment as unknown as Record<string, unknown>;
-
-                this.recordMetric('gpt.vision', {
-                    success: true,
-                    cached: true,
-                    durationMs: 0,
-                    tokensUsed: 0,
-                });
-            } else {
-                // Make actual GPT-4 API call
-                const messages = PromptBuilder.buildMessages(
-                    validatedImageUrls,
-                    context,
-                    roboflowDetections,
-                    visionAnalysis
-                );
-
-                const gptStart = Date.now();
-
-                // Import rate limit utility dynamically to avoid circular dependencies
-                const { fetchWithOpenAIRetry } = await import('@/lib/utils/openai-rate-limit');
-
-                const response = await fetchWithOpenAIRetry(
-                    'https://api.openai.com/v1/chat/completions',
-                    {
-                        method: 'POST',
-                        headers: {
-                            Authorization: `Bearer ${config.openaiApiKey}`,
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            model: 'gpt-4o',
-                            messages,
-                            max_tokens: 2000,
-                            temperature: 0.1,
-                            response_format: { type: 'json_object' },
-                        }),
-                    },
-                    {
-                        maxAttempts: 5,
-                        baseDelayMs: 2000,
-                        maxDelayMs: 60000,
-                        backoffMultiplier: 2,
-                    }
-                );
-
-                const data = await response.json();
-                gptDuration = Date.now() - gptStart;
-
-                this.recordMetric('gpt.vision', {
-                    success: true,
-                    cached: false,
-                    durationMs: gptDuration,
-                    tokensUsed: data.usage?.total_tokens || 0,
-                });
-
-                const aiContent = data.choices?.[0]?.message?.content;
-                if (!aiContent) {
-                    throw new Error('No content in GPT-4 Vision response');
-                }
-
-                aiAssessment = JSON.parse(aiContent) as Record<string, unknown>;
-            }
-
-            // Optionally enhance with SAM 3 precise segmentation
-            let sam3Result: Awaited<ReturnType<typeof SAM3Service.segmentDamageTypes>> | null = null;
-
-            // Get damage type for targeted segmentation
-            const damageType = (aiAssessment.damageType as string) || (aiAssessment.damageAssessment as Record<string, unknown>)?.damageType as string || 'damage';
-
-            // Start SAM3 segmentation in parallel if available
-            const sam3SegmentationPromise = sam3HealthPromise.then(async (isSAM3Available) => {
-                if (!isSAM3Available || validatedImageUrls.length === 0) {
-                    return { segmentation: undefined, result: null };
-                }
-
-                const sam3Start = Date.now();
-                try {
-                    // Segment the primary image
-                    const result = await SAM3Service.segmentDamageTypes(
-                        validatedImageUrls[0],
-                        [damageType]
-                    );
-
-                    if (result?.success && result.damage_types[damageType]) {
-                        const damageSegmentation = result.damage_types[damageType];
-
-                        if (damageSegmentation.num_instances > 0) {
-                            // Calculate affected area from masks
-                            const affectedArea = damageSegmentation.masks.reduce(
-                                (total, mask) => {
-                                    const maskArea = mask.flat().filter(pixel => pixel > 0).length;
-                                    return total + maskArea;
-                                },
-                                0
-                            );
-
-                            const segmentation: SAM3SegmentationData = {
-                                preciseMasks: damageSegmentation.masks,
-                                preciseBoxes: damageSegmentation.boxes,
-                                affectedArea,
-                                segmentationConfidence: damageSegmentation.scores[0] || (aiAssessment.confidence as number),
-                                masks: damageSegmentation.masks.map((mask, idx) => ({
-                                    mask,
-                                    box: damageSegmentation.boxes[idx],
-                                    score: damageSegmentation.scores[idx],
-                                })),
-                            };
-
-                            const sam3Duration = Date.now() - sam3Start;
-                            this.recordMetric('segmentation.sam3', {
-                                success: true,
-                                durationMs: sam3Duration,
-                                numInstances: damageSegmentation.num_instances,
-                                affectedArea,
-                            });
-
-                            logger.info('SAM 3 segmentation completed', {
-                                service: 'AssessmentOrchestrator',
-                                damageType,
-                                numInstances: damageSegmentation.num_instances,
-                                affectedArea,
-                            });
-
-                            return { segmentation, result };
-                        }
-                    }
-                    return { segmentation: undefined, result };
-                } catch (sam3Error) {
-                    // Fallback to GPT-4 only if SAM 3 fails
-                    logger.warn('SAM 3 segmentation failed, using GPT-4 only', {
-                        service: 'AssessmentOrchestrator',
-                        error: sam3Error,
-                    });
-                    this.recordMetric('segmentation.sam3', {
-                        success: false,
-                        error: sam3Error instanceof Error ? sam3Error.message : 'Unknown error',
-                    });
-                    return { segmentation: undefined, result: null };
-                }
-            });
-
-            // Wait for SAM3 segmentation to complete
-            const sam3Data = await sam3SegmentationPromise;
-            const sam3Segmentation = sam3Data.segmentation;
-            sam3Result = sam3Data.result;
-
-            const assessment = await buildFinalAssessment(
-                aiAssessment as Parameters<typeof buildFinalAssessment>[0],
-                context,
-                roboflowDetections,
-                visionAnalysis,
-                sam3Segmentation
-            );
-
-            // Cache the response if it was from GPT-4 (not from cache)
-            if (!cachedResponse) {
-                GPT4CacheService.setCached(validatedImageUrls, context, assessment).catch(error => {
-                    logger.warn('Failed to cache GPT-4 response', {
-                        service: 'AssessmentOrchestrator',
-                        error,
-                    });
-                });
-            }
-
-            // Build messages for shadow comparison (reuses existing prompt builder)
-            const shadowMessages = PromptBuilder.buildMessages(
-                validatedImageUrls,
-                context,
-                roboflowDetections,
-                visionAnalysis
-            );
-
-            // Capture training data asynchronously (non-blocking)
-            captureTrainingDataAsync(
-                context?.assessmentId,
-                validatedImageUrls,
-                assessment,
-                sam3Result,
-                context,
-                shadowMessages,
-                config.openaiApiKey
-            ).catch(error => {
-                logger.warn('Failed to capture training data (non-critical)', {
-                    service: 'AssessmentOrchestrator',
-                    error,
-                });
-            });
-
-            const totalDuration = Date.now() - startedAt;
-            this.recordMetric('assessment.complete', {
-                success: true,
-                durationMs: totalDuration,
-                imageCount: validatedImageUrls.length,
-                detectionCount: roboflowDetections.length,
-                hasSAM3Segmentation: !!sam3Segmentation,
-            });
-
-            logger.info('Building damage assessment completed', {
-                service: 'AssessmentOrchestrator',
-                durationMs: totalDuration,
-                damageType: assessment.damageAssessment.damageType,
-                severity: assessment.damageAssessment.severity,
-                urgency: assessment.urgency.urgency,
-                hasSAM3Segmentation: !!sam3Segmentation,
-            });
-
-            return assessment;
-        } catch (error) {
-            const totalDuration = Date.now() - startedAt;
-            this.recordMetric('assessment.error', {
-                success: false,
-                durationMs: totalDuration,
-                error: error instanceof Error ? error.message : 'unknown',
-            });
-
-            logger.error('Building damage assessment failed', error, {
-                service: 'AssessmentOrchestrator',
-                durationMs: totalDuration,
-            });
-
-            throw error;
-        }
+      return {
+        success: true,
+        data: result,
+        timedOut: false,
+        durationMs: Date.now() - startTime,
+      };
+    } catch (error) {
+      const isTimeout =
+        error instanceof Error && error.message.includes('timeout');
+      return {
+        success: false,
+        error,
+        timedOut: isTimeout,
+        durationMs: Date.now() - startTime,
+      };
     }
+  }
 
+  /**
+   * Record a metric
+   */
+  private static recordMetric(
+    metric: string,
+    payload: Record<string, unknown>
+  ): void {
+    MonitoringService.record(metric, {
+      agentName: this.AGENT_NAME,
+      ...payload,
+    });
+  }
 
-    /**
-     * Trigger self-modification when accuracy drops
-     */
-    static async triggerSelfModification(accuracyDrop: number): Promise<void> {
-        logger.info('AssessmentOrchestrator self-modification triggered', {
-            agentName: this.AGENT_NAME,
-            accuracyDrop,
+  /**
+   * Orchestrate a complete building damage assessment
+   */
+  static async assessDamage(
+    imageUrls: string[],
+    context?: AssessmentContext
+  ): Promise<Phase1BuildingAssessment> {
+    const startedAt = Date.now();
+    const config = getConfig();
+
+    try {
+      await this.initialize();
+
+      if (!config.openaiApiKey) {
+        logger.warn('OpenAI API key not configured', {
+          service: 'AssessmentOrchestrator',
         });
-    }
+        throw new Error('AI assessment service is not configured');
+      }
 
+      if (!imageUrls || imageUrls.length === 0) {
+        throw new Error('At least one image is required for assessment');
+      }
+
+      const urlValidation = await validateURLs(imageUrls, true);
+      if (urlValidation.invalid.length > 0) {
+        logger.warn('Invalid image URLs rejected for building assessment', {
+          service: 'AssessmentOrchestrator',
+          invalidUrls: urlValidation.invalid,
+        });
+        throw new Error(
+          `Invalid image URLs: ${urlValidation.invalid.map((i) => i.error).join(', ')}`
+        );
+      }
+
+      const validatedImageUrls = urlValidation.valid;
+
+      // Use hybrid inference if enabled
+      if (config.useHybridInference) {
+        logger.info('Using hybrid inference routing', {
+          service: 'AssessmentOrchestrator',
+        });
+
+        const result = await HybridInferenceService.assessDamage(
+          validatedImageUrls,
+          context
+        );
+
+        logger.info('Hybrid inference completed', {
+          service: 'AssessmentOrchestrator',
+          route: result.route,
+          confidence: result.confidence,
+          durationMs: Date.now() - startedAt,
+        });
+
+        return result.assessment;
+      }
+
+      // Otherwise, use standard GPT-4 Vision pipeline
+      logger.info('Using standard GPT-4 Vision pipeline', {
+        service: 'AssessmentOrchestrator',
+      });
+
+      // Run Roboflow detection (Google Vision removed — GPT-4o handles visual analysis)
+      const roboflowResult = await this.runWithTimeout(
+        () => RoboflowDetectionService.detect(validatedImageUrls),
+        config.detectorTimeoutMs,
+        'roboflow-detect'
+      );
+
+      const roboflowDetections =
+        roboflowResult.success && Array.isArray(roboflowResult.data)
+          ? roboflowResult.data
+          : [];
+      const visionAnalysis: VisionAnalysisSummary | null = null;
+
+      if (!roboflowResult.success) {
+        logger.warn('Roboflow detection unavailable', {
+          service: 'AssessmentOrchestrator',
+          timedOut: roboflowResult.timedOut,
+        });
+      }
+
+      this.recordMetric('detector.roboflow', {
+        success: roboflowResult.success,
+        durationMs: roboflowResult.durationMs,
+        timedOut: roboflowResult.timedOut,
+        detectionCount: roboflowDetections.length,
+      });
+
+      const features = await FeatureExtractionService.extractFeatures(
+        validatedImageUrls,
+        context,
+        undefined,
+        roboflowDetections,
+        visionAnalysis
+      );
+
+      const memoryAdjustments: number[] = [0, 0, 0, 0, 0];
+      try {
+        const memorySystem = memoryManager.getMemorySystem(this.AGENT_NAME);
+
+        let processedFeatures = features;
+        if (config.useTitans && memorySystem) {
+          processedFeatures = await memorySystem.processWithTitans(features);
+        }
+
+        // Parallelize memory queries across all levels for performance
+        const memoryPromises = [0, 1, 2].map((level) =>
+          memoryManager.query(
+            this.AGENT_NAME,
+            processedFeatures.slice(0, 40),
+            level
+          )
+        );
+
+        const memoryResults = await Promise.all(memoryPromises);
+        const validMemoryResults = memoryResults.filter(
+          (result) => result.values && result.values.length === 5
+        );
+
+        if (validMemoryResults.length > 0) {
+          let totalWeight = 0;
+          const combined = [0, 0, 0, 0, 0];
+          for (const result of validMemoryResults) {
+            const weight = result.confidence;
+            totalWeight += weight;
+            for (let i = 0; i < 5; i++) {
+              combined[i] += result.values[i] * weight;
+            }
+          }
+          if (totalWeight > 0) {
+            for (let i = 0; i < 5; i++) {
+              memoryAdjustments[i] = combined[i] / totalWeight;
+            }
+          }
+        }
+      } catch (memoryError) {
+        logger.warn('Memory query failed, continuing without adjustments', {
+          service: 'AssessmentOrchestrator',
+          error: memoryError,
+        });
+      }
+
+      // Start SAM3 health check in parallel (non-blocking)
+      const sam3HealthPromise =
+        process.env.ENABLE_SAM3_SEGMENTATION === 'true' &&
+        validatedImageUrls.length > 0
+          ? SAM3Service.healthCheck().catch(() => false)
+          : Promise.resolve(false);
+
+      // Check cache first
+      const cachedResponse = await GPT4CacheService.getCached(
+        validatedImageUrls,
+        context
+      );
+
+      let aiAssessment: Record<string, unknown>;
+      let gptDuration = 0;
+
+      if (cachedResponse) {
+        // Use cached response
+        logger.info('Using cached GPT-4 response', {
+          service: 'AssessmentOrchestrator',
+          savedCost: cachedResponse.savedCost,
+          hitCount: cachedResponse.hitCount,
+        });
+
+        aiAssessment = cachedResponse.assessment as unknown as Record<
+          string,
+          unknown
+        >;
+
+        this.recordMetric('gpt.vision', {
+          success: true,
+          cached: true,
+          durationMs: 0,
+          tokensUsed: 0,
+        });
+      } else {
+        // Make actual GPT-4 API call
+        const messages = PromptBuilder.buildMessages(
+          validatedImageUrls,
+          context,
+          roboflowDetections,
+          visionAnalysis
+        );
+
+        const gptStart = Date.now();
+
+        // Import rate limit utility dynamically to avoid circular dependencies
+        const { fetchWithOpenAIRetry } =
+          await import('@/lib/utils/openai-rate-limit');
+
+        const response = await fetchWithOpenAIRetry(
+          'https://api.openai.com/v1/chat/completions',
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${config.openaiApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              messages,
+              max_tokens: 2000,
+              temperature: 0.1,
+              response_format: { type: 'json_object' },
+            }),
+          },
+          {
+            maxAttempts: 5,
+            baseDelayMs: 2000,
+            maxDelayMs: 60000,
+            backoffMultiplier: 2,
+          }
+        );
+
+        const data = await response.json();
+        gptDuration = Date.now() - gptStart;
+
+        this.recordMetric('gpt.vision', {
+          success: true,
+          cached: false,
+          durationMs: gptDuration,
+          tokensUsed: data.usage?.total_tokens || 0,
+        });
+
+        const aiContent = data.choices?.[0]?.message?.content;
+        if (!aiContent) {
+          throw new Error('No content in GPT-4 Vision response');
+        }
+
+        // SECURITY: Validate GPT response structure before trusting it
+        const rawParsed = JSON.parse(aiContent);
+        const gptResponseSchema = z
+          .object({
+            damageType: z.string().optional(),
+            severity: z.string().optional(),
+            confidence: z.number().min(0).max(100).optional(),
+            riskScore: z.number().min(0).max(100).optional(),
+            damageAssessment: z.record(z.unknown()).optional(),
+          })
+          .passthrough(); // Allow additional fields from GPT
+        const validated = gptResponseSchema.safeParse(rawParsed);
+        if (!validated.success) {
+          logger.warn(
+            'GPT response failed schema validation — using raw parse',
+            {
+              service: 'assessment-orchestrator',
+              errors: validated.error.issues.slice(0, 3),
+            }
+          );
+        }
+        aiAssessment = (
+          validated.success ? validated.data : rawParsed
+        ) as Record<string, unknown>;
+      }
+
+      // Optionally enhance with SAM 3 precise segmentation
+      let sam3Result: Awaited<
+        ReturnType<typeof SAM3Service.segmentDamageTypes>
+      > | null = null;
+
+      // Get damage type for targeted segmentation
+      const damageType =
+        (aiAssessment.damageType as string) ||
+        ((aiAssessment.damageAssessment as Record<string, unknown>)
+          ?.damageType as string) ||
+        'damage';
+
+      // Start SAM3 segmentation in parallel if available
+      const sam3SegmentationPromise = sam3HealthPromise.then(
+        async (isSAM3Available) => {
+          if (!isSAM3Available || validatedImageUrls.length === 0) {
+            return { segmentation: undefined, result: null };
+          }
+
+          const sam3Start = Date.now();
+          try {
+            // Segment the primary image
+            const result = await SAM3Service.segmentDamageTypes(
+              validatedImageUrls[0],
+              [damageType]
+            );
+
+            if (result?.success && result.damage_types[damageType]) {
+              const damageSegmentation = result.damage_types[damageType];
+
+              if (damageSegmentation.num_instances > 0) {
+                // Calculate affected area from masks
+                const affectedArea = damageSegmentation.masks.reduce(
+                  (total, mask) => {
+                    const maskArea = mask
+                      .flat()
+                      .filter((pixel) => pixel > 0).length;
+                    return total + maskArea;
+                  },
+                  0
+                );
+
+                const segmentation: SAM3SegmentationData = {
+                  preciseMasks: damageSegmentation.masks,
+                  preciseBoxes: damageSegmentation.boxes,
+                  affectedArea,
+                  segmentationConfidence:
+                    damageSegmentation.scores[0] ||
+                    (aiAssessment.confidence as number),
+                  masks: damageSegmentation.masks.map((mask, idx) => ({
+                    mask,
+                    box: damageSegmentation.boxes[idx],
+                    score: damageSegmentation.scores[idx],
+                  })),
+                };
+
+                const sam3Duration = Date.now() - sam3Start;
+                this.recordMetric('segmentation.sam3', {
+                  success: true,
+                  durationMs: sam3Duration,
+                  numInstances: damageSegmentation.num_instances,
+                  affectedArea,
+                });
+
+                logger.info('SAM 3 segmentation completed', {
+                  service: 'AssessmentOrchestrator',
+                  damageType,
+                  numInstances: damageSegmentation.num_instances,
+                  affectedArea,
+                });
+
+                return { segmentation, result };
+              }
+            }
+            return { segmentation: undefined, result };
+          } catch (sam3Error) {
+            // Fallback to GPT-4 only if SAM 3 fails
+            logger.warn('SAM 3 segmentation failed, using GPT-4 only', {
+              service: 'AssessmentOrchestrator',
+              error: sam3Error,
+            });
+            this.recordMetric('segmentation.sam3', {
+              success: false,
+              error:
+                sam3Error instanceof Error
+                  ? sam3Error.message
+                  : 'Unknown error',
+            });
+            return { segmentation: undefined, result: null };
+          }
+        }
+      );
+
+      // Wait for SAM3 segmentation to complete
+      const sam3Data = await sam3SegmentationPromise;
+      const sam3Segmentation = sam3Data.segmentation;
+      sam3Result = sam3Data.result;
+
+      const assessment = await buildFinalAssessment(
+        aiAssessment as Parameters<typeof buildFinalAssessment>[0],
+        context,
+        roboflowDetections,
+        visionAnalysis,
+        sam3Segmentation
+      );
+
+      // Cache the response if it was from GPT-4 (not from cache)
+      if (!cachedResponse) {
+        GPT4CacheService.setCached(
+          validatedImageUrls,
+          context,
+          assessment
+        ).catch((error) => {
+          logger.warn('Failed to cache GPT-4 response', {
+            service: 'AssessmentOrchestrator',
+            error,
+          });
+        });
+      }
+
+      // Build messages for shadow comparison (reuses existing prompt builder)
+      const shadowMessages = PromptBuilder.buildMessages(
+        validatedImageUrls,
+        context,
+        roboflowDetections,
+        visionAnalysis
+      );
+
+      // Capture training data asynchronously (non-blocking)
+      captureTrainingDataAsync(
+        context?.assessmentId,
+        validatedImageUrls,
+        assessment,
+        sam3Result,
+        context,
+        shadowMessages,
+        config.openaiApiKey
+      ).catch((error) => {
+        logger.warn('Failed to capture training data (non-critical)', {
+          service: 'AssessmentOrchestrator',
+          error,
+        });
+      });
+
+      const totalDuration = Date.now() - startedAt;
+      this.recordMetric('assessment.complete', {
+        success: true,
+        durationMs: totalDuration,
+        imageCount: validatedImageUrls.length,
+        detectionCount: roboflowDetections.length,
+        hasSAM3Segmentation: !!sam3Segmentation,
+      });
+
+      logger.info('Building damage assessment completed', {
+        service: 'AssessmentOrchestrator',
+        durationMs: totalDuration,
+        damageType: assessment.damageAssessment.damageType,
+        severity: assessment.damageAssessment.severity,
+        urgency: assessment.urgency.urgency,
+        hasSAM3Segmentation: !!sam3Segmentation,
+      });
+
+      return assessment;
+    } catch (error) {
+      const totalDuration = Date.now() - startedAt;
+      this.recordMetric('assessment.error', {
+        success: false,
+        durationMs: totalDuration,
+        error: error instanceof Error ? error.message : 'unknown',
+      });
+
+      logger.error('Building damage assessment failed', error, {
+        service: 'AssessmentOrchestrator',
+        durationMs: totalDuration,
+      });
+
+      throw error;
+    }
+  }
+
+  /**
+   * Trigger self-modification when accuracy drops
+   */
+  static async triggerSelfModification(accuracyDrop: number): Promise<void> {
+    logger.info('AssessmentOrchestrator self-modification triggered', {
+      agentName: this.AGENT_NAME,
+      accuracyDrop,
+    });
+  }
 }

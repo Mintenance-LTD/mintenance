@@ -129,11 +129,16 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({
           const hasPhoto = photos.length > 0;
           const budget = job.budget || job.budget_min || 0;
           const categoryIcon =
-            CATEGORY_ICONS[job.category?.toLowerCase() || ''] ||
+            CATEGORY_ICONS[job.category?.toLowerCase() ?? ''] ??
             'construct-outline';
-          const catColors =
-            CATEGORY_COLORS[job.category?.toLowerCase() || ''] ||
-            CATEGORY_COLORS.general;
+          const catColors = CATEGORY_COLORS[
+            job.category?.toLowerCase() ?? ''
+          ] ??
+            CATEGORY_COLORS.general ?? {
+              bg: '#F5F5F5',
+              icon: '#616161',
+              accent: '#E0E0E0',
+            };
 
           return (
             <TouchableOpacity
@@ -148,7 +153,7 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({
               <View style={styles.imageContainer}>
                 {hasPhoto ? (
                   <OptimizedImage
-                    source={{ uri: photos[0] }}
+                    source={{ uri: photos[0] ?? '' }}
                     style={styles.heroImage}
                     contentFit='cover'
                     cachePolicy='memory-disk'

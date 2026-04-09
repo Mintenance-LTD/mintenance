@@ -1,6 +1,6 @@
 /**
  * Shared Button Component Props
- * 
+ *
  * Common interface for Button component across web and mobile platforms
  */
 import React from 'react';
@@ -33,6 +33,8 @@ export interface BaseButtonProps {
   'aria-label'?: string;
   'aria-busy'?: boolean;
   'aria-disabled'?: boolean;
+  'aria-invalid'?: boolean | 'false' | 'true' | 'grammar' | 'spelling';
+  'aria-describedby'?: string;
   accessibilityLabel?: string;
   accessibilityHint?: string;
   accessibilityRole?: 'button' | 'link' | 'none';
@@ -45,7 +47,13 @@ export interface BaseButtonProps {
 type ViewStyle = Record<string, unknown>;
 type TextStyle = Record<string, unknown>;
 // Web-specific props
-export interface WebButtonProps extends Omit<BaseButtonProps, 'aria-busy' | 'aria-disabled'>, Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'children' | 'aria-label'> {
+export interface WebButtonProps
+  extends
+    Omit<BaseButtonProps, 'aria-busy' | 'aria-disabled'>,
+    Omit<
+      React.ButtonHTMLAttributes<HTMLButtonElement>,
+      'children' | 'aria-label' | 'aria-invalid'
+    > {
   onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   type?: 'button' | 'submit' | 'reset';
 }

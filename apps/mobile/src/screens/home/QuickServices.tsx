@@ -6,7 +6,13 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useHaptics } from '../../utils/haptics';
 import { theme } from '../../theme';
@@ -21,49 +27,75 @@ const SERVICES = [
     id: 'plumbing',
     name: 'Plumbing',
     icon: 'water-outline' as keyof typeof Ionicons.glyphMap,
-    params: { serviceCategory: 'plumbing', filter: { skills: ['Plumbing', 'Pipe Repair', 'Leak Repair'] } },
+    params: {
+      serviceCategory: 'plumbing',
+      filter: { skills: ['Plumbing', 'Pipe Repair', 'Leak Repair'] },
+    },
   },
   {
     id: 'electrical',
     name: 'Electrical',
     icon: 'flash-outline' as keyof typeof Ionicons.glyphMap,
-    params: { serviceCategory: 'electrical', filter: { skills: ['Electrical', 'Wiring', 'Electrical Repair'] } },
+    params: {
+      serviceCategory: 'electrical',
+      filter: { skills: ['Electrical', 'Wiring', 'Electrical Repair'] },
+    },
   },
   {
     id: 'appliance',
     name: 'Appliances',
     icon: 'home-outline' as keyof typeof Ionicons.glyphMap,
-    params: { serviceCategory: 'appliance', filter: { skills: ['Appliance Repair', 'Washing Machine', 'Refrigerator'] } },
+    params: {
+      serviceCategory: 'appliance',
+      filter: {
+        skills: ['Appliance Repair', 'Washing Machine', 'Refrigerator'],
+      },
+    },
   },
   {
     id: 'hvac',
     name: 'HVAC',
     icon: 'snow-outline' as keyof typeof Ionicons.glyphMap,
-    params: { serviceCategory: 'hvac', filter: { skills: ['HVAC', 'Air Conditioning', 'Heating'] } },
+    params: {
+      serviceCategory: 'hvac',
+      filter: { skills: ['HVAC', 'Air Conditioning', 'Heating'] },
+    },
   },
   {
     id: 'roofing',
     name: 'Roofing',
     icon: 'home-outline' as keyof typeof Ionicons.glyphMap,
-    params: { serviceCategory: 'roofing', filter: { skills: ['Roofing', 'Roof Repair'] } },
+    params: {
+      serviceCategory: 'roofing',
+      filter: { skills: ['Roofing', 'Roof Repair'] },
+    },
   },
   {
     id: 'painting',
     name: 'Painting',
     icon: 'color-palette-outline' as keyof typeof Ionicons.glyphMap,
-    params: { serviceCategory: 'painting', filter: { skills: ['Painting', 'Decorating'] } },
+    params: {
+      serviceCategory: 'painting',
+      filter: { skills: ['Painting', 'Decorating'] },
+    },
   },
   {
     id: 'carpentry',
     name: 'Carpentry',
     icon: 'hammer-outline' as keyof typeof Ionicons.glyphMap,
-    params: { serviceCategory: 'carpentry', filter: { skills: ['Carpentry', 'Woodwork'] } },
+    params: {
+      serviceCategory: 'carpentry',
+      filter: { skills: ['Carpentry', 'Woodwork'] },
+    },
   },
   {
     id: 'cleaning',
     name: 'Cleaning',
     icon: 'sparkles-outline' as keyof typeof Ionicons.glyphMap,
-    params: { serviceCategory: 'cleaning', filter: { skills: ['Cleaning', 'Deep Clean'] } },
+    params: {
+      serviceCategory: 'cleaning',
+      filter: { skills: ['Cleaning', 'Deep Clean'] },
+    },
   },
 ];
 
@@ -71,7 +103,9 @@ export const QuickServices: React.FC<QuickServicesProps> = ({
   onServicePress,
 }) => {
   const haptics = useHaptics();
-  const [activeId, setActiveId] = useState<string | null>(SERVICES[0].id);
+  const [activeId, setActiveId] = useState<string | null>(
+    SERVICES[0]?.id ?? null
+  );
 
   return (
     <View style={styles.container}>
@@ -91,15 +125,21 @@ export const QuickServices: React.FC<QuickServicesProps> = ({
                 setActiveId(isActive ? null : service.id);
                 onServicePress(service.params);
               }}
-              accessibilityRole="button"
+              accessibilityRole='button'
               accessibilityLabel={`Find ${service.name.toLowerCase()} contractors`}
             >
               <Ionicons
                 name={service.icon}
                 size={24}
-                color={isActive ? theme.colors.textPrimary : theme.colors.textSecondary}
+                color={
+                  isActive
+                    ? theme.colors.textPrimary
+                    : theme.colors.textSecondary
+                }
               />
-              <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+              <Text
+                style={[styles.tabLabel, isActive && styles.tabLabelActive]}
+              >
                 {service.name}
               </Text>
             </TouchableOpacity>

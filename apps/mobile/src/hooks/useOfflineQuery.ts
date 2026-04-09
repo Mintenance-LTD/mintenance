@@ -323,11 +323,11 @@ const tryLocalQuery = async (queryKey: QueryKey): Promise<unknown> => {
 
     switch (entity) {
       case 'jobs':
-        return await handleJobsQuery(operation, params);
+        return await handleJobsQuery(operation ?? '', params);
       case 'user':
-        return await handleUserQuery(operation, params);
+        return await handleUserQuery(operation ?? '', params);
       case 'messages':
-        return await handleMessagesQuery(operation, params);
+        return await handleMessagesQuery(operation ?? '', params);
       default:
         return null;
     }
@@ -346,10 +346,10 @@ const handleJobsQuery = async (
       if (params[0] === 'available') {
         return await LocalDatabase.getJobsByStatus('posted');
       } else if (params[0]?.startsWith('homeowner:')) {
-        const homeownerId = params[0].split(':')[1];
+        const homeownerId = params[0].split(':')[1] ?? '';
         return await LocalDatabase.getJobsByHomeowner(homeownerId);
       } else if (params[0]?.startsWith('status:')) {
-        const status = params[0].split(':')[1];
+        const status = params[0].split(':')[1] ?? '';
         const userId = params[0].includes('user:')
           ? params[0].split('user:')[1]
           : undefined;
@@ -357,7 +357,7 @@ const handleJobsQuery = async (
       }
       break;
     case 'detail':
-      return await LocalDatabase.getJob(params[0]);
+      return await LocalDatabase.getJob(params[0] ?? '');
     default:
       return null;
   }
@@ -370,7 +370,7 @@ const handleUserQuery = async (
 ): Promise<unknown> => {
   switch (operation) {
     case 'profile':
-      return await LocalDatabase.getUser(params[0]);
+      return await LocalDatabase.getUser(params[0] ?? '');
     default:
       return null;
   }
@@ -382,7 +382,7 @@ const handleMessagesQuery = async (
 ): Promise<unknown> => {
   switch (operation) {
     case 'conversation':
-      return await LocalDatabase.getMessagesByJob(params[0]);
+      return await LocalDatabase.getMessagesByJob(params[0] ?? '');
     default:
       return null;
   }
@@ -399,13 +399,13 @@ const cacheLocalData = async (
 
     switch (entity) {
       case 'jobs':
-        await cacheJobsData(operation, params, data);
+        await cacheJobsData(operation ?? '', params, data);
         break;
       case 'user':
-        await cacheUserData(operation, params, data);
+        await cacheUserData(operation ?? '', params, data);
         break;
       case 'messages':
-        await cacheMessagesData(operation, params, data);
+        await cacheMessagesData(operation ?? '', params, data);
         break;
     }
   } catch (error) {

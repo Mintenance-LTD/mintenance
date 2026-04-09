@@ -16,7 +16,7 @@ import type {
   SecurityAuditReport,
   SecurityVulnerability,
   PenetrationTestResult,
-  PenetrationTestSuite
+  PenetrationTestSuite,
 } from '../types';
 
 export class SecurityAuditService {
@@ -85,14 +85,19 @@ export class SecurityAuditService {
 
     logger.info('SecurityAudit', 'Penetration test suites initialized', {
       suiteCount: this.testSuites.size,
-      totalTests: Array.from(this.testSuites.values()).reduce((sum, suite) => sum + suite.tests.length, 0),
+      totalTests: Array.from(this.testSuites.values()).reduce(
+        (sum, suite) => sum + suite.tests.length,
+        0
+      ),
     });
   }
 
   /**
    * Run comprehensive security audit
    */
-  async runSecurityAudit(environment: 'development' | 'staging' | 'production' = 'development'): Promise<SecurityAuditReport> {
+  async runSecurityAudit(
+    environment: 'development' | 'staging' | 'production' = 'development'
+  ): Promise<SecurityAuditReport> {
     if (this.isRunning) {
       throw new Error('Security audit is already running');
     }
@@ -131,7 +136,9 @@ export class SecurityAuditService {
               vulnerabilityFound: result.vulnerabilityFound,
             });
           } catch (error) {
-            logger.error('SecurityAudit', `Test failed: ${test.name}`, { error: error instanceof Error ? error.message : String(error) });
+            logger.error('SecurityAudit', `Test failed: ${test.name}`, {
+              error: error instanceof Error ? error.message : String(error),
+            });
             this.testResults.push({
               testId: test.id,
               testName: test.name,
@@ -146,13 +153,20 @@ export class SecurityAuditService {
       }
 
       // Generate compliance checks
-      const complianceChecks = await ComplianceManager.performComplianceChecks(this.vulnerabilities);
+      const complianceChecks = await ComplianceManager.performComplianceChecks(
+        this.vulnerabilities
+      );
 
       // Calculate metrics
-      const summary = AuditSummaryCalculator.calculateAuditSummary(this.testResults, this.vulnerabilities);
+      const summary = AuditSummaryCalculator.calculateAuditSummary(
+        this.testResults,
+        this.vulnerabilities
+      );
 
       // Generate recommendations
-      const recommendations = RecommendationEngine.generateRecommendations(this.vulnerabilities);
+      const recommendations = RecommendationEngine.generateRecommendations(
+        this.vulnerabilities
+      );
 
       const report: SecurityAuditReport = {
         auditId,
@@ -228,7 +242,9 @@ export class SecurityAuditService {
    * Get latest audit report
    */
   getLatestAuditReport(): SecurityAuditReport | null {
-    return this.auditHistory.length > 0 ? this.auditHistory[this.auditHistory.length - 1] : null;
+    return this.auditHistory.length > 0
+      ? this.auditHistory[this.auditHistory.length - 1]!
+      : null;
   }
 
   /**
@@ -253,17 +269,23 @@ export class SecurityAuditService {
    * Get vulnerability by ID
    */
   getVulnerability(id: string): SecurityVulnerability | undefined {
-    return this.vulnerabilities.find(v => v.id === id);
+    return this.vulnerabilities.find((v) => v.id === id);
   }
 
   /**
    * Update vulnerability status
    */
-  updateVulnerabilityStatus(id: string, status: SecurityVulnerability['status']): boolean {
-    const vulnerability = this.vulnerabilities.find(v => v.id === id);
+  updateVulnerabilityStatus(
+    id: string,
+    status: SecurityVulnerability['status']
+  ): boolean {
+    const vulnerability = this.vulnerabilities.find((v) => v.id === id);
     if (vulnerability) {
       vulnerability.status = status;
-      logger.info('SecurityAudit', 'Vulnerability status updated', { id, status });
+      logger.info('SecurityAudit', 'Vulnerability status updated', {
+        id,
+        status,
+      });
       return true;
     }
     return false;

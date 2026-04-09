@@ -15,7 +15,10 @@ import {
 } from './types';
 
 export class PerformanceMetricsCollector {
-  private collectors = new Map<string, () => Promise<Partial<PerformanceMetrics>>>();
+  private collectors = new Map<
+    string,
+    () => Promise<Partial<PerformanceMetrics>>
+  >();
   private eventListeners = new Map<string, (event: PerformanceEvent) => void>();
 
   constructor() {
@@ -30,14 +33,21 @@ export class PerformanceMetricsCollector {
     this.collectors.set('memory', this.collectMemoryMetrics.bind(this));
 
     // Response time collector (uses navigation timing API)
-    this.collectors.set('responseTime', this.collectResponseTimeMetrics.bind(this));
+    this.collectors.set(
+      'responseTime',
+      this.collectResponseTimeMetrics.bind(this)
+    );
 
     // Error rate collector
     this.collectors.set('errorRate', this.collectErrorRateMetrics.bind(this));
 
-    logger.info('PerformanceMetricsCollector', 'Default collectors initialized', {
-      collectorCount: this.collectors.size,
-    });
+    logger.info(
+      'PerformanceMetricsCollector',
+      'Default collectors initialized',
+      {
+        collectorCount: this.collectors.size,
+      }
+    );
   }
 
   /**
@@ -48,28 +58,38 @@ export class PerformanceMetricsCollector {
     collector: () => Promise<Partial<PerformanceMetrics>>
   ): void {
     this.collectors.set(name, collector);
-    logger.info('PerformanceMetricsCollector', 'Custom collector registered', { name });
+    logger.info('PerformanceMetricsCollector', 'Custom collector registered', {
+      name,
+    });
   }
 
   /**
    * Collect all metrics for a service
    */
-  async collectMetrics(serviceName: string): Promise<Partial<PerformanceMetrics>> {
+  async collectMetrics(
+    serviceName: string
+  ): Promise<Partial<PerformanceMetrics>> {
     const metrics: Partial<PerformanceMetrics> = {
       serviceName,
       timestamp: Date.now(),
       budgetViolations: [],
     };
 
-    const collectionPromises = Array.from(this.collectors.entries()).map(async ([name, collector]) => {
-      try {
-        const collectedMetrics = await collector();
-        return { name, metrics: collectedMetrics };
-      } catch (error) {
-        logger.error('PerformanceMetricsCollector', `Failed to collect ${name} metrics`, { error: error instanceof Error ? error.message : String(error) });
-        return { name, metrics: {} };
+    const collectionPromises = Array.from(this.collectors.entries()).map(
+      async ([name, collector]) => {
+        try {
+          const collectedMetrics = await collector();
+          return { name, metrics: collectedMetrics };
+        } catch (error) {
+          logger.error(
+            'PerformanceMetricsCollector',
+            `Failed to collect ${name} metrics`,
+            { error: error instanceof Error ? error.message : String(error) }
+          );
+          return { name, metrics: {} };
+        }
       }
-    });
+    );
 
     const results = await Promise.allSettled(collectionPromises);
 
@@ -94,7 +114,11 @@ export class PerformanceMetricsCollector {
         memoryUsage: memoryUsageMB,
       };
     } catch (error) {
-      logger.error('PerformanceMetricsCollector', 'Failed to collect memory metrics', { error: error instanceof Error ? error.message : String(error) });
+      logger.error(
+        'PerformanceMetricsCollector',
+        'Failed to collect memory metrics',
+        { error: error instanceof Error ? error.message : String(error) }
+      );
       return { memoryUsage: 0 };
     }
   }
@@ -102,14 +126,18 @@ export class PerformanceMetricsCollector {
   /**
    * Collect response time metrics
    */
-  private async collectResponseTimeMetrics(): Promise<Partial<PerformanceMetrics>> {
+  private async collectResponseTimeMetrics(): Promise<
+    Partial<PerformanceMetrics>
+  > {
     try {
       // Use Performance API if available
       if (typeof performance !== 'undefined' && performance.getEntriesByType) {
-        const navigationEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+        const navigationEntries = performance.getEntriesByType(
+          'navigation'
+        ) as PerformanceNavigationTiming[];
 
         if (navigationEntries.length > 0) {
-          const entry = navigationEntries[0];
+          const entry = navigationEntries[0]!;
           const responseTime = entry.responseEnd - entry.requestStart;
 
           return {
@@ -121,7 +149,11 @@ export class PerformanceMetricsCollector {
       // Fallback: estimate based on recent API calls
       return this.estimateResponseTime();
     } catch (error) {
-      logger.error('PerformanceMetricsCollector', 'Failed to collect response time metrics', { error: error instanceof Error ? error.message : String(error) });
+      logger.error(
+        'PerformanceMetricsCollector',
+        'Failed to collect response time metrics',
+        { error: error instanceof Error ? error.message : String(error) }
+      );
       return { responseTime: 0 };
     }
   }
@@ -129,7 +161,9 @@ export class PerformanceMetricsCollector {
   /**
    * Collect error rate metrics
    */
-  private async collectErrorRateMetrics(): Promise<Partial<PerformanceMetrics>> {
+  private async collectErrorRateMetrics(): Promise<
+    Partial<PerformanceMetrics>
+  > {
     try {
       // This would typically connect to your error tracking system
       // For now, we'll return a simulated error rate
@@ -139,7 +173,11 @@ export class PerformanceMetricsCollector {
         errorRate,
       };
     } catch (error) {
-      logger.error('PerformanceMetricsCollector', 'Failed to collect error rate metrics', { error: error instanceof Error ? error.message : String(error) });
+      logger.error(
+        'PerformanceMetricsCollector',
+        'Failed to collect error rate metrics',
+        { error: error instanceof Error ? error.message : String(error) }
+      );
       return { errorRate: 0 };
     }
   }
@@ -214,22 +252,49 @@ export class PerformanceMetricsCollector {
       actual: number;
       budget: number;
     }[] = [
-      { metric: 'responseTime', actual: metrics.responseTime, budget: budget.budgets?.responseTime ?? 0 },
-      { metric: 'memoryUsage', actual: metrics.memoryUsage, budget: budget.budgets?.memoryUsage ?? 0 },
-      { metric: 'cpuUsage', actual: metrics.cpuUsage, budget: budget.budgets?.cpuUsage ?? 0 },
-      { metric: 'apiCalls', actual: metrics.apiCallsPerMinute, budget: budget.budgets?.apiCalls ?? 0 },
-      { metric: 'errorRate', actual: metrics.errorRate, budget: budget.budgets?.errorRate ?? 0 },
-      { metric: 'downloadSize', actual: metrics.downloadSize, budget: budget.budgets?.downloadSize ?? 0 },
+      {
+        metric: 'responseTime',
+        actual: metrics.responseTime,
+        budget: budget.budgets?.responseTime ?? 0,
+      },
+      {
+        metric: 'memoryUsage',
+        actual: metrics.memoryUsage,
+        budget: budget.budgets?.memoryUsage ?? 0,
+      },
+      {
+        metric: 'cpuUsage',
+        actual: metrics.cpuUsage,
+        budget: budget.budgets?.cpuUsage ?? 0,
+      },
+      {
+        metric: 'apiCalls',
+        actual: metrics.apiCallsPerMinute,
+        budget: budget.budgets?.apiCalls ?? 0,
+      },
+      {
+        metric: 'errorRate',
+        actual: metrics.errorRate,
+        budget: budget.budgets?.errorRate ?? 0,
+      },
+      {
+        metric: 'downloadSize',
+        actual: metrics.downloadSize,
+        budget: budget.budgets?.downloadSize ?? 0,
+      },
     ];
 
     for (const check of checks) {
       if (check.actual > check.budget) {
-        const violationPercentage = ((check.actual - check.budget) / check.budget) * 100;
+        const violationPercentage =
+          ((check.actual - check.budget) / check.budget) * 100;
 
         let severity: 'warning' | 'critical' = 'warning';
         if (violationPercentage >= (budget.alertThresholds?.critical ?? 100)) {
           severity = 'critical';
-        } else if (violationPercentage >= (budget.alertThresholds?.warning ?? 80)) {
+        } else if (
+          violationPercentage >= (budget.alertThresholds?.warning ?? 80)
+        ) {
           severity = 'warning';
         }
 
@@ -255,7 +320,11 @@ export class PerformanceMetricsCollector {
       try {
         listener(event);
       } catch (error) {
-        logger.error('PerformanceMetricsCollector', `Event listener ${name} failed`, { error: error instanceof Error ? error.message : String(error) });
+        logger.error(
+          'PerformanceMetricsCollector',
+          `Event listener ${name} failed`,
+          { error: error instanceof Error ? error.message : String(error) }
+        );
       }
     });
 
@@ -270,9 +339,14 @@ export class PerformanceMetricsCollector {
   /**
    * Register event listener
    */
-  addEventListener(name: string, listener: (event: PerformanceEvent) => void): void {
+  addEventListener(
+    name: string,
+    listener: (event: PerformanceEvent) => void
+  ): void {
     this.eventListeners.set(name, listener);
-    logger.info('PerformanceMetricsCollector', 'Event listener registered', { name });
+    logger.info('PerformanceMetricsCollector', 'Event listener registered', {
+      name,
+    });
   }
 
   /**
@@ -280,7 +354,9 @@ export class PerformanceMetricsCollector {
    */
   removeEventListener(name: string): void {
     this.eventListeners.delete(name);
-    logger.info('PerformanceMetricsCollector', 'Event listener removed', { name });
+    logger.info('PerformanceMetricsCollector', 'Event listener removed', {
+      name,
+    });
   }
 
   /**
@@ -300,7 +376,9 @@ export class PerformanceMetricsCollector {
       timing = performance.timing || null;
 
       if (performance.getEntriesByType) {
-        resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
+        resources = performance.getEntriesByType(
+          'resource'
+        ) as PerformanceResourceTiming[];
       }
     }
 

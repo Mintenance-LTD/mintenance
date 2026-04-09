@@ -10,9 +10,9 @@
  *   - agency: £49.99/month - team access, bulk operations, unlimited properties
  * - Contractors:
  *   - free: Forever free with 10 bids/month
- *   - basic: £29/month
- *   - professional: £79/month
- *   - enterprise: £199/month
+ *   - basic: £0/month (free tier)
+ *   - professional: £29/month
+ *   - enterprise: £99/month (displayed as "Business")
  */
 
 // Re-export types from dedicated types file
@@ -82,8 +82,12 @@ export type FeatureCategory = (typeof FEATURE_CATEGORIES)[number];
 /**
  * Get all features for a specific category
  */
-export function getFeaturesByCategory(category: FeatureCategory): FeatureDefinition[] {
-  return Object.values(FEATURES).filter((feature) => feature.category === category);
+export function getFeaturesByCategory(
+  category: FeatureCategory
+): FeatureDefinition[] {
+  return Object.values(FEATURES).filter(
+    (feature) => feature.category === category
+  );
 }
 
 /**
@@ -229,8 +233,15 @@ export function getUpgradeTiers(
     return [];
   }
 
-  const tierOrder: ContractorSubscriptionTier[] = ['free', 'basic', 'professional', 'enterprise'];
-  const currentIndex = tierOrder.indexOf(currentTier as ContractorSubscriptionTier);
+  const tierOrder: ContractorSubscriptionTier[] = [
+    'free',
+    'basic',
+    'professional',
+    'enterprise',
+  ]; // enterprise = "Business" tier in UI
+  const currentIndex = tierOrder.indexOf(
+    currentTier as ContractorSubscriptionTier
+  );
   const upgradeTiers: SubscriptionTier[] = [];
 
   if (currentIndex === -1) return []; // Not a contractor tier
@@ -238,12 +249,17 @@ export function getUpgradeTiers(
   for (let i = currentIndex + 1; i < tierOrder.length; i++) {
     const tier = tierOrder[i];
     const limit = feature.limits[tier];
-    const currentLimit = feature.limits[currentTier as ContractorSubscriptionTier];
+    const currentLimit =
+      feature.limits[currentTier as ContractorSubscriptionTier];
 
     // Check if this tier has better access
     if (limit === 'unlimited' && currentLimit !== 'unlimited') {
       upgradeTiers.push(tier);
-    } else if (typeof limit === 'number' && typeof currentLimit === 'number' && limit > currentLimit) {
+    } else if (
+      typeof limit === 'number' &&
+      typeof currentLimit === 'number' &&
+      limit > currentLimit
+    ) {
       upgradeTiers.push(tier);
     } else if (limit === true && currentLimit === false) {
       upgradeTiers.push(tier);
@@ -269,22 +285,22 @@ export const TIER_PRICING = {
   },
   basic: {
     name: 'Basic',
-    price: 29,
+    price: 0,
     period: 'month',
-    description: 'Essential features for independent contractors',
+    description: 'Get started and build your reputation',
   },
   professional: {
     name: 'Professional',
-    price: 79,
+    price: 29,
     period: 'month',
-    description: 'Advanced features for growing businesses',
+    description: 'For growing contractor businesses',
     popular: true,
   },
   enterprise: {
-    name: 'Enterprise',
-    price: 199,
+    name: 'Business',
+    price: 99,
     period: 'month',
-    description: 'Complete solution for established businesses',
+    description: 'For established businesses and teams',
   },
 } as const;
 

@@ -24,18 +24,23 @@ interface ProfileHeaderProps {
   topInset?: number;
 }
 
-export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate, topInset = 0 }) => {
+export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
+  user,
+  joinDate,
+  topInset = 0,
+}) => {
   const firstName = user?.first_name || user?.firstName || '';
   const lastName = user?.last_name || user?.lastName || '';
   const displayName =
     user?.company_name ||
     (firstName ? `${firstName}${lastName ? ' ' + lastName : ''}` : 'User');
 
-  const initials = firstName && lastName
-    ? `${firstName[0]}${lastName[0]}`.toUpperCase()
-    : firstName
-    ? firstName[0].toUpperCase()
-    : '?';
+  const initials =
+    firstName && lastName
+      ? `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase()
+      : firstName
+        ? (firstName[0] ?? '?').toUpperCase()
+        : '?';
 
   const avatarUri = user?.profile_image_url || user?.avatar_url;
   const isContractor = user?.role === 'contractor';
@@ -66,7 +71,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate, to
         )}
         {user?.verified && (
           <View style={styles.verifiedDot}>
-            <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
+            <Ionicons
+              name='checkmark-circle'
+              size={18}
+              color={theme.colors.primary}
+            />
           </View>
         )}
       </View>
@@ -77,7 +86,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate, to
 
       {isContractor && (
         <View style={styles.subtitleRow}>
-          <Ionicons name="hammer" size={12} color="rgba(255,255,255,0.75)" />
+          <Ionicons name='hammer' size={12} color='rgba(255,255,255,0.75)' />
           <Text style={styles.subtitleText}>
             {user?.skills?.[0]
               ? user.skills[0].charAt(0).toUpperCase() + user.skills[0].slice(1)
@@ -97,7 +106,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate, to
           <Ionicons
             name={isContractor ? 'construct' : 'home'}
             size={11}
-            color="rgba(255,255,255,0.9)"
+            color='rgba(255,255,255,0.9)'
           />
           <Text style={styles.pillText}>
             {isContractor ? 'Professional' : 'Homeowner'}
@@ -105,7 +114,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate, to
         </View>
         {joinDate ? (
           <View style={styles.pill}>
-            <Ionicons name="calendar-outline" size={11} color="rgba(255,255,255,0.9)" />
+            <Ionicons
+              name='calendar-outline'
+              size={11}
+              color='rgba(255,255,255,0.9)'
+            />
             <Text style={styles.pillText}>Since {joinDate}</Text>
           </View>
         ) : null}

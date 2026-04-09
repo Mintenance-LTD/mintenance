@@ -97,63 +97,83 @@ export const SubscriptionScreen: React.FC = () => {
   // Plans are role-specific — no subscription_plans table exists in DB
   const HOMEOWNER_PLANS: SubscriptionPlan[] = [
     {
-      id: 'homeowner_basic',
-      name: 'Homeowner Basic',
+      id: 'homeowner_free',
+      name: 'Free',
       price: 0,
       billingCycle: 'monthly',
-      features: ['Up to 3 jobs', 'Basic messaging', 'Escrow protection'],
+      features: [
+        'Post unlimited jobs',
+        'Manage 1 property',
+        'AI-powered matching',
+        'Payment protection',
+        'Basic messaging',
+      ],
       recommended: false,
     },
     {
       id: 'homeowner_landlord',
-      name: 'Homeowner Landlord',
-      price: 9.99,
+      name: 'Landlord',
+      price: 24.99,
       billingCycle: 'monthly',
       features: [
-        'Unlimited jobs',
-        'Portfolio management',
-        'Priority support',
+        'Everything in Free',
+        'Up to 25 properties',
+        'Compliance dashboard',
         'Recurring maintenance',
-        'Compliance tracking',
+        'Per-property analytics',
       ],
       recommended: true,
+    },
+    {
+      id: 'homeowner_agency',
+      name: 'Agency',
+      price: 49.99,
+      billingCycle: 'monthly',
+      features: [
+        'Everything in Landlord',
+        'Unlimited properties',
+        'Team member invites',
+        'Bulk job posting',
+        'Dedicated support',
+      ],
+      recommended: false,
     },
   ];
   const CONTRACTOR_PLANS: SubscriptionPlan[] = [
     {
       id: 'basic',
       name: 'Basic',
-      price: 29,
+      price: 0,
       billingCycle: 'monthly',
-      features: ['Up to 10 bids/month', '5 active jobs', 'Basic profile'],
+      features: ['10 bids/month', '1 active job', 'Basic profile'],
       recommended: false,
     },
     {
       id: 'professional',
       name: 'Professional',
-      price: 59,
+      price: 29,
       billingCycle: 'monthly',
       features: [
-        '50 bids/month',
+        'Unlimited bids',
         'Unlimited jobs',
         'Priority listing',
         'Analytics',
-        'CRM tools',
+        'Lead recommendations',
       ],
       recommended: true,
     },
     {
-      id: 'enterprise',
-      name: 'Enterprise',
-      price: 199,
+      id: 'business',
+      name: 'Business',
+      price: 99,
       billingCycle: 'monthly',
       features: [
-        'Unlimited bids',
-        'Priority support',
-        'Advanced analytics',
-        'Custom branding',
+        'Everything in Professional',
+        'Dedicated account manager',
+        'Team accounts (up to 10)',
         'API access',
-        'Team management',
+        'Custom branding',
+        'White-label invoicing',
       ],
       recommended: false,
     },
@@ -365,7 +385,7 @@ export const SubscriptionScreen: React.FC = () => {
                             color={theme.colors.accent}
                           />
                           <Text style={styles.recommendedText}>
-                            Recommended
+                            Most Popular
                           </Text>
                         </View>
                       )}

@@ -1,6 +1,6 @@
 /**
  * Card Component - Web Implementation
- * 
+ *
  * Web-specific Card component using design tokens
  */
 'use client';
@@ -10,7 +10,7 @@ import { cn } from '../../utils/cn';
 import type { WebCardProps, CardVariant, CardPadding } from './types';
 /**
  * Card Component for Web
- * 
+ *
  * Uses design tokens for consistent styling across platforms
  */
 export function Card({
@@ -67,20 +67,22 @@ export function Card({
     lg: `${webTokens.spacing.xl}px`,
   };
   // Hover styles
-  const hoverStyles: React.CSSProperties = (isInteractive && (hover || isHovered) && !disabled)
-    ? {
-        transform: 'translateY(-2px)',
-        boxShadow: webTokens.shadows.xl,
-        borderColor: webTokens.colors.borderDark,
-      }
-    : {};
+  const hoverStyles: React.CSSProperties =
+    isInteractive && (hover || isHovered) && !disabled
+      ? {
+          transform: 'translateY(-2px)',
+          boxShadow: webTokens.shadows.xl,
+          borderColor: webTokens.colors.borderDark,
+        }
+      : {};
   // Focus styles for accessibility
-  const focusStyles: React.CSSProperties = isFocused && isInteractive && !disabled
-    ? {
-        outline: `3px solid ${webTokens.colors.primary}`,
-        outlineOffset: '4px',
-      }
-    : {};
+  const focusStyles: React.CSSProperties =
+    isFocused && isInteractive && !disabled
+      ? {
+          outline: `3px solid ${webTokens.colors.primary}`,
+          outlineOffset: '4px',
+        }
+      : {};
   const cardStyles: React.CSSProperties = {
     ...baseStyles,
     ...variantStyles[variant],
@@ -92,7 +94,7 @@ export function Card({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (isInteractive && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
-      onClick?.(e as any);
+      onClick?.(e as unknown as React.MouseEvent<HTMLDivElement>);
     }
     props.onKeyDown?.(e);
   };
@@ -123,7 +125,11 @@ interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
 }
-export function CardHeader({ children, className = '', ...props }: CardHeaderProps) {
+export function CardHeader({
+  children,
+  className = '',
+  ...props
+}: CardHeaderProps) {
   return (
     <div
       className={cn('card-header', className)}
@@ -144,7 +150,12 @@ interface CardTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {
   as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
   className?: string;
 }
-export function CardTitle({ children, as = 'h3', className = '', ...props }: CardTitleProps) {
+export function CardTitle({
+  children,
+  as = 'h3',
+  className = '',
+  ...props
+}: CardTitleProps) {
   const Tag = as;
   return (
     <Tag
@@ -166,7 +177,11 @@ interface CardDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement
   children: React.ReactNode;
   className?: string;
 }
-export function CardDescription({ children, className = '', ...props }: CardDescriptionProps) {
+export function CardDescription({
+  children,
+  className = '',
+  ...props
+}: CardDescriptionProps) {
   return (
     <p
       className={cn('card-description', className)}
@@ -187,7 +202,11 @@ interface CardContentProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
 }
-export function CardContent({ children, className = '', ...props }: CardContentProps) {
+export function CardContent({
+  children,
+  className = '',
+  ...props
+}: CardContentProps) {
   return (
     <div className={cn('card-content', className)} {...props}>
       {children}
@@ -198,7 +217,11 @@ interface CardFooterProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
 }
-export function CardFooter({ children, className = '', ...props }: CardFooterProps) {
+export function CardFooter({
+  children,
+  className = '',
+  ...props
+}: CardFooterProps) {
   return (
     <div
       className={cn('card-footer', className)}

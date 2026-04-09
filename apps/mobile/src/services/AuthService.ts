@@ -205,7 +205,9 @@ export class AuthService {
           // totp_secret_needs_rotation etc. if column privileges are tightened.
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select('id, email, first_name, last_name, role, phone, bio, profile_image_url, avatar_url, city, country, address, postcode, latitude, longitude, rating, total_jobs_completed, verified, admin_verified, skills, company_name, hourly_rate, years_experience, is_available, is_visible_on_map, created_at, updated_at, onboarding_completed, subscription_status, settings, notification_preferences')
+            .select(
+              'id, email, first_name, last_name, role, phone, bio, profile_image_url, avatar_url, city, country, address, postcode, latitude, longitude, rating, total_jobs_completed, verified, admin_verified, skills, company_name, hourly_rate, years_experience, is_available, is_visible_on_map, created_at, updated_at, onboarding_completed, subscription_status, settings, notification_preferences'
+            )
             .eq('id', data.user.id)
             .single();
           if (!profileError && profileData) {
@@ -416,7 +418,7 @@ export class AuthService {
       if (parts.length !== 3) return null;
 
       // Safe base64 decode
-      const base64Url = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const base64Url = parts[1]!.replace(/-/g, '+').replace(/_/g, '/');
       let decoded = '';
 
       interface GlobalWithAtob {

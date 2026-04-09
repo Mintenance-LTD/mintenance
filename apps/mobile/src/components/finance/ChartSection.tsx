@@ -11,11 +11,36 @@ interface ChartSectionProps {
 }
 
 const EXPENSE_CATEGORIES = [
-  { key: 'materials', label: 'Materials', icon: 'cube-outline' as const, color: theme.colors.textPrimary },
-  { key: 'labor', label: 'Labour', icon: 'people-outline' as const, color: theme.colors.primary },
-  { key: 'transport', label: 'Transport', icon: 'car-outline' as const, color: theme.colors.accent },
-  { key: 'equipment', label: 'Equipment', icon: 'hammer-outline' as const, color: '#3B82F6' },
-  { key: 'other', label: 'Other', icon: 'ellipsis-horizontal-outline' as const, color: '#8B5CF6' },
+  {
+    key: 'materials',
+    label: 'Materials',
+    icon: 'cube-outline' as const,
+    color: theme.colors.textPrimary,
+  },
+  {
+    key: 'labor',
+    label: 'Labour',
+    icon: 'people-outline' as const,
+    color: theme.colors.primary,
+  },
+  {
+    key: 'transport',
+    label: 'Transport',
+    icon: 'car-outline' as const,
+    color: theme.colors.accent,
+  },
+  {
+    key: 'equipment',
+    label: 'Equipment',
+    icon: 'hammer-outline' as const,
+    color: '#3B82F6',
+  },
+  {
+    key: 'other',
+    label: 'Other',
+    icon: 'ellipsis-horizontal-outline' as const,
+    color: '#8B5CF6',
+  },
 ];
 
 // Expense percentages are computed from real data when available;
@@ -35,7 +60,9 @@ export const ChartSection: React.FC<ChartSectionProps> = ({
     }),
     datasets: [
       {
-        data: financialData.monthly_revenue.slice(-6).map((v) => Math.max(v, 0)),
+        data: financialData.monthly_revenue
+          .slice(-6)
+          .map((v) => Math.max(v, 0)),
         color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
         strokeWidth: 2,
       },
@@ -46,7 +73,9 @@ export const ChartSection: React.FC<ChartSectionProps> = ({
   const realExpenseTotal = financialData.total_expenses ?? 0;
   const totalExpenses = realExpenseTotal > 0 ? realExpenseTotal : 0;
   const EXPENSE_PERCENTAGES = financialData.expense_breakdown?.length
-    ? financialData.expense_breakdown.map((e: { percentage: number }) => e.percentage)
+    ? financialData.expense_breakdown.map(
+        (e: { percentage: number }) => e.percentage
+      )
     : DEFAULT_EXPENSE_PERCENTAGES;
   const hasExpenses = totalExpenses > 0;
 
@@ -60,12 +89,7 @@ export const ChartSection: React.FC<ChartSectionProps> = ({
             {formatCurrency(financialData.yearly_projection)} projected / yr
           </Text>
         </View>
-        <FinanceChart
-          type="line"
-          data={revenueData}
-          title=""
-          height={180}
-        />
+        <FinanceChart type='line' data={revenueData} title='' height={180} />
       </View>
 
       {/* Expense Breakdown — Donut + Progress Bars */}
@@ -74,77 +98,115 @@ export const ChartSection: React.FC<ChartSectionProps> = ({
 
         {!hasExpenses ? (
           <View style={{ alignItems: 'center', paddingVertical: 24 }}>
-            <Ionicons name="receipt-outline" size={40} color={theme.colors.textTertiary} />
-            <Text style={{ color: theme.colors.textSecondary, marginTop: 8, fontSize: 14 }}>
+            <Ionicons
+              name='receipt-outline'
+              size={40}
+              color={theme.colors.textTertiary}
+            />
+            <Text
+              style={{
+                color: theme.colors.textSecondary,
+                marginTop: 8,
+                fontSize: 14,
+              }}
+            >
               No expenses recorded yet
             </Text>
-            <Text style={{ color: theme.colors.textTertiary, fontSize: 12, marginTop: 4 }}>
+            <Text
+              style={{
+                color: theme.colors.textTertiary,
+                fontSize: 12,
+                marginTop: 4,
+              }}
+            >
               Track expenses to see your breakdown
             </Text>
           </View>
         ) : (
-        <>
-        {/* Donut + legend row */}
-        <View style={styles.donutRow}>
-          <View style={styles.donutOuter}>
-            <View style={styles.donutInner}>
-              <Text style={styles.donutValue}>{formatCurrency(totalExpenses)}</Text>
-              <Text style={styles.donutLabel}>Total</Text>
+          <>
+            {/* Donut + legend row */}
+            <View style={styles.donutRow}>
+              <View style={styles.donutOuter}>
+                <View style={styles.donutInner}>
+                  <Text style={styles.donutValue}>
+                    {formatCurrency(totalExpenses)}
+                  </Text>
+                  <Text style={styles.donutLabel}>Total</Text>
+                </View>
+              </View>
+
+              <View style={styles.legendColumn}>
+                {EXPENSE_CATEGORIES.map((cat, i) => (
+                  <View key={cat.key} style={styles.legendItem}>
+                    <View
+                      style={[styles.legendDot, { backgroundColor: cat.color }]}
+                    />
+                    <Text style={styles.legendText}>{cat.label}</Text>
+                    <Text style={styles.legendPercent}>
+                      {EXPENSE_PERCENTAGES[i] ?? 0}%
+                    </Text>
+                  </View>
+                ))}
+              </View>
             </View>
-          </View>
 
-          <View style={styles.legendColumn}>
-            {EXPENSE_CATEGORIES.map((cat, i) => (
-              <View key={cat.key} style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: cat.color }]} />
-                <Text style={styles.legendText}>{cat.label}</Text>
-                <Text style={styles.legendPercent}>{EXPENSE_PERCENTAGES[i]}%</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Category progress bars */}
-        <View style={styles.progressSection}>
-          {EXPENSE_CATEGORIES.map((cat, i) => {
-            const amount = (EXPENSE_PERCENTAGES[i] / 100) * totalExpenses;
-            const pct = EXPENSE_PERCENTAGES[i];
-            return (
-              <View key={cat.key} style={styles.categoryRow}>
-                <View style={[styles.catIconWrap, { backgroundColor: `${cat.color}15` }]}>
-                  <Ionicons name={cat.icon} size={16} color={cat.color} />
-                </View>
-                <View style={styles.catInfo}>
-                  <View style={styles.catTopRow}>
-                    <Text style={styles.catName}>{cat.label}</Text>
-                    <Text style={styles.catAmount}>{formatCurrency(amount)}</Text>
+            {/* Category progress bars */}
+            <View style={styles.progressSection}>
+              {EXPENSE_CATEGORIES.map((cat, i) => {
+                const pct = EXPENSE_PERCENTAGES[i] ?? 0;
+                const amount = (pct / 100) * totalExpenses;
+                return (
+                  <View key={cat.key} style={styles.categoryRow}>
+                    <View
+                      style={[
+                        styles.catIconWrap,
+                        { backgroundColor: `${cat.color}15` },
+                      ]}
+                    >
+                      <Ionicons name={cat.icon} size={16} color={cat.color} />
+                    </View>
+                    <View style={styles.catInfo}>
+                      <View style={styles.catTopRow}>
+                        <Text style={styles.catName}>{cat.label}</Text>
+                        <Text style={styles.catAmount}>
+                          {formatCurrency(amount)}
+                        </Text>
+                      </View>
+                      <View style={styles.barBg}>
+                        <View
+                          style={[
+                            styles.barFill,
+                            { width: `${pct}%`, backgroundColor: cat.color },
+                          ]}
+                        />
+                      </View>
+                    </View>
                   </View>
-                  <View style={styles.barBg}>
-                    <View style={[styles.barFill, { width: `${pct}%`, backgroundColor: cat.color }]} />
-                  </View>
-                </View>
-              </View>
-            );
-          })}
-        </View>
-        </>
+                );
+              })}
+            </View>
+          </>
         )}
       </View>
 
       {/* Monthly Profit */}
       {financialData.profit_trends.length > 0 && (
         <FinanceChart
-          type="bar"
+          type='bar'
           data={{
             labels: financialData.profit_trends.map((t) => t.month.slice(0, 3)),
-            datasets: [{
-              data: financialData.profit_trends.map((t) => Math.max(t.profit, 0)),
-              color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
-              strokeWidth: 2,
-            }],
+            datasets: [
+              {
+                data: financialData.profit_trends.map((t) =>
+                  Math.max(t.profit, 0)
+                ),
+                color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
+                strokeWidth: 2,
+              },
+            ],
           }}
-          title="Monthly Profit"
-          subtitle="After expenses"
+          title='Monthly Profit'
+          subtitle='After expenses'
           height={180}
         />
       )}
@@ -159,7 +221,12 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 16,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 12 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 12,
+      },
       android: { elevation: 2 },
     }),
   },

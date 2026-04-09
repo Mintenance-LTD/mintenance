@@ -27,15 +27,21 @@ export class TrialNotifications {
         return false;
       }
 
-      const trialEndsAt = user.trial_ends_at ? new Date(user.trial_ends_at) : null;
-      const trialEndDate = trialEndsAt ? trialEndsAt.toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      }) : 'soon';
+      const trialEndsAt = user.trial_ends_at
+        ? new Date(user.trial_ends_at)
+        : null;
+      const trialEndDate = trialEndsAt
+        ? trialEndsAt.toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })
+        : 'soon';
 
       const baseUrl = getAppUrl();
-      const contractorName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Contractor';
+      const contractorName =
+        `${user.first_name || ''} ${user.last_name || ''}`.trim() ||
+        'Contractor';
 
       const html = `
         <!DOCTYPE html>
@@ -111,18 +117,29 @@ export class TrialNotifications {
         return false;
       }
 
-      const trialEndsAt = user.trial_ends_at ? new Date(user.trial_ends_at) : null;
-      const trialEndDate = trialEndsAt ? trialEndsAt.toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      }) : 'soon';
+      const trialEndsAt = user.trial_ends_at
+        ? new Date(user.trial_ends_at)
+        : null;
+      const trialEndDate = trialEndsAt
+        ? trialEndsAt.toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })
+        : 'soon';
 
       const baseUrl = getAppUrl();
-      const contractorName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Contractor';
+      const contractorName =
+        `${user.first_name || ''} ${user.last_name || ''}`.trim() ||
+        'Contractor';
 
       const warning = TrialService.getTrialWarnings(daysRemaining);
-      const urgency = warning?.level === 'urgent' ? 'urgent' : daysRemaining <= 3 ? 'important' : 'reminder';
+      const urgency =
+        warning?.level === 'urgent'
+          ? 'urgent'
+          : daysRemaining <= 3
+            ? 'important'
+            : 'reminder';
 
       const html = `
         <!DOCTYPE html>
@@ -149,9 +166,8 @@ export class TrialNotifications {
               <p><strong>Trial ends:</strong> ${trialEndDate}</p>
               <p>To continue using Mintenance after your trial, please subscribe to one of our plans:</p>
               <ul>
-                <li><strong>Basic:</strong> £19.99/month - Perfect for getting started</li>
-                <li><strong>Professional:</strong> £49.99/month - For growing businesses</li>
-                <li><strong>Enterprise:</strong> £99.99/month - Unlimited access</li>
+                <li><strong>Professional:</strong> £29/month - For growing businesses</li>
+                <li><strong>Business:</strong> £99/month - Unlimited access</li>
               </ul>
               <p>All plans include full platform access with a 5% transaction fee on payments.</p>
               <a href="${baseUrl}/contractor/subscription" class="button">Subscribe Now</a>
@@ -183,7 +199,9 @@ export class TrialNotifications {
   /**
    * Send subscription required notification
    */
-  static async sendSubscriptionRequiredNotification(contractorId: string): Promise<boolean> {
+  static async sendSubscriptionRequiredNotification(
+    contractorId: string
+  ): Promise<boolean> {
     try {
       const { data: user } = await serverSupabase
         .from('profiles')
@@ -196,7 +214,9 @@ export class TrialNotifications {
       }
 
       const baseUrl = getAppUrl();
-      const contractorName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Contractor';
+      const contractorName =
+        `${user.first_name || ''} ${user.last_name || ''}`.trim() ||
+        'Contractor';
 
       const html = `
         <!DOCTYPE html>
@@ -266,7 +286,9 @@ export class TrialNotifications {
       }
 
       const baseUrl = getAppUrl();
-      const contractorName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Contractor';
+      const contractorName =
+        `${user.first_name || ''} ${user.last_name || ''}`.trim() ||
+        'Contractor';
 
       const html = `
         <!DOCTYPE html>
@@ -318,7 +340,9 @@ export class TrialNotifications {
   /**
    * Send subscription payment failed notification
    */
-  static async sendSubscriptionPaymentFailed(contractorId: string): Promise<boolean> {
+  static async sendSubscriptionPaymentFailed(
+    contractorId: string
+  ): Promise<boolean> {
     try {
       const { data: user } = await serverSupabase
         .from('profiles')
@@ -331,7 +355,9 @@ export class TrialNotifications {
       }
 
       const baseUrl = getAppUrl();
-      const contractorName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Contractor';
+      const contractorName =
+        `${user.first_name || ''} ${user.last_name || ''}`.trim() ||
+        'Contractor';
 
       const html = `
         <!DOCTYPE html>
@@ -390,16 +416,14 @@ export class TrialNotifications {
     type: 'system' = 'system'
   ): Promise<boolean> {
     try {
-      const { error } = await serverSupabase
-        .from('notifications')
-        .insert({
-          user_id: contractorId,
-          title,
-          body,
-          type,
-          priority: 'normal',
-          read: false,
-        });
+      const { error } = await serverSupabase.from('notifications').insert({
+        user_id: contractorId,
+        title,
+        body,
+        type,
+        priority: 'normal',
+        read: false,
+      });
 
       if (error) {
         logger.error('Failed to create in-app notification', {
@@ -428,4 +452,3 @@ function formatCurrency(amount: number): string {
     currency: 'GBP',
   }).format(amount);
 }
-

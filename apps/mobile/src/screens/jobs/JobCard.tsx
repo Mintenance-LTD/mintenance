@@ -43,11 +43,11 @@ export const JobCard: React.FC<JobCardProps> = ({
   const urgency = item.urgency || item.priority || 'medium';
   const isUrgent = urgency === 'high' || urgency === 'emergency';
   const catKey = item.category?.toLowerCase() || 'general';
-  const catColor = CATEGORY_COLORS[catKey] || CATEGORY_COLORS.general;
-  const categoryIcon = CATEGORY_ICONS[catKey] || 'construct-outline';
+  const catColor = CATEGORY_COLORS[catKey] ?? CATEGORY_COLORS.general;
+  const categoryIcon = CATEGORY_ICONS[catKey] ?? 'construct-outline';
   const timeLabel =
     daysAgo === 0 ? 'Today' : daysAgo === 1 ? '1d ago' : `${daysAgo}d ago`;
-  const statusStyle = STATUS_STYLES[item.status];
+  const statusStyle = STATUS_STYLES[item.status] ?? STATUS_STYLES.posted;
 
   const contractorName = (item as unknown as Record<string, unknown>)
     .contractor_name as string | undefined;
@@ -94,12 +94,15 @@ export const JobCard: React.FC<JobCardProps> = ({
         </View>
       ) : (
         <View
-          style={[styles.placeholderHero, { backgroundColor: catColor.bg }]}
+          style={[
+            styles.placeholderHero,
+            { backgroundColor: catColor?.bg ?? '#F5F5F5' },
+          ]}
         >
           <Ionicons
             name={categoryIcon}
             size={36}
-            color={catColor.icon}
+            color={catColor?.icon ?? '#616161'}
             style={{ opacity: 0.5 }}
           />
           {isUrgent && (
@@ -187,9 +190,23 @@ export const JobCard: React.FC<JobCardProps> = ({
 
         {/* Tags row: category + bid pressure */}
         <View style={styles.tagsRow}>
-          <View style={[styles.categoryTag, { backgroundColor: catColor.bg }]}>
-            <Ionicons name={categoryIcon} size={12} color={catColor.text} />
-            <Text style={[styles.categoryTagText, { color: catColor.text }]}>
+          <View
+            style={[
+              styles.categoryTag,
+              { backgroundColor: catColor?.bg ?? '#F5F5F5' },
+            ]}
+          >
+            <Ionicons
+              name={categoryIcon}
+              size={12}
+              color={catColor?.text ?? '#616161'}
+            />
+            <Text
+              style={[
+                styles.categoryTagText,
+                { color: catColor?.text ?? '#616161' },
+              ]}
+            >
               {item.category
                 ? item.category.charAt(0).toUpperCase() + item.category.slice(1)
                 : 'General'}

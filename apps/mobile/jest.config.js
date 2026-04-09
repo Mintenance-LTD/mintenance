@@ -7,7 +7,7 @@ module.exports = {
   cache: false,
   setupFilesAfterEnv: [
     '<rootDir>/jest-setup.js',
-    '<rootDir>/src/__tests__/setup/globalMocks.ts'
+    '<rootDir>/src/__tests__/setup/globalMocks.ts',
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.tsx?$',
@@ -27,12 +27,14 @@ module.exports = {
     '^.+\\.(png|jpg|jpeg|gif|webp)$': '<rootDir>/__mocks__/fileMock.js',
     // Force AuthContext imports to use the lightweight fallback in tests
     'contexts/AuthContext$': '<rootDir>/src/contexts/AuthContext-fallback.tsx',
-    '.*/contexts/AuthContext$': '<rootDir>/src/contexts/AuthContext-fallback.tsx',
+    '.*/contexts/AuthContext$':
+      '<rootDir>/src/contexts/AuthContext-fallback.tsx',
     // Ensure all imports of config/supabase resolve to the chainable manual mock in tests
     '.*/config/supabase$': '<rootDir>/src/config/__mocks__/supabase.ts',
     '^../config/supabase$': '<rootDir>/src/config/__mocks__/supabase.ts',
     // Mock Stripe
-    '^@stripe/stripe-react-native$': '<rootDir>/__mocks__/@stripe/stripe-react-native.js',
+    '^@stripe/stripe-react-native$':
+      '<rootDir>/__mocks__/@stripe/stripe-react-native.js',
     // Mock utils/logger
     '^../utils/logger$': '<rootDir>/src/utils/logger.ts',
     '^../../utils/logger$': '<rootDir>/src/utils/logger.ts',
@@ -42,7 +44,8 @@ module.exports = {
     '^react-native-svg$': '<rootDir>/__mocks__/react-native-svg.js',
     '^expo-image$': '<rootDir>/__mocks__/expo-image.js',
     // Mock react-native-reanimated to fix test issues
-    '^react-native-reanimated$': '<rootDir>/__mocks__/react-native-reanimated.js',
+    '^react-native-reanimated$':
+      '<rootDir>/__mocks__/react-native-reanimated.js',
     // Mock other commonly failing modules
     '^\\.\\./services/(.*)$': '<rootDir>/src/services/$1',
     '^\\.\\.\\/\\.\\./services/(.*)$': '<rootDir>/src/services/$1',
@@ -71,13 +74,13 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  // Coverage thresholds - raised to enforce meaningful coverage
+  // Coverage thresholds - raised for financial platform standard
   coverageThreshold: {
     global: {
-      branches: 65,
-      functions: 70,
-      lines: 70,
-      statements: 70,
+      branches: 75,
+      functions: 80,
+      lines: 80,
+      statements: 80,
     },
   },
   // Increase test timeout for complex tests

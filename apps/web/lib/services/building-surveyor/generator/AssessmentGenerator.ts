@@ -4,6 +4,7 @@
  */
 
 import { logger } from '@mintenance/shared';
+import { z } from 'zod';
 import { fetchWithOpenAIRetry } from '@/lib/utils/openai-rate-limit';
 import { BuildingPathologyRAGService } from '../BuildingPathologyRAGService';
 
@@ -19,7 +20,10 @@ function validateVlmEndpoint(raw: string): string {
   try {
     const url = new URL(raw);
     if (url.protocol !== 'https:' && process.env.NODE_ENV === 'production') {
-      logger.warn('MINT_AI_VLM_ENDPOINT must be HTTPS in production, ignoring', { service: 'AssessmentGenerator' });
+      logger.warn(
+        'MINT_AI_VLM_ENDPOINT must be HTTPS in production, ignoring',
+        { service: 'AssessmentGenerator' }
+      );
       return '';
     }
     if (!['https:', 'http:'].includes(url.protocol)) {
@@ -27,29 +31,51 @@ function validateVlmEndpoint(raw: string): string {
     }
     const h = url.hostname;
     // Block cloud metadata + reserved IPs (SSRF targets)
-    if (h === '169.254.169.254' || h === 'metadata.google.internal' ||
-        h.endsWith('.internal') || h === '[::1]') {
-      logger.warn('MINT_AI_VLM_ENDPOINT points to reserved address, ignoring', { service: 'AssessmentGenerator' });
+    if (
+      h === '169.254.169.254' ||
+      h === 'metadata.google.internal' ||
+      h.endsWith('.internal') ||
+      h === '[::1]'
+    ) {
+      logger.warn('MINT_AI_VLM_ENDPOINT points to reserved address, ignoring', {
+        service: 'AssessmentGenerator',
+      });
       return '';
     }
     return raw;
   } catch {
-    logger.warn('MINT_AI_VLM_ENDPOINT is not a valid URL, ignoring', { service: 'AssessmentGenerator' });
+    logger.warn('MINT_AI_VLM_ENDPOINT is not a valid URL, ignoring', {
+      service: 'AssessmentGenerator',
+    });
     return '';
   }
 }
 
-const MINT_AI_VLM_ENDPOINT = validateVlmEndpoint(process.env.MINT_AI_VLM_ENDPOINT?.trim() || '');
+const MINT_AI_VLM_ENDPOINT = validateVlmEndpoint(
+  process.env.MINT_AI_VLM_ENDPOINT?.trim() || ''
+);
 
 export interface GeneratorMessage {
   role: 'system' | 'user' | 'assistant';
-  content: string | Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string; detail: 'high' | 'low' | 'auto' } }>;
+  content:
+    | string
+    | Array<
+        | { type: 'text'; text: string }
+        | {
+            type: 'image_url';
+            image_url: { url: string; detail: 'high' | 'low' | 'auto' };
+          }
+      >;
 }
 
 export interface GeneratorResult {
   content: string;
   model: string;
-  usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
   /** GPT-4o chain-of-thought reasoning extracted from JSON response. Used for CoT distillation. */
   reasoning?: string | null;
 }
@@ -58,7 +84,10 @@ export interface GeneratorResult {
  * Call OpenAI vision model and return raw content + usage.
  * Model configurable via OPENAI_MODEL env var (default: gpt-4o).
  */
-async function callGPT4o(messages: GeneratorMessage[], apiKey: string): Promise<GeneratorResult> {
+async function callGPT4o(
+  messages: GeneratorMessage[],
+  apiKey: string
+): Promise<GeneratorResult> {
   const response = await fetchWithOpenAIRetry(
     'https://api.openai.com/v1/chat/completions',
     {
@@ -85,7 +114,11 @@ async function callGPT4o(messages: GeneratorMessage[], apiKey: string): Promise<
 
   const data = (await response.json()) as {
     choices?: Array<{ message?: { content?: string } }>;
-    usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+    usage?: {
+      prompt_tokens: number;
+      completion_tokens: number;
+      total_tokens: number;
+    };
   };
   const rawContent = data.choices?.[0]?.message?.content ?? '{}';
 
@@ -97,7 +130,27 @@ async function callGPT4o(messages: GeneratorMessage[], apiKey: string): Promise<
   let content = rawContent;
   let reasoning: string | null = null;
   try {
-    const parsed = JSON.parse(rawContent) as Record<string, unknown>;
+    const rawParsed = JSON.parse(rawContent);
+    // Validate critical fields from GPT response
+    const gptSchema = z
+      .object({
+        damageType: z.string().optional(),
+        severity: z.string().optional(),
+        confidence: z.number().min(0).max(100).optional(),
+        reasoning: z.string().optional(),
+      })
+      .passthrough();
+    const validated = gptSchema.safeParse(rawParsed);
+    const parsed = (validated.success ? validated.data : rawParsed) as Record<
+      string,
+      unknown
+    >;
+    if (!validated.success) {
+      logger.warn('GPT assessment response failed schema validation', {
+        service: 'assessment-generator',
+        errors: validated.error.issues.slice(0, 3),
+      });
+    }
     if (typeof parsed.reasoning === 'string' && parsed.reasoning.length > 0) {
       reasoning = parsed.reasoning;
       delete parsed.reasoning;
@@ -152,7 +205,11 @@ export async function callMintAiVLM(
 
   const data = (await response.json()) as {
     choices?: Array<{ message?: { content?: string } }>;
-    usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+    usage?: {
+      prompt_tokens: number;
+      completion_tokens: number;
+      total_tokens: number;
+    };
   };
   const content = data.choices?.[0]?.message?.content ?? '{}';
   return {
@@ -169,7 +226,9 @@ async function mintAiStub(
   messages: GeneratorMessage[],
   apiKey: string
 ): Promise<GeneratorResult> {
-  logger.info('Mint AI VLM enabled (stub: using GPT-4o)', { service: 'AssessmentGenerator' });
+  logger.info('Mint AI VLM enabled (stub: using GPT-4o)', {
+    service: 'AssessmentGenerator',
+  });
   const result = await callGPT4o(messages, apiKey);
   return { ...result, model: 'mint-ai-vlm' };
 }
@@ -181,7 +240,7 @@ async function mintAiStub(
 async function injectRAGContext(
   messages: GeneratorMessage[],
   damageCategory?: string,
-  propertyAge?: number,
+  propertyAge?: number
 ): Promise<GeneratorMessage[]> {
   try {
     let ragContext;
@@ -190,17 +249,30 @@ async function injectRAGContext(
       // Try semantic search first — higher recall for damage types not in the
       // exact slug mapping, or where the category label is imprecise.
       ragContext = await BuildingPathologyRAGService.queryBySemantic(
-        damageCategory.replace(/_/g, ' '),  // "wall_crack" → "wall crack"
-        { matchCount: 4, matchThreshold: 0.50 }
+        damageCategory.replace(/_/g, ' '), // "wall_crack" → "wall crack"
+        { matchCount: 4, matchThreshold: 0.5 }
       );
       // Fall back to category filter if embeddings not yet seeded
       if (!ragContext.entries.length) {
-        const categories = BuildingPathologyRAGService.damageTypeToCategories(damageCategory);
-        ragContext = categories.length > 0
-          ? await BuildingPathologyRAGService.queryByCategory(categories, 4, propertyAge)
-          : await BuildingPathologyRAGService.queryByCategory(
-              ['damp_moisture', 'structural_movement', 'roofing', 'masonry_walls'], 3, propertyAge
-            );
+        const categories =
+          BuildingPathologyRAGService.damageTypeToCategories(damageCategory);
+        ragContext =
+          categories.length > 0
+            ? await BuildingPathologyRAGService.queryByCategory(
+                categories,
+                4,
+                propertyAge
+              )
+            : await BuildingPathologyRAGService.queryByCategory(
+                [
+                  'damp_moisture',
+                  'structural_movement',
+                  'roofing',
+                  'masonry_walls',
+                ],
+                3,
+                propertyAge
+              );
       }
     } else {
       ragContext = await BuildingPathologyRAGService.queryByCategory(
@@ -213,9 +285,10 @@ async function injectRAGContext(
     if (!ragContext.promptContext) return messages;
 
     // Append RAG context to the system message
-    return messages.map(msg => {
+    return messages.map((msg) => {
       if (msg.role !== 'system') return msg;
-      const existingContent = typeof msg.content === 'string' ? msg.content : '';
+      const existingContent =
+        typeof msg.content === 'string' ? msg.content : '';
       return {
         ...msg,
         content: `${existingContent}\n\n${ragContext.promptContext}`,
@@ -230,17 +303,33 @@ async function injectRAGContext(
 export async function getGeneratorContent(
   messages: GeneratorMessage[],
   apiKey: string,
-  context?: { assessmentId?: string; damageCategory?: string; propertyType?: string; propertyAge?: number }
+  context?: {
+    assessmentId?: string;
+    damageCategory?: string;
+    propertyType?: string;
+    propertyAge?: number;
+  }
 ): Promise<GeneratorResult> {
   // Inject RAG knowledge base context before any AI call (with property age for era-filtered results)
-  const enrichedMessages = await injectRAGContext(messages, context?.damageCategory, context?.propertyAge);
+  const enrichedMessages = await injectRAGContext(
+    messages,
+    context?.damageCategory,
+    context?.propertyAge
+  );
 
   // Phase 4: Confidence-based student routing (only when VLM_ROUTING_MODE=auto)
-  if (MINT_AI_VLM_ENDPOINT && process.env.VLM_ROUTING_MODE === 'auto' && context?.damageCategory) {
+  if (
+    MINT_AI_VLM_ENDPOINT &&
+    process.env.VLM_ROUTING_MODE === 'auto' &&
+    context?.damageCategory
+  ) {
     try {
-      const { StudentRoutingGate } = await import('../distillation/StudentRoutingGate');
+      const { StudentRoutingGate } =
+        await import('../distillation/StudentRoutingGate');
       const routingContext = context.propertyType
-        ? { propertyType: context.propertyType } as import('../types').AssessmentContext
+        ? ({
+            propertyType: context.propertyType,
+          } as import('../types').AssessmentContext)
         : undefined;
       const decision = await StudentRoutingGate.shouldUseStudent(
         routingContext,
@@ -253,19 +342,27 @@ export async function getGeneratorContent(
 
           // Phase 5: Safety recall gate — validate student output before serving
           try {
-            const { SafetyRecallGate } = await import('../distillation/SafetyRecallGate');
+            const { SafetyRecallGate } =
+              await import('../distillation/SafetyRecallGate');
             const parsed = JSON.parse(studentResult.content);
-            if (parsed?.safetyHazards && parsed?.damageAssessment && parsed?.urgency) {
+            if (
+              parsed?.safetyHazards &&
+              parsed?.damageAssessment &&
+              parsed?.urgency
+            ) {
               const safetyCheck = SafetyRecallGate.validateStudentSafety(
                 parsed,
                 context.damageCategory
               );
               if (!safetyCheck.safe) {
-                logger.warn('Student VLM failed safety gate, falling back to GPT-4o', {
-                  service: 'AssessmentGenerator',
-                  failReason: safetyCheck.failReason,
-                  category: context.damageCategory,
-                });
+                logger.warn(
+                  'Student VLM failed safety gate, falling back to GPT-4o',
+                  {
+                    service: 'AssessmentGenerator',
+                    failReason: safetyCheck.failReason,
+                    category: context.damageCategory,
+                  }
+                );
                 await SafetyRecallGate.recordSafetyViolation(
                   context.assessmentId || 'unknown',
                   context.damageCategory,

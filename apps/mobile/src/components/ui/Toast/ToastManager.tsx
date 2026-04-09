@@ -42,13 +42,13 @@ class ToastService {
   subscribe(listener: (toasts: ToastInstance[]) => void): () => void {
     this.listeners.push(listener);
     return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
+      this.listeners = this.listeners.filter((l) => l !== listener);
     };
   }
 
   // Notify all listeners
   private notify(): void {
-    this.listeners.forEach(listener => listener([...this.toasts]));
+    this.listeners.forEach((listener) => listener([...this.toasts]));
   }
 
   // Generate unique ID
@@ -80,7 +80,7 @@ class ToastService {
 
   // Remove a specific toast
   dismiss(id: string): void {
-    const index = this.toasts.findIndex(t => t.id === id);
+    const index = this.toasts.findIndex((t) => t.id === id);
     if (index > -1) {
       this.toasts.splice(index, 1);
       this.notify();
@@ -95,15 +95,16 @@ class ToastService {
 
   // Remove toasts by type
   dismissByType(type: ToastProps['type']): void {
-    this.toasts = this.toasts.filter(t => t.type !== type);
+    this.toasts = this.toasts.filter((t) => t.type !== type);
     this.notify();
   }
 
   // Update existing toast
   update(id: string, updates: Partial<ToastConfig>): void {
-    const index = this.toasts.findIndex(t => t.id === id);
-    if (index > -1) {
-      this.toasts[index] = { ...this.toasts[index], ...updates };
+    const index = this.toasts.findIndex((t) => t.id === id);
+    const existing = index > -1 ? this.toasts[index] : undefined;
+    if (existing) {
+      this.toasts[index] = { ...existing, ...updates };
       this.notify();
     }
   }
@@ -114,24 +115,50 @@ class ToastService {
   }
 
   // Convenience methods
-  success(title: string, message?: string, options?: Partial<ToastConfig>): string {
+  success(
+    title: string,
+    message?: string,
+    options?: Partial<ToastConfig>
+  ): string {
     return this.show({ type: 'success', title, message, ...options });
   }
 
-  error(title: string, message?: string, options?: Partial<ToastConfig>): string {
+  error(
+    title: string,
+    message?: string,
+    options?: Partial<ToastConfig>
+  ): string {
     return this.show({ type: 'error', title, message, ...options });
   }
 
-  warning(title: string, message?: string, options?: Partial<ToastConfig>): string {
+  warning(
+    title: string,
+    message?: string,
+    options?: Partial<ToastConfig>
+  ): string {
     return this.show({ type: 'warning', title, message, ...options });
   }
 
-  info(title: string, message?: string, options?: Partial<ToastConfig>): string {
+  info(
+    title: string,
+    message?: string,
+    options?: Partial<ToastConfig>
+  ): string {
     return this.show({ type: 'info', title, message, ...options });
   }
 
-  loading(title: string, message?: string, options?: Partial<ToastConfig>): string {
-    return this.show({ type: 'loading', title, message, duration: 0, ...options });
+  loading(
+    title: string,
+    message?: string,
+    options?: Partial<ToastConfig>
+  ): string {
+    return this.show({
+      type: 'loading',
+      title,
+      message,
+      duration: 0,
+      ...options,
+    });
   }
 
   // Promise-based methods
@@ -145,7 +172,10 @@ class ToastService {
     options?: Partial<ToastConfig>
   ): Promise<T> {
     const loadingId = messages.loading
-      ? this.loading(messages.loading, undefined, { id: 'promise_toast', ...options })
+      ? this.loading(messages.loading, undefined, {
+          id: 'promise_toast',
+          ...options,
+        })
       : '';
 
     return promise
@@ -153,10 +183,14 @@ class ToastService {
         if (loadingId) this.dismiss(loadingId);
 
         if (messages.success) {
-          const successMessage = typeof messages.success === 'function'
-            ? messages.success(data)
-            : messages.success;
-          this.success(successMessage, undefined, { id: 'promise_toast', ...options });
+          const successMessage =
+            typeof messages.success === 'function'
+              ? messages.success(data)
+              : messages.success;
+          this.success(successMessage, undefined, {
+            id: 'promise_toast',
+            ...options,
+          });
         }
 
         return data;
@@ -165,10 +199,14 @@ class ToastService {
         if (loadingId) this.dismiss(loadingId);
 
         if (messages.error) {
-          const errorMessage = typeof messages.error === 'function'
-            ? messages.error(error)
-            : messages.error;
-          this.error(errorMessage, undefined, { id: 'promise_toast', ...options });
+          const errorMessage =
+            typeof messages.error === 'function'
+              ? messages.error(error)
+              : messages.error;
+          this.error(errorMessage, undefined, {
+            id: 'promise_toast',
+            ...options,
+          });
         }
 
         throw error;
@@ -192,14 +230,12 @@ export const ToastManager: React.FC = () => {
   }, []);
 
   // Group toasts by position
-  const topToasts = toasts.filter(t => (t.position || 'top') === 'top');
-  const bottomToasts = toasts.filter(t => (t.position || 'top') === 'bottom');
-  const centerToasts = toasts.filter(t => (t.position || 'top') === 'center');
+  const topToasts = toasts.filter((t) => (t.position || 'top') === 'top');
+  const bottomToasts = toasts.filter((t) => (t.position || 'top') === 'bottom');
+  const centerToasts = toasts.filter((t) => (t.position || 'top') === 'center');
 
   const renderToasts = (toastList: ToastInstance[]) => {
-    return toastList.map((toast) => (
-      <Toast key={toast.id} {...toast} />
-    ));
+    return toastList.map((toast) => <Toast key={toast.id} {...toast} />);
   };
 
   if (toasts.length === 0) {
@@ -207,7 +243,7 @@ export const ToastManager: React.FC = () => {
   }
 
   return (
-    <View style={styles.container} pointerEvents="box-none">
+    <View style={styles.container} pointerEvents='box-none'>
       {renderToasts(topToasts)}
       {renderToasts(centerToasts)}
       {renderToasts(bottomToasts)}
@@ -224,20 +260,31 @@ export const useToast = () => {
     show: (config: ToastConfig) => toastManager.show(config),
     dismiss: (id: string) => toastManager.dismiss(id),
     dismissAll: () => toastManager.dismissAll(),
-    dismissByType: (type: ToastProps['type']) => toastManager.dismissByType(type),
-    update: (id: string, updates: Partial<ToastConfig>) => toastManager.update(id, updates),
+    dismissByType: (type: ToastProps['type']) =>
+      toastManager.dismissByType(type),
+    update: (id: string, updates: Partial<ToastConfig>) =>
+      toastManager.update(id, updates),
 
     // Convenience methods
-    success: (title: string, message?: string, options?: Partial<ToastConfig>) =>
-      toastManager.success(title, message, options),
+    success: (
+      title: string,
+      message?: string,
+      options?: Partial<ToastConfig>
+    ) => toastManager.success(title, message, options),
     error: (title: string, message?: string, options?: Partial<ToastConfig>) =>
       toastManager.error(title, message, options),
-    warning: (title: string, message?: string, options?: Partial<ToastConfig>) =>
-      toastManager.warning(title, message, options),
+    warning: (
+      title: string,
+      message?: string,
+      options?: Partial<ToastConfig>
+    ) => toastManager.warning(title, message, options),
     info: (title: string, message?: string, options?: Partial<ToastConfig>) =>
       toastManager.info(title, message, options),
-    loading: (title: string, message?: string, options?: Partial<ToastConfig>) =>
-      toastManager.loading(title, message, options),
+    loading: (
+      title: string,
+      message?: string,
+      options?: Partial<ToastConfig>
+    ) => toastManager.loading(title, message, options),
 
     // Promise helper
     promise: <T,>(

@@ -8,7 +8,7 @@ import {
   ErrorOccurrence,
   ErrorTrend,
   ErrorCategory,
-  ErrorSeverity
+  ErrorSeverity,
 } from './ErrorTypes';
 
 export class ErrorTrendAnalysis {
@@ -33,7 +33,7 @@ export class ErrorTrendAnalysis {
 
     // Initialize buckets
     for (let i = 0; i < buckets; i++) {
-      const bucketStart = now - periodMs + (i * bucketSize);
+      const bucketStart = now - periodMs + i * bucketSize;
       trendData.push({
         timestamp: bucketStart,
         count: 0,
@@ -43,22 +43,27 @@ export class ErrorTrendAnalysis {
           [ErrorSeverity.ERROR]: 0,
           [ErrorSeverity.WARNING]: 0,
           [ErrorSeverity.INFO]: 0,
-          [ErrorSeverity.DEBUG]: 0
+          [ErrorSeverity.DEBUG]: 0,
         },
-        category: Object.values(ErrorCategory).reduce((acc, cat) => {
-          acc[cat] = 0;
-          return acc;
-        }, {} as Record<ErrorCategory, number>)
+        category: Object.values(ErrorCategory).reduce(
+          (acc, cat) => {
+            acc[cat] = 0;
+            return acc;
+          },
+          {} as Record<ErrorCategory, number>
+        ),
       });
     }
 
     // Aggregate error data
     recentOccurrences
-      .filter(occurrence => occurrence.timestamp > now - periodMs)
-      .forEach(occurrence => {
-        const bucketIndex = Math.floor((occurrence.timestamp - (now - periodMs)) / bucketSize);
+      .filter((occurrence) => occurrence.timestamp > now - periodMs)
+      .forEach((occurrence) => {
+        const bucketIndex = Math.floor(
+          (occurrence.timestamp - (now - periodMs)) / bucketSize
+        );
         if (bucketIndex >= 0 && bucketIndex < buckets) {
-          const bucket = trendData[bucketIndex];
+          const bucket = trendData[bucketIndex]!;
           bucket.count++;
 
           if (occurrence.userId) {
@@ -68,14 +73,18 @@ export class ErrorTrendAnalysis {
           totalErrors++;
 
           // Find the pattern for this occurrence
-          const pattern = Array.from(errorPatterns.values())
-            .find(p => p.occurrences.some(o => o.id === occurrence.id));
+          const pattern = Array.from(errorPatterns.values()).find((p) =>
+            p.occurrences.some((o) => o.id === occurrence.id)
+          );
 
           if (pattern) {
             bucket.severity[pattern.severity]++;
             bucket.category[pattern.category]++;
 
-            if (pattern.severity === ErrorSeverity.FATAL || pattern.severity === ErrorSeverity.ERROR) {
+            if (
+              pattern.severity === ErrorSeverity.FATAL ||
+              pattern.severity === ErrorSeverity.ERROR
+            ) {
               criticalErrors++;
             }
 
@@ -88,15 +97,16 @@ export class ErrorTrendAnalysis {
       });
 
     // Calculate unique users per bucket
-    trendData.forEach(bucket => {
+    trendData.forEach((bucket) => {
       const bucketUsers = new Set<string>();
       recentOccurrences
-        .filter(o =>
-          o.timestamp >= bucket.timestamp &&
-          o.timestamp < bucket.timestamp + bucketSize &&
-          o.userId
+        .filter(
+          (o) =>
+            o.timestamp >= bucket.timestamp &&
+            o.timestamp < bucket.timestamp + bucketSize &&
+            o.userId
         )
-        .forEach(o => bucketUsers.add(o.userId!));
+        .forEach((o) => bucketUsers.add(o.userId!));
       bucket.uniqueUsers = bucketUsers.size;
     });
 
@@ -106,19 +116,23 @@ export class ErrorTrendAnalysis {
       summary: {
         totalErrors,
         uniqueUsers: uniqueUsersSet.size,
-        errorRate: uniqueUsersSet.size > 0 ? totalErrors / uniqueUsersSet.size : 0,
+        errorRate:
+          uniqueUsersSet.size > 0 ? totalErrors / uniqueUsersSet.size : 0,
         criticalErrors,
         newErrors: newErrorsSet.size,
-        resolved: Array.from(errorPatterns.values())
-          .filter(p => p.metrics.resolution === 'resolved').length
-      }
+        resolved: Array.from(errorPatterns.values()).filter(
+          (p) => p.metrics.resolution === 'resolved'
+        ).length,
+      },
     };
   }
 
   /**
    * Calculate trend direction
    */
-  calculateTrend(pattern: ErrorPattern): 'increasing' | 'decreasing' | 'stable' {
+  calculateTrend(
+    pattern: ErrorPattern
+  ): 'increasing' | 'decreasing' | 'stable' {
     if (pattern.occurrences.length < 5) return 'stable';
 
     const recent = pattern.occurrences.slice(-5);
@@ -143,7 +157,7 @@ export class ErrorTrendAnalysis {
       [ErrorSeverity.ERROR]: 30,
       [ErrorSeverity.WARNING]: 15,
       [ErrorSeverity.INFO]: 5,
-      [ErrorSeverity.DEBUG]: 1
+      [ErrorSeverity.DEBUG]: 1,
     };
 
     const frequencyScore = Math.min(30, pattern.metrics.frequency * 2);
@@ -151,7 +165,9 @@ export class ErrorTrendAnalysis {
     const severityScore = severityWeight[pattern.severity] || 10;
     const recencyScore = this.getRecencyScore(pattern.metrics.lastSeen);
 
-    return Math.round(frequencyScore + userImpactScore + severityScore + recencyScore);
+    return Math.round(
+      frequencyScore + userImpactScore + severityScore + recencyScore
+    );
   }
 
   /**
@@ -167,23 +183,35 @@ export class ErrorTrendAnalysis {
    */
   private getPeriodInMs(period: ErrorTrend['period']): number {
     switch (period) {
-      case '1h': return 60 * 60 * 1000;
-      case '6h': return 6 * 60 * 60 * 1000;
-      case '24h': return 24 * 60 * 60 * 1000;
-      case '7d': return 7 * 24 * 60 * 60 * 1000;
-      case '30d': return 30 * 24 * 60 * 60 * 1000;
-      default: return 24 * 60 * 60 * 1000;
+      case '1h':
+        return 60 * 60 * 1000;
+      case '6h':
+        return 6 * 60 * 60 * 1000;
+      case '24h':
+        return 24 * 60 * 60 * 1000;
+      case '7d':
+        return 7 * 24 * 60 * 60 * 1000;
+      case '30d':
+        return 30 * 24 * 60 * 60 * 1000;
+      default:
+        return 24 * 60 * 60 * 1000;
     }
   }
 
   private getBucketSize(period: ErrorTrend['period']): number {
     switch (period) {
-      case '1h': return 5 * 60 * 1000;
-      case '6h': return 30 * 60 * 1000;
-      case '24h': return 60 * 60 * 1000;
-      case '7d': return 6 * 60 * 60 * 1000;
-      case '30d': return 24 * 60 * 60 * 1000;
-      default: return 60 * 60 * 1000;
+      case '1h':
+        return 5 * 60 * 1000;
+      case '6h':
+        return 30 * 60 * 1000;
+      case '24h':
+        return 60 * 60 * 1000;
+      case '7d':
+        return 6 * 60 * 60 * 1000;
+      case '30d':
+        return 24 * 60 * 60 * 1000;
+      default:
+        return 60 * 60 * 1000;
     }
   }
 }

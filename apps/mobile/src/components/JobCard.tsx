@@ -6,16 +6,26 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Job } from '@mintenance/types';
 import { theme } from '../theme';
 const getPriorityColor = (priority: string): string => {
   switch (priority) {
-    case 'high': return theme.colors.error;
-    case 'medium': return theme.colors.accent;
-    case 'low': return theme.colors.primary;
-    default: return theme.colors.textSecondary;
+    case 'high':
+      return theme.colors.error;
+    case 'medium':
+      return theme.colors.accent;
+    case 'low':
+      return theme.colors.primary;
+    default:
+      return theme.colors.textSecondary;
   }
 };
 
@@ -60,28 +70,38 @@ export const JobCard: React.FC<JobCardProps> = ({
   onBid,
   showBidButton = false,
 }) => {
-  const formatBudget = (amount: number) => `\u00A3${Math.round(amount).toLocaleString()}`;
-  const statusColors = STATUS_COLORS[job.status] || STATUS_COLORS.cancelled;
-  const statusLabel = STATUS_LABELS[job.status] || job.status;
-  const priorityColor = job.priority ? getPriorityColor(job.priority) : theme.colors.textSecondary;
-  const categoryIcon = CATEGORY_ICONS[job.category?.toLowerCase() || ''] || 'construct';
+  const formatBudget = (amount: number) =>
+    `\u00A3${Math.round(amount).toLocaleString()}`;
+  const statusColors = STATUS_COLORS[job.status] ?? STATUS_COLORS.cancelled;
+  const statusLabel = STATUS_LABELS[job.status] ?? job.status;
+  const priorityColor = job.priority
+    ? getPriorityColor(job.priority)
+    : theme.colors.textSecondary;
+  const categoryIcon =
+    CATEGORY_ICONS[job.category?.toLowerCase() ?? ''] ?? 'construct';
 
   return (
     <TouchableOpacity
       style={styles.card}
       onPress={() => onPress(job)}
-      testID="job-card"
-      accessibilityRole="button"
+      testID='job-card'
+      accessibilityRole='button'
       accessibilityLabel={`Job: ${job.title}, ${job.category || ''}, ${job.status}`}
       activeOpacity={0.95}
     >
       {/* Top row: category icon + title + budget */}
       <View style={styles.topRow}>
         <View style={styles.categoryCircle}>
-          <Ionicons name={categoryIcon} size={18} color={theme.colors.textSecondary} />
+          <Ionicons
+            name={categoryIcon}
+            size={18}
+            color={theme.colors.textSecondary}
+          />
         </View>
         <View style={styles.titleBlock}>
-          <Text style={styles.title} numberOfLines={2}>{job.title}</Text>
+          <Text style={styles.title} numberOfLines={2}>
+            {job.title}
+          </Text>
           {job.category && (
             <Text style={styles.categoryText}>
               {job.category.charAt(0).toUpperCase() + job.category.slice(1)}
@@ -92,17 +112,33 @@ export const JobCard: React.FC<JobCardProps> = ({
       </View>
 
       {/* Description */}
-      <Text style={styles.description} numberOfLines={2}>{job.description}</Text>
+      <Text style={styles.description} numberOfLines={2}>
+        {job.description}
+      </Text>
 
       {/* Bottom row: status + priority + photos */}
       <View style={styles.bottomRow}>
-        <View style={[styles.statusPill, { backgroundColor: statusColors.bg }]}>
-          <Text style={[styles.statusText, { color: statusColors.text }]}>{statusLabel}</Text>
+        <View
+          style={[
+            styles.statusPill,
+            { backgroundColor: statusColors?.bg ?? '#E5E7EB' },
+          ]}
+        >
+          <Text
+            style={[
+              styles.statusText,
+              { color: statusColors?.text ?? '#6B7280' },
+            ]}
+          >
+            {statusLabel}
+          </Text>
         </View>
 
         {job.priority && (
           <View style={styles.priorityChip}>
-            <View style={[styles.priorityDot, { backgroundColor: priorityColor }]} />
+            <View
+              style={[styles.priorityDot, { backgroundColor: priorityColor }]}
+            />
             <Text style={[styles.priorityText, { color: priorityColor }]}>
               {job.priority.charAt(0).toUpperCase() + job.priority.slice(1)}
             </Text>
@@ -110,15 +146,23 @@ export const JobCard: React.FC<JobCardProps> = ({
         )}
 
         {job.photos && job.photos.length > 0 && (
-          <View style={styles.photoChip} testID="photo-indicator">
-            <Ionicons name="image-outline" size={14} color={theme.colors.textSecondary} />
+          <View style={styles.photoChip} testID='photo-indicator'>
+            <Ionicons
+              name='image-outline'
+              size={14}
+              color={theme.colors.textSecondary}
+            />
             <Text style={styles.photoCount}>{job.photos.length}</Text>
           </View>
         )}
 
         <View style={styles.spacer} />
 
-        <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
+        <Ionicons
+          name='chevron-forward'
+          size={16}
+          color={theme.colors.textTertiary}
+        />
       </View>
 
       {/* Bid button */}
@@ -126,11 +170,15 @@ export const JobCard: React.FC<JobCardProps> = ({
         <TouchableOpacity
           style={styles.bidButton}
           onPress={() => onBid(job)}
-          accessibilityRole="button"
+          accessibilityRole='button'
           accessibilityLabel={`Place bid on ${job.title}`}
         >
           <Text style={styles.bidButtonText}>Place Bid</Text>
-          <Ionicons name="arrow-forward" size={14} color={theme.colors.textInverse} />
+          <Ionicons
+            name='arrow-forward'
+            size={14}
+            color={theme.colors.textInverse}
+          />
         </TouchableOpacity>
       )}
     </TouchableOpacity>
