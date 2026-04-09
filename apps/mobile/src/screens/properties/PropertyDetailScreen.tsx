@@ -272,7 +272,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
         ) : (
           propertyJobs.map((job) => {
             const cat =
-              CATEGORY_ICONS[(job.category || '').toLowerCase()] ||
+              CATEGORY_ICONS[(job.category ?? '').toLowerCase()] ??
               CATEGORY_ICONS.general;
             return (
               <TouchableOpacity

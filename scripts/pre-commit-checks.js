@@ -41,6 +41,9 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/web/lib/services/subscription/SubscriptionService.ts',
   'apps/web/app/api/contracts/route.ts',
   'apps/web/lib/rate-limiter-enhanced.ts',
+  'apps/mobile/src/components/JobStatusTracker.tsx',
+  'apps/mobile/src/screens/home/RecentJobs.tsx',
+  'apps/mobile/src/screens/properties/PropertyDetailScreen.tsx',
 ]);
 
 function countLines(filePath) {

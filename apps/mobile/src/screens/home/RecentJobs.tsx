@@ -129,10 +129,10 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({
           const hasPhoto = photos.length > 0;
           const budget = job.budget || job.budget_min || 0;
           const categoryIcon =
-            CATEGORY_ICONS[job.category?.toLowerCase() || ''] ||
+            CATEGORY_ICONS[job.category?.toLowerCase() ?? ''] ??
             'construct-outline';
           const catColors =
-            CATEGORY_COLORS[job.category?.toLowerCase() || ''] ||
+            CATEGORY_COLORS[job.category?.toLowerCase() ?? ''] ??
             CATEGORY_COLORS.general;
 
           return (

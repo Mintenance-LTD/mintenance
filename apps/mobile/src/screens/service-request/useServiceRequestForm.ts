@@ -109,8 +109,9 @@ export function useServiceRequestForm(onSuccess: () => void) {
         aspect: [4, 3],
         quality: 0.7,
       });
-      if (!result.canceled && result.assets[0]) {
-        setPhotos((prev) => [...prev, result.assets[0].uri]);
+      const asset = !result.canceled ? result.assets?.[0] : undefined;
+      if (asset) {
+        setPhotos((prev) => [...prev, asset.uri]);
       }
     } catch {
       Alert.alert('Error', 'Failed to take photo');
@@ -125,8 +126,9 @@ export function useServiceRequestForm(onSuccess: () => void) {
         aspect: [4, 3],
         quality: 0.7,
       });
-      if (!result.canceled && result.assets[0]) {
-        setPhotos((prev) => [...prev, result.assets[0].uri]);
+      const asset = !result.canceled ? result.assets?.[0] : undefined;
+      if (asset) {
+        setPhotos((prev) => [...prev, asset.uri]);
       }
     } catch {
       Alert.alert('Error', 'Failed to select photo');

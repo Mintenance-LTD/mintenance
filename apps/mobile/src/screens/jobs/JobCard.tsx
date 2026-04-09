@@ -43,11 +43,11 @@ export const JobCard: React.FC<JobCardProps> = ({
   const urgency = item.urgency || item.priority || 'medium';
   const isUrgent = urgency === 'high' || urgency === 'emergency';
   const catKey = item.category?.toLowerCase() || 'general';
-  const catColor = CATEGORY_COLORS[catKey] || CATEGORY_COLORS.general;
-  const categoryIcon = CATEGORY_ICONS[catKey] || 'construct-outline';
+  const catColor = CATEGORY_COLORS[catKey] ?? CATEGORY_COLORS.general;
+  const categoryIcon = CATEGORY_ICONS[catKey] ?? 'construct-outline';
   const timeLabel =
     daysAgo === 0 ? 'Today' : daysAgo === 1 ? '1d ago' : `${daysAgo}d ago`;
-  const statusStyle = STATUS_STYLES[item.status];
+  const statusStyle = STATUS_STYLES[item.status] ?? STATUS_STYLES.posted;
 
   const contractorName = (item as unknown as Record<string, unknown>)
     .contractor_name as string | undefined;

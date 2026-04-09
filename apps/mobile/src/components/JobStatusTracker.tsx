@@ -1,5 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Job } from '@mintenance/types';
 import { useUpdateJobStatus } from '../hooks/useJobs';
@@ -58,6 +65,8 @@ const STATUS_CONFIG: Record<string, StatusConfig> = {
     description: 'Job was cancelled',
   },
 };
+
+const DEFAULT_STATUS: StatusConfig = STATUS_CONFIG.posted;
 
 const JOB_WORKFLOW: {
   status: string;
@@ -119,10 +128,13 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
   const { user } = useAuth();
   const updateJobStatusMutation = useUpdateJobStatus();
 
-  const currentConfig = STATUS_CONFIG[job.status];
+  const currentConfig = STATUS_CONFIG[job.status] ?? DEFAULT_STATUS;
   const workflow = JOB_WORKFLOW.find((w) => w.status === job.status);
 
-  const handleStatusChange = (newStatus: string, requiresContractor?: boolean) => {
+  const handleStatusChange = (
+    newStatus: string,
+    requiresContractor?: boolean
+  ) => {
     const action = workflow?.nextActions.find((a) => a.status === newStatus);
 
     if (action?.requiredRole && user?.role !== action.requiredRole) {
@@ -141,7 +153,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
       return;
     }
 
-    const statusConfig = STATUS_CONFIG[newStatus];
+    const statusConfig = STATUS_CONFIG[newStatus] ?? DEFAULT_STATUS;
     Alert.alert(
       'Confirm Status Change',
       `Change job status from "${currentConfig.label}" to "${statusConfig.label}"?`,
@@ -179,11 +191,14 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
 
       Alert.alert(
         'Success',
-        `Job status updated to ${STATUS_CONFIG[newStatus].label}`
+        `Job status updated to ${(STATUS_CONFIG[newStatus] ?? DEFAULT_STATUS).label}`
       );
     } catch (error) {
       logger.error('Failed to update job status:', error);
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to update job status');
+      Alert.alert(
+        'Error',
+        error instanceof Error ? error.message : 'Failed to update job status'
+      );
     }
   };
 
@@ -225,7 +240,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
     return (
       <View style={styles.timeline}>
         {statusOrder.map((status, index) => {
-          const config = STATUS_CONFIG[status];
+          const config = STATUS_CONFIG[status] ?? DEFAULT_STATUS;
           const isActive = status === job.status;
           const isPassed = statusOrder.indexOf(job.status) > index;
           const isCancelled = job.status === 'cancelled';
@@ -245,7 +260,11 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
                 <Ionicons
                   name={config.icon}
                   size={16}
-                  color={isActive || isPassed ? theme.colors.surface : theme.colors.textTertiary}
+                  color={
+                    isActive || isPassed
+                      ? theme.colors.surface
+                      : theme.colors.textTertiary
+                  }
                 />
               </View>
               <Text
@@ -265,7 +284,9 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
                   style={[
                     styles.timelineLine,
                     {
-                      backgroundColor: isPassed ? config.color : theme.colors.border,
+                      backgroundColor: isPassed
+                        ? config.color
+                        : theme.colors.border,
                       opacity: isCancelled ? 0.3 : 1,
                     },
                   ]}
@@ -291,7 +312,11 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
               { backgroundColor: currentConfig.color },
             ]}
           >
-            <Ionicons name={currentConfig.icon} size={24} color={theme.colors.textInverse} />
+            <Ionicons
+              name={currentConfig.icon}
+              size={24}
+              color={theme.colors.textInverse}
+            />
           </View>
           <View style={styles.statusInfo}>
             <Text style={[styles.statusLabel, { color: currentConfig.color }]}>
@@ -318,7 +343,8 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
           <Text style={styles.sectionTitle}>Available Actions</Text>
           <View style={styles.actionButtons}>
             {workflow.nextActions.map((action) => {
-              const actionConfig = STATUS_CONFIG[action.status];
+              const actionConfig =
+                STATUS_CONFIG[action.status] ?? DEFAULT_STATUS;
               const canPerform =
                 !action.requiredRole || user?.role === action.requiredRole;
 
