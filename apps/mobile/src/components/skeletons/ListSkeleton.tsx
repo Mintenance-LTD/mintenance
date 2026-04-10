@@ -14,7 +14,7 @@ import { View, StyleSheet } from 'react-native';
 import { Skeleton, SkeletonAvatar, SkeletonGroup } from './Skeleton';
 import { theme } from '../../theme';
 
-export interface ListSkeletonProps {
+interface ListSkeletonProps {
   /**
    * Number of list items to render
    * @default 5
@@ -41,18 +41,22 @@ const SingleListItemSkeleton: React.FC<{
   return (
     <View style={styles.item}>
       {/* Image/Avatar */}
-      {showImage && (
-        imageVariant === 'circular' ? (
+      {showImage &&
+        (imageVariant === 'circular' ? (
           <SkeletonAvatar size={48} />
         ) : (
           <Skeleton width={48} height={48} borderRadius={8} />
-        )
-      )}
+        ))}
 
       {/* Content */}
       <View style={styles.content}>
-        <Skeleton width="70%" height={16} borderRadius={6} style={styles.marginBottom} />
-        <Skeleton width="50%" height={14} borderRadius={6} />
+        <Skeleton
+          width='70%'
+          height={16}
+          borderRadius={6}
+          style={styles.marginBottom}
+        />
+        <Skeleton width='50%' height={14} borderRadius={6} />
       </View>
 
       {/* Right Content */}

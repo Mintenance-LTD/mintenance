@@ -38,7 +38,7 @@ export interface PerformanceData {
 }
 
 // Performance budgets for web app
-export const PERFORMANCE_BUDGETS: PerformanceBudget[] = [
+const PERFORMANCE_BUDGETS: PerformanceBudget[] = [
   { metric: 'FCP', warning: 1500, error: 2000, unit: 'ms' },
   { metric: 'LCP', warning: 2500, error: 3000, unit: 'ms' },
   { metric: 'FID', warning: 100, error: 300, unit: 'ms' },
@@ -50,7 +50,7 @@ export const PERFORMANCE_BUDGETS: PerformanceBudget[] = [
 /**
  * Get rating for a metric value based on budget
  */
-export function getMetricRating(
+function getMetricRating(
   value: number,
   budget: PerformanceBudget
 ): 'good' | 'needs-improvement' | 'poor' {
@@ -62,7 +62,7 @@ export function getMetricRating(
 /**
  * Calculate health score (0-100) based on metrics
  */
-export function calculateHealthScore(metrics: PerformanceMetric[]): number {
+function calculateHealthScore(metrics: PerformanceMetric[]): number {
   if (metrics.length === 0) return 100;
 
   let score = 100;
@@ -70,7 +70,7 @@ export function calculateHealthScore(metrics: PerformanceMetric[]): number {
   let needsImprovementCount = 0;
   let poorCount = 0;
 
-  metrics.forEach(metric => {
+  metrics.forEach((metric) => {
     if (metric.rating === 'good') goodCount++;
     else if (metric.rating === 'needs-improvement') needsImprovementCount++;
     else poorCount++;
@@ -88,8 +88,8 @@ export function calculateHealthScore(metrics: PerformanceMetric[]): number {
 /**
  * Collect Core Web Vitals using the Web Vitals library
  */
-export function collectCoreWebVitals(): Promise<PerformanceMetric[]> {
-  return new Promise(resolve => {
+function collectCoreWebVitals(): Promise<PerformanceMetric[]> {
+  return new Promise((resolve) => {
     const metrics: PerformanceMetric[] = [];
 
     // Use Performance Observer API to collect metrics
@@ -98,10 +98,10 @@ export function collectCoreWebVitals(): Promise<PerformanceMetric[]> {
       try {
         const paintEntries = performance.getEntriesByType('paint');
         const fcpEntry = paintEntries.find(
-          entry => entry.name === 'first-contentful-paint'
+          (entry) => entry.name === 'first-contentful-paint'
         );
         if (fcpEntry) {
-          const budget = PERFORMANCE_BUDGETS.find(b => b.metric === 'FCP')!;
+          const budget = PERFORMANCE_BUDGETS.find((b) => b.metric === 'FCP')!;
           metrics.push({
             name: 'FCP',
             value: Math.round(fcpEntry.startTime),
@@ -110,7 +110,9 @@ export function collectCoreWebVitals(): Promise<PerformanceMetric[]> {
           });
         }
       } catch (error) {
-        logger.error('Error collecting FCP', error, { service: 'performance-monitor' });
+        logger.error('Error collecting FCP', error, {
+          service: 'performance-monitor',
+        });
       }
 
       // Collect TTFB (Time to First Byte)
@@ -120,7 +122,7 @@ export function collectCoreWebVitals(): Promise<PerformanceMetric[]> {
         )[0] as PerformanceNavigationTiming;
         if (navEntry) {
           const ttfb = navEntry.responseStart - navEntry.requestStart;
-          const budget = PERFORMANCE_BUDGETS.find(b => b.metric === 'TTFB')!;
+          const budget = PERFORMANCE_BUDGETS.find((b) => b.metric === 'TTFB')!;
           metrics.push({
             name: 'TTFB',
             value: Math.round(ttfb),
@@ -129,18 +131,25 @@ export function collectCoreWebVitals(): Promise<PerformanceMetric[]> {
           });
         }
       } catch (error) {
-        logger.error('Error collecting TTFB', error, { service: 'performance-monitor' });
+        logger.error('Error collecting TTFB', error, {
+          service: 'performance-monitor',
+        });
       }
 
       // Collect LCP using PerformanceObserver
       try {
-        const lcpObserver = new PerformanceObserver(list => {
+        const lcpObserver = new PerformanceObserver((list) => {
           const entries = list.getEntries();
-          const lastEntry = entries[entries.length - 1] as PerformanceEntry & { renderTime?: number; loadTime?: number };
+          const lastEntry = entries[entries.length - 1] as PerformanceEntry & {
+            renderTime?: number;
+            loadTime?: number;
+          };
           if (lastEntry) {
-            const budget = PERFORMANCE_BUDGETS.find(b => b.metric === 'LCP')!;
-            const renderTime = 'renderTime' in lastEntry ? lastEntry.renderTime : undefined;
-            const loadTime = 'loadTime' in lastEntry ? lastEntry.loadTime : undefined;
+            const budget = PERFORMANCE_BUDGETS.find((b) => b.metric === 'LCP')!;
+            const renderTime =
+              'renderTime' in lastEntry ? lastEntry.renderTime : undefined;
+            const loadTime =
+              'loadTime' in lastEntry ? lastEntry.loadTime : undefined;
             const value = renderTime || loadTime || 0;
             metrics.push({
               name: 'LCP',
@@ -150,18 +159,24 @@ export function collectCoreWebVitals(): Promise<PerformanceMetric[]> {
             });
           }
         });
-        lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
+        lcpObserver.observe({
+          type: 'largest-contentful-paint',
+          buffered: true,
+        });
       } catch (error) {
-        logger.error('Error collecting LCP', error, { service: 'performance-monitor' });
+        logger.error('Error collecting LCP', error, {
+          service: 'performance-monitor',
+        });
       }
 
       // Collect FID using PerformanceObserver
       try {
-        const fidObserver = new PerformanceObserver(list => {
+        const fidObserver = new PerformanceObserver((list) => {
           list.getEntries().forEach((entry) => {
             const fidEntry = entry as PerformanceEventTiming;
-            const budget = PERFORMANCE_BUDGETS.find(b => b.metric === 'FID')!;
-            const processingStart = fidEntry.processingStart || fidEntry.startTime;
+            const budget = PERFORMANCE_BUDGETS.find((b) => b.metric === 'FID')!;
+            const processingStart =
+              fidEntry.processingStart || fidEntry.startTime;
             const value = processingStart - fidEntry.startTime;
             metrics.push({
               name: 'FID',
@@ -173,20 +188,22 @@ export function collectCoreWebVitals(): Promise<PerformanceMetric[]> {
         });
         fidObserver.observe({ type: 'first-input', buffered: true });
       } catch (error) {
-        logger.error('Error collecting FID', error, { service: 'performance-monitor' });
+        logger.error('Error collecting FID', error, {
+          service: 'performance-monitor',
+        });
       }
 
       // Collect CLS using PerformanceObserver
       try {
         let clsValue = 0;
-        const clsObserver = new PerformanceObserver(list => {
+        const clsObserver = new PerformanceObserver((list) => {
           list.getEntries().forEach((entry) => {
             const layoutShiftEntry = entry as LayoutShift;
             if (!layoutShiftEntry.hadRecentInput) {
               clsValue += layoutShiftEntry.value;
             }
           });
-          const budget = PERFORMANCE_BUDGETS.find(b => b.metric === 'CLS')!;
+          const budget = PERFORMANCE_BUDGETS.find((b) => b.metric === 'CLS')!;
           metrics.push({
             name: 'CLS',
             value: Math.round(clsValue * 1000) / 1000,
@@ -196,7 +213,9 @@ export function collectCoreWebVitals(): Promise<PerformanceMetric[]> {
         });
         clsObserver.observe({ type: 'layout-shift', buffered: true });
       } catch (error) {
-        logger.error('Error collecting CLS', error, { service: 'performance-monitor' });
+        logger.error('Error collecting CLS', error, {
+          service: 'performance-monitor',
+        });
       }
 
       // Wait a bit for metrics to be collected
@@ -212,7 +231,7 @@ export function collectCoreWebVitals(): Promise<PerformanceMetric[]> {
 /**
  * Collect custom performance metrics
  */
-export function collectCustomMetrics(): PerformanceMetric[] {
+function collectCustomMetrics(): PerformanceMetric[] {
   const metrics: PerformanceMetric[] = [];
 
   if (typeof window === 'undefined') return metrics;
@@ -228,12 +247,19 @@ export function collectCustomMetrics(): PerformanceMetric[] {
       metrics.push({
         name: 'DOMContentLoaded',
         value: Math.round(domContentLoaded),
-        rating: domContentLoaded < 1000 ? 'good' : domContentLoaded < 2000 ? 'needs-improvement' : 'poor',
+        rating:
+          domContentLoaded < 1000
+            ? 'good'
+            : domContentLoaded < 2000
+              ? 'needs-improvement'
+              : 'poor',
         timestamp: Date.now(),
       });
     }
   } catch (error) {
-    logger.error('Error collecting DOM metrics', error, { service: 'performance-monitor' });
+    logger.error('Error collecting DOM metrics', error, {
+      service: 'performance-monitor',
+    });
   }
 
   // Measure resource count
@@ -242,11 +268,18 @@ export function collectCustomMetrics(): PerformanceMetric[] {
     metrics.push({
       name: 'ResourceCount',
       value: resources.length,
-      rating: resources.length < 50 ? 'good' : resources.length < 100 ? 'needs-improvement' : 'poor',
+      rating:
+        resources.length < 50
+          ? 'good'
+          : resources.length < 100
+            ? 'needs-improvement'
+            : 'poor',
       timestamp: Date.now(),
     });
   } catch (error) {
-    logger.error('Error collecting resource metrics', error, { service: 'performance-monitor' });
+    logger.error('Error collecting resource metrics', error, {
+      service: 'performance-monitor',
+    });
   }
 
   return metrics;
@@ -262,8 +295,8 @@ export async function getPerformanceData(): Promise<PerformanceData> {
 
   // Check for budget violations
   const violations: PerformanceData['violations'] = [];
-  allMetrics.forEach(metric => {
-    const budget = PERFORMANCE_BUDGETS.find(b => b.metric === metric.name);
+  allMetrics.forEach((metric) => {
+    const budget = PERFORMANCE_BUDGETS.find((b) => b.metric === metric.name);
     if (budget) {
       if (metric.value > budget.error) {
         violations.push({
@@ -309,7 +342,9 @@ export function storePerformanceData(data: PerformanceData): void {
     const trimmed = history.slice(-50);
     localStorage.setItem('performance-history', JSON.stringify(trimmed));
   } catch (error) {
-    logger.error('Error storing performance data', error, { service: 'performance-monitor' });
+    logger.error('Error storing performance data', error, {
+      service: 'performance-monitor',
+    });
   }
 }
 
@@ -327,7 +362,9 @@ export function getPerformanceHistory(): Array<{
     const stored = localStorage.getItem('performance-history');
     return stored ? JSON.parse(stored) : [];
   } catch (error) {
-    logger.error('Error reading performance history', error, { service: 'performance-monitor' });
+    logger.error('Error reading performance history', error, {
+      service: 'performance-monitor',
+    });
     return [];
   }
 }
@@ -335,7 +372,7 @@ export function getPerformanceHistory(): Array<{
 /**
  * Report performance metric to analytics
  */
-export function reportPerformanceMetric(metric: PerformanceMetric): void {
+function reportPerformanceMetric(metric: PerformanceMetric): void {
   // This would integrate with your analytics service (e.g., Google Analytics, Sentry)
   if (typeof window !== 'undefined') {
     const gtag = window.gtag;

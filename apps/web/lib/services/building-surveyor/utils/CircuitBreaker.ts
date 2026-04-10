@@ -12,7 +12,7 @@
 
 import { logger } from '@mintenance/shared';
 
-export interface CircuitBreakerConfig {
+interface CircuitBreakerConfig {
   /** Name for logging */
   name: string;
   /** Number of consecutive failures before opening the circuit */

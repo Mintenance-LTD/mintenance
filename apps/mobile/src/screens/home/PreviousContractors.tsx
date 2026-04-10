@@ -5,7 +5,14 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { UserProfile } from '../../services/UserService';
 import { theme } from '../../theme';
@@ -16,7 +23,7 @@ interface PreviousContractorsProps {
   onRehirePress: (params: Record<string, unknown>) => void;
 }
 
-export const PreviousContractors: React.FC<PreviousContractorsProps> = ({
+const PreviousContractors: React.FC<PreviousContractorsProps> = ({
   contractors,
   onMessagePress,
   onRehirePress,
@@ -24,12 +31,8 @@ export const PreviousContractors: React.FC<PreviousContractorsProps> = ({
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
-          Previously Used Contractors
-        </Text>
-        <Text style={styles.sectionSubtitle}>
-          Your trusted professionals
-        </Text>
+        <Text style={styles.sectionTitle}>Previously Used Contractors</Text>
+        <Text style={styles.sectionSubtitle}>Your trusted professionals</Text>
       </View>
 
       <ScrollView
@@ -64,18 +67,13 @@ export const PreviousContractors: React.FC<PreviousContractorsProps> = ({
                   'Professional Contractor'}
               </Text>
               <View style={styles.contractorRating}>
-                <Ionicons
-                  name='star'
-                  size={12}
-                  color={theme.colors.accent}
-                />
+                <Ionicons name='star' size={12} color={theme.colors.accent} />
                 <Text style={styles.contractorRatingText}>
                   {contractor.reviews?.[0]?.rating?.toFixed(1) || 'New'}
                 </Text>
               </View>
               <Text style={styles.contractorReview}>
-                {contractor.reviews?.[0]?.comment ||
-                  'No reviews yet'}
+                {contractor.reviews?.[0]?.comment || 'No reviews yet'}
               </Text>
               <View style={styles.contractorActions}>
                 <TouchableOpacity
@@ -89,9 +87,9 @@ export const PreviousContractors: React.FC<PreviousContractorsProps> = ({
                         `${contractor.firstName || ''} ${contractor.lastName || ''}`.trim(),
                     })
                   }
-                  accessibilityRole="button"
+                  accessibilityRole='button'
                   accessibilityLabel={`Message ${contractor.firstName || 'contractor'}`}
-                  accessibilityHint="Opens a chat with this contractor"
+                  accessibilityHint='Opens a chat with this contractor'
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   <Ionicons
@@ -108,9 +106,9 @@ export const PreviousContractors: React.FC<PreviousContractorsProps> = ({
                       preferredContractorId: contractor.id,
                     })
                   }
-                  accessibilityRole="button"
+                  accessibilityRole='button'
                   accessibilityLabel={`Rehire ${contractor.firstName || 'contractor'}`}
-                  accessibilityHint="Starts a new job request with this contractor"
+                  accessibilityHint='Starts a new job request with this contractor'
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   <Text style={styles.rehireButtonText}>Rehire</Text>

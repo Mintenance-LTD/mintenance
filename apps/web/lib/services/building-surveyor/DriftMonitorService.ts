@@ -1,9 +1,9 @@
 /**
  * Drift Monitor Service
- * 
+ *
  * Monitors distribution drift (e.g., seasonality, materials) and adjusts
  * Bayesian fusion weights accordingly.
- * 
+ *
  * Based on paper methodology:
  * - Detects covariate shift (seasonality, new materials)
  * - Adjusts weights for Bayesian fusion
@@ -41,7 +41,7 @@ interface DriftWindow {
 
 /**
  * Drift Monitor Service
- * 
+ *
  * Monitors distribution changes and adjusts fusion weights dynamically.
  */
 export class DriftMonitorService {
@@ -51,7 +51,7 @@ export class DriftMonitorService {
 
   /**
    * Detect distribution drift and recommend weight adjustments
-   * 
+   *
    * @param context - Assessment context (property type, region, season)
    * @param recentAssessments - Recent assessment data for comparison
    * @returns Drift detection result with weight adjustments
@@ -70,7 +70,10 @@ export class DriftMonitorService {
       const recentWindow = await this.getRecentWindow(params);
 
       // 3. Compare distributions
-      const driftScore = this.compareDistributions(historicalWindow, recentWindow);
+      const driftScore = this.compareDistributions(
+        historicalWindow,
+        recentWindow
+      );
 
       // 4. Determine drift type
       const driftType = this.determineDriftType(params, driftScore);
@@ -123,7 +126,7 @@ export class DriftMonitorService {
 
   /**
    * Apply weight adjustments to Bayesian fusion
-   * 
+   *
    * @param adjustments - Recommended weight adjustments
    * @returns Updated weights (additive adjustments)
    */
@@ -141,7 +144,10 @@ export class DriftMonitorService {
     // Apply additive adjustments (clamped to [0, 1])
     const newWeights = {
       yolo: Math.max(0, Math.min(1, currentWeights.yolo + adjustments.yolo)),
-      maskrcnn: Math.max(0, Math.min(1, currentWeights.maskrcnn + adjustments.maskrcnn)),
+      maskrcnn: Math.max(
+        0,
+        Math.min(1, currentWeights.maskrcnn + adjustments.maskrcnn)
+      ),
       sam: Math.max(0, Math.min(1, currentWeights.sam + adjustments.sam)),
     };
 
@@ -267,7 +273,8 @@ export class DriftMonitorService {
       return recentRate > 0 ? 0.5 : 0;
     }
 
-    const relativeChange = Math.abs(recentRate - historicalRate) / historicalRate;
+    const relativeChange =
+      Math.abs(recentRate - historicalRate) / historicalRate;
     return Math.min(1, relativeChange);
   }
 
@@ -298,7 +305,11 @@ export class DriftMonitorService {
     if (params.materialTypes && params.materialTypes.length > 0) {
       // Check for uncommon materials
       const uncommonMaterials = ['asbestos', 'lead', 'uranium'];
-      if (params.materialTypes.some((m) => uncommonMaterials.includes(m.toLowerCase()))) {
+      if (
+        params.materialTypes.some((m) =>
+          uncommonMaterials.includes(m.toLowerCase())
+        )
+      ) {
         return 'material';
       }
     }
@@ -415,29 +426,51 @@ export class DriftMonitorService {
 
       // Detect drift with current context
       const driftResult = await this.detectDrift({
-        season: currentSeason
+        season: currentSeason,
       });
 
       // If significant drift detected, apply weight adjustments
-      if (driftResult.hasDrift && driftResult.driftScore > this.DRIFT_THRESHOLD) {
+      if (
+        driftResult.hasDrift &&
+        driftResult.driftScore > this.DRIFT_THRESHOLD
+      ) {
         logger.info('Applying drift weight adjustments', {
           driftType: driftResult.driftType,
           driftScore: driftResult.driftScore,
-          adjustments: driftResult.recommendedWeightAdjustments
+          adjustments: driftResult.recommendedWeightAdjustments,
         });
 
         // Apply adjustments via DetectorFusionService
-        // Note: DetectorFusionService would need to be updated to persist these adjustments
-        // TODO: Implement getBaseWeights() method in DetectorFusionService
-        const currentWeights = { yolo: 0.5, maskrcnn: 0.3, sam: 0.2 }; // Default weights
+        const currentWeights = DetectorFusionService.getBaseWeights();
         const adjustedWeights = {
-          yolo: Math.max(0, Math.min(1, currentWeights.yolo + driftResult.recommendedWeightAdjustments.yolo)),
-          maskrcnn: Math.max(0, Math.min(1, currentWeights.maskrcnn + driftResult.recommendedWeightAdjustments.maskrcnn)),
-          sam: Math.max(0, Math.min(1, currentWeights.sam + driftResult.recommendedWeightAdjustments.sam))
+          yolo: Math.max(
+            0,
+            Math.min(
+              1,
+              currentWeights.yolo +
+                driftResult.recommendedWeightAdjustments.yolo
+            )
+          ),
+          maskrcnn: Math.max(
+            0,
+            Math.min(
+              1,
+              currentWeights.maskrcnn +
+                driftResult.recommendedWeightAdjustments.maskrcnn
+            )
+          ),
+          sam: Math.max(
+            0,
+            Math.min(
+              1,
+              currentWeights.sam + driftResult.recommendedWeightAdjustments.sam
+            )
+          ),
         };
 
         // Normalize weights to sum to 1
-        const sum = adjustedWeights.yolo + adjustedWeights.maskrcnn + adjustedWeights.sam;
+        const sum =
+          adjustedWeights.yolo + adjustedWeights.maskrcnn + adjustedWeights.sam;
         if (sum > 0) {
           adjustedWeights.yolo /= sum;
           adjustedWeights.maskrcnn /= sum;
@@ -450,7 +483,7 @@ export class DriftMonitorService {
         logger.info('Drift weights adjusted successfully', {
           originalWeights: currentWeights,
           adjustedWeights,
-          driftType: driftResult.driftType
+          driftType: driftResult.driftType,
         });
       }
 
@@ -477,7 +510,7 @@ export class DriftMonitorService {
         timestamp: new Date().toISOString(),
         driftType: driftResult.driftType,
         driftScore: driftResult.driftScore,
-        adjustedWeights
+        adjustedWeights,
       });
 
       // In production, this would insert into a drift_events table
@@ -497,4 +530,3 @@ export class DriftMonitorService {
     }
   }
 }
-

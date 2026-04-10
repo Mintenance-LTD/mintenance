@@ -18,14 +18,6 @@ import { calculateAutoReleaseDate as _calculateAutoReleaseDate } from './escrow/
 import { evaluateAutoRelease as _evaluateAutoRelease } from './escrow/evaluate';
 
 // Re-export types for external consumers
-export type {
-  AIAnalysisResult,
-  PhotoVerificationResult,
-  AutoReleaseRule,
-  EscrowJobInfo,
-  RiskPrediction,
-} from './escrow/types';
-
 /**
  * Agent for automated and secure escrow release.
  * Combines photo/video AI verification, timeline-based auto-release,
@@ -39,7 +31,7 @@ export class EscrowReleaseAgent {
   static async verifyCompletionPhotos(
     escrowId: string,
     jobId: string,
-    photoUrls: string[],
+    photoUrls: string[]
   ): Promise<PhotoVerificationResult | null> {
     return _verifyCompletionPhotos(escrowId, jobId, photoUrls);
   }
@@ -50,7 +42,7 @@ export class EscrowReleaseAgent {
   static async calculateAutoReleaseDate(
     escrowId: string,
     jobId: string,
-    contractorId: string,
+    contractorId: string
   ): Promise<Date | null> {
     return _calculateAutoReleaseDate(escrowId, jobId, contractorId);
   }
@@ -60,7 +52,7 @@ export class EscrowReleaseAgent {
    * Applies admin, homeowner, photo, cooling-off, dispute, and trust gates.
    */
   static async evaluateAutoRelease(
-    escrowId: string,
+    escrowId: string
   ): Promise<AgentResult | null> {
     return _evaluateAutoRelease(escrowId);
   }

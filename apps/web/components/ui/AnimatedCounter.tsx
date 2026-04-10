@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { theme } from '@/lib/theme';
 
-export interface AnimatedCounterProps {
+interface AnimatedCounterProps {
   value: number;
   duration?: number;
   decimals?: number;
@@ -18,10 +18,10 @@ export interface AnimatedCounterProps {
 
 /**
  * AnimatedCounter Component
- * 
+ *
  * Animates a number from 0 to the target value with smooth transitions.
  * Perfect for displaying metrics, statistics, and KPIs.
- * 
+ *
  * @example
  * <AnimatedCounter value={15000} prefix="£" duration={1000} />
  * <AnimatedCounter value={42} suffix="%" decimals={1} />
@@ -124,12 +124,12 @@ export function AnimatedCounter(props: AnimatedCounterProps) {
 
     // Add prefix and suffix
     const result = `${prefix}${formatted}${suffix}`;
-    
+
     // For percentage, add % if not already in suffix
     if (formatType === 'percentage' && !suffix.includes('%')) {
       return `${result}%`;
     }
-    
+
     return result;
   };
 
@@ -146,6 +146,3 @@ export function AnimatedCounter(props: AnimatedCounterProps) {
     </span>
   );
 }
-
-export default AnimatedCounter;
-

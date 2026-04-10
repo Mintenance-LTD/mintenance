@@ -21,7 +21,7 @@ interface BusinessDashboardProps {
   onNavigate?: (screen: string, params?: Record<string, unknown>) => void;
 }
 
-export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
+const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   contractorId,
   onNavigate,
 }) => {
@@ -67,7 +67,11 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       onPress={onPress}
     >
       <View style={styles.kpiHeader}>
-        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={24} color={color} />
+        <Ionicons
+          name={icon as keyof typeof Ionicons.glyphMap}
+          size={24}
+          color={color}
+        />
         <Text style={styles.kpiTitle}>{title}</Text>
       </View>
 
@@ -117,7 +121,10 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
     </TouchableOpacity>
   );
 
-  const renderInsightCard = (insight: { type: string; icon: string; title: string; message: string }, index: number) => (
+  const renderInsightCard = (
+    insight: { type: string; icon: string; title: string; message: string },
+    index: number
+  ) => (
     <View
       key={index}
       style={[
@@ -140,7 +147,17 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
     </View>
   );
 
-  const renderActionItem = (item: { type: string; title: string; description?: string; action?: string; dueDate?: string; priority?: string }, index: number) => (
+  const renderActionItem = (
+    item: {
+      type: string;
+      title: string;
+      description?: string;
+      action?: string;
+      dueDate?: string;
+      priority?: string;
+    },
+    index: number
+  ) => (
     <TouchableOpacity
       key={index}
       style={[
@@ -194,7 +211,11 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
           style={styles.quickActionButton}
           onPress={() => onNavigate?.('UpdateSchedule')}
         >
-          <Ionicons name='calendar' size={24} color={theme.colors.textPrimary} />
+          <Ionicons
+            name='calendar'
+            size={24}
+            color={theme.colors.textPrimary}
+          />
           <Text style={styles.quickActionText}>Update Schedule</Text>
         </TouchableOpacity>
 
@@ -213,7 +234,12 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
     <ScrollView
       style={styles.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={theme.colors.textPrimary}
+          colors={[theme.colors.textPrimary]}
+        />
       }
       showsVerticalScrollIndicator={false}
     >
@@ -373,7 +399,11 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
             style={styles.toolCard}
             onPress={() => onNavigate?.('ExpenseTracker')}
           >
-            <Ionicons name='receipt' size={32} color={theme.colors.textPrimary} />
+            <Ionicons
+              name='receipt'
+              size={32}
+              color={theme.colors.textPrimary}
+            />
             <Text style={styles.toolTitle}>Expense Tracker</Text>
             <Text style={styles.toolDescription}>
               Log and categorize expenses
@@ -384,7 +414,11 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
             style={styles.toolCard}
             onPress={() => onNavigate?.('ScheduleManager')}
           >
-            <Ionicons name='calendar' size={32} color={theme.colors.textPrimary} />
+            <Ionicons
+              name='calendar'
+              size={32}
+              color={theme.colors.textPrimary}
+            />
             <Text style={styles.toolTitle}>Schedule Manager</Text>
             <Text style={styles.toolDescription}>
               Manage availability and bookings
@@ -395,7 +429,11 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
             style={styles.toolCard}
             onPress={() => onNavigate?.('ClientCRM')}
           >
-            <Ionicons name='people' size={32} color={theme.colors.textPrimary} />
+            <Ionicons
+              name='people'
+              size={32}
+              color={theme.colors.textPrimary}
+            />
             <Text style={styles.toolTitle}>Client CRM</Text>
             <Text style={styles.toolDescription}>
               Manage client relationships
@@ -406,7 +444,11 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
             style={styles.toolCard}
             onPress={() => onNavigate?.('MarketingHub')}
           >
-            <Ionicons name='megaphone' size={32} color={theme.colors.textPrimary} />
+            <Ionicons
+              name='megaphone'
+              size={32}
+              color={theme.colors.textPrimary}
+            />
             <Text style={styles.toolTitle}>Marketing Hub</Text>
             <Text style={styles.toolDescription}>Promote your services</Text>
           </TouchableOpacity>
@@ -428,7 +470,11 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
           style={styles.reportButton}
           onPress={() => onNavigate?.('BusinessReport')}
         >
-          <Ionicons name='bar-chart' size={20} color={theme.colors.textInverse} />
+          <Ionicons
+            name='bar-chart'
+            size={20}
+            color={theme.colors.textInverse}
+          />
           <Text style={styles.reportButtonText}>Generate Business Report</Text>
         </TouchableOpacity>
       </View>

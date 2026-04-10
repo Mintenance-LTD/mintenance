@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { AdminCard } from '@/components/admin/AdminCard';
@@ -32,14 +33,52 @@ import {
   VerificationSearchAndFilters,
 } from './VerificationFilters';
 
+// ── Fetch functions ───────────────────────────────────────────────
+
+async function fetchContractors(params: {
+  filterStatus: StatusFilter;
+  search: string;
+}): Promise<ContractorVerification[]> {
+  const searchParams = new URLSearchParams({ status: params.filterStatus });
+  if (params.search.trim()) searchParams.append('search', params.search.trim());
+
+  const response = await fetch(
+    `/api/admin/verifications?${searchParams.toString()}`,
+    { credentials: 'include' }
+  );
+  if (!response.ok) throw new Error('Failed to fetch contractors');
+  const data = await response.json();
+  return data.data || [];
+}
+
+async function fetchVerificationStats(): Promise<Stats> {
+  const statuses: StatusFilter[] = ['pending', 'verified', 'rejected', 'all'];
+  const results = await Promise.all(
+    statuses.map(async (status) => {
+      const response = await fetch(
+        `/api/admin/verifications?status=${status}&limit=1`,
+        { credentials: 'include' }
+      );
+      if (!response.ok) return 0;
+      const data = await response.json();
+      return data.total ?? 0;
+    })
+  );
+  return {
+    pending: results[0],
+    verified: results[1],
+    rejected: results[2],
+    total: results[3],
+  };
+}
+
 // ── Component ──────────────────────────────────────────────────────
 
 export function VerificationClient({ initialStats }: VerificationClientProps) {
-  const [contractors, setContractors] = useState<ContractorVerification[]>([]);
-  const [stats, setStats] = useState<Stats>(initialStats);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
   const [filterStatus, setFilterStatus] = useState<StatusFilter>('pending');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // Reject dialog state
   const [rejectDialog, setRejectDialog] = useState<{
@@ -60,88 +99,63 @@ export function VerificationClient({ initialStats }: VerificationClientProps) {
   });
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // ── Data Fetching ──────────────────────────────────────────────
-
-  const fetchContractors = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({ status: filterStatus });
-      if (search.trim()) params.append('search', search.trim());
-
-      const response = await fetch(
-        `/api/admin/verifications?${params.toString()}`,
-        {
-          credentials: 'include',
-        }
-      );
-      if (!response.ok) throw new Error('Failed to fetch contractors');
-      const data = await response.json();
-      setContractors(data.data || []);
-    } catch (error) {
-      logger.error('Error fetching contractor verifications', error, {
-        service: 'admin-verifications',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [filterStatus, search]);
-
-  const fetchStats = useCallback(async () => {
-    try {
-      const statuses: StatusFilter[] = [
-        'pending',
-        'verified',
-        'rejected',
-        'all',
-      ];
-      const results = await Promise.all(
-        statuses.map(async (status) => {
-          const response = await fetch(
-            `/api/admin/verifications?status=${status}&limit=1`,
-            { credentials: 'include' }
-          );
-          if (!response.ok) return 0;
-          const data = await response.json();
-          return data.total ?? 0;
-        })
-      );
-      setStats({
-        pending: results[0],
-        verified: results[1],
-        rejected: results[2],
-        total: results[3],
-      });
-    } catch (error) {
-      logger.error('Error fetching verification stats', error, {
-        service: 'admin-verifications',
-      });
-    }
-  }, []);
-
-  // Initial fetch and auto-refresh every 30 seconds
-  useEffect(() => {
-    fetchContractors();
-  }, [fetchContractors]);
-
-  useEffect(() => {
-    fetchStats();
-    const interval = setInterval(fetchStats, 30000);
-    return () => clearInterval(interval);
-  }, [fetchStats]);
-
   // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchContractors();
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search, fetchContractors]);
+  const [debounceTimer, setDebounceTimer] = useState<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearch(value);
+      if (debounceTimer) clearTimeout(debounceTimer);
+      const timer = setTimeout(() => {
+        setDebouncedSearch(value);
+      }, 300);
+      setDebounceTimer(timer);
+    },
+    [debounceTimer]
+  );
 
-  // Auto-refresh contractors every 30 seconds
-  useEffect(() => {
-    const interval = setInterval(fetchContractors, 30000);
-    return () => clearInterval(interval);
-  }, [fetchContractors]);
+  // ── Data Fetching via React Query ─────────────────────────────
+
+  const { data: contractors = [], isLoading: loading } = useQuery<
+    ContractorVerification[]
+  >({
+    queryKey: [
+      'admin',
+      'verifications',
+      'list',
+      { filterStatus, search: debouncedSearch },
+    ],
+    queryFn: () => fetchContractors({ filterStatus, search: debouncedSearch }),
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
+    meta: {
+      onError: (err: unknown) => {
+        logger.error('Error fetching contractor verifications', err, {
+          service: 'admin-verifications',
+        });
+      },
+    },
+  });
+
+  const { data: stats = initialStats } = useQuery<Stats>({
+    queryKey: ['admin', 'verifications', 'stats'],
+    queryFn: fetchVerificationStats,
+    initialData: initialStats,
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
+    meta: {
+      onError: (err: unknown) => {
+        logger.error('Error fetching verification stats', err, {
+          service: 'admin-verifications',
+        });
+      },
+    },
+  });
+
+  const invalidateAll = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['admin', 'verifications'] });
+  }, [queryClient]);
 
   // ── Actions ────────────────────────────────────────────────────
 
@@ -171,7 +185,7 @@ export function VerificationClient({ initialStats }: VerificationClientProps) {
         `${contractor.first_name ?? ''} ${contractor.last_name ?? contractor.email} has been verified.`
       );
       setTimeout(() => setSuccessMessage(null), 4000);
-      await Promise.all([fetchContractors(), fetchStats()]);
+      invalidateAll();
     } catch (error) {
       setErrorDialog({
         open: true,
@@ -223,7 +237,7 @@ export function VerificationClient({ initialStats }: VerificationClientProps) {
       setTimeout(() => setSuccessMessage(null), 4000);
       setRejectDialog({ open: false, contractorId: null, contractorName: '' });
       setRejectReason('');
-      await Promise.all([fetchContractors(), fetchStats()]);
+      invalidateAll();
     } catch (error) {
       setErrorDialog({
         open: true,
@@ -249,7 +263,7 @@ export function VerificationClient({ initialStats }: VerificationClientProps) {
         search={search}
         successMessage={successMessage}
         onFilterChange={setFilterStatus}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
       />
 
       {/* Contractors List */}

@@ -26,7 +26,7 @@ export interface ContractorMetrics {
   totalEarnings: number;
   totalBids: number;
 }
-export interface ProfileFormData {
+interface ProfileFormData {
   first_name: string;
   last_name: string;
   bio: string;
@@ -53,83 +53,98 @@ export function useContractorProfile(
     company_name: contractor.company_name || '',
     license_number: contractor.license_number || '',
   });
-  const updateFormField = useCallback((field: keyof ProfileFormData, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value,
-    }));
-  }, []);
-  const saveProfile = useCallback(async (csrfToken: string) => {
-    setIsSaving(true);
-    try {
-      const response = await fetch(`/api/contractors/${contractor.id}/profile`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken,
-        },
-        body: JSON.stringify(formData),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to update profile');
-      }
-      const updatedProfile = await response.json();
-      setContractor(prev => ({
+  const updateFormField = useCallback(
+    (field: keyof ProfileFormData, value: string) => {
+      setFormData((prev) => ({
         ...prev,
-        ...updatedProfile,
+        [field]: value,
       }));
-      toast.success('Profile updated successfully!');
-      setIsEditing(false);
-      // Refresh to get updated metrics
-      router.refresh();
-      logger.info('Profile updated', {
-        contractorId: contractor.id,
-        fields: Object.keys(formData),
-      });
-      return true;
-    } catch (error) {
-      logger.error('Failed to update profile', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        contractorId: contractor.id,
-      });
-      toast.error('Failed to update profile. Please try again.');
-      return false;
-    } finally {
-      setIsSaving(false);
-    }
-  }, [contractor.id, formData, router]);
-  const uploadProfileImage = useCallback(async (file: File, csrfToken: string) => {
-    try {
-      const formData = new FormData();
-      formData.append('image', file);
-      formData.append('type', 'profile');
-      const response = await fetch(`/api/contractors/${contractor.id}/upload-image`, {
-        method: 'POST',
-        headers: {
-          'X-CSRF-Token': csrfToken,
-        },
-        body: formData,
-      });
-      if (!response.ok) {
-        throw new Error('Failed to upload image');
+    },
+    []
+  );
+  const saveProfile = useCallback(
+    async (csrfToken: string) => {
+      setIsSaving(true);
+      try {
+        const response = await fetch(
+          `/api/contractors/${contractor.id}/profile`,
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': csrfToken,
+            },
+            body: JSON.stringify(formData),
+          }
+        );
+        if (!response.ok) {
+          throw new Error('Failed to update profile');
+        }
+        const updatedProfile = await response.json();
+        setContractor((prev) => ({
+          ...prev,
+          ...updatedProfile,
+        }));
+        toast.success('Profile updated successfully!');
+        setIsEditing(false);
+        // Refresh to get updated metrics
+        router.refresh();
+        logger.info('Profile updated', {
+          contractorId: contractor.id,
+          fields: Object.keys(formData),
+        });
+        return true;
+      } catch (error) {
+        logger.error('Failed to update profile', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          contractorId: contractor.id,
+        });
+        toast.error('Failed to update profile. Please try again.');
+        return false;
+      } finally {
+        setIsSaving(false);
       }
-      const { url } = await response.json();
-      setContractor(prev => ({
-        ...prev,
-        profile_image_url: url,
-      }));
-      toast.success('Profile photo updated!');
-      router.refresh();
-      return url;
-    } catch (error) {
-      logger.error('Failed to upload profile image', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        contractorId: contractor.id,
-      });
-      toast.error('Failed to upload image. Please try again.');
-      return null;
-    }
-  }, [contractor.id, router]);
+    },
+    [contractor.id, formData, router]
+  );
+  const uploadProfileImage = useCallback(
+    async (file: File, csrfToken: string) => {
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('type', 'profile');
+        const response = await fetch(
+          `/api/contractors/${contractor.id}/upload-image`,
+          {
+            method: 'POST',
+            headers: {
+              'X-CSRF-Token': csrfToken,
+            },
+            body: formData,
+          }
+        );
+        if (!response.ok) {
+          throw new Error('Failed to upload image');
+        }
+        const { url } = await response.json();
+        setContractor((prev) => ({
+          ...prev,
+          profile_image_url: url,
+        }));
+        toast.success('Profile photo updated!');
+        router.refresh();
+        return url;
+      } catch (error) {
+        logger.error('Failed to upload profile image', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          contractorId: contractor.id,
+        });
+        toast.error('Failed to upload image. Please try again.');
+        return null;
+      }
+    },
+    [contractor.id, router]
+  );
   const cancelEdit = useCallback(() => {
     setFormData({
       first_name: contractor.first_name || '',

@@ -31,8 +31,6 @@ export interface RateLimitOptions {
 
 export { EnhancedRateLimiter } from './core';
 export type { RateLimitStore } from './stores/types';
-export { UpstashStore } from './stores/UpstashStore';
-export { InMemoryStore } from './stores/InMemoryStore';
 export { createRateLimitHeaders } from './helpers';
 
 // ── Singleton ────────────────────────────────────────────────────

@@ -77,7 +77,8 @@ export const optimizeImageUrl = (
 
   if (width) params.set('width', width.toString());
   if (height) params.set('height', height.toString());
-  if (quality !== 1.0) params.set('quality', Math.round(quality * 100).toString());
+  if (quality !== 1.0)
+    params.set('quality', Math.round(quality * 100).toString());
   if (format) params.set('format', format);
   if (progressive) params.set('progressive', 'true');
 
@@ -139,9 +140,7 @@ export const prefetchImages = async (
 
   logger.info('Prefetching images', { count: urls.length });
 
-  await Promise.allSettled(
-    urls.map(url => prefetchImage(url, options))
-  );
+  await Promise.allSettled(urls.map((url) => prefetchImage(url, options)));
 
   const duration = Date.now() - startTime;
 
@@ -152,7 +151,9 @@ export const prefetchImages = async (
 /**
  * Get image size (width and height)
  */
-export const getImageSize = (url: string): Promise<{ width: number; height: number }> => {
+export const getImageSize = (
+  url: string
+): Promise<{ width: number; height: number }> => {
   return new Promise((resolve, reject) => {
     Image.getSize(
       url,
@@ -192,13 +193,9 @@ export const getImageMetadata = async (url: string): Promise<ImageMetadata> => {
  */
 export const generateResponsiveSources = (
   url: string,
-  sizes: number[] = [
-    IMAGE_SIZES.SMALL,
-    IMAGE_SIZES.MEDIUM,
-    IMAGE_SIZES.LARGE,
-  ]
+  sizes: number[] = [IMAGE_SIZES.SMALL, IMAGE_SIZES.MEDIUM, IMAGE_SIZES.LARGE]
 ): { url: string; width: number }[] => {
-  return sizes.map(width => ({
+  return sizes.map((width) => ({
     url: optimizeImageUrl(url, { width, quality: IMAGE_QUALITY.MEDIUM }),
     width,
   }));
@@ -222,14 +219,16 @@ export const generateThumbnail = (
 /**
  * Progressive image loading strategy
  */
-export interface ProgressiveImageSources {
+interface ProgressiveImageSources {
   placeholder: string;
   thumbnail: string;
   medium: string;
   full: string;
 }
 
-export const generateProgressiveSources = (url: string): ProgressiveImageSources => {
+export const generateProgressiveSources = (
+  url: string
+): ProgressiveImageSources => {
   return {
     placeholder: generateThumbnail(url, 50),
     thumbnail: generateThumbnail(url, IMAGE_SIZES.THUMBNAIL),
@@ -252,8 +251,12 @@ export const clearImageCache = async (): Promise<void> => {
     logger.info('Clearing image cache');
 
     // Clear React Native image cache
-    await (Image as unknown as { clearDiskCache: () => Promise<void> }).clearDiskCache();
-    await (Image as unknown as { clearMemoryCache: () => Promise<void> }).clearMemoryCache();
+    await (
+      Image as unknown as { clearDiskCache: () => Promise<void> }
+    ).clearDiskCache();
+    await (
+      Image as unknown as { clearMemoryCache: () => Promise<void> }
+    ).clearMemoryCache();
 
     // Clear custom cache
     // Note: CacheService doesn't have a pattern-based clear yet
@@ -284,7 +287,7 @@ export const optimizeJobPhotos = (
   photos: string[],
   options: ImageOptimizationOptions = {}
 ): { original: string; optimized: string; thumbnail: string }[] => {
-  return photos.map(photo => ({
+  return photos.map((photo) => ({
     original: photo,
     optimized: optimizeImageUrl(photo, {
       width: IMAGE_SIZES.LARGE,

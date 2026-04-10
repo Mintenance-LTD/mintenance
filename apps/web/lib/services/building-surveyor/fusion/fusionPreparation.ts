@@ -9,9 +9,12 @@ import type {
   AssessmentContext,
   Phase1BuildingAssessment,
   DamageSeverity,
-  UrgencyLevel
+  UrgencyLevel,
 } from '../types';
-import type { EnhancedFusionInput, EnhancedFusionOutput } from '../EnhancedBayesianFusionService';
+import type {
+  EnhancedFusionInput,
+  EnhancedFusionOutput,
+} from '../EnhancedBayesianFusionService';
 import type { YOLOOutput, SAM3Output, GPT4Output } from './modelRunners';
 
 /**
@@ -29,38 +32,49 @@ export function prepareFusionInput(
       detections: yoloOutput.detections,
       avgConfidence: yoloOutput.confidence,
       totalDetections: yoloOutput.totalDetections,
-      damageTypes: yoloOutput.damageTypes
+      damageTypes: yoloOutput.damageTypes,
     };
   }
 
   if (sam3Output) {
-    const damageTypes: Record<string, {
-      confidence: number;
-      numInstances: number;
-      presenceScore: number;
-      masks?: number[][][];
-      boxes?: number[][];
-    }> = {};
+    const damageTypes: Record<
+      string,
+      {
+        confidence: number;
+        numInstances: number;
+        presenceScore: number;
+        masks?: number[][][];
+        boxes?: number[][];
+      }
+    > = {};
 
     if (sam3Output.presenceResults) {
-      for (const [damageType, result] of Object.entries(sam3Output.presenceResults)) {
-        const typedResult = result as { damage_present?: boolean; presence_score?: number };
+      for (const [damageType, result] of Object.entries(
+        sam3Output.presenceResults
+      )) {
+        const typedResult = result as {
+          damage_present?: boolean;
+          presence_score?: number;
+        };
         if (typedResult.damage_present) {
           damageTypes[damageType] = {
             confidence: (typedResult.presence_score ?? 0) * 100,
             numInstances: 1,
-            presenceScore: typedResult.presence_score ?? 0
+            presenceScore: typedResult.presence_score ?? 0,
           };
         }
       }
     }
 
     if (sam3Output.masks) {
-      for (const [damageType, maskData] of Object.entries(sam3Output.masks as Record<string, Record<string, unknown>>)) {
+      for (const [damageType, maskData] of Object.entries(
+        sam3Output.masks as Record<string, Record<string, unknown>>
+      )) {
         if (damageTypes[damageType]) {
           damageTypes[damageType].masks = maskData.masks as number[][][];
           damageTypes[damageType].boxes = maskData.boxes as number[][];
-          damageTypes[damageType].numInstances = (maskData.num_instances as number) || 1;
+          damageTypes[damageType].numInstances =
+            (maskData.num_instances as number) || 1;
         }
       }
     }
@@ -69,7 +83,7 @@ export function prepareFusionInput(
       damageTypes,
       overallConfidence: sam3Output.averagePresenceScore * 100,
       presenceChecked: true,
-      averagePresenceScore: sam3Output.averagePresenceScore
+      averagePresenceScore: sam3Output.averagePresenceScore,
     };
   }
 
@@ -80,7 +94,7 @@ export function prepareFusionInput(
       confidence: assessment.damageAssessment.confidence,
       damageType: assessment.damageAssessment.damageType,
       hasCriticalHazards: assessment.safetyHazards.hasCriticalHazards,
-      reasoning: assessment.damageAssessment.description
+      reasoning: assessment.damageAssessment.description,
     };
   }
 
@@ -103,7 +117,13 @@ export function generateFinalAssessment(
     return enhanceGPT4Assessment(fusionOutput, gpt4Output, sam3Output);
   }
 
-  return generateAssessmentFromFusion(fusionOutput, yoloOutput, sam3Output, imageUrls, context);
+  return generateAssessmentFromFusion(
+    fusionOutput,
+    yoloOutput,
+    sam3Output,
+    imageUrls,
+    context
+  );
 }
 
 function enhanceGPT4Assessment(
@@ -122,17 +142,21 @@ function enhanceGPT4Assessment(
     assessment.evidence!.sam3Segmentation = {
       presenceDetection: {
         damageDetected: sam3Output.damageTypes,
-        averagePresenceScore: sam3Output.averagePresenceScore
-      }
-    } as unknown as NonNullable<Phase1BuildingAssessment['evidence']>['sam3Segmentation'];
+        averagePresenceScore: sam3Output.averagePresenceScore,
+      },
+    } as unknown as NonNullable<
+      Phase1BuildingAssessment['evidence']
+    >['sam3Segmentation'];
   }
 
   if (fusionOutput.refinedBoundingBoxes && assessment.evidence) {
-    (assessment.evidence as Record<string, unknown>).refinedBoxes = fusionOutput.refinedBoundingBoxes;
+    (assessment.evidence as Record<string, unknown>).refinedBoxes =
+      fusionOutput.refinedBoundingBoxes;
   }
 
   if (fusionOutput.uncertaintyLevel === 'high') {
-    assessment.urgency.reasoning += ' (High uncertainty - professional inspection recommended)';
+    assessment.urgency.reasoning +=
+      ' (High uncertainty - professional inspection recommended)';
   }
 
   return assessment;
@@ -151,7 +175,8 @@ function generateAssessmentFromFusion(
   if (sam3Output && sam3Output.damageTypes.length > 0) {
     primaryDamageType = sam3Output.damageTypes[0];
   } else if (yoloOutput && yoloOutput.damageTypes) {
-    primaryDamageType = Object.keys(yoloOutput.damageTypes)[0] || 'Unknown damage';
+    primaryDamageType =
+      Object.keys(yoloOutput.damageTypes)[0] || 'Unknown damage';
   }
 
   if (fusionOutput.mean > 0.8) {
@@ -176,34 +201,35 @@ function generateAssessmentFromFusion(
       confidence: fusionOutput.mean * 100,
       location: context?.location || 'Property',
       description: `Fusion-based assessment: ${primaryDamageType} detected with ${(fusionOutput.mean * 100).toFixed(1)}% probability`,
-      detectedItems: yoloOutput?.detections.map(d => d.className) || []
+      detectedItems: yoloOutput?.detections.map((d) => d.className) || [],
     },
     safetyHazards: {
       hazards: [],
       hasCriticalHazards: fusionOutput.mean > 0.7,
-      overallSafetyScore: (1 - fusionOutput.mean) * 100
+      overallSafetyScore: (1 - fusionOutput.mean) * 100,
     },
     compliance: {
       complianceIssues: [],
       requiresProfessionalInspection: fusionOutput.uncertaintyLevel === 'high',
-      complianceScore: 100
+      complianceScore: 100,
     },
     insuranceRisk: {
       riskFactors: [],
       riskScore: fusionOutput.mean * 100,
-      premiumImpact: severity === 'full' ? 'high' : severity === 'midway' ? 'medium' : 'low',
-      mitigationSuggestions: []
+      premiumImpact:
+        severity === 'full' ? 'high' : severity === 'midway' ? 'medium' : 'low',
+      mitigationSuggestions: [],
     },
     urgency: {
       urgency,
       recommendedActionTimeline: getTimelineForUrgency(urgency),
       reasoning: `Based on fusion analysis (uncertainty: ${fusionOutput.uncertaintyLevel})`,
-      priorityScore: fusionOutput.mean * 100
+      priorityScore: fusionOutput.mean * 100,
     },
     homeownerExplanation: {
       whatIsIt: primaryDamageType,
       whyItHappened: 'Assessment based on multi-model analysis',
-      whatToDo: getRecommendationForSeverity(severity)
+      whatToDo: getRecommendationForSeverity(severity),
     },
     contractorAdvice: {
       repairNeeded: [primaryDamageType],
@@ -211,37 +237,42 @@ function generateAssessmentFromFusion(
       tools: [],
       estimatedTime: 'To be determined',
       estimatedCost: { min: 0, max: 0, recommended: 0 },
-      complexity: severity === 'full' ? 'high' : severity === 'midway' ? 'medium' : 'low'
+      complexity:
+        severity === 'full' ? 'high' : severity === 'midway' ? 'medium' : 'low',
     },
     evidence: {
       roboflowDetections: yoloOutput?.detections || [],
       visionAnalysis: null,
-      sam3Segmentation: sam3Output ? {
-        presenceDetection: {
-          damageDetected: sam3Output.damageTypes,
-          averagePresenceScore: sam3Output.averagePresenceScore
-        }
-      } as unknown as NonNullable<Phase1BuildingAssessment['evidence']>['sam3Segmentation'] : undefined,
-    } as Phase1BuildingAssessment['evidence']
+      sam3Segmentation: sam3Output
+        ? ({
+            presenceDetection: {
+              damageDetected: sam3Output.damageTypes,
+              averagePresenceScore: sam3Output.averagePresenceScore,
+            },
+          } as unknown as NonNullable<
+            Phase1BuildingAssessment['evidence']
+          >['sam3Segmentation'])
+        : undefined,
+    } as Phase1BuildingAssessment['evidence'],
   };
 }
 
-export function getTimelineForUrgency(urgency: UrgencyLevel): string {
+function getTimelineForUrgency(urgency: UrgencyLevel): string {
   const timelines: Record<UrgencyLevel, string> = {
     immediate: 'Within 24 hours',
     urgent: 'Within 1 week',
     soon: 'Within 1 month',
     planned: 'Within 3 months',
-    monitor: 'Monitor for changes'
+    monitor: 'Monitor for changes',
   };
   return timelines[urgency];
 }
 
-export function getRecommendationForSeverity(severity: DamageSeverity): string {
+function getRecommendationForSeverity(severity: DamageSeverity): string {
   const recommendations: Record<DamageSeverity, string> = {
     early: 'Monitor and plan for preventive maintenance',
     midway: 'Schedule professional assessment and repairs',
-    full: 'Immediate professional intervention required'
+    full: 'Immediate professional intervention required',
   };
   return recommendations[severity];
 }

@@ -1,6 +1,6 @@
 /**
  * Overlap Detection Utilities
- * 
+ *
  * Calculate overlapping service areas and provide warnings
  * Used in Service Areas management to help contractors optimize coverage
  */
@@ -18,7 +18,7 @@ export interface ServiceArea {
   is_active?: boolean;
 }
 
-export interface OverlapResult {
+interface OverlapResult {
   area1: ServiceArea;
   area2: ServiceArea;
   overlapPercentage: number;
@@ -31,7 +31,7 @@ export interface OverlapResult {
  * @param area2 Second service area
  * @returns True if areas overlap
  */
-export function areasOverlap(area1: ServiceArea, area2: ServiceArea): boolean {
+function areasOverlap(area1: ServiceArea, area2: ServiceArea): boolean {
   const distance = calculateDistance(
     area1.latitude,
     area1.longitude,
@@ -74,14 +74,26 @@ export function calculateOverlapPercentage(
 
   // Calculate lens-shaped intersection area
   try {
-    const part1 = r1 * r1 * Math.acos((distance * distance + r1 * r1 - r2 * r2) / (2 * distance * r1));
-    const part2 = r2 * r2 * Math.acos((distance * distance + r2 * r2 - r1 * r1) / (2 * distance * r2));
-    const part3 = 0.5 * Math.sqrt(
-      (-distance + r1 + r2) *
-      (distance + r1 - r2) *
-      (distance - r1 + r2) *
-      (distance + r1 + r2)
-    );
+    const part1 =
+      r1 *
+      r1 *
+      Math.acos(
+        (distance * distance + r1 * r1 - r2 * r2) / (2 * distance * r1)
+      );
+    const part2 =
+      r2 *
+      r2 *
+      Math.acos(
+        (distance * distance + r2 * r2 - r1 * r1) / (2 * distance * r2)
+      );
+    const part3 =
+      0.5 *
+      Math.sqrt(
+        (-distance + r1 + r2) *
+          (distance + r1 - r2) *
+          (distance - r1 + r2) *
+          (distance + r1 + r2)
+      );
 
     const overlapArea = part1 + part2 - part3;
     const totalArea = Math.PI * r1 * r1 + Math.PI * r2 * r2 - overlapArea;
@@ -101,9 +113,7 @@ export function calculateOverlapPercentage(
  * @param areas Array of service areas
  * @returns Array of overlap results
  */
-export function findOverlappingAreas(
-  areas: ServiceArea[]
-): OverlapResult[] {
+export function findOverlappingAreas(areas: ServiceArea[]): OverlapResult[] {
   const overlaps: OverlapResult[] = [];
 
   for (let i = 0; i < areas.length; i++) {
@@ -136,7 +146,7 @@ export function findOverlappingAreas(
  * @param gridSize Grid resolution (higher = more accurate but slower)
  * @returns Approximate coverage area in km²
  */
-export function calculateTotalCoverageArea(
+function calculateTotalCoverageArea(
   areas: ServiceArea[],
   gridSize: number = 100
 ): number {
@@ -144,12 +154,15 @@ export function calculateTotalCoverageArea(
   if (areas.length === 1) return Math.PI * areas[0].radius_km ** 2;
 
   // Find bounds
-  let minLat = Infinity, maxLat = -Infinity;
-  let minLng = Infinity, maxLng = -Infinity;
+  let minLat = Infinity,
+    maxLat = -Infinity;
+  let minLng = Infinity,
+    maxLng = -Infinity;
 
   areas.forEach((area) => {
-    const latOffset = (area.radius_km / 111); // ~111 km per degree latitude
-    const lngOffset = (area.radius_km / (111 * Math.cos(area.latitude * Math.PI / 180)));
+    const latOffset = area.radius_km / 111; // ~111 km per degree latitude
+    const lngOffset =
+      area.radius_km / (111 * Math.cos((area.latitude * Math.PI) / 180));
 
     minLat = Math.min(minLat, area.latitude - latOffset);
     maxLat = Math.max(maxLat, area.latitude + latOffset);
@@ -166,7 +179,12 @@ export function calculateTotalCoverageArea(
     for (let lng = minLng; lng <= maxLng; lng += lngStep) {
       // Check if point is in any area
       const isInAnyArea = areas.some((area) => {
-        const distance = calculateDistance(lat, lng, area.latitude, area.longitude);
+        const distance = calculateDistance(
+          lat,
+          lng,
+          area.latitude,
+          area.longitude
+        );
         return distance <= area.radius_km;
       });
 
@@ -177,7 +195,10 @@ export function calculateTotalCoverageArea(
   }
 
   // Calculate area of each grid cell
-  const cellArea = (latStep * 111) * (lngStep * 111 * Math.cos((minLat + maxLat) / 2 * Math.PI / 180));
+  const cellArea =
+    latStep *
+    111 *
+    (lngStep * 111 * Math.cos((((minLat + maxLat) / 2) * Math.PI) / 180));
   return coveredPoints * cellArea;
 }
 
@@ -259,7 +280,7 @@ export function suggestOptimalRadius(
  * @param thresholdPercentage Maximum acceptable overlap percentage
  * @returns Object with validation result and warnings
  */
-export function validateNewArea(
+function validateNewArea(
   newArea: ServiceArea,
   existingAreas: ServiceArea[],
   thresholdPercentage: number = 30
@@ -301,9 +322,10 @@ export function validateNewArea(
   });
 
   return {
-    isValid: warnings.length === 0 || warnings.every((w) => !w.includes('High overlap')),
+    isValid:
+      warnings.length === 0 ||
+      warnings.every((w) => !w.includes('High overlap')),
     warnings,
     suggestions,
   };
 }
-

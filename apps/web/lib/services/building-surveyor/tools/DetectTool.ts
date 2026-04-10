@@ -7,20 +7,21 @@ import { mapClassNameToDamageType } from './damage-type-mapping';
 import type { DetectToolResult, ToolRun, ToolRunSummary } from './types';
 import type { RoboflowDetection } from '../types';
 
-export interface DetectToolParams {
+interface DetectToolParams {
   imageUrls: string[];
 }
 
 /**
  * Run detect tool: YOLO/Roboflow on image URLs; return result and summary for evidence.
  */
-export async function runDetectTool(params: DetectToolParams): Promise<
-  ToolRun<DetectToolResult>
-> {
+export async function runDetectTool(
+  params: DetectToolParams
+): Promise<ToolRun<DetectToolResult>> {
   const { imageUrls } = params;
   const normalizedUrls = imageUrls.slice(0, 8);
 
-  const detections: RoboflowDetection[] = await RoboflowDetectionService.detect(normalizedUrls);
+  const detections: RoboflowDetection[] =
+    await RoboflowDetectionService.detect(normalizedUrls);
 
   const damageTypesDetected = new Set<string>();
   const mapped = detections.map((d) => {

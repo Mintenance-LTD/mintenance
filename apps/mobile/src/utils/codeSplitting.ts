@@ -24,7 +24,7 @@ export interface ChunkMetrics {
   timestamp: number;
 }
 
-export interface SplittingStrategy {
+interface SplittingStrategy {
   type: 'route' | 'feature' | 'vendor' | 'lazy';
   threshold: number; // KB
   priority: 'high' | 'medium' | 'low';

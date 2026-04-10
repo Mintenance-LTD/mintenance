@@ -22,10 +22,10 @@ import { setDarkModeEnabled } from '../theme/darkModeState';
 // THEME TYPES
 // ============================================================================
 
-export type ThemeMode = 'light' | 'dark' | 'system';
-export type ColorScheme = 'light' | 'dark';
+type ThemeMode = 'light' | 'dark' | 'system';
+type ColorScheme = 'light' | 'dark';
 
-export interface Theme {
+interface Theme {
   mode: ColorScheme;
   colors: {
     // Brand colors (consistent across themes)
@@ -303,14 +303,17 @@ const THEME_STORAGE_KEY = '@mintenance_theme_mode';
 // THEME PROVIDER
 // ============================================================================
 
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
   const [systemColorScheme, setSystemColorScheme] = useState<ColorScheme>(
     Appearance.getColorScheme() || 'light'
   );
 
   // Calculate actual color scheme based on mode
-  const colorScheme: ColorScheme = themeMode === 'system' ? systemColorScheme : themeMode;
+  const colorScheme: ColorScheme =
+    themeMode === 'system' ? systemColorScheme : themeMode;
   const theme = colorScheme === 'dark' ? darkTheme : lightTheme;
 
   // Sync the static theme module so that `import { theme } from '../theme'`
@@ -388,10 +391,7 @@ export const useTheme = (): ThemeContextValue => {
 // THEME UTILITIES
 // ============================================================================
 
-export const getThemeColor = (
-  theme: Theme,
-  colorPath: string
-): string => {
+export const getThemeColor = (theme: Theme, colorPath: string): string => {
   const paths = colorPath.split('.');
   let current: unknown = theme.colors;
 
@@ -407,7 +407,7 @@ export const getThemeColor = (
   return current as string;
 };
 
-export const createThemedStyles = <T extends Record<string, unknown>>(
+const createThemedStyles = <T extends Record<string, unknown>>(
   styleCreator: (theme: Theme) => T
 ) => {
   return (theme: Theme) => styleCreator(theme);

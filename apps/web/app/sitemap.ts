@@ -1,4 +1,5 @@
 import { MetadataRoute } from 'next';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com';
@@ -92,18 +93,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  // Dynamic contractor profiles (fetch from database in production)
-  // For now, returning empty array - in production, query your database
-  const contractorProfiles: MetadataRoute.Sitemap = [];
+  // Dynamic contractor profiles from database
+  let contractorProfiles: MetadataRoute.Sitemap = [];
+  try {
+    const { data: contractors } = await serverSupabase
+      .from('profiles')
+      .select('id, updated_at')
+      .eq('role', 'contractor')
+      .eq('is_public', true)
+      .order('updated_at', { ascending: false })
+      .limit(500);
 
-  // TODO: Add dynamic contractor profiles
-  // const contractors = await getTopContractors(100);
-  // const contractorProfiles = contractors.map(contractor => ({
-  //   url: `${baseUrl}/contractor/${contractor.slug}`,
-  //   lastModified: contractor.updated_at,
-  //   changeFrequency: 'weekly' as const,
-  //   priority: 0.6,
-  // }));
+    if (contractors && contractors.length > 0) {
+      contractorProfiles = contractors.map((contractor) => ({
+        url: `${baseUrl}/contractor/${contractor.id}`,
+        lastModified: contractor.updated_at || new Date().toISOString(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.6,
+      }));
+    }
+  } catch {
+    // Gracefully degrade — return empty array on DB failure
+    contractorProfiles = [];
+  }
 
   return [
     ...staticPages,

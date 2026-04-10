@@ -10,17 +10,17 @@ import { logger } from '@mintenance/shared';
 /**
  * Timeout configuration
  */
-export interface TimeoutConfig {
-  timeoutMs: number;          // Timeout in milliseconds
-  operation: string;          // Operation name for logging
-  retries?: number;           // Number of retries (default: 0)
-  retryDelayMs?: number;      // Delay between retries (default: 1000ms)
+interface TimeoutConfig {
+  timeoutMs: number; // Timeout in milliseconds
+  operation: string; // Operation name for logging
+  retries?: number; // Number of retries (default: 0)
+  retryDelayMs?: number; // Delay between retries (default: 1000ms)
 }
 
 /**
  * Timeout error class
  */
-export class TimeoutError extends Error {
+class TimeoutError extends Error {
   constructor(
     public operation: string,
     public timeoutMs: number
@@ -43,11 +43,16 @@ export class TimeoutError extends Error {
  *   { timeoutMs: 5000, operation: 'fetch-external-data' }
  * );
  */
-export async function withTimeout<T>(
+async function withTimeout<T>(
   operation: () => Promise<T>,
   config: TimeoutConfig
 ): Promise<T> {
-  const { timeoutMs, operation: opName, retries = 0, retryDelayMs = 1000 } = config;
+  const {
+    timeoutMs,
+    operation: opName,
+    retries = 0,
+    retryDelayMs = 1000,
+  } = config;
 
   let lastError: Error | null = null;
 
@@ -62,7 +67,10 @@ export async function withTimeout<T>(
         const result = await Promise.race([
           operation(),
           new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new TimeoutError(opName, timeoutMs)), timeoutMs)
+            setTimeout(
+              () => reject(new TimeoutError(opName, timeoutMs)),
+              timeoutMs
+            )
           ),
         ]);
 
@@ -74,11 +82,14 @@ export async function withTimeout<T>(
         // If it's a timeout error and we have retries left, retry
         if (error instanceof TimeoutError && attempt < retries) {
           lastError = error;
-          logger.warn(`Timeout on attempt ${attempt + 1}/${retries + 1}, retrying...`, {
-            operation: opName,
-            timeoutMs,
-            attempt: attempt + 1,
-          });
+          logger.warn(
+            `Timeout on attempt ${attempt + 1}/${retries + 1}, retrying...`,
+            {
+              operation: opName,
+              timeoutMs,
+              attempt: attempt + 1,
+            }
+          );
 
           // Wait before retry
           await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
@@ -121,7 +132,7 @@ export async function withTimeout<T>(
  *   5000
  * );
  */
-export async function fetchWithTimeout(
+async function fetchWithTimeout(
   url: string,
   options: RequestInit = {},
   timeoutMs: number = 10000
@@ -234,7 +245,7 @@ export async function stripeWithTimeout<T>(
  *   30000
  * );
  */
-export async function mlWithTimeout<T>(
+async function mlWithTimeout<T>(
   operation: () => Promise<T>,
   modelName: string,
   timeoutMs: number = 30000
@@ -255,7 +266,7 @@ export async function mlWithTimeout<T>(
  * @param timeoutMs - Timeout in milliseconds (default: 15000)
  * @returns Query result
  */
-export async function dbWithTimeout<T>(
+async function dbWithTimeout<T>(
   operation: () => Promise<T>,
   queryName: string,
   timeoutMs: number = 15000

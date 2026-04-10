@@ -4,7 +4,7 @@ import { CACHE_TAGS } from './config';
 /**
  * Cache invalidation utilities
  */
-export async function revalidateContractors() {
+async function revalidateContractors() {
   try {
     const { revalidateTag } = await import('next/cache');
     (revalidateTag as (tag: string) => void)(CACHE_TAGS.CONTRACTORS);
@@ -15,7 +15,7 @@ export async function revalidateContractors() {
   }
 }
 
-export async function revalidateJobs() {
+async function revalidateJobs() {
   try {
     const { revalidateTag } = await import('next/cache');
     (revalidateTag as (tag: string) => void)(CACHE_TAGS.JOBS);
@@ -26,7 +26,7 @@ export async function revalidateJobs() {
   }
 }
 
-export async function revalidateServiceCategories() {
+async function revalidateServiceCategories() {
   try {
     const { revalidateTag } = await import('next/cache');
     (revalidateTag as (tag: string) => void)(CACHE_TAGS.CATEGORIES);
@@ -37,7 +37,7 @@ export async function revalidateServiceCategories() {
   }
 }
 
-export async function revalidateUserProfile(userId: string) {
+async function revalidateUserProfile(userId: string) {
   try {
     const { revalidateTag } = await import('next/cache');
     (revalidateTag as (tag: string) => void)(CACHE_TAGS.USER_PROFILES);

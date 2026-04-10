@@ -29,7 +29,9 @@ interface LineItemDraft {
   rate: string;
 }
 
-export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ navigation }) => {
+export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
+  navigation,
+}) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const toast = useToast();
@@ -50,15 +52,24 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
   const [submitting, setSubmitting] = useState(false);
 
   const addLineItem = () => {
-    setLineItems(prev => [...prev, { description: '', quantity: '1', rate: '' }]);
+    setLineItems((prev) => [
+      ...prev,
+      { description: '', quantity: '1', rate: '' },
+    ]);
   };
 
   const removeLineItem = (index: number) => {
-    setLineItems(prev => prev.filter((_, i) => i !== index));
+    setLineItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const updateLineItem = (index: number, field: keyof LineItemDraft, value: string) => {
-    setLineItems(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item));
+  const updateLineItem = (
+    index: number,
+    field: keyof LineItemDraft,
+    value: string
+  ) => {
+    setLineItems((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+    );
   };
 
   const calculateSubtotal = () =>
@@ -73,10 +84,13 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
   const total = subtotal + taxAmount;
 
   const formatDate = (date: Date) =>
-    date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
 
-  const generateInvoiceNumber = () =>
-    `INV-${Date.now().toString().slice(-6)}`;
+  const generateInvoiceNumber = () => `INV-${Date.now().toString().slice(-6)}`;
 
   const handleSubmit = async () => {
     if (!user) return;
@@ -84,15 +98,20 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
       toast.error('Client name required', 'Please enter a client name.');
       return;
     }
-    const validItems = lineItems.filter(i => i.description.trim() && parseFloat(i.rate) > 0);
+    const validItems = lineItems.filter(
+      (i) => i.description.trim() && parseFloat(i.rate) > 0
+    );
     if (validItems.length === 0) {
-      toast.error('Line items required', 'Add at least one item with a description and rate.');
+      toast.error(
+        'Line items required',
+        'Add at least one item with a description and rate.'
+      );
       return;
     }
 
     setSubmitting(true);
     try {
-      const parsedItems: InvoiceLineItem[] = validItems.map(i => ({
+      const parsedItems: InvoiceLineItem[] = validItems.map((i) => ({
         description: i.description.trim(),
         quantity: parseFloat(i.quantity) || 1,
         rate: parseFloat(i.rate),
@@ -115,7 +134,10 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
         line_items: parsedItems,
       });
 
-      toast.success('Invoice created', 'Your invoice has been saved as a draft.');
+      toast.success(
+        'Invoice created',
+        'Your invoice has been saved as a draft.'
+      );
       navigation.goBack();
     } catch {
       toast.error('Failed to create invoice', 'Please try again.');
@@ -128,8 +150,15 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={22} color={theme.colors.textPrimary} />
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons
+            name='arrow-back'
+            size={22}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>New Invoice</Text>
         <TouchableOpacity
@@ -141,20 +170,24 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps='handled'
+      >
         {/* Client Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Client</Text>
           <TextInput
             style={styles.input}
-            placeholder="Client name *"
+            placeholder='Client name *'
             placeholderTextColor={theme.colors.textTertiary}
             value={clientName}
             onChangeText={setClientName}
           />
           <TextInput
             style={styles.input}
-            placeholder="Job reference (optional)"
+            placeholder='Job reference (optional)'
             placeholderTextColor={theme.colors.textTertiary}
             value={jobRef}
             onChangeText={setJobRef}
@@ -164,15 +197,26 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
         {/* Due Date */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Due Date</Text>
-          <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
-            <Ionicons name="calendar-outline" size={18} color={theme.colors.textSecondary} />
+          <TouchableOpacity
+            style={styles.dateButton}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <Ionicons
+              name='calendar-outline'
+              size={18}
+              color={theme.colors.textSecondary}
+            />
             <Text style={styles.dateText}>{formatDate(dueDate)}</Text>
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
+            <Ionicons
+              name='chevron-forward'
+              size={16}
+              color={theme.colors.textTertiary}
+            />
           </TouchableOpacity>
           {showDatePicker && (
             <DateTimePicker
               value={dueDate}
-              mode="date"
+              mode='date'
               minimumDate={new Date()}
               onChange={(_, date) => {
                 setShowDatePicker(Platform.OS === 'ios');
@@ -186,8 +230,11 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Line Items</Text>
-            <TouchableOpacity style={styles.addItemButton} onPress={addLineItem}>
-              <Ionicons name="add" size={18} color={theme.colors.textInverse} />
+            <TouchableOpacity
+              style={styles.addItemButton}
+              onPress={addLineItem}
+            >
+              <Ionicons name='add' size={18} color={theme.colors.textInverse} />
               <Text style={styles.addItemText}>Add Item</Text>
             </TouchableOpacity>
           </View>
@@ -198,45 +245,53 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
                 <Text style={styles.lineItemLabel}>Item {index + 1}</Text>
                 {lineItems.length > 1 && (
                   <TouchableOpacity onPress={() => removeLineItem(index)}>
-                    <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
+                    <Ionicons
+                      name='trash-outline'
+                      size={18}
+                      color={theme.colors.error}
+                    />
                   </TouchableOpacity>
                 )}
               </View>
               <TextInput
                 style={styles.input}
-                placeholder="Description *"
+                placeholder='Description *'
                 placeholderTextColor={theme.colors.textTertiary}
                 value={item.description}
-                onChangeText={v => updateLineItem(index, 'description', v)}
+                onChangeText={(v) => updateLineItem(index, 'description', v)}
               />
               <View style={styles.lineItemRow}>
                 <View style={styles.lineItemField}>
                   <Text style={styles.fieldLabel}>Qty</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="1"
+                    placeholder='1'
                     placeholderTextColor={theme.colors.textTertiary}
-                    keyboardType="numeric"
+                    keyboardType='numeric'
                     value={item.quantity}
-                    onChangeText={v => updateLineItem(index, 'quantity', v)}
+                    onChangeText={(v) => updateLineItem(index, 'quantity', v)}
                   />
                 </View>
                 <View style={styles.lineItemField}>
                   <Text style={styles.fieldLabel}>Rate (£)</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="0.00"
+                    placeholder='0.00'
                     placeholderTextColor={theme.colors.textTertiary}
-                    keyboardType="decimal-pad"
+                    keyboardType='decimal-pad'
                     value={item.rate}
-                    onChangeText={v => updateLineItem(index, 'rate', v)}
+                    onChangeText={(v) => updateLineItem(index, 'rate', v)}
                   />
                 </View>
                 <View style={styles.lineItemField}>
                   <Text style={styles.fieldLabel}>Amount</Text>
                   <View style={[styles.input, styles.amountDisplay]}>
                     <Text style={styles.amountText}>
-                      £{((parseFloat(item.quantity) || 0) * (parseFloat(item.rate) || 0)).toFixed(2)}
+                      £
+                      {(
+                        (parseFloat(item.quantity) || 0) *
+                        (parseFloat(item.rate) || 0)
+                      ).toFixed(2)}
                     </Text>
                   </View>
                 </View>
@@ -250,13 +305,13 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
           <Text style={styles.sectionTitle}>Notes</Text>
           <TextInput
             style={[styles.input, styles.notesInput]}
-            placeholder="Payment terms, notes to client…"
+            placeholder='Payment terms, notes to client…'
             placeholderTextColor={theme.colors.textTertiary}
             value={notes}
             onChangeText={setNotes}
             multiline
             numberOfLines={3}
-            textAlignVertical="top"
+            textAlignVertical='top'
           />
         </View>
 
@@ -304,8 +359,17 @@ const styles = StyleSheet.create({
   },
   saveButton: { padding: 8, minWidth: 60 },
   saveButtonDisabled: { opacity: 0.5 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
-  saveText: { fontSize: 16, fontWeight: '600', color: theme.colors.textPrimary, textAlign: 'right' },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  saveText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    textAlign: 'right',
+  },
   scroll: { flex: 1 },
   section: {
     backgroundColor: theme.colors.surface,
@@ -314,12 +378,27 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 12 },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: 12,
+  },
   input: {
     backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
@@ -349,23 +428,44 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 4,
   },
-  addItemText: { fontSize: 13, fontWeight: '600', color: theme.colors.textInverse },
+  addItemText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.colors.textInverse,
+  },
   lineItem: {
     backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
   },
-  lineItemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  lineItemLabel: { fontSize: 13, fontWeight: '600', color: theme.colors.textSecondary },
+  lineItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  lineItemLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
   lineItemRow: { flexDirection: 'row', gap: 8 },
   lineItemField: { flex: 1 },
-  fieldLabel: { fontSize: 11, color: theme.colors.textTertiary, marginBottom: 4 },
+  fieldLabel: {
+    fontSize: 11,
+    color: theme.colors.textTertiary,
+    marginBottom: 4,
+  },
   amountDisplay: {
     justifyContent: 'center',
     backgroundColor: theme.colors.surface,
   },
-  amountText: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: '500' },
+  amountText: {
+    fontSize: 14,
+    color: theme.colors.textPrimary,
+    fontWeight: '500',
+  },
   totalsSection: {
     backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
@@ -373,16 +473,40 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
-  totalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
-  totalRowFinal: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.border, marginTop: 8, paddingTop: 12 },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  totalRowFinal: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.border,
+    marginTop: 8,
+    paddingTop: 12,
+  },
   totalLabel: { fontSize: 14, color: theme.colors.textSecondary },
-  totalValue: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: '500' },
-  grandTotalLabel: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
-  grandTotalValue: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
+  totalValue: {
+    fontSize: 14,
+    color: theme.colors.textPrimary,
+    fontWeight: '500',
+  },
+  grandTotalLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  grandTotalValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
 });
-
-export default CreateInvoiceScreen;

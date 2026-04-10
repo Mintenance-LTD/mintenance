@@ -4,7 +4,11 @@
  * Returns fallback data to maintain interface compatibility.
  */
 
-import type { AnalysisContext, AnalysisResult, GeneralImageAnalysis } from './types';
+import type {
+  AnalysisContext,
+  AnalysisResult,
+  GeneralImageAnalysis,
+} from './types';
 
 /**
  * Analyze general images — returns fallback since Google Vision was removed.
@@ -25,7 +29,7 @@ export async function analyzeGeneralImage(
   };
 }
 
-export function generateFallbackImageAnalysis(): GeneralImageAnalysis {
+function generateFallbackImageAnalysis(): GeneralImageAnalysis {
   return {
     labels: [
       { name: 'image', confidence: 1.0 },

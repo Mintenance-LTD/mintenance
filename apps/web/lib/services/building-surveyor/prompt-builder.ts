@@ -36,31 +36,96 @@ function sanitisePromptInput(input: string, maxLength = 500): string {
  * Era-specific risk flags based on UK construction history.
  * A senior surveyor mentally activates these when told the property age.
  */
-const ERA_RISK_FLAGS: Array<{ maxAge: number; decade: string; risks: string[] }> = [
-  { maxAge: 200, decade: 'Pre-1900 (Victorian/Georgian)', risks: ['Lime mortar deterioration', 'Solid wall (no cavity) — penetrating damp risk', 'Lead water supply pipes (health hazard)', 'Lath and plaster ceilings', 'Timber rot in floor joists/lintels'] },
-  { maxAge: 130, decade: '1900–1930s (Edwardian/inter-war)', risks: ['Early cavity walls — no wall ties or corroded ties', 'Bitumen DPC may be failing', 'Cast iron drainage — prone to cracking'] },
-  { maxAge: 80, decade: '1940s–1950s (Post-war)', risks: ['Non-traditional construction (pre-cast concrete panels, Airey houses)', 'High alumina cement (HAC) in pre-stressed concrete — risk of structural failure', 'Mundic block (Cornwall/Devon)'] },
-  { maxAge: 70, decade: '1960s–1970s', risks: ['Asbestos-containing materials (insulation boards, pipe lagging, Artex ceilings)', 'High alumina cement (HAC) — critical structural concern', 'Flat roof construction (felt-based, poor detailing)', 'System-built housing (large panel systems) — structural deficiencies', 'Calcium silicate bricks — sulphate attack risk'] },
-  { maxAge: 50, decade: '1980s–1990s', risks: ['Trussed rafter roofs — check for rafter spread and wall plate fixings', 'UPVC windows — seal failure, misting double glazing', 'Cavity wall insulation retro-fit — trapped moisture risk', 'Woodworm treatment chemicals (historic) in roof timbers'] },
-  { maxAge: 25, decade: '2000s+', risks: ['Thin-joint blockwork — check for cracking at window/door openings', 'Mechanical ventilation dependency — check MVHR/extract fans are operational', 'Timber frame behind brick skin — moisture management critical'] },
+const ERA_RISK_FLAGS: Array<{
+  maxAge: number;
+  decade: string;
+  risks: string[];
+}> = [
+  {
+    maxAge: 200,
+    decade: 'Pre-1900 (Victorian/Georgian)',
+    risks: [
+      'Lime mortar deterioration',
+      'Solid wall (no cavity) — penetrating damp risk',
+      'Lead water supply pipes (health hazard)',
+      'Lath and plaster ceilings',
+      'Timber rot in floor joists/lintels',
+    ],
+  },
+  {
+    maxAge: 130,
+    decade: '1900–1930s (Edwardian/inter-war)',
+    risks: [
+      'Early cavity walls — no wall ties or corroded ties',
+      'Bitumen DPC may be failing',
+      'Cast iron drainage — prone to cracking',
+    ],
+  },
+  {
+    maxAge: 80,
+    decade: '1940s–1950s (Post-war)',
+    risks: [
+      'Non-traditional construction (pre-cast concrete panels, Airey houses)',
+      'High alumina cement (HAC) in pre-stressed concrete — risk of structural failure',
+      'Mundic block (Cornwall/Devon)',
+    ],
+  },
+  {
+    maxAge: 70,
+    decade: '1960s–1970s',
+    risks: [
+      'Asbestos-containing materials (insulation boards, pipe lagging, Artex ceilings)',
+      'High alumina cement (HAC) — critical structural concern',
+      'Flat roof construction (felt-based, poor detailing)',
+      'System-built housing (large panel systems) — structural deficiencies',
+      'Calcium silicate bricks — sulphate attack risk',
+    ],
+  },
+  {
+    maxAge: 50,
+    decade: '1980s–1990s',
+    risks: [
+      'Trussed rafter roofs — check for rafter spread and wall plate fixings',
+      'UPVC windows — seal failure, misting double glazing',
+      'Cavity wall insulation retro-fit — trapped moisture risk',
+      'Woodworm treatment chemicals (historic) in roof timbers',
+    ],
+  },
+  {
+    maxAge: 25,
+    decade: '2000s+',
+    risks: [
+      'Thin-joint blockwork — check for cracking at window/door openings',
+      'Mechanical ventilation dependency — check MVHR/extract fans are operational',
+      'Timber frame behind brick skin — moisture management critical',
+    ],
+  },
 ];
 
 /**
  * Get era-specific risk warnings based on approximate property age in years.
  */
-export function getEraRiskWarnings(ageOfProperty?: number): string {
+function getEraRiskWarnings(ageOfProperty?: number): string {
   if (!ageOfProperty || ageOfProperty <= 0) return '';
 
-  const matchingEras = ERA_RISK_FLAGS.filter(era => ageOfProperty >= era.maxAge - 30 && ageOfProperty <= era.maxAge + 30);
+  const matchingEras = ERA_RISK_FLAGS.filter(
+    (era) =>
+      ageOfProperty >= era.maxAge - 30 && ageOfProperty <= era.maxAge + 30
+  );
   // Also include any era where age falls within the range
-  const allMatching = ERA_RISK_FLAGS.filter(era => ageOfProperty >= (era.maxAge - 30));
+  const allMatching = ERA_RISK_FLAGS.filter(
+    (era) => ageOfProperty >= era.maxAge - 30
+  );
 
-  const relevant = matchingEras.length > 0 ? matchingEras : allMatching.slice(-2);
+  const relevant =
+    matchingEras.length > 0 ? matchingEras : allMatching.slice(-2);
   if (relevant.length === 0) return '';
 
-  const warnings = relevant.map(era =>
-    `${era.decade}:\n${era.risks.map(r => `  - ${r}`).join('\n')}`
-  ).join('\n');
+  const warnings = relevant
+    .map(
+      (era) => `${era.decade}:\n${era.risks.map((r) => `  - ${r}`).join('\n')}`
+    )
+    .join('\n');
 
   return `\n\nERA-SPECIFIC RISK ASSESSMENT (property ~${ageOfProperty} years old):
 Based on the property age, proactively check for these era-typical defects even if not immediately visible:
@@ -72,11 +137,14 @@ Flag any of these risks in your specialistReferrals if indicators are present.`;
  * Build system prompt for GPT-4 Vision API.
  * When damageTypes are provided (from damage_taxonomy), they are injected so new types appear without code change (Phase 6).
  */
-export function buildSystemPrompt(damageTypes?: string[], ageOfProperty?: number): string {
+export function buildSystemPrompt(
+  damageTypes?: string[],
+  ageOfProperty?: number
+): string {
   // Sanitise damage types from database
   const safeDamageTypes = damageTypes
-    ?.map(dt => dt.replace(/[^\w\s\-\/(),.]/g, '').slice(0, 100))
-    .filter(dt => dt.length > 0);
+    ?.map((dt) => dt.replace(/[^\w\s\-\/(),.]/g, '').slice(0, 100))
+    .filter((dt) => dt.length > 0);
 
   const damageTypeGuidance =
     safeDamageTypes && safeDamageTypes.length > 0
@@ -197,7 +265,7 @@ Guidelines:
 export function buildUserPrompt(
   context?: AssessmentContext,
   evidenceSummary?: string,
-  hasMachineEvidence = true,
+  hasMachineEvidence = true
 ): string {
   let prompt = `Analyze these building damage photos and provide a comprehensive assessment.\n\n`;
 
@@ -231,4 +299,3 @@ export function buildUserPrompt(
 
   return prompt;
 }
-

@@ -2,7 +2,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NextRequest } from 'next/server';
 
-export type AdminActionCategory =
+type AdminActionCategory =
   | 'user_management'
   | 'verification'
   | 'security'
@@ -11,7 +11,7 @@ export type AdminActionCategory =
   | 'communication'
   | 'ip_blocking';
 
-export interface AdminActivityLogEntry {
+interface AdminActivityLogEntry {
   admin_id: string;
   action_type: string;
   action_category: AdminActionCategory;

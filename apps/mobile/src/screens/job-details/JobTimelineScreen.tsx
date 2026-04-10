@@ -3,18 +3,16 @@
  * Shows status steps: Posted -> Bids -> Assigned -> Contract -> Payment -> In Progress -> Completed -> Review -> Paid
  */
 import React from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  Platform,
-} from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
+import {
+  ScreenHeader,
+  LoadingSpinner,
+  ErrorView,
+} from '../../components/shared';
 import { useJobDetailsViewModel } from './viewmodels/JobDetailsViewModel';
 import type { JobsStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
@@ -25,15 +23,60 @@ type Props = {
 };
 
 const LIFECYCLE_STEPS = [
-  { key: 'posted', label: 'Posted', icon: 'megaphone-outline' as const, description: 'Job listed for contractors' },
-  { key: 'bids', label: 'Bids Received', icon: 'cash-outline' as const, description: 'Contractors bidding on job' },
-  { key: 'assigned', label: 'Assigned', icon: 'person-outline' as const, description: 'Contractor selected' },
-  { key: 'contract', label: 'Contract Signed', icon: 'document-text-outline' as const, description: 'Both parties signed' },
-  { key: 'payment', label: 'Payment in Escrow', icon: 'shield-checkmark-outline' as const, description: 'Funds held securely' },
-  { key: 'in_progress', label: 'In Progress', icon: 'hammer-outline' as const, description: 'Work underway' },
-  { key: 'completed', label: 'Completed', icon: 'checkmark-circle-outline' as const, description: 'Work finished' },
-  { key: 'review', label: 'Review & Approval', icon: 'star-outline' as const, description: 'Homeowner reviewing work' },
-  { key: 'paid', label: 'Paid', icon: 'wallet-outline' as const, description: 'Payment released' },
+  {
+    key: 'posted',
+    label: 'Posted',
+    icon: 'megaphone-outline' as const,
+    description: 'Job listed for contractors',
+  },
+  {
+    key: 'bids',
+    label: 'Bids Received',
+    icon: 'cash-outline' as const,
+    description: 'Contractors bidding on job',
+  },
+  {
+    key: 'assigned',
+    label: 'Assigned',
+    icon: 'person-outline' as const,
+    description: 'Contractor selected',
+  },
+  {
+    key: 'contract',
+    label: 'Contract Signed',
+    icon: 'document-text-outline' as const,
+    description: 'Both parties signed',
+  },
+  {
+    key: 'payment',
+    label: 'Payment in Escrow',
+    icon: 'shield-checkmark-outline' as const,
+    description: 'Funds held securely',
+  },
+  {
+    key: 'in_progress',
+    label: 'In Progress',
+    icon: 'hammer-outline' as const,
+    description: 'Work underway',
+  },
+  {
+    key: 'completed',
+    label: 'Completed',
+    icon: 'checkmark-circle-outline' as const,
+    description: 'Work finished',
+  },
+  {
+    key: 'review',
+    label: 'Review & Approval',
+    icon: 'star-outline' as const,
+    description: 'Homeowner reviewing work',
+  },
+  {
+    key: 'paid',
+    label: 'Paid',
+    icon: 'wallet-outline' as const,
+    description: 'Payment released',
+  },
 ];
 
 const STATUS_TO_STEP_INDEX: Record<string, number> = {
@@ -49,11 +92,16 @@ export const JobTimelineScreen: React.FC<Props> = ({ route, navigation }) => {
   const viewModel = useJobDetailsViewModel(jobId);
 
   if (viewModel.jobLoading) {
-    return <LoadingSpinner message="Loading timeline..." />;
+    return <LoadingSpinner message='Loading timeline...' />;
   }
 
   if (viewModel.jobError || !viewModel.job) {
-    return <ErrorView message="Failed to load job timeline" onRetry={viewModel.refetchJob} />;
+    return (
+      <ErrorView
+        message='Failed to load job timeline'
+        onRetry={viewModel.refetchJob}
+      />
+    );
   }
 
   const currentStepIndex = STATUS_TO_STEP_INDEX[viewModel.job.status] ?? 0;
@@ -71,7 +119,11 @@ export const JobTimelineScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScreenHeader title="Job Timeline" showBack onBack={() => navigation.goBack()} />
+      <ScreenHeader
+        title='Job Timeline'
+        showBack
+        onBack={() => navigation.goBack()}
+      />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.jobInfo}>
@@ -85,30 +137,53 @@ export const JobTimelineScreen: React.FC<Props> = ({ route, navigation }) => {
 
         <View style={styles.timeline}>
           {LIFECYCLE_STEPS.map((step, index) => (
-            <View key={step.key} style={[styles.timelineStep, { opacity: getStepOpacity(index) }]}>
+            <View
+              key={step.key}
+              style={[styles.timelineStep, { opacity: getStepOpacity(index) }]}
+            >
               <View style={styles.stepIndicator}>
-                <View style={[
-                  styles.stepCircle,
-                  { backgroundColor: index <= currentStepIndex ? getStepColor(index) : theme.colors.border },
-                ]}>
+                <View
+                  style={[
+                    styles.stepCircle,
+                    {
+                      backgroundColor:
+                        index <= currentStepIndex
+                          ? getStepColor(index)
+                          : theme.colors.border,
+                    },
+                  ]}
+                >
                   <Ionicons
                     name={index <= currentStepIndex ? 'checkmark' : step.icon}
                     size={16}
-                    color={index <= currentStepIndex ? theme.colors.textInverse : theme.colors.textTertiary}
+                    color={
+                      index <= currentStepIndex
+                        ? theme.colors.textInverse
+                        : theme.colors.textTertiary
+                    }
                   />
                 </View>
                 {index < LIFECYCLE_STEPS.length - 1 && (
-                  <View style={[
-                    styles.stepLine,
-                    { backgroundColor: index < currentStepIndex ? theme.colors.primary : theme.colors.border },
-                  ]} />
+                  <View
+                    style={[
+                      styles.stepLine,
+                      {
+                        backgroundColor:
+                          index < currentStepIndex
+                            ? theme.colors.primary
+                            : theme.colors.border,
+                      },
+                    ]}
+                  />
                 )}
               </View>
               <View style={styles.stepContent}>
-                <Text style={[
-                  styles.stepLabel,
-                  index === currentStepIndex && styles.currentStepLabel,
-                ]}>
+                <Text
+                  style={[
+                    styles.stepLabel,
+                    index === currentStepIndex && styles.currentStepLabel,
+                  ]}
+                >
                   {step.label}
                 </Text>
                 <Text style={styles.stepDescription}>{step.description}</Text>
@@ -135,7 +210,12 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 20,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -201,5 +281,3 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
-
-export default JobTimelineScreen;

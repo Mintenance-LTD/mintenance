@@ -6,7 +6,7 @@ import { Button } from './Button';
 import { Card } from './Card';
 import { theme } from '@/lib/theme';
 
-export interface ErrorViewProps {
+interface ErrorViewProps {
   title?: string;
   message?: string;
   onRetry?: () => void;
@@ -45,11 +45,13 @@ export const ErrorView: React.FC<ErrorViewProps> = ({
 
   const content = (
     <>
-      <div style={iconStyles}><AlertTriangle size={48} /></div>
+      <div style={iconStyles}>
+        <AlertTriangle size={48} />
+      </div>
       <h2 style={titleStyles}>{title}</h2>
       <p style={messageStyles}>{message}</p>
       {onRetry && (
-        <Button variant="primary" onClick={onRetry}>
+        <Button variant='primary' onClick={onRetry}>
           {retryLabel}
         </Button>
       )}
@@ -58,50 +60,53 @@ export const ErrorView: React.FC<ErrorViewProps> = ({
 
   if (variant === 'fullscreen') {
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: theme.colors.backgroundSecondary,
-        padding: theme.spacing[6],
-      }}>
-        <div style={{ maxWidth: '400px', width: '100%' }}>
-          {content}
-        </div>
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.colors.backgroundSecondary,
+          padding: theme.spacing[6],
+        }}
+      >
+        <div style={{ maxWidth: '400px', width: '100%' }}>{content}</div>
       </div>
     );
   }
 
   if (variant === 'inline') {
     return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: theme.spacing[6],
-        textAlign: 'center',
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: theme.spacing[6],
+          textAlign: 'center',
+        }}
+      >
         {content}
       </div>
     );
   }
 
   return (
-    <Card variant="elevated" style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: theme.spacing[8],
-      textAlign: 'center',
-      maxWidth: '400px',
-      margin: '0 auto',
-    }}>
+    <Card
+      variant='elevated'
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: theme.spacing[8],
+        textAlign: 'center',
+        maxWidth: '400px',
+        margin: '0 auto',
+      }}
+    >
       {content}
     </Card>
   );
 };
-
-export default ErrorView;

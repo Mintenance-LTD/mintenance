@@ -28,14 +28,14 @@ export interface JobMapItem {
   created_at: string;
 }
 
-export interface MapRegion {
+interface MapRegion {
   latitude: number;
   longitude: number;
   latitudeDelta: number;
   longitudeDelta: number;
 }
 
-export interface JobsMapViewModel {
+interface JobsMapViewModel {
   region: MapRegion;
   jobs: JobMapItem[];
   searchQuery: string;
@@ -56,7 +56,12 @@ export interface JobsMapViewModel {
   searchInRegion: () => void;
 }
 
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+function calculateDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
@@ -70,7 +75,7 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return Math.round(R * c * 10) / 10;
 }
 
-export const useJobsMapViewModel = (): JobsMapViewModel => {
+const useJobsMapViewModel = (): JobsMapViewModel => {
   const { user } = useAuth();
   const isMounted = useRef(true);
   // Track initial region load so we don't fire hasPanned on mount
@@ -91,7 +96,10 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
   const [selectedJob, setSelectedJob] = useState<JobMapItem | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [userLocation, setUserLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
   const [locationGranted, setLocationGranted] = useState(false);
   const [hasPanned, setHasPanned] = useState(false);
 
@@ -124,7 +132,8 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
 
         if (!isMounted.current) return;
 
-        const { status: existing } = await Location.getForegroundPermissionsAsync();
+        const { status: existing } =
+          await Location.getForegroundPermissionsAsync();
         let finalStatus = existing;
         if (existing !== 'granted') {
           const { status } = await Location.requestForegroundPermissionsAsync();
@@ -139,16 +148,25 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
             timeInterval: 10000,
           });
           if (!isMounted.current) return;
-          const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+          const coords = {
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude,
+          };
           setUserLocation(coords);
-          setRegion((prev) => ({ ...prev, latitude: coords.latitude, longitude: coords.longitude }));
+          setRegion((prev) => ({
+            ...prev,
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+          }));
         }
         // If GPS denied and no profile coords, region stays as default (London)
       } catch (err) {
         logger.warn('Location initialisation failed', err);
       }
     })();
-    return () => { isMounted.current = false; };
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   // Fetch jobs — uses regionRef so we don't re-create on every pan
@@ -160,11 +178,13 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
       const [jobsResult, bidsResult] = await Promise.all([
         supabase
           .from('jobs')
-          .select(`
+          .select(
+            `
             id, title, category, urgency, budget, budget_min, budget_max,
             latitude, longitude, created_at,
             homeowner:homeowner_id ( first_name )
-          `)
+          `
+          )
           .eq('status', 'posted')
           .is('contractor_id', null)
           .not('latitude', 'is', null)
@@ -177,7 +197,9 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
       ]);
 
       const { data, error } = jobsResult;
-      const bidJobIds = new Set((bidsResult.data ?? []).map((b: { job_id: string }) => b.job_id));
+      const bidJobIds = new Set(
+        (bidsResult.data ?? []).map((b: { job_id: string }) => b.job_id)
+      );
 
       if (error) {
         logger.error('Error fetching jobs for map', error);
@@ -188,27 +210,31 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
       const refLng = userLocation?.longitude ?? regionRef.current.longitude;
 
       // Exclude jobs contractor already bid on
-      const availableData = (data || []).filter((row: Record<string, unknown>) => !bidJobIds.has(row.id as string));
+      const availableData = (data || []).filter(
+        (row: Record<string, unknown>) => !bidJobIds.has(row.id as string)
+      );
 
-      const mapped: JobMapItem[] = availableData.map((row: Record<string, unknown>) => {
-        const homeowner = row.homeowner as { first_name?: string } | null;
-        const lat = row.latitude as number;
-        const lng = row.longitude as number;
-        return {
-          id: row.id as string,
-          title: row.title as string,
-          category: (row.category as string) || 'general',
-          urgency: (row.urgency as string) || 'medium',
-          budget: row.budget ? Number(row.budget) : null,
-          budget_min: row.budget_min as number | null,
-          budget_max: row.budget_max as number | null,
-          latitude: lat,
-          longitude: lng,
-          distance: calculateDistance(refLat, refLng, lat, lng),
-          homeowner_name: homeowner?.first_name || 'Homeowner',
-          created_at: row.created_at as string,
-        };
-      });
+      const mapped: JobMapItem[] = availableData.map(
+        (row: Record<string, unknown>) => {
+          const homeowner = row.homeowner as { first_name?: string } | null;
+          const lat = row.latitude as number;
+          const lng = row.longitude as number;
+          return {
+            id: row.id as string,
+            title: row.title as string,
+            category: (row.category as string) || 'general',
+            urgency: (row.urgency as string) || 'medium',
+            budget: row.budget ? Number(row.budget) : null,
+            budget_min: row.budget_min as number | null,
+            budget_max: row.budget_max as number | null,
+            latitude: lat,
+            longitude: lng,
+            distance: calculateDistance(refLat, refLng, lat, lng),
+            homeowner_name: homeowner?.first_name || 'Homeowner',
+            created_at: row.created_at as string,
+          };
+        }
+      );
 
       mapped.sort((a, b) => a.distance - b.distance);
 
@@ -267,7 +293,8 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
 
   const centerOnUser = useCallback(async () => {
     try {
-      const { status: existing } = await Location.getForegroundPermissionsAsync();
+      const { status: existing } =
+        await Location.getForegroundPermissionsAsync();
       let finalStatus = existing;
       if (existing !== 'granted') {
         const { status } = await Location.requestForegroundPermissionsAsync();
@@ -279,9 +306,16 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
           accuracy: Location.Accuracy.Balanced,
           timeInterval: 10000,
         });
-        const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+        const coords = {
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        };
         setUserLocation(coords);
-        setRegion((prev) => ({ ...prev, latitude: coords.latitude, longitude: coords.longitude }));
+        setRegion((prev) => ({
+          ...prev,
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+        }));
         setHasPanned(false);
       }
     } catch (err) {
@@ -297,10 +331,17 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
 
   // Filter jobs by search query and category
   const filteredJobs = jobs.filter((j) => {
-    if (selectedCategory && j.category.toLowerCase() !== selectedCategory.toLowerCase()) return false;
+    if (
+      selectedCategory &&
+      j.category.toLowerCase() !== selectedCategory.toLowerCase()
+    )
+      return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      return j.title.toLowerCase().includes(q) || j.category.toLowerCase().includes(q);
+      return (
+        j.title.toLowerCase().includes(q) ||
+        j.category.toLowerCase().includes(q)
+      );
     }
     return true;
   });

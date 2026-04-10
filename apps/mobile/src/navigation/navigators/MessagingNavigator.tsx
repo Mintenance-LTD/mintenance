@@ -31,7 +31,7 @@ const SafeMessagingScreen = withScreenErrorBoundary(
 
 const MessagingStack = createNativeStackNavigator<MessagingStackParamList>();
 
-export const MessagingNavigator: React.FC = () => {
+const MessagingNavigator: React.FC = () => {
   return (
     <MessagingStack.Navigator
       screenOptions={{
@@ -39,19 +39,19 @@ export const MessagingNavigator: React.FC = () => {
         gestureEnabled: true,
         animation: 'slide_from_right',
       }}
-      initialRouteName="MessagesList"
+      initialRouteName='MessagesList'
     >
       <MessagingStack.Screen
-        name="MessagesList"
+        name='MessagesList'
         component={SafeMessagesListScreen}
         options={{
           title: 'Messages',
           headerShown: false,
         }}
       />
-      
+
       <MessagingStack.Screen
-        name="Messaging"
+        name='Messaging'
         component={SafeMessagingScreen}
         options={({ route }) => ({
           title: route.params?.jobTitle || 'Conversation',

@@ -33,7 +33,7 @@ interface ExistingBid {
 /**
  * Check if contractor already has a bid on this job
  */
-export async function checkExistingBid(
+async function checkExistingBid(
   jobId: string,
   contractorId: string
 ): Promise<ExistingBid | null> {
@@ -50,7 +50,7 @@ export async function checkExistingBid(
 /**
  * Create a new bid in the database
  */
-export async function createBid(
+async function createBid(
   payload: BidPayload
 ): Promise<{ bid: unknown; error: unknown }> {
   const insertPayload = {
@@ -95,7 +95,7 @@ export async function createBid(
 /**
  * Update an existing bid
  */
-export async function updateBid(
+async function updateBid(
   bidId: string,
   payload: BidPayload
 ): Promise<{ bid: unknown; error: unknown }> {
@@ -140,7 +140,7 @@ export async function updateBid(
 /**
  * Handle race condition when bid already exists
  */
-export async function handleRaceCondition(
+async function handleRaceCondition(
   jobId: string,
   contractorId: string,
   payload: BidPayload

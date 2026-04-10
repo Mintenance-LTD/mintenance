@@ -7,13 +7,14 @@ import type { HomeownerData, JobWithPhotos } from './types';
 /**
  * Cached function to get jobs with ISR
  */
-export const getCachedJobs = unstable_cache(
+const getCachedJobs = unstable_cache(
   async (limit = 20, offset = 0) => {
     try {
       // Simplified query without relations that might cause issues
       const { data: jobs, error } = await serverSupabase
         .from('jobs')
-        .select(`
+        .select(
+          `
           id,
           title,
           description,
@@ -26,7 +27,8 @@ export const getCachedJobs = unstable_cache(
           photos,
           category,
           homeowner_id
-        `)
+        `
+        )
         .eq('status', 'posted')
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
@@ -39,7 +41,13 @@ export const getCachedJobs = unstable_cache(
       }
 
       // Fetch homeowner data separately to avoid relation issues
-      const homeownerIds = [...new Set((jobs || []).map((job: JobWithPhotos) => job.homeowner_id).filter(Boolean))];
+      const homeownerIds = [
+        ...new Set(
+          (jobs || [])
+            .map((job: JobWithPhotos) => job.homeowner_id)
+            .filter(Boolean)
+        ),
+      ];
       const homeownersMap: Record<string, HomeownerData> = {};
 
       if (homeownerIds.length > 0) {
@@ -69,12 +77,18 @@ export const getCachedJobs = unstable_cache(
         // Try to get photos from photos JSONB field
         if (job.photos) {
           if (Array.isArray(job.photos)) {
-            photoUrls = job.photos.filter((url: unknown): url is string => typeof url === 'string' && url.length > 0);
+            photoUrls = job.photos.filter(
+              (url: unknown): url is string =>
+                typeof url === 'string' && url.length > 0
+            );
           } else if (typeof job.photos === 'string') {
             try {
               const parsed = JSON.parse(job.photos);
               if (Array.isArray(parsed)) {
-                photoUrls = parsed.filter((url: unknown): url is string => typeof url === 'string' && url.length > 0);
+                photoUrls = parsed.filter(
+                  (url: unknown): url is string =>
+                    typeof url === 'string' && url.length > 0
+                );
               }
             } catch {
               photoUrls = [];
@@ -86,7 +100,9 @@ export const getCachedJobs = unstable_cache(
           ...job,
           photoUrls,
           // Add homeowner data from separate query
-          homeowner: job.homeowner_id ? (homeownersMap[job.homeowner_id] || null) : null,
+          homeowner: job.homeowner_id
+            ? homeownersMap[job.homeowner_id] || null
+            : null,
           // Add optional fields that might not exist
           latitude: job.latitude || null,
           longitude: job.longitude || null,
@@ -96,9 +112,11 @@ export const getCachedJobs = unstable_cache(
 
       // Fetch photos from job_photos_metadata (canonical photo table) for jobs that don't have photos
       try {
-        const jobsNeedingPhotos = processedJobs.filter(job => !job.photoUrls || job.photoUrls.length === 0);
+        const jobsNeedingPhotos = processedJobs.filter(
+          (job) => !job.photoUrls || job.photoUrls.length === 0
+        );
         if (jobsNeedingPhotos.length > 0) {
-          const jobIds = jobsNeedingPhotos.map(job => job.id);
+          const jobIds = jobsNeedingPhotos.map((job) => job.id);
           const { data: photosData } = await serverSupabase
             .from('job_photos_metadata')
             .select('job_id, photo_url')
@@ -108,12 +126,14 @@ export const getCachedJobs = unstable_cache(
           if (photosData && photosData.length > 0) {
             // Group photos by job_id
             const photosByJob: Record<string, string[]> = {};
-            photosData.forEach((photo: { job_id: string; photo_url: string }) => {
-              if (!photosByJob[photo.job_id]) {
-                photosByJob[photo.job_id] = [];
+            photosData.forEach(
+              (photo: { job_id: string; photo_url: string }) => {
+                if (!photosByJob[photo.job_id]) {
+                  photosByJob[photo.job_id] = [];
+                }
+                photosByJob[photo.job_id].push(photo.photo_url);
               }
-              photosByJob[photo.job_id].push(photo.photo_url);
-            });
+            );
 
             // Update jobs with photos from job_photos_metadata table
             processedJobs.forEach((job: JobWithPhotos) => {
@@ -123,13 +143,13 @@ export const getCachedJobs = unstable_cache(
             });
           }
         }
-        } catch (photosError) {
-          // Silently fail - photo metadata fetch is optional
-          logger.warn('Could not fetch photos from job_photos_metadata table', {
-            service: 'cache',
-            error: photosError,
-          });
-        }
+      } catch (photosError) {
+        // Silently fail - photo metadata fetch is optional
+        logger.warn('Could not fetch photos from job_photos_metadata table', {
+          service: 'cache',
+          error: photosError,
+        });
+      }
 
       return processedJobs;
     } catch (err) {

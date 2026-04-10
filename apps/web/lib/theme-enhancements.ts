@@ -1,6 +1,6 @@
 /**
  * Theme Enhancement Utilities
- * 
+ *
  * Provides helper functions for gradients, animations, and visual effects
  * to enhance the UI with modern design patterns.
  */
@@ -20,31 +20,39 @@ export function getGradient(name: keyof typeof theme.gradients): string {
 /**
  * Create a custom gradient
  */
-export function createGradient(
+function createGradient(
   startColor: string,
   endColor: string,
   direction: 'horizontal' | 'vertical' | 'diagonal' = 'diagonal'
 ): string {
-  const angle = direction === 'horizontal' ? '90deg' : direction === 'vertical' ? '180deg' : '135deg';
+  const angle =
+    direction === 'horizontal'
+      ? '90deg'
+      : direction === 'vertical'
+        ? '180deg'
+        : '135deg';
   return `linear-gradient(${angle}, ${startColor} 0%, ${endColor} 100%)`;
 }
 
 /**
  * Get enhanced shadow by name
  */
-export function getShadow(name: keyof typeof theme.shadows): string {
+function getShadow(name: keyof typeof theme.shadows): string {
   return theme.shadows[name];
 }
 
 /**
  * Create a hover effect style object
  */
-export function getHoverEffect(type: 'lift' | 'scale' | 'glow' = 'lift'): CSSProperties {
+function getHoverEffect(
+  type: 'lift' | 'scale' | 'glow' = 'lift'
+): CSSProperties {
   switch (type) {
     case 'lift':
       return {
         transform: 'translateY(-2px)',
-        transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        transition:
+          'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         boxShadow: theme.shadows.hover,
       };
     case 'scale':
@@ -65,7 +73,7 @@ export function getHoverEffect(type: 'lift' | 'scale' | 'glow' = 'lift'): CSSPro
 /**
  * Get glassmorphism effect styles
  */
-export function getGlassEffect(opacity: number = 0.7): CSSProperties {
+function getGlassEffect(opacity: number = 0.7): CSSProperties {
   return {
     background: `rgba(255, 255, 255, ${opacity})`,
     backdropFilter: 'blur(10px)',
@@ -77,14 +85,16 @@ export function getGlassEffect(opacity: number = 0.7): CSSProperties {
 /**
  * Create animated gradient background
  */
-export function getAnimatedGradient(
+function getAnimatedGradient(
   colors: string[],
   duration: number = 5
 ): CSSProperties {
-  const gradientStops = colors.map((color, index) => {
-    const percentage = (index / (colors.length - 1)) * 100;
-    return `${color} ${percentage}%`;
-  }).join(', ');
+  const gradientStops = colors
+    .map((color, index) => {
+      const percentage = (index / (colors.length - 1)) * 100;
+      return `${color} ${percentage}%`;
+    })
+    .join(', ');
 
   return {
     background: `linear-gradient(135deg, ${gradientStops})`,
@@ -137,7 +147,7 @@ export function getIconContainerStyle(
 /**
  * Get metric card enhanced style
  */
-export function getMetricCardStyle(
+function getMetricCardStyle(
   hasGradient: boolean = false,
   gradientVariant: 'primary' | 'success' | 'warning' = 'primary'
 ): CSSProperties {
@@ -181,7 +191,7 @@ export function getCardHoverStyle(): CSSProperties {
 /**
  * Get transition style for smooth animations
  */
-export function getTransitionStyle(properties: string[] = ['all']): CSSProperties {
+function getTransitionStyle(properties: string[] = ['all']): CSSProperties {
   return {
     transition: `${properties.join(', ')} ${theme.animation.duration.normal} ${theme.animation.easing.smooth}`,
   };
@@ -190,7 +200,7 @@ export function getTransitionStyle(properties: string[] = ['all']): CSSPropertie
 /**
  * Create keyframes for gradient animation (to be used in CSS)
  */
-export const gradientKeyframes = `
+const gradientKeyframes = `
   @keyframes gradientShift {
     0% {
       background-position: 0% 50%;
@@ -216,7 +226,7 @@ export function getFadeInStyle(delay: number = 0): CSSProperties {
 /**
  * Get slide-up animation style
  */
-export function getSlideUpStyle(delay: number = 0): CSSProperties {
+function getSlideUpStyle(delay: number = 0): CSSProperties {
   return {
     animation: `slideUp ${theme.animation.duration.slow} ${theme.animation.easing.easeOut} ${delay}ms both`,
   };
@@ -225,7 +235,7 @@ export function getSlideUpStyle(delay: number = 0): CSSProperties {
 /**
  * Get enhanced button styles with ripple effect
  */
-export function getEnhancedButtonStyle(
+function getEnhancedButtonStyle(
   variant: 'primary' | 'secondary' | 'ghost' | 'success' | 'danger' = 'primary'
 ): CSSProperties {
   const baseStyle: CSSProperties = {
@@ -277,7 +287,7 @@ export function getEnhancedButtonStyle(
 /**
  * Get input with floating label style
  */
-export function getFloatingInputStyle(
+function getFloatingInputStyle(
   focused: boolean = false,
   hasValue: boolean = false,
   hasError: boolean = false
@@ -291,7 +301,10 @@ export function getFloatingInputStyle(
       position: 'absolute',
       left: theme.spacing[3],
       top: focused || hasValue ? '-8px' : '12px',
-      fontSize: focused || hasValue ? theme.typography.fontSize.xs : theme.typography.fontSize.base,
+      fontSize:
+        focused || hasValue
+          ? theme.typography.fontSize.xs
+          : theme.typography.fontSize.base,
       color: hasError
         ? theme.colors.error
         : focused
@@ -316,7 +329,8 @@ export function getFloatingInputStyle(
       fontSize: theme.typography.fontSize.base,
       transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
       outline: 'none',
-      boxShadow: focused && !hasError ? `0 0 0 3px ${theme.colors.primary}15` : 'none',
+      boxShadow:
+        focused && !hasError ? `0 0 0 3px ${theme.colors.primary}15` : 'none',
     },
   };
 }
@@ -324,7 +338,7 @@ export function getFloatingInputStyle(
 /**
  * Get badge/chip style
  */
-export function getBadgeStyle(
+function getBadgeStyle(
   status: 'success' | 'warning' | 'error' | 'info' | 'neutral' = 'neutral',
   withDot: boolean = false
 ): CSSProperties {
@@ -373,7 +387,7 @@ export function getBadgeStyle(
 /**
  * Get avatar style with status indicator
  */
-export function getAvatarStyle(
+function getAvatarStyle(
   size: number = 48,
   status?: 'online' | 'offline' | 'busy'
 ): { avatar: CSSProperties; statusDot?: CSSProperties } {
@@ -414,7 +428,7 @@ export function getAvatarStyle(
 /**
  * Get tooltip style
  */
-export function getTooltipStyle(): CSSProperties {
+function getTooltipStyle(): CSSProperties {
   return {
     position: 'absolute',
     padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
@@ -433,7 +447,7 @@ export function getTooltipStyle(): CSSProperties {
 /**
  * Get empty state style
  */
-export function getEmptyStateStyle(): CSSProperties {
+function getEmptyStateStyle(): CSSProperties {
   return {
     display: 'flex',
     flexDirection: 'column',
@@ -451,7 +465,7 @@ export function getEmptyStateStyle(): CSSProperties {
  * Additional keyframes for animations (moved to animations-enhanced.css)
  * This is kept for backwards compatibility
  */
-export const animationKeyframes = `
+const animationKeyframes = `
   @keyframes fadeIn {
     from {
       opacity: 0;
@@ -490,4 +504,3 @@ export const animationKeyframes = `
     }
   }
 `;
-

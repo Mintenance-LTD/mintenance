@@ -98,14 +98,14 @@ class SecurityManagerService {
   }
 
   /**
-   * ⚠️ SECURITY CRITICAL: Check rate limits
+   * SECURITY CRITICAL: Check rate limits (persistent via AsyncStorage)
    */
-  public static checkRateLimit(
+  public static async checkRateLimit(
     identifier: string,
     maxAttempts: number,
     windowMs: number
-  ): boolean {
-    const rateLimit = InputValidationMiddleware.validateRateLimit(
+  ): Promise<boolean> {
+    const rateLimit = await InputValidationMiddleware.validateRateLimit(
       identifier,
       maxAttempts,
       windowMs

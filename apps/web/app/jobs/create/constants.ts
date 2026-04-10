@@ -37,7 +37,7 @@ export const JOB_CATEGORIES = [
 ] as const;
 
 // Urgency Levels
-export const URGENCY_OPTIONS = [
+const URGENCY_OPTIONS = [
   {
     value: 'low',
     label: 'Flexible',
@@ -59,7 +59,7 @@ export const URGENCY_OPTIONS = [
 ] as const;
 
 // Multi-Step Form Configuration
-export const FORM_STEPS = [
+const FORM_STEPS = [
   { id: 1, label: 'Details', shortLabel: 'Details' },
   { id: 2, label: 'Photos', shortLabel: 'Photos' },
   { id: 3, label: 'Budget', shortLabel: 'Budget' },
@@ -67,7 +67,7 @@ export const FORM_STEPS = [
 ] as const;
 
 // Error Messages
-export const ERROR_MESSAGES = {
+const ERROR_MESSAGES = {
   PROPERTY_REQUIRED: 'Please select a property',
   CATEGORY_REQUIRED: 'Please select a service category',
   TITLE_REQUIRED: 'Please enter a job title',
@@ -78,11 +78,12 @@ export const ERROR_MESSAGES = {
   URGENCY_REQUIRED: 'Please select urgency level',
   PHOTOS_REQUIRED_HIGH_BUDGET: `Photos are required for jobs over £${VALIDATION.BUDGET_PHOTO_THRESHOLD}`,
   CSRF_TOKEN_MISSING: 'Security token not available. Please refresh the page.',
-  PHONE_VERIFICATION_REQUIRED: 'Please verify your phone number before posting jobs',
+  PHONE_VERIFICATION_REQUIRED:
+    'Please verify your phone number before posting jobs',
 } as const;
 
 // API Endpoints
-export const API_ENDPOINTS = {
+const API_ENDPOINTS = {
   JOBS: '/api/jobs',
   PROPERTIES: '/api/properties',
   UPLOAD_PHOTOS: '/api/jobs/upload-photos',
@@ -92,6 +93,6 @@ export const API_ENDPOINTS = {
 } as const;
 
 // Type Exports
-export type JobCategory = typeof JOB_CATEGORIES[number]['value'];
-export type UrgencyLevel = typeof URGENCY_OPTIONS[number]['value'];
-export type FormStep = typeof FORM_STEPS[number]['id'];
+type JobCategory = (typeof JOB_CATEGORIES)[number]['value'];
+type UrgencyLevel = (typeof URGENCY_OPTIONS)[number]['value'];
+type FormStep = (typeof FORM_STEPS)[number]['id'];

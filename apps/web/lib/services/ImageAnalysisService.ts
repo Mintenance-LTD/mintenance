@@ -1,7 +1,10 @@
 import { ImageAnnotatorClient } from '@google-cloud/vision';
 import { LRUCache } from 'lru-cache';
 import { logger } from '@mintenance/shared';
-import { getGoogleVisionConfig, validateGoogleVisionConfig } from '@/lib/config/google-vision.config';
+import {
+  getGoogleVisionConfig,
+  validateGoogleVisionConfig,
+} from '@/lib/config/google-vision.config';
 import { validateURLs } from '@/lib/security/url-validation';
 import { CircuitBreaker } from './building-surveyor/utils/CircuitBreaker';
 import {
@@ -11,9 +14,12 @@ import {
   assessComplexity,
 } from './image-analysis/feature-extractors';
 import { suggestCategoriesFromImages } from './image-analysis/category-suggestions';
-import { estimateCostFactors, calculateConfidence } from './image-analysis/scoring';
+import {
+  estimateCostFactors,
+  calculateConfidence,
+} from './image-analysis/scoring';
 
-export interface ImageAnalysisResult {
+interface ImageAnalysisResult {
   labels: Array<{ description: string; score: number }>;
   objects: Array<{ name: string; score: number }>;
   text: string[];
@@ -21,7 +27,11 @@ export interface ImageAnalysisResult {
   propertyType?: string;
   condition?: 'excellent' | 'good' | 'fair' | 'poor';
   complexity?: 'simple' | 'moderate' | 'complex';
-  suggestedCategories: Array<{ category: string; confidence: number; reason: string }>;
+  suggestedCategories: Array<{
+    category: string;
+    confidence: number;
+    reason: string;
+  }>;
   estimatedCostFactors: {
     sizeMultiplier: number;
     complexityMultiplier: number;
@@ -76,7 +86,9 @@ export class ImageAnalysisService {
     const validation = validateGoogleVisionConfig();
 
     if (!validation.valid) {
-      logger.warn('Google Vision API not configured', { error: validation.error });
+      logger.warn('Google Vision API not configured', {
+        error: validation.error,
+      });
       return null;
     }
 
@@ -92,7 +104,9 @@ export class ImageAnalysisService {
         // For now, we'll use Application Default Credentials if available
         // Set GOOGLE_APPLICATION_CREDENTIALS environment variable or use ADC
         this.client = new ImageAnnotatorClient();
-        logger.warn('Using Application Default Credentials. For API key, use REST API or set GOOGLE_APPLICATION_CREDENTIALS');
+        logger.warn(
+          'Using Application Default Credentials. For API key, use REST API or set GOOGLE_APPLICATION_CREDENTIALS'
+        );
       } else {
         // Try Application Default Credentials (ADC)
         this.client = new ImageAnnotatorClient();
@@ -129,7 +143,10 @@ export class ImageAnalysisService {
    * Store result in cache
    * Performance: O(1) insertion with automatic LRU eviction
    */
-  private static setCachedResult(cacheKey: string, result: ImageAnalysisResult): void {
+  private static setCachedResult(
+    cacheKey: string,
+    result: ImageAnalysisResult
+  ): void {
     // LRU cache automatically evicts oldest entry when max size reached
     // No manual sorting or eviction logic needed
     this.cache.set(cacheKey, result);
@@ -150,7 +167,9 @@ export class ImageAnalysisService {
     const cacheKey = this.getCacheKey(imageUrls);
     const cachedResult = this.getCachedResult(cacheKey);
     if (cachedResult) {
-      logger.debug('Image analysis cache hit', { imageCount: imageUrls.length });
+      logger.debug('Image analysis cache hit', {
+        imageCount: imageUrls.length,
+      });
       return cachedResult;
     }
 
@@ -162,9 +181,12 @@ export class ImageAnalysisService {
 
     // P1: Check circuit breaker before making API calls
     if (this.circuitBreaker.isOpen()) {
-      logger.warn('Google Vision circuit breaker open, skipping image analysis', {
-        service: 'ImageAnalysisService',
-      });
+      logger.warn(
+        'Google Vision circuit breaker open, skipping image analysis',
+        {
+          service: 'ImageAnalysisService',
+        }
+      );
       return null;
     }
 
@@ -178,7 +200,9 @@ export class ImageAnalysisService {
         service: 'ImageAnalysisService',
         invalidUrls: urlValidation.invalid,
       });
-      throw new Error(`Invalid image URLs: ${urlValidation.invalid.map((i: { url: string; error: string }) => i.error).join(', ')}`);
+      throw new Error(
+        `Invalid image URLs: ${urlValidation.invalid.map((i: { url: string; error: string }) => i.error).join(', ')}`
+      );
     }
 
     // Use only validated URLs
@@ -209,19 +233,30 @@ export class ImageAnalysisService {
               (async () => {
                 try {
                   return await this.retryCall(async () => {
-                    const labelPromise = client.labelDetection({ image: { source: { imageUri: imageUrl } } });
+                    const labelPromise = client.labelDetection({
+                      image: { source: { imageUri: imageUrl } },
+                    });
                     const timeoutPromise = new Promise<never>((_, reject) =>
-                      setTimeout(() => reject(new Error('Label detection timeout')), API_TIMEOUT_MS)
+                      setTimeout(
+                        () => reject(new Error('Label detection timeout')),
+                        API_TIMEOUT_MS
+                      )
                     );
-                    const [result] = await Promise.race([labelPromise, timeoutPromise]) as [Record<string, unknown>];
+                    const [result] = (await Promise.race([
+                      labelPromise,
+                      timeoutPromise,
+                    ])) as [Record<string, unknown>];
                     return result;
                   }, 'labelDetection');
                 } catch (error: unknown) {
                   const err = error as Error;
-                  logger.warn('Label detection failed for image after retries', {
-                    imageUrl,
-                    error: err?.message || 'Unknown error',
-                  });
+                  logger.warn(
+                    'Label detection failed for image after retries',
+                    {
+                      imageUrl,
+                      error: err?.message || 'Unknown error',
+                    }
+                  );
                   return null;
                 }
               })(),
@@ -231,22 +266,36 @@ export class ImageAnalysisService {
                 if (!client.objectLocalization) {
                   return null;
                 }
-                const objectLocalizationFn = client.objectLocalization.bind(client);
+                const objectLocalizationFn =
+                  client.objectLocalization.bind(client);
                 try {
                   return await this.retryCall(async () => {
-                    const objectPromise = objectLocalizationFn({ image: { source: { imageUri: imageUrl } } });
+                    const objectPromise = objectLocalizationFn({
+                      image: { source: { imageUri: imageUrl } },
+                    });
                     const timeoutPromise = new Promise<never>((_, reject) =>
-                      setTimeout(() => reject(new Error('Object localization timeout')), API_TIMEOUT_MS)
+                      setTimeout(
+                        () => reject(new Error('Object localization timeout')),
+                        API_TIMEOUT_MS
+                      )
                     );
-                    const objectLocalizationResult = await Promise.race([objectPromise, timeoutPromise]) as [Record<string, unknown>] | null;
-                    return objectLocalizationResult ? objectLocalizationResult[0] : null;
+                    const objectLocalizationResult = (await Promise.race([
+                      objectPromise,
+                      timeoutPromise,
+                    ])) as [Record<string, unknown>] | null;
+                    return objectLocalizationResult
+                      ? objectLocalizationResult[0]
+                      : null;
                   }, 'objectLocalization');
                 } catch (error: unknown) {
                   const err = error as Error;
-                  logger.warn('Object localization failed for image after retries', {
-                    imageUrl,
-                    error: err?.message || 'Unknown error',
-                  });
+                  logger.warn(
+                    'Object localization failed for image after retries',
+                    {
+                      imageUrl,
+                      error: err?.message || 'Unknown error',
+                    }
+                  );
                   return null;
                 }
               })(),
@@ -255,11 +304,19 @@ export class ImageAnalysisService {
               (async () => {
                 try {
                   return await this.retryCall(async () => {
-                    const textPromise = client.textDetection({ image: { source: { imageUri: imageUrl } } });
+                    const textPromise = client.textDetection({
+                      image: { source: { imageUri: imageUrl } },
+                    });
                     const timeoutPromise = new Promise<never>((_, reject) =>
-                      setTimeout(() => reject(new Error('Text detection timeout')), API_TIMEOUT_MS)
+                      setTimeout(
+                        () => reject(new Error('Text detection timeout')),
+                        API_TIMEOUT_MS
+                      )
                     );
-                    const [result] = await Promise.race([textPromise, timeoutPromise]) as [Record<string, unknown>];
+                    const [result] = (await Promise.race([
+                      textPromise,
+                      timeoutPromise,
+                    ])) as [Record<string, unknown>];
                     return result;
                   }, 'textDetection');
                 } catch (error: unknown) {
@@ -276,42 +333,80 @@ export class ImageAnalysisService {
             return { imageUrl, labelResult, objectResult, textResult };
           } catch (error: unknown) {
             const err = error as Error;
-            logger.warn('Failed to analyze image - continuing with next image', {
+            logger.warn(
+              'Failed to analyze image - continuing with next image',
+              {
+                imageUrl,
+                error: err?.message || 'Unknown error',
+                errorType: err?.constructor?.name,
+              }
+            );
+            return {
               imageUrl,
-              error: err?.message || 'Unknown error',
-              errorType: err?.constructor?.name,
-            });
-            return { imageUrl, labelResult: null, objectResult: null, textResult: null };
+              labelResult: null,
+              objectResult: null,
+              textResult: null,
+            };
           }
         })
       );
 
       // Process all results (maintains exact same aggregation logic)
-      for (const { imageUrl, labelResult, objectResult, textResult } of imageResults) {
+      for (const {
+        imageUrl,
+        labelResult,
+        objectResult,
+        textResult,
+      } of imageResults) {
         // Process labels (only if we got results)
         if (labelResult?.labelAnnotations) {
-          (labelResult.labelAnnotations as Array<Record<string, unknown>>).forEach((label: Record<string, unknown>) => {
+          (
+            labelResult.labelAnnotations as Array<Record<string, unknown>>
+          ).forEach((label: Record<string, unknown>) => {
             if (label.description && label.score) {
-              const existingScore = allLabels.get(label.description as string) || 0;
-              allLabels.set(label.description as string, Math.max(existingScore, label.score as number));
+              const existingScore =
+                allLabels.get(label.description as string) || 0;
+              allLabels.set(
+                label.description as string,
+                Math.max(existingScore, label.score as number)
+              );
             }
           });
         }
 
         // Process objects (only if we got results)
         if (objectResult?.localizedObjectAnnotations) {
-          (objectResult.localizedObjectAnnotations as Array<Record<string, unknown>>).forEach((obj: Record<string, unknown>) => {
+          (
+            objectResult.localizedObjectAnnotations as Array<
+              Record<string, unknown>
+            >
+          ).forEach((obj: Record<string, unknown>) => {
             if (obj.name && obj.score) {
               const existingScore = allObjects.get(obj.name as string) || 0;
-              allObjects.set(obj.name as string, Math.max(existingScore, obj.score as number));
+              allObjects.set(
+                obj.name as string,
+                Math.max(existingScore, obj.score as number)
+              );
             }
           });
         }
 
         // Process text (OCR) (only if we got results)
-        if (textResult?.textAnnotations && (textResult.textAnnotations as Array<Record<string, unknown>>).length > 0) {
+        if (
+          textResult?.textAnnotations &&
+          (textResult.textAnnotations as Array<Record<string, unknown>>)
+            .length > 0
+        ) {
           // Skip the first annotation (full text block)
-          const textLines = (textResult.textAnnotations as Array<Record<string, unknown>>).slice(1).map((ann: Record<string, unknown>) => (ann.description as string) || '').filter(Boolean);
+          const textLines = (
+            textResult.textAnnotations as Array<Record<string, unknown>>
+          )
+            .slice(1)
+            .map(
+              (ann: Record<string, unknown>) =>
+                (ann.description as string) || ''
+            )
+            .filter(Boolean);
           allText.push(...textLines);
         }
       }
@@ -338,7 +433,11 @@ export class ImageAnalysisService {
         .slice(0, 15); // Top 15 objects
 
       // Extract detected features relevant to maintenance/repair
-      const maintenanceKeywords = extractMaintenanceFeatures(labels, objects, allText);
+      const maintenanceKeywords = extractMaintenanceFeatures(
+        labels,
+        objects,
+        allText
+      );
 
       // Determine property type, condition, and complexity
       const propertyType = detectPropertyType(labels, objects);
@@ -346,10 +445,18 @@ export class ImageAnalysisService {
       const complexity = assessComplexity(labels, objects, allText);
 
       // Suggest categories based on visual evidence
-      const suggestedCategories = suggestCategoriesFromImages(labels, objects, allText);
+      const suggestedCategories = suggestCategoriesFromImages(
+        labels,
+        objects,
+        allText
+      );
 
       // Estimate cost factors
-      const estimatedCostFactors = estimateCostFactors(condition, complexity, propertyType);
+      const estimatedCostFactors = estimateCostFactors(
+        condition,
+        complexity,
+        propertyType
+      );
 
       // Calculate overall confidence
       const confidence = calculateConfidence(labels, objects);
@@ -392,7 +499,7 @@ export class ImageAnalysisService {
   private static async retryCall<T>(
     fn: () => Promise<T>,
     label: string,
-    maxRetries = 2,
+    maxRetries = 2
   ): Promise<T> {
     let lastError: Error | null = null;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -402,11 +509,14 @@ export class ImageAnalysisService {
         lastError = error instanceof Error ? error : new Error(String(error));
         if (attempt < maxRetries) {
           const delay = 1000 * Math.pow(2, attempt); // 1s, 2s
-          logger.warn(`Vision API ${label} failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms`, {
-            service: 'ImageAnalysisService',
-            error: lastError.message,
-          });
-          await new Promise(resolve => setTimeout(resolve, delay));
+          logger.warn(
+            `Vision API ${label} failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms`,
+            {
+              service: 'ImageAnalysisService',
+              error: lastError.message,
+            }
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
         }
       }
     }

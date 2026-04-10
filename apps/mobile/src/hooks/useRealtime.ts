@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { RealtimeService, RealtimeCallback } from '../services/RealtimeService';
 
-export const useJobUpdates = (jobId: string, callback: RealtimeCallback) => {
+const useJobUpdates = (jobId: string, callback: RealtimeCallback) => {
   const callbackRef = useRef(callback);
 
   // Update callback ref when callback changes
@@ -21,7 +21,7 @@ export const useJobUpdates = (jobId: string, callback: RealtimeCallback) => {
   }, [jobId]);
 };
 
-export const useContractorBids = (
+const useContractorBids = (
   contractorId: string,
   callback: RealtimeCallback
 ) => {
@@ -43,10 +43,7 @@ export const useContractorBids = (
   }, [contractorId]);
 };
 
-export const useHomeownerJobs = (
-  homeownerId: string,
-  callback: RealtimeCallback
-) => {
+const useHomeownerJobs = (homeownerId: string, callback: RealtimeCallback) => {
   const callbackRef = useRef(callback);
 
   useEffect(() => {
@@ -65,7 +62,7 @@ export const useHomeownerJobs = (
   }, [homeownerId]);
 };
 
-export const useAvailableJobs = (callback: RealtimeCallback) => {
+const useAvailableJobs = (callback: RealtimeCallback) => {
   const callbackRef = useRef(callback);
 
   useEffect(() => {

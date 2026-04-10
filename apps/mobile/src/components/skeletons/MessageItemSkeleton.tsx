@@ -14,7 +14,7 @@ import { View, StyleSheet } from 'react-native';
 import { Skeleton, SkeletonAvatar, SkeletonGroup } from './Skeleton';
 import { theme } from '../../theme';
 
-export interface MessageItemSkeletonProps {
+interface MessageItemSkeletonProps {
   /**
    * Number of message items to render
    * @default 5
@@ -46,8 +46,8 @@ const SingleMessageItemSkeleton: React.FC<{ showUnread?: boolean }> = ({
 
         {/* Message Preview */}
         <SkeletonGroup gap={6} style={styles.preview}>
-          <Skeleton width="100%" height={14} borderRadius={6} />
-          <Skeleton width="70%" height={14} borderRadius={6} />
+          <Skeleton width='100%' height={14} borderRadius={6} />
+          <Skeleton width='70%' height={14} borderRadius={6} />
         </SkeletonGroup>
 
         {/* Tags/Status */}
@@ -59,7 +59,12 @@ const SingleMessageItemSkeleton: React.FC<{ showUnread?: boolean }> = ({
 
       {/* Unread Indicator */}
       {showUnread && (
-        <Skeleton width={8} height={8} borderRadius={4} style={styles.unreadDot} />
+        <Skeleton
+          width={8}
+          height={8}
+          borderRadius={4}
+          style={styles.unreadDot}
+        />
       )}
     </View>
   );

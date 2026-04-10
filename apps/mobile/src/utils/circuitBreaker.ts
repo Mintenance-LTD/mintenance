@@ -21,7 +21,7 @@ export interface CircuitBreakerConfig {
   fallbackFunction?: () => unknown; // Fallback when circuit is open
 }
 
-export interface CircuitBreakerMetrics {
+interface CircuitBreakerMetrics {
   totalRequests: number;
   successfulRequests: number;
   failedRequests: number;

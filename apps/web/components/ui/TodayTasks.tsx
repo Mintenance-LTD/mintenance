@@ -5,7 +5,7 @@ import { theme } from '@/lib/theme';
 import Link from 'next/link';
 import { StatusBadge } from '@/components/ui/figma';
 
-export interface Task {
+interface Task {
   id: string;
   title: string;
   status: 'approved' | 'in_review' | 'on_going' | 'pending';
@@ -18,9 +18,15 @@ interface TodayTasksProps {
   taskUrlPattern?: string; // e.g., '/jobs/{id}' or '/contractor/jobs/{id}'
 }
 
-export function TodayTasks({ tasks, onToggleTask, taskUrlPattern = '/jobs/{id}' }: TodayTasksProps) {
+export function TodayTasks({
+  tasks,
+  onToggleTask,
+  taskUrlPattern = '/jobs/{id}',
+}: TodayTasksProps) {
   const getUrl = (id: string) => taskUrlPattern.replace('{id}', id);
-  const [activeTab, setActiveTab] = useState<'all' | 'important' | 'notes' | 'links'>('all');
+  const [activeTab, setActiveTab] = useState<
+    'all' | 'important' | 'notes' | 'links'
+  >('all');
 
   const tabs = [
     { id: 'all', label: 'All', count: tasks.length },
@@ -31,12 +37,12 @@ export function TodayTasks({ tasks, onToggleTask, taskUrlPattern = '/jobs/{id}' 
 
   return (
     <div>
-      <h2 className="text-subheading-md font-[560] text-gray-900 mb-6 tracking-normal">
+      <h2 className='text-subheading-md font-[560] text-gray-900 mb-6 tracking-normal'>
         Today Tasks
       </h2>
 
       {/* Tabs */}
-      <div className="flex gap-4 mb-6 border-b border-gray-200">
+      <div className='flex gap-4 mb-6 border-b border-gray-200'>
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -69,12 +75,12 @@ export function TodayTasks({ tasks, onToggleTask, taskUrlPattern = '/jobs/{id}' 
       </div>
 
       {/* Task List */}
-      <div className="flex flex-col gap-3">
+      <div className='flex flex-col gap-3'>
         {tasks.map((task) => {
           return (
             <div
               key={task.id}
-              className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors duration-200 cursor-pointer group"
+              className='flex items-center gap-4 p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors duration-200 cursor-pointer group'
             >
               {/* Checkbox */}
               <button
@@ -93,18 +99,18 @@ export function TodayTasks({ tasks, onToggleTask, taskUrlPattern = '/jobs/{id}' 
               >
                 {task.completed && (
                   <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 14 14"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
+                    width='14'
+                    height='14'
+                    viewBox='0 0 14 14'
+                    fill='none'
+                    xmlns='http://www.w3.org/2000/svg'
                   >
                     <path
-                      d="M11.6667 3.5L5.25 9.91667L2.33333 7"
-                      stroke="white"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                      d='M11.6667 3.5L5.25 9.91667L2.33333 7'
+                      stroke='white'
+                      strokeWidth='2'
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
                     />
                   </svg>
                 )}
@@ -131,18 +137,28 @@ export function TodayTasks({ tasks, onToggleTask, taskUrlPattern = '/jobs/{id}' 
               </Link>
 
               {/* Status Badge */}
-              <StatusBadge status={task.status as 'completed' | 'delayed' | 'at_risk' | 'on_going' | 'posted' | 'pending'} />
+              <StatusBadge
+                status={
+                  task.status as
+                    | 'completed'
+                    | 'delayed'
+                    | 'at_risk'
+                    | 'on_going'
+                    | 'posted'
+                    | 'pending'
+                }
+              />
             </div>
           );
         })}
       </div>
 
       {tasks.length === 0 && (
-        <div className="p-8 text-center">
-          <p className="text-base font-[460] text-gray-700 mb-1 leading-[1.5]">
+        <div className='p-8 text-center'>
+          <p className='text-base font-[460] text-gray-700 mb-1 leading-[1.5]'>
             No tasks for today. You're all caught up!
           </p>
-          <p className="text-sm font-[460] text-gray-500 leading-[1.5]">
+          <p className='text-sm font-[460] text-gray-500 leading-[1.5]'>
             New tasks will appear here as they're assigned
           </p>
         </div>

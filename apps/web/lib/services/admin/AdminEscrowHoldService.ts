@@ -55,7 +55,7 @@ interface ApprovalHistoryRecord {
   created_at: string;
 }
 
-export interface EscrowReview {
+interface EscrowReview {
   id: string;
   escrowId: string;
   jobId: string;
@@ -74,7 +74,7 @@ export interface EscrowReview {
   createdAt: string;
 }
 
-export interface EscrowReviewDetails extends EscrowReview {
+interface EscrowReviewDetails extends EscrowReview {
   beforePhotos: string[];
   afterPhotos: string[];
   photoVerificationScore: number | null;
@@ -174,14 +174,18 @@ export class AdminEscrowHoldService {
       };
 
       // If homeowner has approved and photos are verified, can proceed to release
-      if (escrow.homeowner_approval && escrow.photo_verification_status === 'verified') {
+      if (
+        escrow.homeowner_approval &&
+        escrow.photo_verification_status === 'verified'
+      ) {
         // Update status to ready for release (will be handled by release flow)
         updateData.status = 'held'; // Back to held, ready for release
         updateData.release_blocked_reason = null;
       } else {
         // Still waiting for homeowner approval or photo verification
         updateData.status = 'admin_review';
-        updateData.release_blocked_reason = 'Waiting for homeowner approval and photo verification';
+        updateData.release_blocked_reason =
+          'Waiting for homeowner approval and photo verification';
       }
 
       const { error } = await serverSupabase
@@ -268,7 +272,9 @@ export class AdminEscrowHoldService {
   /**
    * Get escrows pending admin review
    */
-  static async getPendingAdminReviews(limit: number = 50): Promise<EscrowReview[]> {
+  static async getPendingAdminReviews(
+    limit: number = 50
+  ): Promise<EscrowReview[]> {
     try {
       const { data, error } = await serverSupabase
         .from('escrow_transactions')
@@ -333,7 +339,10 @@ export class AdminEscrowHoldService {
             ? `${homeowner.first_name} ${homeowner.last_name}`
             : 'Unknown',
           amount: typedEscrow.amount || 0,
-          adminHoldStatus: typedEscrow.admin_hold_status as 'pending_review' | 'admin_hold' | 'admin_approved',
+          adminHoldStatus: typedEscrow.admin_hold_status as
+            | 'pending_review'
+            | 'admin_hold'
+            | 'admin_approved',
           adminHoldReason: typedEscrow.admin_hold_reason,
           adminHoldAt: typedEscrow.admin_hold_at,
           adminHoldBy: typedEscrow.admin_hold_by,
@@ -353,7 +362,9 @@ export class AdminEscrowHoldService {
   /**
    * Get detailed review information for an escrow
    */
-  static async getEscrowReviewDetails(escrowId: string): Promise<EscrowReviewDetails> {
+  static async getEscrowReviewDetails(
+    escrowId: string
+  ): Promise<EscrowReviewDetails> {
     try {
       // Get escrow with all related data
       const { data: escrow, error: escrowError } = await serverSupabase
@@ -412,7 +423,8 @@ export class AdminEscrowHoldService {
 
       // Get estimated release date
       const statusInfo = await EscrowStatusService.getCurrentStatus(escrowId);
-      const estimatedReleaseDate = await EscrowStatusService.getEstimatedReleaseDate(escrowId);
+      const estimatedReleaseDate =
+        await EscrowStatusService.getEstimatedReleaseDate(escrowId);
 
       return {
         id: escrow.id,
@@ -428,7 +440,10 @@ export class AdminEscrowHoldService {
           ? `${homeowner.first_name} ${homeowner.last_name}`
           : 'Unknown',
         amount: escrow.amount || 0,
-        adminHoldStatus: escrow.admin_hold_status as 'pending_review' | 'admin_hold' | 'admin_approved',
+        adminHoldStatus: escrow.admin_hold_status as
+          | 'pending_review'
+          | 'admin_hold'
+          | 'admin_approved',
         adminHoldReason: escrow.admin_hold_reason,
         adminHoldAt: escrow.admin_hold_at,
         adminHoldBy: escrow.admin_hold_by,
@@ -442,11 +457,13 @@ export class AdminEscrowHoldService {
         geolocationVerified: escrow.geolocation_verified || false,
         timestampVerified: escrow.timestamp_verified || false,
         photoQualityPassed: escrow.photo_quality_passed || false,
-        homeownerApprovalHistory: (approvalHistory || []).map((h: ApprovalHistoryRecord) => ({
-          action: h.action,
-          comments: h.comments,
-          createdAt: h.created_at,
-        })),
+        homeownerApprovalHistory: (approvalHistory || []).map(
+          (h: ApprovalHistoryRecord) => ({
+            action: h.action,
+            comments: h.comments,
+            createdAt: h.created_at,
+          })
+        ),
         trustScore: escrow.trust_score,
         releaseBlockedReason: escrow.release_blocked_reason,
         estimatedReleaseDate: estimatedReleaseDate?.toISOString() || null,
@@ -460,4 +477,3 @@ export class AdminEscrowHoldService {
     }
   }
 }
-

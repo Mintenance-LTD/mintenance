@@ -33,7 +33,7 @@ export interface ErrorContext {
   metadata?: Record<string, unknown>;
 }
 
-export interface StandardError {
+interface StandardError {
   id: string;
   message: string;
   userMessage: string;
@@ -118,7 +118,10 @@ export class ErrorHandlingService {
   /**
    * Classify unknown errors into standard format
    */
-  private static classifyError(error: Error, context: ErrorContext): StandardError {
+  private static classifyError(
+    error: Error,
+    context: ErrorContext
+  ): StandardError {
     const errorMessage = error.message.toLowerCase();
 
     // Network errors
@@ -163,7 +166,7 @@ export class ErrorHandlingService {
     ) {
       return this.createError(
         error.message,
-        'You don\'t have permission to perform this action.',
+        "You don't have permission to perform this action.",
         ErrorCategory.AUTHORIZATION,
         ErrorSeverity.MEDIUM,
         context,
@@ -247,7 +250,15 @@ export class ErrorHandlingService {
     const title = this.getAlertTitle(error.category, error.severity);
     const buttons = this.getAlertButtons(error);
 
-    Alert.alert(title, error.userMessage, buttons as { text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }[]);
+    Alert.alert(
+      title,
+      error.userMessage,
+      buttons as {
+        text: string;
+        onPress?: () => void;
+        style?: 'default' | 'cancel' | 'destructive';
+      }[]
+    );
   }
 
   /**
@@ -403,7 +414,7 @@ export class ErrorHandlingService {
 /**
  * Quick error handler for common use cases
  */
-export const handleError = (
+const handleError = (
   error: Error | StandardError,
   context?: ErrorContext,
   showAlert = true
@@ -412,25 +423,25 @@ export const handleError = (
 /**
  * Network error handler
  */
-export const handleNetworkError = (error: Error, context?: ErrorContext) =>
+const handleNetworkError = (error: Error, context?: ErrorContext) =>
   ErrorHandlingService.handleNetworkError(error, context);
 
 /**
  * Validation error handler
  */
-export const handleValidationError = (messages: string[], context?: ErrorContext) =>
+const handleValidationError = (messages: string[], context?: ErrorContext) =>
   ErrorHandlingService.handleValidationError(messages, context);
 
 /**
  * Authentication error handler
  */
-export const handleAuthError = (error: Error, context?: ErrorContext) =>
+const handleAuthError = (error: Error, context?: ErrorContext) =>
   ErrorHandlingService.handleAuthenticationError(error, context);
 
 /**
  * Business logic error handler
  */
-export const handleBusinessError = (
+const handleBusinessError = (
   message: string,
   userMessage: string,
   context?: ErrorContext

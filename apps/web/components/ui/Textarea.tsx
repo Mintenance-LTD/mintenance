@@ -5,7 +5,10 @@ import { theme } from '@/lib/theme';
 
 type TextareaVariant = 'default' | 'focused' | 'error';
 
-export interface TextareaProps extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'size'> {
+interface TextareaProps extends Omit<
+  React.TextareaHTMLAttributes<HTMLTextAreaElement>,
+  'size'
+> {
   containerClassName?: string;
   containerStyle?: React.CSSProperties;
   variant?: TextareaVariant;
@@ -18,27 +21,31 @@ export interface TextareaProps extends Omit<React.TextareaHTMLAttributes<HTMLTex
 }
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({
-    containerClassName = '',
-    containerStyle = {},
-    className = '',
-    style = {},
-    variant: propVariant,
-    label,
-    size = 'md',
-    fullWidth = false,
-    required = false,
-    errorText,
-    helperText,
-    onFocus,
-    onBlur,
-    ...props
-  }, ref) => {
+  (
+    {
+      containerClassName = '',
+      containerStyle = {},
+      className = '',
+      style = {},
+      variant: propVariant,
+      label,
+      size = 'md',
+      fullWidth = false,
+      required = false,
+      errorText,
+      helperText,
+      onFocus,
+      onBlur,
+      ...props
+    },
+    ref
+  ) => {
     const [isFocused, setIsFocused] = useState(false);
     const [hasError] = useState(!!errorText);
 
     // Determine variant based on state
-    const variant = propVariant || (hasError ? 'error' : (isFocused ? 'focused' : 'default'));
+    const variant =
+      propVariant || (hasError ? 'error' : isFocused ? 'focused' : 'default');
     const variantStyles = theme.components.input[variant];
 
     const containerStyles: React.CSSProperties = {
@@ -51,9 +58,18 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
 
     // Normalize style prop to avoid mixing shorthand and non-shorthand border properties
     // Remove all border-related properties from incoming style since we use separate border properties
-    const borderProperties = ['border', 'borderWidth', 'borderStyle', 'borderColor', 'borderTop', 'borderRight', 'borderBottom', 'borderLeft'];
+    const borderProperties = [
+      'border',
+      'borderWidth',
+      'borderStyle',
+      'borderColor',
+      'borderTop',
+      'borderRight',
+      'borderBottom',
+      'borderLeft',
+    ];
     const normalizedStyle: React.CSSProperties = { ...style };
-    borderProperties.forEach(prop => {
+    borderProperties.forEach((prop) => {
       if (prop in normalizedStyle) {
         delete (normalizedStyle as Record<string, unknown>)[prop];
       }
@@ -84,10 +100,13 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       ...normalizedStyle,
     };
 
-    const focusStyles: React.CSSProperties = variant === 'focused' ? {
-      borderColor: theme.components.input.focused.borderColor,
-      boxShadow: theme.components.input.focused.boxShadow,
-    } : {};
+    const focusStyles: React.CSSProperties =
+      variant === 'focused'
+        ? {
+            borderColor: theme.components.input.focused.borderColor,
+            boxShadow: theme.components.input.focused.boxShadow,
+          }
+        : {};
 
     const labelStyles: React.CSSProperties = {
       fontSize: theme.typography.fontSize.sm,
@@ -117,7 +136,10 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     };
 
     return (
-      <div className={`textarea-container ${containerClassName}`} style={containerStyles}>
+      <div
+        className={`textarea-container ${containerClassName}`}
+        style={containerStyles}
+      >
         {label && (
           <label style={labelStyles}>
             {label}
@@ -136,23 +158,23 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           onBlur={handleBlur}
           aria-invalid={hasError}
           aria-describedby={
-            (errorText || helperText) ? `${props.id || 'textarea'}-helper` : undefined
+            errorText || helperText
+              ? `${props.id || 'textarea'}-helper`
+              : undefined
           }
           {...props}
         />
 
         {(errorText || helperText) && (
-          <div
-            id={`${props.id || 'textarea'}-helper`}
-            style={helperTextStyles}
-          >
+          <div id={`${props.id || 'textarea'}-helper`} style={helperTextStyles}>
             {errorText || helperText}
           </div>
         )}
 
         <style jsx>{`
           .textarea::placeholder {
-            color: ${variantStyles.placeholderColor || theme.colors.placeholder};
+            color: ${variantStyles.placeholderColor ||
+            theme.colors.placeholder};
           }
 
           .textarea:focus {
@@ -171,5 +193,3 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
 );
 
 Textarea.displayName = 'Textarea';
-
-export default Textarea;

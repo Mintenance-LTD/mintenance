@@ -7,9 +7,7 @@ interface QuickActionsProps {
   onStartVideoCapture: () => void;
 }
 
-export const QuickActions: React.FC<QuickActionsProps> = ({
-  onStartVideoCapture,
-}) => {
+const QuickActions: React.FC<QuickActionsProps> = ({ onStartVideoCapture }) => {
   return (
     <View style={styles.quickActions}>
       <TouchableOpacity

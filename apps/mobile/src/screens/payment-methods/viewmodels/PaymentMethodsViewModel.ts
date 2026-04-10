@@ -21,7 +21,7 @@ export interface PaymentMethod {
   isDefault?: boolean;
 }
 
-export interface SavedCard {
+interface SavedCard {
   id: string;
   brand: string;
   last4: string;
@@ -37,7 +37,7 @@ export interface CardDetails {
   cvv: string;
 }
 
-export interface PaymentMethodsViewModel {
+interface PaymentMethodsViewModel {
   selectedMethod: string | null;
   paymentMethods: PaymentMethod[];
   savedCards: SavedCard[];
@@ -90,7 +90,8 @@ export const usePaymentMethodsViewModel = (): PaymentMethodsViewModel => {
         setSelectedMethod(defaultCard.id);
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to load payment methods';
+      const msg =
+        err instanceof Error ? err.message : 'Failed to load payment methods';
       setError(msg);
       logger.error('Failed to fetch payment methods', err);
     } finally {
@@ -106,18 +107,21 @@ export const usePaymentMethodsViewModel = (): PaymentMethodsViewModel => {
     setSelectedMethod(methodId);
   }, []);
 
-  const deleteCard = useCallback(async (cardId: string) => {
-    try {
-      const result = await PaymentService.deletePaymentMethod(cardId);
-      if (result.error) throw new Error(result.error);
-      setSavedCards((prev) => prev.filter((c) => c.id !== cardId));
-      if (selectedMethod === cardId) setSelectedMethod(null);
-      logger.info('Card deleted', { cardId });
-    } catch (err) {
-      logger.error('Failed to delete card', err);
-      throw err;
-    }
-  }, [selectedMethod]);
+  const deleteCard = useCallback(
+    async (cardId: string) => {
+      try {
+        const result = await PaymentService.deletePaymentMethod(cardId);
+        if (result.error) throw new Error(result.error);
+        setSavedCards((prev) => prev.filter((c) => c.id !== cardId));
+        if (selectedMethod === cardId) setSelectedMethod(null);
+        logger.info('Card deleted', { cardId });
+      } catch (err) {
+        logger.error('Failed to delete card', err);
+        throw err;
+      }
+    },
+    [selectedMethod]
+  );
 
   const setDefaultCard = useCallback(async (cardId: string) => {
     try {

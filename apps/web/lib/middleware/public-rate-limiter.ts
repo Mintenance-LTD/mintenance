@@ -58,7 +58,7 @@ function getClientIdentifier(request: NextRequest): string {
 /**
  * Check rate limit for a given tier
  */
-export function checkPublicRateLimit(
+function checkPublicRateLimit(
   request: NextRequest,
   tier: keyof typeof RATE_LIMITS = 'public'
 ): {
@@ -160,7 +160,7 @@ export function checkPublicRateLimit(
 /**
  * Create rate limit response headers
  */
-export function createPublicRateLimitHeaders(result: {
+function createPublicRateLimitHeaders(result: {
   remaining: number;
   resetTime: number;
   retryAfter?: number;
@@ -224,7 +224,7 @@ export async function withPublicRateLimit(
 /**
  * Cleanup expired rate limit records (call periodically)
  */
-export function cleanupRateLimitStore(): void {
+function cleanupRateLimitStore(): void {
   const now = Date.now();
   let cleaned = 0;
 

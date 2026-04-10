@@ -5,25 +5,44 @@ import { theme } from '../../theme';
 
 type BannerVariant = 'error' | 'success' | 'info';
 
-export interface BannerProps {
+interface BannerProps {
   message: string;
   variant?: BannerVariant;
   testID?: string;
 }
 
-const variantConfig: Record<BannerVariant, { icon: string; background: string; text: string }> = {
+const variantConfig: Record<
+  BannerVariant,
+  { icon: string; background: string; text: string }
+> = {
   error: { icon: 'alert-circle', background: '#FEE2E2', text: '#991B1B' },
-  success: { icon: 'checkmark-circle', background: theme.colors.primaryLight, text: '#065F46' },
+  success: {
+    icon: 'checkmark-circle',
+    background: theme.colors.primaryLight,
+    text: '#065F46',
+  },
   info: { icon: 'information-circle', background: '#DBEAFE', text: '#1E40AF' },
 };
 
-export const Banner: React.FC<BannerProps> = ({ message, variant = 'info', testID }) => {
+export const Banner: React.FC<BannerProps> = ({
+  message,
+  variant = 'info',
+  testID,
+}) => {
   if (!message) return null;
   const config = variantConfig[variant];
 
   return (
-    <View style={[styles.container, { backgroundColor: config.background }]} testID={testID}>
-      <Ionicons name={config.icon as keyof typeof Ionicons.glyphMap} size={18} color={config.text} accessibilityElementsHidden />
+    <View
+      style={[styles.container, { backgroundColor: config.background }]}
+      testID={testID}
+    >
+      <Ionicons
+        name={config.icon as keyof typeof Ionicons.glyphMap}
+        size={18}
+        color={config.text}
+        accessibilityElementsHidden
+      />
       <Text style={[styles.message, { color: config.text }]}>{message}</Text>
     </View>
   );

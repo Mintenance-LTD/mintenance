@@ -51,7 +51,7 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
     >
       {animation === 'wave' && (
         <div
-          className="skeleton-wave-shimmer"
+          className='skeleton-wave-shimmer'
           style={{
             position: 'absolute',
             top: 0,
@@ -72,13 +72,22 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: theme.spacing[2],
+      }}
+    >
       {Array.from({ length: count }, (_, index) => (
         <React.Fragment key={index}>
           {React.cloneElement(skeletonElement, {
             style: {
               ...skeletonElement.props.style,
-              width: variant === 'text' ? `${Math.random() * 40 + 60}%` : skeletonElement.props.style?.width,
+              width:
+                variant === 'text'
+                  ? `${Math.random() * 40 + 60}%`
+                  : skeletonElement.props.style?.width,
             },
           })}
         </React.Fragment>
@@ -88,10 +97,10 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
 };
 
 // Predefined skeleton components for common use cases
-export const SkeletonCard: React.FC<{ className?: string; style?: React.CSSProperties }> = ({
-  className = '',
-  style = {},
-}) => (
+export const SkeletonCard: React.FC<{
+  className?: string;
+  style?: React.CSSProperties;
+}> = ({ className = '', style = {} }) => (
   <div
     className={`skeleton-card ${className}`}
     style={{
@@ -103,16 +112,30 @@ export const SkeletonCard: React.FC<{ className?: string; style?: React.CSSPrope
       ...style,
     }}
   >
-    <SkeletonLoader variant="circular" width={40} height={40} style={{ marginBottom: theme.spacing[3] }} />
-    <SkeletonLoader variant="text" height={16} style={{ marginBottom: theme.spacing[2] }} />
-    <SkeletonLoader variant="text" height={16} width="80%" style={{ marginBottom: theme.spacing[2] }} />
-    <SkeletonLoader variant="text" height={16} width="60%" />
+    <SkeletonLoader
+      variant='circular'
+      width={40}
+      height={40}
+      style={{ marginBottom: theme.spacing[3] }}
+    />
+    <SkeletonLoader
+      variant='text'
+      height={16}
+      style={{ marginBottom: theme.spacing[2] }}
+    />
+    <SkeletonLoader
+      variant='text'
+      height={16}
+      width='80%'
+      style={{ marginBottom: theme.spacing[2] }}
+    />
+    <SkeletonLoader variant='text' height={16} width='60%' />
   </div>
 );
 
-export const SkeletonList: React.FC<{ 
-  count?: number; 
-  className?: string; 
+export const SkeletonList: React.FC<{
+  count?: number;
+  className?: string;
   style?: React.CSSProperties;
 }> = ({ count = 3, className = '', style = {} }) => (
   <div className={`skeleton-list ${className}`} style={style}>
@@ -126,45 +149,69 @@ export const SkeletonList: React.FC<{
           borderBottom: `1px solid ${theme.colors.border}`,
         }}
       >
-        <SkeletonLoader variant="circular" width={32} height={32} style={{ marginRight: theme.spacing[3] }} />
+        <SkeletonLoader
+          variant='circular'
+          width={32}
+          height={32}
+          style={{ marginRight: theme.spacing[3] }}
+        />
         <div style={{ flex: 1 }}>
-          <SkeletonLoader variant="text" height={14} style={{ marginBottom: theme.spacing[1] }} />
-          <SkeletonLoader variant="text" height={12} width="70%" />
+          <SkeletonLoader
+            variant='text'
+            height={14}
+            style={{ marginBottom: theme.spacing[1] }}
+          />
+          <SkeletonLoader variant='text' height={12} width='70%' />
         </div>
       </div>
     ))}
   </div>
 );
 
-export const SkeletonTable: React.FC<{ 
-  rows?: number; 
+export const SkeletonTable: React.FC<{
+  rows?: number;
   columns?: number;
-  className?: string; 
+  className?: string;
   style?: React.CSSProperties;
 }> = ({ rows = 5, columns = 4, className = '', style = {} }) => (
   <div className={`skeleton-table ${className}`} style={style}>
     {/* Header */}
-    <div style={{ display: 'flex', padding: theme.spacing[3], borderBottom: `2px solid ${theme.colors.border}` }}>
+    <div
+      style={{
+        display: 'flex',
+        padding: theme.spacing[3],
+        borderBottom: `2px solid ${theme.colors.border}`,
+      }}
+    >
       {Array.from({ length: columns }, (_, index) => (
         <SkeletonLoader
           key={index}
-          variant="text"
+          variant='text'
           height={16}
-          width="100%"
+          width='100%'
           style={{ marginRight: index < columns - 1 ? theme.spacing[4] : 0 }}
         />
       ))}
     </div>
     {/* Rows */}
     {Array.from({ length: rows }, (_, rowIndex) => (
-      <div key={rowIndex} style={{ display: 'flex', padding: theme.spacing[3], borderBottom: `1px solid ${theme.colors.border}` }}>
+      <div
+        key={rowIndex}
+        style={{
+          display: 'flex',
+          padding: theme.spacing[3],
+          borderBottom: `1px solid ${theme.colors.border}`,
+        }}
+      >
         {Array.from({ length: columns }, (_, colIndex) => (
           <SkeletonLoader
             key={colIndex}
-            variant="text"
+            variant='text'
             height={14}
-            width="100%"
-            style={{ marginRight: colIndex < columns - 1 ? theme.spacing[4] : 0 }}
+            width='100%'
+            style={{
+              marginRight: colIndex < columns - 1 ? theme.spacing[4] : 0,
+            }}
           />
         ))}
       </div>
@@ -172,13 +219,13 @@ export const SkeletonTable: React.FC<{
   </div>
 );
 
-export const SkeletonButton: React.FC<{ 
+const SkeletonButton: React.FC<{
   width?: string | number;
-  className?: string; 
+  className?: string;
   style?: React.CSSProperties;
 }> = ({ width = 120, className = '', style = {} }) => (
   <SkeletonLoader
-    variant="rectangular"
+    variant='rectangular'
     width={width}
     height={40}
     className={className}
@@ -189,13 +236,13 @@ export const SkeletonButton: React.FC<{
   />
 );
 
-export const SkeletonAvatar: React.FC<{ 
+const SkeletonAvatar: React.FC<{
   size?: number;
-  className?: string; 
+  className?: string;
   style?: React.CSSProperties;
 }> = ({ size = 40, className = '', style = {} }) => (
   <SkeletonLoader
-    variant="circular"
+    variant='circular'
     width={size}
     height={size}
     className={className}
@@ -203,16 +250,16 @@ export const SkeletonAvatar: React.FC<{
   />
 );
 
-export const SkeletonText: React.FC<{ 
+const SkeletonText: React.FC<{
   lines?: number;
-  className?: string; 
+  className?: string;
   style?: React.CSSProperties;
 }> = ({ lines = 3, className = '', style = {} }) => (
   <div className={`skeleton-text ${className}`} style={style}>
     {Array.from({ length: lines }, (_, index) => (
       <SkeletonLoader
         key={index}
-        variant="text"
+        variant='text'
         height={16}
         width={index === lines - 1 ? '60%' : '100%'}
         style={{ marginBottom: index < lines - 1 ? theme.spacing[2] : 0 }}
@@ -220,5 +267,3 @@ export const SkeletonText: React.FC<{
     ))}
   </div>
 );
-
-export default SkeletonLoader;

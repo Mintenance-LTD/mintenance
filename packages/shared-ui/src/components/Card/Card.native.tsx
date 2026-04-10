@@ -121,25 +121,25 @@ export const Card = React.forwardRef<View, NativeCardProps>(
 );
 Card.displayName = 'Card';
 // Card sub-components
-export interface CardHeaderProps {
+interface CardHeaderProps {
   children: React.ReactNode;
   style?: ViewStyle;
 }
-export const CardHeader: React.FC<CardHeaderProps> = ({ children, style }) => (
+const CardHeader: React.FC<CardHeaderProps> = ({ children, style }) => (
   <View style={[styles.header, style]}>{children}</View>
 );
-export interface CardBodyProps {
+interface CardBodyProps {
   children: React.ReactNode;
   style?: ViewStyle;
 }
-export const CardBody: React.FC<CardBodyProps> = ({ children, style }) => (
+const CardBody: React.FC<CardBodyProps> = ({ children, style }) => (
   <View style={[styles.body, style]}>{children}</View>
 );
-export interface CardFooterProps {
+interface CardFooterProps {
   children: React.ReactNode;
   style?: ViewStyle;
 }
-export const CardFooter: React.FC<CardFooterProps> = ({ children, style }) => (
+const CardFooter: React.FC<CardFooterProps> = ({ children, style }) => (
   <View style={[styles.footer, style]}>{children}</View>
 );
 // Style functions using design tokens
@@ -212,4 +212,3 @@ const styles = StyleSheet.create({
     borderTopColor: mobileTokens.colors.border,
   },
 });
-export default Card;

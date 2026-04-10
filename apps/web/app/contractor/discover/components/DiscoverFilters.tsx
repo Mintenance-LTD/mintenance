@@ -3,7 +3,7 @@
 import React from 'react';
 import { Brain } from 'lucide-react';
 
-export interface DiscoverFiltersProps {
+interface DiscoverFiltersProps {
   categories: string[];
   selectedCategory: string | null;
   onCategoryChange: (c: string | null) => void;
@@ -48,7 +48,9 @@ function Chip({
     <button
       onClick={onClick}
       className={`px-3 py-1 text-xs font-medium rounded-full border transition-all whitespace-nowrap ${
-        active ? activeClass : `bg-white text-gray-600 border-gray-300 ${hoverClass}`
+        active
+          ? activeClass
+          : `bg-white text-gray-600 border-gray-300 ${hoverClass}`
       }`}
     >
       {children}
@@ -69,13 +71,15 @@ export function DiscoverFilters({
   hasLocation,
 }: DiscoverFiltersProps) {
   return (
-    <div className="flex flex-wrap gap-2 pb-1 items-center">
+    <div className='flex flex-wrap gap-2 pb-1 items-center'>
       {/* Category chips (up to 4) */}
-      {categories.slice(0, 4).map(cat => (
+      {categories.slice(0, 4).map((cat) => (
         <Chip
           key={cat}
           active={selectedCategory === cat}
-          onClick={() => onCategoryChange(selectedCategory === cat ? null : cat)}
+          onClick={() =>
+            onCategoryChange(selectedCategory === cat ? null : cat)
+          }
         >
           {cat}
         </Chip>
@@ -83,15 +87,23 @@ export function DiscoverFilters({
 
       {/* Radius chips */}
       {hasLocation &&
-        RADII.map(r => (
-          <Chip key={r} active={selectedRadius === r} onClick={() => onRadiusChange(r)}>
+        RADII.map((r) => (
+          <Chip
+            key={r}
+            active={selectedRadius === r}
+            onClick={() => onRadiusChange(r)}
+          >
             {r}km
           </Chip>
         ))}
 
       {/* Min budget chips */}
-      {BUDGETS.map(b => (
-        <Chip key={b.value} active={minBudget === b.value} onClick={() => onMinBudgetChange(b.value)}>
+      {BUDGETS.map((b) => (
+        <Chip
+          key={b.value}
+          active={minBudget === b.value}
+          onClick={() => onMinBudgetChange(b.value)}
+        >
           {b.label}
         </Chip>
       ))}
@@ -105,7 +117,7 @@ export function DiscoverFilters({
             : 'bg-white text-gray-600 border-gray-300 hover:border-purple-400 hover:text-purple-700'
         }`}
       >
-        <Brain className="w-3 h-3" />
+        <Brain className='w-3 h-3' />
         AI Assessed
       </button>
     </div>

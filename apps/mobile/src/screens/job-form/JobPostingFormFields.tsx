@@ -24,7 +24,7 @@ interface JobCategory {
   value: string;
 }
 
-export interface JobPostingFormFieldsProps {
+interface JobPostingFormFieldsProps {
   title: string;
   description: string;
   location: string;
@@ -43,19 +43,35 @@ export interface JobPostingFormFieldsProps {
   onAddPhoto: () => void;
   onRemovePhoto: (index: number) => void;
   onAssessmentComplete: (assessment: BuildingAssessment) => void;
-  onAssessmentCorrection: (assessmentId: string, corrections: unknown[]) => void;
+  onAssessmentCorrection: (
+    assessmentId: string,
+    corrections: unknown[]
+  ) => void;
 }
 
 export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
-  title, description, location, category, urgency, budget,
-  photos, aiPricingAnalysis, validationErrors,
-  jobCategories, onFieldChange, onCategoryChange, onUrgencyChange,
-  onPricingUpdate, onAddPhoto, onRemovePhoto,
-  onAssessmentComplete, onAssessmentCorrection,
+  title,
+  description,
+  location,
+  category,
+  urgency,
+  budget,
+  photos,
+  aiPricingAnalysis,
+  validationErrors,
+  jobCategories,
+  onFieldChange,
+  onCategoryChange,
+  onUrgencyChange,
+  onPricingUpdate,
+  onAddPhoto,
+  onRemovePhoto,
+  onAssessmentComplete,
+  onAssessmentCorrection,
 }) => (
   <View style={styles.form}>
     <Input
-      testID="job-title-input"
+      testID='job-title-input'
       label='Job Title'
       placeholder='e.g., Kitchen Sink Repair'
       value={title}
@@ -73,7 +89,7 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
     <Text style={styles.label}>Category *</Text>
     <View style={styles.pickerContainer}>
       <Picker
-        testID="job-category-select"
+        testID='job-category-select'
         selectedValue={category}
         onValueChange={onCategoryChange}
         style={styles.picker}
@@ -97,8 +113,12 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
 
     <Text style={styles.label}>Description *</Text>
     <TextInput
-      testID="job-description-input"
-      style={[styles.input, styles.textArea, validationErrors.description && styles.inputError]}
+      testID='job-description-input'
+      style={[
+        styles.input,
+        styles.textArea,
+        validationErrors.description && styles.inputError,
+      ]}
       placeholder='Describe the job in detail...'
       value={description}
       onChangeText={(value) => onFieldChange('description', value)}
@@ -108,14 +128,16 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
       maxLength={500}
       placeholderTextColor={theme.colors.textTertiary}
     />
-    <Text style={styles.characterCount}>{description.length}/500 characters</Text>
+    <Text style={styles.characterCount}>
+      {description.length}/500 characters
+    </Text>
     {validationErrors.description && (
       <Text style={styles.errorText}>{validationErrors.description}</Text>
     )}
 
     <Text style={styles.label}>Location *</Text>
     <TextInput
-      testID="job-location-input"
+      testID='job-location-input'
       style={[styles.input, validationErrors.location && styles.inputError]}
       placeholder='e.g., Central London, Manchester City Centre'
       value={location}
@@ -128,14 +150,22 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
     )}
 
     <Text style={styles.label}>Urgency</Text>
-    <View testID="job-priority-select" style={styles.urgencyContainer}>
+    <View testID='job-priority-select' style={styles.urgencyContainer}>
       {(['low', 'medium', 'high'] as const).map((level) => (
         <TouchableOpacity
           key={level}
-          style={[styles.urgencyButton, urgency === level && styles.urgencyButtonActive]}
+          style={[
+            styles.urgencyButton,
+            urgency === level && styles.urgencyButtonActive,
+          ]}
           onPress={() => onUrgencyChange(level)}
         >
-          <Text style={[styles.urgencyButtonText, urgency === level && styles.urgencyButtonTextActive]}>
+          <Text
+            style={[
+              styles.urgencyButtonText,
+              urgency === level && styles.urgencyButtonTextActive,
+            ]}
+          >
             {level.charAt(0).toUpperCase() + level.slice(1)}
           </Text>
         </TouchableOpacity>
@@ -158,10 +188,15 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
     )}
 
     <Text style={styles.label}>Your Budget *</Text>
-    <View style={[styles.budgetInputContainer, validationErrors.budget && styles.inputError]}>
+    <View
+      style={[
+        styles.budgetInputContainer,
+        validationErrors.budget && styles.inputError,
+      ]}
+    >
       <Text style={styles.currencySymbol}>£</Text>
       <TextInput
-        testID="job-budget-input"
+        testID='job-budget-input'
         style={styles.budgetInput}
         placeholder='Enter amount'
         value={budget}
@@ -175,7 +210,11 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
     )}
 
     <Text style={styles.label}>Photos (Optional)</Text>
-    <TouchableOpacity testID="add-photo-button" style={styles.addPhotoButton} onPress={onAddPhoto}>
+    <TouchableOpacity
+      testID='add-photo-button'
+      style={styles.addPhotoButton}
+      onPress={onAddPhoto}
+    >
       <Text style={styles.addPhotoButtonText}>+ Add Photos</Text>
     </TouchableOpacity>
 
@@ -210,7 +249,8 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
     {aiPricingAnalysis && (
       <View style={styles.budgetComparisonContainer}>
         <Text style={styles.budgetComparisonText}>
-          AI Suggestion: £{aiPricingAnalysis.suggestedPrice.min} - £{aiPricingAnalysis.suggestedPrice.max}
+          AI Suggestion: £{aiPricingAnalysis.suggestedPrice.min} - £
+          {aiPricingAnalysis.suggestedPrice.max}
         </Text>
       </View>
     )}

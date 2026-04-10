@@ -14,7 +14,7 @@ import { View, StyleSheet } from 'react-native';
 import { Skeleton, SkeletonGroup, SkeletonImage } from './Skeleton';
 import { theme } from '../../theme';
 
-export interface JobCardSkeletonProps {
+interface JobCardSkeletonProps {
   /**
    * Number of skeleton cards to render
    * @default 1
@@ -35,7 +35,12 @@ const SingleJobCardSkeleton: React.FC<Omit<JobCardSkeletonProps, 'count'>> = ({
     <View style={styles.card}>
       {/* Image Section */}
       {showImage && (
-        <SkeletonImage width="100%" aspectRatio={16 / 9} borderRadius={0} style={styles.image} />
+        <SkeletonImage
+          width='100%'
+          aspectRatio={16 / 9}
+          borderRadius={0}
+          style={styles.image}
+        />
       )}
 
       {/* Content */}
@@ -44,24 +49,39 @@ const SingleJobCardSkeleton: React.FC<Omit<JobCardSkeletonProps, 'count'>> = ({
         <View style={styles.header}>
           {/* Title and Location */}
           <View style={styles.headerLeft}>
-            <Skeleton width="80%" height={20} borderRadius={6} style={styles.marginBottom} />
+            <Skeleton
+              width='80%'
+              height={20}
+              borderRadius={6}
+              style={styles.marginBottom}
+            />
             <View style={styles.locationRow}>
               <Skeleton width={16} height={16} borderRadius={8} />
-              <Skeleton width={120} height={14} borderRadius={6} style={styles.marginLeft} />
+              <Skeleton
+                width={120}
+                height={14}
+                borderRadius={6}
+                style={styles.marginLeft}
+              />
             </View>
           </View>
 
           {/* Budget */}
           <View style={styles.budget}>
-            <Skeleton width={80} height={28} borderRadius={6} style={styles.marginBottom} />
+            <Skeleton
+              width={80}
+              height={28}
+              borderRadius={6}
+              style={styles.marginBottom}
+            />
             <Skeleton width={50} height={12} borderRadius={6} />
           </View>
         </View>
 
         {/* Description */}
         <SkeletonGroup gap={8} style={styles.description}>
-          <Skeleton width="100%" height={14} borderRadius={6} />
-          <Skeleton width="85%" height={14} borderRadius={6} />
+          <Skeleton width='100%' height={14} borderRadius={6} />
+          <Skeleton width='85%' height={14} borderRadius={6} />
         </SkeletonGroup>
 
         {/* Badges */}

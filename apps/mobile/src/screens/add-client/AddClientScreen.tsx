@@ -21,7 +21,9 @@ interface AddClientScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'AddClient'>;
 }
 
-export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) => {
+export const AddClientScreen: React.FC<AddClientScreenProps> = ({
+  navigation,
+}) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const toast = useToast();
@@ -69,7 +71,10 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
       toast.success('Client added', `${firstName} has been added to your CRM.`);
       navigation.goBack();
     } catch {
-      toast.error('Failed to add client', 'Please check your details and try again.');
+      toast.error(
+        'Failed to add client',
+        'Please check your details and try again.'
+      );
     } finally {
       setSubmitting(false);
     }
@@ -79,62 +84,78 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons
+            name='arrow-back'
+            size={24}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Client</Text>
         <TouchableOpacity
-          style={[styles.headerButton, submitting && styles.headerButtonDisabled]}
+          style={[
+            styles.headerButton,
+            submitting && styles.headerButtonDisabled,
+          ]}
           onPress={handleSubmit}
           disabled={submitting}
         >
-          <Text style={styles.saveText}>{submitting ? 'Saving\u2026' : 'Save'}</Text>
+          <Text style={styles.saveText}>
+            {submitting ? 'Saving\u2026' : 'Save'}
+          </Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps='handled'
+      >
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>CONTACT DETAILS</Text>
 
           <Text style={styles.fieldLabel}>First Name *</Text>
           <TextInput
             style={styles.input}
-            placeholder="First name"
+            placeholder='First name'
             placeholderTextColor={theme.colors.textTertiary}
             value={firstName}
             onChangeText={setFirstName}
-            autoCapitalize="words"
+            autoCapitalize='words'
           />
 
           <Text style={styles.fieldLabel}>Last Name</Text>
           <TextInput
             style={styles.input}
-            placeholder="Last name"
+            placeholder='Last name'
             placeholderTextColor={theme.colors.textTertiary}
             value={lastName}
             onChangeText={setLastName}
-            autoCapitalize="words"
+            autoCapitalize='words'
           />
 
           <Text style={styles.fieldLabel}>Email *</Text>
           <TextInput
             style={styles.input}
-            placeholder="email@example.com"
+            placeholder='email@example.com'
             placeholderTextColor={theme.colors.textTertiary}
             value={email}
             onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
+            keyboardType='email-address'
+            autoCapitalize='none'
           />
 
           <Text style={styles.fieldLabel}>Phone</Text>
           <TextInput
             style={styles.input}
-            placeholder="+44 7700 900000"
+            placeholder='+44 7700 900000'
             placeholderTextColor={theme.colors.textTertiary}
             value={phone}
             onChangeText={setPhone}
-            keyboardType="phone-pad"
+            keyboardType='phone-pad'
           />
         </View>
 
@@ -142,11 +163,11 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
           <Text style={styles.sectionTitle}>BUSINESS (OPTIONAL)</Text>
           <TextInput
             style={styles.input}
-            placeholder="Company name"
+            placeholder='Company name'
             placeholderTextColor={theme.colors.textTertiary}
             value={companyName}
             onChangeText={setCompanyName}
-            autoCapitalize="words"
+            autoCapitalize='words'
           />
         </View>
 
@@ -154,13 +175,13 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
           <Text style={styles.sectionTitle}>NOTES</Text>
           <TextInput
             style={[styles.input, styles.notesInput]}
-            placeholder="Additional notes about this client\u2026"
+            placeholder='Additional notes about this client\u2026'
             placeholderTextColor={theme.colors.textTertiary}
             value={notes}
             onChangeText={setNotes}
             multiline
             numberOfLines={4}
-            textAlignVertical="top"
+            textAlignVertical='top'
           />
         </View>
 
@@ -184,8 +205,17 @@ const styles = StyleSheet.create({
   },
   headerButton: { padding: 8, minWidth: 60 },
   headerButtonDisabled: { opacity: 0.5 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
-  saveText: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary, textAlign: 'right' },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  saveText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    textAlign: 'right',
+  },
   scroll: { flex: 1 },
   section: {
     backgroundColor: theme.colors.surface,
@@ -194,12 +224,29 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
-  sectionTitle: { fontSize: 12, fontWeight: '700', color: theme.colors.textTertiary, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.8 },
-  fieldLabel: { fontSize: 13, color: theme.colors.textSecondary, marginBottom: 6, marginTop: 4 },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textTertiary,
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    marginBottom: 6,
+    marginTop: 4,
+  },
   input: {
     backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
@@ -211,5 +258,3 @@ const styles = StyleSheet.create({
   },
   notesInput: { height: 100, paddingTop: 12 },
 });
-
-export default AddClientScreen;

@@ -1,7 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 
-export type PayoutTier = 'elite' | 'trusted' | 'standard';
+type PayoutTier = 'elite' | 'trusted' | 'standard';
 
 interface PayoutTierCriteria {
   minRating: number;
@@ -159,4 +159,3 @@ export class PayoutTierService {
     }
   }
 }
-

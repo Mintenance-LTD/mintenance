@@ -11,7 +11,7 @@ import { timingSafeEqual } from 'crypto';
  * Verify cron secret from request headers using constant-time comparison
  * to prevent timing attacks.
  */
-export function verifyCronSecret(request: NextRequest): boolean {
+function verifyCronSecret(request: NextRequest): boolean {
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
 

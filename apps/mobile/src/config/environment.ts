@@ -8,12 +8,12 @@ import {
   getGoogleMapsConfig,
   getFeatureFlags,
   getTypedEnv,
-  EnvironmentSecurity
+  EnvironmentSecurity,
 } from '../utils/EnvironmentSecurity';
 
-export type Environment = 'development' | 'staging' | 'production';
+type Environment = 'development' | 'staging' | 'production';
 
-export interface AppConfig {
+interface AppConfig {
   // App Info
   version: string;
   buildNumber: string;
@@ -106,8 +106,16 @@ const buildConfig = (): AppConfig => {
 
   return {
     // App Info
-    version: getTypedEnv('EXPO_PUBLIC_APP_VERSION', EnvironmentSecurity.parsers.string, '1.0.0'),
-    buildNumber: getTypedEnv('EXPO_PUBLIC_BUILD_NUMBER', EnvironmentSecurity.parsers.string, '1'),
+    version: getTypedEnv(
+      'EXPO_PUBLIC_APP_VERSION',
+      EnvironmentSecurity.parsers.string,
+      '1.0.0'
+    ),
+    buildNumber: getTypedEnv(
+      'EXPO_PUBLIC_BUILD_NUMBER',
+      EnvironmentSecurity.parsers.string,
+      '1'
+    ),
     environment,
 
     // API Configuration (secured)
@@ -119,7 +127,10 @@ const buildConfig = (): AppConfig => {
     supabaseAnonKey: apiConfig.supabaseAnonKey,
 
     // External Services (secured)
-    sentryDsn: getTypedEnv('EXPO_PUBLIC_SENTRY_DSN', EnvironmentSecurity.parsers.string),
+    sentryDsn: getTypedEnv(
+      'EXPO_PUBLIC_SENTRY_DSN',
+      EnvironmentSecurity.parsers.string
+    ),
     stripePublishableKey: stripeConfig.publishableKey,
     googleMapsApiKey: googleMapsConfig.apiKey,
 
@@ -149,7 +160,11 @@ const buildConfig = (): AppConfig => {
     ),
 
     // Performance
-    networkTimeout: getTypedEnv('EXPO_PUBLIC_NETWORK_TIMEOUT', EnvironmentSecurity.parsers.number, 30000),
+    networkTimeout: getTypedEnv(
+      'EXPO_PUBLIC_NETWORK_TIMEOUT',
+      EnvironmentSecurity.parsers.number,
+      30000
+    ),
 
     // Security metadata
     isSecurelyConfigured: validation.isValid,
@@ -165,7 +180,7 @@ const buildConfig = (): AppConfig => {
 export const config: AppConfig = buildConfig();
 
 // Enhanced configuration validation with security checks
-export const validateConfig = (): {
+const validateConfig = (): {
   isValid: boolean;
   errors: string[];
   warnings: string[];
@@ -184,11 +199,15 @@ export const validateConfig = (): {
   }
 
   if (config.environment === 'production' && config.logLevel === 'debug') {
-    appWarnings.push('Debug logging enabled in production - performance impact expected');
+    appWarnings.push(
+      'Debug logging enabled in production - performance impact expected'
+    );
   }
 
   if (!config.isSecurelyConfigured) {
-    appErrors.push('Security validation failed - check environment configuration');
+    appErrors.push(
+      'Security validation failed - check environment configuration'
+    );
   }
 
   return {
@@ -200,7 +219,7 @@ export const validateConfig = (): {
 };
 
 // Get comprehensive security report
-export const getSecurityReport = () => {
+const getSecurityReport = () => {
   return environmentSecurity.generateSecurityReport();
 };
 
@@ -218,9 +237,9 @@ export const isFeatureEnabled = (
   return config[feature];
 };
 
-export const isDevelopment = () => config.environment === 'development';
-export const isStaging = () => config.environment === 'staging';
-export const isProduction = () => config.environment === 'production';
+const isDevelopment = () => config.environment === 'development';
+const isStaging = () => config.environment === 'staging';
+const isProduction = () => config.environment === 'production';
 
 // Log configuration on startup (development only)
 if (isDevelopment()) {
@@ -248,5 +267,3 @@ if (isDevelopment()) {
     logger.info('Configuration is valid');
   }
 }
-
-export default config;

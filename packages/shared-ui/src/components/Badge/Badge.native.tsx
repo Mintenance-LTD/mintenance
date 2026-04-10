@@ -1,21 +1,15 @@
 /**
  * Badge Component - Native Implementation
- * 
+ *
  * React Native-specific Badge component using design tokens
  */
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ViewStyle,
-  TextStyle,
-} from 'react-native';
+import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { mobileTokens } from '@mintenance/design-tokens';
 import type { NativeBadgeProps, BadgeVariant, BadgeSize } from './types';
 /**
  * Badge Component for React Native
- * 
+ *
  * Uses design tokens for consistent styling across platforms
  */
 export function Badge({
@@ -30,7 +24,15 @@ export function Badge({
   textStyle,
 }: NativeBadgeProps) {
   // Size styles
-  const sizeStyles: Record<BadgeSize, { paddingHorizontal: number; paddingVertical: number; fontSize: number; minHeight: number }> = {
+  const sizeStyles: Record<
+    BadgeSize,
+    {
+      paddingHorizontal: number;
+      paddingVertical: number;
+      fontSize: number;
+      minHeight: number;
+    }
+  > = {
     sm: {
       paddingHorizontal: mobileTokens.spacing.sm,
       paddingVertical: mobileTokens.spacing.xs,
@@ -51,7 +53,11 @@ export function Badge({
     },
   };
   // Variant styles
-  const getVariantStyles = (): { backgroundColor: string; borderColor: string; textColor: string } => {
+  const getVariantStyles = (): {
+    backgroundColor: string;
+    borderColor: string;
+    textColor: string;
+  } => {
     switch (variant) {
       case 'success':
         return {
@@ -101,14 +107,10 @@ export function Badge({
         style as ViewStyle,
       ]}
       accessibilityLabel={accessibilityLabel}
-      accessibilityRole="text"
+      accessibilityRole='text'
       testID={testID}
     >
-      {(showIcon || icon) && icon && (
-        <View style={styles.icon}>
-          {icon}
-        </View>
-      )}
+      {(showIcon || icon) && icon && <View style={styles.icon}>{icon}</View>}
       <Text
         style={[
           styles.text,
@@ -140,4 +142,3 @@ const styles = StyleSheet.create({
     fontWeight: mobileTokens.typography.fontWeight.semibold,
   },
 });
-export default Badge;

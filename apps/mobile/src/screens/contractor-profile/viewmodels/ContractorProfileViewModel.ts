@@ -22,7 +22,7 @@ export interface Review {
   photos: string[];
 }
 
-export interface ContractorProfileState {
+interface ContractorProfileState {
   activeTab: 'photos' | 'reviews';
   contractor: {
     id: string;
@@ -44,7 +44,7 @@ export interface ContractorProfileState {
   error: string | null;
 }
 
-export interface ContractorProfileActions {
+interface ContractorProfileActions {
   setActiveTab: (tab: 'photos' | 'reviews') => void;
   handleMessage: () => void;
   handleCall: () => void;

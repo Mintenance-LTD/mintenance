@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { LoadingSpinner } from '@/components/ui';
@@ -74,6 +75,71 @@ interface ApiThread {
   unreadCount?: number;
 }
 
+async function fetchThreads(userId: string): Promise<Conversation[]> {
+  const response = await fetch('/api/messages/threads');
+  if (!response.ok) throw new Error('Failed to fetch conversations');
+
+  const data = await response.json();
+  return (data.threads || []).map((thread: ApiThread) => {
+    const otherParticipant = thread.participants.find(
+      (p: Participant) => p.id !== userId
+    );
+    return {
+      id: thread.jobId,
+      otherUser: {
+        id: otherParticipant?.id || '',
+        name: otherParticipant?.name || 'Unknown User',
+        avatar: otherParticipant?.profile_image_url,
+        online: false,
+      },
+      lastMessage: thread.lastMessage
+        ? {
+            text:
+              thread.lastMessage.content ||
+              thread.lastMessage.messageText ||
+              '',
+            timestamp: thread.lastMessage.createdAt,
+            read: true,
+          }
+        : {
+            text: 'No messages yet',
+            timestamp: new Date().toISOString(),
+            read: true,
+          },
+      jobTitle: thread.jobTitle,
+      unreadCount: thread.unreadCount || 0,
+    };
+  });
+}
+
+async function fetchThreadMessages(threadId: string): Promise<Message[]> {
+  const response = await fetch(`/api/messages/threads/${threadId}/messages`);
+  if (!response.ok) throw new Error('Failed to fetch messages');
+
+  const data = await response.json();
+  const messages = (data.messages || []).map(
+    (msg: ApiMessageResponse): Message => ({
+      id: msg.id,
+      sender_id: msg.senderId || msg.sender_id || '',
+      content: msg.content || msg.messageText || '',
+      message_type: msg.messageType || msg.message_type || 'text',
+      attachment_url: msg.attachmentUrl || msg.attachment_url || undefined,
+      created_at: msg.createdAt || msg.created_at || '',
+      read: msg.read !== undefined ? msg.read : true,
+    })
+  );
+
+  // Mark as read (fire-and-forget)
+  fetch(`/api/messages/threads/${threadId}/read`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  }).catch(() => {
+    /* silent */
+  });
+
+  return messages;
+}
+
 export default function MessagesPage2025() {
   return (
     <ErrorBoundary componentName='MessagesPage'>
@@ -89,14 +155,11 @@ export default function MessagesPage2025() {
 function MessagesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const { user, loading: loadingUser } = useCurrentUser();
   const { csrfToken } = useCSRF();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] =
     useState<Conversation | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [loadingConversations, setLoadingConversations] = useState(true);
-  const [loadingMessages, setLoadingMessages] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'unread' | 'archived'>('all');
   const [messageInput, setMessageInput] = useState('');
@@ -107,110 +170,45 @@ function MessagesPageContent() {
     userId: user?.id ?? null,
   });
 
-  // Fetch conversations from real API
+  // Fetch conversations via React Query
+  const { data: conversations = [], isLoading: loadingConversations } =
+    useQuery<Conversation[]>({
+      queryKey: ['messages', 'threads', user?.id],
+      queryFn: () => fetchThreads(user!.id),
+      enabled: !!user,
+      meta: {
+        onError: () => {
+          toast.error('Failed to load conversations');
+        },
+      },
+    });
+
+  // Auto-select conversation from URL params when conversations load
   useEffect(() => {
-    if (!user) return;
-
-    const fetchConversations = async () => {
-      try {
-        const response = await fetch('/api/messages/threads');
-        if (!response.ok) throw new Error('Failed to fetch conversations');
-
-        const data = await response.json();
-        const transformedConversations: Conversation[] = (
-          data.threads || []
-        ).map((thread: ApiThread) => {
-          const otherParticipant = thread.participants.find(
-            (p: Participant) => p.id !== user.id
-          );
-          return {
-            id: thread.jobId,
-            otherUser: {
-              id: otherParticipant?.id || '',
-              name: otherParticipant?.name || 'Unknown User',
-              avatar: otherParticipant?.profile_image_url,
-              online: false,
-            },
-            lastMessage: thread.lastMessage
-              ? {
-                  text:
-                    thread.lastMessage.content ||
-                    thread.lastMessage.messageText ||
-                    '',
-                  timestamp: thread.lastMessage.createdAt,
-                  read: true,
-                }
-              : {
-                  text: 'No messages yet',
-                  timestamp: new Date().toISOString(),
-                  read: true,
-                },
-            jobTitle: thread.jobTitle,
-            unreadCount: thread.unreadCount || 0,
-          };
-        });
-
-        setConversations(transformedConversations);
-
-        // Auto-select conversation if jobId is in URL params
-        const targetJobId = searchParams.get('jobId');
-        if (targetJobId) {
-          const match = transformedConversations.find(
-            (c: Conversation) => c.id === targetJobId
-          );
-          if (match) setSelectedConversation(match);
-        }
-      } catch (error) {
-        toast.error('Failed to load conversations');
-      } finally {
-        setLoadingConversations(false);
+    if (conversations.length > 0 && !selectedConversation) {
+      const targetJobId = searchParams.get('jobId');
+      if (targetJobId) {
+        const match = conversations.find(
+          (c: Conversation) => c.id === targetJobId
+        );
+        if (match) setSelectedConversation(match);
       }
-    };
+    }
+  }, [conversations, searchParams, selectedConversation]);
 
-    fetchConversations();
-  }, [user]);
-
-  // Fetch messages for selected conversation
-  useEffect(() => {
-    if (!selectedConversation) return;
-
-    const fetchMessages = async () => {
-      setLoadingMessages(true);
-      try {
-        const response = await fetch(
-          `/api/messages/threads/${selectedConversation.id}/messages`
-        );
-        if (!response.ok) throw new Error('Failed to fetch messages');
-
-        const data = await response.json();
-        const transformedMessages = (data.messages || []).map(
-          (msg: ApiMessageResponse): Message => ({
-            id: msg.id,
-            sender_id: msg.senderId || msg.sender_id || '',
-            content: msg.content || msg.messageText || '',
-            message_type: msg.messageType || msg.message_type || 'text',
-            attachment_url:
-              msg.attachmentUrl || msg.attachment_url || undefined,
-            created_at: msg.createdAt || msg.created_at || '',
-            read: msg.read !== undefined ? msg.read : true,
-          })
-        );
-
-        setMessages(transformedMessages);
-
-        await fetch(`/api/messages/threads/${selectedConversation.id}/read`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-        });
-      } catch (error) {
+  // Fetch messages for selected conversation via React Query
+  const { data: messages = [], isLoading: loadingMessages } = useQuery<
+    Message[]
+  >({
+    queryKey: ['messages', 'thread', selectedConversation?.id],
+    queryFn: () => fetchThreadMessages(selectedConversation!.id),
+    enabled: !!selectedConversation,
+    meta: {
+      onError: () => {
         toast.error('Failed to load messages');
-      } finally {
-        setLoadingMessages(false);
-      }
-    };
-
-    fetchMessages();
-  }, [selectedConversation]);
+      },
+    },
+  });
 
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !selectedConversation || !user || sending)
@@ -255,23 +253,31 @@ function MessagesPageContent() {
         read: false,
       };
 
-      setMessages((prev) => [...prev, newMessage]);
-      setMessageInput('');
-
-      setConversations((prev) =>
-        prev.map((conv) =>
-          conv.id === selectedConversation.id
-            ? {
-                ...conv,
-                lastMessage: {
-                  text: newMessage.content,
-                  timestamp: newMessage.created_at,
-                  read: false,
-                },
-              }
-            : conv
-        )
+      // Optimistically update messages cache
+      queryClient.setQueryData<Message[]>(
+        ['messages', 'thread', selectedConversation.id],
+        (old = []) => [...old, newMessage]
       );
+
+      // Update conversation list's last message
+      queryClient.setQueryData<Conversation[]>(
+        ['messages', 'threads', user.id],
+        (old = []) =>
+          old.map((conv) =>
+            conv.id === selectedConversation.id
+              ? {
+                  ...conv,
+                  lastMessage: {
+                    text: newMessage.content,
+                    timestamp: newMessage.created_at,
+                    read: false,
+                  },
+                }
+              : conv
+          )
+      );
+
+      setMessageInput('');
     } catch (error) {
       toast.error('Failed to send message');
     } finally {

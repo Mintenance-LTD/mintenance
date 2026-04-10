@@ -24,7 +24,7 @@ export interface YOLODetection {
   className: string;
 }
 
-export interface PostprocessingOptions {
+interface PostprocessingOptions {
   /** Confidence threshold (default: 0.25) */
   confidenceThreshold?: number;
   /** IoU threshold for NMS (default: 0.45) */
@@ -50,7 +50,7 @@ export interface PostprocessingOptions {
  */
 export function postprocessYOLOOutput(
   modelOutput: Float32Array | number[][],
-  options: PostprocessingOptions,
+  options: PostprocessingOptions
 ): YOLODetection[] {
   const {
     confidenceThreshold = 0.25,
@@ -63,8 +63,8 @@ export function postprocessYOLOOutput(
 
   try {
     // Convert to 2D array if needed
-    const output: number[][] = Array.isArray(modelOutput[0]) 
-      ? (modelOutput as number[][]) 
+    const output: number[][] = Array.isArray(modelOutput[0])
+      ? (modelOutput as number[][])
       : reshapeOutput(modelOutput as Float32Array, classNames.length);
 
     const detections: YOLODetection[] = [];
@@ -72,7 +72,8 @@ export function postprocessYOLOOutput(
     // Process each detection
     for (const detection of output) {
       // YOLO format: [x_center, y_center, width, height, objectness, class_scores...]
-      const [xCenter, yCenter, width, height, objectness, ...classScores] = detection;
+      const [xCenter, yCenter, width, height, objectness, ...classScores] =
+        detection;
 
       // Filter by objectness (confidence)
       if (objectness < confidenceThreshold) {
@@ -135,7 +136,9 @@ function reshapeOutput(output: Float32Array, numClasses: number): number[][] {
 
   for (let i = 0; i < numDetections; i++) {
     const start = i * featuresPerDetection;
-    reshaped.push(Array.from(output.slice(start, start + featuresPerDetection)));
+    reshaped.push(
+      Array.from(output.slice(start, start + featuresPerDetection))
+    );
   }
 
   return reshaped;
@@ -152,7 +155,7 @@ function reshapeOutput(output: Float32Array, numClasses: number): number[][] {
 function applyNMS(
   detections: YOLODetection[],
   iouThreshold: number,
-  maxDetections: number,
+  maxDetections: number
 ): YOLODetection[] {
   // Sort by confidence (descending)
   const sorted = [...detections].sort((a, b) => b.confidence - a.confidence);
@@ -203,4 +206,3 @@ function calculateIoU(box1: YOLODetection, box2: YOLODetection): number {
 
   return union > 0 ? intersection / union : 0;
 }
-

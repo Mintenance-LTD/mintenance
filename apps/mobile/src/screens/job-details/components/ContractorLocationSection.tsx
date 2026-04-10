@@ -15,18 +15,12 @@ interface Props {
 }
 
 export const ContractorLocationSection: React.FC<Props> = ({ jobId }) => {
-  const {
-    isTracking,
-    eta,
-    startTracking,
-    stopTracking,
-    markArrived,
-    error,
-  } = useJobTravelTracking({
-    meetingId: jobId,
-    jobId,
-    destination: { latitude: 0, longitude: 0 },
-  });
+  const { isTracking, eta, startTracking, stopTracking, markArrived, error } =
+    useJobTravelTracking({
+      meetingId: jobId,
+      jobId,
+      destination: { latitude: 0, longitude: 0 },
+    });
 
   const formatEta = (minutes: number) => {
     if (minutes < 1) return 'Arriving now';
@@ -40,15 +34,15 @@ export const ContractorLocationSection: React.FC<Props> = ({ jobId }) => {
     <View>
       <Text style={styles.sectionLabel}>Location Tracking</Text>
 
-      {error && (
-        <Text style={styles.errorText}>{error}</Text>
-      )}
+      {error && <Text style={styles.errorText}>{error}</Text>}
 
       {isTracking ? (
         <View style={styles.trackingCard}>
           <View style={styles.trackingStatus}>
             <View style={styles.liveDot} />
-            <Text style={styles.trackingText}>Sharing location with homeowner</Text>
+            <Text style={styles.trackingText}>
+              Sharing location with homeowner
+            </Text>
           </View>
 
           {eta != null && eta > 0 && (
@@ -59,20 +53,28 @@ export const ContractorLocationSection: React.FC<Props> = ({ jobId }) => {
             <TouchableOpacity
               style={styles.arrivedButton}
               onPress={markArrived}
-              accessibilityRole="button"
-              accessibilityLabel="Mark as arrived"
+              accessibilityRole='button'
+              accessibilityLabel='Mark as arrived'
             >
-              <Ionicons name="flag" size={16} color={theme.colors.textInverse} />
+              <Ionicons
+                name='flag'
+                size={16}
+                color={theme.colors.textInverse}
+              />
               <Text style={styles.arrivedButtonText}>Arrived</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.stopButton}
               onPress={stopTracking}
-              accessibilityRole="button"
-              accessibilityLabel="Stop tracking"
+              accessibilityRole='button'
+              accessibilityLabel='Stop tracking'
             >
-              <Ionicons name="stop-circle-outline" size={16} color={theme.colors.error} />
+              <Ionicons
+                name='stop-circle-outline'
+                size={16}
+                color={theme.colors.error}
+              />
               <Text style={styles.stopButtonText}>Stop</Text>
             </TouchableOpacity>
           </View>
@@ -81,10 +83,14 @@ export const ContractorLocationSection: React.FC<Props> = ({ jobId }) => {
         <TouchableOpacity
           style={styles.startButton}
           onPress={startTracking}
-          accessibilityRole="button"
-          accessibilityLabel="Start location tracking"
+          accessibilityRole='button'
+          accessibilityLabel='Start location tracking'
         >
-          <Ionicons name="navigate" size={18} color={theme.colors.textInverse} />
+          <Ionicons
+            name='navigate'
+            size={18}
+            color={theme.colors.textInverse}
+          />
           <Text style={styles.startButtonText}>Share My Location</Text>
         </TouchableOpacity>
       )}
@@ -182,5 +188,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-
-export default ContractorLocationSection;

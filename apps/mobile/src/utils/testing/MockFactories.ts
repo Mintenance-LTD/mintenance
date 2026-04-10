@@ -7,7 +7,7 @@
 // MOCK FACTORY SYSTEM
 // ============================================================================
 
-export interface MockFactory<T> {
+interface MockFactory<T> {
   create(overrides?: Partial<T>): T;
   createMany(count: number, overrides?: Partial<T>): T[];
   setState(state: Partial<T>): void;

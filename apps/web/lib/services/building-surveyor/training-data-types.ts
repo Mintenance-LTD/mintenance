@@ -8,7 +8,7 @@ import type { Phase1BuildingAssessment, SAM3SegmentationData } from './types';
 // GPT-4 Training Labels
 // ============================================================================
 
-export interface GPT4TrainingLabel {
+interface GPT4TrainingLabel {
   id?: string;
   assessmentId: string;
   imageUrls: string[];

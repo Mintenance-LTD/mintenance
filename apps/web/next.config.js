@@ -40,7 +40,6 @@ const nextConfig = {
       'node_modules/jsdom',
       'node_modules/@google-cloud',
       'node_modules/onnxruntime-node',
-      'node_modules/onnxruntime-web',
       'node_modules/typescript',
       'node_modules/webpack',
       'node_modules/terser',
@@ -93,7 +92,6 @@ const nextConfig = {
   serverExternalPackages: [
     '@google-cloud/vision',
     '@google-cloud/storage',
-    '@google-cloud/aiplatform',
     'onnxruntime-node',
     'sharp',
     'jsdom',
@@ -121,7 +119,6 @@ const nextConfig = {
       '@radix-ui/react-radio-group',
       '@radix-ui/react-select',
       '@radix-ui/react-separator',
-      '@radix-ui/react-slot',
       '@radix-ui/react-switch',
       '@radix-ui/react-tabs',
       '@radix-ui/react-toast',
@@ -258,24 +255,19 @@ const nextConfig = {
       config.externals.push({
         'onnxruntime-node': 'commonjs onnxruntime-node',
       });
-      // Also externalize onnxruntime-web on server (not needed server-side)
-      config.externals.push('onnxruntime-web');
-      config.externals.push({ 'onnxruntime-web': 'commonjs onnxruntime-web' });
       // Externalize Google Cloud libraries on server
       config.externals.push('@google-cloud/vision');
       config.externals.push('@google-cloud/storage');
-      config.externals.push('@google-cloud/aiplatform');
       // Externalize argon2 (optional password hashing library)
       config.externals.push('argon2');
       config.externals.push({ argon2: 'commonjs argon2' });
     } else {
-      // Client-side: Configure for onnxruntime-web
+      // Client-side: stub out server-only modules
       config.resolve.alias = {
         ...config.resolve.alias,
         'onnxruntime-node': false,
         '@google-cloud/vision': false,
         '@google-cloud/storage': false,
-        '@google-cloud/aiplatform': false,
         argon2: false,
       };
     }

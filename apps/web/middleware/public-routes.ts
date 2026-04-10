@@ -12,7 +12,7 @@
  */
 
 /** Public page routes (prefix-matched with `/` separator). */
-export const PUBLIC_PAGE_ROUTES = [
+const PUBLIC_PAGE_ROUTES = [
   '/login',
   '/register',
   '/forgot-password',
@@ -36,7 +36,7 @@ export const PUBLIC_PAGE_ROUTES = [
 ];
 
 /** Exact-match public API routes. Sub-paths are NOT allowed. */
-export const PUBLIC_API_ROUTES_EXACT = new Set([
+const PUBLIC_API_ROUTES_EXACT = new Set([
   '/api/csrf',
   '/api/stats/platform',
   '/api/diag',
@@ -46,10 +46,10 @@ export const PUBLIC_API_ROUTES_EXACT = new Set([
 ]);
 
 /** Prefix-matched public API routes. Sub-paths ARE allowed. */
-export const PUBLIC_API_ROUTES_PREFIXED = ['/api/auth/'];
+const PUBLIC_API_ROUTES_PREFIXED = ['/api/auth/'];
 
 /** Admin auth pages (pre-login), exact-match. */
-export const ADMIN_AUTH_ROUTES = [
+const ADMIN_AUTH_ROUTES = [
   '/admin/login',
   '/admin/register',
   '/admin/forgot-password',
@@ -70,7 +70,7 @@ export function isPublicRoute(pathname: string): boolean {
 
   if (
     PUBLIC_PAGE_ROUTES.some(
-      (route) => pathname === route || pathname.startsWith(route + '/'),
+      (route) => pathname === route || pathname.startsWith(route + '/')
     )
   ) {
     return true;
@@ -78,7 +78,9 @@ export function isPublicRoute(pathname: string): boolean {
 
   if (PUBLIC_API_ROUTES_EXACT.has(pathname)) return true;
 
-  if (PUBLIC_API_ROUTES_PREFIXED.some((prefix) => pathname.startsWith(prefix))) {
+  if (
+    PUBLIC_API_ROUTES_PREFIXED.some((prefix) => pathname.startsWith(prefix))
+  ) {
     return true;
   }
 

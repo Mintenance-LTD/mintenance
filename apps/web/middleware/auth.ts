@@ -7,7 +7,7 @@ import { securityMonitor } from '@/lib/security-monitor';
 import { redirectToLogin } from './helpers';
 import { validateCsrf, setCsrfCookie } from './csrf';
 
-export interface AuthResult {
+interface AuthResult {
   response?: NextResponse;
   jwtPayload?: {
     sub?: string;

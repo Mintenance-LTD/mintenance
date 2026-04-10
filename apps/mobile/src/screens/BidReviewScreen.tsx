@@ -428,5 +428,3 @@ export const BidReviewScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-export default BidReviewScreen;

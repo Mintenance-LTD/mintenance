@@ -126,3 +126,13 @@ export interface TenantInviteData {
   landlordName: string;
   inviteUrl: string;
 }
+
+export interface InvoiceNotificationData {
+  clientName: string;
+  contractorName: string;
+  invoiceNumber: string;
+  title: string;
+  totalAmount: number;
+  dueDate: string;
+  viewUrl: string;
+}

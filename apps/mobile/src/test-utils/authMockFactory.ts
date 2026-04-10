@@ -91,12 +91,8 @@ export class AuthMockFactory {
 // CONVENIENCE EXPORTS
 // ============================================================================
 
-export const mockAuthNotAuthenticated =
-  AuthMockFactory.createCompleteAuthMock();
-export const mockAuthHomeowner = AuthMockFactory.createAuthenticatedHomeowner();
-export const mockAuthContractor =
-  AuthMockFactory.createAuthenticatedContractor();
-export const mockAuthLoading = AuthMockFactory.createLoadingState();
-export const mockAuthBiometric = AuthMockFactory.createBiometricEnabledMock();
-
-export default AuthMockFactory;
+const mockAuthNotAuthenticated = AuthMockFactory.createCompleteAuthMock();
+const mockAuthHomeowner = AuthMockFactory.createAuthenticatedHomeowner();
+const mockAuthContractor = AuthMockFactory.createAuthenticatedContractor();
+const mockAuthLoading = AuthMockFactory.createLoadingState();
+const mockAuthBiometric = AuthMockFactory.createBiometricEnabledMock();

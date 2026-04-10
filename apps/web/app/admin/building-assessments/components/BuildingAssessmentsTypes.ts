@@ -30,7 +30,11 @@ export interface Assessment {
   auto_validated_at?: string;
   auto_validation_reason?: string;
   auto_validation_confidence?: number | null;
-  auto_validation_review_status?: 'not_applicable' | 'pending_review' | 'confirmed' | 'overturned';
+  auto_validation_review_status?:
+    | 'not_applicable'
+    | 'pending_review'
+    | 'confirmed'
+    | 'overturned';
 }
 
 export interface Statistics {
@@ -62,23 +66,37 @@ export interface CorrectionStats {
   needed: number;
 }
 
-export interface AutoValidationBadge {
+interface AutoValidationBadge {
   label: string;
   background: string;
   color: string;
 }
 
-export function getAutoValidationBadge(assessment: Assessment): AutoValidationBadge | null {
+export function getAutoValidationBadge(
+  assessment: Assessment
+): AutoValidationBadge | null {
   if (!assessment.auto_validated) return null;
   const status = assessment.auto_validation_review_status || 'pending_review';
   if (status === 'pending_review') {
-    return { label: 'Auto-Validated (Pending Review)', background: '#DBEAFE', color: '#1E3A8A' };
+    return {
+      label: 'Auto-Validated (Pending Review)',
+      background: '#DBEAFE',
+      color: '#1E3A8A',
+    };
   }
   if (status === 'confirmed') {
-    return { label: 'Auto-Validated ✓', background: '#D1FAE5', color: '#065F46' };
+    return {
+      label: 'Auto-Validated ✓',
+      background: '#D1FAE5',
+      color: '#065F46',
+    };
   }
   if (status === 'overturned') {
-    return { label: 'Auto-Validation Overturned', background: '#FEE2E2', color: '#991B1B' };
+    return {
+      label: 'Auto-Validation Overturned',
+      background: '#FEE2E2',
+      color: '#991B1B',
+    };
   }
   return { label: 'Auto-Validated', background: '#E5E7EB', color: '#374151' };
 }

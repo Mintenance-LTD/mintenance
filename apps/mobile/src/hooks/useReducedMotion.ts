@@ -32,7 +32,7 @@ import { useEffect, useState } from 'react';
 import { AccessibilityInfo } from 'react-native';
 import { logger } from '@mintenance/shared';
 
-export function useReducedMotion(): boolean {
+function useReducedMotion(): boolean {
   // Initialize with false (default state)
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
@@ -40,11 +40,15 @@ export function useReducedMotion(): boolean {
     // Check initial reduced motion preference
     const checkReducedMotion = async () => {
       try {
-        const isReduceMotionEnabled = await AccessibilityInfo.isReduceMotionEnabled();
+        const isReduceMotionEnabled =
+          await AccessibilityInfo.isReduceMotionEnabled();
         setPrefersReducedMotion(isReduceMotionEnabled);
       } catch (error) {
         // Fallback to false if AccessibilityInfo is not available
-        logger.warn('AccessibilityInfo.isReduceMotionEnabled not available', { service: 'mobile', error: String(error) });
+        logger.warn('AccessibilityInfo.isReduceMotionEnabled not available', {
+          service: 'mobile',
+          error: String(error),
+        });
         setPrefersReducedMotion(false);
       }
     };
@@ -84,7 +88,7 @@ export function useReducedMotion(): boolean {
  * />
  * ```
  */
-export function useMotionPreference() {
+function useMotionPreference() {
   const prefersReducedMotion = useReducedMotion();
 
   return {
@@ -147,7 +151,7 @@ export function useMotionPreference() {
  * });
  * ```
  */
-export function useAnimatedValue(
+function useAnimatedValue(
   shouldReduce: boolean,
   config: {
     initial: number;
@@ -168,7 +172,7 @@ export function useAnimatedValue(
  * });
  * ```
  */
-export function useConditionalAnimation<T>(
+function useConditionalAnimation<T>(
   shouldReduce: boolean,
   config: {
     animated: T;
@@ -182,16 +186,20 @@ export function useConditionalAnimation<T>(
  * Check if screen reader is enabled
  * Useful for adjusting animations when assistive technology is active
  */
-export function useScreenReaderEnabled(): boolean {
+function useScreenReaderEnabled(): boolean {
   const [isEnabled, setIsEnabled] = useState(false);
 
   useEffect(() => {
     const checkScreenReader = async () => {
       try {
-        const screenReaderEnabled = await AccessibilityInfo.isScreenReaderEnabled();
+        const screenReaderEnabled =
+          await AccessibilityInfo.isScreenReaderEnabled();
         setIsEnabled(screenReaderEnabled);
       } catch (error) {
-        logger.warn('AccessibilityInfo.isScreenReaderEnabled not available', { service: 'mobile', error: String(error) });
+        logger.warn('AccessibilityInfo.isScreenReaderEnabled not available', {
+          service: 'mobile',
+          error: String(error),
+        });
         setIsEnabled(false);
       }
     };
@@ -222,7 +230,7 @@ export function useScreenReaderEnabled(): boolean {
  * const { reducedMotion, screenReader, shouldSimplifyUI } = useAccessibilityState();
  * ```
  */
-export function useAccessibilityState() {
+function useAccessibilityState() {
   const reducedMotion = useReducedMotion();
   const screenReader = useScreenReaderEnabled();
 

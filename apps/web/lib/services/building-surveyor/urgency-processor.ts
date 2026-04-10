@@ -9,7 +9,10 @@ import type { AiAssessmentPayload } from './validation-schemas';
 /**
  * Process urgency data
  */
-export function processUrgency(aiResponse: AiAssessmentPayload, urgency: UrgencyLevel): {
+export function processUrgency(
+  aiResponse: AiAssessmentPayload,
+  urgency: UrgencyLevel
+): {
   urgency: UrgencyLevel;
   recommendedActionTimeline: string;
   estimatedTimeToWorsen?: string;
@@ -31,7 +34,10 @@ export function processUrgency(aiResponse: AiAssessmentPayload, urgency: Urgency
 /**
  * Calculate priority score (0-100)
  */
-export function calculatePriorityScore(urgency: UrgencyLevel, aiResponse: AiAssessmentPayload): number {
+function calculatePriorityScore(
+  urgency: UrgencyLevel,
+  aiResponse: AiAssessmentPayload
+): number {
   const baseScores: Record<UrgencyLevel, number> = {
     immediate: 95,
     urgent: 80,
@@ -58,7 +64,7 @@ export function calculatePriorityScore(urgency: UrgencyLevel, aiResponse: AiAsse
 /**
  * Get default timeline for urgency
  */
-export function getDefaultTimeline(urgency: UrgencyLevel): string {
+function getDefaultTimeline(urgency: UrgencyLevel): string {
   const timelines: Record<UrgencyLevel, string> = {
     immediate: 'Within 24 hours',
     urgent: 'Within 1 week',
@@ -72,7 +78,7 @@ export function getDefaultTimeline(urgency: UrgencyLevel): string {
 /**
  * Get default reasoning for urgency
  */
-export function getDefaultReasoning(urgency: UrgencyLevel): string {
+function getDefaultReasoning(urgency: UrgencyLevel): string {
   const reasonings: Record<UrgencyLevel, string> = {
     immediate: 'Critical safety hazard requires immediate attention',
     urgent: 'Damage is progressing and requires prompt repair',
@@ -82,4 +88,3 @@ export function getDefaultReasoning(urgency: UrgencyLevel): string {
   };
   return reasonings[urgency];
 }
-

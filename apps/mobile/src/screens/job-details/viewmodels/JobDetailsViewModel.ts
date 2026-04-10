@@ -20,7 +20,7 @@ import UnifiedAIServiceMobile from '../../../services/UnifiedAIServiceMobile';
 import { supabase } from '../../../config/supabase';
 import type { Job } from '@mintenance/types';
 
-export interface JobDetailsState {
+interface JobDetailsState {
   aiAnalysis: AIAnalysis | null;
   aiLoading: boolean;
   job: Job | undefined;
@@ -31,15 +31,14 @@ export interface JobDetailsState {
   hasReviewed: boolean;
 }
 
-export interface JobDetailsActions {
+interface JobDetailsActions {
   loadAIAnalysis: (jobData: Job) => Promise<void>;
   handleContractorAssigned: (contractorId: string, bidId: string) => void;
   handleJobStatusUpdate: (updatedJob: Job) => void;
   refetchJob: () => void;
 }
 
-export interface JobDetailsViewModel
-  extends JobDetailsState, JobDetailsActions {}
+interface JobDetailsViewModel extends JobDetailsState, JobDetailsActions {}
 
 /**
  * Custom hook providing Job Details screen logic

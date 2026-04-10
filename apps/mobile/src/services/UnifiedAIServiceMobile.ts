@@ -16,7 +16,7 @@ import {
   AgentContext,
   AIServiceResponse,
   AIServiceConfig,
-  UserCorrection
+  UserCorrection,
 } from '@mintenance/ai-core';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { config } from '../config/environment';
@@ -31,31 +31,31 @@ const mobileConfig: AIServiceConfig = {
     buildingSurveyor: config.apiBaseUrl + '/api/building-surveyor/assess',
     agents: config.apiBaseUrl + '/api/agents',
     search: config.apiBaseUrl + '/api/ai/search',
-    training: config.apiBaseUrl + '/api/training'
+    training: config.apiBaseUrl + '/api/training',
   },
   limits: {
     daily: 100,
     weekly: 500,
     monthly: 2000,
     perUser: 50,
-    perRequest: 10
+    perRequest: 10,
   },
   features: {
     enableSAM3: true,
     enableShadowMode: false, // Testing in production
     enableABTesting: true,
     enableContinuousLearning: true,
-    enableTrainingDataCollection: true
+    enableTrainingDataCollection: true,
   },
   performance: {
     timeout: 30000,
     maxRetries: 3,
     cacheEnabled: true,
-    cacheTTL: 3600 // 1 hour
-  }
+    cacheTTL: 3600, // 1 hour
+  },
 };
 
-export class UnifiedAIServiceMobile {
+class UnifiedAIServiceMobile {
   private service: UnifiedAIService;
   private static instance: UnifiedAIServiceMobile;
 
@@ -97,7 +97,7 @@ export class UnifiedAIServiceMobile {
       const response = await this.service.assessBuilding(images, {
         description: jobDetails?.description,
         category: jobDetails?.category,
-        location: jobDetails?.location
+        location: jobDetails?.location,
       });
 
       if (response.success && response.data) {
@@ -122,7 +122,10 @@ export class UnifiedAIServiceMobile {
     contractorId?: string
   ): Promise<PricingRecommendation | null> {
     try {
-      const response = await this.service.getPricingRecommendation(jobId, contractorId);
+      const response = await this.service.getPricingRecommendation(
+        jobId,
+        contractorId
+      );
 
       if (response.success && response.data) {
         return response.data;
@@ -130,7 +133,9 @@ export class UnifiedAIServiceMobile {
 
       return null;
     } catch (error) {
-      logger.error('Pricing recommendation failed:', error, { service: 'mobile' });
+      logger.error('Pricing recommendation failed:', error, {
+        service: 'mobile',
+      });
       return null;
     }
   }
@@ -143,7 +148,10 @@ export class UnifiedAIServiceMobile {
     context: AgentContext
   ): Promise<AgentDecision | null> {
     try {
-      const response = await this.service.requestAgentDecision(agentName, context);
+      const response = await this.service.requestAgentDecision(
+        agentName,
+        context
+      );
 
       if (response.success && response.data) {
         // Store decision for offline reference
@@ -161,12 +169,15 @@ export class UnifiedAIServiceMobile {
   /**
    * Semantic search
    */
-  async search(query: string, filters?: SearchFilters): Promise<SearchResult[]> {
+  async search(
+    query: string,
+    filters?: SearchFilters
+  ): Promise<SearchResult[]> {
     try {
       const searchQuery: SemanticSearchQuery = {
         query,
         filters,
-        limit: 20
+        limit: 20,
       };
 
       const response = await this.service.search(searchQuery);
@@ -234,7 +245,9 @@ export class UnifiedAIServiceMobile {
 
       return response.success;
     } catch (error) {
-      logger.error('Correction submission failed:', error, { service: 'mobile' });
+      logger.error('Correction submission failed:', error, {
+        service: 'mobile',
+      });
       return false;
     }
   }
@@ -252,7 +265,9 @@ export class UnifiedAIServiceMobile {
 
       return null;
     } catch (error) {
-      logger.error('Failed to fetch usage metrics:', error, { service: 'mobile' });
+      logger.error('Failed to fetch usage metrics:', error, {
+        service: 'mobile',
+      });
       return null;
     }
   }
@@ -299,10 +314,7 @@ export class UnifiedAIServiceMobile {
     return response.data;
   }
 
-  async predictJobDemand(
-    category: string,
-    location: string
-  ): Promise<unknown> {
+  async predictJobDemand(category: string, location: string): Promise<unknown> {
     const response = await this.service.completeAgentAction(
       'PredictiveAgent',
       'predict-demand',
@@ -316,7 +328,9 @@ export class UnifiedAIServiceMobile {
   /**
    * Store assessment locally for offline access
    */
-  private async storeAssessmentLocally(assessment: BuildingAssessment): Promise<void> {
+  private async storeAssessmentLocally(
+    assessment: BuildingAssessment
+  ): Promise<void> {
     try {
       const key = `assessment_${assessment.id}`;
       await AsyncStorage.setItem(key, JSON.stringify(assessment));
@@ -324,9 +338,14 @@ export class UnifiedAIServiceMobile {
       // Store list of assessment IDs
       const assessmentIds = await this.getStoredAssessmentIds();
       assessmentIds.push(assessment.id);
-      await AsyncStorage.setItem('assessment_ids', JSON.stringify(assessmentIds));
+      await AsyncStorage.setItem(
+        'assessment_ids',
+        JSON.stringify(assessmentIds)
+      );
     } catch (error) {
-      logger.error('Failed to store assessment locally:', error, { service: 'mobile' });
+      logger.error('Failed to store assessment locally:', error, {
+        service: 'mobile',
+      });
     }
   }
 
@@ -350,7 +369,9 @@ export class UnifiedAIServiceMobile {
       const key = `decision_${decision.agentName}_${Date.now()}`;
       await AsyncStorage.setItem(key, JSON.stringify(decision));
     } catch (error) {
-      logger.error('Failed to store agent decision:', error, { service: 'mobile' });
+      logger.error('Failed to store agent decision:', error, {
+        service: 'mobile',
+      });
     }
   }
 
@@ -374,20 +395,21 @@ export class UnifiedAIServiceMobile {
         severity,
         confidence: 60,
         description: 'Assessment generated using fallback rules',
-        detectedIssues: []
+        detectedIssues: [],
       },
       safetyHazards: {
         hasSafetyHazards: severity === 'critical',
-        criticalFlags: severity === 'critical' ? ['Requires immediate attention'] : [],
+        criticalFlags:
+          severity === 'critical' ? ['Requires immediate attention'] : [],
         immediateActionRequired: severity === 'critical',
         riskLevel: severity === 'critical' ? 'high' : 'medium',
-        details: 'Fallback assessment - professional inspection recommended'
+        details: 'Fallback assessment - professional inspection recommended',
       },
       insuranceRisk: {
         riskScore: 50,
         category: 'medium',
         factors: ['Unable to perform detailed assessment'],
-        recommendedAction: 'Professional assessment required'
+        recommendedAction: 'Professional assessment required',
       },
       complianceFlags: [],
       recommendations: ['Get professional assessment', 'Document all damage'],
@@ -396,7 +418,7 @@ export class UnifiedAIServiceMobile {
         max: 5000,
         likely: 2000,
         currency: 'GBP',
-        confidence: 30
+        confidence: 30,
       },
       confidence: 60,
       metadata: {
@@ -408,24 +430,28 @@ export class UnifiedAIServiceMobile {
         costTracking: {
           estimatedCost: 0,
           actualCost: 0,
-          breakdown: {}
-        }
-      }
+          breakdown: {},
+        },
+      },
     };
   }
 
   /**
    * Estimate severity from category
    */
-  private estimateSeverityFromCategory(category: string): 'minimal' | 'moderate' | 'severe' | 'critical' {
-    const severityMap: { [key: string]: 'minimal' | 'moderate' | 'severe' | 'critical' } = {
-      'emergency': 'critical',
-      'plumbing_leak': 'severe',
-      'electrical': 'severe',
-      'structural': 'critical',
-      'roofing': 'severe',
-      'painting': 'minimal',
-      'cleaning': 'minimal'
+  private estimateSeverityFromCategory(
+    category: string
+  ): 'minimal' | 'moderate' | 'severe' | 'critical' {
+    const severityMap: {
+      [key: string]: 'minimal' | 'moderate' | 'severe' | 'critical';
+    } = {
+      emergency: 'critical',
+      plumbing_leak: 'severe',
+      electrical: 'severe',
+      structural: 'critical',
+      roofing: 'severe',
+      painting: 'minimal',
+      cleaning: 'minimal',
     };
 
     return severityMap[category.toLowerCase()] || 'moderate';
@@ -434,7 +460,10 @@ export class UnifiedAIServiceMobile {
   /**
    * Perform local search when API is unavailable
    */
-  private async performLocalSearch(query: string, filters?: SearchFilters): Promise<SearchResult[]> {
+  private async performLocalSearch(
+    query: string,
+    filters?: SearchFilters
+  ): Promise<SearchResult[]> {
     // Implement basic local search using AsyncStorage
     // This would search through cached jobs, contractors, etc.
     return [];

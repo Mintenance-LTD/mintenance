@@ -14,7 +14,7 @@ import { theme } from '../../theme';
 // TYPES
 // ============================================================================
 
-export interface OptimizedImageProps {
+interface OptimizedImageProps {
   source: { uri: string } | number | string;
   style?: ImageStyle;
   containerStyle?: ViewStyle;
@@ -152,7 +152,7 @@ export const OptimizedImage = memo<OptimizedImageProps>((props) => {
       setImageState({ loading: false, error: true, loaded: false });
       onError?.(error);
     },
-    [onError],
+    [onError]
   );
 
   const handleLoadEnd = useCallback(() => {
@@ -168,9 +168,7 @@ export const OptimizedImage = memo<OptimizedImageProps>((props) => {
     if (!imageState.loading || imageState.loaded) return null;
 
     if (loadingComponent) {
-      return (
-        <View style={StyleSheet.absoluteFill}>{loadingComponent}</View>
-      );
+      return <View style={StyleSheet.absoluteFill}>{loadingComponent}</View>;
     }
 
     return (
@@ -179,8 +177,8 @@ export const OptimizedImage = memo<OptimizedImageProps>((props) => {
         testID={testID ? `${testID}-loading` : undefined}
       >
         <ActivityIndicator
-          size="small"
-          color="#3B82F6"
+          size='small'
+          color='#3B82F6'
           testID={testID ? `${testID}-loading-indicator` : undefined}
         />
       </View>
@@ -191,9 +189,7 @@ export const OptimizedImage = memo<OptimizedImageProps>((props) => {
     if (!imageState.error) return null;
 
     if (errorComponent) {
-      return (
-        <View style={StyleSheet.absoluteFill}>{errorComponent}</View>
-      );
+      return <View style={StyleSheet.absoluteFill}>{errorComponent}</View>;
     }
 
     return (
@@ -208,7 +204,8 @@ export const OptimizedImage = memo<OptimizedImageProps>((props) => {
   }, [imageState.error, errorComponent, testID]);
 
   const renderCustomPlaceholder = useCallback(() => {
-    if (imageState.loaded || imageState.error || imageState.loading) return null;
+    if (imageState.loaded || imageState.error || imageState.loading)
+      return null;
     if (!placeholder) return null;
 
     if (typeof placeholder === 'string') {
@@ -222,10 +219,14 @@ export const OptimizedImage = memo<OptimizedImageProps>((props) => {
       );
     }
 
-    return (
-      <View style={StyleSheet.absoluteFill}>{placeholder}</View>
-    );
-  }, [imageState.loaded, imageState.error, imageState.loading, placeholder, testID]);
+    return <View style={StyleSheet.absoluteFill}>{placeholder}</View>;
+  }, [
+    imageState.loaded,
+    imageState.error,
+    imageState.loading,
+    placeholder,
+    testID,
+  ]);
 
   // ============================================================================
   // RENDER
@@ -319,5 +320,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-
-export default OptimizedImage;

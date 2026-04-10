@@ -1,8 +1,9 @@
 'use client';
 
 import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPageWrapper';
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { Download, Settings } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -13,6 +14,51 @@ import { BankAccountSection } from './_components/BankAccountSection';
 import { PricingModal } from './_components/PricingModal';
 import type { Transaction, EscrowTransaction } from './_components/types';
 
+function transformPayments(payments: EscrowTransaction[]): Transaction[] {
+  return payments.map((p: EscrowTransaction) => {
+    let mappedStatus: 'pending' | 'held' | 'released' | 'completed' = 'pending';
+    if (p.status === 'released') {
+      mappedStatus = 'released';
+    } else if (p.status === 'held') {
+      mappedStatus = 'held';
+    } else if (p.status === 'pending') {
+      mappedStatus = 'pending';
+    } else if (p.status === 'refunded') {
+      mappedStatus = 'completed';
+    }
+
+    const jobTitle = p.job?.title || 'Payment';
+    const clientName = p.payer
+      ? `${p.payer.first_name || ''} ${p.payer.last_name || ''}`.trim() ||
+        'Client'
+      : 'Unknown';
+
+    const platformFee = p.amount * 0.05;
+    const processingFee = p.amount * 0.02;
+    const netAmount = p.amount - platformFee - processingFee;
+
+    return {
+      id: p.id,
+      jobId: p.jobId || p.job_id || '',
+      jobTitle,
+      client: clientName,
+      amount: Number(p.amount) || 0,
+      status: mappedStatus,
+      date: p.createdAt || p.created_at || new Date().toISOString(),
+      platformFee,
+      processingFee,
+      netAmount,
+    };
+  });
+}
+
+async function fetchTransactions(): Promise<Transaction[]> {
+  const response = await fetch('/api/payments/history');
+  if (!response.ok) throw new Error('Failed to fetch');
+  const { payments } = await response.json();
+  return transformPayments(payments);
+}
+
 export default function ContractorFinancePage2025() {
   const router = useRouter();
   const { user } = useCurrentUser();
@@ -20,8 +66,6 @@ export default function ContractorFinancePage2025() {
   const [filterStatus, setFilterStatus] = useState<
     'all' | 'pending' | 'completed'
   >('all');
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
@@ -29,73 +73,18 @@ export default function ContractorFinancePage2025() {
     'month'
   );
 
-  // Fetch transactions from API
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      try {
-        const response = await fetch('/api/payments/history');
-        if (!response.ok) throw new Error('Failed to fetch');
-
-        const { payments } = await response.json();
-
-        // Transform to transactions
-        // API returns EscrowTransaction: { id, jobId, payerId, payeeId, amount, status, createdAt, job: { title }, payer: { first_name, last_name } }
-        const transformed: Transaction[] = payments.map(
-          (p: EscrowTransaction) => {
-            // Map API status to finance page status
-            // API: 'pending', 'held', 'released', 'refunded'
-            // Finance page expects: 'pending', 'held', 'released', 'completed'
-            let mappedStatus: 'pending' | 'held' | 'released' | 'completed' =
-              'pending';
-            if (p.status === 'released') {
-              mappedStatus = 'released';
-            } else if (p.status === 'held') {
-              mappedStatus = 'held';
-            } else if (p.status === 'pending') {
-              mappedStatus = 'pending';
-            } else if (p.status === 'refunded') {
-              mappedStatus = 'completed'; // Treat refunded as completed for display
-            }
-
-            // Get job title - API returns job object with title property
-            const jobTitle = p.job?.title || 'Payment';
-
-            // Get client name - for contractors viewing their finance page, client is the payer (homeowner)
-            const clientName = p.payer
-              ? `${p.payer.first_name || ''} ${p.payer.last_name || ''}`.trim() ||
-                'Client'
-              : 'Unknown';
-
-            // Calculate fees (5% platform + 2% processing = 7% total)
-            const platformFee = p.amount * 0.05;
-            const processingFee = p.amount * 0.02;
-            const netAmount = p.amount - platformFee - processingFee;
-
-            return {
-              id: p.id,
-              jobId: p.jobId || p.job_id || '',
-              jobTitle,
-              client: clientName,
-              amount: Number(p.amount) || 0,
-              status: mappedStatus,
-              date: p.createdAt || p.created_at || new Date().toISOString(),
-              platformFee,
-              processingFee,
-              netAmount,
-            };
-          }
-        );
-
-        setTransactions(transformed);
-      } catch (error) {
+  const { data: transactions = [], isLoading: loading } = useQuery<
+    Transaction[]
+  >({
+    queryKey: ['contractor', 'finance', 'transactions'],
+    queryFn: fetchTransactions,
+    enabled: !!user,
+    meta: {
+      onError: () => {
         toast.error('Failed to load transactions');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (user) fetchTransactions();
-  }, [user]);
+      },
+    },
+  });
 
   // Calculate stats
   const thisMonthRevenue = transactions

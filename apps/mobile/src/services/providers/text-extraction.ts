@@ -31,7 +31,7 @@ export function extractListFromText(text: string, pattern: RegExp): string[] {
 /**
  * Determine severity level from a concern description string.
  */
-export function determineSeverity(concern: string): 'Low' | 'Medium' | 'High' {
+function determineSeverity(concern: string): 'Low' | 'Medium' | 'High' {
   const lowerConcern = concern.toLowerCase();
   if (
     lowerConcern.includes('electrical') ||

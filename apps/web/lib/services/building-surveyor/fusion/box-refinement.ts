@@ -11,7 +11,7 @@ import type { RoboflowDetection } from '../types';
 /**
  * Intersection over Union for two bounding boxes in [x, y, width, height] form.
  */
-export function calculateIoU(box1: number[], box2: number[]): number {
+function calculateIoU(box1: number[], box2: number[]): number {
   const [x1, y1, w1, h1] = box1;
   const [x2, y2, w2, h2] = box2;
 
@@ -39,7 +39,7 @@ export function calculateIoU(box1: number[], box2: number[]): number {
  */
 export function refineBoxesWithMasks(
   yoloDetections?: RoboflowDetection[],
-  sam3Evidence?: EnhancedFusionInput['sam3Evidence'],
+  sam3Evidence?: EnhancedFusionInput['sam3Evidence']
 ): Array<{ original: number[]; refined: number[]; iou: number }> | undefined {
   if (!yoloDetections || !sam3Evidence) {
     return undefined;
@@ -61,10 +61,7 @@ export function refineBoxesWithMasks(
 
       const bb = detection.boundingBox;
       for (const sam3Box of sam3Data.boxes) {
-        const iou = calculateIoU(
-          [bb.x, bb.y, bb.width, bb.height],
-          sam3Box,
-        );
+        const iou = calculateIoU([bb.x, bb.y, bb.width, bb.height], sam3Box);
         if (iou > bestIoU) {
           bestIoU = iou;
           bestBox = sam3Box;

@@ -48,7 +48,7 @@ export function ProfileCompletionCard({
     }).start();
   }, [completion]);
 
-  const completedCount = items.filter(item => item.completed).length;
+  const completedCount = items.filter((item) => item.completed).length;
   const totalCount = items.length;
 
   // Calculate stroke dash offset for circular progress
@@ -82,7 +82,7 @@ export function ProfileCompletionCard({
               r={radius}
               stroke={theme.colors.border}
               strokeWidth={8}
-              fill="none"
+              fill='none'
             />
             {/* Progress circle */}
             <AnimatedCircle
@@ -95,10 +95,10 @@ export function ProfileCompletionCard({
                   : theme.colors.accent
               }
               strokeWidth={8}
-              fill="none"
+              fill='none'
               strokeDasharray={circumference}
               strokeDashoffset={strokeDashoffset}
-              strokeLinecap="round"
+              strokeLinecap='round'
               transform={`rotate(-90 50 50)`}
             />
           </Svg>
@@ -123,15 +123,12 @@ export function ProfileCompletionCard({
       {/* Completion items */}
       {!compact && (
         <View style={styles.itemsContainer}>
-          {items.map(item => (
+          {items.map((item) => (
             <TouchableOpacity
               key={item.id}
               onPress={() => !item.completed && onItemClick?.(item)}
               disabled={item.completed}
-              style={[
-                styles.item,
-                item.completed && styles.itemCompleted,
-              ]}
+              style={[styles.item, item.completed && styles.itemCompleted]}
             >
               <View
                 style={[
@@ -312,5 +309,3 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
 });
-
-export default ProfileCompletionCard;

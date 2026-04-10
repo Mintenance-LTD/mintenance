@@ -22,7 +22,7 @@
 
 import { logger } from '@mintenance/shared';
 
-export interface RoboflowConfig {
+interface RoboflowConfig {
   readonly apiKey: string;
   readonly modelId: string;
   readonly modelVersion: string;
@@ -44,7 +44,7 @@ export interface RoboflowConfig {
   readonly yoloIouThreshold: number;
 }
 
-export interface RoboflowConfigValidation {
+interface RoboflowConfigValidation {
   valid: boolean;
   error?: string;
 }
@@ -63,7 +63,8 @@ export function getRoboflowConfig(): RoboflowConfig {
     : DEFAULT_TIMEOUT;
 
   const useLocalYOLO =
-    process.env.USE_LOCAL_YOLO === 'true' || process.env.ROBOFLOW_USE_LOCAL_YOLO === 'true';
+    process.env.USE_LOCAL_YOLO === 'true' ||
+    process.env.ROBOFLOW_USE_LOCAL_YOLO === 'true';
   const confidenceThreshold = process.env.YOLO_CONFIDENCE_THRESHOLD
     ? Number.parseFloat(process.env.YOLO_CONFIDENCE_THRESHOLD)
     : 0.25;
@@ -76,13 +77,16 @@ export function getRoboflowConfig(): RoboflowConfig {
     modelId: process.env.ROBOFLOW_MODEL_ID || '',
     modelVersion: process.env.ROBOFLOW_MODEL_VERSION || '4',
     baseUrl: process.env.ROBOFLOW_BASE_URL || DEFAULT_BASE_URL,
-    timeoutMs: Number.isNaN(timeoutMs) || timeoutMs <= 0 ? DEFAULT_TIMEOUT : timeoutMs,
+    timeoutMs:
+      Number.isNaN(timeoutMs) || timeoutMs <= 0 ? DEFAULT_TIMEOUT : timeoutMs,
     useLocalYOLO,
     yoloModelPath: process.env.YOLO_MODEL_PATH,
     yoloLoadFromDatabase: process.env.YOLO_LOAD_FROM_DATABASE === 'true',
     yoloDatabaseModelName: process.env.YOLO_DATABASE_MODEL_NAME || 'yolov11',
     yoloDataYamlPath: process.env.YOLO_DATA_YAML_PATH,
-    yoloConfidenceThreshold: Number.isNaN(confidenceThreshold) ? 0.25 : confidenceThreshold,
+    yoloConfidenceThreshold: Number.isNaN(confidenceThreshold)
+      ? 0.25
+      : confidenceThreshold,
     yoloIouThreshold: Number.isNaN(iouThreshold) ? 0.45 : iouThreshold,
   };
 }
@@ -99,13 +103,18 @@ export function getRoboflowConfig(): RoboflowConfig {
  * @param config - Optional config object to validate. If not provided, calls getRoboflowConfig().
  * @returns Validation result with valid flag and optional error message
  */
-export function validateRoboflowConfig(config?: RoboflowConfig): RoboflowConfigValidation {
+export function validateRoboflowConfig(
+  config?: RoboflowConfig
+): RoboflowConfigValidation {
   const cfg = config ?? getRoboflowConfig();
 
   // If using local YOLO, validate local model path
   if (cfg.useLocalYOLO) {
     if (!cfg.yoloModelPath || cfg.yoloModelPath.trim() === '') {
-      return { valid: false, error: 'YOLO_MODEL_PATH is required when USE_LOCAL_YOLO=true' };
+      return {
+        valid: false,
+        error: 'YOLO_MODEL_PATH is required when USE_LOCAL_YOLO=true',
+      };
     }
     // Local inference doesn't require API credentials
     return { valid: true };
@@ -169,4 +178,3 @@ export function logRoboflowConfig(): void {
     });
   }
 }
-

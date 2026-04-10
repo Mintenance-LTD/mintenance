@@ -21,7 +21,7 @@ export function calculateDistance(
   return Math.round(R * c * 10) / 10;
 }
 
-export function deg2rad(deg: number): number {
+function deg2rad(deg: number): number {
   return deg * (Math.PI / 180);
 }
 

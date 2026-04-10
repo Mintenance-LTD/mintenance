@@ -23,10 +23,10 @@ interface GoogleMapContainerProps {
 
 /**
  * GoogleMapContainer Component
- * 
+ *
  * Reusable wrapper for Google Maps initialization
  * Handles loading, error states, and provides map instance via callback
- * 
+ *
  * @example
  * <GoogleMapContainer
  *   center={{ lat: 51.5074, lng: -0.1278 }}
@@ -36,9 +36,11 @@ interface GoogleMapContainerProps {
  *   }}
  * />
  */
-export function GoogleMapContainer(props: GoogleMapContainerProps): JSX.Element {
+export function GoogleMapContainer(
+  props: GoogleMapContainerProps
+): JSX.Element {
   return (
-    <ErrorBoundary componentName="GoogleMapContainer">
+    <ErrorBoundary componentName='GoogleMapContainer'>
       <GoogleMapContent {...props} />
     </ErrorBoundary>
   );
@@ -60,7 +62,7 @@ function GoogleMapContent({
   const handleRetry = useCallback(() => {
     setError(null);
     setLoading(true);
-    
+
     if (mapRef.current && mapInstanceRef.current) {
       mapInstanceRef.current.setCenter(center);
       mapInstanceRef.current.setZoom(zoom);
@@ -72,7 +74,7 @@ function GoogleMapContent({
     if (!mapRef.current) return;
 
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    
+
     if (!apiKey) {
       logger.error('NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not configured');
       setError('Map configuration error. Please contact support.');
@@ -87,7 +89,7 @@ function GoogleMapContent({
     // Initialize map function
     const initializeMap = () => {
       if (!mapRef.current) return;
-      
+
       // Type assertion for google maps
       const google = (window as unknown as WindowWithGoogle).google;
       if (!google || !google.maps || !google.maps.Map) {
@@ -117,16 +119,23 @@ function GoogleMapContent({
 
         mapInstanceRef.current = mapInstance;
         setLoading(false);
-        
-        logger.info(`✅ Map loaded in ${loadTime.toFixed(0)}ms`);
+
+        // Only log on actual first load (not re-renders)
+        if (loadTime > 0) {
+          logger.info(`✅ Map loaded in ${loadTime.toFixed(0)}ms`);
+        }
 
         // Track performance
         if (typeof window !== 'undefined') {
-          (window as unknown as WindowWithGoogle).gtag?.('event', 'timing_complete', {
-            name: 'map_load',
-            value: Math.round(loadTime),
-            event_category: 'Map Performance',
-          });
+          (window as unknown as WindowWithGoogle).gtag?.(
+            'event',
+            'timing_complete',
+            {
+              name: 'map_load',
+              value: Math.round(loadTime),
+              event_category: 'Map Performance',
+            }
+          );
         }
 
         onMapLoad?.(mapInstance);
@@ -154,7 +163,7 @@ function GoogleMapContent({
           initializeMap();
         }
       }, 100);
-      
+
       return () => {
         if (checkInterval) clearInterval(checkInterval);
       };
@@ -162,12 +171,12 @@ function GoogleMapContent({
 
     // Create callback function name
     const callbackName = `initGoogleMap_${Date.now()}`;
-    
+
     // Set up callback function
     (window as unknown as WindowWithGoogle)[callbackName] = () => {
       // Clean up callback
       delete (window as unknown as WindowWithGoogle)[callbackName];
-      
+
       // Initialize map after callback fires (ensures Maps library is ready)
       setTimeout(() => {
         initializeMap();
@@ -177,7 +186,7 @@ function GoogleMapContent({
     // Create and load script with callback
     const script = document.createElement('script');
     script.id = scriptId;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry&callback=${callbackName}`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry&loading=async&callback=${callbackName}`;
     script.async = true;
     script.defer = true;
 
@@ -251,7 +260,8 @@ function GoogleMapContent({
             transition: 'all 0.2s',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = theme.colors.primaryDark || '#1e3a8a';
+            e.currentTarget.style.backgroundColor =
+              theme.colors.primaryDark || '#1e3a8a';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = theme.colors.primary;
@@ -310,8 +320,8 @@ function GoogleMapContent({
           height: '100%',
           borderRadius: theme.borderRadius.lg,
         }}
-        role="region"
-        aria-label="Interactive map"
+        role='region'
+        aria-label='Interactive map'
         tabIndex={0}
       />
       {children}
@@ -328,4 +338,3 @@ function GoogleMapContent({
     </div>
   );
 }
-

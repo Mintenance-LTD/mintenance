@@ -10,7 +10,7 @@ export interface PerformanceMetrics {
   customMetrics?: Map<string, number>;
 }
 
-export interface PerformanceBudget {
+interface PerformanceBudget {
   metric: keyof PerformanceMetrics;
   warning: number;
   error: number;
@@ -75,7 +75,9 @@ class PerformanceMonitor {
   recordMemoryUsage(): void {
     // React Native doesn't have performance.memory, so we use JSC memory if available
     try {
-      const perf = global.performance as typeof global.performance & { memory?: { usedJSHeapSize: number } };
+      const perf = global.performance as typeof global.performance & {
+        memory?: { usedJSHeapSize: number };
+      };
       if (perf && perf.memory) {
         const memory = perf.memory;
         const memoryUsage = memory.usedJSHeapSize;
@@ -176,14 +178,21 @@ class PerformanceMonitor {
     // This will be called by the monitoring system when it's available
     // Using a weak reference to avoid circular dependencies
     try {
-      const monitoring = (global as Record<string, unknown>).__monitoringSystem as { recordPerformanceViolation?: (data: Record<string, unknown>) => void } | undefined;
+      const monitoring = (global as Record<string, unknown>)
+        .__monitoringSystem as
+        | {
+            recordPerformanceViolation?: (
+              data: Record<string, unknown>
+            ) => void;
+          }
+        | undefined;
       if (monitoring && monitoring.recordPerformanceViolation) {
         monitoring.recordPerformanceViolation({
           metric,
           value,
           budget,
           severity,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       }
     } catch (error) {

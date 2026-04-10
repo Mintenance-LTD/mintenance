@@ -155,7 +155,7 @@ export interface PaymentRecord {
 // SCHEDULE & RESOURCE MANAGEMENT TYPES
 // =====================================================
 
-export interface ContractorSchedule {
+interface ContractorSchedule {
   id: string;
   contractor_id: string;
   job_id?: string;
@@ -171,7 +171,7 @@ export interface ContractorSchedule {
   updated_at: string;
 }
 
-export interface ResourceInventory {
+interface ResourceInventory {
   id: string;
   contractor_id: string;
   item_name: string;
@@ -186,7 +186,7 @@ export interface ResourceInventory {
   updated_at: string;
 }
 
-export interface EquipmentManagement {
+interface EquipmentManagement {
   id: string;
   contractor_id: string;
   equipment_name: string;
@@ -210,7 +210,7 @@ export interface EquipmentManagement {
 // MARKETING & GROWTH TYPES
 // =====================================================
 
-export interface MarketingCampaign {
+interface MarketingCampaign {
   id: string;
   contractor_id: string;
   campaign_name: string;
@@ -233,7 +233,7 @@ export interface MarketingCampaign {
   updated_at: string;
 }
 
-export interface LeadTracking {
+interface LeadTracking {
   id: string;
   contractor_id: string;
   lead_source: string;
@@ -250,7 +250,7 @@ export interface LeadTracking {
   updated_at: string;
 }
 
-export interface ReviewManagement {
+interface ReviewManagement {
   id: string;
   contractor_id: string;
   job_id?: string;

@@ -14,7 +14,10 @@ import type { ProfileStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
 
 interface QuoteTemplatesScreenProps {
-  navigation: NativeStackNavigationProp<ProfileStackParamList, 'QuoteTemplates'>;
+  navigation: NativeStackNavigationProp<
+    ProfileStackParamList,
+    'QuoteTemplates'
+  >;
 }
 
 interface QuoteTemplate {
@@ -33,7 +36,8 @@ const TEMPLATES: QuoteTemplate[] = [
     id: 'plumbing-inspection',
     icon: 'water-outline',
     title: 'Plumbing Inspection',
-    description: 'Full property plumbing assessment including pipe check, leak detection, and water pressure test.',
+    description:
+      'Full property plumbing assessment including pipe check, leak detection, and water pressure test.',
     category: 'Plumbing',
     basePrice: 150,
     iconBg: '#DBEAFE',
@@ -43,7 +47,8 @@ const TEMPLATES: QuoteTemplate[] = [
     id: 'electrical-survey',
     icon: 'flash-outline',
     title: 'Electrical Survey',
-    description: 'Comprehensive electrical inspection covering consumer unit, sockets, lighting circuits, and safety checks.',
+    description:
+      'Comprehensive electrical inspection covering consumer unit, sockets, lighting circuits, and safety checks.',
     category: 'Electrical',
     basePrice: 200,
     iconBg: theme.colors.accentLight,
@@ -53,7 +58,8 @@ const TEMPLATES: QuoteTemplate[] = [
     id: 'boiler-service',
     icon: 'thermometer-outline',
     title: 'Boiler Service',
-    description: 'Annual boiler service including cleaning, safety check, and efficiency testing.',
+    description:
+      'Annual boiler service including cleaning, safety check, and efficiency testing.',
     category: 'Heating',
     basePrice: 90,
     iconBg: '#FEE2E2',
@@ -63,7 +69,8 @@ const TEMPLATES: QuoteTemplate[] = [
     id: 'roof-repair',
     icon: 'home-outline',
     title: 'Roof Repair',
-    description: 'Roof inspection and repair of missing/broken tiles, flashing, and guttering.',
+    description:
+      'Roof inspection and repair of missing/broken tiles, flashing, and guttering.',
     category: 'Roofing',
     basePrice: 300,
     iconBg: theme.colors.primaryLight,
@@ -73,7 +80,8 @@ const TEMPLATES: QuoteTemplate[] = [
     id: 'garden-landscaping',
     icon: 'leaf-outline',
     title: 'Garden Landscaping',
-    description: 'Full garden design and landscaping including lawn, planting, and paving.',
+    description:
+      'Full garden design and landscaping including lawn, planting, and paving.',
     category: 'Garden',
     basePrice: 500,
     iconBg: theme.colors.primaryLight,
@@ -83,7 +91,8 @@ const TEMPLATES: QuoteTemplate[] = [
     id: 'bathroom-renovation',
     icon: 'sparkles-outline',
     title: 'Bathroom Renovation',
-    description: 'Complete bathroom renovation including tiling, fixtures, and waterproofing.',
+    description:
+      'Complete bathroom renovation including tiling, fixtures, and waterproofing.',
     category: 'Renovation',
     basePrice: 2500,
     iconBg: '#EDE9FE',
@@ -93,7 +102,8 @@ const TEMPLATES: QuoteTemplate[] = [
     id: 'kitchen-fitting',
     icon: 'restaurant-outline',
     title: 'Kitchen Fitting',
-    description: 'Kitchen unit installation, worktop fitting, and appliance connection.',
+    description:
+      'Kitchen unit installation, worktop fitting, and appliance connection.',
     category: 'Renovation',
     basePrice: 3500,
     iconBg: '#EDE9FE',
@@ -103,7 +113,8 @@ const TEMPLATES: QuoteTemplate[] = [
     id: 'painting-decorating',
     icon: 'color-palette-outline',
     title: 'Painting & Decorating',
-    description: 'Full interior painting including preparation, priming, and two coats finish.',
+    description:
+      'Full interior painting including preparation, priming, and two coats finish.',
     category: 'Decorating',
     basePrice: 400,
     iconBg: theme.colors.accentLight,
@@ -111,7 +122,9 @@ const TEMPLATES: QuoteTemplate[] = [
   },
 ];
 
-export const QuoteTemplatesScreen: React.FC<QuoteTemplatesScreenProps> = ({ navigation }) => {
+export const QuoteTemplatesScreen: React.FC<QuoteTemplatesScreenProps> = ({
+  navigation,
+}) => {
   const insets = useSafeAreaInsets();
 
   const handleSelectTemplate = (template: QuoteTemplate) => {
@@ -139,9 +152,16 @@ export const QuoteTemplatesScreen: React.FC<QuoteTemplatesScreenProps> = ({ navi
         <Text style={styles.templateDescription} numberOfLines={2}>
           {item.description}
         </Text>
-        <Text style={styles.templatePrice}>From {'\u00A3'}{item.basePrice.toLocaleString()}</Text>
+        <Text style={styles.templatePrice}>
+          From {'\u00A3'}
+          {item.basePrice.toLocaleString()}
+        </Text>
       </View>
-      <Ionicons name="chevron-forward" size={20} color={theme.colors.textTertiary} />
+      <Ionicons
+        name='chevron-forward'
+        size={20}
+        color={theme.colors.textTertiary}
+      />
     </TouchableOpacity>
   );
 
@@ -149,8 +169,15 @@ export const QuoteTemplatesScreen: React.FC<QuoteTemplatesScreenProps> = ({ navi
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons
+            name='arrow-back'
+            size={24}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Quote Templates</Text>
         <View style={styles.headerButton} />
@@ -159,12 +186,13 @@ export const QuoteTemplatesScreen: React.FC<QuoteTemplatesScreenProps> = ({ navi
       <FlatList
         data={TEMPLATES}
         renderItem={renderTemplate}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <Text style={styles.subtitle}>
-            Choose a template to pre-fill your quote with common service details.
+            Choose a template to pre-fill your quote with common service
+            details.
           </Text>
         }
       />
@@ -185,9 +213,18 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
   },
   headerButton: { padding: 8, width: 40 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
   listContent: { padding: 16 },
-  subtitle: { fontSize: 14, color: theme.colors.textSecondary, marginBottom: 16, lineHeight: 20 },
+  subtitle: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginBottom: 16,
+    lineHeight: 20,
+  },
   templateCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: 16,
@@ -196,7 +233,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -209,12 +251,39 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   templateInfo: { flex: 1, marginRight: 8 },
-  templateHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  templateTitle: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary, flex: 1 },
-  categoryBadge: { backgroundColor: theme.colors.backgroundSecondary, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, marginLeft: 6 },
-  templateCategory: { fontSize: 11, color: theme.colors.textSecondary, fontWeight: '600' },
-  templateDescription: { fontSize: 13, color: theme.colors.textSecondary, lineHeight: 18, marginBottom: 6 },
-  templatePrice: { fontSize: 13, fontWeight: '700', color: theme.colors.textPrimary },
+  templateHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  templateTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    flex: 1,
+  },
+  categoryBadge: {
+    backgroundColor: theme.colors.backgroundSecondary,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginLeft: 6,
+  },
+  templateCategory: {
+    fontSize: 11,
+    color: theme.colors.textSecondary,
+    fontWeight: '600',
+  },
+  templateDescription: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: 6,
+  },
+  templatePrice: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
 });
-
-export default QuoteTemplatesScreen;

@@ -47,26 +47,54 @@ interface Props {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'Reviews'>;
 }
 
-const StarRating: React.FC<{ rating: number; size?: number }> = ({ rating, size = 16 }) => (
+const StarRating: React.FC<{ rating: number; size?: number }> = ({
+  rating,
+  size = 16,
+}) => (
   <View style={styles.starRow}>
-    {[1, 2, 3, 4, 5].map(star => (
+    {[1, 2, 3, 4, 5].map((star) => (
       <Ionicons
         key={star}
-        name={star <= rating ? 'star' : star - 0.5 <= rating ? 'star-half' : 'star-outline'}
+        name={
+          star <= rating
+            ? 'star'
+            : star - 0.5 <= rating
+              ? 'star-half'
+              : 'star-outline'
+        }
         size={size}
-        color={star <= rating || star - 0.5 <= rating ? theme.colors.accent : theme.colors.border}
+        color={
+          star <= rating || star - 0.5 <= rating
+            ? theme.colors.accent
+            : theme.colors.border
+        }
       />
     ))}
   </View>
 );
 
-const AVATAR_COLORS = ['#222222', '#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444'];
+const AVATAR_COLORS = [
+  '#222222',
+  '#10B981',
+  '#3B82F6',
+  '#8B5CF6',
+  '#F59E0B',
+  '#EF4444',
+];
 
-const ReviewCard: React.FC<{ review: Review; index: number }> = ({ review, index }) => (
+const ReviewCard: React.FC<{ review: Review; index: number }> = ({
+  review,
+  index,
+}) => (
   <View style={styles.reviewCard}>
     <View style={styles.reviewHeader}>
       <View style={styles.reviewerInfo}>
-        <View style={[styles.avatarCircle, { backgroundColor: AVATAR_COLORS[index % AVATAR_COLORS.length] }]}>
+        <View
+          style={[
+            styles.avatarCircle,
+            { backgroundColor: AVATAR_COLORS[index % AVATAR_COLORS.length] },
+          ]}
+        >
           <Text style={styles.avatarText}>
             {review.reviewer_name.charAt(0).toUpperCase()}
           </Text>
@@ -75,7 +103,9 @@ const ReviewCard: React.FC<{ review: Review; index: number }> = ({ review, index
           <Text style={styles.reviewerName}>{review.reviewer_name}</Text>
           <Text style={styles.reviewDate}>
             {new Date(review.created_at).toLocaleDateString('en-GB', {
-              day: 'numeric', month: 'short', year: 'numeric',
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
             })}
           </Text>
         </View>
@@ -84,7 +114,11 @@ const ReviewCard: React.FC<{ review: Review; index: number }> = ({ review, index
     </View>
 
     <View style={styles.jobChip}>
-      <Ionicons name="briefcase-outline" size={12} color={theme.colors.textSecondary} />
+      <Ionicons
+        name='briefcase-outline'
+        size={12}
+        color={theme.colors.textSecondary}
+      />
       <Text style={styles.jobLabel}>{review.job_title}</Text>
     </View>
     {review.comment && (
@@ -100,14 +134,21 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<ReviewFilter>('all');
 
-  const { data: reviews, isLoading, error, refetch } = useQuery({
+  const {
+    data: reviews,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ['contractor-reviews', user?.id],
     queryFn: async () => {
       if (!user?.id) {
         return [];
       }
 
-      const response = await apiClient.get<ReviewsResponse>(`/api/contractors/${user.id}/reviews`);
+      const response = await apiClient.get<ReviewsResponse>(
+        `/api/contractors/${user.id}/reviews`
+      );
       return (response.reviews || []).map((review) => ({
         id: review.id,
         job_id: '',
@@ -122,7 +163,9 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
   });
 
   const averageRating = reviews?.length
-    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(
+        1
+      )
     : '0.0';
 
   const handleRefresh = async () => {
@@ -131,30 +174,38 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  if (isLoading) return <LoadingSpinner message="Loading reviews..." />;
-  if (error) return <ErrorView message="Failed to load reviews" onRetry={refetch} />;
+  if (isLoading) return <LoadingSpinner message='Loading reviews...' />;
+  if (error)
+    return <ErrorView message='Failed to load reviews' onRetry={refetch} />;
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScreenHeader title="Reviews" showBack onBack={() => navigation.goBack()} />
+      <ScreenHeader
+        title='Reviews'
+        showBack
+        onBack={() => navigation.goBack()}
+      />
 
       {reviews && reviews.length > 0 && (
         <>
           <View style={styles.summaryCard}>
             <Text style={styles.avgRating}>{averageRating}</Text>
             <StarRating rating={parseFloat(averageRating)} size={22} />
-            <Text style={styles.reviewCount}>{reviews.length} review{reviews.length !== 1 ? 's' : ''}</Text>
+            <Text style={styles.reviewCount}>
+              {reviews.length} review{reviews.length !== 1 ? 's' : ''}
+            </Text>
           </View>
 
           {/* Rating Distribution */}
           <View style={styles.distributionCard}>
             {[5, 4, 3, 2, 1].map((star) => {
-              const count = reviews.filter(r => r.rating === star).length;
-              const pct = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+              const count = reviews.filter((r) => r.rating === star).length;
+              const pct =
+                reviews.length > 0 ? (count / reviews.length) * 100 : 0;
               return (
                 <View key={star} style={styles.distRow}>
                   <Text style={styles.distLabel}>{star}</Text>
-                  <Ionicons name="star" size={12} color={theme.colors.accent} />
+                  <Ionicons name='star' size={12} color={theme.colors.accent} />
                   <View style={styles.distBarBg}>
                     <View style={[styles.distBarFill, { width: `${pct}%` }]} />
                   </View>
@@ -169,14 +220,26 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
             {(['all', 'positive', 'negative'] as ReviewFilter[]).map((f) => (
               <TouchableOpacity
                 key={f}
-                style={[styles.filterChip, filter === f && styles.filterChipActive]}
+                style={[
+                  styles.filterChip,
+                  filter === f && styles.filterChipActive,
+                ]}
                 onPress={() => setFilter(f)}
-                accessibilityRole="button"
+                accessibilityRole='button'
                 accessibilityLabel={`Filter reviews: ${f === 'all' ? 'All' : f === 'positive' ? '4-5 Stars' : '1-3 Stars'}`}
                 accessibilityState={{ selected: filter === f }}
               >
-                <Text style={[styles.filterChipText, filter === f && styles.filterChipTextActive]}>
-                  {f === 'all' ? 'All' : f === 'positive' ? '4-5 Stars' : '1-3 Stars'}
+                <Text
+                  style={[
+                    styles.filterChipText,
+                    filter === f && styles.filterChipTextActive,
+                  ]}
+                >
+                  {f === 'all'
+                    ? 'All'
+                    : f === 'positive'
+                      ? '4-5 Stars'
+                      : '1-3 Stars'}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -186,23 +249,30 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
 
       {!reviews || reviews.length === 0 ? (
         <EmptyState
-          icon="star-outline"
-          title="No Reviews Yet"
-          subtitle="Reviews from homeowners will appear here after you complete jobs."
-          ctaLabel="View My Jobs"
+          icon='star-outline'
+          title='No Reviews Yet'
+          subtitle='Reviews from homeowners will appear here after you complete jobs.'
+          ctaLabel='View My Jobs'
           onCtaPress={() => navigation.navigate('JobsList' as never)}
         />
       ) : (
         <FlatList
-          data={reviews.filter(r => {
+          data={reviews.filter((r) => {
             if (filter === 'positive') return r.rating >= 4;
             if (filter === 'negative') return r.rating <= 3;
             return true;
           })}
-          keyExtractor={item => item.id}
-          renderItem={({ item, index }) => <ReviewCard review={item} index={index} />}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item, index }) => (
+            <ReviewCard review={item} index={index} />
+          )}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={theme.colors.textPrimary}
+              colors={[theme.colors.textPrimary]}
+            />
           }
           contentContainerStyle={styles.listContainer}
         />
@@ -398,5 +468,3 @@ const styles = StyleSheet.create({
     color: theme.colors.textInverse,
   },
 });
-
-export default ReviewsScreen;

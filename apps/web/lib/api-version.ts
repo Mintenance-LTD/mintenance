@@ -30,16 +30,16 @@ import { logger } from '@mintenance/shared';
 export const CURRENT_API_VERSION = 'v1';
 
 /** Minimum supported API version */
-export const MIN_API_VERSION = 'v1';
+const MIN_API_VERSION = 'v1';
 
 /** Deprecated versions that still work but show warnings */
-export const DEPRECATED_VERSIONS: string[] = [];
+const DEPRECATED_VERSIONS: string[] = [];
 
 /** Sunset versions that are no longer supported */
-export const SUNSET_VERSIONS: string[] = [];
+const SUNSET_VERSIONS: string[] = [];
 
 /** Header names for API version */
-export const VERSION_HEADERS = {
+const VERSION_HEADERS = {
   REQUEST: 'X-API-Version',
   RESPONSE: 'X-API-Version',
   DEPRECATED: 'X-API-Deprecated',
@@ -52,19 +52,19 @@ export const VERSION_HEADERS = {
 // TYPES
 // ============================================================================
 
-export interface APIVersion {
+interface APIVersion {
   major: number;
   minor: number;
   raw: string;
 }
 
-export interface VersionConstraints {
+interface VersionConstraints {
   min?: string;
   max?: string;
   exact?: string;
 }
 
-export interface VersionInfo {
+interface VersionInfo {
   current: string;
   requested: string;
   isDeprecated: boolean;
@@ -80,7 +80,7 @@ export interface VersionInfo {
 /**
  * Parse a version string into components
  */
-export function parseVersion(version: string): APIVersion | null {
+function parseVersion(version: string): APIVersion | null {
   // Handle 'v1', 'v1.0', 'v1.1', '1', '1.0', etc.
   const normalized = version.toLowerCase().replace(/^v/, '');
   const parts = normalized.split('.');
@@ -103,7 +103,7 @@ export function parseVersion(version: string): APIVersion | null {
  * Compare two versions
  * Returns: -1 if a < b, 0 if a === b, 1 if a > b
  */
-export function compareVersions(a: string, b: string): number {
+function compareVersions(a: string, b: string): number {
   const versionA = parseVersion(a);
   const versionB = parseVersion(b);
 
@@ -130,7 +130,7 @@ export function compareVersions(a: string, b: string): number {
  * Extract API version from request
  * Priority: Header > Query param > Path > Default
  */
-export function getAPIVersion(request: NextRequest): string {
+function getAPIVersion(request: NextRequest): string {
   // 1. Check header (highest priority)
   const headerVersion = request.headers.get(VERSION_HEADERS.REQUEST);
   if (headerVersion) {
@@ -142,7 +142,8 @@ export function getAPIVersion(request: NextRequest): string {
 
   // 2. Check query parameter
   const url = new URL(request.url);
-  const queryVersion = url.searchParams.get('api_version') || url.searchParams.get('v');
+  const queryVersion =
+    url.searchParams.get('api_version') || url.searchParams.get('v');
   if (queryVersion) {
     const parsed = parseVersion(queryVersion);
     if (parsed) {
@@ -170,7 +171,7 @@ export function getAPIVersion(request: NextRequest): string {
 /**
  * Check if a version is within constraints
  */
-export function isVersionValid(
+function isVersionValid(
   version: string,
   constraints: VersionConstraints
 ): boolean {
@@ -204,12 +205,11 @@ export function isVersionValid(
 /**
  * Get version info for a request
  */
-export function getVersionInfo(requestedVersion: string): VersionInfo {
+function getVersionInfo(requestedVersion: string): VersionInfo {
   const isDeprecated = DEPRECATED_VERSIONS.includes(requestedVersion);
   const isSunset = SUNSET_VERSIONS.includes(requestedVersion);
   const isSupported =
-    !isSunset &&
-    compareVersions(requestedVersion, MIN_API_VERSION) >= 0;
+    !isSunset && compareVersions(requestedVersion, MIN_API_VERSION) >= 0;
 
   return {
     current: CURRENT_API_VERSION,
@@ -224,7 +224,7 @@ export function getVersionInfo(requestedVersion: string): VersionInfo {
 /**
  * Require a specific version range (throws error if not met)
  */
-export function requireVersion(
+function requireVersion(
   version: string,
   constraints: VersionConstraints
 ): void {
@@ -305,7 +305,7 @@ export function addVersionHeaders(
 /**
  * Create a versioned JSON response
  */
-export function versionedResponse<T>(
+function versionedResponse<T>(
   data: T,
   version?: string,
   status = 200
@@ -318,7 +318,7 @@ export function versionedResponse<T>(
 // ERROR CLASS
 // ============================================================================
 
-export class APIVersionError extends Error {
+class APIVersionError extends Error {
   code: string;
   status: number;
 
@@ -337,7 +337,7 @@ export class APIVersionError extends Error {
 /**
  * API version middleware for use in Next.js middleware
  */
-export function apiVersionMiddleware(request: NextRequest): NextResponse | null {
+function apiVersionMiddleware(request: NextRequest): NextResponse | null {
   // Only apply to API routes
   if (!request.nextUrl.pathname.startsWith('/api')) {
     return null;
@@ -376,7 +376,7 @@ export function apiVersionMiddleware(request: NextRequest): NextResponse | null 
 /**
  * Check if request is for a specific API version
  */
-export function isVersion(request: NextRequest, version: string): boolean {
+function isVersion(request: NextRequest, version: string): boolean {
   const requestVersion = getAPIVersion(request);
   return compareVersions(requestVersion, version) === 0;
 }
@@ -384,7 +384,7 @@ export function isVersion(request: NextRequest, version: string): boolean {
 /**
  * Check if request is for API version >= specified
  */
-export function isVersionAtLeast(request: NextRequest, minVersion: string): boolean {
+function isVersionAtLeast(request: NextRequest, minVersion: string): boolean {
   const requestVersion = getAPIVersion(request);
   return compareVersions(requestVersion, minVersion) >= 0;
 }
@@ -392,6 +392,6 @@ export function isVersionAtLeast(request: NextRequest, minVersion: string): bool
 /**
  * Get API version documentation URL
  */
-export function getVersionDocsUrl(version: string): string {
+function getVersionDocsUrl(version: string): string {
   return `https://docs.mintenance.com/api/${version}`;
 }

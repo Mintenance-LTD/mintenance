@@ -22,7 +22,7 @@ import { logger } from '@mintenance/shared';
 /**
  * Extract detection features from images and context
  * Returns 40-dimension feature vector normalized to 0-1 range
- * 
+ *
  * Uses learned feature extractor if enabled, otherwise falls back to handcrafted features
  */
 export async function extractDetectionFeatures(
@@ -44,10 +44,13 @@ export async function extractDetectionFeatures(
         visionSummary
       );
     } catch (error) {
-      logger.warn('Learned feature extraction failed, falling back to handcrafted', {
-        service: 'feature-extractor',
-        error: error instanceof Error ? error.message : 'unknown',
-      });
+      logger.warn(
+        'Learned feature extraction failed, falling back to handcrafted',
+        {
+          service: 'feature-extractor',
+          error: error instanceof Error ? error.message : 'unknown',
+        }
+      );
       // Fall through to handcrafted features
     }
   }
@@ -66,7 +69,7 @@ export async function extractDetectionFeatures(
  * Handcrafted feature extraction (original implementation)
  * Kept as fallback and for comparison
  */
-export function extractDetectionFeaturesHandcrafted(
+function extractDetectionFeaturesHandcrafted(
   imageUrls: string[],
   context?: AssessmentContext,
   assessment?: Phase1BuildingAssessment,
@@ -77,7 +80,13 @@ export function extractDetectionFeaturesHandcrafted(
 
   // 1. Property context (5 features)
   const propertyType = context?.propertyType || 'residential';
-  features.push(propertyType === 'residential' ? 1.0 : propertyType === 'commercial' ? 0.5 : 0.0);
+  features.push(
+    propertyType === 'residential'
+      ? 1.0
+      : propertyType === 'commercial'
+        ? 0.5
+        : 0.0
+  );
   features.push(Math.min(1.0, (context?.ageOfProperty || 50) / 200)); // Normalized age
   features.push(encodeLocation(context?.location || '')); // Encoded location
   features.push(encodeBuildingStyle(context?.propertyDetails || '')); // Encoded style
@@ -87,33 +96,61 @@ export function extractDetectionFeaturesHandcrafted(
   const detectionCount = roboflowDetections?.length ?? 0;
   const avgDetectionConfidence =
     detectionCount > 0
-      ? (roboflowDetections || []).reduce((sum, det) => sum + det.confidence, 0) / detectionCount
+      ? (roboflowDetections || []).reduce(
+          (sum, det) => sum + det.confidence,
+          0
+        ) / detectionCount
       : 0;
   const moldDetections =
-    roboflowDetections?.filter((det) => det.className.toLowerCase().includes('mold')).length || 0;
+    roboflowDetections?.filter((det) =>
+      det.className.toLowerCase().includes('mold')
+    ).length || 0;
   const crackDetections =
-    roboflowDetections?.filter((det) => det.className.toLowerCase().includes('crack')).length || 0;
+    roboflowDetections?.filter((det) =>
+      det.className.toLowerCase().includes('crack')
+    ).length || 0;
   const moistureDetections =
-    roboflowDetections?.filter((det) => det.className.toLowerCase().includes('moist')).length || 0;
-  const visionConfidenceNormalized = Math.min(1.0, (visionSummary?.confidence ?? 50) / 100);
+    roboflowDetections?.filter((det) =>
+      det.className.toLowerCase().includes('moist')
+    ).length || 0;
+  const visionConfidenceNormalized = Math.min(
+    1.0,
+    (visionSummary?.confidence ?? 50) / 100
+  );
   const visionHasWater = Boolean(
-    visionSummary?.labels?.some((label) => label.description.toLowerCase().includes('water')),
+    visionSummary?.labels?.some((label) =>
+      label.description.toLowerCase().includes('water')
+    )
   );
   const visionHasMold = Boolean(
-    visionSummary?.labels?.some((label) => label.description.toLowerCase().includes('mold')),
+    visionSummary?.labels?.some((label) =>
+      label.description.toLowerCase().includes('mold')
+    )
   );
   const visionHasStructural = Boolean(
-    visionSummary?.labels?.some((label) => label.description.toLowerCase().includes('structural') || 
-      label.description.toLowerCase().includes('crack') || 
-      label.description.toLowerCase().includes('damage')),
+    visionSummary?.labels?.some(
+      (label) =>
+        label.description.toLowerCase().includes('structural') ||
+        label.description.toLowerCase().includes('crack') ||
+        label.description.toLowerCase().includes('damage')
+    )
   );
   const visionHasElectrical = Boolean(
-    visionSummary?.labels?.some((label) => label.description.toLowerCase().includes('electrical') || 
-      label.description.toLowerCase().includes('wire')),
+    visionSummary?.labels?.some(
+      (label) =>
+        label.description.toLowerCase().includes('electrical') ||
+        label.description.toLowerCase().includes('wire')
+    )
   );
 
-  const detectionConfidenceNormalized = Math.min(1.0, avgDetectionConfidence / 100);
-  const hazardSignal = Math.min(1.0, (moldDetections + moistureDetections) / 10);
+  const detectionConfidenceNormalized = Math.min(
+    1.0,
+    avgDetectionConfidence / 100
+  );
+  const hazardSignal = Math.min(
+    1.0,
+    (moldDetections + moistureDetections) / 10
+  );
 
   features.push(Math.min(1.0, detectionCount / 20)); // Normalized detection count
   features.push(detectionConfidenceNormalized);
@@ -136,7 +173,7 @@ export function extractDetectionFeaturesHandcrafted(
     const hasWaterDamage = visionHasWater || moistureDetections > 0;
     const hasCrackDamage = crackDetections > 0 || visionHasStructural;
     const hasMoldDamage = visionHasMold || moldDetections > 0;
-    
+
     if (hasWaterDamage) {
       features.push(encodeDamageType('water_damage'));
     } else if (hasCrackDamage) {
@@ -146,7 +183,7 @@ export function extractDetectionFeaturesHandcrafted(
     } else {
       features.push(0.0); // Unknown
     }
-    
+
     features.push(0.5); // Location unknown
   }
 
@@ -170,7 +207,7 @@ export function extractDetectionFeaturesHandcrafted(
       visionHasElectrical ? 0.5 : 0.8,
       detectionCount > 0 ? detectionConfidenceNormalized : 0.5,
       visionHasStructural ? 0.6 : 0.4,
-      visionConfidenceNormalized,
+      visionConfidenceNormalized
     );
   }
 
@@ -181,8 +218,12 @@ export function extractDetectionFeaturesHandcrafted(
     features.push(Math.min(1.0, cost.max / 10000));
     features.push(Math.min(1.0, cost.recommended / 10000));
     features.push(Math.min(1.0, (cost.max - cost.min) / 10000));
-    const complexityValue = assessment.contractorAdvice.complexity === 'low' ? 0.33 :
-                          assessment.contractorAdvice.complexity === 'medium' ? 0.66 : 1.0;
+    const complexityValue =
+      assessment.contractorAdvice.complexity === 'low'
+        ? 0.33
+        : assessment.contractorAdvice.complexity === 'medium'
+          ? 0.66
+          : 1.0;
     features.push(complexityValue);
   } else {
     const structuralRisk = visionHasStructural || crackDetections > 0;
@@ -191,7 +232,7 @@ export function extractDetectionFeaturesHandcrafted(
       Math.min(1.0, (moldDetections + moistureDetections) / 10),
       detectionConfidenceNormalized,
       hazardSignal,
-      structuralRisk ? 0.7 : visionHasMold ? 0.6 : 0.4,
+      structuralRisk ? 0.7 : visionHasMold ? 0.6 : 0.4
     );
   }
 
@@ -210,4 +251,3 @@ export function extractDetectionFeaturesHandcrafted(
 
   return features.slice(0, 40);
 }
-

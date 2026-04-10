@@ -6,12 +6,15 @@ import { logger } from '@mintenance/shared';
  * Sentry client/server configs handle the actual init (sentry.client.config.ts / sentry.server.config.ts).
  * This module provides helper functions for capturing events and setting user context.
  */
-export function initSentry() {
+function initSentry() {
   const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN;
   if (!dsn) {
-    logger.warn('Sentry DSN not configured — error monitoring is disabled. Set NEXT_PUBLIC_SENTRY_DSN in your environment.', {
-      service: 'monitoring',
-    });
+    logger.warn(
+      'Sentry DSN not configured — error monitoring is disabled. Set NEXT_PUBLIC_SENTRY_DSN in your environment.',
+      {
+        service: 'monitoring',
+      }
+    );
     return;
   }
   logger.info('Sentry monitoring active', { service: 'monitoring' });
@@ -20,7 +23,7 @@ export function initSentry() {
 /**
  * Capture custom events
  */
-export const captureEvent = {
+const captureEvent = {
   userAction: (action: string, data?: Record<string, unknown>) => {
     Sentry.addBreadcrumb({
       category: 'user-action',
@@ -44,24 +47,24 @@ export const captureEvent = {
       level: 'info',
     });
   },
-  businessMetric: (metric: string, value: number, tags?: Record<string, string>) => {
+  businessMetric: (
+    metric: string,
+    value: number,
+    tags?: Record<string, string>
+  ) => {
     Sentry.addBreadcrumb({
       category: 'business-metric',
       message: `${metric}: ${value}`,
       data: tags,
       level: 'info',
     });
-  }
+  },
 };
 
 /**
  * Set user context for better error tracking
  */
-export function setUserContext(user: {
-  id: string;
-  email: string;
-  role: string;
-}) {
+function setUserContext(user: { id: string; email: string; role: string }) {
   Sentry.setUser({
     id: user.id,
     email: user.email,
@@ -74,7 +77,7 @@ export function setUserContext(user: {
 /**
  * Clear user context on logout
  */
-export function clearUserContext() {
+function clearUserContext() {
   Sentry.setUser(null);
   Sentry.setTag('user.role', null);
 }

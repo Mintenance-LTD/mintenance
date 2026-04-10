@@ -60,7 +60,10 @@ export class JobBidMockFactory {
     });
   }
 
-  static createJobArray(count: number = 3, overrides: Partial<Job> = {}): Job[] {
+  static createJobArray(
+    count: number = 3,
+    overrides: Partial<Job> = {}
+  ): Job[] {
     return Array.from({ length: count }, (_, index) =>
       this.createCompleteJob({
         id: `job-${index + 1}`,
@@ -117,12 +120,15 @@ export class JobBidMockFactory {
     });
   }
 
-  static createBidArray(count: number = 3, overrides: Partial<Bid> = {}): Bid[] {
+  static createBidArray(
+    count: number = 3,
+    overrides: Partial<Bid> = {}
+  ): Bid[] {
     return Array.from({ length: count }, (_, index) =>
       this.createCompleteBid({
         id: `bid-${index + 1}`,
         contractorId: `contractor-${index + 456}`,
-        amount: 150 + (index * 25),
+        amount: 150 + index * 25,
         description: `Bid description ${index + 1}`,
         ...overrides,
       })
@@ -133,7 +139,10 @@ export class JobBidMockFactory {
   // CONVENIENCE METHODS
   // ============================================================================
 
-  static createJobWithBids(jobOverrides: Partial<Job> = {}, bidCount: number = 2): {
+  static createJobWithBids(
+    jobOverrides: Partial<Job> = {},
+    bidCount: number = 2
+  ): {
     job: Job;
     bids: Bid[];
   } {
@@ -143,14 +152,20 @@ export class JobBidMockFactory {
     return { job, bids };
   }
 
-  static createContractorJobHistory(contractorId: string, count: number = 5): Job[] {
+  static createContractorJobHistory(
+    contractorId: string,
+    count: number = 5
+  ): Job[] {
     return this.createJobArray(count, {
       contractor_id: contractorId,
       status: 'completed' as const,
     });
   }
 
-  static createHomeownerJobHistory(homeownerId: string, count: number = 3): Job[] {
+  static createHomeownerJobHistory(
+    homeownerId: string,
+    count: number = 3
+  ): Job[] {
     return this.createJobArray(count, {
       homeowner_id: homeownerId,
     });
@@ -161,18 +176,16 @@ export class JobBidMockFactory {
 // CONVENIENCE EXPORTS
 // ============================================================================
 
-export const mockJob = JobBidMockFactory.createCompleteJob();
-export const mockJobPosted = JobBidMockFactory.createPostedJob();
-export const mockJobAssigned = JobBidMockFactory.createAssignedJob();
-export const mockJobInProgress = JobBidMockFactory.createInProgressJob();
-export const mockJobCompleted = JobBidMockFactory.createCompletedJob();
+const mockJob = JobBidMockFactory.createCompleteJob();
+const mockJobPosted = JobBidMockFactory.createPostedJob();
+const mockJobAssigned = JobBidMockFactory.createAssignedJob();
+const mockJobInProgress = JobBidMockFactory.createInProgressJob();
+const mockJobCompleted = JobBidMockFactory.createCompletedJob();
 
-export const mockBid = JobBidMockFactory.createCompleteBid();
-export const mockBidPending = JobBidMockFactory.createPendingBid();
-export const mockBidAccepted = JobBidMockFactory.createAcceptedBid();
-export const mockBidRejected = JobBidMockFactory.createRejectedBid();
+const mockBid = JobBidMockFactory.createCompleteBid();
+const mockBidPending = JobBidMockFactory.createPendingBid();
+const mockBidAccepted = JobBidMockFactory.createAcceptedBid();
+const mockBidRejected = JobBidMockFactory.createRejectedBid();
 
-export const mockJobs = JobBidMockFactory.createJobArray();
-export const mockBids = JobBidMockFactory.createBidArray();
-
-export default JobBidMockFactory;
+const mockJobs = JobBidMockFactory.createJobArray();
+const mockBids = JobBidMockFactory.createBidArray();

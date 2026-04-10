@@ -18,7 +18,7 @@ function addBreadcrumb(
   sentry.addBreadcrumb(message, 'notification', breadcrumbData);
 }
 
-export function getDeepLinkParams(
+function getDeepLinkParams(
   type: NotificationData['type'],
   data: unknown
 ): DeepLinkParams | null {

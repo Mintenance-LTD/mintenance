@@ -4,11 +4,15 @@
 
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { queryMemoryAdjustments } from '../memory-query-handler';
-import type { RetrieveMemoryToolResult, ToolRun, ToolRunSummary } from './types';
+import type {
+  RetrieveMemoryToolResult,
+  ToolRun,
+  ToolRunSummary,
+} from './types';
 
 const PAST_ASSESSMENTS_LIMIT = 5;
 
-export interface RetrieveMemoryToolParams {
+interface RetrieveMemoryToolParams {
   featureVector?: number[];
   jobId?: string;
   propertyId?: string;
@@ -17,19 +21,23 @@ export interface RetrieveMemoryToolParams {
 /**
  * Run retrieve_memory tool: continuum adjustments + optional past assessments for job.
  */
-export async function runRetrieveMemoryTool(params: RetrieveMemoryToolParams): Promise<
-  ToolRun<RetrieveMemoryToolResult>
-> {
+export async function runRetrieveMemoryTool(
+  params: RetrieveMemoryToolParams
+): Promise<ToolRun<RetrieveMemoryToolResult>> {
   let continuumSummary = 'No continuum feature vector provided.';
   let pastAssessmentsSummary: string | undefined;
 
   if (params.featureVector && params.featureVector.length >= 40) {
     try {
       const useTitans = process.env.USE_TITANS === 'true';
-      const adjustments = await queryMemoryAdjustments(params.featureVector, useTitans);
+      const adjustments = await queryMemoryAdjustments(
+        params.featureVector,
+        useTitans
+      );
       continuumSummary = `Continuum adjustments (5 dims): [${adjustments.map((v) => v.toFixed(4)).join(', ')}].`;
     } catch (err) {
-      continuumSummary = 'Continuum query failed or memory system not initialized.';
+      continuumSummary =
+        'Continuum query failed or memory system not initialized.';
     }
   }
 
@@ -48,7 +56,11 @@ export async function runRetrieveMemoryTool(params: RetrieveMemoryToolParams): P
         pastParts.push(
           `Previous assessments for this property: ${rows
             .map(
-              (r: { damage_type?: string; severity?: string; urgency?: string }) =>
+              (r: {
+                damage_type?: string;
+                severity?: string;
+                urgency?: string;
+              }) =>
                 `${r.damage_type ?? 'unknown'} (${r.severity ?? '-'}, ${r.urgency ?? '-'})`
             )
             .join('; ')}.`
@@ -74,7 +86,11 @@ export async function runRetrieveMemoryTool(params: RetrieveMemoryToolParams): P
         pastParts.push(
           `Previous assessments for this job: ${rows
             .map(
-              (r: { damage_type?: string; severity?: string; urgency?: string }) =>
+              (r: {
+                damage_type?: string;
+                severity?: string;
+                urgency?: string;
+              }) =>
                 `${r.damage_type ?? 'unknown'} (${r.severity ?? '-'}, ${r.urgency ?? '-'})`
             )
             .join('; ')}.`
@@ -83,7 +99,9 @@ export async function runRetrieveMemoryTool(params: RetrieveMemoryToolParams): P
         pastParts.push('No previous assessments for this job.');
       }
     } catch {
-      pastParts.push('Could not fetch past assessments (e.g. job_id column missing).');
+      pastParts.push(
+        'Could not fetch past assessments (e.g. job_id column missing).'
+      );
     }
   }
 
@@ -91,7 +109,9 @@ export async function runRetrieveMemoryTool(params: RetrieveMemoryToolParams): P
     pastAssessmentsSummary = pastParts.join(' ');
   }
 
-  const combined = [continuumSummary, pastAssessmentsSummary].filter(Boolean).join(' ');
+  const combined = [continuumSummary, pastAssessmentsSummary]
+    .filter(Boolean)
+    .join(' ');
 
   const result: RetrieveMemoryToolResult = {
     continuumSummary,

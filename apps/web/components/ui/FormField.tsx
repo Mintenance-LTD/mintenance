@@ -4,7 +4,7 @@ import React from 'react';
 import { CheckCircle, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export interface FormFieldProps {
+interface FormFieldProps {
   label: string;
   required?: boolean;
   error?: string;
@@ -43,34 +43,36 @@ export function FormField({
       {/* Label */}
       <label
         htmlFor={htmlFor}
-        className="block text-sm font-semibold text-gray-700"
+        className='block text-sm font-semibold text-gray-700'
       >
         {label}
         {required && (
-          <span className="text-rose-600 ml-1" aria-label="required">*</span>
+          <span className='text-rose-600 ml-1' aria-label='required'>
+            *
+          </span>
         )}
       </label>
 
       {/* Input wrapper with validation icons */}
-      <div className="relative">
+      <div className='relative'>
         {children}
 
         {/* Success icon */}
         {showSuccess && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+          <div className='absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none'>
             <CheckCircle
-              className="w-5 h-5 text-emerald-500"
-              aria-label="Valid input"
+              className='w-5 h-5 text-emerald-500'
+              aria-label='Valid input'
             />
           </div>
         )}
 
         {/* Error icon */}
         {hasError && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+          <div className='absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none'>
             <AlertCircle
-              className="w-5 h-5 text-rose-500"
-              aria-label="Invalid input"
+              className='w-5 h-5 text-rose-500'
+              aria-label='Invalid input'
             />
           </div>
         )}
@@ -78,8 +80,8 @@ export function FormField({
 
       {/* Helper text (shown when no error) */}
       {!hasError && helperText && (
-        <p className="text-sm text-gray-500 flex items-start gap-1.5">
-          <span className="text-gray-400 mt-0.5">ℹ</span>
+        <p className='text-sm text-gray-500 flex items-start gap-1.5'>
+          <span className='text-gray-400 mt-0.5'>ℹ</span>
           <span>{helperText}</span>
         </p>
       )}
@@ -87,11 +89,14 @@ export function FormField({
       {/* Error message */}
       {hasError && (
         <div
-          className="flex items-start gap-2 text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2"
-          role="alert"
-          aria-live="polite"
+          className='flex items-start gap-2 text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2'
+          role='alert'
+          aria-live='polite'
         >
-          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden="true" />
+          <AlertCircle
+            className='w-4 h-4 flex-shrink-0 mt-0.5'
+            aria-hidden='true'
+          />
           <span>{error}</span>
         </div>
       )}
@@ -99,11 +104,14 @@ export function FormField({
       {/* Success message (optional) */}
       {showSuccess && helperText && (
         <div
-          className="flex items-start gap-2 text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2"
-          role="status"
-          aria-live="polite"
+          className='flex items-start gap-2 text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2'
+          role='status'
+          aria-live='polite'
         >
-          <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden="true" />
+          <CheckCircle
+            className='w-4 h-4 flex-shrink-0 mt-0.5'
+            aria-hidden='true'
+          />
           <span>{helperText}</span>
         </div>
       )}
@@ -114,7 +122,7 @@ export function FormField({
 /**
  * ValidatedInput Component - Input with built-in validation styling
  */
-export interface ValidatedInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface ValidatedInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: boolean;
   success?: boolean;
 }
@@ -134,9 +142,12 @@ export function ValidatedInput({
         // Default state
         'border-gray-300 focus:ring-teal-500 focus:border-teal-500',
         // Error state
-        error && 'border-rose-300 bg-rose-50 focus:ring-rose-500 focus:border-rose-500 pr-10',
+        error &&
+          'border-rose-300 bg-rose-50 focus:ring-rose-500 focus:border-rose-500 pr-10',
         // Success state
-        success && !error && 'border-emerald-300 bg-emerald-50 focus:ring-emerald-500 focus:border-emerald-500 pr-10',
+        success &&
+          !error &&
+          'border-emerald-300 bg-emerald-50 focus:ring-emerald-500 focus:border-emerald-500 pr-10',
         // Disabled state
         'disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed',
         className
@@ -150,7 +161,7 @@ export function ValidatedInput({
 /**
  * ValidatedTextarea Component - Textarea with built-in validation styling
  */
-export interface ValidatedTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+interface ValidatedTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   error?: boolean;
   success?: boolean;
 }
@@ -170,9 +181,12 @@ export function ValidatedTextarea({
         // Default state
         'border-gray-300 focus:ring-teal-500 focus:border-teal-500',
         // Error state
-        error && 'border-rose-300 bg-rose-50 focus:ring-rose-500 focus:border-rose-500',
+        error &&
+          'border-rose-300 bg-rose-50 focus:ring-rose-500 focus:border-rose-500',
         // Success state
-        success && !error && 'border-emerald-300 bg-emerald-50 focus:ring-emerald-500 focus:border-emerald-500',
+        success &&
+          !error &&
+          'border-emerald-300 bg-emerald-50 focus:ring-emerald-500 focus:border-emerald-500',
         // Disabled state
         'disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed',
         className
@@ -186,7 +200,7 @@ export function ValidatedTextarea({
 /**
  * ValidatedSelect Component - Select with built-in validation styling
  */
-export interface ValidatedSelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+interface ValidatedSelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   error?: boolean;
   success?: boolean;
 }
@@ -207,9 +221,12 @@ export function ValidatedSelect({
         // Default state
         'border-gray-300 focus:ring-teal-500 focus:border-teal-500',
         // Error state
-        error && 'border-rose-300 bg-rose-50 focus:ring-rose-500 focus:border-rose-500',
+        error &&
+          'border-rose-300 bg-rose-50 focus:ring-rose-500 focus:border-rose-500',
         // Success state
-        success && !error && 'border-emerald-300 bg-emerald-50 focus:ring-emerald-500 focus:border-emerald-500',
+        success &&
+          !error &&
+          'border-emerald-300 bg-emerald-50 focus:ring-emerald-500 focus:border-emerald-500',
         // Disabled state
         'disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed',
         className

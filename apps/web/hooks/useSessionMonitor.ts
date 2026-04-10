@@ -6,7 +6,7 @@ import { logger } from '@mintenance/shared';
 /**
  * Session status returned from API
  */
-export interface SessionStatus {
+interface SessionStatus {
   authenticated: boolean;
   userId?: string;
   sessionStart?: number;
@@ -27,7 +27,7 @@ export interface SessionStatus {
 /**
  * Session monitor hook state
  */
-export interface SessionMonitorState {
+interface SessionMonitorState {
   status: SessionStatus | null;
   isLoading: boolean;
   isExtending: boolean;

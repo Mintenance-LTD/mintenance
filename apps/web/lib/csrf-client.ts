@@ -60,7 +60,7 @@ export async function getCsrfToken(): Promise<string> {
  * Clear cached CSRF token
  * Useful when handling authentication state changes
  */
-export function clearCsrfToken(): void {
+function clearCsrfToken(): void {
   cachedToken = null;
   tokenExpiry = null;
 }

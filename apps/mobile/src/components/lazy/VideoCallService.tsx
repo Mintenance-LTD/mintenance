@@ -8,7 +8,10 @@ import { createLazyComponent } from '../../utils/codeSplitting';
 import { LoadingSpinner } from '../LoadingSpinner';
 
 const LazyVideoCallService = createLazyComponent(
-  (() => import('../../services/VideoCallService')) as unknown as () => Promise<{ default: React.ComponentType<Record<string, unknown>> }>,
+  (() =>
+    import('../../services/VideoCallService')) as unknown as () => Promise<{
+    default: React.ComponentType<Record<string, unknown>>;
+  }>,
   {
     chunkName: 'video-call-service',
     timeout: 10000,
@@ -22,5 +25,3 @@ export const VideoCallService = (props: Record<string, unknown>) => (
     <LazyVideoCallService {...props} />
   </Suspense>
 );
-
-export default VideoCallService;

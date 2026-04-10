@@ -10,7 +10,7 @@ import { ConformalPredictionMonitoringService } from '@/lib/services/building-su
 import { ABTestAlertingService } from '@/lib/services/building-surveyor/ABTestAlertingService';
 import { logger } from '@mintenance/shared';
 
-export interface ExperimentHealth {
+interface ExperimentHealth {
   experimentId: string;
   automationRate: number; // 0-1
   escalationRate: number; // 0-1
@@ -47,15 +47,18 @@ export interface ExperimentHealth {
  * @param experimentId - The A/B test experiment ID
  * @returns Aggregated experiment health metrics
  */
-export async function getExperimentHealth(experimentId: string): Promise<ExperimentHealth> {
+export async function getExperimentHealth(
+  experimentId: string
+): Promise<ExperimentHealth> {
   try {
     // Get A/B test metrics
     const abMetrics = await ABTestMonitoringService.getMetrics(experimentId);
 
     // Get conformal prediction coverage metrics
-    const cpMetrics = await ConformalPredictionMonitoringService.getStratumCoverageMetrics(
-      experimentId
-    );
+    const cpMetrics =
+      await ConformalPredictionMonitoringService.getStratumCoverageMetrics(
+        experimentId
+      );
 
     // Calculate overall coverage (weighted average across strata)
     let coverageOverall = 0;
@@ -90,15 +93,13 @@ export async function getExperimentHealth(experimentId: string): Promise<Experim
 
     // Get recent alerts (limit to most recent 10)
     const alertCheck = await ABTestAlertingService.checkAlerts(experimentId);
-    const recentAlerts = alertCheck.alerts
-      .slice(0, 10)
-      .map((alert) => ({
-        id: alert.id || `${alert.type}-${alert.createdAt}`,
-        createdAt: alert.createdAt,
-        severity: alert.severity.toUpperCase() as 'CRITICAL' | 'WARNING' | 'INFO',
-        type: alert.type,
-        message: alert.message,
-      }));
+    const recentAlerts = alertCheck.alerts.slice(0, 10).map((alert) => ({
+      id: alert.id || `${alert.type}-${alert.createdAt}`,
+      createdAt: alert.createdAt,
+      severity: alert.severity.toUpperCase() as 'CRITICAL' | 'WARNING' | 'INFO',
+      type: alert.type,
+      message: alert.message,
+    }));
 
     return {
       experimentId,
@@ -138,4 +139,3 @@ export async function getExperimentHealth(experimentId: string): Promise<Experim
     };
   }
 }
-

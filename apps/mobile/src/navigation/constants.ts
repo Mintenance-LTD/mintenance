@@ -47,7 +47,7 @@ export const TAB_CONFIG = {
   },
 };
 
-export const TAB_STYLES = {
+const TAB_STYLES = {
   tabBarStyle: {
     height: NAVIGATION_CONSTANTS.TAB_BAR_HEIGHT,
     paddingBottom: NAVIGATION_CONSTANTS.TAB_BAR_PADDING,

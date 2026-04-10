@@ -18,7 +18,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 // Types
 // ---------------------------------------------------------------------------
 
-export interface PathologyKnowledgeEntry {
+interface PathologyKnowledgeEntry {
   defect_slug: string;
   category: string;
   name: string;
@@ -43,7 +43,7 @@ export interface PathologyKnowledgeEntry {
   source_authority: string;
 }
 
-export interface RAGContext {
+interface RAGContext {
   /** Formatted prompt string ready to inject into the system message */
   promptContext: string;
   /** Raw entries retrieved, for logging/debugging */
@@ -82,15 +82,20 @@ export class BuildingPathologyRAGService {
     try {
       // Build full-text search query from all terms
       const tsQuery = searchTerms
-        .map(t => t.trim().toLowerCase().replace(/[^a-z0-9 ]/g, ''))
+        .map((t) =>
+          t
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9 ]/g, '')
+        )
         .filter(Boolean)
-        .join(' | ');  // OR search across all terms
+        .join(' | '); // OR search across all terms
 
       let query = serverSupabase
         .from('building_pathology_knowledge')
         .select('*')
         .textSearch(
-          'fts',  // generated tsvector column — see migration 20260225000001
+          'fts', // generated tsvector column — see migration 20260225000001
           tsQuery,
           { type: 'websearch', config: 'english' }
         )
@@ -118,10 +123,13 @@ export class BuildingPathologyRAGService {
         count: entries.length,
       };
     } catch (err) {
-      logger.warn('BuildingPathologyRAGService query failed, returning empty context', {
-        service: 'BuildingPathologyRAGService',
-        error: err instanceof Error ? err.message : 'unknown',
-      });
+      logger.warn(
+        'BuildingPathologyRAGService query failed, returning empty context',
+        {
+          service: 'BuildingPathologyRAGService',
+          error: err instanceof Error ? err.message : 'unknown',
+        }
+      );
       return { promptContext: '', entries: [], count: 0 };
     }
   }
@@ -153,7 +161,7 @@ export class BuildingPathologyRAGService {
   static async queryByCategory(
     categories: string[],
     maxEntries = 8,
-    propertyAge?: number,
+    propertyAge?: number
   ): Promise<RAGContext> {
     if (categories.length === 0) {
       return { promptContext: '', entries: [], count: 0 };
@@ -177,8 +185,16 @@ export class BuildingPathologyRAGService {
       if (propertyAge && propertyAge > 0) {
         const eraLabel = this.propertyAgeToEraLabel(propertyAge).toLowerCase();
         entries = entries.sort((a, b) => {
-          const aMatch = a.property_age_risk?.some(r => r.toLowerCase().includes(eraLabel)) ? 1 : 0;
-          const bMatch = b.property_age_risk?.some(r => r.toLowerCase().includes(eraLabel)) ? 1 : 0;
+          const aMatch = a.property_age_risk?.some((r) =>
+            r.toLowerCase().includes(eraLabel)
+          )
+            ? 1
+            : 0;
+          const bMatch = b.property_age_risk?.some((r) =>
+            r.toLowerCase().includes(eraLabel)
+          )
+            ? 1
+            : 0;
           return bMatch - aMatch; // era-matching entries first
         });
       }
@@ -201,7 +217,9 @@ export class BuildingPathologyRAGService {
    * Retrieve a single entry by defect slug.
    * Use when a specific defect has already been identified.
    */
-  static async getBySlug(slug: string): Promise<PathologyKnowledgeEntry | null> {
+  static async getBySlug(
+    slug: string
+  ): Promise<PathologyKnowledgeEntry | null> {
     try {
       const { data, error } = await serverSupabase
         .from('building_pathology_knowledge')
@@ -232,7 +250,9 @@ export class BuildingPathologyRAGService {
       let query = serverSupabase
         .from('building_pathology_knowledge')
         .select('*')
-        .or(`name.ilike.%${term}%,description.ilike.%${term}%,category.ilike.%${term}%`)
+        .or(
+          `name.ilike.%${term}%,description.ilike.%${term}%,category.ilike.%${term}%`
+        )
         .limit(maxEntries);
 
       if (categories && categories.length > 0) {
@@ -263,14 +283,15 @@ export class BuildingPathologyRAGService {
   static formatPromptContext(entries: PathologyKnowledgeEntry[]): string {
     if (entries.length === 0) return '';
 
-    const blocks = entries.map(e => {
+    const blocks = entries.map((e) => {
       const rating = e.rics_condition_rating
         ? `Rating ${e.rics_condition_rating} (${e.rics_condition_rating === 1 ? 'GREEN — routine' : e.rics_condition_rating === 2 ? 'AMBER — repair soon' : 'RED — urgent'})`
         : 'Rating not specified';
 
-      const costRange = e.cost_range_gbp_min && e.cost_range_gbp_max
-        ? `£${e.cost_range_gbp_min.toLocaleString()}–£${e.cost_range_gbp_max.toLocaleString()}`
-        : 'Cost range not specified';
+      const costRange =
+        e.cost_range_gbp_min && e.cost_range_gbp_max
+          ? `£${e.cost_range_gbp_min.toLocaleString()}–£${e.cost_range_gbp_max.toLocaleString()}`
+          : 'Cost range not specified';
 
       return `
 --- DEFECT: ${e.name.toUpperCase()} (${e.defect_slug}) ---
@@ -285,7 +306,7 @@ WHY IT HAPPENS (ROOT CAUSE):
 ${e.why_it_happens}
 
 VISUAL INDICATORS (what to look for):
-${e.visual_indicators.map(v => `• ${v}`).join('\n')}
+${e.visual_indicators.map((v) => `• ${v}`).join('\n')}
 
 COMMON MISDIAGNOSIS: ${e.common_misdiagnosis.join(', ') || 'None noted'}
 ${e.differential_diagnosis ? `\nHOW TO DISTINGUISH:\n${e.differential_diagnosis}` : ''}
@@ -329,15 +350,18 @@ ${blocks.join('\n\n')}
     // cosine similarities of ~0.50–0.65 for closely related building-pathology
     // terms (e.g. "roof leak water ingress" → damp-penetrating-roof ≈ 0.60).
     // 0.70 was too strict and missed valid hits for a 30-entry knowledge base.
-    const { matchThreshold = 0.50, matchCount = 5 } = options;
+    const { matchThreshold = 0.5, matchCount = 5 } = options;
 
     try {
       const embedding = await this.generateEmbedding(queryText);
-      const { data, error } = await serverSupabase.rpc('search_pathology_semantic', {
-        query_embedding: embedding,
-        match_threshold: matchThreshold,
-        match_count: matchCount,
-      });
+      const { data, error } = await serverSupabase.rpc(
+        'search_pathology_semantic',
+        {
+          query_embedding: embedding,
+          match_threshold: matchThreshold,
+          match_count: matchCount,
+        }
+      );
 
       if (error || !data || data.length === 0) {
         return { promptContext: '', entries: [], count: 0 };
@@ -363,14 +387,19 @@ ${blocks.join('\n\n')}
    * Call once via POST /api/admin/rag/generate-embeddings after deploying the
    * pgvector migration (20260303000000_building_pathology_embeddings.sql).
    */
-  static async seedMissingEmbeddings(): Promise<{ seeded: number; failed: number }> {
+  static async seedMissingEmbeddings(): Promise<{
+    seeded: number;
+    failed: number;
+  }> {
     const { data: entries, error } = await serverSupabase
       .from('building_pathology_knowledge')
       .select('id, name, description, why_it_happens, visual_indicators')
       .is('embedding', null);
 
     if (error || !entries) {
-      throw new Error(`Failed to fetch unseeded entries: ${error?.message ?? 'unknown'}`);
+      throw new Error(
+        `Failed to fetch unseeded entries: ${error?.message ?? 'unknown'}`
+      );
     }
 
     let seeded = 0;
@@ -382,8 +411,12 @@ ${blocks.join('\n\n')}
           entry.name,
           entry.description,
           entry.why_it_happens,
-          ...(Array.isArray(entry.visual_indicators) ? entry.visual_indicators : []),
-        ].filter(Boolean).join(' ');
+          ...(Array.isArray(entry.visual_indicators)
+            ? entry.visual_indicators
+            : []),
+        ]
+          .filter(Boolean)
+          .join(' ');
 
         const embedding = await this.generateEmbedding(text);
 
@@ -421,10 +454,14 @@ ${blocks.join('\n\n')}
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI embeddings API error: ${response.status} ${await response.text()}`);
+      throw new Error(
+        `OpenAI embeddings API error: ${response.status} ${await response.text()}`
+      );
     }
 
-    const data = await response.json() as { data: Array<{ embedding: number[] }> };
+    const data = (await response.json()) as {
+      data: Array<{ embedding: number[] }>;
+    };
     return data.data[0].embedding;
   }
 
@@ -434,20 +471,20 @@ ${blocks.join('\n\n')}
    */
   static damageTypeToCategories(damageType: string): string[] {
     const mapping: Record<string, string[]> = {
-      mold_damp:      ['damp_moisture'],
-      water_damage:   ['damp_moisture'],
-      pipe_leak:      ['damp_moisture'],
-      wall_crack:     ['structural_movement', 'masonry_walls'],
-      roof_damage:    ['roofing'],
+      mold_damp: ['damp_moisture'],
+      water_damage: ['damp_moisture'],
+      pipe_leak: ['damp_moisture'],
+      wall_crack: ['structural_movement', 'masonry_walls'],
+      roof_damage: ['roofing'],
       electrical_fault: ['services'],
-      timber_damage:  ['timber_decay'],
-      subsidence:     ['structural_movement'],
-      efflorescence:  ['masonry_walls'],
-      spalling:       ['masonry_walls'],
-      window_defect:  ['windows_doors'],
-      drain_defect:   ['drainage'],
-      asbestos:       ['hazardous_materials'],
-      knotweed:       ['hazardous_materials'],
+      timber_damage: ['timber_decay'],
+      subsidence: ['structural_movement'],
+      efflorescence: ['masonry_walls'],
+      spalling: ['masonry_walls'],
+      window_defect: ['windows_doors'],
+      drain_defect: ['drainage'],
+      asbestos: ['hazardous_materials'],
+      knotweed: ['hazardous_materials'],
     };
     return mapping[damageType] ?? [];
   }

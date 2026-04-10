@@ -37,7 +37,7 @@ export interface GreenCertification {
   score_boost: number;
 }
 
-export interface SustainableMaterial {
+interface SustainableMaterial {
   id: string;
   name: string;
   category: string;
@@ -81,7 +81,7 @@ export interface ProcessOptimization {
   difficulty: 'easy' | 'moderate' | 'complex';
 }
 
-export interface ContractorESGProfile {
+interface ContractorESGProfile {
   contractor_id: string;
   esg_score: ESGScore;
   certifications: GreenCertification[];

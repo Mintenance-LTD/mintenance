@@ -130,5 +130,3 @@ export const TouchButton: React.FC<TouchButtonProps> = ({
     </TouchableButton>
   );
 };
-
-export default TouchButton;

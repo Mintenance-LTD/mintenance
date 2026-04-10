@@ -2,16 +2,16 @@
  * Simple validation for Quick Job form
  */
 
-export interface QuickJobFormData {
+interface QuickJobFormData {
   title: string;
   description?: string;
   category: string;
-  budget: string | number;  // Accept both string (from form) and number (for API)
+  budget: string | number; // Accept both string (from form) and number (for API)
   urgency: string;
   property_id: string;
 }
 
-export interface ValidationErrors {
+interface ValidationErrors {
   [key: string]: string;
 }
 

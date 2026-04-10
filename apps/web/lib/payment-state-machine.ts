@@ -6,5 +6,4 @@ export {
   PaymentState,
   PaymentAction,
   PaymentStateMachine,
-  validatePaymentStateTransition,
 } from '@mintenance/shared';

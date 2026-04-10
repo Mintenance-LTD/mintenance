@@ -14,7 +14,10 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../components/ui/Toast';
-import { QuoteBuilderService, ContractorQuote } from '../../services/QuoteBuilderService';
+import {
+  QuoteBuilderService,
+  ContractorQuote,
+} from '../../services/QuoteBuilderService';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
@@ -33,7 +36,10 @@ const STATUS_COLORS: Record<string, string> = {
   draft: theme.colors.textTertiary,
 };
 
-export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation, route }) => {
+export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
+  navigation,
+  route,
+}) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const toast = useToast();
@@ -50,7 +56,7 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
     if (!user) return;
     try {
       const quotes = await QuoteBuilderService.getQuotes(user.id);
-      const found = quotes.find(q => q.id === quoteId);
+      const found = quotes.find((q) => q.id === quoteId);
       setQuote(found ?? null);
     } catch {
       toast.error('Failed to load quote');
@@ -79,15 +85,25 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
   };
 
   const formatDate = (iso?: string) =>
-    iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '\u2014';
+    iso
+      ? new Date(iso).toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        })
+      : '\u2014';
 
-  if (loading) return <LoadingSpinner message="Loading quote\u2026" />;
+  if (loading) return <LoadingSpinner message='Loading quote\u2026' />;
 
   if (!quote) {
     return (
       <View style={[styles.container, styles.centered]}>
         <View style={styles.emptyIconWrap}>
-          <Ionicons name="document-outline" size={32} color={theme.colors.textTertiary} />
+          <Ionicons
+            name='document-outline'
+            size={32}
+            color={theme.colors.textTertiary}
+          />
         </View>
         <Text style={styles.emptyText}>Quote not found</Text>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -103,15 +119,24 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons
+            name='arrow-back'
+            size={24}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Quote #{quote.quote_number}</Text>
         <TouchableOpacity
           style={styles.headerButton}
-          onPress={() => navigation.navigate('CreateQuote', { jobId: quote.job_id })}
+          onPress={() =>
+            navigation.navigate('CreateQuote', { jobId: quote.job_id })
+          }
         >
-          <Ionicons name="pencil" size={22} color={theme.colors.textPrimary} />
+          <Ionicons name='pencil' size={22} color={theme.colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -121,7 +146,10 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
           <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
             <Text style={styles.statusText}>{quote.status.toUpperCase()}</Text>
           </View>
-          <Text style={styles.totalAmount}>{'\u00A3'}{quote.total_amount.toFixed(2)}</Text>
+          <Text style={styles.totalAmount}>
+            {'\u00A3'}
+            {quote.total_amount.toFixed(2)}
+          </Text>
           <Text style={styles.projectTitle}>{quote.project_title}</Text>
         </View>
 
@@ -129,8 +157,12 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>CLIENT</Text>
           <Text style={styles.clientName}>{quote.client_name}</Text>
-          {quote.client_email ? <Text style={styles.detailText}>{quote.client_email}</Text> : null}
-          {quote.client_phone ? <Text style={styles.detailText}>{quote.client_phone}</Text> : null}
+          {quote.client_email ? (
+            <Text style={styles.detailText}>{quote.client_email}</Text>
+          ) : null}
+          {quote.client_phone ? (
+            <Text style={styles.detailText}>{quote.client_phone}</Text>
+          ) : null}
         </View>
 
         {/* Project */}
@@ -147,16 +179,22 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
           <Text style={styles.sectionTitle}>DATES</Text>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Created</Text>
-            <Text style={styles.detailValue}>{formatDate(quote.created_at)}</Text>
+            <Text style={styles.detailValue}>
+              {formatDate(quote.created_at)}
+            </Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Valid Until</Text>
-            <Text style={styles.detailValue}>{formatDate(quote.valid_until)}</Text>
+            <Text style={styles.detailValue}>
+              {formatDate(quote.valid_until)}
+            </Text>
           </View>
           {quote.sent_at && (
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Sent</Text>
-              <Text style={styles.detailValue}>{formatDate(quote.sent_at)}</Text>
+              <Text style={styles.detailValue}>
+                {formatDate(quote.sent_at)}
+              </Text>
             </View>
           )}
         </View>
@@ -166,23 +204,35 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
           <Text style={styles.sectionTitle}>FINANCIALS</Text>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Subtotal</Text>
-            <Text style={styles.detailValue}>{'\u00A3'}{quote.subtotal.toFixed(2)}</Text>
+            <Text style={styles.detailValue}>
+              {'\u00A3'}
+              {quote.subtotal.toFixed(2)}
+            </Text>
           </View>
           {quote.discount_amount ? (
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Discount</Text>
-              <Text style={[styles.detailValue, { color: theme.colors.primary }]}>
-                -{'\u00A3'}{quote.discount_amount.toFixed(2)}
+              <Text
+                style={[styles.detailValue, { color: theme.colors.primary }]}
+              >
+                -{'\u00A3'}
+                {quote.discount_amount.toFixed(2)}
               </Text>
             </View>
           ) : null}
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Tax ({quote.tax_rate}%)</Text>
-            <Text style={styles.detailValue}>{'\u00A3'}{quote.tax_amount.toFixed(2)}</Text>
+            <Text style={styles.detailValue}>
+              {'\u00A3'}
+              {quote.tax_amount.toFixed(2)}
+            </Text>
           </View>
           <View style={[styles.detailRow, styles.totalRowFinal]}>
             <Text style={styles.grandTotalLabel}>Total</Text>
-            <Text style={styles.grandTotalValue}>{'\u00A3'}{quote.total_amount.toFixed(2)}</Text>
+            <Text style={styles.grandTotalValue}>
+              {'\u00A3'}
+              {quote.total_amount.toFixed(2)}
+            </Text>
           </View>
         </View>
 
@@ -199,13 +249,23 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
           <View style={styles.actionsSection}>
             <TouchableOpacity
               style={styles.editButton}
-              onPress={() => navigation.navigate('CreateQuote', { jobId: quote.job_id })}
+              onPress={() =>
+                navigation.navigate('CreateQuote', { jobId: quote.job_id })
+              }
             >
-              <Ionicons name="pencil-outline" size={18} color={theme.colors.textSecondary} />
+              <Ionicons
+                name='pencil-outline'
+                size={18}
+                color={theme.colors.textSecondary}
+              />
               <Text style={styles.editButtonText}>Edit Quote</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-              <Ionicons name="send-outline" size={18} color={theme.colors.textInverse} />
+              <Ionicons
+                name='send-outline'
+                size={18}
+                color={theme.colors.textInverse}
+              />
               <Text style={styles.sendButtonText}>Send to Client</Text>
             </TouchableOpacity>
           </View>
@@ -231,7 +291,11 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
   },
   headerButton: { padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
   scroll: { flex: 1 },
   statusCard: {
     margin: 16,
@@ -239,14 +303,37 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginBottom: 12, alignSelf: 'flex-start' },
-  statusText: { fontSize: 12, fontWeight: '700', color: theme.colors.textInverse },
-  totalAmount: { fontSize: 28, fontWeight: '700', color: theme.colors.textPrimary },
-  projectTitle: { fontSize: 14, color: theme.colors.textSecondary, marginTop: 4 },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginBottom: 12,
+    alignSelf: 'flex-start',
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textInverse,
+  },
+  totalAmount: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  projectTitle: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginTop: 4,
+  },
   section: {
     backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
@@ -254,22 +341,72 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
-  sectionTitle: { fontSize: 12, fontWeight: '700', color: theme.colors.textTertiary, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.8 },
-  clientName: { fontSize: 16, fontWeight: '600', color: theme.colors.textPrimary },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textTertiary,
+    marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  clientName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
   detailText: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 4 },
-  valueText: { fontSize: 14, fontWeight: '600', color: theme.colors.textPrimary },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
+  valueText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
   detailLabel: { fontSize: 14, color: theme.colors.textSecondary },
-  detailValue: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: '600' },
-  totalRowFinal: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.border, marginTop: 8, paddingTop: 12 },
-  grandTotalLabel: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
-  grandTotalValue: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
-  notesText: { fontSize: 14, color: theme.colors.textSecondary, lineHeight: 20 },
-  actionsSection: { flexDirection: 'row', gap: 12, marginHorizontal: 16, marginTop: 4 },
+  detailValue: {
+    fontSize: 14,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+  },
+  totalRowFinal: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.border,
+    marginTop: 8,
+    paddingTop: 12,
+  },
+  grandTotalLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  grandTotalValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  notesText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    lineHeight: 20,
+  },
+  actionsSection: {
+    flexDirection: 'row',
+    gap: 12,
+    marginHorizontal: 16,
+    marginTop: 4,
+  },
   editButton: {
     flex: 1,
     flexDirection: 'row',
@@ -280,7 +417,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 6,
   },
-  editButtonText: { fontSize: 14, fontWeight: '600', color: theme.colors.textPrimary },
+  editButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
   sendButton: {
     flex: 1,
     flexDirection: 'row',
@@ -291,7 +432,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 6,
   },
-  sendButtonText: { fontSize: 14, fontWeight: '600', color: theme.colors.textInverse },
+  sendButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textInverse,
+  },
   emptyIconWrap: {
     width: 64,
     height: 64,
@@ -301,7 +446,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emptyText: { fontSize: 16, color: theme.colors.textSecondary, marginTop: 16 },
-  backLink: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: '600', marginTop: 12 },
+  backLink: {
+    fontSize: 14,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    marginTop: 12,
+  },
 });
-
-export default QuoteDetailScreen;

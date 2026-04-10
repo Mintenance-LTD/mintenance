@@ -33,18 +33,21 @@ export const SwipeableCarousel: React.FC<SwipeableCarouselProps> = ({
 
   const minSwipeDistance = 50;
 
-  const goToSlide = useCallback((index: number) => {
-    if (isTransitioning || index === currentIndex) return;
-    
-    setIsTransitioning(true);
-    setCurrentIndex(index);
-    
-    if (onSlideChange) {
-      onSlideChange(index);
-    }
-    
-    setTimeout(() => setIsTransitioning(false), 300);
-  }, [currentIndex, isTransitioning, onSlideChange]);
+  const goToSlide = useCallback(
+    (index: number) => {
+      if (isTransitioning || index === currentIndex) return;
+
+      setIsTransitioning(true);
+      setCurrentIndex(index);
+
+      if (onSlideChange) {
+        onSlideChange(index);
+      }
+
+      setTimeout(() => setIsTransitioning(false), 300);
+    },
+    [currentIndex, isTransitioning, onSlideChange]
+  );
 
   const nextSlide = useCallback(() => {
     const nextIndex = (currentIndex + 1) % children.length;
@@ -52,7 +55,8 @@ export const SwipeableCarousel: React.FC<SwipeableCarouselProps> = ({
   }, [currentIndex, children.length, goToSlide]);
 
   const prevSlide = useCallback(() => {
-    const prevIndex = currentIndex === 0 ? children.length - 1 : currentIndex - 1;
+    const prevIndex =
+      currentIndex === 0 ? children.length - 1 : currentIndex - 1;
     goToSlide(prevIndex);
   }, [currentIndex, children.length, goToSlide]);
 
@@ -67,7 +71,7 @@ export const SwipeableCarousel: React.FC<SwipeableCarouselProps> = ({
 
   const onTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
-    
+
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
@@ -207,7 +211,7 @@ export const SwipeableCarousel: React.FC<SwipeableCarouselProps> = ({
           <button
             onClick={prevSlide}
             style={leftArrowStyles}
-            aria-label="Previous slide"
+            aria-label='Previous slide'
             disabled={isTransitioning}
           >
             ‹
@@ -215,7 +219,7 @@ export const SwipeableCarousel: React.FC<SwipeableCarouselProps> = ({
           <button
             onClick={nextSlide}
             style={rightArrowStyles}
-            aria-label="Next slide"
+            aria-label='Next slide'
             disabled={isTransitioning}
           >
             ›
@@ -242,7 +246,7 @@ export const SwipeableCarousel: React.FC<SwipeableCarouselProps> = ({
           background-color: rgba(255, 255, 255, 1);
           transform: translateY(-50%) scale(1.1);
         }
-        
+
         .swipeable-carousel button:disabled {
           opacity: 0.5;
           cursor: not-allowed;
@@ -251,5 +255,3 @@ export const SwipeableCarousel: React.FC<SwipeableCarouselProps> = ({
     </div>
   );
 };
-
-export default SwipeableCarousel;

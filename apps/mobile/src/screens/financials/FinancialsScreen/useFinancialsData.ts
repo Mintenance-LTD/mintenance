@@ -12,20 +12,26 @@ export function useFinancialsData() {
       if (!user?.id) throw new Error('Not authenticated');
       const { data: rows, error: err } = await supabase
         .from('escrow_transactions')
-        .select('id, amount, status, created_at, description, job:job_id(title)')
+        .select(
+          'id, amount, status, created_at, description, job:job_id(title)'
+        )
         .eq('payer_id', user.id)
         .order('created_at', { ascending: false })
         .limit(50);
       if (err) throw new Error(err.message);
 
-      const payments: PaymentRecord[] = (rows || []).map((r: Record<string, unknown>) => ({
-        id: r.id as string,
-        amount: (r.amount as number) || 0,
-        status: r.status as string || 'pending',
-        created_at: r.created_at as string,
-        job_title: (r.job as Record<string, unknown>)?.title as string | undefined,
-        category: r.description as string | undefined,
-      }));
+      const payments: PaymentRecord[] = (rows || []).map(
+        (r: Record<string, unknown>) => ({
+          id: r.id as string,
+          amount: (r.amount as number) || 0,
+          status: (r.status as string) || 'pending',
+          created_at: r.created_at as string,
+          job_title: (r.job as Record<string, unknown>)?.title as
+            | string
+            | undefined,
+          category: r.description as string | undefined,
+        })
+      );
 
       // Fetch subscription from profile
       const { data: subRow } = await supabase
@@ -34,10 +40,19 @@ export function useFinancialsData() {
         .eq('user_id', user.id)
         .single();
 
-      const subscriptionRes = subRow ? { subscription: { planType: subRow.plan_type as string, status: subRow.status as string } } : { subscription: null };
+      const subscriptionRes = subRow
+        ? {
+            subscription: {
+              planType: subRow.plan_type as string,
+              status: subRow.status as string,
+            },
+          }
+        : { subscription: null };
 
       const totalSpent = payments
-        .filter((p) => ['completed', 'released', 'release_pending'].includes(p.status))
+        .filter((p) =>
+          ['completed', 'released', 'release_pending'].includes(p.status)
+        )
         .reduce((sum, p) => sum + p.amount, 0);
 
       const inEscrow = payments
@@ -52,13 +67,18 @@ export function useFinancialsData() {
       const thisMonth = payments
         .filter((p) => {
           const d = new Date(p.created_at);
-          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+          return (
+            d.getMonth() === now.getMonth() &&
+            d.getFullYear() === now.getFullYear()
+          );
         })
         .reduce((sum, p) => sum + p.amount, 0);
 
       // Build category breakdown from payments
       const categoryTotals: Record<string, number> = {};
-      for (const p of payments.filter((pay) => ['completed', 'released', 'release_pending'].includes(pay.status))) {
+      for (const p of payments.filter((pay) =>
+        ['completed', 'released', 'release_pending'].includes(pay.status)
+      )) {
         const cat = p.category || 'general';
         categoryTotals[cat] = (categoryTotals[cat] || 0) + p.amount;
       }
@@ -67,7 +87,8 @@ export function useFinancialsData() {
         .map(([category, amount]) => ({
           category,
           amount,
-          percentage: totalSpent > 0 ? Math.round((amount / totalSpent) * 100) : 0,
+          percentage:
+            totalSpent > 0 ? Math.round((amount / totalSpent) * 100) : 0,
         }))
         .sort((a, b) => b.amount - a.amount);
 
@@ -84,4 +105,4 @@ export function useFinancialsData() {
   });
 }
 
-export type FinancialsData = NonNullable<ReturnType<typeof useFinancialsData>['data']>;
+type FinancialsData = NonNullable<ReturnType<typeof useFinancialsData>['data']>;

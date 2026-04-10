@@ -22,9 +22,9 @@ import type { DamageTypeSegmentation } from '../SAM3Service';
 import type { Phase1BuildingAssessment } from '../types';
 
 /** Domain for damage taxonomy (Phase 6: rail, steel, etc.). */
-export type AssessmentDomain = 'building' | 'rail' | 'infrastructure' | 'general';
+type AssessmentDomain = 'building' | 'rail' | 'infrastructure' | 'general';
 
-export interface AgentRunnerInput {
+interface AgentRunnerInput {
   assessmentId: string;
   imageUrls: string[];
   userId: string;
@@ -50,7 +50,10 @@ async function planToolCalls(
     { tool: 'vision_labels' },
     {
       tool: 'retrieve_memory',
-      params: { jobId: input.jobId ?? null, propertyId: input.propertyId ?? null },
+      params: {
+        jobId: input.jobId ?? null,
+        propertyId: input.propertyId ?? null,
+      },
     },
   ];
 }
@@ -59,7 +62,13 @@ async function planToolCalls(
  * Convert DetectToolResult to RoboflowDetection[] (add id and imageUrl).
  */
 function toolDetectToRoboflow(
-  detectResult: { detections: Array<{ className: string; confidence: number; boundingBox: { x: number; y: number; width: number; height: number } }> },
+  detectResult: {
+    detections: Array<{
+      className: string;
+      confidence: number;
+      boundingBox: { x: number; y: number; width: number; height: number };
+    }>;
+  },
   firstImageUrl: string
 ): RoboflowDetection[] {
   return detectResult.detections.map((d, i) => ({
@@ -74,13 +83,18 @@ function toolDetectToRoboflow(
 /**
  * Convert VisionLabelsToolResult to VisionAnalysisSummary.
  */
-function toolVisionToSummary(
-  visionResult: { labels: Array<{ description: string; score: number }>; detectedFeatures: string[]; confidence: number }
-): VisionAnalysisSummary {
+function toolVisionToSummary(visionResult: {
+  labels: Array<{ description: string; score: number }>;
+  detectedFeatures: string[];
+  confidence: number;
+}): VisionAnalysisSummary {
   return {
     provider: 'google-vision',
     confidence: visionResult.confidence,
-    labels: visionResult.labels.map((l) => ({ description: l.description, score: l.score })),
+    labels: visionResult.labels.map((l) => ({
+      description: l.description,
+      score: l.score,
+    })),
     objects: [],
     detectedFeatures: visionResult.detectedFeatures,
     suggestedCategories: [],
@@ -90,9 +104,9 @@ function toolVisionToSummary(
 /**
  * Convert SegmentToolResult to minimal DamageTypeSegmentation for scene graph.
  */
-function toolSegmentToSam3(
-  segmentResult: { damageTypes: Record<string, { numInstances: number; confidence: number }> }
-): DamageTypeSegmentation {
+function toolSegmentToSam3(segmentResult: {
+  damageTypes: Record<string, { numInstances: number; confidence: number }>;
+}): DamageTypeSegmentation {
   const damage_types: DamageTypeSegmentation['damage_types'] = {};
   for (const [type, data] of Object.entries(segmentResult.damageTypes)) {
     damage_types[type] = {
@@ -117,7 +131,9 @@ export async function runAgent(input: AgentRunnerInput): Promise<{
 
   const validated = await validateURLs(imageUrls, true);
   if (validated.invalid.length > 0) {
-    throw new Error(`Invalid image URLs: ${validated.invalid.map((i) => i.error).join(', ')}`);
+    throw new Error(
+      `Invalid image URLs: ${validated.invalid.map((i) => i.error).join(', ')}`
+    );
   }
   const validatedImageUrls = validated.valid;
   const firstImageUrl = validatedImageUrls[0] ?? '';
@@ -138,7 +154,10 @@ export async function runAgent(input: AgentRunnerInput): Promise<{
   });
 
   // Build pre-run evidence for BuildingSurveyorService
-  const roboflowDetections = toolDetectToRoboflow(toolOutput.detect, firstImageUrl);
+  const roboflowDetections = toolDetectToRoboflow(
+    toolOutput.detect,
+    firstImageUrl
+  );
   const visionAnalysis = toolVisionToSummary(toolOutput.visionLabels);
   const sam3Segmentation = toolSegmentToSam3(toolOutput.segment);
 
@@ -165,14 +184,22 @@ export async function runAgent(input: AgentRunnerInput): Promise<{
   });
 
   // Call BuildingSurveyorService with pre-run evidence and taxonomy-driven prompt (Phase 6)
-  const assessment = await BuildingSurveyorService.assessDamage(validatedImageUrls, context, {
-    preRunEvidence: {
-      roboflowDetections,
-      visionAnalysis,
-      sam3Segmentation: Object.keys(toolOutput.segment.damageTypes).length > 0 ? sam3Segmentation : undefined,
-    },
-    damageTypesForPrompt: damageTypesForSegment.length > 0 ? damageTypesForSegment : undefined,
-  });
+  const assessment = await BuildingSurveyorService.assessDamage(
+    validatedImageUrls,
+    context,
+    {
+      preRunEvidence: {
+        roboflowDetections,
+        visionAnalysis,
+        sam3Segmentation:
+          Object.keys(toolOutput.segment.damageTypes).length > 0
+            ? sam3Segmentation
+            : undefined,
+      },
+      damageTypesForPrompt:
+        damageTypesForSegment.length > 0 ? damageTypesForSegment : undefined,
+    }
+  );
 
   // Phase 7: verifier + observability - set needs_review when narrative and evidence misalign
   const { aligned, needsReview } = verifyAlignment(assessment, {

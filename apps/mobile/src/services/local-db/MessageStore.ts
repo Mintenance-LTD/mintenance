@@ -2,14 +2,21 @@ import type { Message } from '@mintenance/types';
 import { logger } from '../../utils/logger';
 import type { DatabaseMessageRow } from './types';
 
-export function mapRowToMessage(row: DatabaseMessageRow): Message {
+function mapRowToMessage(row: DatabaseMessageRow): Message {
   return {
-    id: row.id, jobId: row.job_id, senderId: row.sender_id, receiverId: row.receiver_id,
+    id: row.id,
+    jobId: row.job_id,
+    senderId: row.sender_id,
+    receiverId: row.receiver_id,
     messageText: row.message_text,
     messageType: row.message_type as unknown as Message['messageType'],
-    attachmentUrl: row.attachment_url ?? undefined, read: Boolean(row.read),
+    attachmentUrl: row.attachment_url ?? undefined,
+    read: Boolean(row.read),
     createdAt: row.created_at,
-    senderName: row.first_name && row.last_name ? `${row.first_name} ${row.last_name}`.trim() : 'Unknown User',
+    senderName:
+      row.first_name && row.last_name
+        ? `${row.first_name} ${row.last_name}`.trim()
+        : 'Unknown User',
     senderRole: row.role,
   };
 }
@@ -26,12 +33,22 @@ export async function saveMessage(
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   await db.runAsync(query, [
-    message.id, message.jobId ?? null, message.senderId, message.receiverId ?? null,
-    message.messageText ?? null, message.messageType ?? null, message.attachmentUrl ?? null,
-    message.read ? 1 : 0, message.createdAt,
-    markDirty ? null : new Date().toISOString(), markDirty ? 1 : 0,
+    message.id,
+    message.jobId ?? null,
+    message.senderId,
+    message.receiverId ?? null,
+    message.messageText ?? null,
+    message.messageType ?? null,
+    message.attachmentUrl ?? null,
+    message.read ? 1 : 0,
+    message.createdAt,
+    markDirty ? null : new Date().toISOString(),
+    markDirty ? 1 : 0,
   ]);
-  logger.debug('Message saved to local database', { messageId: message.id, markDirty });
+  logger.debug('Message saved to local database', {
+    messageId: message.id,
+    markDirty,
+  });
 }
 
 export async function getMessagesByJob(

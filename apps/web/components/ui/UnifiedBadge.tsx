@@ -15,81 +15,81 @@ import { cn } from '@/lib/utils';
 
 const badgeVariants = cva(
   // Base styles
-  "inline-flex items-center font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2",
+  'inline-flex items-center font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2',
   {
     variants: {
       variant: {
         default: [
-          "bg-gray-100 text-gray-700 border border-gray-200",
-          "focus:ring-gray-500",
+          'bg-gray-100 text-gray-700 border border-gray-200',
+          'focus:ring-gray-500',
         ],
         primary: [
-          "bg-teal-50 text-teal-700 border border-teal-200",
-          "focus:ring-teal-500",
+          'bg-teal-50 text-teal-700 border border-teal-200',
+          'focus:ring-teal-500',
         ],
         success: [
-          "bg-emerald-50 text-emerald-700 border border-emerald-200",
-          "focus:ring-emerald-500",
+          'bg-emerald-50 text-emerald-700 border border-emerald-200',
+          'focus:ring-emerald-500',
         ],
         error: [
-          "bg-red-50 text-red-700 border border-red-200",
-          "focus:ring-red-500",
+          'bg-red-50 text-red-700 border border-red-200',
+          'focus:ring-red-500',
         ],
         warning: [
-          "bg-amber-50 text-amber-700 border border-amber-200",
-          "focus:ring-amber-500",
+          'bg-amber-50 text-amber-700 border border-amber-200',
+          'focus:ring-amber-500',
         ],
         info: [
-          "bg-blue-50 text-blue-700 border border-blue-200",
-          "focus:ring-blue-500",
+          'bg-blue-50 text-blue-700 border border-blue-200',
+          'focus:ring-blue-500',
         ],
         // Solid variants for higher emphasis
         solidPrimary: [
-          "bg-teal-600 text-white border-transparent",
-          "focus:ring-teal-500",
+          'bg-teal-600 text-white border-transparent',
+          'focus:ring-teal-500',
         ],
         solidSuccess: [
-          "bg-emerald-500 text-white border-transparent",
-          "focus:ring-emerald-500",
+          'bg-emerald-500 text-white border-transparent',
+          'focus:ring-emerald-500',
         ],
         solidError: [
-          "bg-red-500 text-white border-transparent",
-          "focus:ring-red-500",
+          'bg-red-500 text-white border-transparent',
+          'focus:ring-red-500',
         ],
         solidWarning: [
-          "bg-amber-500 text-white border-transparent",
-          "focus:ring-amber-500",
+          'bg-amber-500 text-white border-transparent',
+          'focus:ring-amber-500',
         ],
         solidInfo: [
-          "bg-blue-500 text-white border-transparent",
-          "focus:ring-blue-500",
+          'bg-blue-500 text-white border-transparent',
+          'focus:ring-blue-500',
         ],
         // Special purpose variants
         premium: [
-          "bg-gradient-to-r from-amber-400 to-amber-500 text-white border-transparent",
-          "focus:ring-amber-500",
+          'bg-gradient-to-r from-amber-400 to-amber-500 text-white border-transparent',
+          'focus:ring-amber-500',
         ],
         new: [
-          "bg-gradient-to-r from-teal-500 to-emerald-500 text-white border-transparent",
-          "focus:ring-teal-500",
+          'bg-gradient-to-r from-teal-500 to-emerald-500 text-white border-transparent',
+          'focus:ring-teal-500',
         ],
       },
       size: {
-        xs: "px-1.5 py-0.5 text-xs rounded",
-        sm: "px-2 py-0.5 text-xs rounded-md",
-        md: "px-2.5 py-1 text-sm rounded-md",
-        lg: "px-3 py-1.5 text-base rounded-lg",
+        xs: 'px-1.5 py-0.5 text-xs rounded',
+        sm: 'px-2 py-0.5 text-xs rounded-md',
+        md: 'px-2.5 py-1 text-sm rounded-md',
+        lg: 'px-3 py-1.5 text-base rounded-lg',
       },
       shape: {
-        rounded: "",
-        pill: "rounded-full",
-        square: "rounded-none",
+        rounded: '',
+        pill: 'rounded-full',
+        square: 'rounded-none',
       },
     },
     defaultVariants: {
-      variant: "default",
-      size: "md",
-      shape: "rounded",
+      variant: 'default',
+      size: 'md',
+      shape: 'rounded',
     },
   }
 );
@@ -98,8 +98,9 @@ const badgeVariants = cva(
 // TYPE DEFINITIONS
 // ============================================
 
-export interface BadgeProps
-  extends React.HTMLAttributes<HTMLSpanElement>,
+interface BadgeProps
+  extends
+    React.HTMLAttributes<HTMLSpanElement>,
     VariantProps<typeof badgeVariants> {
   children: React.ReactNode;
   dot?: boolean;
@@ -127,9 +128,8 @@ const UnifiedBadge: React.FC<BadgeProps> = ({
   ...props
 }) => {
   // Format count display
-  const displayCount = count !== undefined
-    ? count > max ? `${max}+` : count.toString()
-    : null;
+  const displayCount =
+    count !== undefined ? (count > max ? `${max}+` : count.toString()) : null;
 
   return (
     <span
@@ -140,12 +140,14 @@ const UnifiedBadge: React.FC<BadgeProps> = ({
       {dot && (
         <span
           className={cn(
-            "w-1.5 h-1.5 rounded-full mr-1.5",
-            variant?.includes('solid') || variant === 'premium' || variant === 'new'
-              ? "bg-white"
-              : "bg-current"
+            'w-1.5 h-1.5 rounded-full mr-1.5',
+            variant?.includes('solid') ||
+              variant === 'premium' ||
+              variant === 'new'
+              ? 'bg-white'
+              : 'bg-current'
           )}
-          aria-hidden="true"
+          aria-hidden='true'
         />
       )}
 
@@ -155,30 +157,32 @@ const UnifiedBadge: React.FC<BadgeProps> = ({
       {/* Remove button */}
       {removable && (
         <button
-          type="button"
+          type='button'
           onClick={(e) => {
             e.stopPropagation();
             onRemove?.();
           }}
           className={cn(
-            "ml-1 -mr-0.5 inline-flex items-center justify-center rounded-full p-0.5",
-            "hover:bg-black/10 focus:outline-none focus:ring-2 focus:ring-offset-1",
-            variant?.includes('solid') || variant === 'premium' || variant === 'new'
-              ? "text-white focus:ring-white"
-              : "text-current focus:ring-current"
+            'ml-1 -mr-0.5 inline-flex items-center justify-center rounded-full p-0.5',
+            'hover:bg-black/10 focus:outline-none focus:ring-2 focus:ring-offset-1',
+            variant?.includes('solid') ||
+              variant === 'premium' ||
+              variant === 'new'
+              ? 'text-white focus:ring-white'
+              : 'text-current focus:ring-current'
           )}
-          aria-label="Remove"
+          aria-label='Remove'
         >
           <svg
-            className="h-3 w-3"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-            aria-hidden="true"
+            className='h-3 w-3'
+            fill='currentColor'
+            viewBox='0 0 20 20'
+            aria-hidden='true'
           >
             <path
-              fillRule="evenodd"
-              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-              clipRule="evenodd"
+              fillRule='evenodd'
+              d='M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z'
+              clipRule='evenodd'
             />
           </svg>
         </button>
@@ -191,14 +195,26 @@ const UnifiedBadge: React.FC<BadgeProps> = ({
 // STATUS BADGE PRESETS
 // ============================================
 
-export interface StatusBadgeProps extends Omit<BadgeProps, 'variant'> {
-  status: 'posted' | 'assigned' | 'in-progress' | 'completed' | 'cancelled' | 'pending' | 'approved' | 'rejected';
+interface StatusBadgeProps extends Omit<BadgeProps, 'variant'> {
+  status:
+    | 'posted'
+    | 'assigned'
+    | 'in-progress'
+    | 'completed'
+    | 'cancelled'
+    | 'pending'
+    | 'approved'
+    | 'rejected';
 }
 
 const statusConfig = {
   posted: { variant: 'info' as const, label: 'Posted', dot: true },
   assigned: { variant: 'warning' as const, label: 'Assigned', dot: true },
-  'in-progress': { variant: 'primary' as const, label: 'In Progress', dot: true },
+  'in-progress': {
+    variant: 'primary' as const,
+    label: 'In Progress',
+    dot: true,
+  },
   completed: { variant: 'success' as const, label: 'Completed', dot: false },
   cancelled: { variant: 'default' as const, label: 'Cancelled', dot: false },
   pending: { variant: 'warning' as const, label: 'Pending', dot: true },
@@ -223,7 +239,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 // PRIORITY BADGE PRESETS
 // ============================================
 
-export interface PriorityBadgeProps extends Omit<BadgeProps, 'variant'> {
+interface PriorityBadgeProps extends Omit<BadgeProps, 'variant'> {
   priority: 'urgent' | 'high' | 'medium' | 'low';
 }
 
@@ -251,8 +267,16 @@ export const PriorityBadge: React.FC<PriorityBadgeProps> = ({
 // CATEGORY BADGE PRESETS
 // ============================================
 
-export interface CategoryBadgeProps extends Omit<BadgeProps, 'variant'> {
-  category: 'plumbing' | 'electrical' | 'hvac' | 'handyman' | 'cleaning' | 'landscaping' | 'appliance' | 'painting';
+interface CategoryBadgeProps extends Omit<BadgeProps, 'variant'> {
+  category:
+    | 'plumbing'
+    | 'electrical'
+    | 'hvac'
+    | 'handyman'
+    | 'cleaning'
+    | 'landscaping'
+    | 'appliance'
+    | 'painting';
 }
 
 const categoryColors = {
@@ -288,14 +312,14 @@ export const CategoryBadge: React.FC<CategoryBadgeProps> = ({
   return (
     <span
       className={cn(
-        "inline-flex items-center font-medium transition-colors",
-        size === 'xs' && "px-1.5 py-0.5 text-xs",
-        size === 'sm' && "px-2 py-0.5 text-xs",
-        size === 'md' && "px-2.5 py-1 text-sm",
-        size === 'lg' && "px-3 py-1.5 text-base",
-        shape === 'pill' && "rounded-full",
-        shape === 'rounded' && "rounded-md",
-        shape === 'square' && "rounded-none",
+        'inline-flex items-center font-medium transition-colors',
+        size === 'xs' && 'px-1.5 py-0.5 text-xs',
+        size === 'sm' && 'px-2 py-0.5 text-xs',
+        size === 'md' && 'px-2.5 py-1 text-sm',
+        size === 'lg' && 'px-3 py-1.5 text-base',
+        shape === 'pill' && 'rounded-full',
+        shape === 'rounded' && 'rounded-md',
+        shape === 'square' && 'rounded-none',
         categoryColors[category],
         className
       )}
@@ -328,12 +352,12 @@ export const NotificationBadge: React.FC<NotificationBadgeProps> = ({
   const displayCount = count > max ? `${max}+` : count.toString();
 
   return (
-    <div className="relative inline-flex">
+    <div className='relative inline-flex'>
       <span
         className={cn(
-          "absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center",
-          "rounded-full bg-red-500 text-xs font-bold text-white",
-          "ring-2 ring-white",
+          'absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center',
+          'rounded-full bg-red-500 text-xs font-bold text-white',
+          'ring-2 ring-white',
           className
         )}
       >
@@ -341,8 +365,8 @@ export const NotificationBadge: React.FC<NotificationBadgeProps> = ({
       </span>
       {pulse && count > 0 && (
         <span
-          className="absolute -top-1 -right-1 h-5 w-5 animate-ping rounded-full bg-red-400 opacity-75"
-          aria-hidden="true"
+          className='absolute -top-1 -right-1 h-5 w-5 animate-ping rounded-full bg-red-400 opacity-75'
+          aria-hidden='true'
         />
       )}
     </div>
@@ -371,7 +395,13 @@ export const BadgeGroup: React.FC<BadgeGroupProps> = ({
   };
 
   return (
-    <div className={cn('inline-flex flex-wrap items-center', gapClasses[gap], className)}>
+    <div
+      className={cn(
+        'inline-flex flex-wrap items-center',
+        gapClasses[gap],
+        className
+      )}
+    >
       {children}
     </div>
   );

@@ -9,7 +9,7 @@ export interface TrialStatus {
   requiresSubscription: boolean;
 }
 
-export interface TrialWarning {
+interface TrialWarning {
   daysRemaining: number;
   level: 'info' | 'warning' | 'urgent';
   message: string;
@@ -25,9 +25,12 @@ export class TrialService {
   static async initializeTrial(contractorId: string): Promise<boolean> {
     try {
       // Call database function to initialize trial
-      const { data, error } = await serverSupabase.rpc('initialize_trial_period', {
-        p_contractor_id: contractorId,
-      });
+      const { data, error } = await serverSupabase.rpc(
+        'initialize_trial_period',
+        {
+          p_contractor_id: contractorId,
+        }
+      );
 
       if (error) {
         logger.error('Failed to initialize trial period', {
@@ -57,7 +60,9 @@ export class TrialService {
   /**
    * Get trial status for a contractor
    */
-  static async getTrialStatus(contractorId: string): Promise<TrialStatus | null> {
+  static async getTrialStatus(
+    contractorId: string
+  ): Promise<TrialStatus | null> {
     try {
       const { data, error } = await serverSupabase.rpc('check_trial_status', {
         p_contractor_id: contractorId,
@@ -80,8 +85,12 @@ export class TrialService {
       return {
         daysRemaining: result.days_remaining ?? 0,
         isTrialActive: result.is_trial_active ?? false,
-        trialStartedAt: result.trial_started_at ? new Date(result.trial_started_at) : null,
-        trialEndsAt: result.trial_ends_at ? new Date(result.trial_ends_at) : null,
+        trialStartedAt: result.trial_started_at
+          ? new Date(result.trial_started_at)
+          : null,
+        trialEndsAt: result.trial_ends_at
+          ? new Date(result.trial_ends_at)
+          : null,
         requiresSubscription: result.requires_subscription ?? true,
       };
     } catch (err) {
@@ -132,7 +141,8 @@ export class TrialService {
       return {
         daysRemaining: 0,
         level: 'urgent',
-        message: 'Your trial has expired. Please subscribe to continue using the platform.',
+        message:
+          'Your trial has expired. Please subscribe to continue using the platform.',
       };
     }
 
@@ -166,7 +176,10 @@ export class TrialService {
   /**
    * Check if trial is expiring soon (within specified days)
    */
-  static isTrialExpiringSoon(daysRemaining: number, thresholdDays: number = 7): boolean {
+  static isTrialExpiringSoon(
+    daysRemaining: number,
+    thresholdDays: number = 7
+  ): boolean {
     return daysRemaining > 0 && daysRemaining <= thresholdDays;
   }
 
@@ -193,4 +206,3 @@ export class TrialService {
     return daysRemaining <= 7;
   }
 }
-

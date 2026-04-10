@@ -36,15 +36,20 @@ export type SupabaseMessageRow = {
   sender?: SupabasePerson | null;
 };
 
-/** Actual production messages table schema (uses thread_id, content, read_by) */
+/**
+ * Actual production messages table schema (verified against live DB):
+ * id, job_id, sender_id, receiver_id, content, message_type,
+ * attachment_url, read, created_at
+ */
 export type ActualMessageRow = {
   id: string;
-  thread_id: string;
+  job_id: string;
   sender_id: string;
+  receiver_id: string;
   content: string;
   message_type: string | null;
-  metadata: Record<string, unknown> | null;
-  read_by: string[];
+  attachment_url: string | null;
+  read: boolean | null;
   created_at: string;
   sender?: SupabasePerson | null;
 };
@@ -53,22 +58,27 @@ export type ActualMessageRow = {
 export const mapActualMessageRow = (
   row: ActualMessageRow,
   jobId: string,
-  currentUserId: string,
+  currentUserId: string
 ): Message => {
+  // currentUserId is accepted for API compatibility; read state is a bool
+  // stored per-message (receiver-flag) so it's the same for all viewers.
+  void currentUserId;
   return {
     id: row.id,
-    jobId,
+    jobId: row.job_id || jobId,
     senderId: row.sender_id,
-    receiverId: '', // Not stored in actual schema
+    receiverId: row.receiver_id,
     messageText: row.content || '',
     messageType: normalizeMessageType(row.message_type),
-    attachmentUrl: row.metadata?.attachment_url as string | undefined,
-    read: Array.isArray(row.read_by) ? row.read_by.includes(currentUserId) : false,
+    attachmentUrl: row.attachment_url ?? undefined,
+    read: row.read === true,
     createdAt: row.created_at,
-    senderName: row.sender ? formatDisplayName(row.sender, {
-      email: row.sender.email ?? undefined,
-      company_name: row.sender.company_name ?? undefined,
-    }) : undefined,
+    senderName: row.sender
+      ? formatDisplayName(row.sender, {
+          email: row.sender.email ?? undefined,
+          company_name: row.sender.company_name ?? undefined,
+        })
+      : undefined,
     senderRole: row.sender?.role ?? undefined,
   };
 };
@@ -78,20 +88,28 @@ export const MESSAGE_TYPES = ['text', 'image', 'file', 'system'] as const;
 
 // Extended types that map to 'system' in the normalized output
 const SYSTEM_MESSAGE_TYPES = new Set([
-  'video_call_invitation', 'video_call_started', 'video_call_ended',
-  'video_call_missed', 'contract_submitted',
+  'video_call_invitation',
+  'video_call_started',
+  'video_call_ended',
+  'video_call_missed',
+  'contract_submitted',
 ]);
 
 const CORE_SET = new Set<string>(MESSAGE_TYPES);
 
-export const normalizeMessageType = (value?: string | null): 'text' | 'image' | 'file' | 'system' => {
+export const normalizeMessageType = (
+  value?: string | null
+): 'text' | 'image' | 'file' | 'system' => {
   if (!value) return 'text';
   if (CORE_SET.has(value)) return value as 'text' | 'image' | 'file' | 'system';
   if (SYSTEM_MESSAGE_TYPES.has(value)) return 'system';
   return 'text';
 };
 
-export const formatDisplayName = (person?: SupabasePerson | null, fallback?: { email?: string; company_name?: string }): string => {
+const formatDisplayName = (
+  person?: SupabasePerson | null,
+  fallback?: { email?: string; company_name?: string }
+): string => {
   if (!person) {
     // Try fallback data
     if (fallback?.company_name) {
@@ -102,15 +120,15 @@ export const formatDisplayName = (person?: SupabasePerson | null, fallback?: { e
     }
     return 'Unknown User';
   }
-  
+
   const first = person.first_name?.trim() ?? '';
   const last = person.last_name?.trim() ?? '';
   const full = `${first} ${last}`.trim();
-  
+
   if (full) {
     return full;
   }
-  
+
   // Try fallback data if name is empty
   if (fallback?.company_name) {
     return fallback.company_name;
@@ -118,7 +136,7 @@ export const formatDisplayName = (person?: SupabasePerson | null, fallback?: { e
   if (fallback?.email) {
     return fallback.email.split('@')[0];
   }
-  
+
   // If person exists but has no name, try person's own email/company
   if (person.email) {
     // Extract name from email (e.g., "john.doe@example.com" -> "john.doe")
@@ -126,14 +144,14 @@ export const formatDisplayName = (person?: SupabasePerson | null, fallback?: { e
     // Try to format it nicely (e.g., "john.doe" -> "John Doe")
     const formattedEmailName = emailName
       .split('.')
-      .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
       .join(' ');
     return formattedEmailName;
   }
   if (person.company_name) {
     return person.company_name;
   }
-  
+
   return 'Unknown User';
 };
 
@@ -146,7 +164,7 @@ export const toTimestamp = (value?: string | null): number => {
 export const mapMessageRow = (row: SupabaseMessageRow): Message => {
   // Handle both message_text and content column names (prefer message_text as it's the current schema)
   const messageText = row.message_text ?? row.content ?? '';
-  
+
   return {
     id: row.id,
     jobId: row.job_id,
@@ -159,15 +177,19 @@ export const mapMessageRow = (row: SupabaseMessageRow): Message => {
     callDuration: row.call_duration ?? undefined,
     read: Boolean(row.read),
     createdAt: row.created_at,
-    senderName: row.sender ? formatDisplayName(row.sender, {
-      email: row.sender.email ?? undefined,
-      company_name: row.sender.company_name ?? undefined,
-    }) : undefined,
+    senderName: row.sender
+      ? formatDisplayName(row.sender, {
+          email: row.sender.email ?? undefined,
+          company_name: row.sender.company_name ?? undefined,
+        })
+      : undefined,
     senderRole: row.sender?.role ?? undefined,
   };
 };
 
-export const buildThreadParticipants = (job: SupabaseJobRow): MessageThread['participants'] => {
+export const buildThreadParticipants = (
+  job: SupabaseJobRow
+): MessageThread['participants'] => {
   const participants: MessageThread['participants'] = [];
 
   if (job.homeowner_id) {
@@ -176,13 +198,14 @@ export const buildThreadParticipants = (job: SupabaseJobRow): MessageThread['par
       email: job.homeowner?.email ?? undefined,
       company_name: job.homeowner?.company_name ?? undefined,
     });
-    
+
     // Only use ID fallback if we truly have no other information
     // formatDisplayName should now handle email fallback, so this should rarely trigger
-    const finalHomeownerName = homeownerName === 'Unknown User' && job.homeowner_id
-      ? `Homeowner ${job.homeowner_id.slice(0, 8)}` // Use first 8 chars of ID as last resort
-      : homeownerName;
-    
+    const finalHomeownerName =
+      homeownerName === 'Unknown User' && job.homeowner_id
+        ? `Homeowner ${job.homeowner_id.slice(0, 8)}` // Use first 8 chars of ID as last resort
+        : homeownerName;
+
     participants.push({
       id: job.homeowner_id,
       name: finalHomeownerName,
@@ -195,11 +218,12 @@ export const buildThreadParticipants = (job: SupabaseJobRow): MessageThread['par
       email: job.contractor?.email ?? undefined,
       company_name: job.contractor?.company_name ?? undefined,
     });
-    
-    const finalContractorName = contractorName === 'Unknown User' && job.contractor_id
-      ? `Contractor ${job.contractor_id.slice(0, 8)}`
-      : contractorName;
-    
+
+    const finalContractorName =
+      contractorName === 'Unknown User' && job.contractor_id
+        ? `Contractor ${job.contractor_id.slice(0, 8)}`
+        : contractorName;
+
     participants.push({
       id: job.contractor_id,
       name: finalContractorName,

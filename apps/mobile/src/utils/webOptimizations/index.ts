@@ -23,11 +23,12 @@ import {
 /**
  * Default configurations
  */
-export const defaultConfigs = {
+const defaultConfigs = {
   pwa: {
     appName: 'Mintenance',
     shortName: 'Mintenance',
-    appDescription: 'Professional contractor discovery and home maintenance platform',
+    appDescription:
+      'Professional contractor discovery and home maintenance platform',
     themeColor: '#2563eb',
     backgroundColor: '#ffffff',
     iconSizes: [72, 96, 128, 144, 152, 192, 384, 512],
@@ -110,9 +111,18 @@ export class WebOptimizationsManager {
       // Merge with default configs
       const pwaConfig = { ...defaultConfigs.pwa, ...config.pwa };
       const seoConfig = { ...defaultConfigs.seo, ...config.seo };
-      const analyticsConfig = { ...defaultConfigs.analytics, ...config.analytics };
-      const imageConfig = { ...defaultConfigs.imageOptimization, ...config.image };
-      const accessibilityConfig = { ...defaultConfigs.accessibility, ...config.accessibility };
+      const analyticsConfig = {
+        ...defaultConfigs.analytics,
+        ...config.analytics,
+      };
+      const imageConfig = {
+        ...defaultConfigs.imageOptimization,
+        ...config.image,
+      };
+      const accessibilityConfig = {
+        ...defaultConfigs.accessibility,
+        ...config.accessibility,
+      };
 
       // Initialize modules
       this.pwaManager = new PWAManager(pwaConfig);
@@ -132,9 +142,16 @@ export class WebOptimizationsManager {
 
       this.isInitialized = true;
 
-      logger.info('WebOptimizationsManager', 'All web optimizations initialized successfully');
+      logger.info(
+        'WebOptimizationsManager',
+        'All web optimizations initialized successfully'
+      );
     } catch (error) {
-      logger.error('WebOptimizationsManager', 'Failed to initialize web optimizations', error);
+      logger.error(
+        'WebOptimizationsManager',
+        'Failed to initialize web optimizations',
+        error
+      );
       throw error;
     }
   }
@@ -179,7 +196,10 @@ export class WebOptimizationsManager {
   /**
    * Performance Tracking Methods
    */
-  trackEvent(eventName: string, properties: Record<string, unknown> = {}): void {
+  trackEvent(
+    eventName: string,
+    properties: Record<string, unknown> = {}
+  ): void {
     this.performanceTracker?.trackEvent(eventName, properties);
   }
 
@@ -264,24 +284,18 @@ export class WebOptimizationsManager {
 
       logger.info('WebOptimizationsManager', 'Web optimizations disposed');
     } catch (error) {
-      logger.error('WebOptimizationsManager', 'Error disposing web optimizations', error);
+      logger.error(
+        'WebOptimizationsManager',
+        'Error disposing web optimizations',
+        error
+      );
     }
   }
 }
 
 // Export singleton instance
-export const webOptimizationsManager = WebOptimizationsManager.getInstance();
+const webOptimizationsManager = WebOptimizationsManager.getInstance();
 
 // Export types
-export type {
-  PWAConfig,
-  SEOConfig,
-  AnalyticsConfig,
-  ImageOptimizationConfig,
-  AccessibilityConfig,
-  WebOptimizationConfig,
-  PerformanceMetrics,
-};
 
 // Export individual managers for advanced usage
-export { PWAManager, SEOManager, PerformanceTracker, ImageOptimizer, AccessibilityManager };

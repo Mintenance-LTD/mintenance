@@ -14,11 +14,23 @@ interface BarChartProps {
   showValues?: boolean;
 }
 
-export function BarChart({ data, height = 200, showValues = true }: BarChartProps) {
+export function BarChart({
+  data,
+  height = 200,
+  showValues = true,
+}: BarChartProps) {
   const maxValue = Math.max(...data.map((d) => d.value));
 
   return (
-    <div style={{ width: '100%', height, display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
+    <div
+      style={{
+        width: '100%',
+        height,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: theme.spacing[4],
+      }}
+    >
       <div
         style={{
           flex: 1,
@@ -105,7 +117,11 @@ interface LineChartProps {
   color?: string;
 }
 
-export function LineChart({ data, height = 200, color = theme.colors.primary }: LineChartProps) {
+function LineChart({
+  data,
+  height = 200,
+  color = theme.colors.primary,
+}: LineChartProps) {
   const maxValue = Math.max(...data.map((d) => d.value));
   const minValue = Math.min(...data.map((d) => d.value));
   const range = maxValue - minValue || 1;
@@ -116,39 +132,49 @@ export function LineChart({ data, height = 200, color = theme.colors.primary }: 
     return { x, y, value: item.value };
   });
 
-  const pathData = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
+  const pathData = points
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+    .join(' ');
 
   return (
-    <div style={{ width: '100%', height, display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
+    <div
+      style={{
+        width: '100%',
+        height,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: theme.spacing[4],
+      }}
+    >
       <div style={{ flex: 1, position: 'relative' }}>
         <svg
-          width="100%"
-          height="100%"
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
+          width='100%'
+          height='100%'
+          viewBox='0 0 100 100'
+          preserveAspectRatio='none'
           style={{ overflow: 'visible' }}
         >
           {/* Gradient Fill */}
           <defs>
-            <linearGradient id="lineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor={color} stopOpacity="0.3" />
-              <stop offset="100%" stopColor={color} stopOpacity="0" />
+            <linearGradient id='lineGradient' x1='0%' y1='0%' x2='0%' y2='100%'>
+              <stop offset='0%' stopColor={color} stopOpacity='0.3' />
+              <stop offset='100%' stopColor={color} stopOpacity='0' />
             </linearGradient>
           </defs>
 
           {/* Area under line */}
           <path
             d={`${pathData} L 100 100 L 0 100 Z`}
-            fill="url(#lineGradient)"
+            fill='url(#lineGradient)'
           />
 
           {/* Line */}
           <path
             d={pathData}
-            fill="none"
+            fill='none'
             stroke={color}
-            strokeWidth="2"
-            vectorEffect="non-scaling-stroke"
+            strokeWidth='2'
+            vectorEffect='non-scaling-stroke'
           />
 
           {/* Points */}
@@ -157,9 +183,9 @@ export function LineChart({ data, height = 200, color = theme.colors.primary }: 
               key={index}
               cx={point.x}
               cy={point.y}
-              r="1.5"
+              r='1.5'
               fill={color}
-              vectorEffect="non-scaling-stroke"
+              vectorEffect='non-scaling-stroke'
             >
               <title>{point.value}</title>
             </circle>
@@ -196,7 +222,7 @@ interface DonutChartProps {
   innerText?: string;
 }
 
-export function DonutChart({ data, size = 160, innerText }: DonutChartProps) {
+function DonutChart({ data, size = 160, innerText }: DonutChartProps) {
   const total = data.reduce((sum, item) => sum + item.value, 0);
   const center = size / 2;
   const radius = (size / 2) * 0.8;
@@ -230,7 +256,9 @@ export function DonutChart({ data, size = 160, innerText }: DonutChartProps) {
   });
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[6] }}>
+    <div
+      style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[6] }}
+    >
       {/* Chart */}
       <div style={{ position: 'relative', width: size, height: size }}>
         <svg width={size} height={size}>
@@ -238,10 +266,10 @@ export function DonutChart({ data, size = 160, innerText }: DonutChartProps) {
             <path
               key={index}
               d={segment.path}
-              fill="none"
+              fill='none'
               stroke={segment.color}
               strokeWidth={strokeWidth}
-              strokeLinecap="round"
+              strokeLinecap='round'
             />
           ))}
         </svg>
@@ -269,9 +297,22 @@ export function DonutChart({ data, size = 160, innerText }: DonutChartProps) {
       </div>
 
       {/* Legend */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: theme.spacing[3],
+        }}
+      >
         {data.map((item, index) => (
-          <div key={index} style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
+          <div
+            key={index}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing[2],
+            }}
+          >
             <div
               style={{
                 width: 12,
@@ -305,4 +346,3 @@ export function DonutChart({ data, size = 160, innerText }: DonutChartProps) {
     </div>
   );
 }
-

@@ -1,6 +1,6 @@
 /**
  * HomeScreenError Component
- * 
+ *
  * Displays error state for the home screen.
  */
 
@@ -15,7 +15,7 @@ interface HomeScreenErrorProps {
   onRetry?: () => void;
 }
 
-export const HomeScreenError: React.FC<HomeScreenErrorProps> = ({
+const HomeScreenError: React.FC<HomeScreenErrorProps> = ({
   error,
   onRetry,
 }) => {
@@ -26,7 +26,7 @@ export const HomeScreenError: React.FC<HomeScreenErrorProps> = ({
       <View style={styles.errorContent}>
         <View style={styles.iconWrap}>
           <Ionicons
-            name="alert-circle-outline"
+            name='alert-circle-outline'
             size={36}
             color={theme.colors.error}
           />
@@ -38,11 +38,17 @@ export const HomeScreenError: React.FC<HomeScreenErrorProps> = ({
           <TouchableOpacity
             style={styles.retryButton}
             onPress={onRetry}
-            accessibilityRole="button"
-            accessibilityLabel="Retry loading"
+            accessibilityRole='button'
+            accessibilityLabel='Retry loading'
           >
-            <Ionicons name="refresh" size={20} color={theme.colors.textInverse} />
-            <Text style={styles.retryButtonText}>{String(t('errors.tryAgain'))}</Text>
+            <Ionicons
+              name='refresh'
+              size={20}
+              color={theme.colors.textInverse}
+            />
+            <Text style={styles.retryButtonText}>
+              {String(t('errors.tryAgain'))}
+            </Text>
           </TouchableOpacity>
         )}
       </View>

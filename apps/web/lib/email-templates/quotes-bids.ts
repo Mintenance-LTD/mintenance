@@ -24,12 +24,12 @@ export function quoteNotificationTemplate(data: QuoteEmailData): {
     `<p>Hi ${e(data.recipientName)},</p>
      <p><strong>${e(data.contractorName)}</strong> has sent you a new quote.</p>
      <p><strong>Quote Number:</strong> ${e(data.quoteNumber)}</p>
-     <p><strong>Total Amount:</strong> $${data.totalAmount.toFixed(2)}</p>
+     <p><strong>Total Amount:</strong> £${data.totalAmount.toFixed(2)}</p>
      <a href="${e(data.viewUrl)}" class="button">View Quote</a>
      <p style="margin-top:30px">Log in to your Mintenance account to review the full details and accept or decline the quote.</p>`,
     `<p>&copy; ${year()} Mintenance ltd. All rights reserved.</p>`
   );
-  const text = `Hi ${data.recipientName},\n\n${data.contractorName} has sent you a new quote.\n\nQuote Number: ${data.quoteNumber}\nTotal Amount: $${data.totalAmount.toFixed(2)}\n\nView your quote here: ${data.viewUrl}\n\nLog in to review the full details and accept or decline the quote.\n\n© ${year()} Mintenance.`;
+  const text = `Hi ${data.recipientName},\n\n${data.contractorName} has sent you a new quote.\n\nQuote Number: ${data.quoteNumber}\nTotal Amount: £${data.totalAmount.toFixed(2)}\n\nView your quote here: ${data.viewUrl}\n\nLog in to review the full details and accept or decline the quote.\n\n© ${year()} Mintenance.`;
   return {
     subject: `New Quote from ${data.contractorName} - ${data.quoteNumber}`,
     html,
@@ -51,14 +51,14 @@ export function bidNotificationTemplate(data: BidEmailData): {
     `<h1>New Bid on Your Job</h1>`,
     `<p>Hi ${e(data.homeownerName)},</p>
      <p><strong>${e(data.contractorName)}</strong> has submitted a bid for your job: <strong>${e(data.jobTitle)}</strong></p>
-     <p><strong>Bid Amount:</strong> $${data.bidAmount.toFixed(2)}</p>
+     <p><strong>Bid Amount:</strong> £${data.bidAmount.toFixed(2)}</p>
      <p><strong>Proposal Preview:</strong></p>
      <p style="background:white;padding:15px;border-left:4px solid ${color};margin:15px 0">${e(data.proposalExcerpt)}...</p>
      <a href="${e(data.viewUrl)}" class="button">View Full Bid</a>
      <p style="margin-top:30px">Review the contractor's full proposal, ratings, and past work to make an informed decision.</p>`,
     `<p>&copy; ${year()} Mintenance ltd. All rights reserved.</p>`
   );
-  const text = `Hi ${data.homeownerName},\n\n${data.contractorName} has submitted a bid for your job: ${data.jobTitle}\n\nBid Amount: $${data.bidAmount.toFixed(2)}\n\nProposal Preview:\n${data.proposalExcerpt}...\n\nView the full bid here: ${data.viewUrl}\n\nReview the contractor's full proposal, ratings, and past work.\n\n© ${year()} Mintenance.`;
+  const text = `Hi ${data.homeownerName},\n\n${data.contractorName} has submitted a bid for your job: ${data.jobTitle}\n\nBid Amount: £${data.bidAmount.toFixed(2)}\n\nProposal Preview:\n${data.proposalExcerpt}...\n\nView the full bid here: ${data.viewUrl}\n\nReview the contractor's full proposal, ratings, and past work.\n\n© ${year()} Mintenance.`;
   return {
     subject: `New Bid from ${data.contractorName} - ${data.jobTitle}`,
     html,
@@ -104,7 +104,7 @@ export function quoteAcceptedTemplate(
     '',
     `<h1>🎉 Quote Accepted!</h1>`,
     `<p>Great news!</p>
-     <p><strong>${e(homeownerName)}</strong> has accepted your quote <strong>${e(quoteNumber)}</strong> for <strong>$${amount.toFixed(2)}</strong>.</p>
+     <p><strong>${e(homeownerName)}</strong> has accepted your quote <strong>${e(quoteNumber)}</strong> for <strong>£${amount.toFixed(2)}</strong>.</p>
      <p>Log in to your Mintenance account to coordinate the next steps with your client.</p>`,
     `<p>&copy; ${year()} Mintenance ltd. All rights reserved.</p>`
   );

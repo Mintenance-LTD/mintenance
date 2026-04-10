@@ -86,7 +86,7 @@ export function useReducedMotion(): boolean {
  * </motion.div>
  * ```
  */
-export function useMotionPreference() {
+function useMotionPreference() {
   const prefersReducedMotion = useReducedMotion();
 
   return {
@@ -100,22 +100,26 @@ export function useMotionPreference() {
      * Get transition config with reduced motion support
      * Returns instant transition if reduced motion is preferred
      */
-    getTransition: <T extends Record<string, unknown>>(transition?: T): T | { duration: number } => {
+    getTransition: <T extends Record<string, unknown>>(
+      transition?: T
+    ): T | { duration: number } => {
       if (prefersReducedMotion) {
         return { duration: 0 };
       }
-      return transition ?? {} as T;
+      return transition ?? ({} as T);
     },
 
     /**
      * Get variants with reduced motion support
      * Returns empty variants if reduced motion is preferred
      */
-    getVariants: <T extends Record<string, unknown>>(variants?: T): T | Record<string, never> => {
+    getVariants: <T extends Record<string, unknown>>(
+      variants?: T
+    ): T | Record<string, never> => {
       if (prefersReducedMotion) {
         return {};
       }
-      return variants ?? {} as T;
+      return variants ?? ({} as T);
     },
   };
 }
@@ -149,7 +153,9 @@ interface MotionProps {
  * </motion.div>
  * ```
  */
-export function useConditionalMotion(motionProps: MotionProps): MotionProps | Record<string, never> {
+function useConditionalMotion(
+  motionProps: MotionProps
+): MotionProps | Record<string, never> {
   const prefersReducedMotion = useReducedMotion();
 
   if (prefersReducedMotion) {

@@ -17,7 +17,7 @@ interface FloatingActionButtonProps {
   'data-testid'?: string;
 }
 
-export const FloatingActionButton: React.FC<FloatingActionButtonProps> = (props) => {
+const FloatingActionButton: React.FC<FloatingActionButtonProps> = (props) => {
   // Defensive prop destructuring with defaults to prevent test crashes
   const {
     icon,
@@ -38,7 +38,7 @@ export const FloatingActionButton: React.FC<FloatingActionButtonProps> = (props)
       const scrollY = window.scrollY;
       const windowHeight = window.innerHeight;
       const documentHeight = document.documentElement.scrollHeight;
-      
+
       // Hide FAB when scrolling down, show when scrolling up
       if (scrollY > 100 && scrollY < documentHeight - windowHeight - 100) {
         setIsVisible(false);
@@ -149,12 +149,14 @@ export const FloatingActionButton: React.FC<FloatingActionButtonProps> = (props)
       hapticFeedback={true}
       rippleEffect={true}
     >
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        transition: 'transform 0.1s ease-in-out',
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'transform 0.1s ease-in-out',
+        }}
+      >
         {icon}
       </div>
     </Touchable>
@@ -175,7 +177,7 @@ interface SpeedDialProps {
   style?: React.CSSProperties;
 }
 
-export const SpeedDial: React.FC<SpeedDialProps> = ({
+const SpeedDial: React.FC<SpeedDialProps> = ({
   mainIcon,
   actions,
   position = 'bottom-right',
@@ -255,7 +257,9 @@ export const SpeedDial: React.FC<SpeedDialProps> = ({
           onPress={action.onClick}
           style={{
             ...actionStyles,
-            backgroundColor: action.color ? theme.colors[action.color] : theme.colors.secondary,
+            backgroundColor: action.color
+              ? theme.colors[action.color]
+              : theme.colors.secondary,
             color: 'white',
             transitionDelay: `${index * 50}ms`,
           }}
@@ -266,7 +270,7 @@ export const SpeedDial: React.FC<SpeedDialProps> = ({
           {action.icon}
         </Touchable>
       ))}
-      
+
       {/* Main button */}
       <Touchable
         onPress={toggleSpeedDial}
@@ -280,5 +284,3 @@ export const SpeedDial: React.FC<SpeedDialProps> = ({
     </div>
   );
 };
-
-export default FloatingActionButton;

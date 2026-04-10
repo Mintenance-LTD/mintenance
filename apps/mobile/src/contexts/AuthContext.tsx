@@ -32,11 +32,7 @@ import {
 } from './auth-actions';
 
 // Re-export types so existing consumers keep working
-export type {
-  AuthContextType,
-  AuthSession,
-  SignUpUserData,
-} from './auth-types';
+export type { AuthContextType } from './auth-types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 

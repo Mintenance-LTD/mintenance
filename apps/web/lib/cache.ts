@@ -9,23 +9,9 @@
  *  - ./cache/user-queries   — per-user cached queries (jobs, bids, payments, properties, etc.)
  */
 
-export { CACHE_TAGS, CACHE_DURATIONS, cacheQuery } from './cache/config';
+export { CACHE_TAGS, CACHE_DURATIONS } from './cache/config';
 
-export {
-  revalidateContractors,
-  revalidateJobs,
-  revalidateServiceCategories,
-  revalidateUserProfile,
-} from './cache/invalidation';
-
-export {
-  getCachedUser,
-  getCachedContractors,
-  getCachedServiceCategories,
-  getCachedContractorById,
-} from './cache/public-queries';
-
-export { getCachedJobs } from './cache/jobs-queries';
+export { getCachedUser, getCachedContractors } from './cache/public-queries';
 
 export {
   getCachedUserJobs,

@@ -1,7 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 
-export interface PaymentVerificationResult {
+interface PaymentVerificationResult {
   hasPlatformPayment: boolean;
   escrowPaymentId: string | null;
   amount: number | null;
@@ -16,7 +16,9 @@ export class PaymentEnforcement {
   /**
    * Verify that a job has a platform payment before allowing completion
    */
-  static async verifyJobPayment(jobId: string): Promise<PaymentVerificationResult> {
+  static async verifyJobPayment(
+    jobId: string
+  ): Promise<PaymentVerificationResult> {
     try {
       // Check for escrow payment
       const { data: escrowPayment, error } = await serverSupabase
@@ -36,7 +38,8 @@ export class PaymentEnforcement {
             escrowPaymentId: null,
             amount: null,
             status: null,
-            message: 'No platform payment found for this job. Payment must be made through the platform.',
+            message:
+              'No platform payment found for this job. Payment must be made through the platform.',
           };
         }
 
@@ -61,7 +64,8 @@ export class PaymentEnforcement {
           escrowPaymentId: null,
           amount: null,
           status: null,
-          message: 'No platform payment found. All payments must be made through the platform.',
+          message:
+            'No platform payment found. All payments must be made through the platform.',
         };
       }
 
@@ -91,7 +95,9 @@ export class PaymentEnforcement {
   /**
    * Check if job can be marked as completed (requires platform payment)
    */
-  static async canCompleteJob(jobId: string): Promise<{ allowed: boolean; reason?: string }> {
+  static async canCompleteJob(
+    jobId: string
+  ): Promise<{ allowed: boolean; reason?: string }> {
     const verification = await this.verifyJobPayment(jobId);
 
     if (!verification.hasPlatformPayment) {
@@ -111,7 +117,8 @@ export class PaymentEnforcement {
     if (verification.status === 'held') {
       return {
         allowed: true,
-        reason: 'Payment is held in escrow and will be released upon job completion.',
+        reason:
+          'Payment is held in escrow and will be released upon job completion.',
       };
     }
 
@@ -196,4 +203,3 @@ export class PaymentEnforcement {
     `;
   }
 }
-

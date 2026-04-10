@@ -4,12 +4,12 @@ import { logger } from '@mintenance/shared';
 /**
  * Profile boost tier classification
  */
-export type ProfileBoostTier = 'standard' | 'verified' | 'premium' | 'elite';
+type ProfileBoostTier = 'standard' | 'verified' | 'premium' | 'elite';
 
 /**
  * Profile boost breakdown
  */
-export interface ProfileBoostBreakdown {
+interface ProfileBoostBreakdown {
   contractorId: string;
 
   // Base score
@@ -46,11 +46,16 @@ export class ProfileBoostService {
    * Calculate profile boost for a contractor
    * Calls the database function that does the actual calculation
    */
-  static async calculateBoost(contractorId: string): Promise<ProfileBoostBreakdown | null> {
+  static async calculateBoost(
+    contractorId: string
+  ): Promise<ProfileBoostBreakdown | null> {
     try {
-      const { data, error } = await serverSupabase.rpc('calculate_contractor_profile_boost', {
-        p_contractor_id: contractorId,
-      });
+      const { data, error } = await serverSupabase.rpc(
+        'calculate_contractor_profile_boost',
+        {
+          p_contractor_id: contractorId,
+        }
+      );
 
       if (error) {
         logger.error('Failed to calculate profile boost', {
@@ -116,7 +121,9 @@ export class ProfileBoostService {
   /**
    * Get profile boost for a contractor (without recalculation)
    */
-  static async getBoost(contractorId: string): Promise<ProfileBoostBreakdown | null> {
+  static async getBoost(
+    contractorId: string
+  ): Promise<ProfileBoostBreakdown | null> {
     try {
       const { data: boostData, error } = await serverSupabase
         .from('contractor_profile_boosts')
@@ -174,7 +181,7 @@ export class ProfileBoostService {
         return [];
       }
 
-      return data.map(row => row.contractor_id);
+      return data.map((row) => row.contractor_id);
     } catch (error) {
       logger.error('Error getting contractors by tier', error, {
         service: 'ProfileBoostService',
@@ -187,7 +194,9 @@ export class ProfileBoostService {
   /**
    * Get top ranked contractors
    */
-  static async getTopRankedContractors(limit: number = 20): Promise<ProfileBoostBreakdown[]> {
+  static async getTopRankedContractors(
+    limit: number = 20
+  ): Promise<ProfileBoostBreakdown[]> {
     try {
       const { data, error } = await serverSupabase
         .from('contractor_profile_boosts')
@@ -199,7 +208,7 @@ export class ProfileBoostService {
         return [];
       }
 
-      return data.map(row => ({
+      return data.map((row) => ({
         contractorId: row.contractor_id,
         baseTrustScore: row.base_trust_score,
         dbsCheckBoost: row.dbs_check_boost,
@@ -227,15 +236,15 @@ export class ProfileBoostService {
   /**
    * Get missing verifications for a contractor (what they can improve)
    */
-  static async getMissingVerifications(
-    contractorId: string
-  ): Promise<{
-    category: string;
-    name: string;
-    potentialBoost: number;
-    status: 'missing' | 'partial' | 'complete';
-    actionUrl?: string;
-  }[]> {
+  static async getMissingVerifications(contractorId: string): Promise<
+    {
+      category: string;
+      name: string;
+      potentialBoost: number;
+      status: 'missing' | 'partial' | 'complete';
+      actionUrl?: string;
+    }[]
+  > {
     try {
       const boost = await this.getBoost(contractorId);
       if (!boost) return [];
@@ -426,8 +435,11 @@ export class ProfileBoostService {
       const totalBoosts = boosts.length;
 
       // Calculate averages
-      const averageRankingScore = boosts.reduce((sum, b) => sum + b.ranking_score, 0) / totalBoosts;
-      const averageBoostPercentage = boosts.reduce((sum, b) => sum + b.total_boost_percentage, 0) / totalBoosts;
+      const averageRankingScore =
+        boosts.reduce((sum, b) => sum + b.ranking_score, 0) / totalBoosts;
+      const averageBoostPercentage =
+        boosts.reduce((sum, b) => sum + b.total_boost_percentage, 0) /
+        totalBoosts;
 
       // Tier distribution
       const tierDistribution: Record<ProfileBoostTier, number> = {
@@ -437,20 +449,22 @@ export class ProfileBoostService {
         standard: 0,
       };
 
-      boosts.forEach(b => {
+      boosts.forEach((b) => {
         tierDistribution[b.tier as ProfileBoostTier]++;
       });
 
       // Top verifications
       const verificationsSum = {
-        dbs: boosts.filter(b => b.dbs_check_boost > 0).length,
-        admin: boosts.filter(b => b.admin_verified_boost > 0).length,
-        phone: boosts.filter(b => b.phone_verified_boost > 0).length,
-        email: boosts.filter(b => b.email_verified_boost > 0).length,
-        personality: boosts.filter(b => b.personality_assessment_boost > 0).length,
-        portfolio: boosts.filter(b => b.portfolio_completeness_boost > 0).length,
-        certifications: boosts.filter(b => b.certifications_boost > 0).length,
-        insurance: boosts.filter(b => b.insurance_verified_boost > 0).length,
+        dbs: boosts.filter((b) => b.dbs_check_boost > 0).length,
+        admin: boosts.filter((b) => b.admin_verified_boost > 0).length,
+        phone: boosts.filter((b) => b.phone_verified_boost > 0).length,
+        email: boosts.filter((b) => b.email_verified_boost > 0).length,
+        personality: boosts.filter((b) => b.personality_assessment_boost > 0)
+          .length,
+        portfolio: boosts.filter((b) => b.portfolio_completeness_boost > 0)
+          .length,
+        certifications: boosts.filter((b) => b.certifications_boost > 0).length,
+        insurance: boosts.filter((b) => b.insurance_verified_boost > 0).length,
       };
 
       const topVerifications = Object.entries(verificationsSum)

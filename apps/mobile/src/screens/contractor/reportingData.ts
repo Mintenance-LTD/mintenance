@@ -1,7 +1,7 @@
 import { supabase } from '../../config/supabase';
 import { theme } from '../../theme';
 
-export interface MarketingStats {
+interface MarketingStats {
   completedJobs: number;
   totalJobs: number;
   winRate: number;

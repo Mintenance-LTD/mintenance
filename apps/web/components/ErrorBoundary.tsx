@@ -3,7 +3,14 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { logger } from '@mintenance/shared';
 import * as Sentry from '@sentry/nextjs';
-import { colors, typography, spacing, borderRadius, shadows, components } from '@/lib/design-tokens';
+import {
+  colors,
+  typography,
+  spacing,
+  borderRadius,
+  shadows,
+  components,
+} from '@/lib/design-tokens';
 // import { focusRing } from '@/lib/a11y'; // Module not found
 
 // Design tokens for easy access
@@ -67,7 +74,10 @@ interface ErrorBoundaryState {
  *   <YourComponent />
  * </ErrorBoundary>
  */
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class ErrorBoundary extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = {
@@ -88,7 +98,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log error to console in development
     if (process.env.NODE_ENV === 'development') {
-      logger.error('ErrorBoundary caught an error:', error, errorInfo as unknown as Record<string, unknown>);
+      logger.error(
+        'ErrorBoundary caught an error:',
+        error,
+        errorInfo as unknown as Record<string, unknown>
+      );
     }
 
     // Call custom error handler if provided
@@ -148,9 +162,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       // Default fallback UI (WCAG compliant)
       return (
         <div
-          role="alert"
-          aria-live="assertive"
-          aria-atomic="true"
+          role='alert'
+          aria-live='assertive'
+          aria-atomic='true'
           style={{
             minHeight: '100vh',
             display: 'flex',
@@ -183,21 +197,21 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 justifyContent: 'center',
                 margin: `0 auto ${tokens.spacing[6]}`,
               }}
-              aria-hidden="true"
+              aria-hidden='true'
             >
               <svg
-                width="32"
-                height="32"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
+                width='32'
+                height='32'
+                viewBox='0 0 24 24'
+                fill='none'
+                xmlns='http://www.w3.org/2000/svg'
               >
                 <path
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  d='M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
                   stroke={tokens.colors.error[600]}
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                  strokeWidth='2'
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
                 />
               </svg>
             </div>
@@ -225,48 +239,51 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 lineHeight: tokens.typography.lineHeight.relaxed,
               }}
             >
-              We're sorry for the inconvenience. The application encountered an unexpected error.
-              Please try refreshing the page or contact support if the problem persists.
+              We're sorry for the inconvenience. The application encountered an
+              unexpected error. Please try refreshing the page or contact
+              support if the problem persists.
             </p>
 
             {/* Error Details (Development Only or showDetails) */}
-            {(process.env.NODE_ENV === 'development' || this.props.showDetails) && this.state.error && (
-              <details
-                style={{
-                  marginBottom: tokens.spacing[6],
-                  padding: tokens.spacing[4],
-                  backgroundColor: tokens.colors.background.tertiary,
-                  borderRadius: tokens.borderRadius.lg,
-                  border: `1px solid ${tokens.colors.border.default}`,
-                }}
-              >
-                <summary
+            {(process.env.NODE_ENV === 'development' ||
+              this.props.showDetails) &&
+              this.state.error && (
+                <details
                   style={{
-                    fontSize: tokens.typography.fontSize.sm,
-                    fontWeight: tokens.typography.fontWeight.medium,
-                    color: tokens.colors.text.primary,
-                    cursor: 'pointer',
-                    marginBottom: tokens.spacing[3],
-                  }}
-                  className="error-details-summary"
-                >
-                  Error Details (Development Only)
-                </summary>
-                <pre
-                  style={{
-                    fontSize: tokens.typography.fontSize.xs,
-                    color: tokens.colors.error[700],
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
-                    fontFamily: tokens.typography.fontFamily.mono,
-                    margin: 0,
+                    marginBottom: tokens.spacing[6],
+                    padding: tokens.spacing[4],
+                    backgroundColor: tokens.colors.background.tertiary,
+                    borderRadius: tokens.borderRadius.lg,
+                    border: `1px solid ${tokens.colors.border.default}`,
                   }}
                 >
-                  {this.state.error.toString()}
-                  {this.state.errorInfo?.componentStack}
-                </pre>
-              </details>
-            )}
+                  <summary
+                    style={{
+                      fontSize: tokens.typography.fontSize.sm,
+                      fontWeight: tokens.typography.fontWeight.medium,
+                      color: tokens.colors.text.primary,
+                      cursor: 'pointer',
+                      marginBottom: tokens.spacing[3],
+                    }}
+                    className='error-details-summary'
+                  >
+                    Error Details (Development Only)
+                  </summary>
+                  <pre
+                    style={{
+                      fontSize: tokens.typography.fontSize.xs,
+                      color: tokens.colors.error[700],
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      fontFamily: tokens.typography.fontFamily.mono,
+                      margin: 0,
+                    }}
+                  >
+                    {this.state.error.toString()}
+                    {this.state.errorInfo?.componentStack}
+                  </pre>
+                </details>
+              )}
 
             {/* Action Buttons */}
             <div
@@ -278,7 +295,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             >
               <button
                 onClick={this.handleReset}
-                aria-label="Try to recover from error"
+                aria-label='Try to recover from error'
                 className={`error-boundary-reset-btn ${focusRing.primary}`}
                 style={{
                   ...componentTokens.button.secondary,
@@ -290,19 +307,19 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 }}
               >
                 <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  aria-hidden="true"
+                  width='20'
+                  height='20'
+                  viewBox='0 0 24 24'
+                  fill='none'
+                  xmlns='http://www.w3.org/2000/svg'
+                  aria-hidden='true'
                 >
                   <path
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                    d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'
+                    stroke='currentColor'
+                    strokeWidth='2'
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
                   />
                 </svg>
                 Try Again
@@ -310,7 +327,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
               <button
                 onClick={this.handleReload}
-                aria-label="Reload the page"
+                aria-label='Reload the page'
                 className={`error-boundary-reload-btn ${focusRing.primary}`}
                 style={{
                   ...componentTokens.button.primary,
@@ -322,19 +339,19 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 }}
               >
                 <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  aria-hidden="true"
+                  width='20'
+                  height='20'
+                  viewBox='0 0 24 24'
+                  fill='none'
+                  xmlns='http://www.w3.org/2000/svg'
+                  aria-hidden='true'
                 >
                   <path
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                    d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'
+                    stroke='currentColor'
+                    strokeWidth='2'
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
                   />
                 </svg>
                 Reload Page
@@ -345,7 +362,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             {process.env.NODE_ENV === 'production' && this.state.eventId && (
               <button
                 onClick={this.handleReportFeedback}
-                aria-label="Report feedback about this error"
+                aria-label='Report feedback about this error'
                 className={focusRing.primary}
                 style={{
                   ...componentTokens.button.ghost,
@@ -358,19 +375,19 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 }}
               >
                 <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  aria-hidden="true"
+                  width='20'
+                  height='20'
+                  viewBox='0 0 24 24'
+                  fill='none'
+                  xmlns='http://www.w3.org/2000/svg'
+                  aria-hidden='true'
                 >
                   <path
-                    d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                    d='M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z'
+                    stroke='currentColor'
+                    strokeWidth='2'
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
                   />
                 </svg>
                 Report Feedback
@@ -388,7 +405,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             >
               Need help?{' '}
               <a
-                href="/contact"
+                href='/contact'
                 style={{
                   color: tokens.colors.text.link,
                   textDecoration: 'underline',
@@ -402,8 +419,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           </div>
 
           {/* Styles */}
-          <style dangerouslySetInnerHTML={{
-            __html: `
+          <style
+            dangerouslySetInnerHTML={{
+              __html: `
               /* Error details summary focus */
               .error-details-summary:focus {
                 outline: none;
@@ -446,8 +464,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                   transition: none !important;
                 }
               }
-            `
-          }} />
+            `,
+            }}
+          />
         </div>
       );
     }
@@ -460,7 +479,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
  * Hook-based wrapper for ErrorBoundary
  * Use this in functional components
  */
-export function withErrorBoundary<P extends object>(
+function withErrorBoundary<P extends object>(
   Component: React.ComponentType<P>,
   fallback?: ReactNode
 ) {

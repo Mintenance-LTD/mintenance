@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
   },
 });
 
-export const BusinessNavigator = () => {
+const BusinessNavigator = () => {
   return (
     <BusinessStack.Navigator
       screenOptions={{

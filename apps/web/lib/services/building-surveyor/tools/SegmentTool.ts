@@ -6,7 +6,7 @@ import { SAM3Service } from '../SAM3Service';
 import type { DamageTypeSegmentation } from '../SAM3Service';
 import type { SegmentToolResult, ToolRun, ToolRunSummary } from './types';
 
-export interface SegmentToolParams {
+interface SegmentToolParams {
   imageUrl: string;
   damageTypes: string[];
 }
@@ -14,9 +14,9 @@ export interface SegmentToolParams {
 /**
  * Run segment tool: SAM3 segmentation for each damage type; return result and summary.
  */
-export async function runSegmentTool(params: SegmentToolParams): Promise<
-  ToolRun<SegmentToolResult>
-> {
+export async function runSegmentTool(
+  params: SegmentToolParams
+): Promise<ToolRun<SegmentToolResult>> {
   const { imageUrl, damageTypes } = params;
 
   const commonTypes = [
@@ -42,13 +42,19 @@ export async function runSegmentTool(params: SegmentToolParams): Promise<
     // SAM3 optional; continue with empty result
   }
 
-  const damageTypesResult: Record<string, { numInstances: number; confidence: number }> = {};
+  const damageTypesResult: Record<
+    string,
+    { numInstances: number; confidence: number }
+  > = {};
   let segmentCount = 0;
   if (result?.success && result.damage_types) {
     for (const [type, data] of Object.entries(result.damage_types)) {
       const numInstances = data?.num_instances ?? 0;
       const scores = data?.scores ?? [];
-      const confidence = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+      const confidence =
+        scores.length > 0
+          ? scores.reduce((a, b) => a + b, 0) / scores.length
+          : 0;
       damageTypesResult[type] = { numInstances, confidence };
       segmentCount += numInstances;
     }

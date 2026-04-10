@@ -226,7 +226,7 @@ export class LazyLoadingBoundary extends React.Component<
 /**
  * Hook for lazy loading with automatic boundary
  */
-export const useLazyComponent = <P extends object>(
+const useLazyComponent = <P extends object>(
   importFn: () => Promise<{ default: React.ComponentType<P> }>,
   chunkName: string,
   options?: {
@@ -307,5 +307,3 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
 });
-
-export { DefaultLazyFallback, LazyErrorFallback };

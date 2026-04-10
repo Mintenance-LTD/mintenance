@@ -6,7 +6,7 @@ import { Toast, ToastProps } from './Toast';
 // TYPES & INTERFACES
 // ============================================================================
 
-export interface ToastConfig extends Omit<ToastProps, 'id'> {
+interface ToastConfig extends Omit<ToastProps, 'id'> {
   id?: string;
 }
 

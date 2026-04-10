@@ -8,7 +8,7 @@
 
 import { logger } from '../../utils/logger';
 
-export interface MarketContext {
+interface MarketContext {
   averagePrice: number;
   priceRange: [number, number];
   demandLevel: 'low' | 'medium' | 'high';
@@ -17,13 +17,13 @@ export interface MarketContext {
   contractorAvailability: number; // 0-1
 }
 
-export interface MarketPricingInput {
+interface MarketPricingInput {
   category: string;
   location: string;
   urgency?: 'low' | 'medium' | 'high';
 }
 
-export interface MarketAnalysisResult {
+interface MarketAnalysisResult {
   context: MarketContext;
   adjustmentFactor: number;
   regionalInsights: string[];
@@ -445,4 +445,4 @@ export class MarketRateCalculator {
 }
 
 // Export singleton instance
-export const marketRateCalculator = new MarketRateCalculator();
+const marketRateCalculator = new MarketRateCalculator();

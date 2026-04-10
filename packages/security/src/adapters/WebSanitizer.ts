@@ -2,7 +2,7 @@
  * Web platform sanitizer using DOMPurify
  * Provides comprehensive XSS protection for web applications
  */
-import DOMPurify from 'dompurify';
+import DOMPurify, { type WindowLike } from 'dompurify';
 import { BaseSanitizer, SanitizationOptions } from '../core/BaseSanitizer';
 export class WebSanitizer extends BaseSanitizer {
   private static purifyInstance: typeof DOMPurify | null = null;
@@ -24,7 +24,7 @@ export class WebSanitizer extends BaseSanitizer {
       try {
         const { JSDOM } = require('jsdom');
         const domWindow = new JSDOM('').window;
-        this.purifyInstance = DOMPurify(domWindow as unknown as Window);
+        this.purifyInstance = DOMPurify(domWindow as unknown as WindowLike);
         return this.purifyInstance;
       } catch (error) {
         throw new Error(

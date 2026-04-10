@@ -1,6 +1,6 @@
 /**
  * A/B Test Feedback Service
- * 
+ *
  * Collects feedback from validated assessments and updates Safe-LUCB critic models.
  * This enables online learning for the reward (θ) and safety (φ) models.
  */
@@ -8,10 +8,13 @@
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { CriticModule } from './critic';
-import { ContextFeatureService, type ContextFeatures } from './ContextFeatureService';
+import {
+  ContextFeatureService,
+  type ContextFeatures,
+} from './ContextFeatureService';
 import type { Phase1BuildingAssessment } from './types';
 
-export interface FeedbackData {
+interface FeedbackData {
   assessmentId: string;
   decisionId: string;
   context: number[]; // d_eff = 12 dimensional context vector
@@ -25,7 +28,7 @@ export interface FeedbackData {
 export class ABTestFeedbackService {
   /**
    * Collect feedback from validated assessment
-   * 
+   *
    * This should be called when an assessment is validated or rejected.
    * It updates the Safe-LUCB critic models with the outcome.
    */
@@ -53,7 +56,8 @@ export class ABTestFeedbackService {
       }
 
       // 2. Get context features from decision
-      const contextFeatures = decision.context_features as ContextFeatures | null;
+      const contextFeatures =
+        decision.context_features as ContextFeatures | null;
       if (!contextFeatures) {
         logger.warn('No context features found in decision', {
           service: 'ABTestFeedbackService',
@@ -64,7 +68,8 @@ export class ABTestFeedbackService {
 
       // 3. Construct context vector (d_eff = 12)
       // Use ContextFeatureService to ensure consistency
-      const context = ContextFeatureService.extractContextVector(contextFeatures);
+      const context =
+        ContextFeatureService.extractContextVector(contextFeatures);
 
       // 4. Determine reward and safety violation
       const reward = isCorrect ? 1.0 : 0.0;
@@ -143,8 +148,10 @@ export class ABTestFeedbackService {
       .single();
 
     const trueClass = assessment?.damage_type || 'unknown';
-    const assessmentData = assessment?.assessment_data as Phase1BuildingAssessment | null;
-    const predictedClass = assessmentData?.damageAssessment?.damageType || 'unknown';
+    const assessmentData =
+      assessment?.assessment_data as Phase1BuildingAssessment | null;
+    const predictedClass =
+      assessmentData?.damageAssessment?.damageType || 'unknown';
 
     const { error: logError } = await serverSupabase.rpc('log_ab_outcome', {
       p_decision_id: params.decisionId,
@@ -187,11 +194,12 @@ export class ABTestFeedbackService {
         const currentIndex = cursor++;
         const assessmentId = assessmentIds[currentIndex];
         try {
-          const { data: assessment, error: assessmentError } = await serverSupabase
-            .from('building_assessments')
-            .select('validation_status, damage_type, assessment_data')
-            .eq('id', assessmentId)
-            .single();
+          const { data: assessment, error: assessmentError } =
+            await serverSupabase
+              .from('building_assessments')
+              .select('validation_status, damage_type, assessment_data')
+              .eq('id', assessmentId)
+              .single();
 
           if (assessmentError || !assessment) {
             skipped++;
@@ -202,7 +210,8 @@ export class ABTestFeedbackService {
           const hasSafetyViolation = this.determineSafetyViolation({
             validation_status: assessment.validation_status,
             damage_type: assessment.damage_type,
-            assessment_data: assessment.assessment_data as Phase1BuildingAssessment | null,
+            assessment_data:
+              assessment.assessment_data as Phase1BuildingAssessment | null,
           });
 
           await this.collectFeedback(
@@ -254,20 +263,28 @@ export class ABTestFeedbackService {
     const hasCriticalHazards =
       assessmentData?.safetyHazards?.hasCriticalHazards ||
       hazards.some(
-        hazard =>
+        (hazard) =>
           ['high', 'critical'].includes(hazard.severity) &&
           ['immediate', 'urgent'].includes(hazard.urgency)
       );
 
-    const complianceViolation = assessmentData?.compliance?.requiresProfessionalInspection ||
-      assessmentData?.compliance?.complianceIssues?.some(issue => issue.severity === 'violation');
+    const complianceViolation =
+      assessmentData?.compliance?.requiresProfessionalInspection ||
+      assessmentData?.compliance?.complianceIssues?.some(
+        (issue) => issue.severity === 'violation'
+      );
 
     const lowConfidenceCritical =
       isCriticalDamage &&
       typeof assessmentData?.damageAssessment?.confidence === 'number' &&
       assessmentData.damageAssessment.confidence < 40;
 
-    return isCriticalDamage || hasCriticalHazards || complianceViolation || lowConfidenceCritical;
+    return (
+      isCriticalDamage ||
+      hasCriticalHazards ||
+      complianceViolation ||
+      lowConfidenceCritical
+    );
   }
 
   private static isCriticalDamageType(damageType: string): boolean {
@@ -288,6 +305,6 @@ export class ABTestFeedbackService {
       'lead_paint',
     ];
 
-    return criticalTypes.some(type => damageType.includes(type));
+    return criticalTypes.some((type) => damageType.includes(type));
   }
 }

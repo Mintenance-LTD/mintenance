@@ -3,7 +3,12 @@
 // Unified error handling for all service layer operations
 // ============================================================================
 
-import { ErrorHandlingService, ErrorCategory, ErrorSeverity, ErrorContext } from './errorHandling';
+import {
+  ErrorHandlingService,
+  ErrorCategory,
+  ErrorSeverity,
+  ErrorContext,
+} from './errorHandling';
 import { logger } from './logger';
 
 // ============================================================================
@@ -45,15 +50,18 @@ export class ServiceErrorHandler {
         showUserAlert
       );
 
-      logger.error(`Service operation failed in ${context.service}.${context.method}`, {
-        errorId: standardError.id,
-        context,
-        originalError: error,
-      });
+      logger.error(
+        `Service operation failed in ${context.service}.${context.method}`,
+        {
+          errorId: standardError.id,
+          context,
+          originalError: error,
+        }
+      );
 
       return {
         error: error as Error,
-        success: false
+        success: false,
       };
     }
   }
@@ -79,8 +87,11 @@ export class ServiceErrorHandler {
       const errorObj = error as Record<string, unknown>;
 
       // Database/Supabase errors
-      if (errorObj.code && typeof errorObj.code === 'string' &&
-          (errorObj.code.startsWith('PGRST') || errorObj.code.match(/^\d{5}$/))) {
+      if (
+        errorObj.code &&
+        typeof errorObj.code === 'string' &&
+        (errorObj.code.startsWith('PGRST') || errorObj.code.match(/^\d{5}$/))
+      ) {
         throw this.handleDatabaseError(error, enhancedContext);
       }
 
@@ -122,7 +133,10 @@ export class ServiceErrorHandler {
       category: ErrorCategory.DATABASE,
     };
 
-    const errorObj = error && typeof error === 'object' ? error as Record<string, unknown> : {};
+    const errorObj =
+      error && typeof error === 'object'
+        ? (error as Record<string, unknown>)
+        : {};
 
     // Classify severity based on error type
     let severity = ErrorSeverity.MEDIUM;
@@ -132,9 +146,10 @@ export class ServiceErrorHandler {
       severity = ErrorSeverity.HIGH; // Permission issues are high severity
     }
 
-    const errorMessage = errorObj.message && typeof errorObj.message === 'string'
-      ? errorObj.message
-      : 'Database operation failed';
+    const errorMessage =
+      errorObj.message && typeof errorObj.message === 'string'
+        ? errorObj.message
+        : 'Database operation failed';
 
     return ErrorHandlingService.createError(
       errorMessage,
@@ -182,7 +197,10 @@ export class ServiceErrorHandler {
       category: ErrorCategory.NETWORK,
     };
 
-    const errorObj = error && typeof error === 'object' ? error as Record<string, unknown> : {};
+    const errorObj =
+      error && typeof error === 'object'
+        ? (error as Record<string, unknown>)
+        : {};
     const status = typeof errorObj.status === 'number' ? errorObj.status : 0;
 
     let severity = ErrorSeverity.MEDIUM;
@@ -192,9 +210,10 @@ export class ServiceErrorHandler {
       severity = ErrorSeverity.HIGH; // Auth errors are high severity
     }
 
-    const errorMessage = errorObj.message && typeof errorObj.message === 'string'
-      ? errorObj.message
-      : 'Network operation failed';
+    const errorMessage =
+      errorObj.message && typeof errorObj.message === 'string'
+        ? errorObj.message
+        : 'Network operation failed';
 
     return ErrorHandlingService.createError(
       errorMessage,
@@ -209,7 +228,11 @@ export class ServiceErrorHandler {
   /**
    * Validate required parameters
    */
-  static validateRequired(value: unknown, fieldName: string, context: ServiceErrorContext) {
+  static validateRequired(
+    value: unknown,
+    fieldName: string,
+    context: ServiceErrorContext
+  ) {
     if (value === null || value === undefined || value === '') {
       throw this.handleValidationError(
         `${fieldName} is required`,
@@ -249,7 +272,11 @@ export class ServiceErrorHandler {
   /**
    * Validate positive number
    */
-  static validatePositiveNumber(value: number, fieldName: string, context: ServiceErrorContext) {
+  static validatePositiveNumber(
+    value: number,
+    fieldName: string,
+    context: ServiceErrorContext
+  ) {
     if (value <= 0) {
       throw this.handleValidationError(
         `${fieldName} must be a positive number`,
@@ -264,7 +291,10 @@ export class ServiceErrorHandler {
   // ========================================================================
 
   private static getDatabaseUserMessage(error: unknown): string {
-    const errorObj = error && typeof error === 'object' ? error as Record<string, unknown> : {};
+    const errorObj =
+      error && typeof error === 'object'
+        ? (error as Record<string, unknown>)
+        : {};
     const errorCode = errorObj.code || errorObj.error_code;
 
     switch (errorCode) {
@@ -286,7 +316,10 @@ export class ServiceErrorHandler {
   }
 
   private static getNetworkUserMessage(error: unknown): string {
-    const errorObj = error && typeof error === 'object' ? error as Record<string, unknown> : {};
+    const errorObj =
+      error && typeof error === 'object'
+        ? (error as Record<string, unknown>)
+        : {};
     const status = typeof errorObj.status === 'number' ? errorObj.status : 0;
 
     if (status >= 500) {
@@ -304,5 +337,3 @@ export class ServiceErrorHandler {
     }
   }
 }
-
-export default ServiceErrorHandler;

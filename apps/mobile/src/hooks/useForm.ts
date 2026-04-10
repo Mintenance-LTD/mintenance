@@ -1,79 +1,23 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
-import { z } from 'zod';
-import { validateSchema, ValidationError } from '../types/schemas';
 import { logger } from '../utils/logger';
+import {
+  validateFieldValueWithSchema,
+  validateAllFieldsWithSchema,
+  type FieldError,
+} from './useForm/validation';
+import type {
+  FormField,
+  FormState,
+  UseFormOptions,
+  UseFormReturn,
+} from './useForm/types';
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
-export interface FieldError {
-  message: string;
-  type: 'required' | 'validation' | 'custom';
-}
-
-export interface FormState<T> {
-  values: T;
-  errors: Partial<Record<keyof T, FieldError>>;
-  touched: Partial<Record<keyof T, boolean>>;
-  isSubmitting: boolean;
-  isValid: boolean;
-  isDirty: boolean;
-}
-
-export interface FormField<T> {
-  value: T;
-  error?: FieldError;
-  isTouched: boolean;
-  onChange: (value: T) => void;
-  onBlur: () => void;
-  onFocus: () => void;
-}
-
-export interface UseFormOptions<T> {
-  initialValues: T;
-  validationSchema?: z.ZodSchema<T>;
-  validateOnChange?: boolean;
-  validateOnBlur?: boolean;
-  onSubmit?: (values: T) => Promise<void> | void;
-  onValidationError?: (errors: Partial<Record<keyof T, FieldError>>) => void;
-}
-
-export interface UseFormReturn<T> {
-  // State
-  values: T;
-  errors: Partial<Record<keyof T, FieldError>>;
-  touched: Partial<Record<keyof T, boolean>>;
-  isSubmitting: boolean;
-  isValid: boolean;
-  isDirty: boolean;
-
-  // Field helpers
-  getFieldProps: <K extends keyof T>(name: K) => FormField<T[K]>;
-  setFieldValue: <K extends keyof T>(name: K, value: T[K]) => void;
-  setFieldError: <K extends keyof T>(name: K, error: FieldError | null) => void;
-  setFieldTouched: <K extends keyof T>(name: K, touched?: boolean) => void;
-
-  // Form helpers
-  handleSubmit: (
-    onSubmit?: (values: T) => Promise<void> | void
-  ) => Promise<void>;
-  resetForm: (newValues?: Partial<T>) => void;
-  validateForm: () => Promise<boolean>;
-  validateField: <K extends keyof T>(name: K) => Promise<boolean>;
-
-  // Utilities
-  setValues: (values: Partial<T>) => void;
-  setErrors: (errors: Partial<Record<keyof T, FieldError>>) => void;
-  setTouched: (touched: Partial<Record<keyof T, boolean>>) => void;
-  setSubmitting: (isSubmitting: boolean) => void;
-}
-
+// Re-export types for backward compatibility
 // ============================================================================
 // HOOK IMPLEMENTATION
 // ============================================================================
 
-export const useForm = <T extends Record<string, unknown>>(
+const useForm = <T extends Record<string, unknown>>(
   options: UseFormOptions<T>
 ): UseFormReturn<T> => {
   const {
@@ -84,10 +28,6 @@ export const useForm = <T extends Record<string, unknown>>(
     onSubmit,
     onValidationError,
   } = options;
-
-  // ============================================================================
-  // STATE
-  // ============================================================================
 
   const [values, setValuesState] = useState<T>(initialValues);
   const [errors, setErrorsState] = useState<
@@ -100,10 +40,6 @@ export const useForm = <T extends Record<string, unknown>>(
 
   const initialValuesRef = useRef(initialValues);
 
-  // ============================================================================
-  // COMPUTED VALUES
-  // ============================================================================
-
   const isValid = useMemo(() => {
     return Object.keys(errors).length === 0;
   }, [errors]);
@@ -112,34 +48,17 @@ export const useForm = <T extends Record<string, unknown>>(
     return JSON.stringify(values) !== JSON.stringify(initialValuesRef.current);
   }, [values]);
 
-  // ============================================================================
-  // VALIDATION HELPERS
-  // ============================================================================
-
   const validateFieldValue = useCallback(
     async <K extends keyof T>(
       name: K,
       value: T[K]
     ): Promise<FieldError | null> => {
-      if (!validationSchema) return null;
-
-      try {
-        // Validate the entire form with the new value
-        const testValues = { ...values, [name]: value };
-        await validateSchema(validationSchema, testValues);
-        return null;
-      } catch (error) {
-        if (error instanceof ValidationError) {
-          const fieldPath = String(name);
-          if (error.field === fieldPath) {
-            return {
-              message: error.message,
-              type: 'validation' as const,
-            };
-          }
-        }
-        return null;
-      }
+      return validateFieldValueWithSchema(
+        validationSchema,
+        values,
+        name,
+        value
+      );
     },
     [validationSchema, values]
   );
@@ -147,25 +66,7 @@ export const useForm = <T extends Record<string, unknown>>(
   const validateAllFields = useCallback(async (): Promise<
     Partial<Record<keyof T, FieldError>>
   > => {
-    if (!validationSchema) return {};
-
-    try {
-      await validateSchema(validationSchema, values);
-      return {};
-    } catch (error) {
-      if (error instanceof ValidationError) {
-        const newErrors: Partial<Record<keyof T, FieldError>> = {};
-        if (error.field) {
-          const fieldName = error.field as keyof T;
-          newErrors[fieldName] = {
-            message: error.message,
-            type: 'validation',
-          };
-        }
-        return newErrors;
-      }
-      return {};
-    }
+    return validateAllFieldsWithSchema(validationSchema, values);
   }, [validationSchema, values]);
 
   // ============================================================================
@@ -176,7 +77,6 @@ export const useForm = <T extends Record<string, unknown>>(
     <K extends keyof T>(name: K, value: T[K]) => {
       setValuesState((prev) => ({ ...prev, [name]: value }));
 
-      // Clear error when value changes
       if (errors[name]) {
         setErrorsState((prev) => {
           const newErrors = { ...prev };
@@ -185,7 +85,6 @@ export const useForm = <T extends Record<string, unknown>>(
         });
       }
 
-      // Validate on change if enabled
       if (validateOnChange) {
         validateFieldValue(name, value).then((error) => {
           if (error) {
@@ -216,7 +115,6 @@ export const useForm = <T extends Record<string, unknown>>(
     <K extends keyof T>(name: K, isTouched = true) => {
       setTouchedState((prev) => ({ ...prev, [name]: isTouched }));
 
-      // Validate on blur if enabled and field is being touched
       if (validateOnBlur && isTouched) {
         validateFieldValue(name, values[name]).then((error) => {
           if (error) {
@@ -237,7 +135,6 @@ export const useForm = <T extends Record<string, unknown>>(
         onChange: (value: T[K]) => setFieldValue(name, value),
         onBlur: () => setFieldTouched(name, true),
         onFocus: () => {
-          // Mark as touched on focus for better UX
           if (!touched[name]) {
             setFieldTouched(name, false);
           }
@@ -277,7 +174,6 @@ export const useForm = <T extends Record<string, unknown>>(
       setIsSubmitting(true);
 
       try {
-        // Mark all fields as touched
         const allFieldsTouched = Object.keys(values).reduce(
           (acc, key) => {
             acc[key as keyof T] = true;
@@ -287,21 +183,18 @@ export const useForm = <T extends Record<string, unknown>>(
         );
         setTouchedState(allFieldsTouched);
 
-        // Validate form
         const isFormValid = await validateForm();
 
         if (!isFormValid) {
           return;
         }
 
-        // Submit form
         const submitHandler = customOnSubmit || onSubmit;
         if (submitHandler) {
           await submitHandler(values);
         }
       } catch (error) {
         logger.error('Form submission error', error);
-        // You might want to set form-level errors here
       } finally {
         setIsSubmitting(false);
       }
@@ -352,177 +245,25 @@ export const useForm = <T extends Record<string, unknown>>(
     setIsSubmitting(submitting);
   }, []);
 
-  // ============================================================================
-  // RETURN VALUE
-  // ============================================================================
-
   return {
-    // State
     values,
     errors,
     touched,
     isSubmitting,
     isValid,
     isDirty,
-
-    // Field helpers
     getFieldProps,
     setFieldValue,
     setFieldError,
     setFieldTouched,
-
-    // Form helpers
     handleSubmit,
     resetForm,
     validateForm,
     validateField,
-
-    // Utilities
     setValues,
     setErrors,
     setTouched,
     setSubmitting,
-  };
-};
-
-// ============================================================================
-// ADDITIONAL HOOKS
-// ============================================================================
-
-/**
- * Hook for managing array fields in forms
- */
-export const useFieldArray = <T>(
-  name: string,
-  form: UseFormReturn<Record<string, unknown>>
-) => {
-  const value = (form.values[name] as T[] | undefined) || [];
-
-  const append = useCallback(
-    (item: T) => {
-      form.setFieldValue(name as keyof Record<string, unknown>, [
-        ...value,
-        item,
-      ]);
-    },
-    [form, name, value]
-  );
-
-  const prepend = useCallback(
-    (item: T) => {
-      form.setFieldValue(name as keyof Record<string, unknown>, [
-        item,
-        ...value,
-      ]);
-    },
-    [form, name, value]
-  );
-
-  const remove = useCallback(
-    (index: number) => {
-      const newValue = value.filter((_, i) => i !== index);
-      form.setFieldValue(name as keyof Record<string, unknown>, newValue);
-    },
-    [form, name, value]
-  );
-
-  const insert = useCallback(
-    (index: number, item: T) => {
-      const newValue = [...value];
-      newValue.splice(index, 0, item);
-      form.setFieldValue(name as keyof Record<string, unknown>, newValue);
-    },
-    [form, name, value]
-  );
-
-  const move = useCallback(
-    (from: number, to: number) => {
-      const newValue = [...value];
-      const [removed] = newValue.splice(from, 1);
-      newValue.splice(to, 0, removed!);
-      form.setFieldValue(name as keyof Record<string, unknown>, newValue);
-    },
-    [form, name, value]
-  );
-
-  const swap = useCallback(
-    (indexA: number, indexB: number) => {
-      const newValue = [...value];
-      [newValue[indexA], newValue[indexB]] = [
-        newValue[indexB]!,
-        newValue[indexA]!,
-      ];
-      form.setFieldValue(name as keyof Record<string, unknown>, newValue);
-    },
-    [form, name, value]
-  );
-
-  return {
-    fields: value,
-    append,
-    prepend,
-    remove,
-    insert,
-    move,
-    swap,
-  };
-};
-
-/**
- * Hook for form persistence to AsyncStorage
- */
-export const useFormPersistence = <T>(
-  formKey: string,
-  form: UseFormReturn<T>
-) => {
-  const saveForm = useCallback(async () => {
-    try {
-      const {
-        AsyncStorage,
-      } = require('@react-native-async-storage/async-storage');
-      await AsyncStorage.setItem(
-        `form_${formKey}`,
-        JSON.stringify({
-          values: form.values,
-          touched: form.touched,
-        })
-      );
-    } catch (error) {
-      logger.error('Failed to save form', error);
-    }
-  }, [formKey, form.values, form.touched]);
-
-  const loadForm = useCallback(async () => {
-    try {
-      const {
-        AsyncStorage,
-      } = require('@react-native-async-storage/async-storage');
-      const saved = await AsyncStorage.getItem(`form_${formKey}`);
-      if (saved) {
-        const { values, touched } = JSON.parse(saved);
-        form.setValues(values);
-        form.setTouched(touched);
-      }
-    } catch (error) {
-      logger.error('Failed to load form', error);
-    }
-  }, [formKey, form]);
-
-  const clearSavedForm = useCallback(async () => {
-    try {
-      const {
-        AsyncStorage,
-      } = require('@react-native-async-storage/async-storage');
-      await AsyncStorage.removeItem(`form_${formKey}`);
-    } catch (error) {
-      logger.error('Failed to clear saved form', error);
-    }
-  }, [formKey]);
-
-  return {
-    saveForm,
-    loadForm,
-    clearSavedForm,
   };
 };
 

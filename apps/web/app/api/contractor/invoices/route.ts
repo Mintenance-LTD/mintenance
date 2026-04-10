@@ -4,12 +4,24 @@
  */
 
 import { NextResponse } from 'next/server';
-import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
+import {
+  serverSupabase,
+  createRequestScopedClient,
+} from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { validateRequest } from '@/lib/validation/validator';
-import { createInvoiceSchema, updateInvoiceSchema } from '@/lib/validation/schemas';
-import { BadRequestError, NotFoundError, ForbiddenError, InternalServerError } from '@/lib/errors/api-error';
+import {
+  createInvoiceSchema,
+  updateInvoiceSchema,
+} from '@/lib/validation/schemas';
+import {
+  BadRequestError,
+  NotFoundError,
+  ForbiddenError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { EmailService } from '@/lib/email-service';
 
 // Generate invoice number
 async function generateInvoiceNumber(contractorId: string): Promise<string> {
@@ -25,7 +37,10 @@ async function generateInvoiceNumber(contractorId: string): Promise<string> {
 }
 
 // Calculate invoice totals
-function calculateTotals(lineItems: { quantity: number; unit_price: number }[], taxRate: number) {
+function calculateTotals(
+  lineItems: { quantity: number; unit_price: number }[],
+  taxRate: number
+) {
   const subtotal = lineItems.reduce((sum: number, item) => {
     const amount = item.quantity * item.unit_price;
     return sum + amount;
@@ -41,12 +56,38 @@ function calculateTotals(lineItems: { quantity: number; unit_price: number }[], 
   };
 }
 
-// Helper function to send invoice email (implement with your email service)
-async function sendInvoiceEmail(invoice: Record<string, unknown>, contractor: Record<string, unknown>): Promise<void> {
-  // TODO: Implement email sending logic
+// Send invoice notification email to the client using the platform email service
+async function sendInvoiceEmail(
+  invoice: Record<string, unknown>,
+  contractor: Record<string, unknown>
+): Promise<void> {
+  const clientEmail = invoice.client_email as string;
+  if (!clientEmail) {
+    logger.warn('No client email on invoice, skipping email send', {
+      invoiceId: invoice.id,
+    });
+    return;
+  }
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com';
+  const contractorName =
+    ((contractor as Record<string, unknown>).full_name as string) ||
+    ((contractor as Record<string, unknown>).name as string) ||
+    'Your contractor';
+
+  await EmailService.sendInvoiceNotificationEmail(clientEmail, {
+    clientName: (invoice.client_name as string) || 'there',
+    contractorName,
+    invoiceNumber: invoice.invoice_number as string,
+    title: (invoice.title as string) || 'Services rendered',
+    totalAmount: invoice.total_amount as number,
+    dueDate: invoice.due_date as string,
+    viewUrl: `${baseUrl}/invoices/${invoice.id as string}`,
+  });
+
   logger.info('Invoice email sent', {
     invoiceId: invoice.id,
-    clientEmail: invoice.client_email,
+    clientEmail,
   });
 }
 
@@ -77,7 +118,10 @@ export const GET = withApiHandler(
 
     if (status) {
       // Support comma-separated statuses (e.g. "sent,overdue")
-      const statuses = status.split(',').map(s => s.trim()).filter(Boolean);
+      const statuses = status
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
       if (statuses.length === 1) {
         query = query.eq('status', statuses[0]);
       } else if (statuses.length > 1) {
@@ -110,7 +154,7 @@ export const GET = withApiHandler(
       limit,
       offset,
     });
-  },
+  }
 );
 
 /**
@@ -123,14 +167,17 @@ export const POST = withApiHandler(
     // Use RLS-enforced client for user-scoped operations; fall back to service role
     const userDb = createRequestScopedClient(request) ?? serverSupabase;
     // Validate and sanitize input using Zod schema
-    const invoiceValidation = await validateRequest(request, createInvoiceSchema);
+    const invoiceValidation = await validateRequest(
+      request,
+      createInvoiceSchema
+    );
     if (invoiceValidation instanceof NextResponse) return invoiceValidation;
     const validatedData = invoiceValidation.data;
 
     // Calculate totals (taxRate defaults to 20 via schema validation)
     const { subtotal, taxAmount, totalAmount } = calculateTotals(
       validatedData.lineItems,
-      validatedData.taxRate ?? 20,
+      validatedData.taxRate ?? 20
     );
 
     // Generate invoice number
@@ -163,7 +210,8 @@ export const POST = withApiHandler(
       invoice_date: new Date().toISOString(),
       due_date: dueDate.toISOString(),
       status: validatedData.status,
-      sent_at: validatedData.status === 'sent' ? new Date().toISOString() : null,
+      sent_at:
+        validatedData.status === 'sent' ? new Date().toISOString() : null,
     };
 
     // Create invoice in database
@@ -191,19 +239,17 @@ export const POST = withApiHandler(
             .single();
 
           if (job) {
-            await serverSupabase
-              .from('notifications')
-              .insert({
-                user_id: job.homeowner_id,
-                type: 'invoice_received',
-                title: 'New Invoice Received',
-                message: `You have received an invoice (${invoiceNumber}) for ${validatedData.title}`,
-                data: {
-                  invoice_id: invoice.id,
-                  invoice_number: invoiceNumber,
-                  amount: totalAmount,
-                },
-              });
+            await serverSupabase.from('notifications').insert({
+              user_id: job.homeowner_id,
+              type: 'invoice_received',
+              title: 'New Invoice Received',
+              message: `You have received an invoice (${invoiceNumber}) for ${validatedData.title}`,
+              data: {
+                invoice_id: invoice.id,
+                invoice_number: invoiceNumber,
+                amount: totalAmount,
+              },
+            });
           }
         }
       } catch (emailError) {
@@ -219,14 +265,18 @@ export const POST = withApiHandler(
       status: validatedData.status,
     });
 
-    return NextResponse.json({
-      success: true,
-      invoice,
-      message: validatedData.status === 'sent'
-        ? 'Invoice sent successfully'
-        : 'Invoice saved as draft',
-    }, { status: 201 });
-  },
+    return NextResponse.json(
+      {
+        success: true,
+        invoice,
+        message:
+          validatedData.status === 'sent'
+            ? 'Invoice sent successfully'
+            : 'Invoice saved as draft',
+      },
+      { status: 201 }
+    );
+  }
 );
 
 /**
@@ -269,10 +319,13 @@ export const PATCH = withApiHandler(
 
     // Recalculate totals if line items changed
     let updateData: Record<string, unknown> = { ...validatedPatchData };
-    if (validatedPatchData.lineItems && validatedPatchData.taxRate !== undefined) {
+    if (
+      validatedPatchData.lineItems &&
+      validatedPatchData.taxRate !== undefined
+    ) {
       const { subtotal, taxAmount, totalAmount } = calculateTotals(
         validatedPatchData.lineItems,
-        validatedPatchData.taxRate,
+        validatedPatchData.taxRate
       );
       updateData = {
         ...updateData,
@@ -300,7 +353,7 @@ export const PATCH = withApiHandler(
       invoice,
       message: 'Invoice updated successfully',
     });
-  },
+  }
 );
 
 /**
@@ -347,5 +400,5 @@ export const DELETE = withApiHandler(
 
     logger.info('Invoice deleted', { invoiceId, contractorId: user.id });
     return NextResponse.json({ success: true });
-  },
+  }
 );

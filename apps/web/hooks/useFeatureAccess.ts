@@ -39,7 +39,9 @@ export interface FeatureAccessResult {
 
 export function useFeatureAccess() {
   const { user, loading: userLoading } = useCurrentUser();
-  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
+  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(
+    null
+  );
   const [usage, setUsage] = useState<Map<string, FeatureUsage>>(new Map());
   const [loading, setLoading] = useState(true);
   // supabase client is already imported at the top of the file
@@ -54,12 +56,15 @@ export function useFeatureAccess() {
     const fetchSubscription = async () => {
       try {
         // Server-side status endpoint includes early-access entitlement for both roles.
-        const statusResponse = await fetch('/api/subscriptions/status', { cache: 'no-store' });
+        const statusResponse = await fetch('/api/subscriptions/status', {
+          cache: 'no-store',
+        });
         if (statusResponse.ok) {
           const statusPayload = await statusResponse.json();
           if (statusPayload?.earlyAccess?.eligible) {
             // Early access: max tier depends on role
-            const maxTier = statusPayload.role === 'homeowner' ? 'agency' : 'enterprise';
+            const maxTier =
+              statusPayload.role === 'homeowner' ? 'agency' : 'enterprise';
             setSubscription({
               tier: maxTier,
               status: 'active',
@@ -157,7 +162,7 @@ export function useFeatureAccess() {
 
         if (data) {
           const usageMap = new Map<string, FeatureUsage>();
-          data.forEach(item => {
+          data.forEach((item) => {
             usageMap.set(item.feature_id, {
               featureId: item.feature_id,
               used: item.used_count,
@@ -212,7 +217,8 @@ export function useFeatureAccess() {
 
       // For boolean features (true/false access)
       if (typeof limit === 'boolean') {
-        const upgradeTiers = tier && !access ? getUpgradeTiers(featureId, tier) : [];
+        const upgradeTiers =
+          tier && !access ? getUpgradeTiers(featureId, tier) : [];
         return {
           hasAccess: access,
           limit,
@@ -289,7 +295,7 @@ export function useFeatureAccess() {
         const currentUsage = usage.get(featureId);
         const newUsed = (currentUsage?.used || 0) + incrementBy;
 
-        setUsage(prev => {
+        setUsage((prev) => {
           const next = new Map(prev);
           next.set(featureId, {
             featureId,
@@ -352,7 +358,7 @@ export function useFeatureAccess() {
     const role = user.role as UserRole;
     const tier = subscription?.tier;
 
-    return Object.values(FEATURES).filter(feature => {
+    return Object.values(FEATURES).filter((feature) => {
       return hasFeatureAccess(feature.id, role, tier);
     });
   }, [user, subscription]);
@@ -382,7 +388,7 @@ export function useFeatureAccess() {
  * Hook to check a single feature access
  * Convenience wrapper around useFeatureAccess
  */
-export function useFeature(featureId: string): FeatureAccessResult & {
+function useFeature(featureId: string): FeatureAccessResult & {
   loading: boolean;
   trackUsage: () => Promise<boolean>;
 } {

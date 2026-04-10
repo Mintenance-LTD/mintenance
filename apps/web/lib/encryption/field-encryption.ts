@@ -12,7 +12,12 @@
  * - Context-bound encryption for additional security
  */
 
-import { createCipheriv, createDecipheriv, randomBytes, createHash } from 'crypto';
+import {
+  createCipheriv,
+  createDecipheriv,
+  randomBytes,
+  createHash,
+} from 'crypto';
 import { logger } from '@mintenance/shared';
 
 /**
@@ -78,7 +83,10 @@ export interface EncryptedField {
  * @param context - Context for key derivation (e.g., 'payment_method', 'card_number')
  * @returns Encrypted field object
  */
-export function encryptField(plaintext: string, context: string): EncryptedField {
+export function encryptField(
+  plaintext: string,
+  context: string
+): EncryptedField {
   try {
     // Generate unique IV for this encryption
     const iv = randomBytes(IV_LENGTH);
@@ -123,7 +131,10 @@ export function encryptField(plaintext: string, context: string): EncryptedField
  * @param context - Context used for key derivation (must match encryption context)
  * @returns Decrypted plaintext
  */
-export function decryptField(encryptedField: EncryptedField, context: string): string {
+export function decryptField(
+  encryptedField: EncryptedField,
+  context: string
+): string {
   try {
     // Validate context matches
     if (encryptedField.context && encryptedField.context !== context) {
@@ -163,14 +174,16 @@ export function decryptField(encryptedField: EncryptedField, context: string): s
       service: 'encryption',
       context,
     });
-    throw new Error('Failed to decrypt field - data may be corrupted or tampered with');
+    throw new Error(
+      'Failed to decrypt field - data may be corrupted or tampered with'
+    );
   }
 }
 
 /**
  * Payment data that may contain sensitive fields
  */
-export interface PaymentData {
+interface PaymentData {
   [key: string]: unknown;
 }
 
@@ -193,7 +206,7 @@ const SENSITIVE_PAYMENT_FIELDS = [
  * @param data - Payment data object
  * @returns Data with sensitive fields encrypted
  */
-export function encryptPaymentData(data: PaymentData): PaymentData {
+function encryptPaymentData(data: PaymentData): PaymentData {
   const encrypted: PaymentData = { ...data };
 
   for (const field of SENSITIVE_PAYMENT_FIELDS) {
@@ -221,7 +234,7 @@ export function encryptPaymentData(data: PaymentData): PaymentData {
  * @param data - Payment data with encrypted fields
  * @returns Data with sensitive fields decrypted
  */
-export function decryptPaymentData(data: PaymentData): PaymentData {
+function decryptPaymentData(data: PaymentData): PaymentData {
   const decrypted: PaymentData = { ...data };
 
   for (const field of SENSITIVE_PAYMENT_FIELDS) {
@@ -249,7 +262,7 @@ export function decryptPaymentData(data: PaymentData): PaymentData {
  * Securely compare two strings in constant time
  * Prevents timing attacks when comparing sensitive values
  */
-export function secureCompare(a: string, b: string): boolean {
+function secureCompare(a: string, b: string): boolean {
   const bufferA = Buffer.from(a, 'utf8');
   const bufferB = Buffer.from(b, 'utf8');
 
@@ -268,7 +281,7 @@ export function secureCompare(a: string, b: string): boolean {
  * Hash sensitive data for comparison without storing plaintext
  * Useful for checking if a value has changed without storing the actual value
  */
-export function hashForComparison(value: string, salt?: string): string {
+function hashForComparison(value: string, salt?: string): string {
   const hash = createHash('sha256');
 
   if (salt) {
@@ -284,7 +297,7 @@ export function hashForComparison(value: string, salt?: string): string {
  * Generate a secure random token
  * Useful for generating one-time tokens, session IDs, etc.
  */
-export function generateSecureToken(length: number = 32): string {
+function generateSecureToken(length: number = 32): string {
   return randomBytes(length).toString('hex');
 }
 
@@ -292,11 +305,13 @@ export function generateSecureToken(length: number = 32): string {
  * Redact sensitive information from logs
  * Replaces sensitive data with asterisks while preserving structure
  */
-export function redactSensitiveData(data: unknown): unknown {
+function redactSensitiveData(data: unknown): unknown {
   if (typeof data === 'string') {
     // Check if it looks like a card number
     if (/^\d{13,19}$/.test(data.replace(/\s/g, ''))) {
-      return data.substring(0, 4) + '********' + data.substring(data.length - 4);
+      return (
+        data.substring(0, 4) + '********' + data.substring(data.length - 4)
+      );
     }
 
     // Check if it looks like an email
@@ -314,7 +329,9 @@ export function redactSensitiveData(data: unknown): unknown {
   }
 
   if (typeof data === 'object' && data !== null) {
-    const redacted: Record<string, unknown> = Array.isArray(data) ? [] as unknown as Record<string, unknown> : {};
+    const redacted: Record<string, unknown> = Array.isArray(data)
+      ? ([] as unknown as Record<string, unknown>)
+      : {};
 
     for (const key in data) {
       // Check if key name suggests sensitive data
@@ -332,7 +349,9 @@ export function redactSensitiveData(data: unknown): unknown {
       if (sensitiveKeys.some((sk) => key.toLowerCase().includes(sk))) {
         redacted[key] = '***REDACTED***';
       } else {
-        redacted[key] = redactSensitiveData((data as Record<string, unknown>)[key]);
+        redacted[key] = redactSensitiveData(
+          (data as Record<string, unknown>)[key]
+        );
       }
     }
 
@@ -346,7 +365,7 @@ export function redactSensitiveData(data: unknown): unknown {
  * Validate encryption configuration
  * Should be called on application startup
  */
-export function validateEncryptionConfig(): boolean {
+function validateEncryptionConfig(): boolean {
   try {
     const masterKey = process.env.ENCRYPTION_MASTER_KEY;
 
@@ -374,9 +393,12 @@ export function validateEncryptionConfig(): boolean {
     const decrypted = decryptField(encrypted, 'test');
 
     if (decrypted !== testData) {
-      logger.error('Encryption validation failed - decrypted data does not match', {
-        service: 'encryption',
-      });
+      logger.error(
+        'Encryption validation failed - decrypted data does not match',
+        {
+          service: 'encryption',
+        }
+      );
       return false;
     }
 

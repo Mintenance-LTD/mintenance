@@ -63,7 +63,7 @@ export interface InternalPrediction {
 /**
  * Model metadata
  */
-export interface ModelInfo {
+interface ModelInfo {
   version: string;
   accuracy: number;
   sampleCount: number;

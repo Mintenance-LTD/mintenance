@@ -10,7 +10,7 @@ import { getSafetyThreshold, normalizePropertyType } from './ABTestUtils';
 import { checkSeedSafeSet } from './ABTestDatabase';
 import { AB_TEST_CONFIG } from './ABTestConfig';
 
-export interface SafeLUCBParams {
+interface SafeLUCBParams {
   aiResult: AITestResult;
   deltaSafety?: number;
 }
@@ -26,7 +26,9 @@ export async function runSafeLUCBPolicy(params: SafeLUCBParams): Promise<{
   const { aiResult } = params;
 
   // 1. Check if context is in SEED SAFE SET
-  const seedSafeSet = await checkSeedSafeSet(aiResult.contextFeatures as unknown as Record<string, unknown>);
+  const seedSafeSet = await checkSeedSafeSet(
+    aiResult.contextFeatures as unknown as Record<string, unknown>
+  );
 
   if (!seedSafeSet.isSafe) {
     return {
@@ -59,8 +61,12 @@ export async function runSafeLUCBPolicy(params: SafeLUCBParams): Promise<{
   // 3. Adjust safety threshold for industrial contexts (stricter for rail/construction)
   // Extract property type from stratum (format: propertyType_ageBin_region_damageCategory)
   const stratumParts = aiResult.cpStratum.split('_');
-  const propertyType = stratumParts.length > 0 ? normalizePropertyType(stratumParts[0]) : 'residential';
-  const deltaSafety = params.deltaSafety || getSafetyThreshold(propertyType, AB_TEST_CONFIG);
+  const propertyType =
+    stratumParts.length > 0
+      ? normalizePropertyType(stratumParts[0])
+      : 'residential';
+  const deltaSafety =
+    params.deltaSafety || getSafetyThreshold(propertyType, AB_TEST_CONFIG);
 
   // 4. Call Safe-LUCB critic with stratum and critical hazard info
   const criticDecision = await callSafeLUCBCritic({
@@ -71,8 +77,10 @@ export async function runSafeLUCBPolicy(params: SafeLUCBParams): Promise<{
   });
 
   // 5. Safety gate: NEVER automate unless safety-UCB ≤ δ_t
-  if (criticDecision.arm === 'automate' && 
-      criticDecision.safetyUcb > criticDecision.safetyThreshold) {
+  if (
+    criticDecision.arm === 'automate' &&
+    criticDecision.safetyUcb > criticDecision.safetyThreshold
+  ) {
     return {
       decision: 'escalate',
       escalationReason: `Safety UCB (${criticDecision.safetyUcb.toFixed(4)}) exceeds threshold (${criticDecision.safetyThreshold})`,
@@ -85,9 +93,8 @@ export async function runSafeLUCBPolicy(params: SafeLUCBParams): Promise<{
 
   return {
     decision: criticDecision.arm as 'automate' | 'escalate',
-    escalationReason: criticDecision.arm === 'escalate' 
-      ? criticDecision.reason 
-      : undefined,
+    escalationReason:
+      criticDecision.arm === 'escalate' ? criticDecision.reason : undefined,
     safetyUcb: criticDecision.safetyUcb,
     rewardUcb: criticDecision.rewardUcb,
     safetyThreshold: criticDecision.safetyThreshold,
@@ -134,4 +141,3 @@ async function callSafeLUCBCritic(params: {
 
   return decision;
 }
-

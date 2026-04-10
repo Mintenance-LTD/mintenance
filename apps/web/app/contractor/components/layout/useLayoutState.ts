@@ -36,7 +36,7 @@ type ContractorSummary = {
   country?: string | null;
 };
 
-export interface NavItem {
+interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -44,7 +44,7 @@ export interface NavItem {
   children?: NavItem[];
 }
 
-export interface NavSection {
+interface NavSection {
   name: string;
   items: NavItem[];
 }

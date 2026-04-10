@@ -9,10 +9,10 @@ interface SkipLinkProps {
   className?: string;
 }
 
-export const SkipLink: React.FC<SkipLinkProps> = ({ 
-  href, 
-  children, 
-  className = '' 
+export const SkipLink: React.FC<SkipLinkProps> = ({
+  href,
+  children,
+  className = '',
 }) => {
   return (
     <a
@@ -43,5 +43,3 @@ export const SkipLink: React.FC<SkipLinkProps> = ({
     </a>
   );
 };
-
-export default SkipLink;

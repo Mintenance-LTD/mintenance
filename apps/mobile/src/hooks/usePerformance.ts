@@ -10,7 +10,7 @@ import { logger } from '../utils/logger';
  * Hook to defer expensive operations until after interactions are complete
  * Prevents blocking user interactions during heavy computations
  */
-export const useInteractionAware = <T>(
+const useInteractionAware = <T>(
   factory: () => T,
   deps: React.DependencyList
 ): T | null => {
@@ -36,7 +36,7 @@ export const useInteractionAware = <T>(
  * Optimized version of useMemo that only recalculates after interactions
  * Useful for expensive computations that can be deferred
  */
-export const useInteractionMemo = <T>(
+const useInteractionMemo = <T>(
   factory: () => T,
   deps: React.DependencyList
 ): T | null => {
@@ -47,10 +47,7 @@ export const useInteractionMemo = <T>(
  * Hook to debounce expensive operations
  * Prevents excessive re-renders during rapid state changes
  */
-export const useDebounced = <T>(
-  value: T,
-  delay: number = 300
-): T => {
+const useDebounced = <T>(value: T, delay: number = 300): T => {
   const [debouncedValue, setDebouncedValue] = React.useState<T>(value);
 
   useEffect(() => {
@@ -70,37 +67,43 @@ export const useDebounced = <T>(
  * Hook to throttle expensive operations
  * Limits the frequency of function calls
  */
-export const useThrottled = <T extends (...args: unknown[]) => unknown>(
+const useThrottled = <T extends (...args: unknown[]) => unknown>(
   callback: T,
   delay: number = 300
 ): T => {
   const lastCall = useRef<number>(0);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  return useCallback((...args: Parameters<T>) => {
-    const now = Date.now();
-    
-    if (now - lastCall.current >= delay) {
-      lastCall.current = now;
-      return callback(...args);
-    } else {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
+  return useCallback(
+    (...args: Parameters<T>) => {
+      const now = Date.now();
+
+      if (now - lastCall.current >= delay) {
+        lastCall.current = now;
+        return callback(...args);
+      } else {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+
+        timeoutRef.current = setTimeout(
+          () => {
+            lastCall.current = Date.now();
+            callback(...args);
+          },
+          delay - (now - lastCall.current)
+        );
       }
-      
-      timeoutRef.current = setTimeout(() => {
-        lastCall.current = Date.now();
-        callback(...args);
-      }, delay - (now - lastCall.current));
-    }
-  }, [callback, delay]) as T;
+    },
+    [callback, delay]
+  ) as T;
 };
 
 /**
  * Hook to measure component render performance
  * Useful for identifying performance bottlenecks
  */
-export const useRenderMetrics = (componentName: string) => {
+const useRenderMetrics = (componentName: string) => {
   const renderCount = useRef(0);
   const renderStartTime = useRef<number>(0);
 
@@ -113,7 +116,8 @@ export const useRenderMetrics = (componentName: string) => {
 
     return () => {
       const renderTime = Date.now() - renderStartTime.current;
-      if (__DEV__ && renderTime > 16) { // 16ms = 60fps threshold
+      if (__DEV__ && renderTime > 16) {
+        // 16ms = 60fps threshold
         logger.warn(
           `${componentName} render took ${renderTime}ms (render #${renderCount.current})`
         );
@@ -130,7 +134,7 @@ export const useRenderMetrics = (componentName: string) => {
 /**
  * Hook for optimized list rendering with window/virtualization awareness
  */
-export const useListOptimization = (
+const useListOptimization = (
   itemCount: number,
   itemHeight: number = 60,
   windowHeight: number = 600
@@ -175,7 +179,7 @@ export const useListOptimization = (
 /**
  * Hook to automatically clean up resources when component unmounts
  */
-export const useCleanup = (cleanup: () => void) => {
+const useCleanup = (cleanup: () => void) => {
   const cleanupRef = useRef(cleanup);
   cleanupRef.current = cleanup;
 
@@ -189,36 +193,36 @@ export const useCleanup = (cleanup: () => void) => {
 /**
  * Hook to cache expensive computations with size limits
  */
-export const useMemoCache = <T>(
+const useMemoCache = <T>(
   factory: () => T,
   deps: React.DependencyList,
   maxSize: number = 10
 ) => {
   const cache = useRef<Map<string, { value: T; timestamp: number }>>(new Map());
-  
+
   const key = useMemo(() => {
     return JSON.stringify(deps);
   }, deps);
 
   return useMemo(() => {
     const cached = cache.current.get(key);
-    
+
     if (cached) {
       return cached.value;
     }
 
     const value = factory();
-    
+
     // Clean old entries if cache is full
     if (cache.current.size >= maxSize) {
       const entries = Array.from(cache.current.entries());
       entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
-      
+
       // Remove oldest half
       const toRemove = entries.slice(0, Math.floor(maxSize / 2));
       toRemove.forEach(([k]) => cache.current.delete(k));
     }
-    
+
     cache.current.set(key, { value, timestamp: Date.now() });
     return value;
   }, [key, factory, maxSize]);
@@ -227,7 +231,7 @@ export const useMemoCache = <T>(
 /**
  * Hook for image loading optimization
  */
-export const useImageOptimization = () => {
+const useImageOptimization = () => {
   const preloadedImages = useRef<Set<string>>(new Set());
 
   const preloadImage = useCallback(async (uri: string): Promise<void> => {
@@ -243,10 +247,13 @@ export const useImageOptimization = () => {
     }
   }, []);
 
-  const preloadImages = useCallback(async (uris: string[]) => {
-    const promises = uris.map((uri) => preloadImage(uri));
-    return Promise.allSettled(promises);
-  }, [preloadImage]);
+  const preloadImages = useCallback(
+    async (uris: string[]) => {
+      const promises = uris.map((uri) => preloadImage(uri));
+      return Promise.allSettled(promises);
+    },
+    [preloadImage]
+  );
 
   const isPreloaded = useCallback((uri: string) => {
     return preloadedImages.current.has(uri);
@@ -266,7 +273,7 @@ export const useImageOptimization = () => {
 /**
  * Hook for safe async operations that won't cause memory leaks
  */
-export const useSafeAsync = () => {
+const useSafeAsync = () => {
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -276,19 +283,20 @@ export const useSafeAsync = () => {
     };
   }, []);
 
-  const safeAsync = useCallback(async <T>(
-    asyncFn: () => Promise<T>
-  ): Promise<T | null> => {
-    try {
-      const result = await asyncFn();
-      return isMountedRef.current ? result : null;
-    } catch (error) {
-      if (isMountedRef.current) {
-        throw error;
+  const safeAsync = useCallback(
+    async <T>(asyncFn: () => Promise<T>): Promise<T | null> => {
+      try {
+        const result = await asyncFn();
+        return isMountedRef.current ? result : null;
+      } catch (error) {
+        if (isMountedRef.current) {
+          throw error;
+        }
+        return null;
       }
-      return null;
-    }
-  }, []);
+    },
+    []
+  );
 
   return { safeAsync, isMounted: () => isMountedRef.current };
 };
@@ -296,7 +304,7 @@ export const useSafeAsync = () => {
 /**
  * Hook for batch processing operations
  */
-export const useBatchProcessor = <T, R>(
+const useBatchProcessor = <T, R>(
   processor: (items: T[]) => Promise<R[]>,
   batchSize: number = 10,
   delay: number = 100
@@ -312,14 +320,14 @@ export const useBatchProcessor = <T, R>(
 
     processing.current = true;
     const batch = queue.current.splice(0, batchSize);
-    
+
     try {
       await processor(batch);
     } catch (error) {
       logger.error('Batch processing error', error);
-    } finally{
+    } finally {
       processing.current = false;
-      
+
       // Process remaining items
       if (queue.current.length > 0) {
         timeoutRef.current = setTimeout(processQueue, delay);
@@ -327,16 +335,19 @@ export const useBatchProcessor = <T, R>(
     }
   }, [processor, batchSize, delay]);
 
-  const addToQueue = useCallback((items: T | T[]) => {
-    const itemsArray = Array.isArray(items) ? items : [items];
-    queue.current.push(...itemsArray);
+  const addToQueue = useCallback(
+    (items: T | T[]) => {
+      const itemsArray = Array.isArray(items) ? items : [items];
+      queue.current.push(...itemsArray);
 
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
 
-    timeoutRef.current = setTimeout(processQueue, delay);
-  }, [processQueue, delay]);
+      timeoutRef.current = setTimeout(processQueue, delay);
+    },
+    [processQueue, delay]
+  );
 
   const clearQueue = useCallback(() => {
     queue.current = [];

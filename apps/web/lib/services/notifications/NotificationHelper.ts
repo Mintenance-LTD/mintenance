@@ -246,7 +246,7 @@ export async function notifyPaymentEvent(
 /**
  * Create notification for job scheduling
  */
-export async function notifyJobScheduled(
+async function notifyJobScheduled(
   jobId: string,
   jobTitle: string,
   scheduledDate: string,
@@ -349,7 +349,7 @@ export async function notifyJobConfirmed(
 /**
  * Create notification for bid rejection
  */
-export async function notifyBidRejected(
+async function notifyBidRejected(
   jobId: string,
   jobTitle: string,
   contractorId: string,
@@ -385,7 +385,7 @@ export async function notifyBidRejected(
 /**
  * Create notification when a contract party signs
  */
-export async function notifyContractSigned(
+async function notifyContractSigned(
   jobId: string,
   jobTitle: string,
   signerRole: 'homeowner' | 'contractor',
@@ -426,7 +426,7 @@ export async function notifyContractSigned(
 /**
  * Create notification when a homeowner requests changes after job completion
  */
-export async function notifyChangesRequested(
+async function notifyChangesRequested(
   jobId: string,
   jobTitle: string,
   contractorId: string,

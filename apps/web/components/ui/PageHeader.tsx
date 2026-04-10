@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Button } from './Button';
 import { theme } from '@/lib/theme';
 
-export interface PageHeaderProps {
+interface PageHeaderProps {
   title: string;
   subtitle?: string;
   actions?: React.ReactNode;
@@ -36,9 +36,12 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   };
 
   const titleStyles: React.CSSProperties = {
-    fontSize: variant === 'hero' ? theme.typography.fontSize['5xl'] : 
-              variant === 'compact' ? theme.typography.fontSize['2xl'] : 
-              theme.typography.fontSize['4xl'],
+    fontSize:
+      variant === 'hero'
+        ? theme.typography.fontSize['5xl']
+        : variant === 'compact'
+          ? theme.typography.fontSize['2xl']
+          : theme.typography.fontSize['4xl'],
     fontWeight: theme.typography.fontWeight.bold,
     color: variant === 'hero' ? theme.colors.white : theme.colors.textPrimary,
     marginBottom: subtitle ? theme.spacing[2] : 0,
@@ -47,7 +50,10 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
   const subtitleStyles: React.CSSProperties = {
     fontSize: theme.typography.fontSize.lg,
-    color: variant === 'hero' ? theme.colors.textInverseMuted : theme.colors.textSecondary,
+    color:
+      variant === 'hero'
+        ? theme.colors.textInverseMuted
+        : theme.colors.textSecondary,
     lineHeight: theme.typography.lineHeight.normal,
   };
 
@@ -75,20 +81,26 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
   return (
     <div style={headerStyles}>
-      <div style={{
-        maxWidth: '1440px',
-        margin: '0 auto',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: theme.spacing[4],
-      }}>
+      <div
+        style={{
+          maxWidth: '1440px',
+          margin: '0 auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: theme.spacing[4],
+        }}
+      >
         {/* Breadcrumbs */}
         {breadcrumbs && breadcrumbs.length > 0 && (
-          <nav className="page-breadcrumbs" style={breadcrumbStyles}>
+          <nav className='page-breadcrumbs' style={breadcrumbStyles}>
             {breadcrumbs.map((crumb, index) => (
               <React.Fragment key={index}>
                 {crumb.href ? (
-                  <Link href={crumb.href} className="breadcrumb-link" style={breadcrumbItemStyles}>
+                  <Link
+                    href={crumb.href}
+                    className='breadcrumb-link'
+                    style={breadcrumbItemStyles}
+                  >
                     {crumb.label}
                   </Link>
                 ) : (
@@ -97,7 +109,12 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                   </span>
                 )}
                 {index < breadcrumbs.length - 1 && (
-                  <span className="breadcrumb-separator" style={breadcrumbSeparatorStyles}>/</span>
+                  <span
+                    className='breadcrumb-separator'
+                    style={breadcrumbSeparatorStyles}
+                  >
+                    /
+                  </span>
                 )}
               </React.Fragment>
             ))}
@@ -113,25 +130,29 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         `}</style>
 
         {/* Header Content */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: variant === 'compact' ? 'center' : 'flex-start',
-          flexWrap: 'wrap',
-          gap: theme.spacing[4],
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: variant === 'compact' ? 'center' : 'flex-start',
+            flexWrap: 'wrap',
+            gap: theme.spacing[4],
+          }}
+        >
           <div style={{ flex: 1, minWidth: '200px' }}>
             <h1 style={titleStyles}>{title}</h1>
             {subtitle && <p style={subtitleStyles}>{subtitle}</p>}
           </div>
-          
+
           {actions && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing[2],
-              flexWrap: 'wrap',
-            }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing[2],
+                flexWrap: 'wrap',
+              }}
+            >
               {actions}
             </div>
           )}
@@ -140,5 +161,3 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
     </div>
   );
 };
-
-export default PageHeader;

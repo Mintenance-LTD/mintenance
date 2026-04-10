@@ -16,9 +16,10 @@ import type {
  * Generate fallback analysis when AI is unavailable.
  * Conservative — forces manual review.
  */
-export function generateFallbackAnalysis(
-  _job: { title: string; description: string },
-): AIAnalysisResult {
+function generateFallbackAnalysis(_job: {
+  title: string;
+  description: string;
+}): AIAnalysisResult {
   return {
     completionIndicators: [],
     matchesDescription: false,
@@ -32,9 +33,9 @@ export function generateFallbackAnalysis(
  * Calculate verification score from AI analysis (0–1).
  * Weights: match (0.5) + quality (0.3) + indicators (0.2) − concerns penalty (0.3 max).
  */
-export function calculateVerificationScore(
+function calculateVerificationScore(
   aiAnalysis: AIAnalysisResult,
-  _job: { description: string },
+  _job: { description: string }
 ): number {
   let score = 0;
 
@@ -58,9 +59,7 @@ export function calculateVerificationScore(
 /**
  * Extract completion indicators from AI analysis.
  */
-export function extractCompletionIndicators(
-  aiAnalysis: AIAnalysisResult,
-): string[] {
+function extractCompletionIndicators(aiAnalysis: AIAnalysisResult): string[] {
   return aiAnalysis.completionIndicators || [];
 }
 
@@ -68,9 +67,9 @@ export function extractCompletionIndicators(
  * Analyze photos using OpenAI GPT-4 Vision.
  * Falls back to manual-review analysis when API unavailable or invalid.
  */
-export async function analyzePhotosWithAI(
+async function analyzePhotosWithAI(
   photoUrls: string[],
-  job: { title: string; description: string; category?: string },
+  job: { title: string; description: string; category?: string }
 ): Promise<AIAnalysisResult> {
   try {
     if (!process.env.OPENAI_API_KEY) {
@@ -118,10 +117,17 @@ export async function analyzePhotosWithAI(
       }`;
 
     const sanitizeField = (text: string, maxLen: number): string =>
-      text.replace(/[\x00-\x1f\x7f]/g, '').replace(/\s+/g, ' ').trim().substring(0, maxLen);
+      text
+        .replace(/[\x00-\x1f\x7f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .substring(0, maxLen);
 
     const safeTitle = sanitizeField(job.title, 200);
-    const safeDescription = sanitizeField(job.description || 'No description', 1000);
+    const safeDescription = sanitizeField(
+      job.description || 'No description',
+      1000
+    );
     const safeCategory = sanitizeField(job.category || 'general', 100);
 
     const userPrompt = `Analyze these completion photos for this job:
@@ -197,7 +203,7 @@ export async function analyzePhotosWithAI(
 export async function verifyCompletionPhotos(
   escrowId: string,
   jobId: string,
-  photoUrls: string[],
+  photoUrls: string[]
 ): Promise<PhotoVerificationResult | null> {
   try {
     if (!photoUrls || photoUrls.length === 0) {

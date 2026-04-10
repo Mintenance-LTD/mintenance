@@ -1,22 +1,12 @@
 // Compatibility exports for gradual migration
 // Re-export from @mintenance/types but add mobile-specific additions
 
-export type {
-  User,
-  Job,
-  CreateUserData,
-  AuthResult,
-  LoginCredentials,
-  RegisterData,
-  ApiResponse,
-  RateLimitInfo,
-  JWTPayload
-} from '@mintenance/types';
+export type { User, Job } from '@mintenance/types';
 
 // Mobile-specific type additions (temporary until fully migrated)
 import type { User } from '@mintenance/types';
 
-export interface UserProfile extends User {
+interface UserProfile extends User {
   // Additional mobile-specific fields
   latitude?: number;
   longitude?: number;

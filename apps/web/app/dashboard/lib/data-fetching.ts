@@ -12,13 +12,24 @@ import {
   getCachedUserSubscriptions,
   getCachedUserMessages,
   getCachedUserQuotes,
-  getCachedUser
+  getCachedUser,
 } from '@/lib/cache';
-import { RecommendationsService, MaintenanceRecommendation } from '@/lib/services/RecommendationsService';
+import {
+  RecommendationsService,
+  MaintenanceRecommendation,
+} from '@/lib/services/RecommendationsService';
 import { OnboardingService } from '@/lib/services/OnboardingService';
-import { Job, Property, Subscription, Payment, MessageWithContent, BidWithRelations, QuoteWithRelations } from './types';
+import {
+  Job,
+  Property,
+  Subscription,
+  Payment,
+  MessageWithContent,
+  BidWithRelations,
+  QuoteWithRelations,
+} from './types';
 
-export interface DashboardData {
+interface DashboardData {
   homeownerProfile: {
     first_name: string;
     last_name: string;
@@ -42,7 +53,9 @@ export interface DashboardData {
 /**
  * Fetch all dashboard data for a homeowner
  */
-export async function fetchDashboardData(userId: string): Promise<DashboardData> {
+export async function fetchDashboardData(
+  userId: string
+): Promise<DashboardData> {
   // Fetch homeowner profile (cached)
   const homeownerProfile = await getCachedUser(userId);
 
@@ -60,7 +73,7 @@ export async function fetchDashboardData(userId: string): Promise<DashboardData>
     subscriptionsData,
     paymentsData,
     recommendations,
-    onboardingStatus
+    onboardingStatus,
   ] = await Promise.all([
     getCachedUserBids(userId, jobIds, 10),
     getCachedUserQuotes(userId, jobIds, 10),
@@ -86,4 +99,3 @@ export async function fetchDashboardData(userId: string): Promise<DashboardData>
     onboardingStatus: onboardingStatus || { completed: false },
   };
 }
-

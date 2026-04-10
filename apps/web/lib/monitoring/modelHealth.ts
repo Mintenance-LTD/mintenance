@@ -5,9 +5,12 @@
  * Used by admin dashboard to display model version health.
  */
 
-import { getRoboflowConfig, validateRoboflowConfig } from '@/lib/config/roboflow.config';
+import {
+  getRoboflowConfig,
+  validateRoboflowConfig,
+} from '@/lib/config/roboflow.config';
 
-export interface ModelHealthInfo {
+interface ModelHealthInfo {
   modelId: string;
   modelVersion: string;
   baseUrl: string;
@@ -44,4 +47,3 @@ export function getModelHealthInfo(): ModelHealthInfo {
     };
   }
 }
-

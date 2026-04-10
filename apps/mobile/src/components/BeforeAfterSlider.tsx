@@ -7,8 +7,18 @@
  */
 
 import React from 'react';
-import { View, Image, StyleSheet, Dimensions, Text, Platform } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
+import {
+  View,
+  Image,
+  StyleSheet,
+  Dimensions,
+  Text,
+  Platform,
+} from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+} from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { theme } from '../theme';
 
@@ -56,18 +66,24 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   return (
     <View
       style={[styles.container, { height }]}
-      accessibilityLabel="Before and after photo comparison. Drag the slider to compare."
-      accessibilityRole="adjustable"
+      accessibilityLabel='Before and after photo comparison. Drag the slider to compare.'
+      accessibilityRole='adjustable'
     >
       {/* After photo — full width, sits behind */}
-      <Image source={{ uri: afterUrl }} style={[styles.image, { height }]} resizeMode="cover" />
+      <Image
+        source={{ uri: afterUrl }}
+        style={[styles.image, { height }]}
+        resizeMode='cover'
+      />
 
       {/* Before photo — clipped from left by slider position */}
-      <Animated.View style={[styles.beforeContainer, beforeClipStyle, { height }]}>
+      <Animated.View
+        style={[styles.beforeContainer, beforeClipStyle, { height }]}
+      >
         <Image
           source={{ uri: beforeUrl }}
           style={[styles.image, { width: IMAGE_WIDTH, height }]}
-          resizeMode="cover"
+          resizeMode='cover'
         />
       </Animated.View>
 
@@ -146,7 +162,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -157,5 +178,3 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
-
-export default BeforeAfterSlider;

@@ -2,7 +2,13 @@
  * EmptyState - Reusable empty state component for lists and screens
  */
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ViewStyle,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 
@@ -79,5 +85,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-
-export default EmptyState;

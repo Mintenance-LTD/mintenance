@@ -6,25 +6,6 @@
 
 export { escapeHtml } from './shared';
 
-export type {
-  QuoteEmailData,
-  BidEmailData,
-  ConnectionRequestEmailData,
-  ContractNotificationData,
-  MessageNotificationData,
-  PaymentConfirmationData,
-  PaymentReceivedData,
-  BidAcceptedData,
-  ContractSignedData,
-  JobStartedData,
-  JobCompletedData,
-  LocationSharingData,
-  WorkApprovedData,
-  ChangesRequestedData,
-  PaymentReleasedData,
-  TenantInviteData,
-} from './types';
-
 export {
   quoteNotificationTemplate,
   bidNotificationTemplate,
@@ -42,6 +23,7 @@ export {
   paymentConfirmationTemplate,
   paymentReceivedTemplate,
   paymentReleasedTemplate,
+  invoiceNotificationTemplate,
 } from './payments';
 
 export {
@@ -56,7 +38,4 @@ export { messageNotificationTemplate } from './messages';
 
 export { newsletterWelcomeTemplate } from './newsletter';
 
-export {
-  tenantInviteTemplate,
-  tenantJobNotificationTemplate,
-} from './tenant';
+export { tenantInviteTemplate, tenantJobNotificationTemplate } from './tenant';

@@ -18,15 +18,13 @@ import type {
   CreateCampaignRequest,
   MarketingCampaign,
 } from '../marketing-management/types';
+export type {
+  CreateCampaignRequest,
+  MarketingCampaign,
+} from '../marketing-management/types';
 export * from './types';
-export type { MarketingCampaign } from '../marketing-management/types';
-
 // Export domain services
-export { BusinessAnalyticsService } from './BusinessAnalyticsService';
 export { FinancialManagementService } from './FinancialManagementService';
-export { MarketingManagementService } from '../marketing-management';
-export { ClientManagementService } from '../client-management';
-
 // Singleton instances
 const marketingService = new MarketingManagementService();
 const clientService = new ClientManagementService();
@@ -197,5 +195,3 @@ export class ContractorBusinessSuite {
 }
 
 export const contractorBusinessSuite = new ContractorBusinessSuite();
-
-export default ContractorBusinessSuite;

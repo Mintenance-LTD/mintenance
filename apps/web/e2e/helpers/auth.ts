@@ -7,7 +7,7 @@
 
 import { Page, expect } from '@playwright/test';
 
-export interface TestUser {
+interface TestUser {
   email: string;
   password: string;
   role: 'homeowner' | 'contractor' | 'admin';
@@ -81,7 +81,7 @@ export async function loginAsContractor(page: Page): Promise<void> {
  *
  * Use this before tests that require admin authentication.
  */
-export async function loginAsAdmin(page: Page): Promise<void> {
+async function loginAsAdmin(page: Page): Promise<void> {
   await login(page, TEST_USERS.admin);
 
   // Verify we're on admin dashboard
@@ -110,7 +110,9 @@ export async function login(page: Page, user: TestUser): Promise<void> {
   }
 
   // Try to click "Accept All" or "Essential Only" on cookie consent
-  const acceptCookies = page.getByRole('button', { name: /accept all|essential only/i }).first();
+  const acceptCookies = page
+    .getByRole('button', { name: /accept all|essential only/i })
+    .first();
   if (await acceptCookies.isVisible().catch(() => false)) {
     await acceptCookies.click();
     await page.waitForTimeout(500);
@@ -122,7 +124,9 @@ export async function login(page: Page, user: TestUser): Promise<void> {
 
   // Submit form and wait for navigation
   await Promise.all([
-    page.waitForURL(url => !url.pathname.includes('/auth/login'), { timeout: 30000 }),
+    page.waitForURL((url) => !url.pathname.includes('/auth/login'), {
+      timeout: 30000,
+    }),
     page.getByRole('button', { name: /log in|sign in/i }).click(),
   ]);
 
@@ -138,11 +142,15 @@ export async function login(page: Page, user: TestUser): Promise<void> {
   // Verify authentication persisted by checking if user data exists in localStorage
   const hasSession = await page.evaluate(() => {
     const keys = Object.keys(localStorage);
-    return keys.some(key => key.includes('supabase.auth.token') || key.includes('sb-'));
+    return keys.some(
+      (key) => key.includes('supabase.auth.token') || key.includes('sb-')
+    );
   });
 
   if (!hasSession) {
-    throw new Error('Authentication session not established - localStorage empty');
+    throw new Error(
+      'Authentication session not established - localStorage empty'
+    );
   }
 }
 
@@ -152,7 +160,7 @@ export async function login(page: Page, user: TestUser): Promise<void> {
  * Logs out the current user.
  * Verifies redirect to login or home page.
  */
-export async function logout(page: Page): Promise<void> {
+async function logout(page: Page): Promise<void> {
   // Look for logout button/link
   const logoutButton = page.getByRole('button', { name: /log out|sign out/i });
   const logoutLink = page.getByRole('link', { name: /log out|sign out/i });
@@ -164,20 +172,24 @@ export async function logout(page: Page): Promise<void> {
     await logoutLink.click();
   } else {
     // May need to open profile menu first
-    const profileButton = page.getByRole('button', { name: /profile|account|menu/i });
+    const profileButton = page.getByRole('button', {
+      name: /profile|account|menu/i,
+    });
     if (await profileButton.isVisible().catch(() => false)) {
       await profileButton.click();
       await page.waitForTimeout(500); // Wait for menu animation
 
       // Try logout again
-      const menuLogout = page.getByRole('button', { name: /log out|sign out/i });
+      const menuLogout = page.getByRole('button', {
+        name: /log out|sign out/i,
+      });
       await menuLogout.click();
     }
   }
 
   // Wait for redirect to login or home
-  await page.waitForURL(url =>
-    url.pathname.includes('/auth/login') || url.pathname === '/',
+  await page.waitForURL(
+    (url) => url.pathname.includes('/auth/login') || url.pathname === '/',
     { timeout: 5000 }
   );
 }
@@ -199,7 +211,7 @@ export async function logout(page: Page): Promise<void> {
  *   // ... test onboarding flow
  * });
  */
-export async function signUpAndLogin(page: Page, user: TestUser): Promise<void> {
+async function signUpAndLogin(page: Page, user: TestUser): Promise<void> {
   // Navigate to signup page
   await page.goto('/auth/signup');
 
@@ -209,7 +221,9 @@ export async function signUpAndLogin(page: Page, user: TestUser): Promise<void> 
   await page.getByLabel(/confirm password/i).fill(user.password);
 
   // Select role if radio buttons are present
-  const roleRadio = page.getByRole('radio', { name: new RegExp(user.role, 'i') });
+  const roleRadio = page.getByRole('radio', {
+    name: new RegExp(user.role, 'i'),
+  });
   if (await roleRadio.isVisible().catch(() => false)) {
     await roleRadio.check();
   }
@@ -236,11 +250,20 @@ export async function signUpAndLogin(page: Page, user: TestUser): Promise<void> 
  *
  * Verifies that a user is logged in by checking for common auth indicators.
  */
-export async function isAuthenticated(page: Page): Promise<boolean> {
+async function isAuthenticated(page: Page): Promise<boolean> {
   // Check for common authenticated state indicators
-  const hasLogoutButton = await page.getByRole('button', { name: /log out|sign out/i }).isVisible().catch(() => false);
-  const hasProfileButton = await page.getByRole('button', { name: /profile|account/i }).isVisible().catch(() => false);
-  const hasUserMenu = await page.locator('[data-testid="user-menu"]').isVisible().catch(() => false);
+  const hasLogoutButton = await page
+    .getByRole('button', { name: /log out|sign out/i })
+    .isVisible()
+    .catch(() => false);
+  const hasProfileButton = await page
+    .getByRole('button', { name: /profile|account/i })
+    .isVisible()
+    .catch(() => false);
+  const hasUserMenu = await page
+    .locator('[data-testid="user-menu"]')
+    .isVisible()
+    .catch(() => false);
 
   return hasLogoutButton || hasProfileButton || hasUserMenu;
 }
@@ -250,7 +273,9 @@ export async function isAuthenticated(page: Page): Promise<boolean> {
  *
  * Attempts to determine the user's role based on the current URL.
  */
-export async function getCurrentUserRole(page: Page): Promise<'homeowner' | 'contractor' | 'admin' | 'guest'> {
+async function getCurrentUserRole(
+  page: Page
+): Promise<'homeowner' | 'contractor' | 'admin' | 'guest'> {
   const url = page.url();
 
   if (url.includes('/contractor')) return 'contractor';

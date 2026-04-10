@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createJobRequestSchema, JOB_CATEGORIES } from '../jobs';
-import { loginRequestSchema, signupRequestSchema } from '../auth';
+import { loginRequestSchema, registerRequestSchema } from '../auth';
 
 describe('api-contracts schemas', () => {
   describe('jobs', () => {
@@ -72,7 +72,7 @@ describe('api-contracts schemas', () => {
     });
 
     it('should validate a signup request', () => {
-      const result = signupRequestSchema.safeParse({
+      const result = registerRequestSchema.safeParse({
         email: 'new@example.com',
         password: 'StrongP@ss1',
         firstName: 'John',

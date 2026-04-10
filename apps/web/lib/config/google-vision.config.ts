@@ -1,11 +1,11 @@
 /**
  * Google Cloud Vision API Configuration
- * 
+ *
  * This module handles configuration for Google Cloud Vision API integration.
  * Supports both API key and service account authentication methods.
  */
 
-export interface GoogleVisionConfig {
+interface GoogleVisionConfig {
   apiKey?: string;
   credentialsPath?: string;
   projectId?: string;
@@ -31,16 +31,19 @@ export function getGoogleVisionConfig(): GoogleVisionConfig {
 /**
  * Validate that Google Vision API is properly configured
  */
-export function validateGoogleVisionConfig(): { valid: boolean; error?: string } {
+export function validateGoogleVisionConfig(): {
+  valid: boolean;
+  error?: string;
+} {
   const config = getGoogleVisionConfig();
 
   if (!config.enabled) {
     return {
       valid: false,
-      error: 'Google Cloud Vision API is not configured. Set GOOGLE_CLOUD_VISION_API_KEY or GOOGLE_APPLICATION_CREDENTIALS.',
+      error:
+        'Google Cloud Vision API is not configured. Set GOOGLE_CLOUD_VISION_API_KEY or GOOGLE_APPLICATION_CREDENTIALS.',
     };
   }
 
   return { valid: true };
 }
-

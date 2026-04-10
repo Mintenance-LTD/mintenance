@@ -462,5 +462,3 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
     </SafeAreaView>
   );
 };
-
-export default PropertyAssessmentScreen;

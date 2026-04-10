@@ -16,7 +16,7 @@ interface AllProvidersProps {
 /**
  * Wraps components with all necessary providers for testing
  */
-export function AllProviders({ children }: AllProvidersProps) {
+function AllProviders({ children }: AllProvidersProps) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -30,9 +30,7 @@ export function AllProviders({ children }: AllProvidersProps) {
   });
 
   return (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 }
 
@@ -122,7 +120,7 @@ export const mockBid = (overrides = {}) => ({
   ...overrides,
 });
 
-export const mockProperty = (overrides = {}) => ({
+const mockProperty = (overrides = {}) => ({
   id: 'property-123',
   homeowner_id: 'homeowner-123',
   property_name: 'My House',
@@ -136,7 +134,7 @@ export const mockProperty = (overrides = {}) => ({
   ...overrides,
 });
 
-export const mockPayment = (overrides = {}) => ({
+const mockPayment = (overrides = {}) => ({
   id: 'payment-123',
   job_id: 'job-123',
   amount: 120,
@@ -147,7 +145,7 @@ export const mockPayment = (overrides = {}) => ({
   ...overrides,
 });
 
-export const mockReview = (overrides = {}) => ({
+const mockReview = (overrides = {}) => ({
   id: 'review-123',
   job_id: 'job-123',
   contractor_id: 'contractor-123',
@@ -160,7 +158,7 @@ export const mockReview = (overrides = {}) => ({
 
 // ==================== API MOCKING HELPERS ====================
 
-export const mockApiResponse = {
+const mockApiResponse = {
   success: (data: any) => ({
     ok: true,
     status: 200,
@@ -209,7 +207,7 @@ export const mockSupabaseQuery = {
   }),
 };
 
-export const mockSupabaseClient = () => ({
+const mockSupabaseClient = () => ({
   from: (table: string) => ({
     select: () => mockSupabaseQuery.empty(),
     insert: () => mockSupabaseQuery.success({ id: 'new-id' }),
@@ -227,7 +225,9 @@ export const mockSupabaseClient = () => ({
   storage: {
     from: (bucket: string) => ({
       upload: () => mockSupabaseQuery.success({ path: 'test-path' }),
-      getPublicUrl: () => ({ data: { publicUrl: 'https://example.com/test.jpg' } }),
+      getPublicUrl: () => ({
+        data: { publicUrl: 'https://example.com/test.jpg' },
+      }),
     }),
   },
 });
@@ -237,7 +237,7 @@ export const mockSupabaseClient = () => ({
 /**
  * Wait for a condition to be true
  */
-export const waitForCondition = async (
+const waitForCondition = async (
   condition: () => boolean,
   timeout = 1000
 ): Promise<void> => {
@@ -247,20 +247,20 @@ export const waitForCondition = async (
     if (Date.now() - startTime > timeout) {
       throw new Error('Timeout waiting for condition');
     }
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
   }
 };
 
 /**
  * Wait for a specific amount of time
  */
-export const wait = (ms: number): Promise<void> => {
-  return new Promise(resolve => setTimeout(resolve, ms));
+const wait = (ms: number): Promise<void> => {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 };
 
 // ==================== LOCAL STORAGE MOCK ====================
 
-export const mockLocalStorage = () => {
+const mockLocalStorage = () => {
   const store: Record<string, string> = {};
 
   return {
@@ -272,11 +272,10 @@ export const mockLocalStorage = () => {
       delete store[key];
     },
     clear: () => {
-      Object.keys(store).forEach(key => delete store[key]);
+      Object.keys(store).forEach((key) => delete store[key]);
     },
   };
 };
 
 // Export all utilities
 export * from '@testing-library/react';
-export { default as userEvent } from '@testing-library/user-event';

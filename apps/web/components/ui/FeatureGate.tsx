@@ -90,7 +90,7 @@ interface FeatureGateProps {
  * </FeatureGate>
  * ```
  */
-export function FeatureGate(props: FeatureGateProps) {
+function FeatureGate(props: FeatureGateProps) {
   // Defensive prop destructuring with defaults to prevent test crashes
   const {
     featureId = '',
@@ -263,7 +263,7 @@ interface FeatureButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   children: React.ReactNode;
 }
 
-export function FeatureButton({
+function FeatureButton({
   featureId,
   trackUsage = true,
   onUpgrade,
@@ -341,7 +341,7 @@ interface FeatureBadgeProps {
   showOnAvailable?: boolean;
 }
 
-export function FeatureBadge({
+function FeatureBadge({
   featureId,
   showOnAvailable = false,
 }: FeatureBadgeProps) {
@@ -420,7 +420,7 @@ export function FeatureBadge({
  * );
  * ```
  */
-export function withFeatureAccess<P extends object>(
+function withFeatureAccess<P extends object>(
   Component: React.ComponentType<P>,
   featureId: string,
   options?: Omit<FeatureGateProps, 'children' | 'featureId'>

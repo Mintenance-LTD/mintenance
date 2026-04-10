@@ -7,11 +7,11 @@ import { logger } from '@mintenance/shared';
  */
 const MAGIC_NUMBERS = {
   // Images
-  JPEG: [0xFF, 0xD8, 0xFF],
-  PNG: [0x89, 0x50, 0x4E, 0x47],
+  JPEG: [0xff, 0xd8, 0xff],
+  PNG: [0x89, 0x50, 0x4e, 0x47],
   GIF: [0x47, 0x49, 0x46, 0x38],
   WEBP: [0x52, 0x49, 0x46, 0x46], // RIFF (WebP container)
-  BMP: [0x42, 0x4D],
+  BMP: [0x42, 0x4d],
   HEIC: [0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63], // ftyp heic
 
   // Documents
@@ -23,14 +23,14 @@ const MAGIC_NUMBERS = {
   AVI: [0x52, 0x49, 0x46, 0x46], // RIFF
 
   // Archives
-  ZIP: [0x50, 0x4B, 0x03, 0x04],
+  ZIP: [0x50, 0x4b, 0x03, 0x04],
   RAR: [0x52, 0x61, 0x72, 0x21],
 };
 
 /**
  * Allowed MIME types for different upload contexts
  */
-export const ALLOWED_MIME_TYPES = {
+const ALLOWED_MIME_TYPES = {
   images: [
     'image/jpeg',
     'image/jpg',
@@ -41,15 +41,8 @@ export const ALLOWED_MIME_TYPES = {
     'image/heic',
     'image/heif',
   ],
-  documents: [
-    'application/pdf',
-  ],
-  videos: [
-    'video/mp4',
-    'video/quicktime',
-    'video/avi',
-    'video/x-msvideo',
-  ],
+  documents: ['application/pdf'],
+  videos: ['video/mp4', 'video/quicktime', 'video/avi', 'video/x-msvideo'],
   archives: [
     'application/zip',
     'application/x-zip-compressed',
@@ -60,7 +53,7 @@ export const ALLOWED_MIME_TYPES = {
 /**
  * Allowed file extensions for different contexts
  */
-export const ALLOWED_EXTENSIONS = {
+const ALLOWED_EXTENSIONS = {
   images: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'heic', 'heif'],
   documents: ['pdf'],
   videos: ['mp4', 'mov', 'avi'],
@@ -101,7 +94,7 @@ interface FileValidationResult {
  *
  * Always verify the actual file content using magic numbers
  */
-export async function validateFileUpload(
+async function validateFileUpload(
   file: File | Buffer,
   options: FileValidationOptions
 ): Promise<FileValidationResult> {
@@ -154,10 +147,13 @@ export async function validateFileUpload(
       const manualDetection = detectMagicNumbers(buffer);
 
       if (manualDetection) {
-        logger.warn('[FILE VALIDATION] file-type library failed, using manual detection', {
-          fileName,
-          detectedType: manualDetection,
-        });
+        logger.warn(
+          '[FILE VALIDATION] file-type library failed, using manual detection',
+          {
+            fileName,
+            detectedType: manualDetection,
+          }
+        );
 
         return validateDetectedType(
           manualDetection,
@@ -170,14 +166,15 @@ export async function validateFileUpload(
 
       return {
         valid: false,
-        error: 'Could not determine file type - possibly corrupted or unsupported format',
+        error:
+          'Could not determine file type - possibly corrupted or unsupported format',
       };
     }
 
     // Step 5: Check if detected type is in allowed list
-    const allowedMimeTypes: string[] = options.allowedTypes.flatMap(
-      (type) => [...ALLOWED_MIME_TYPES[type]]
-    );
+    const allowedMimeTypes: string[] = options.allowedTypes.flatMap((type) => [
+      ...ALLOWED_MIME_TYPES[type],
+    ]);
 
     if (!allowedMimeTypes.includes(detectedFileType.mime)) {
       logger.warn('[SECURITY] File upload blocked - type not allowed', {
@@ -233,7 +230,9 @@ export async function validateFileUpload(
       // PDFs can have %PDF header anywhere in first 1024 bytes
       const pdfHeaderPosition = buffer.indexOf('%PDF');
       if (pdfHeaderPosition > 100) {
-        warnings.push('PDF header found at unusual position - possible polyglot attack');
+        warnings.push(
+          'PDF header found at unusual position - possible polyglot attack'
+        );
 
         logger.warn('[SECURITY] Suspicious PDF structure detected', {
           fileName,
@@ -256,7 +255,6 @@ export async function validateFileUpload(
       detectedType: detectedFileType.mime,
       warnings: warnings.length > 0 ? warnings : undefined,
     };
-
   } catch (error) {
     logger.error('[FILE VALIDATION] Validation error', {
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -274,7 +272,7 @@ export async function validateFileUpload(
  */
 function detectMagicNumbers(buffer: Buffer): string | null {
   // Check JPEG
-  if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
     return 'image/jpeg';
   }
 
@@ -282,7 +280,7 @@ function detectMagicNumbers(buffer: Buffer): string | null {
   if (
     buffer[0] === 0x89 &&
     buffer[1] === 0x50 &&
-    buffer[2] === 0x4E &&
+    buffer[2] === 0x4e &&
     buffer[3] === 0x47
   ) {
     return 'image/png';
@@ -335,9 +333,9 @@ function validateDetectedType(
   declaredMimeType: string,
   warnings: string[]
 ): FileValidationResult {
-  const allowedMimeTypes: string[] = options.allowedTypes.flatMap(
-    (type) => [...ALLOWED_MIME_TYPES[type]]
-  );
+  const allowedMimeTypes: string[] = options.allowedTypes.flatMap((type) => [
+    ...ALLOWED_MIME_TYPES[type],
+  ]);
 
   if (!allowedMimeTypes.includes(detectedType)) {
     return {
@@ -377,7 +375,7 @@ export async function validateImageUpload(
 /**
  * Convenience function for document upload validation
  */
-export async function validateDocumentUpload(
+async function validateDocumentUpload(
   file: File | Buffer,
   maxSize: number = MAX_FILE_SIZES.document
 ): Promise<FileValidationResult> {
@@ -391,7 +389,7 @@ export async function validateDocumentUpload(
 /**
  * Convenience function for video upload validation
  */
-export async function validateVideoUpload(
+async function validateVideoUpload(
   file: File | Buffer,
   maxSize: number = MAX_FILE_SIZES.video
 ): Promise<FileValidationResult> {

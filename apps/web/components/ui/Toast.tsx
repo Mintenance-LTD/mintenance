@@ -4,9 +4,9 @@ import React, { createContext, useState, useCallback, useEffect } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from './Icon';
 
-export type ToastType = 'success' | 'error' | 'warning' | 'info';
+type ToastType = 'success' | 'error' | 'warning' | 'info';
 
-export interface Toast {
+interface Toast {
   id: string;
   message: string;
   type: ToastType;
@@ -40,26 +40,25 @@ interface ToastProviderProps {
 export function ToastProvider({ children }: ToastProviderProps) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  useEffect(() => {
-  }, []);
+  useEffect(() => {}, []);
 
   const showToast = useCallback((toast: Omit<Toast, 'id'>) => {
     const id = `toast-${Date.now()}-${Math.random()}`;
     const newToast: Toast = { ...toast, id };
-    
-    setToasts(prev => [...prev, newToast]);
+
+    setToasts((prev) => [...prev, newToast]);
 
     // Auto-dismiss after duration (default 5 seconds)
     const duration = toast.duration ?? 5000;
     if (duration > 0) {
       setTimeout(() => {
-        setToasts(prev => prev.filter(t => t.id !== id));
+        setToasts((prev) => prev.filter((t) => t.id !== id));
       }, duration);
     }
   }, []);
 
   const hideToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
   return (
@@ -78,9 +77,9 @@ interface ToastContainerProps {
 function ToastContainer({ toasts, hideToast }: ToastContainerProps) {
   return (
     <div
-      role="region"
-      aria-live="polite"
-      aria-label="Notifications"
+      role='region'
+      aria-live='polite'
+      aria-label='Notifications'
       style={{
         position: 'fixed',
         bottom: theme.spacing[4],
@@ -95,7 +94,11 @@ function ToastContainer({ toasts, hideToast }: ToastContainerProps) {
       }}
     >
       {toasts.map((toast) => (
-        <ToastItem key={toast.id} toast={toast} onClose={() => hideToast(toast.id)} />
+        <ToastItem
+          key={toast.id}
+          toast={toast}
+          onClose={() => hideToast(toast.id)}
+        />
       ))}
     </div>
   );
@@ -167,19 +170,26 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
         opacity: isVisible ? 1 : 0,
       }}
     >
-      <Icon name={config.icon} size={20} color={config.iconColor} style={{ flexShrink: 0, marginTop: '2px' }} />
-      
+      <Icon
+        name={config.icon}
+        size={20}
+        color={config.iconColor}
+        style={{ flexShrink: 0, marginTop: '2px' }}
+      />
+
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{
-          margin: 0,
-          fontSize: theme.typography.fontSize.sm,
-          fontWeight: theme.typography.fontWeight.medium,
-          color: theme.colors.textPrimary,
-          lineHeight: theme.typography.lineHeight.normal,
-        }}>
+        <p
+          style={{
+            margin: 0,
+            fontSize: theme.typography.fontSize.sm,
+            fontWeight: theme.typography.fontWeight.medium,
+            color: theme.colors.textPrimary,
+            lineHeight: theme.typography.lineHeight.normal,
+          }}
+        >
           {toast.message}
         </p>
-        
+
         {toast.action && (
           <button
             onClick={() => {
@@ -205,7 +215,7 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
 
       <button
         onClick={handleClose}
-        aria-label="Close notification"
+        aria-label='Close notification'
         style={{
           backgroundColor: 'transparent',
           border: 'none',
@@ -226,9 +236,8 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
           e.currentTarget.style.backgroundColor = 'transparent';
         }}
       >
-        <Icon name="x" size={16} color="inherit" />
+        <Icon name='x' size={16} color='inherit' />
       </button>
     </div>
   );
 }
-

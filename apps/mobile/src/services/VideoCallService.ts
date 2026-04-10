@@ -2,13 +2,32 @@
  * VideoCallService — thin facade over the video/ subdirectory modules.
  * All implementation lives in video/*.ts; this file is the public API surface.
  */
-export type { VideoCall, CallParticipant, CallSession, CallStatistics } from './video/types';
+export type {
+  VideoCall,
+  CallParticipant,
+  CallSession,
+  CallStatistics,
+} from './video/types';
 
 import {
-  scheduleCall, startInstantCall, joinCall, endCall,
-  cancelCall, getActiveCall, isUserInCall,
+  scheduleCall,
+  startInstantCall,
+  joinCall,
+  endCall,
+  cancelCall,
+  getActiveCall,
+  isUserInCall,
+  toggleMute,
+  toggleVideo,
+  startScreenShare,
+  stopScreenShare,
 } from './video/CallManager';
-import { startRecording, getCallStatistics, getCallHistory } from './video/CallRecordingService';
+import {
+  startRecording,
+  stopRecording,
+  getCallStatistics,
+  getCallHistory,
+} from './video/CallRecordingService';
 
 export class VideoCallService {
   static scheduleCall = scheduleCall;
@@ -21,6 +40,11 @@ export class VideoCallService {
   static getCallStatistics = getCallStatistics;
   static getActiveCall = getActiveCall;
   static isUserInCall = isUserInCall;
+  static toggleMute = toggleMute;
+  static toggleVideo = toggleVideo;
+  static stopRecording = stopRecording;
+  static startScreenShare = startScreenShare;
+  static stopScreenShare = stopScreenShare;
 }
 
 export default VideoCallService;

@@ -39,12 +39,7 @@ import {
 } from './notifications/NotificationPushSender';
 
 // Re-export types for backwards compatibility
-export type {
-  NotificationData,
-  NotificationPreferences,
-  QueuedNotification,
-  DeepLinkParams,
-};
+export type { NotificationData };
 
 // Configure notification behavior for foreground, background, and killed states
 Notifications.setNotificationHandler({

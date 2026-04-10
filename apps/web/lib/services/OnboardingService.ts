@@ -3,7 +3,7 @@ import { logger } from '@mintenance/shared';
 import { unstable_cache } from 'next/cache';
 import { CACHE_TAGS, CACHE_DURATIONS } from '@/lib/cache';
 
-export interface OnboardingStatus {
+interface OnboardingStatus {
   completed: boolean;
   completedAt: string | null;
 }
@@ -12,7 +12,9 @@ export class OnboardingService {
   /**
    * Check if user has completed onboarding
    */
-  static async checkOnboardingStatus(userId: string): Promise<OnboardingStatus> {
+  static async checkOnboardingStatus(
+    userId: string
+  ): Promise<OnboardingStatus> {
     return unstable_cache(
       async () => {
         try {

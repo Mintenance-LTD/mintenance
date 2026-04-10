@@ -7,11 +7,17 @@ import { logger } from './logger';
 // HAPTIC SYSTEM TYPES
 // ============================================================================
 
-export type HapticPattern = 'pulse' | 'double' | 'triple' | 'heartbeat' | 'wave';
-export type HapticIntensity = 'light' | 'medium' | 'heavy';
-export type HapticContext = 'ui' | 'notification' | 'success' | 'warning' | 'error' | 'custom';
+type HapticPattern = 'pulse' | 'double' | 'triple' | 'heartbeat' | 'wave';
+type HapticIntensity = 'light' | 'medium' | 'heavy';
+type HapticContext =
+  | 'ui'
+  | 'notification'
+  | 'success'
+  | 'warning'
+  | 'error'
+  | 'custom';
 
-export interface HapticPreferences {
+interface HapticPreferences {
   enabled: boolean;
   uiHaptics: boolean;
   notificationHaptics: boolean;
@@ -50,10 +56,15 @@ export class HapticService {
   }
 
   // Save preferences to storage
-  static async updatePreferences(prefs: Partial<HapticPreferences>): Promise<void> {
+  static async updatePreferences(
+    prefs: Partial<HapticPreferences>
+  ): Promise<void> {
     try {
       this.preferences = { ...this.preferences, ...prefs };
-      await AsyncStorage.setItem(HAPTIC_PREFERENCES_KEY, JSON.stringify(this.preferences));
+      await AsyncStorage.setItem(
+        HAPTIC_PREFERENCES_KEY,
+        JSON.stringify(this.preferences)
+      );
     } catch (error) {
       logger.warn('Failed to save haptic preferences:', { data: error });
     }
@@ -83,15 +94,24 @@ export class HapticService {
   }
 
   // Enhanced impact feedback with intensity preference
-  private static async playImpact(style: Haptics.ImpactFeedbackStyle, context: HapticContext = 'ui'): Promise<void> {
+  private static async playImpact(
+    style: Haptics.ImpactFeedbackStyle,
+    context: HapticContext = 'ui'
+  ): Promise<void> {
     if (!this.shouldPlayHaptic(context)) return;
 
     try {
       // Adjust intensity based on preferences
       let adjustedStyle = style;
-      if (this.preferences.intensity === 'light' && style === Haptics.ImpactFeedbackStyle.Heavy) {
+      if (
+        this.preferences.intensity === 'light' &&
+        style === Haptics.ImpactFeedbackStyle.Heavy
+      ) {
         adjustedStyle = Haptics.ImpactFeedbackStyle.Medium;
-      } else if (this.preferences.intensity === 'heavy' && style === Haptics.ImpactFeedbackStyle.Light) {
+      } else if (
+        this.preferences.intensity === 'heavy' &&
+        style === Haptics.ImpactFeedbackStyle.Light
+      ) {
         adjustedStyle = Haptics.ImpactFeedbackStyle.Medium;
       }
 
@@ -104,7 +124,10 @@ export class HapticService {
   }
 
   // Enhanced notification feedback
-  private static async playNotification(type: Haptics.NotificationFeedbackType, context: HapticContext = 'notification'): Promise<void> {
+  private static async playNotification(
+    type: Haptics.NotificationFeedbackType,
+    context: HapticContext = 'notification'
+  ): Promise<void> {
     if (!this.shouldPlayHaptic(context)) return;
 
     try {
@@ -115,14 +138,20 @@ export class HapticService {
   }
 
   // Play custom haptic patterns
-  static async playPattern(pattern: HapticPattern, intensity: HapticIntensity = 'medium'): Promise<void> {
+  static async playPattern(
+    pattern: HapticPattern,
+    intensity: HapticIntensity = 'medium'
+  ): Promise<void> {
     if (!this.shouldPlayHaptic('custom')) return;
 
     const getStyle = () => {
       switch (intensity) {
-        case 'light': return Haptics.ImpactFeedbackStyle.Light;
-        case 'heavy': return Haptics.ImpactFeedbackStyle.Heavy;
-        default: return Haptics.ImpactFeedbackStyle.Medium;
+        case 'light':
+          return Haptics.ImpactFeedbackStyle.Light;
+        case 'heavy':
+          return Haptics.ImpactFeedbackStyle.Heavy;
+        default:
+          return Haptics.ImpactFeedbackStyle.Medium;
       }
     };
 
@@ -194,15 +223,24 @@ export class HapticService {
 
   // Notification haptics
   static success = async () => {
-    await this.playNotification(Haptics.NotificationFeedbackType.Success, 'success');
+    await this.playNotification(
+      Haptics.NotificationFeedbackType.Success,
+      'success'
+    );
   };
 
   static warning = async () => {
-    await this.playNotification(Haptics.NotificationFeedbackType.Warning, 'warning');
+    await this.playNotification(
+      Haptics.NotificationFeedbackType.Warning,
+      'warning'
+    );
   };
 
   static error = async () => {
-    await this.playNotification(Haptics.NotificationFeedbackType.Error, 'error');
+    await this.playNotification(
+      Haptics.NotificationFeedbackType.Error,
+      'error'
+    );
   };
 
   static selection = async () => {

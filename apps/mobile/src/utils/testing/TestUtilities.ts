@@ -3,11 +3,18 @@
 // Common test utilities, setup/teardown, and enhanced rendering
 // ============================================================================
 
-import { render, RenderOptions, RenderResult } from '@testing-library/react-native';
+import {
+  render,
+  RenderOptions,
+  RenderResult,
+} from '@testing-library/react-native';
 import { ReactElement } from 'react';
 import { logger } from '../logger';
 import { setupMocks, cleanupMocks } from './MockSetup';
-import { runAccessibilityChecks, TestAccessibilityResult } from './AccessibilityTesting';
+import {
+  runAccessibilityChecks,
+  TestAccessibilityResult,
+} from './AccessibilityTesting';
 import { PerformanceTester, TestPerformanceResult } from './PerformanceTesting';
 
 // ============================================================================
@@ -58,7 +65,7 @@ export interface EnhancedRenderOptions extends RenderOptions {
   initialState?: any;
 }
 
-export interface EnhancedRenderResult extends RenderResult {
+interface EnhancedRenderResult extends RenderResult {
   performance?: TestPerformanceResult;
   accessibility?: TestAccessibilityResult;
   rerender: (ui: ReactElement, options?: EnhancedRenderOptions) => void;
@@ -106,9 +113,10 @@ export function renderWithProviders(
 
     performanceResult = {
       renderTime,
-      memoryUsage: finalMemory && initialMemory
-        ? finalMemory.heapUsed - initialMemory.heapUsed
-        : 0,
+      memoryUsage:
+        finalMemory && initialMemory
+          ? finalMemory.heapUsed - initialMemory.heapUsed
+          : 0,
       asyncOperations: [],
       budgetViolations: [],
     };

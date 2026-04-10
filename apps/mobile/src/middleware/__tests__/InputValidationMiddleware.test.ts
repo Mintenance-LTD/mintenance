@@ -181,17 +181,13 @@ describe('InputValidationMiddleware', () => {
     });
 
     it('should detect OR 1=1 injection', () => {
-      const result = InputValidationMiddleware.validateText(
-        "admin' OR 1=1--"
-      );
+      const result = InputValidationMiddleware.validateText("admin' OR 1=1--");
       expect(result.isValid).toBe(false);
       expect(result.errors[0]).toContain('potentially dangerous content');
     });
 
     it('should detect SQL comments (--)', () => {
-      const result = InputValidationMiddleware.validateText(
-        "admin'-- comment"
-      );
+      const result = InputValidationMiddleware.validateText("admin'-- comment");
       expect(result.isValid).toBe(false);
       expect(result.errors[0]).toContain('potentially dangerous content');
     });
@@ -229,13 +225,10 @@ describe('InputValidationMiddleware', () => {
     });
 
     it('should sanitize SQL comments when sanitize is enabled', () => {
-      const result = InputValidationMiddleware.validateText(
-        'test--comment',
-        {
-          sanitize: true,
-          pattern: /^[a-zA-Z0-9\s]*$/,
-        }
-      );
+      const result = InputValidationMiddleware.validateText('test--comment', {
+        sanitize: true,
+        pattern: /^[a-zA-Z0-9\s]*$/,
+      });
       // SQL pattern detects -- first, so it's invalid before sanitization
       // Sanitization only happens when errors.length === 0
       expect(result.isValid).toBe(false);
@@ -281,9 +274,8 @@ describe('InputValidationMiddleware', () => {
     });
 
     it('should detect vbscript: protocol', () => {
-      const result = InputValidationMiddleware.validateText(
-        'vbscript:msgbox(1)'
-      );
+      const result =
+        InputValidationMiddleware.validateText('vbscript:msgbox(1)');
       expect(result.isValid).toBe(false);
       // Contains ( which triggers SQL pattern check first
       expect(result.errors[0]).toContain('potentially dangerous content');
@@ -362,13 +354,10 @@ describe('InputValidationMiddleware', () => {
     });
 
     it('should remove angle brackets when sanitizing', () => {
-      const result = InputValidationMiddleware.validateText(
-        'Hello <world>',
-        {
-          sanitize: true,
-          pattern: /^[a-zA-Z0-9\s]*$/,
-        }
-      );
+      const result = InputValidationMiddleware.validateText('Hello <world>', {
+        sanitize: true,
+        pattern: /^[a-zA-Z0-9\s]*$/,
+      });
       // SQL pattern detects < first
       expect(result.isValid).toBe(false);
       expect(result.errors[0]).toContain('potentially dangerous content');
@@ -441,13 +430,10 @@ describe('InputValidationMiddleware', () => {
     });
 
     it('should not sanitize when sanitize is false', () => {
-      const result = InputValidationMiddleware.validateText(
-        'Hello  World',
-        {
-          sanitize: false,
-          pattern: /^[a-zA-Z0-9\s]+$/,
-        }
-      );
+      const result = InputValidationMiddleware.validateText('Hello  World', {
+        sanitize: false,
+        pattern: /^[a-zA-Z0-9\s]+$/,
+      });
       expect(result.sanitized).toBe('Hello  World');
     });
 
@@ -465,7 +451,8 @@ describe('InputValidationMiddleware', () => {
 
   describe('validateEmail', () => {
     it('should accept valid email', () => {
-      const result = InputValidationMiddleware.validateEmail('test@example.com');
+      const result =
+        InputValidationMiddleware.validateEmail('test@example.com');
       expect(result.isValid).toBe(true);
       expect(result.sanitized).toBe('test@example.com');
     });
@@ -507,9 +494,8 @@ describe('InputValidationMiddleware', () => {
     });
 
     it('should reject email with multiple @ symbols', () => {
-      const result = InputValidationMiddleware.validateEmail(
-        'test@@example.com'
-      );
+      const result =
+        InputValidationMiddleware.validateEmail('test@@example.com');
       expect(result.isValid).toBe(false);
     });
 
@@ -666,9 +652,8 @@ describe('InputValidationMiddleware', () => {
     });
 
     it('should accept title with numbers', () => {
-      const result = InputValidationMiddleware.validateJobTitle(
-        'Fix 2 bathrooms'
-      );
+      const result =
+        InputValidationMiddleware.validateJobTitle('Fix 2 bathrooms');
       expect(result.isValid).toBe(true);
     });
 
@@ -717,9 +702,8 @@ describe('InputValidationMiddleware', () => {
     });
 
     it('should reject description < 10 chars', () => {
-      const result = InputValidationMiddleware.validateJobDescription(
-        'Too short'
-      );
+      const result =
+        InputValidationMiddleware.validateJobDescription('Too short');
       expect(result.isValid).toBe(false);
     });
 
@@ -792,7 +776,9 @@ describe('InputValidationMiddleware', () => {
     it('should warn on large amounts', () => {
       const result = InputValidationMiddleware.validateAmount(1500000);
       expect(result.isValid).toBe(true);
-      expect(result.warnings).toContain('Large amount detected - please verify');
+      expect(result.warnings).toContain(
+        'Large amount detected - please verify'
+      );
     });
 
     it('should round to 2 decimal places', () => {
@@ -857,7 +843,9 @@ describe('InputValidationMiddleware', () => {
       };
       const result = InputValidationMiddleware.validateFile(file);
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('File type not allowed for security reasons');
+      expect(result.errors).toContain(
+        'File type not allowed for security reasons'
+      );
     });
 
     it('should reject .bat file', () => {
@@ -1049,7 +1037,7 @@ describe('InputValidationMiddleware', () => {
       // Auto-detection looks for 'amount' in field name
       // validateObject stores sanitized as string conversion
       expect(result.isValid).toBe(true);
-      expect(result.sanitized.totalAmount).toBe("100");
+      expect(result.sanitized.totalAmount).toBe('100');
     });
 
     it('should auto-detect price fields', () => {
@@ -1063,7 +1051,7 @@ describe('InputValidationMiddleware', () => {
       // Auto-detection looks for 'price' in field name
       // validateObject stores sanitized as string conversion
       expect(result.isValid).toBe(true);
-      expect(result.sanitized.itemPrice).toBe("99.99");
+      expect(result.sanitized.itemPrice).toBe('99.99');
     });
 
     it('should sanitize all fields', () => {
@@ -1091,35 +1079,37 @@ describe('InputValidationMiddleware', () => {
   });
 
   describe('validateRateLimit', () => {
-    it('should return allowed for first attempt', () => {
-      const result = InputValidationMiddleware.validateRateLimit('user123');
+    it('should return allowed for first attempt', async () => {
+      const result =
+        await InputValidationMiddleware.validateRateLimit('rl_first_attempt');
       expect(result.allowed).toBe(true);
     });
 
-    it('should return remaining attempts', () => {
-      const result = InputValidationMiddleware.validateRateLimit(
-        'user123',
+    it('should return remaining attempts', async () => {
+      const result = await InputValidationMiddleware.validateRateLimit(
+        'rl_remaining',
         5
       );
       expect(result.remainingAttempts).toBe(4);
     });
 
-    it('should return reset time', () => {
-      const result = InputValidationMiddleware.validateRateLimit('user123');
+    it('should return reset time', async () => {
+      const result =
+        await InputValidationMiddleware.validateRateLimit('rl_reset_time');
       expect(result.resetTime).toBeGreaterThan(Date.now());
     });
 
-    it('should handle custom max attempts', () => {
-      const result = InputValidationMiddleware.validateRateLimit(
-        'user123',
+    it('should handle custom max attempts', async () => {
+      const result = await InputValidationMiddleware.validateRateLimit(
+        'rl_custom_max',
         10
       );
       expect(result.remainingAttempts).toBe(9);
     });
 
-    it('should handle custom window', () => {
-      const result = InputValidationMiddleware.validateRateLimit(
-        'user123',
+    it('should handle custom window', async () => {
+      const result = await InputValidationMiddleware.validateRateLimit(
+        'rl_custom_window',
         5,
         120000
       );
@@ -1129,7 +1119,8 @@ describe('InputValidationMiddleware', () => {
 
   describe('Edge Cases and Security Boundary Testing', () => {
     it('should handle very long malicious input', () => {
-      const longAttack = '<script>'.repeat(1000) + 'alert(1)</script>'.repeat(1000);
+      const longAttack =
+        '<script>'.repeat(1000) + 'alert(1)</script>'.repeat(1000);
       const result = InputValidationMiddleware.validateText(longAttack);
       expect(result.isValid).toBe(false);
     });
@@ -1149,12 +1140,9 @@ describe('InputValidationMiddleware', () => {
     });
 
     it('should handle null bytes', () => {
-      const result = InputValidationMiddleware.validateText(
-        'test\x00value',
-        {
-          pattern: /^[a-zA-Z0-9\s\x00]+$/,
-        }
-      );
+      const result = InputValidationMiddleware.validateText('test\x00value', {
+        pattern: /^[a-zA-Z0-9\s\x00]+$/,
+      });
       expect(result.isValid).toBe(true);
     });
 
@@ -1201,12 +1189,9 @@ describe('InputValidationMiddleware', () => {
     });
 
     it('should detect command injection attempts', () => {
-      const result = InputValidationMiddleware.validateText(
-        '; rm -rf /',
-        {
-          pattern: /^[a-zA-Z0-9\s]*$/,
-        }
-      );
+      const result = InputValidationMiddleware.validateText('; rm -rf /', {
+        pattern: /^[a-zA-Z0-9\s]*$/,
+      });
       expect(result.isValid).toBe(false);
     });
   });
@@ -1222,9 +1207,8 @@ describe('InputValidationMiddleware', () => {
           });
         </script>
       `;
-      const result = InputValidationMiddleware.validateJobDescription(
-        maliciousDesc
-      );
+      const result =
+        InputValidationMiddleware.validateJobDescription(maliciousDesc);
       expect(result.isValid).toBe(false);
     });
 

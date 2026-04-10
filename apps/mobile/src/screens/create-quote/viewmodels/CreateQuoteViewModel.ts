@@ -29,7 +29,7 @@ export interface LineItem {
   sort_order: number;
 }
 
-export interface CreateQuoteState {
+interface CreateQuoteState {
   // Form fields
   clientName: string;
   clientEmail: string;
@@ -61,7 +61,7 @@ export interface CreateQuoteState {
   totalAmount: number;
 }
 
-export interface CreateQuoteActions {
+interface CreateQuoteActions {
   // Form setters
   setClientName: (name: string) => void;
   setClientEmail: (email: string) => void;

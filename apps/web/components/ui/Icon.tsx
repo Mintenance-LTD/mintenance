@@ -11,7 +11,7 @@ import type { LucideIcon } from 'lucide-react';
  * Uses Lucide React for professional, consistent iconography
  */
 
-export interface IconProps {
+interface IconProps {
   name: string;
   size?: number;
   color?: string;
@@ -341,7 +341,7 @@ export function Icon({
  * Convenience export for filled icons
  * Note: Most Lucide icons are outline by default. Use fill prop for filled variants.
  */
-export function IconFilled({
+function IconFilled({
   name,
   size = 20,
   color = 'currentColor',

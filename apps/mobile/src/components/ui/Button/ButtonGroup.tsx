@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ViewStyle, TouchableOpacity, Text } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  ViewStyle,
+  TouchableOpacity,
+  Text,
+} from 'react-native';
 import { ButtonProps } from './Button';
 import { theme } from '../../../theme';
 
@@ -12,7 +18,11 @@ export interface ButtonGroupButton {
 }
 
 const SPACING_MAP: Record<string, number> = {
-  xs: 6, sm: 8, md: 16, lg: 20, xl: 24,
+  xs: 6,
+  sm: 8,
+  md: 16,
+  lg: 20,
+  xl: 24,
 };
 
 export interface ButtonGroupProps {
@@ -38,7 +48,8 @@ export const ButtonGroup: React.FC<ButtonGroupProps> = ({
   layout = 'horizontal',
   children,
 }) => {
-  const [internalSelectedValues, setInternalSelectedValues] = useState<string[]>(selectedValues);
+  const [internalSelectedValues, setInternalSelectedValues] =
+    useState<string[]>(selectedValues);
 
   const handleButtonPress = (buttonValue: string, disabled?: boolean) => {
     if (disabled || !onSelectionChange) return;
@@ -48,7 +59,9 @@ export const ButtonGroup: React.FC<ButtonGroupProps> = ({
       newSelectedValues = [buttonValue];
     } else {
       if (internalSelectedValues.includes(buttonValue)) {
-        newSelectedValues = internalSelectedValues.filter(value => value !== buttonValue);
+        newSelectedValues = internalSelectedValues.filter(
+          (value) => value !== buttonValue
+        );
       } else {
         newSelectedValues = [...internalSelectedValues, buttonValue];
       }
@@ -58,7 +71,8 @@ export const ButtonGroup: React.FC<ButtonGroupProps> = ({
     onSelectionChange(newSelectedValues);
   };
 
-  const currentSelectedValues = selectedValues.length > 0 ? selectedValues : internalSelectedValues;
+  const currentSelectedValues =
+    selectedValues.length > 0 ? selectedValues : internalSelectedValues;
 
   if (children && !buttons) {
     const spacingValue = SPACING_MAP[spacing] ?? 8;
@@ -78,7 +92,10 @@ export const ButtonGroup: React.FC<ButtonGroupProps> = ({
           : {};
         return React.cloneElement(child, {
           ...child.props,
-          style: StyleSheet.flatten([child.props.style as ViewStyle, marginStyle]),
+          style: StyleSheet.flatten([
+            child.props.style as ViewStyle,
+            marginStyle,
+          ]),
         });
       });
     };
@@ -96,7 +113,7 @@ export const ButtonGroup: React.FC<ButtonGroupProps> = ({
           { gap: spacingValue },
           style,
         ])}
-        testID="button-group"
+        testID='button-group'
       >
         {buttons.map((button) => {
           const isSelected = currentSelectedValues.includes(button.value);
@@ -112,11 +129,13 @@ export const ButtonGroup: React.FC<ButtonGroupProps> = ({
               disabled={button.disabled}
               testID={`button-${button.id}`}
             >
-              <Text style={StyleSheet.flatten([
-                styles.buttonText,
-                isSelected && styles.selectedButtonText,
-                button.disabled && styles.disabledButtonText,
-              ])}>
+              <Text
+                style={StyleSheet.flatten([
+                  styles.buttonText,
+                  isSelected && styles.selectedButtonText,
+                  button.disabled && styles.disabledButtonText,
+                ])}
+              >
                 {button.title}
               </Text>
             </TouchableOpacity>
@@ -169,5 +188,3 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
 });
-
-export default ButtonGroup;

@@ -10,7 +10,7 @@ import {
   getPreviousContractors,
 } from './user/contractors';
 
-export type { ScheduledJob, ContractorStats, UserProfile } from './user/types';
+export type { ContractorStats, UserProfile } from './user/types';
 
 export class UserService {
   static getContractorStats(contractorId: string) {

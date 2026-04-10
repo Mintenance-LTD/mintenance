@@ -31,7 +31,7 @@ export interface ContractorReview {
   };
 }
 
-export interface CompletedJob {
+interface CompletedJob {
   id: string;
   title: string;
   category: string;
