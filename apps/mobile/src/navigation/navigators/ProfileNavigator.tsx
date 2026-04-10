@@ -67,7 +67,7 @@ import {
 
 const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 
-export const ProfileNavigator = () => {
+const ProfileNavigator = () => {
   return (
     <ProfileStack.Navigator
       screenOptions={{

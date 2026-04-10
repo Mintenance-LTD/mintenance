@@ -19,7 +19,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
+import {
+  ScreenHeader,
+  LoadingSpinner,
+  ErrorView,
+} from '../../components/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { theme } from '../../theme';
@@ -37,16 +41,43 @@ interface DBSStatus {
   };
 }
 
-const DBS_TYPES: Array<{ value: DBSType; label: string; description: string; icon: keyof typeof Ionicons.glyphMap }> = [
-  { value: 'basic', label: 'Basic', description: 'Unspent convictions and conditional cautions', icon: 'shield-outline' },
-  { value: 'standard', label: 'Standard', description: 'Spent + unspent convictions, cautions, reprimands, warnings', icon: 'shield-checkmark-outline' },
-  { value: 'enhanced', label: 'Enhanced', description: 'Standard + local police information', icon: 'shield' },
+const DBS_TYPES: Array<{
+  value: DBSType;
+  label: string;
+  description: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}> = [
+  {
+    value: 'basic',
+    label: 'Basic',
+    description: 'Unspent convictions and conditional cautions',
+    icon: 'shield-outline',
+  },
+  {
+    value: 'standard',
+    label: 'Standard',
+    description: 'Spent + unspent convictions, cautions, reprimands, warnings',
+    icon: 'shield-checkmark-outline',
+  },
+  {
+    value: 'enhanced',
+    label: 'Enhanced',
+    description: 'Standard + local police information',
+    icon: 'shield',
+  },
 ];
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; color: string; bg: string }
+> = {
   pending: { label: 'Pending', color: '#D97706', bg: '#FEF3C7' },
   in_progress: { label: 'In Progress', color: '#2563EB', bg: '#DBEAFE' },
-  completed: { label: 'Verified', color: theme.colors.primaryDark, bg: theme.colors.primaryLight },
+  completed: {
+    label: 'Verified',
+    color: theme.colors.primaryDark,
+    bg: theme.colors.primaryLight,
+  },
   failed: { label: 'Failed', color: theme.colors.error, bg: '#FEE2E2' },
   expired: { label: 'Expired', color: theme.colors.error, bg: '#FEE2E2' },
 };
@@ -57,7 +88,12 @@ export const DBSCheckScreen: React.FC = () => {
   const queryClient = useQueryClient();
   const [selectedType, setSelectedType] = useState<DBSType>('basic');
 
-  const { data: dbsStatus, isLoading, error, refetch } = useQuery({
+  const {
+    data: dbsStatus,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ['dbs-check', user?.id],
     queryFn: async () => {
       return await mobileApiClient.get<DBSStatus>('/api/contractor/dbs-check');
@@ -67,7 +103,9 @@ export const DBSCheckScreen: React.FC = () => {
 
   const initiateMutation = useMutation({
     mutationFn: async (dbsType: DBSType) => {
-      return await mobileApiClient.post('/api/contractor/dbs-check', { dbsType });
+      return await mobileApiClient.post('/api/contractor/dbs-check', {
+        dbsType,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dbs-check'] });
@@ -78,7 +116,10 @@ export const DBSCheckScreen: React.FC = () => {
       );
     },
     onError: (err: unknown) => {
-      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to initiate DBS check.');
+      Alert.alert(
+        'Error',
+        err instanceof Error ? err.message : 'Failed to initiate DBS check.'
+      );
     },
   });
 
@@ -88,31 +129,51 @@ export const DBSCheckScreen: React.FC = () => {
       `Initiate a ${selectedType} DBS check? This will verify your criminal record status and add a trust badge to your profile.`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Start Check', onPress: () => initiateMutation.mutate(selectedType) },
+        {
+          text: 'Start Check',
+          onPress: () => initiateMutation.mutate(selectedType),
+        },
       ]
     );
   };
 
   if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorView message="Failed to load DBS status" onRetry={refetch} />;
+  if (error)
+    return <ErrorView message='Failed to load DBS status' onRetry={refetch} />;
 
   const check = dbsStatus?.check;
-  const statusConfig = check?.status ? STATUS_CONFIG[check.status] || STATUS_CONFIG.pending : null;
+  const statusConfig = check?.status
+    ? STATUS_CONFIG[check.status] || STATUS_CONFIG.pending
+    : null;
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
-      <ScreenHeader title="DBS Check" showBack onBack={() => navigation.goBack()} />
+      <StatusBar
+        barStyle='dark-content'
+        backgroundColor={theme.colors.backgroundSecondary}
+      />
+      <ScreenHeader
+        title='DBS Check'
+        showBack
+        onBack={() => navigation.goBack()}
+      />
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Info banner */}
         <View style={styles.infoBanner}>
-          <Ionicons name="shield-checkmark" size={24} color={theme.colors.primary} />
+          <Ionicons
+            name='shield-checkmark'
+            size={24}
+            color={theme.colors.primary}
+          />
           <View style={styles.infoBannerContent}>
-            <Text style={styles.infoBannerTitle}>Build Trust with Homeowners</Text>
+            <Text style={styles.infoBannerTitle}>
+              Build Trust with Homeowners
+            </Text>
             <Text style={styles.infoBannerText}>
-              A verified DBS check shows homeowners you are safe and trustworthy.
-              Contractors with DBS checks get up to 40% more job enquiries.
+              A verified DBS check shows homeowners you are safe and
+              trustworthy. Contractors with DBS checks get up to 40% more job
+              enquiries.
             </Text>
           </View>
         </View>
@@ -122,53 +183,97 @@ export const DBSCheckScreen: React.FC = () => {
           <View style={styles.statusCard}>
             <Text style={styles.sectionLabel}>Current Status</Text>
             <View style={styles.statusRow}>
-              <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
-                <Text style={[styles.statusText, { color: statusConfig.color }]}>{statusConfig.label}</Text>
+              <View
+                style={[
+                  styles.statusBadge,
+                  { backgroundColor: statusConfig.bg },
+                ]}
+              >
+                <Text
+                  style={[styles.statusText, { color: statusConfig.color }]}
+                >
+                  {statusConfig.label}
+                </Text>
               </View>
               {check.dbsType && (
-                <Text style={styles.dbsTypeText}>{check.dbsType.charAt(0).toUpperCase() + check.dbsType.slice(1)} Check</Text>
+                <Text style={styles.dbsTypeText}>
+                  {check.dbsType.charAt(0).toUpperCase() +
+                    check.dbsType.slice(1)}{' '}
+                  Check
+                </Text>
               )}
             </View>
             {check.certificateNumber && (
-              <Text style={styles.certNumber}>Certificate: {check.certificateNumber}</Text>
+              <Text style={styles.certNumber}>
+                Certificate: {check.certificateNumber}
+              </Text>
             )}
             {check.expiryDate && (
               <Text style={styles.expiryText}>
-                Expires: {new Date(check.expiryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                Expires:{' '}
+                {new Date(check.expiryDate).toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                })}
               </Text>
             )}
             {check.boostPercentage && check.boostPercentage > 0 && (
               <View style={styles.boostRow}>
-                <Ionicons name="trending-up" size={16} color={theme.colors.primary} />
-                <Text style={styles.boostText}>+{check.boostPercentage}% profile visibility boost</Text>
+                <Ionicons
+                  name='trending-up'
+                  size={16}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.boostText}>
+                  +{check.boostPercentage}% profile visibility boost
+                </Text>
               </View>
             )}
           </View>
         )}
 
         {/* Initiate new check */}
-        {(!check || check.status === 'expired' || check.status === 'failed') && (
+        {(!check ||
+          check.status === 'expired' ||
+          check.status === 'failed') && (
           <>
             <Text style={styles.sectionLabel}>Select Check Type</Text>
             {DBS_TYPES.map((type) => (
               <TouchableOpacity
                 key={type.value}
-                style={[styles.typeCard, selectedType === type.value && styles.typeCardSelected]}
+                style={[
+                  styles.typeCard,
+                  selectedType === type.value && styles.typeCardSelected,
+                ]}
                 onPress={() => setSelectedType(type.value)}
-                accessibilityRole="radio"
+                accessibilityRole='radio'
                 accessibilityState={{ selected: selectedType === type.value }}
               >
                 <View style={styles.typeCardHeader}>
                   <Ionicons
                     name={type.icon}
                     size={22}
-                    color={selectedType === type.value ? theme.colors.primary : theme.colors.textSecondary}
+                    color={
+                      selectedType === type.value
+                        ? theme.colors.primary
+                        : theme.colors.textSecondary
+                    }
                   />
-                  <Text style={[styles.typeLabel, selectedType === type.value && styles.typeLabelSelected]}>
+                  <Text
+                    style={[
+                      styles.typeLabel,
+                      selectedType === type.value && styles.typeLabelSelected,
+                    ]}
+                  >
                     {type.label}
                   </Text>
                   {selectedType === type.value && (
-                    <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
+                    <Ionicons
+                      name='checkmark-circle'
+                      size={20}
+                      color={theme.colors.primary}
+                    />
                   )}
                 </View>
                 <Text style={styles.typeDescription}>{type.description}</Text>
@@ -176,14 +281,23 @@ export const DBSCheckScreen: React.FC = () => {
             ))}
 
             <TouchableOpacity
-              style={[styles.initiateButton, initiateMutation.isPending && { opacity: 0.5 }]}
+              style={[
+                styles.initiateButton,
+                initiateMutation.isPending && { opacity: 0.5 },
+              ]}
               onPress={handleInitiate}
               disabled={initiateMutation.isPending}
-              accessibilityRole="button"
+              accessibilityRole='button'
             >
-              <Ionicons name="shield-checkmark" size={20} color={theme.colors.textInverse} />
+              <Ionicons
+                name='shield-checkmark'
+                size={20}
+                color={theme.colors.textInverse}
+              />
               <Text style={styles.initiateButtonText}>
-                {initiateMutation.isPending ? 'Submitting...' : 'Start DBS Check'}
+                {initiateMutation.isPending
+                  ? 'Submitting...'
+                  : 'Start DBS Check'}
               </Text>
             </TouchableOpacity>
           </>
@@ -205,8 +319,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   infoBannerContent: { flex: 1 },
-  infoBannerTitle: { fontSize: 15, fontWeight: '700', color: theme.colors.primaryDark, marginBottom: 4 },
-  infoBannerText: { fontSize: 13, color: theme.colors.textSecondary, lineHeight: 18 },
+  infoBannerTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: theme.colors.primaryDark,
+    marginBottom: 4,
+  },
+  infoBannerText: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    lineHeight: 18,
+  },
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
@@ -222,17 +345,36 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
+  },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   statusText: { fontSize: 12, fontWeight: '700' },
   dbsTypeText: { fontSize: 14, color: theme.colors.textSecondary },
-  certNumber: { fontSize: 13, color: theme.colors.textSecondary, marginBottom: 4 },
+  certNumber: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    marginBottom: 4,
+  },
   expiryText: { fontSize: 13, color: theme.colors.textSecondary },
-  boostRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
+  boostRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+  },
   boostText: { fontSize: 13, fontWeight: '600', color: theme.colors.primary },
   typeCard: {
     backgroundColor: theme.colors.surface,
@@ -243,10 +385,25 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   typeCardSelected: { borderColor: theme.colors.primary },
-  typeCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
-  typeLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary },
+  typeCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 4,
+  },
+  typeLabel: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
   typeLabelSelected: { color: theme.colors.primary },
-  typeDescription: { fontSize: 12, color: theme.colors.textSecondary, lineHeight: 17, marginLeft: 32 },
+  typeDescription: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    lineHeight: 17,
+    marginLeft: 32,
+  },
   initiateButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -257,7 +414,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     marginTop: 16,
   },
-  initiateButtonText: { color: theme.colors.textInverse, fontSize: 16, fontWeight: '700' },
+  initiateButtonText: {
+    color: theme.colors.textInverse,
+    fontSize: 16,
+    fontWeight: '700',
+  },
 });
-
-export default DBSCheckScreen;

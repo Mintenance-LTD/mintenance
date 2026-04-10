@@ -1,6 +1,6 @@
 /**
  * Bid Notification Logic
- * 
+ *
  * Handles email and database notifications for bid submissions.
  * Extracted from route.ts to improve maintainability.
  */
@@ -35,7 +35,7 @@ interface Contractor {
 /**
  * Send email notification to homeowner about new bid
  */
-export async function sendBidEmailNotification(
+async function sendBidEmailNotification(
   homeowner: Homeowner,
   contractor: Contractor,
   job: Job,
@@ -45,8 +45,28 @@ export async function sendBidEmailNotification(
     return;
   }
 
-  const contractorName = `${contractor.first_name || ''} ${contractor.last_name || ''}`.trim() || contractor.email;
-  const homeownerName = `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim() || 'Valued Client';
+  // Build contractor name — fall back to profile DB lookup if JWT has no name
+  let contractorName =
+    `${contractor.first_name || ''} ${contractor.last_name || ''}`.trim();
+  if (!contractorName) {
+    try {
+      const { serverSupabase } = await import('@/lib/api/supabaseServer');
+      const { data: profile } = await serverSupabase
+        .from('profiles')
+        .select('first_name, last_name, company_name')
+        .eq('id', contractor.id)
+        .single();
+      contractorName =
+        `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() ||
+        profile?.company_name ||
+        contractor.email;
+    } catch {
+      contractorName = contractor.email;
+    }
+  }
+  const homeownerName =
+    `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim() ||
+    'Valued Client';
   const baseUrl = getAppUrl();
   const proposalExcerpt = validatedData.proposalText.substring(0, 150);
 
@@ -69,14 +89,16 @@ export async function sendBidEmailNotification(
 /**
  * Create database notification for homeowner
  */
-export async function createBidNotification(
+async function createBidNotification(
   homeowner: Homeowner,
   contractor: Contractor,
   job: Job,
   validatedData: SubmitBidInput
 ): Promise<void> {
   try {
-    const contractorName = `${contractor.first_name || ''} ${contractor.last_name || ''}`.trim() || contractor.email;
+    const contractorName =
+      `${contractor.first_name || ''} ${contractor.last_name || ''}`.trim() ||
+      contractor.email;
 
     // Use NotificationService which handles DB insert + push notification + delivery logic
     await NotificationService.createNotification({
@@ -96,7 +118,10 @@ export async function createBidNotification(
     logger.error('Failed to create bid notification', {
       service: 'contractor',
       homeownerId: homeowner.id,
-      error: notificationError instanceof Error ? notificationError.message : 'Unknown error',
+      error:
+        notificationError instanceof Error
+          ? notificationError.message
+          : 'Unknown error',
     });
   }
 }
@@ -128,4 +153,3 @@ export async function sendBidNotifications(
   // Create database notification
   await createBidNotification(homeownerData, contractor, job, validatedData);
 }
-

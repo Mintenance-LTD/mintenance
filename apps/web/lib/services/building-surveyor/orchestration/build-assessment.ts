@@ -25,10 +25,10 @@ import type {
  * Priority score: weighted combination of urgency (40%), severity (30%),
  * and inverted safety (30%).
  */
-export function calculatePriorityScore(
+function calculatePriorityScore(
   urgency: string,
   severity: string,
-  safetyScore: number,
+  safetyScore: number
 ): number {
   const urgencyScores: Record<string, number> = {
     immediate: 100,
@@ -47,7 +47,7 @@ export function calculatePriorityScore(
   const severityScore = severityScores[severity] || 50;
 
   return Math.round(
-    urgencyScore * 0.4 + severityScore * 0.3 + (100 - safetyScore) * 0.3,
+    urgencyScore * 0.4 + severityScore * 0.3 + (100 - safetyScore) * 0.3
   );
 }
 
@@ -81,7 +81,7 @@ export async function buildFinalAssessment(
   context?: AssessmentContext,
   roboflowDetections?: RoboflowDetection[],
   visionAnalysis?: VisionAnalysisSummary | null,
-  sam3Segmentation?: SAM3SegmentationData,
+  sam3Segmentation?: SAM3SegmentationData
 ): Promise<Phase1BuildingAssessment> {
   const safetyAnalysis = SafetyAnalysisService.processSafetyHazards(
     (aiAssessment.safetyHazards || []) as Array<{
@@ -91,7 +91,7 @@ export async function buildFinalAssessment(
       description?: string;
       immediateAction?: string;
       urgency?: string;
-    }>,
+    }>
   );
 
   const complianceAnalysis = ComplianceService.processCompliance(
@@ -101,7 +101,7 @@ export async function buildFinalAssessment(
       severity?: string;
       description?: string;
       recommendation?: string;
-    }>,
+    }>
   );
 
   const insuranceRisk = InsuranceRiskService.processInsuranceRisk(
@@ -111,7 +111,7 @@ export async function buildFinalAssessment(
       impact?: string;
     }>,
     aiAssessment.riskScore,
-    aiAssessment.premiumImpact,
+    aiAssessment.premiumImpact
   );
 
   // Type-safe helpers
@@ -124,7 +124,7 @@ export async function buildFinalAssessment(
     u === 'planned' ||
     u === 'monitor';
   const isValidHomeownerExplanation = (
-    obj: unknown,
+    obj: unknown
   ): obj is HomeownerExplanation =>
     typeof obj === 'object' &&
     obj !== null &&
@@ -179,12 +179,10 @@ export async function buildFinalAssessment(
     let enrichedMaterials: import('../types').Material[] = normalizedMaterials;
     try {
       if (normalizedMaterials.length > 0) {
-        const { enrichMaterialsWithDatabase } = await import(
-          '../material-enrichment'
-        );
-        enrichedMaterials = await enrichMaterialsWithDatabase(
-          normalizedMaterials,
-        );
+        const { enrichMaterialsWithDatabase } =
+          await import('../material-enrichment');
+        enrichedMaterials =
+          await enrichMaterialsWithDatabase(normalizedMaterials);
       }
       logger.info('AFTER material enrichment in AssessmentOrchestrator', {
         service: 'AssessmentOrchestrator',
@@ -200,7 +198,7 @@ export async function buildFinalAssessment(
           materialCount: normalizedMaterials.length,
           errorName: err instanceof Error ? err.name : 'unknown',
           errorMessage: err instanceof Error ? err.message : String(err),
-        },
+        }
       );
     }
 
@@ -235,17 +233,15 @@ export async function buildFinalAssessment(
       estimatedTimeToWorsen: aiAssessment.estimatedTimeToWorsen,
       reasoning: aiAssessment.urgencyReasoning || 'Standard assessment',
       priorityScore: calculatePriorityScore(
-        isValidUrgency(aiAssessment.urgency)
-          ? aiAssessment.urgency
-          : 'monitor',
+        isValidUrgency(aiAssessment.urgency) ? aiAssessment.urgency : 'monitor',
         isValidSeverity(aiAssessment.severity)
           ? aiAssessment.severity
           : 'early',
-        safetyAnalysis.overallSafetyScore,
+        safetyAnalysis.overallSafetyScore
       ),
     },
     homeownerExplanation: isValidHomeownerExplanation(
-      aiAssessment.homeownerExplanation,
+      aiAssessment.homeownerExplanation
     )
       ? aiAssessment.homeownerExplanation
       : defaultHomeownerExplanation,

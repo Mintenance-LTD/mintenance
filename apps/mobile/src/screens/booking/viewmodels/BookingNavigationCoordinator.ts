@@ -17,7 +17,7 @@ import type { Booking } from './BookingViewModel';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyNavigation = NavigationProp<Record<string, object | undefined>>;
 
-export interface BookingNavigationActions {
+interface BookingNavigationActions {
   goBack: () => void;
   openSearch: () => void;
   openBookingDetails: (bookingId: string) => void;
@@ -57,7 +57,7 @@ export class BookingNavigationCoordinator implements BookingNavigationActions {
   openSearch = () => {
     this.haptics.light();
     this.navigation.getParent?.()?.navigate('Modal', {
-      screen: 'BookingSearch'
+      screen: 'BookingSearch',
     });
   };
 
@@ -76,7 +76,7 @@ export class BookingNavigationCoordinator implements BookingNavigationActions {
     this.haptics.selection();
     this.navigation.getParent?.()?.navigate('Modal', {
       screen: 'ContractorProfile',
-      params: { contractorId }
+      params: { contractorId },
     });
   };
 
@@ -87,7 +87,7 @@ export class BookingNavigationCoordinator implements BookingNavigationActions {
     this.haptics.light();
     this.navigation.getParent?.()?.navigate('Modal', {
       screen: 'RescheduleBooking',
-      params: { booking }
+      params: { booking },
     });
   };
 
@@ -98,7 +98,7 @@ export class BookingNavigationCoordinator implements BookingNavigationActions {
     this.haptics.light();
     this.navigation.getParent?.()?.navigate('Modal', {
       screen: 'LeaveReview',
-      params: { booking }
+      params: { booking },
     });
   };
 
@@ -108,7 +108,7 @@ export class BookingNavigationCoordinator implements BookingNavigationActions {
   openSupport = () => {
     this.haptics.selection();
     this.navigation.getParent?.()?.navigate('Modal', {
-      screen: 'HelpCenter'
+      screen: 'HelpCenter',
     });
   };
 
@@ -121,10 +121,11 @@ export class BookingNavigationCoordinator implements BookingNavigationActions {
 
       const shareContent = {
         title: 'Booking Details',
-        message: `${booking.serviceName} with ${booking.contractorName}\n` +
-                `Date: ${booking.date} at ${booking.time}\n` +
-                `Address: ${booking.address}\n` +
-                `Service ID: ${booking.serviceId}`,
+        message:
+          `${booking.serviceName} with ${booking.contractorName}\n` +
+          `Date: ${booking.date} at ${booking.time}\n` +
+          `Address: ${booking.address}\n` +
+          `Service ID: ${booking.serviceId}`,
       };
 
       await Share.share(shareContent);
@@ -138,7 +139,7 @@ export class BookingNavigationCoordinator implements BookingNavigationActions {
 /**
  * Custom hook for Booking navigation
  */
-export const useBookingNavigation = (
+const useBookingNavigation = (
   navigation: AnyNavigation
 ): BookingNavigationActions => {
   const haptics = useHaptics();
@@ -159,7 +160,7 @@ export const useBookingNavigation = (
 /**
  * Navigation route definitions for type safety
  */
-export type BookingNavigationRoutes = {
+type BookingNavigationRoutes = {
   BookingSearch: undefined;
   BookingDetails: { bookingId: string };
   ContractorProfile: { contractorId: string };
@@ -169,4 +170,3 @@ export type BookingNavigationRoutes = {
 };
 
 // Re-export AnyNavigation type alias for external usage
-export type { AnyNavigation as BookingNavigationType };

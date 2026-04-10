@@ -37,13 +37,55 @@ interface Props {
 }
 
 const DISPUTE_REASONS = [
-  { id: 'quality', label: 'Work Quality', icon: 'construct-outline' as const, iconColor: theme.colors.accent, iconBg: theme.colors.accentLight },
-  { id: 'incomplete', label: 'Incomplete Work', icon: 'alert-circle-outline' as const, iconColor: theme.colors.error, iconBg: '#FEE2E2' },
-  { id: 'damage', label: 'Property Damage', icon: 'warning-outline' as const, iconColor: theme.colors.error, iconBg: '#FEE2E2' },
-  { id: 'timeline', label: 'Timeline Violation', icon: 'time-outline' as const, iconColor: '#3B82F6', iconBg: '#DBEAFE' },
-  { id: 'communication', label: 'Communication', icon: 'chatbubble-outline' as const, iconColor: '#8B5CF6', iconBg: '#EDE9FE' },
-  { id: 'pricing', label: 'Pricing Dispute', icon: 'cash-outline' as const, iconColor: theme.colors.primary, iconBg: theme.colors.primaryLight },
-  { id: 'other', label: 'Other', icon: 'ellipsis-horizontal-outline' as const, iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary },
+  {
+    id: 'quality',
+    label: 'Work Quality',
+    icon: 'construct-outline' as const,
+    iconColor: theme.colors.accent,
+    iconBg: theme.colors.accentLight,
+  },
+  {
+    id: 'incomplete',
+    label: 'Incomplete Work',
+    icon: 'alert-circle-outline' as const,
+    iconColor: theme.colors.error,
+    iconBg: '#FEE2E2',
+  },
+  {
+    id: 'damage',
+    label: 'Property Damage',
+    icon: 'warning-outline' as const,
+    iconColor: theme.colors.error,
+    iconBg: '#FEE2E2',
+  },
+  {
+    id: 'timeline',
+    label: 'Timeline Violation',
+    icon: 'time-outline' as const,
+    iconColor: '#3B82F6',
+    iconBg: '#DBEAFE',
+  },
+  {
+    id: 'communication',
+    label: 'Communication',
+    icon: 'chatbubble-outline' as const,
+    iconColor: '#8B5CF6',
+    iconBg: '#EDE9FE',
+  },
+  {
+    id: 'pricing',
+    label: 'Pricing Dispute',
+    icon: 'cash-outline' as const,
+    iconColor: theme.colors.primary,
+    iconBg: theme.colors.primaryLight,
+  },
+  {
+    id: 'other',
+    label: 'Other',
+    icon: 'ellipsis-horizontal-outline' as const,
+    iconColor: theme.colors.textSecondary,
+    iconBg: theme.colors.backgroundSecondary,
+  },
 ];
 
 export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
@@ -52,12 +94,17 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [attachments, setAttachments] = useState<ImagePicker.ImagePickerAsset[]>([]);
+  const [attachments, setAttachments] = useState<
+    ImagePicker.ImagePickerAsset[]
+  >([]);
 
   const handleAddEvidence = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Please allow photo access to attach evidence.');
+      Alert.alert(
+        'Permission Required',
+        'Please allow photo access to attach evidence.'
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -66,12 +113,12 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
       quality: 0.7,
     });
     if (!result.canceled) {
-      setAttachments(prev => [...prev, ...result.assets].slice(0, 6));
+      setAttachments((prev) => [...prev, ...result.assets].slice(0, 6));
     }
   };
 
   const removeAttachment = (uri: string) => {
-    setAttachments(prev => prev.filter(a => a.uri !== uri));
+    setAttachments((prev) => prev.filter((a) => a.uri !== uri));
   };
 
   const handleSubmit = async () => {
@@ -81,7 +128,9 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
       return;
     }
     if (description.trim().length < 20) {
-      setFormError('Please provide at least 20 characters describing the issue.');
+      setFormError(
+        'Please provide at least 20 characters describing the issue.'
+      );
       return;
     }
 
@@ -91,7 +140,7 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
         escrow: { id: string };
       }>(`/api/jobs/${jobId}/escrow`);
 
-      const evidenceUris = attachments.map(a => a.uri);
+      const evidenceUris = attachments.map((a) => a.uri);
       await apiClient.post('/api/disputes/create', {
         escrowId: escrowResponse.escrow.id,
         reason: selectedReason,
@@ -114,16 +163,22 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScreenHeader title="Raise Dispute" showBack onBack={() => navigation.goBack()} />
+      <ScreenHeader
+        title='Raise Dispute'
+        showBack
+        onBack={() => navigation.goBack()}
+      />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Banner message={formError ?? ''} variant="error" />
+        <Banner message={formError ?? ''} variant='error' />
 
         <View style={styles.jobCard}>
           <View style={styles.jobIconWrap}>
-            <Ionicons name="briefcase-outline" size={18} color="#3B82F6" />
+            <Ionicons name='briefcase-outline' size={18} color='#3B82F6' />
           </View>
-          <Text style={styles.jobTitle} numberOfLines={1}>{jobTitle}</Text>
+          <Text style={styles.jobTitle} numberOfLines={1}>
+            {jobTitle}
+          </Text>
         </View>
 
         <Text style={styles.sectionTitle}>What's the issue?</Text>
@@ -136,22 +191,29 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
                 selectedReason === reason.id && styles.reasonCardSelected,
               ]}
               onPress={() => setSelectedReason(reason.id)}
-              accessibilityRole="button"
+              accessibilityRole='button'
               accessibilityLabel={`Dispute reason: ${reason.label}`}
               accessibilityState={{ selected: selectedReason === reason.id }}
               activeOpacity={0.7}
             >
-              <View style={[styles.reasonIconWrap, { backgroundColor: reason.iconBg }]}>
+              <View
+                style={[
+                  styles.reasonIconWrap,
+                  { backgroundColor: reason.iconBg },
+                ]}
+              >
                 <Ionicons
                   name={reason.icon}
                   size={22}
                   color={reason.iconColor}
                 />
               </View>
-              <Text style={[
-                styles.reasonLabel,
-                selectedReason === reason.id && styles.reasonLabelSelected,
-              ]}>
+              <Text
+                style={[
+                  styles.reasonLabel,
+                  selectedReason === reason.id && styles.reasonLabelSelected,
+                ]}
+              >
                 {reason.label}
               </Text>
             </TouchableOpacity>
@@ -163,11 +225,11 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
           style={styles.descriptionInput}
           multiline
           numberOfLines={6}
-          placeholder="Please describe the issue in detail. Include any relevant dates, communications, or evidence..."
+          placeholder='Please describe the issue in detail. Include any relevant dates, communications, or evidence...'
           placeholderTextColor={theme.colors.textTertiary}
           value={description}
           onChangeText={setDescription}
-          textAlignVertical="top"
+          textAlignVertical='top'
         />
         <Text style={styles.charCount}>
           {description.length}/500 characters (min 20)
@@ -179,7 +241,7 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
           <FlatList
             data={attachments}
             horizontal
-            keyExtractor={item => item.uri}
+            keyExtractor={(item) => item.uri}
             showsHorizontalScrollIndicator={false}
             style={styles.thumbList}
             renderItem={({ item }) => (
@@ -188,10 +250,14 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
                 <TouchableOpacity
                   style={styles.thumbRemove}
                   onPress={() => removeAttachment(item.uri)}
-                  accessibilityRole="button"
-                  accessibilityLabel="Remove attached photo"
+                  accessibilityRole='button'
+                  accessibilityLabel='Remove attached photo'
                 >
-                  <Ionicons name="close-circle" size={20} color={theme.colors.error} />
+                  <Ionicons
+                    name='close-circle'
+                    size={20}
+                    color={theme.colors.error}
+                  />
                 </TouchableOpacity>
               </View>
             )}
@@ -201,37 +267,54 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
           style={styles.evidenceButton}
           onPress={handleAddEvidence}
           disabled={attachments.length >= 6}
-          accessibilityRole="button"
-          accessibilityLabel={attachments.length === 0 ? 'Add evidence photos' : `${attachments.length} of 6 photos added, add more`}
+          accessibilityRole='button'
+          accessibilityLabel={
+            attachments.length === 0
+              ? 'Add evidence photos'
+              : `${attachments.length} of 6 photos added, add more`
+          }
         >
-          <Ionicons name="camera-outline" size={20} color={theme.colors.textSecondary} />
+          <Ionicons
+            name='camera-outline'
+            size={20}
+            color={theme.colors.textSecondary}
+          />
           <Text style={styles.evidenceButtonText}>
-            {attachments.length === 0 ? 'Add Photos' : `${attachments.length}/6 photos added`}
+            {attachments.length === 0
+              ? 'Add Photos'
+              : `${attachments.length}/6 photos added`}
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
+          style={[
+            styles.submitButton,
+            submitting && styles.submitButtonDisabled,
+          ]}
           onPress={handleSubmit}
           disabled={submitting}
-          accessibilityRole="button"
-          accessibilityLabel="Submit dispute"
+          accessibilityRole='button'
+          accessibilityLabel='Submit dispute'
           accessibilityState={{ disabled: submitting }}
         >
           {submitting ? (
             <LoadingSpinner />
           ) : (
             <>
-              <Ionicons name="shield-outline" size={20} color={theme.colors.textInverse} />
+              <Ionicons
+                name='shield-outline'
+                size={20}
+                color={theme.colors.textInverse}
+              />
               <Text style={styles.submitButtonText}>Submit Dispute</Text>
             </>
           )}
         </TouchableOpacity>
 
         <Text style={styles.disclaimer}>
-          Disputes are reviewed by our team within 48 hours. Both parties will be
-          notified and given the opportunity to respond. Payment will remain in
-          escrow until the dispute is resolved.
+          Disputes are reviewed by our team within 48 hours. Both parties will
+          be notified and given the opportunity to respond. Payment will remain
+          in escrow until the dispute is resolved.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -378,7 +461,12 @@ const styles = StyleSheet.create({
   },
   thumbList: { marginBottom: 12 },
   thumbWrap: { marginRight: 10, position: 'relative' },
-  thumb: { width: 72, height: 72, borderRadius: 12, backgroundColor: theme.colors.backgroundSecondary },
+  thumb: {
+    width: 72,
+    height: 72,
+    borderRadius: 12,
+    backgroundColor: theme.colors.backgroundSecondary,
+  },
   thumbRemove: { position: 'absolute', top: -6, right: -6 },
   evidenceButton: {
     flexDirection: 'row',
@@ -393,7 +481,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 20,
   },
-  evidenceButtonText: { fontSize: 15, color: theme.colors.textPrimary, fontWeight: '600' },
+  evidenceButtonText: {
+    fontSize: 15,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+  },
 });
-
-export default DisputeScreen;

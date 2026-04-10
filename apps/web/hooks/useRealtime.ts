@@ -1,14 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { createClient, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
-
-// Placeholder fallbacks prevent module-level throws during next build.
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 /** Per-client connection limit to prevent resource exhaustion (Issue 37) */
 const MAX_CHANNELS_PER_CLIENT = 10;
@@ -17,10 +12,13 @@ const activeChannels = new Set<string>();
 /**
  * Payload for realtime database changes
  */
-export type RealtimePayload<T extends Record<string, unknown> = Record<string, unknown>> = 
-  RealtimePostgresChangesPayload<T>;
+type RealtimePayload<
+  T extends Record<string, unknown> = Record<string, unknown>,
+> = RealtimePostgresChangesPayload<T>;
 
-export interface RealtimeConfig<T extends Record<string, unknown> = Record<string, unknown>> {
+interface RealtimeConfig<
+  T extends Record<string, unknown> = Record<string, unknown>,
+> {
   table: string;
   schema?: string;
   filter?: string;
@@ -30,7 +28,7 @@ export interface RealtimeConfig<T extends Record<string, unknown> = Record<strin
   onError?: (error: Error) => void;
 }
 
-export interface RealtimeStatus {
+interface RealtimeStatus {
   connected: boolean;
   error: string | null;
   lastUpdate: Date | null;
@@ -38,7 +36,7 @@ export interface RealtimeStatus {
 
 /**
  * Hook for real-time database updates using Supabase Realtime
- * 
+ *
  * @example
  * ```typescript
  * const { status, subscribe, unsubscribe } = useRealtime({
@@ -66,7 +64,7 @@ export function useRealtime(config?: RealtimeConfig) {
 
   const subscribe = useCallback((customConfig?: RealtimeConfig) => {
     const finalConfig = customConfig || configRef.current;
-    
+
     if (!finalConfig) {
       logger.error('No configuration provided for realtime subscription');
       return;
@@ -74,27 +72,41 @@ export function useRealtime(config?: RealtimeConfig) {
 
     // Unsubscribe from existing channel
     if (channelRef.current) {
-      const prevName = (channelRef.current as unknown as { topic?: string }).topic;
+      const prevName = (channelRef.current as unknown as { topic?: string })
+        .topic;
       if (prevName) activeChannels.delete(prevName);
       channelRef.current.unsubscribe();
     }
 
-    const { table, schema = 'public', filter, onInsert, onUpdate, onDelete, onError } = finalConfig;
+    const {
+      table,
+      schema = 'public',
+      filter,
+      onInsert,
+      onUpdate,
+      onDelete,
+      onError,
+    } = finalConfig;
 
     // Create a unique channel name
     const channelName = `${schema}:${table}${filter ? `:${filter}` : ''}`;
 
     // Enforce per-client connection limit
-    if (activeChannels.size >= MAX_CHANNELS_PER_CLIENT && !activeChannels.has(channelName)) {
+    if (
+      activeChannels.size >= MAX_CHANNELS_PER_CLIENT &&
+      !activeChannels.has(channelName)
+    ) {
       logger.error('Realtime channel limit reached', {
         max: MAX_CHANNELS_PER_CLIENT,
         active: activeChannels.size,
         rejected: channelName,
       });
-      onError?.(new Error(`Channel limit (${MAX_CHANNELS_PER_CLIENT}) reached`));
+      onError?.(
+        new Error(`Channel limit (${MAX_CHANNELS_PER_CLIENT}) reached`)
+      );
       return;
     }
-    
+
     const channel = supabase
       .channel(channelName)
       .on(
@@ -106,7 +118,7 @@ export function useRealtime(config?: RealtimeConfig) {
           filter,
         },
         (payload) => {
-          setStatus(prev => ({
+          setStatus((prev) => ({
             ...prev,
             lastUpdate: new Date(),
           }));
@@ -127,14 +139,14 @@ export function useRealtime(config?: RealtimeConfig) {
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           activeChannels.add(channelName);
-          setStatus(prev => ({
+          setStatus((prev) => ({
             ...prev,
             connected: true,
             error: null,
           }));
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           activeChannels.delete(channelName);
-          setStatus(prev => ({
+          setStatus((prev) => ({
             ...prev,
             connected: false,
             error: `Connection ${status}`,
@@ -197,7 +209,7 @@ type PresenceState = Record<string, PresenceUserData[]>;
 /**
  * Hook for realtime presence (track online users)
  */
-export function useRealtimePresence(roomId: string) {
+function useRealtimePresence(roomId: string) {
   const [presenceState, setPresenceState] = useState<PresenceState>({});
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
@@ -265,7 +277,9 @@ interface BroadcastMessage {
 /**
  * Hook for realtime broadcast (send and receive messages)
  */
-export function useRealtimeBroadcast<T extends BroadcastMessage = BroadcastMessage>(channelName: string) {
+function useRealtimeBroadcast<T extends BroadcastMessage = BroadcastMessage>(
+  channelName: string
+) {
   const [messages, setMessages] = useState<T[]>([]);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
@@ -274,7 +288,7 @@ export function useRealtimeBroadcast<T extends BroadcastMessage = BroadcastMessa
 
     channel
       .on('broadcast', { event: 'message' }, (payload) => {
-        setMessages(prev => [...prev, payload.payload as T]);
+        setMessages((prev) => [...prev, payload.payload as T]);
       })
       .subscribe();
 
@@ -300,4 +314,3 @@ export function useRealtimeBroadcast<T extends BroadcastMessage = BroadcastMessa
     send,
   };
 }
-

@@ -6,7 +6,7 @@
 
 import type { VisionLabelsToolResult, ToolRun, ToolRunSummary } from './types';
 
-export interface VisionLabelsToolParams {
+interface VisionLabelsToolParams {
   imageUrls: string[];
 }
 
@@ -14,9 +14,9 @@ export interface VisionLabelsToolParams {
  * Run vision_labels tool: returns empty result (Google Vision removed).
  * GPT-4o now handles all visual analysis directly via image URLs in prompts.
  */
-export async function runVisionLabelsTool(params: VisionLabelsToolParams): Promise<
-  ToolRun<VisionLabelsToolResult>
-> {
+export async function runVisionLabelsTool(
+  params: VisionLabelsToolParams
+): Promise<ToolRun<VisionLabelsToolResult>> {
   const { imageUrls } = params;
   const normalizedUrls = imageUrls.slice(0, 5);
 

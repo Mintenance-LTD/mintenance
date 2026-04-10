@@ -32,7 +32,6 @@ import type { SceneGraph } from './scene_graph/types';
 
 // Re-export public types for backward compatibility
 export type {
-  SceneNodeAttributes,
   SceneNode,
   SceneEdge,
   NodeType,
@@ -64,9 +63,10 @@ export class SceneGraphBuilder {
   ): SceneGraph {
     try {
       // 1. Create nodes from SAM 3 (prioritized) or Roboflow detections
-      const detectionNodes = sam3Segmentation && sam3Segmentation.success
-        ? createNodesFromSAM3(sam3Segmentation)
-        : createNodesFromDetections(roboflowDetections);
+      const detectionNodes =
+        sam3Segmentation && sam3Segmentation.success
+          ? createNodesFromSAM3(sam3Segmentation)
+          : createNodesFromDetections(roboflowDetections);
 
       // 2. Create nodes from vision analysis (NLP extraction)
       const visionNodes = createNodesFromVisionAnalysis(visionAnalysis);

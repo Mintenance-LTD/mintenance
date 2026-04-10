@@ -29,7 +29,7 @@ export const CACHE_DURATIONS = {
 /**
  * Generic cache query wrapper for easy caching of any function
  */
-export function cacheQuery<T>(
+function cacheQuery<T>(
   key: string | string[],
   queryFn: () => Promise<T>,
   revalidate: number = CACHE_DURATIONS.SHORT,

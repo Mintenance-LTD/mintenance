@@ -9,14 +9,19 @@
 
 'use client';
 
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  useInfiniteQuery,
+} from '@tanstack/react-query';
 import { queryKeys } from '@/lib/react-query-client';
 import { logger } from '@mintenance/shared';
 
 /**
  * Message data type
  */
-export interface Message {
+interface Message {
   id: string;
   conversation_id: string;
   sender_id: string;
@@ -34,7 +39,7 @@ export interface Message {
 /**
  * Conversation data type
  */
-export interface Conversation {
+interface Conversation {
   id: string;
   job_id: string;
   participants: string[];
@@ -53,7 +58,9 @@ async function fetchConversations(): Promise<Conversation[]> {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to fetch conversations' }));
+    const error = await response
+      .json()
+      .catch(() => ({ error: 'Failed to fetch conversations' }));
     throw new Error(error.error || 'Failed to fetch conversations');
   }
 
@@ -64,19 +71,27 @@ async function fetchConversations(): Promise<Conversation[]> {
 /**
  * Fetch messages for a conversation
  */
-async function fetchMessages(conversationId: string, cursor?: string): Promise<{
+async function fetchMessages(
+  conversationId: string,
+  cursor?: string
+): Promise<{
   messages: Message[];
   nextCursor?: string;
 }> {
   const params = new URLSearchParams();
   if (cursor) params.set('cursor', cursor);
 
-  const response = await fetch(`/api/messages/${conversationId}?${params.toString()}`, {
-    credentials: 'include',
-  });
+  const response = await fetch(
+    `/api/messages/${conversationId}?${params.toString()}`,
+    {
+      credentials: 'include',
+    }
+  );
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to fetch messages' }));
+    const error = await response
+      .json()
+      .catch(() => ({ error: 'Failed to fetch messages' }));
     throw new Error(error.error || 'Failed to fetch messages');
   }
 
@@ -92,7 +107,9 @@ async function sendMessage(messageData: {
   recipient_id?: string;
   content: string;
 }): Promise<Message> {
-  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+  const csrfToken = document
+    .querySelector('meta[name="csrf-token"]')
+    ?.getAttribute('content');
 
   const response = await fetch('/api/messages', {
     method: 'POST',
@@ -105,7 +122,9 @@ async function sendMessage(messageData: {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to send message' }));
+    const error = await response
+      .json()
+      .catch(() => ({ error: 'Failed to send message' }));
     throw new Error(error.error || 'Failed to send message');
   }
 
@@ -117,7 +136,9 @@ async function sendMessage(messageData: {
  * Mark message as read
  */
 async function markAsRead(messageId: string): Promise<void> {
-  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+  const csrfToken = document
+    .querySelector('meta[name="csrf-token"]')
+    ?.getAttribute('content');
 
   const response = await fetch(`/api/messages/${messageId}/read`, {
     method: 'POST',
@@ -179,7 +200,8 @@ export function useConversations() {
 export function useMessages(conversationId: string | null | undefined) {
   return useInfiniteQuery({
     queryKey: queryKeys.messages.conversation(conversationId || ''),
-    queryFn: ({ pageParam }: { pageParam: string | undefined }) => fetchMessages(conversationId!, pageParam),
+    queryFn: ({ pageParam }: { pageParam: string | undefined }) =>
+      fetchMessages(conversationId!, pageParam),
     enabled: !!conversationId,
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
@@ -212,14 +234,18 @@ export function useSendMessage() {
     onMutate: async (newMessage) => {
       // Optimistically add message to cache if we have a conversation_id
       if (newMessage.conversation_id) {
-        const conversationKey = queryKeys.messages.conversation(newMessage.conversation_id);
+        const conversationKey = queryKeys.messages.conversation(
+          newMessage.conversation_id
+        );
 
         await queryClient.cancelQueries({ queryKey: conversationKey });
 
         const previousMessages = queryClient.getQueryData(conversationKey);
 
         queryClient.setQueryData(conversationKey, (old: unknown) => {
-          const typedOld = old as { pages?: Array<{ messages: Message[] }> } | undefined;
+          const typedOld = old as
+            | { pages?: Array<{ messages: Message[] }> }
+            | undefined;
           if (!typedOld?.pages) return old;
 
           const optimisticMessage: Message = {
@@ -263,7 +289,9 @@ export function useSendMessage() {
     },
     onSuccess: (sentMessage) => {
       // Invalidate conversations list (last message updated)
-      queryClient.invalidateQueries({ queryKey: queryKeys.messages.conversations() });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.messages.conversations(),
+      });
 
       // Invalidate the specific conversation
       queryClient.invalidateQueries({
@@ -300,7 +328,9 @@ export function useMarkAsRead() {
     mutationFn: markAsRead,
     onSuccess: () => {
       // Invalidate conversations to update unread count
-      queryClient.invalidateQueries({ queryKey: queryKeys.messages.conversations() });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.messages.conversations(),
+      });
     },
   });
 }

@@ -7,7 +7,7 @@ import { restoreQueryClient, persistQueryClient } from '../lib/queryClient';
 import { logger } from '../utils/logger';
 import { useNetworkState } from './useNetworkState';
 
-export interface AppInitializationState {
+interface AppInitializationState {
   isInitializing: boolean;
   isReady: boolean;
   initializationError: Error | null;
@@ -18,7 +18,7 @@ export interface AppInitializationState {
   };
 }
 
-export interface InitializationStep {
+interface InitializationStep {
   name: string;
   description: string;
   execute: () => Promise<void>;
@@ -72,7 +72,7 @@ const INITIALIZATION_STEPS: InitializationStep[] = [
   },
 ];
 
-export const useAppInitialization = () => {
+const useAppInitialization = () => {
   const [state, setState] = React.useState<AppInitializationState>({
     isInitializing: true,
     isReady: false,
@@ -260,7 +260,7 @@ export const useAppInitialization = () => {
 /**
  * HOC to ensure app is properly initialized before rendering content
  */
-export const withAppInitialization = <P extends object>(
+const withAppInitialization = <P extends object>(
   Component: React.ComponentType<P>
 ) => {
   return React.forwardRef<unknown, P>((props, ref) => {
@@ -293,13 +293,13 @@ export const withAppInitialization = <P extends object>(
  * For now, we'll export them as component definitions that can be implemented
  * in the actual screen components.
  */
-export const createAppInitializationScreen = () => {
+const createAppInitializationScreen = () => {
   // This would return a proper React Native component
   // Implementation would be in a separate screen component file
   return null;
 };
 
-export const createInitializationErrorScreen = () => {
+const createInitializationErrorScreen = () => {
   // This would return a proper React Native component
   // Implementation would be in a separate screen component file
   return null;

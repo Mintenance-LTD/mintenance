@@ -63,7 +63,7 @@ const Skeleton: React.FC<SkeletonProps> = ({
 };
 
 // Pre-built skeleton components for common UI patterns
-export const SkeletonText: React.FC<{ lines?: number }> = ({ lines = 1 }) => (
+const SkeletonText: React.FC<{ lines?: number }> = ({ lines = 1 }) => (
   <View>
     {Array.from({ length: lines }, (_, index) => (
       <Skeleton
@@ -76,15 +76,15 @@ export const SkeletonText: React.FC<{ lines?: number }> = ({ lines = 1 }) => (
   </View>
 );
 
-export const SkeletonAvatar: React.FC<{ size?: number }> = ({ size = 50 }) => (
+const SkeletonAvatar: React.FC<{ size?: number }> = ({ size = 50 }) => (
   <Skeleton width={size} height={size} borderRadius={size / 2} />
 );
 
-export const SkeletonButton: React.FC = () => (
+const SkeletonButton: React.FC = () => (
   <Skeleton height={48} borderRadius={20} />
 );
 
-export const SkeletonCard: React.FC = () => (
+const SkeletonCard: React.FC = () => (
   <View style={styles.cardContainer}>
     <View style={styles.cardHeader}>
       <SkeletonAvatar size={48} />
@@ -102,7 +102,7 @@ export const SkeletonCard: React.FC = () => (
   </View>
 );
 
-export const SkeletonPostCard: React.FC = () => (
+const SkeletonPostCard: React.FC = () => (
   <View style={styles.postCard}>
     {/* Post Header */}
     <View style={styles.postHeader}>
@@ -157,7 +157,7 @@ export const SkeletonMessageCard: React.FC = () => (
   </View>
 );
 
-export const SkeletonStatCard: React.FC = () => (
+const SkeletonStatCard: React.FC = () => (
   <View style={styles.statCard}>
     <Skeleton height={24} width='60%' style={{ marginBottom: 8 }} />
     <Skeleton height={14} width='80%' style={{ marginBottom: 8 }} />
@@ -332,5 +332,3 @@ const styles = StyleSheet.create({
     }),
   },
 });
-
-export default Skeleton;

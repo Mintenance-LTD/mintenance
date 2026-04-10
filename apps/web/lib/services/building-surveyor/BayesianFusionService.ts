@@ -1,17 +1,17 @@
 /**
  * Bayesian Fusion Service
- * 
+ *
  * Implements Bayesian logistic regression for fusing evidence from multiple sources:
  * - SAM 3 segmentation evidence
  * - GPT-4 Vision assessment
  * - Scene graph features
- * 
+ *
  * Outputs:
  * - Mean: μ = E[damage_probability]
  * - Variance: σ² = Var[damage_probability]
  * - Confidence interval: [μ - 2σ, μ + 2σ]
  * - Uncertainty level: 'low' | 'medium' | 'high'
- * 
+ *
  * Based on paper methodology: Bayesian Fusion → Uncertainty Calibration
  */
 
@@ -23,7 +23,7 @@ import type { Phase1BuildingAssessment } from './types';
 import type { SceneGraphFeatures } from './scene_graph_features';
 import { getActiveDomain } from './config/BuildingSurveyorConfig';
 
-export interface FusionInput {
+interface FusionInput {
   sam3Evidence?: {
     damageTypes: Record<string, { confidence: number; numInstances: number }>;
     overallConfidence: number;
@@ -37,7 +37,7 @@ export interface FusionInput {
   sceneGraphFeatures?: SceneGraphFeatures | null;
 }
 
-export interface FusionOutput {
+interface FusionOutput {
   mean: number; // μ = E[damage_probability]
   variance: number; // σ² = Var[damage_probability]
   confidenceInterval: [number, number]; // [μ - 2σ, μ + 2σ]
@@ -52,7 +52,7 @@ export interface FusionOutput {
 export class BayesianFusionService {
   // Default weights for evidence sources (fallback if file doesn't exist)
   private static readonly DEFAULT_EVIDENCE_WEIGHTS = {
-    sam3: 0.40, // SAM 3 provides precise segmentation
+    sam3: 0.4, // SAM 3 provides precise segmentation
     gpt4: 0.35, // GPT-4 provides semantic understanding
     sceneGraph: 0.25, // Scene graph provides structural relationships
   };
@@ -78,8 +78,11 @@ export class BayesianFusionService {
     }
 
     // Try to load from file
-    const weightsPath = join(process.cwd(), 'apps/web/lib/services/building-surveyor/fusion_weights.json');
-    
+    const weightsPath = join(
+      process.cwd(),
+      'apps/web/lib/services/building-surveyor/fusion_weights.json'
+    );
+
     if (existsSync(weightsPath)) {
       try {
         const fileContent = readFileSync(weightsPath, 'utf-8');
@@ -154,13 +157,13 @@ export class BayesianFusionService {
   // Prior variance for each source (epistemic uncertainty)
   private static readonly SOURCE_VARIANCES = {
     sam3: 0.05, // Low variance (precise segmentation)
-    gpt4: 0.10, // Medium variance (semantic interpretation)
+    gpt4: 0.1, // Medium variance (semantic interpretation)
     sceneGraph: 0.08, // Medium-low variance (structural analysis)
   };
 
   /**
    * Fuse evidence from multiple sources using Bayesian logistic regression
-   * 
+   *
    * @param input - Evidence from SAM 3, GPT-4, and scene graph
    * @returns Bayesian fusion output with mean, variance, and confidence interval
    */
@@ -169,29 +172,35 @@ export class BayesianFusionService {
       // 1. Extract individual probabilities and confidences
       const sam3Prob = this.extractSAM3Probability(input.sam3Evidence);
       const gpt4Prob = this.extractGPT4Probability(input.gpt4Assessment);
-      const sceneGraphProb = this.extractSceneGraphProbability(input.sceneGraphFeatures);
+      const sceneGraphProb = this.extractSceneGraphProbability(
+        input.sceneGraphFeatures
+      );
 
       // 2. Compute weighted mean (Bayesian posterior mean)
       // μ = Σ w_i * p_i / Σ w_i
       const weights = this.computeAdaptiveWeights(input);
       const totalWeight = weights.sam3 + weights.gpt4 + weights.sceneGraph;
-      
+
       let mean = 0;
       if (totalWeight > 0) {
-        mean = (
-          weights.sam3 * sam3Prob.probability +
-          weights.gpt4 * gpt4Prob.probability +
-          weights.sceneGraph * sceneGraphProb.probability
-        ) / totalWeight;
+        mean =
+          (weights.sam3 * sam3Prob.probability +
+            weights.gpt4 * gpt4Prob.probability +
+            weights.sceneGraph * sceneGraphProb.probability) /
+          totalWeight;
       } else {
         // Fallback: use average if no weights
-        mean = (sam3Prob.probability + gpt4Prob.probability + sceneGraphProb.probability) / 3;
+        mean =
+          (sam3Prob.probability +
+            gpt4Prob.probability +
+            sceneGraphProb.probability) /
+          3;
       }
 
       // 3. Compute variance using law of total variance
       // σ² = E[Var(Y|X)] + Var(E[Y|X])
       // Where Y is damage probability, X is evidence sources
-      
+
       // Epistemic variance (uncertainty in weights)
       const epistemicVariance = this.computeEpistemicVariance(weights, {
         sam3: sam3Prob,
@@ -267,7 +276,10 @@ export class BayesianFusionService {
       totalWeight += weight;
     }
 
-    const probability = totalWeight > 0 ? totalConfidence / totalWeight : sam3Evidence.overallConfidence;
+    const probability =
+      totalWeight > 0
+        ? totalConfidence / totalWeight
+        : sam3Evidence.overallConfidence;
     const confidence = sam3Evidence.overallConfidence;
 
     return { probability, confidence };
@@ -285,15 +297,16 @@ export class BayesianFusionService {
 
     // Map severity to probability
     const severityMap: Record<string, number> = {
-      'none': 0.1,
-      'minor': 0.3,
-      'moderate': 0.6,
-      'severe': 0.9,
-      'critical': 0.95,
+      none: 0.1,
+      minor: 0.3,
+      moderate: 0.6,
+      severe: 0.9,
+      critical: 0.95,
     };
 
-    const baseProbability = severityMap[gpt4Assessment.severity.toLowerCase()] || 0.5;
-    
+    const baseProbability =
+      severityMap[gpt4Assessment.severity.toLowerCase()] || 0.5;
+
     // Adjust for critical hazards
     const probability = gpt4Assessment.hasCriticalHazards
       ? Math.min(1, baseProbability + 0.1)
@@ -313,7 +326,9 @@ export class BayesianFusionService {
     }
 
     // Use compact feature vector if available (12-dim)
-    const features = sceneGraphFeatures.compactFeatureVector || sceneGraphFeatures.featureVector;
+    const features =
+      sceneGraphFeatures.compactFeatureVector ||
+      sceneGraphFeatures.featureVector;
 
     // Extract key indicators from features
     // Feature 0: has_critical_hazard
@@ -324,8 +339,11 @@ export class BayesianFusionService {
     const damageSeverity = features[5] || 0;
 
     // Combine into probability
-    const probability = Math.min(1, (hasCriticalHazard * 0.4 + crackDensity * 0.3 + damageSeverity * 0.3));
-    
+    const probability = Math.min(
+      1,
+      hasCriticalHazard * 0.4 + crackDensity * 0.3 + damageSeverity * 0.3
+    );
+
     // Confidence from spatial features
     const confidence = sceneGraphFeatures.spatialFeatures.avgNodeConfidence;
 
@@ -382,7 +400,10 @@ export class BayesianFusionService {
     // Where σ_i² is the source variance
     const sam3Var = weights.sam3 * weights.sam3 * this.SOURCE_VARIANCES.sam3;
     const gpt4Var = weights.gpt4 * weights.gpt4 * this.SOURCE_VARIANCES.gpt4;
-    const sceneGraphVar = weights.sceneGraph * weights.sceneGraph * this.SOURCE_VARIANCES.sceneGraph;
+    const sceneGraphVar =
+      weights.sceneGraph *
+      weights.sceneGraph *
+      this.SOURCE_VARIANCES.sceneGraph;
 
     return sam3Var + gpt4Var + sceneGraphVar;
   }
@@ -400,14 +421,23 @@ export class BayesianFusionService {
   ): number {
     // Aleatoric variance = Σ w_i² * p_i * (1 - p_i)
     // This is the variance of a Bernoulli distribution weighted by confidence
-    const sam3Aleatoric = weights.sam3 * weights.sam3 * 
-      probabilities.sam3.probability * (1 - probabilities.sam3.probability) * 
+    const sam3Aleatoric =
+      weights.sam3 *
+      weights.sam3 *
+      probabilities.sam3.probability *
+      (1 - probabilities.sam3.probability) *
       (1 - probabilities.sam3.confidence);
-    const gpt4Aleatoric = weights.gpt4 * weights.gpt4 * 
-      probabilities.gpt4.probability * (1 - probabilities.gpt4.probability) * 
+    const gpt4Aleatoric =
+      weights.gpt4 *
+      weights.gpt4 *
+      probabilities.gpt4.probability *
+      (1 - probabilities.gpt4.probability) *
       (1 - probabilities.gpt4.confidence);
-    const sceneGraphAleatoric = weights.sceneGraph * weights.sceneGraph * 
-      probabilities.sceneGraph.probability * (1 - probabilities.sceneGraph.probability) * 
+    const sceneGraphAleatoric =
+      weights.sceneGraph *
+      weights.sceneGraph *
+      probabilities.sceneGraph.probability *
+      (1 - probabilities.sceneGraph.probability) *
       (1 - probabilities.sceneGraph.confidence);
 
     return sam3Aleatoric + gpt4Aleatoric + sceneGraphAleatoric;
@@ -431,4 +461,3 @@ export class BayesianFusionService {
     return 'high';
   }
 }
-

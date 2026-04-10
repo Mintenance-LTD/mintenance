@@ -15,20 +15,25 @@ import { YOLOCorrectionService } from './YOLOCorrectionService';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { loadClassNames } from './yolo-class-names';
-import type { EnhancedDataset, TrainingDataOptions } from './yolo-training-enhanced/types';
+import type {
+  EnhancedDataset,
+  TrainingDataOptions,
+} from './yolo-training-enhanced/types';
 import { downloadImage } from './yolo-training-enhanced/image-downloader';
-import { getBaseDatasetPaths, copyBaseDataset } from './yolo-training-enhanced/base-dataset-io';
+import {
+  getBaseDatasetPaths,
+  copyBaseDataset,
+} from './yolo-training-enhanced/base-dataset-io';
 import { generateDataYaml } from './yolo-training-enhanced/data-yaml-generator';
 import { validateTrainingData } from './yolo-training-enhanced/validator';
 import { exportCurriculumData } from './yolo-training-enhanced/curriculum-exporter';
-
-export type { EnhancedDataset, TrainingDataOptions } from './yolo-training-enhanced/types';
 
 /**
  * Enhanced YOLO Training Data Service
  */
 export class YOLOTrainingDataEnhanced {
-  private static readonly DEFAULT_BASE_DATASET = 'Building Defect Detection 7.v2i.yolov11';
+  private static readonly DEFAULT_BASE_DATASET =
+    'Building Defect Detection 7.v2i.yolov11';
 
   /**
    * Export corrections with enhanced features
@@ -58,7 +63,7 @@ export class YOLOTrainingDataEnhanced {
       const valDir = join(outputDir, 'val');
       const testDir = join(outputDir, 'test');
 
-      [trainDir, valDir, testDir].forEach(dir => {
+      [trainDir, valDir, testDir].forEach((dir) => {
         mkdirSync(join(dir, 'images'), { recursive: true });
         mkdirSync(join(dir, 'labels'), { recursive: true });
       });
@@ -86,7 +91,8 @@ export class YOLOTrainingDataEnhanced {
       }
 
       // 4. Get approved corrections
-      const corrections = await YOLOCorrectionService.getApprovedCorrections(maxCorrections);
+      const corrections =
+        await YOLOCorrectionService.getApprovedCorrections(maxCorrections);
 
       logger.info('Processing corrections', {
         service: 'YOLOTrainingDataEnhanced',
@@ -183,29 +189,23 @@ export class YOLOTrainingDataEnhanced {
       // 7. Prepare results
       const result: EnhancedDataset = {
         trainImages: [
-          ...baseDataset.trainImages.map(f => `base_${f}`),
-          ...Array.from({ length: correctionStats.train }, (_, i) =>
-            `correction_${corrections[i]?.id}.jpg`
+          ...baseDataset.trainImages.map((f) => `base_${f}`),
+          ...Array.from(
+            { length: correctionStats.train },
+            (_, i) => `correction_${corrections[i]?.id}.jpg`
           ).filter(Boolean),
         ],
         trainLabels: [
-          ...baseDataset.trainLabels.map(f => `base_${f}`),
-          ...Array.from({ length: correctionStats.train }, (_, i) =>
-            `correction_${corrections[i]?.id}.txt`
+          ...baseDataset.trainLabels.map((f) => `base_${f}`),
+          ...Array.from(
+            { length: correctionStats.train },
+            (_, i) => `correction_${corrections[i]?.id}.txt`
           ).filter(Boolean),
         ],
-        valImages: [
-          ...baseDataset.valImages.map(f => `base_${f}`),
-        ],
-        valLabels: [
-          ...baseDataset.valLabels.map(f => `base_${f}`),
-        ],
-        testImages: [
-          ...baseDataset.testImages.map(f => `base_${f}`),
-        ],
-        testLabels: [
-          ...baseDataset.testLabels.map(f => `base_${f}`),
-        ],
+        valImages: [...baseDataset.valImages.map((f) => `base_${f}`)],
+        valLabels: [...baseDataset.valLabels.map((f) => `base_${f}`)],
+        testImages: [...baseDataset.testImages.map((f) => `base_${f}`)],
+        testLabels: [...baseDataset.testLabels.map((f) => `base_${f}`)],
         dataYaml,
         stats: {
           baseDataset: {

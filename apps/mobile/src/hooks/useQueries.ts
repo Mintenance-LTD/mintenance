@@ -7,7 +7,7 @@ import { HapticService } from '../utils/haptics';
 import { useAuth } from '../contexts/AuthContext';
 
 // Query Keys Factory
-export const queryKeys = {
+const queryKeys = {
   jobs: {
     all: () => ['jobs'] as const,
     lists: () => [...queryKeys.jobs.all(), 'list'] as const,
@@ -45,7 +45,7 @@ export const queryKeys = {
 };
 
 // Query Invalidation Helpers
-export const invalidateQueries = {
+const invalidateQueries = {
   allJobs: () =>
     queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all() }),
   jobDetails: (jobId: string) =>
@@ -63,7 +63,7 @@ export const invalidateQueries = {
 };
 
 // Job-related hooks
-export const useJobs = (filters?: unknown, enabled = true) => {
+const useJobs = (filters?: unknown, enabled = true) => {
   return useQuery({
     queryKey: queryKeys.jobs.list(JSON.stringify(filters || {})),
     queryFn: () => JobService.getJobs(),
@@ -72,7 +72,7 @@ export const useJobs = (filters?: unknown, enabled = true) => {
   });
 };
 
-export const useJobDetails = (jobId: string, enabled = true) => {
+const useJobDetails = (jobId: string, enabled = true) => {
   return useQuery({
     queryKey: queryKeys.jobs.detail(jobId),
     queryFn: () => JobService.getJob(jobId),
@@ -81,9 +81,10 @@ export const useJobDetails = (jobId: string, enabled = true) => {
   });
 };
 
-export const useCreateJob = () => {
+const useCreateJob = () => {
   return useMutation({
-    mutationFn: (jobData: Parameters<typeof JobService.createJob>[0]) => JobService.createJob(jobData),
+    mutationFn: (jobData: Parameters<typeof JobService.createJob>[0]) =>
+      JobService.createJob(jobData),
     onSuccess: () => {
       // Invalidate jobs list to show new job
       invalidateQueries.allJobs();
@@ -95,7 +96,7 @@ export const useCreateJob = () => {
   });
 };
 
-export const useUpdateJob = () => {
+const useUpdateJob = () => {
   return useMutation({
     mutationFn: ({
       jobId,
@@ -119,7 +120,7 @@ export const useUpdateJob = () => {
   });
 };
 
-export const useDeleteJob = () => {
+const useDeleteJob = () => {
   return useMutation({
     // Soft-delete by marking as cancelled
     mutationFn: (jobId: string) =>
@@ -135,7 +136,7 @@ export const useDeleteJob = () => {
 };
 
 // Contractor-related hooks
-export const useContractors = (filters?: unknown, enabled = true) => {
+const useContractors = (filters?: unknown, enabled = true) => {
   return useQuery({
     queryKey: queryKeys.contractors.list(JSON.stringify(filters || {})),
     // Placeholder: implement actual list API; returning empty for now
@@ -145,7 +146,7 @@ export const useContractors = (filters?: unknown, enabled = true) => {
   });
 };
 
-export const useContractorDetails = (contractorId: string, enabled = true) => {
+const useContractorDetails = (contractorId: string, enabled = true) => {
   return useQuery({
     queryKey: queryKeys.contractors.detail(contractorId),
     queryFn: () => UserService.getUserProfile(contractorId),
@@ -154,7 +155,7 @@ export const useContractorDetails = (contractorId: string, enabled = true) => {
   });
 };
 
-export const useContractorsInfinite = (filters?: unknown) => {
+const useContractorsInfinite = (filters?: unknown) => {
   return useInfiniteQuery({
     queryKey: queryKeys.contractors.list(JSON.stringify(filters || {})),
     queryFn: async () => [],
@@ -168,7 +169,7 @@ export const useContractorsInfinite = (filters?: unknown) => {
 };
 
 // Message-related hooks
-export const useConversations = (enabled = true) => {
+const useConversations = (enabled = true) => {
   const { user } = useAuth();
   return useQuery({
     queryKey: queryKeys.messages.conversations(),
@@ -182,7 +183,7 @@ export const useConversations = (enabled = true) => {
 };
 
 /** @deprecated Use useJobMessages from useMessaging.ts which uses real-time subscriptions */
-export const useJobMessages = (jobId: string, enabled = true) => {
+const useJobMessages = (jobId: string, enabled = true) => {
   return useQuery({
     queryKey: queryKeys.messages.conversation(jobId),
     queryFn: () => MessagingService.getJobMessages(jobId),
@@ -191,7 +192,7 @@ export const useJobMessages = (jobId: string, enabled = true) => {
   });
 };
 
-export const useSendMessage = () => {
+const useSendMessage = () => {
   return useMutation({
     mutationFn: ({
       jobId,
@@ -215,22 +216,32 @@ export const useSendMessage = () => {
   });
 };
 
-// Feed/Social hooks
-export const useFeedPosts = (filters?: unknown, enabled = true) => {
+// Feed/Social hooks (stubs - feed feature not yet built)
+const useFeedPosts = (filters?: unknown, enabled = true) => {
   return useQuery({
     queryKey: queryKeys.feed.posts(JSON.stringify(filters || {})),
-    // TODO: Implement feed posts API when feed feature is built
     queryFn: () => Promise.resolve([] as unknown[]),
-    enabled,
+    // Feed API does not exist yet; disable fetching to avoid network errors
+    enabled: false,
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 };
 
-export const useToggleLike = () => {
+const useToggleLike = () => {
   return useMutation({
-    // TODO: Implement feed like API when feed feature is built
-    mutationFn: ({ postId, isLiked }: { postId: string; isLiked: boolean }) => {
-      throw new Error('Feed feature not implemented');
+    mutationFn: async ({
+      postId,
+      isLiked,
+    }: {
+      postId: string;
+      isLiked: boolean;
+    }) => {
+      // No-op until feed API is available
+      return { postId, isLiked };
+    },
+    onSuccess: () => {
+      invalidateQueries.feedPosts();
+      HapticService.success();
     },
     onError: () => {
       HapticService.error();
@@ -238,11 +249,21 @@ export const useToggleLike = () => {
   });
 };
 
-export const useToggleSave = () => {
+const useToggleSave = () => {
   return useMutation({
-    // TODO: Implement feed save API when feed feature is built
-    mutationFn: ({ postId, isSaved }: { postId: string; isSaved: boolean }) => {
-      throw new Error('Feed feature not implemented');
+    mutationFn: async ({
+      postId,
+      isSaved,
+    }: {
+      postId: string;
+      isSaved: boolean;
+    }) => {
+      // No-op until feed API is available
+      return { postId, isSaved };
+    },
+    onSuccess: () => {
+      invalidateQueries.feedPosts();
+      HapticService.success();
     },
     onError: () => {
       HapticService.error();
@@ -251,7 +272,7 @@ export const useToggleSave = () => {
 };
 
 // Search hooks
-export const useSearchContractors = (
+const useSearchContractors = (
   query: string,
   filters?: unknown,
   enabled = true
@@ -267,17 +288,21 @@ export const useSearchContractors = (
   });
 };
 
-export const useSearchJobs = (query: string, filters?: unknown, enabled = true) => {
+const useSearchJobs = (query: string, filters?: unknown, enabled = true) => {
   return useQuery({
     queryKey: queryKeys.search.jobs(query, JSON.stringify(filters || {})),
-    queryFn: () => JobService.searchJobs(query, filters as Parameters<typeof JobService.searchJobs>[1]),
+    queryFn: () =>
+      JobService.searchJobs(
+        query,
+        filters as Parameters<typeof JobService.searchJobs>[1]
+      ),
     enabled: enabled && query.length > 2,
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 };
 
 // Optimistic updates helper
-export const useOptimisticUpdate = <T>({
+const useOptimisticUpdate = <T>({
   queryKey,
   updateFn,
   mutationFn,

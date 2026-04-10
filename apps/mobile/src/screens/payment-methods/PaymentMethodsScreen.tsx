@@ -8,7 +8,18 @@
  */
 
 import React from 'react';
-import { ScrollView, TouchableOpacity, Text, View, StyleSheet, Alert, ActivityIndicator, RefreshControl, Platform, StatusBar } from 'react-native';
+import {
+  ScrollView,
+  TouchableOpacity,
+  Text,
+  View,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  RefreshControl,
+  Platform,
+  StatusBar,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader } from '../../components/shared';
@@ -28,35 +39,36 @@ const BRAND_ICONS: Record<string, string> = {
   discover: 'card',
 };
 
-export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({ navigation }) => {
+export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({
+  navigation,
+}) => {
   const vm = usePaymentMethodsViewModel();
 
   const handleDeleteCard = (cardId: string, last4: string) => {
-    Alert.alert(
-      'Remove Card',
-      `Remove card ending in ${last4}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await vm.deleteCard(cardId);
-            } catch {
-              Alert.alert('Error', 'Failed to remove card');
-            }
-          },
+    Alert.alert('Remove Card', `Remove card ending in ${last4}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await vm.deleteCard(cardId);
+          } catch {
+            Alert.alert('Error', 'Failed to remove card');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
+      <StatusBar
+        barStyle='dark-content'
+        backgroundColor={theme.colors.backgroundSecondary}
+      />
       <ScreenHeader
-        title="Payment Method"
+        title='Payment Method'
         onBackPress={() => navigation.goBack()}
       />
 
@@ -64,7 +76,12 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({ navi
         style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={vm.loading} onRefresh={vm.refresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+          <RefreshControl
+            refreshing={vm.loading}
+            onRefresh={vm.refresh}
+            tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
+          />
         }
       >
         {/* Saved Cards */}
@@ -72,7 +89,7 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({ navi
 
         {vm.loading && vm.savedCards.length === 0 ? (
           <View style={styles.loadingBox}>
-            <ActivityIndicator size="small" color={theme.colors.primary} />
+            <ActivityIndicator size='small' color={theme.colors.primary} />
             <Text style={styles.loadingText}>Loading payment methods...</Text>
           </View>
         ) : vm.savedCards.length > 0 ? (
@@ -85,24 +102,29 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({ navi
               ]}
               onPress={() => vm.selectMethod(card.id)}
               onLongPress={() => handleDeleteCard(card.id, card.last4)}
-              accessibilityRole="radio"
+              accessibilityRole='radio'
               accessibilityLabel={`${card.brand} ending in ${card.last4}`}
               accessibilityState={{ selected: vm.selectedMethod === card.id }}
             >
               <View style={styles.cardLeft}>
                 <View style={styles.cardIconBox}>
                   <Ionicons
-                    name={(BRAND_ICONS[card.brand.toLowerCase()] || 'card') as keyof typeof Ionicons.glyphMap}
+                    name={
+                      (BRAND_ICONS[card.brand.toLowerCase()] ||
+                        'card') as keyof typeof Ionicons.glyphMap
+                    }
                     size={24}
                     color={theme.colors.textSecondary}
                   />
                 </View>
                 <View>
                   <Text style={styles.cardBrand}>
-                    {card.brand.charAt(0).toUpperCase() + card.brand.slice(1)} **** {card.last4}
+                    {card.brand.charAt(0).toUpperCase() + card.brand.slice(1)}{' '}
+                    **** {card.last4}
                   </Text>
                   <Text style={styles.cardExpiry}>
-                    Expires {String(card.expiryMonth).padStart(2, '0')}/{card.expiryYear}
+                    Expires {String(card.expiryMonth).padStart(2, '0')}/
+                    {card.expiryYear}
                   </Text>
                 </View>
               </View>
@@ -112,17 +134,23 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({ navi
                     <Text style={styles.defaultText}>Default</Text>
                   </View>
                 )}
-                <View style={[
-                  styles.radio,
-                  vm.selectedMethod === card.id && styles.radioSelected,
-                ]} />
+                <View
+                  style={[
+                    styles.radio,
+                    vm.selectedMethod === card.id && styles.radioSelected,
+                  ]}
+                />
               </View>
             </TouchableOpacity>
           ))
         ) : !vm.loading ? (
           <View style={styles.emptyBox}>
             <View style={styles.emptyIconWrap}>
-              <Ionicons name="card-outline" size={28} color={theme.colors.primary} />
+              <Ionicons
+                name='card-outline'
+                size={28}
+                color={theme.colors.primary}
+              />
             </View>
             <Text style={styles.emptyText}>No cards saved yet</Text>
           </View>
@@ -133,13 +161,15 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({ navi
           style={styles.addCardTrigger}
           onPress={() => navigation.navigate('AddPaymentMethod' as never)}
         >
-          <Ionicons name="add-circle-outline" size={20} color={theme.colors.primary} />
+          <Ionicons
+            name='add-circle-outline'
+            size={20}
+            color={theme.colors.primary}
+          />
           <Text style={styles.addCardText}>Add New Card</Text>
         </TouchableOpacity>
 
-        {vm.error && (
-          <Text style={styles.errorText}>{vm.error}</Text>
-        )}
+        {vm.error && <Text style={styles.errorText}>{vm.error}</Text>}
       </ScrollView>
     </SafeAreaView>
   );
@@ -163,7 +193,12 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 12,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -177,7 +212,12 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 10,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -194,13 +234,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
-  cardBrand: { fontSize: 15, fontWeight: '500', color: theme.colors.textPrimary },
+  cardBrand: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: theme.colors.textPrimary,
+  },
   cardExpiry: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2 },
   cardRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  defaultBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: theme.colors.backgroundSecondary },
-  defaultText: { fontSize: 12, fontWeight: '600', color: theme.colors.textPrimary },
-  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: theme.colors.border },
-  radioSelected: { borderColor: theme.colors.primary, backgroundColor: theme.colors.primary },
+  defaultBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: theme.colors.backgroundSecondary,
+  },
+  defaultText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+  radio: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+  },
+  radioSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary,
+  },
   emptyBox: {
     borderRadius: 16,
     backgroundColor: theme.colors.surface,
@@ -209,7 +271,12 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 12,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -232,12 +299,20 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     marginBottom: 8,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
   addCardText: { fontSize: 15, fontWeight: '600', color: theme.colors.primary },
-  errorText: { fontSize: 14, color: theme.colors.error, textAlign: 'center', marginTop: 12 },
+  errorText: {
+    fontSize: 14,
+    color: theme.colors.error,
+    textAlign: 'center',
+    marginTop: 12,
+  },
 });
-
-export default PaymentMethodsScreen;

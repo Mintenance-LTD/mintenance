@@ -4,9 +4,9 @@ import React from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from './Icon';
 
-export type NotificationTone = 'success' | 'info' | 'warning' | 'error';
+type NotificationTone = 'success' | 'info' | 'warning' | 'error';
 
-export interface NotificationBannerProps {
+interface NotificationBannerProps {
   tone?: NotificationTone;
   title?: string;
   message: string;
@@ -16,7 +16,10 @@ export interface NotificationBannerProps {
   style?: React.CSSProperties;
 }
 
-const toneMap: Record<NotificationTone, { icon: string; color: string; background: string; border: string }> = {
+const toneMap: Record<
+  NotificationTone,
+  { icon: string; color: string; background: string; border: string }
+> = {
   success: {
     icon: 'checkCircle',
     color: theme.colors.success,
@@ -56,7 +59,7 @@ export function NotificationBanner({
 
   return (
     <div
-      role="status"
+      role='status'
       className={className}
       style={{
         display: 'flex',
@@ -98,9 +101,9 @@ export function NotificationBanner({
       </div>
       {onDismiss && (
         <button
-          type="button"
+          type='button'
           onClick={onDismiss}
-          aria-label="Dismiss notification"
+          aria-label='Dismiss notification'
           style={{
             border: 'none',
             background: 'transparent',
@@ -109,10 +112,9 @@ export function NotificationBanner({
             padding: theme.spacing[1],
           }}
         >
-          <Icon name="x" size={16} color={theme.colors.textSecondary} />
+          <Icon name='x' size={16} color={theme.colors.textSecondary} />
         </button>
       )}
     </div>
   );
 }
-

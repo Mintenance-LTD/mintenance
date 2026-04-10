@@ -5,12 +5,11 @@
  * the Continuum Memory MLP chains.
  */
 
-import { ActivationFunctions, type ActivationType } from '../ActivationFunctions';
-import type {
-  MemoryParameters,
-  MLPConfig,
-  LayerParameters,
-} from '../types';
+import {
+  ActivationFunctions,
+  type ActivationType,
+} from '../ActivationFunctions';
+import type { MemoryParameters, MLPConfig, LayerParameters } from '../types';
 
 /**
  * Apply MLP forward pass to input
@@ -43,7 +42,7 @@ export function applyMLP(
 /**
  * Create random layer parameters using Xavier/Glorot initialization
  */
-export function createRandomLayer(
+function createRandomLayer(
   inputSize: number,
   outputSize: number,
   layerIndex: number

@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { OptimizedImage } from '../optimized/OptimizedImage';
 import { theme } from '../../theme';
 
-export interface HostCardProps {
+interface HostCardProps {
   avatar?: string;
   name: string;
   subtitle?: string;
@@ -27,88 +27,96 @@ export interface HostCardProps {
   testID?: string;
 }
 
-export const HostCard: React.FC<HostCardProps> = memo(({
-  avatar,
-  name,
-  subtitle,
-  rating,
-  metadata,
-  onPress,
-  actionLabel,
-  actionIcon = 'chevron-forward',
-  style,
-  testID,
-}) => {
-  const content = (
-    <View style={[styles.container, style]} testID={testID}>
-      {/* Avatar */}
-      <View style={styles.avatarContainer}>
-        {avatar ? (
-          <OptimizedImage
-            source={{ uri: avatar }}
-            style={styles.avatar}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-          />
-        ) : (
-          <View style={styles.avatarFallback}>
-            <Text style={styles.avatarInitial}>
-              {name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {/* Info */}
-      <View style={styles.infoContainer}>
-        <View style={styles.nameRow}>
-          <Text style={styles.name} numberOfLines={1}>{name}</Text>
-          {rating !== undefined && (
-            <View style={styles.ratingInline}>
-              <Ionicons name="star" size={12} color={theme.colors.accent} />
-              <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
+export const HostCard: React.FC<HostCardProps> = memo(
+  ({
+    avatar,
+    name,
+    subtitle,
+    rating,
+    metadata,
+    onPress,
+    actionLabel,
+    actionIcon = 'chevron-forward',
+    style,
+    testID,
+  }) => {
+    const content = (
+      <View style={[styles.container, style]} testID={testID}>
+        {/* Avatar */}
+        <View style={styles.avatarContainer}>
+          {avatar ? (
+            <OptimizedImage
+              source={{ uri: avatar }}
+              style={styles.avatar}
+              contentFit='cover'
+              cachePolicy='memory-disk'
+            />
+          ) : (
+            <View style={styles.avatarFallback}>
+              <Text style={styles.avatarInitial}>
+                {name.charAt(0).toUpperCase()}
+              </Text>
             </View>
           )}
         </View>
-        {subtitle && (
-          <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
-        )}
-        {metadata && (
-          <Text style={styles.metadata} numberOfLines={1}>{metadata}</Text>
+
+        {/* Info */}
+        <View style={styles.infoContainer}>
+          <View style={styles.nameRow}>
+            <Text style={styles.name} numberOfLines={1}>
+              {name}
+            </Text>
+            {rating !== undefined && (
+              <View style={styles.ratingInline}>
+                <Ionicons name='star' size={12} color={theme.colors.accent} />
+                <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
+              </View>
+            )}
+          </View>
+          {subtitle && (
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          )}
+          {metadata && (
+            <Text style={styles.metadata} numberOfLines={1}>
+              {metadata}
+            </Text>
+          )}
+        </View>
+
+        {/* Action */}
+        {(onPress || actionLabel) && (
+          <View style={styles.actionContainer}>
+            {actionLabel && (
+              <Text style={styles.actionLabel}>{actionLabel}</Text>
+            )}
+            <Ionicons
+              name={actionIcon}
+              size={20}
+              color={theme.colors.textSecondary}
+            />
+          </View>
         )}
       </View>
-
-      {/* Action */}
-      {(onPress || actionLabel) && (
-        <View style={styles.actionContainer}>
-          {actionLabel && (
-            <Text style={styles.actionLabel}>{actionLabel}</Text>
-          )}
-          <Ionicons
-            name={actionIcon}
-            size={20}
-            color={theme.colors.textSecondary}
-          />
-        </View>
-      )}
-    </View>
-  );
-
-  if (onPress) {
-    return (
-      <TouchableOpacity
-        onPress={onPress}
-        activeOpacity={0.7}
-        accessibilityRole="button"
-        accessibilityLabel={`View ${name}'s profile`}
-      >
-        {content}
-      </TouchableOpacity>
     );
-  }
 
-  return content;
-});
+    if (onPress) {
+      return (
+        <TouchableOpacity
+          onPress={onPress}
+          activeOpacity={0.7}
+          accessibilityRole='button'
+          accessibilityLabel={`View ${name}'s profile`}
+        >
+          {content}
+        </TouchableOpacity>
+      );
+    }
+
+    return content;
+  }
+);
 
 HostCard.displayName = 'HostCard';
 
@@ -189,5 +197,3 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
 });
-
-export default HostCard;

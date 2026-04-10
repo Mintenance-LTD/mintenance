@@ -7,6 +7,4 @@
  * Use GoogleMapContainer directly only when you need SSR or have special requirements
  */
 
-export { GoogleMapContainer } from './GoogleMapContainer';
 export { DynamicGoogleMap } from './DynamicGoogleMap';
-

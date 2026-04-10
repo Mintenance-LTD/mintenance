@@ -20,44 +20,61 @@ function getPurify(): typeof DOMPurify {
   // Server-side: Only executed in Node.js environment
   // This code path should never be reached in client bundles
   // Using string-based require to prevent static analysis by bundlers
-   
+
   const requireFunc = typeof require !== 'undefined' ? require : null;
   if (!requireFunc) {
-    throw new Error('require is not available - this should only run server-side');
+    throw new Error(
+      'require is not available - this should only run server-side'
+    );
   }
-  
+
   // Use indirect require to prevent static analysis
   const jsdomModule = requireFunc('jsdom');
   const { JSDOM } = jsdomModule;
   const domWindow = new JSDOM('').window;
   purify = DOMPurify(domWindow as unknown as Window & typeof globalThis);
-  
+
   return purify;
 }
 
 /**
  * Sanitize HTML content to prevent XSS attacks
  * Works in both server and client environments
- * 
+ *
  * Note: For server-side usage in API routes, prefer using sanitizeHtmlServer
  * from @/lib/serverSanitizer for better compatibility with bundlers
  */
-export function sanitizeHtml(input: string, options?: {
-  allowedTags?: string[];
-  allowedAttributes?: string[];
-  maxLength?: number;
-}): string {
+export function sanitizeHtml(
+  input: string,
+  options?: {
+    allowedTags?: string[];
+    allowedAttributes?: string[];
+    maxLength?: number;
+  }
+): string {
   if (!input || typeof input !== 'string') {
     return '';
   }
 
   // Truncate if too long
   const maxLength = options?.maxLength || 10000;
-  const truncated = input.length > maxLength ? input.substring(0, maxLength) : input;
+  const truncated =
+    input.length > maxLength ? input.substring(0, maxLength) : input;
 
   // Configure DOMPurify
   const config = {
-    ALLOWED_TAGS: options?.allowedTags || ['p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'h1', 'h2', 'h3'],
+    ALLOWED_TAGS: options?.allowedTags || [
+      'p',
+      'br',
+      'strong',
+      'em',
+      'ul',
+      'ol',
+      'li',
+      'h1',
+      'h2',
+      'h3',
+    ],
     ALLOWED_ATTR: options?.allowedAttributes || [],
     ALLOW_DATA_ATTR: false,
     ALLOW_UNKNOWN_PROTOCOLS: false,
@@ -94,7 +111,7 @@ export function sanitizeText(input: string, maxLength?: number): string {
 export function sanitizeJobDescription(input: string): string {
   return sanitizeHtml(input, {
     allowedTags: ['p', 'br', 'strong', 'em', 'ul', 'ol', 'li'],
-    maxLength: 5000
+    maxLength: 5000,
   });
 }
 
@@ -104,7 +121,7 @@ export function sanitizeJobDescription(input: string): string {
 export function sanitizeContractorBio(input: string): string {
   return sanitizeHtml(input, {
     allowedTags: ['p', 'br', 'strong', 'em'],
-    maxLength: 2000
+    maxLength: 2000,
   });
 }
 
@@ -137,7 +154,8 @@ export function sanitizeEmail(input: string): string {
   }
 
   // RFC 5322 compliant email regex (simplified but more robust)
-  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  const emailRegex =
+    /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
   if (!emailRegex.test(email)) {
     throw new Error('Invalid email format');
@@ -156,11 +174,11 @@ export function sanitizePhone(input: string): string {
 
   // Remove all non-digit characters
   const digits = input.replace(/\D/g, '');
-  
+
   if (!digits) {
     throw new Error('Invalid phone number format');
   }
-  
+
   // Phone number validation (10-14 digits to support international numbers)
   if (digits.length < 10 || digits.length > 14) {
     throw new Error('Invalid phone number format');
@@ -194,7 +212,7 @@ export function sanitizeUrl(input: string): string {
 
   try {
     const url = new URL(input);
-    
+
     // Only allow http and https protocols
     if (!['http:', 'https:'].includes(url.protocol)) {
       throw new Error('Invalid protocol');
@@ -208,43 +226,45 @@ export function sanitizeUrl(input: string): string {
 
 /**
  * Escapes SQL wildcards and special characters for use in ILIKE queries.
- * 
+ *
  * Protects against SQL injection attacks like:
  * - Input: "%' OR '1'='1" → Escaped: "\%' OR '1'='1"
  * - Input: "test_%" → Escaped: "test\_\%"
- * 
+ *
  * @param input - User-provided search term
  * @returns Safely escaped string suitable for SQL ILIKE patterns
  */
-export function escapeSQLWildcards(input: string): string {
+function escapeSQLWildcards(input: string): string {
   if (!input) return '';
 
-  return input
-    // Escape backslashes first (must be first to avoid double-escaping)
-    .replace(/\\/g, '\\\\')
-    // Escape SQL wildcards
-    .replace(/%/g, '\\%')
-    .replace(/_/g, '\\_')
-    // Escape single quotes for SQL string safety
-    .replace(/'/g, "''");
+  return (
+    input
+      // Escape backslashes first (must be first to avoid double-escaping)
+      .replace(/\\/g, '\\\\')
+      // Escape SQL wildcards
+      .replace(/%/g, '\\%')
+      .replace(/_/g, '\\_')
+      // Escape single quotes for SQL string safety
+      .replace(/'/g, "''")
+  );
 }
 
 /**
  * Sanitizes and escapes user input for safe use in SQL ILIKE queries.
- * 
+ *
  * This is a two-step process:
  * 1. Remove XSS/HTML injection attempts (via sanitizeText)
  * 2. Escape SQL wildcards and special characters
- * 
+ *
  * @param input - User-provided search term
  * @returns Sanitized and SQL-safe search term
- * 
+ *
  * @example
  * ```typescript
  * const userInput = "%' OR '1'='1 <script>alert('xss')</script>";
  * const safe = sanitizeForSQL(userInput);
  * // Result: "\%' OR '1'='1 "
- * 
+ *
  * // Use in Supabase query:
  * .ilike('column_name', `%${safe}%`)
  * ```

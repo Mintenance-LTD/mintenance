@@ -80,7 +80,7 @@ export async function analyzeJob(
   }
 }
 
-export function generateFallbackJobAnalysis(): JobAnalysis {
+function generateFallbackJobAnalysis(): JobAnalysis {
   return {
     category: 'general-maintenance',
     urgency: 'medium',

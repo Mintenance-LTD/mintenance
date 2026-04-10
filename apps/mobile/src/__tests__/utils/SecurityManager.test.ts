@@ -9,8 +9,8 @@ import { Alert } from 'react-native';
 // Mock dependencies
 jest.mock('react-native', () => ({
   Alert: {
-    alert: jest.fn()
-  }
+    alert: jest.fn(),
+  },
 }));
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -28,13 +28,13 @@ jest.mock('expo-secure-store', () => ({
 }));
 
 jest.mock('../../utils/SqlInjectionProtection', () => ({
-  scanForSqlInjection: jest.fn()
+  scanForSqlInjection: jest.fn(),
 }));
 
 jest.mock('../../middleware/InputValidationMiddleware', () => ({
   validateText: jest.fn(),
   validateEmail: jest.fn(),
-  validateRateLimit: jest.fn()
+  validateRateLimit: jest.fn(),
 }));
 
 jest.mock('../../utils/logger', () => ({
@@ -42,13 +42,13 @@ jest.mock('../../utils/logger', () => ({
     error: jest.fn(),
     warn: jest.fn(),
     info: jest.fn(),
-    debug: jest.fn()
-  }
+    debug: jest.fn(),
+  },
 }));
 
 // Mock expo-file-system
 jest.mock('expo-file-system', () => ({
-  getInfoAsync: jest.fn()
+  getInfoAsync: jest.fn(),
 }));
 
 const FileSystem = require('expo-file-system');
@@ -92,35 +92,44 @@ describe('SecurityManager', () => {
       const mockValidationResult = {
         isValid: true,
         errors: [],
-        sanitized: 'sanitized text'
+        sanitized: 'sanitized text',
       };
 
-      (InputValidationMiddleware.validateText as jest.Mock).mockReturnValue(mockValidationResult);
-      (SqlInjectionProtection.scanForSqlInjection as jest.Mock).mockReturnValue({
-        isSafe: true,
-        threats: []
-      });
+      (InputValidationMiddleware.validateText as jest.Mock).mockReturnValue(
+        mockValidationResult
+      );
+      (SqlInjectionProtection.scanForSqlInjection as jest.Mock).mockReturnValue(
+        {
+          isSafe: true,
+          threats: [],
+        }
+      );
 
       const result = SecurityManager.validateTextInput('test input', {
         maxLength: 100,
         minLength: 5,
-        fieldName: 'username'
+        fieldName: 'username',
       });
 
-      expect(InputValidationMiddleware.validateText).toHaveBeenCalledWith('test input', {
-        maxLength: 100,
-        minLength: 5,
-        pattern: undefined,
-        allowEmpty: false,
-        sanitize: true,
-        fieldName: 'username'
-      });
+      expect(InputValidationMiddleware.validateText).toHaveBeenCalledWith(
+        'test input',
+        {
+          maxLength: 100,
+          minLength: 5,
+          pattern: undefined,
+          allowEmpty: false,
+          sanitize: true,
+          fieldName: 'username',
+        }
+      );
 
-      expect(SqlInjectionProtection.scanForSqlInjection).toHaveBeenCalledWith('test input');
+      expect(SqlInjectionProtection.scanForSqlInjection).toHaveBeenCalledWith(
+        'test input'
+      );
       expect(result).toEqual({
         isValid: true,
         errors: [],
-        sanitized: 'sanitized text'
+        sanitized: 'sanitized text',
       });
     });
 
@@ -128,15 +137,19 @@ describe('SecurityManager', () => {
       (InputValidationMiddleware.validateText as jest.Mock).mockReturnValue({
         isValid: true,
         errors: [],
-        sanitized: 'test'
+        sanitized: 'test',
       });
 
-      (SqlInjectionProtection.scanForSqlInjection as jest.Mock).mockReturnValue({
-        isSafe: false,
-        threats: ['SQL injection detected: DROP TABLE']
-      });
+      (SqlInjectionProtection.scanForSqlInjection as jest.Mock).mockReturnValue(
+        {
+          isSafe: false,
+          threats: ['SQL injection detected: DROP TABLE'],
+        }
+      );
 
-      const result = SecurityManager.validateTextInput("'; DROP TABLE users; --");
+      const result = SecurityManager.validateTextInput(
+        "'; DROP TABLE users; --"
+      );
 
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('SQL injection detected: DROP TABLE');
@@ -146,43 +159,53 @@ describe('SecurityManager', () => {
       (InputValidationMiddleware.validateText as jest.Mock).mockReturnValue({
         isValid: true,
         errors: [],
-        sanitized: 'test123'
+        sanitized: 'test123',
       });
 
-      (SqlInjectionProtection.scanForSqlInjection as jest.Mock).mockReturnValue({
-        isSafe: true,
-        threats: []
-      });
+      (SqlInjectionProtection.scanForSqlInjection as jest.Mock).mockReturnValue(
+        {
+          isSafe: true,
+          threats: [],
+        }
+      );
 
       const pattern = /^[a-zA-Z0-9]+$/;
       SecurityManager.validateTextInput('test123', { pattern });
 
-      expect(InputValidationMiddleware.validateText).toHaveBeenCalledWith('test123', {
-        pattern,
-        allowEmpty: false,
-        sanitize: true,
-        fieldName: undefined,
-        maxLength: undefined,
-        minLength: undefined
-      });
+      expect(InputValidationMiddleware.validateText).toHaveBeenCalledWith(
+        'test123',
+        {
+          pattern,
+          allowEmpty: false,
+          sanitize: true,
+          fieldName: undefined,
+          maxLength: undefined,
+          minLength: undefined,
+        }
+      );
     });
 
     it('should combine middleware and SQL injection errors', () => {
       (InputValidationMiddleware.validateText as jest.Mock).mockReturnValue({
         isValid: false,
         errors: ['Text too short'],
-        sanitized: 'test'
+        sanitized: 'test',
       });
 
-      (SqlInjectionProtection.scanForSqlInjection as jest.Mock).mockReturnValue({
-        isSafe: false,
-        threats: ['Suspicious pattern detected']
-      });
+      (SqlInjectionProtection.scanForSqlInjection as jest.Mock).mockReturnValue(
+        {
+          isSafe: false,
+          threats: ['Suspicious pattern detected'],
+        }
+      );
 
       const result = SecurityManager.validateTextInput('test');
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toEqual(['Text too short', 'Suspicious pattern detected']);
+      expect(result.errors).toEqual([
+        'Text too short',
+        'Suspicious pattern detected',
+      ]);
     });
   });
 
@@ -191,14 +214,18 @@ describe('SecurityManager', () => {
       const mockResult = {
         isValid: true,
         errors: [],
-        sanitized: 'test@example.com'
+        sanitized: 'test@example.com',
       };
 
-      (InputValidationMiddleware.validateEmail as jest.Mock).mockReturnValue(mockResult);
+      (InputValidationMiddleware.validateEmail as jest.Mock).mockReturnValue(
+        mockResult
+      );
 
       const result = SecurityManager.validateEmail('test@example.com');
 
-      expect(InputValidationMiddleware.validateEmail).toHaveBeenCalledWith('test@example.com');
+      expect(InputValidationMiddleware.validateEmail).toHaveBeenCalledWith(
+        'test@example.com'
+      );
       expect(result).toEqual(mockResult);
     });
 
@@ -206,10 +233,12 @@ describe('SecurityManager', () => {
       const mockResult = {
         isValid: false,
         errors: ['Invalid email format'],
-        sanitized: 'invalid-email'
+        sanitized: 'invalid-email',
       };
 
-      (InputValidationMiddleware.validateEmail as jest.Mock).mockReturnValue(mockResult);
+      (InputValidationMiddleware.validateEmail as jest.Mock).mockReturnValue(
+        mockResult
+      );
 
       const result = SecurityManager.validateEmail('invalid-email');
 
@@ -229,49 +258,63 @@ describe('SecurityManager', () => {
       const result = SecurityManager.validatePassword('Short1!');
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Password must be at least 8 characters long');
+      expect(result.errors).toContain(
+        'Password must be at least 8 characters long'
+      );
     });
 
     it('should require uppercase letter', () => {
       const result = SecurityManager.validatePassword('lowercase123!');
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Password must contain at least one uppercase letter');
+      expect(result.errors).toContain(
+        'Password must contain at least one uppercase letter'
+      );
     });
 
     it('should require lowercase letter', () => {
       const result = SecurityManager.validatePassword('UPPERCASE123!');
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Password must contain at least one lowercase letter');
+      expect(result.errors).toContain(
+        'Password must contain at least one lowercase letter'
+      );
     });
 
     it('should require number', () => {
       const result = SecurityManager.validatePassword('NoNumbers!');
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Password must contain at least one number');
+      expect(result.errors).toContain(
+        'Password must contain at least one number'
+      );
     });
 
     it('should require special character', () => {
       const result = SecurityManager.validatePassword('NoSpecial123');
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Password must contain at least one special character');
+      expect(result.errors).toContain(
+        'Password must contain at least one special character'
+      );
     });
 
     it('should reject common passwords', () => {
       const result = SecurityManager.validatePassword('password');
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Password is too common. Please choose a stronger password');
+      expect(result.errors).toContain(
+        'Password is too common. Please choose a stronger password'
+      );
     });
 
     it('should reject common passwords case-insensitively', () => {
       const result = SecurityManager.validatePassword('PASSWORD');
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Password is too common. Please choose a stronger password');
+      expect(result.errors).toContain(
+        'Password is too common. Please choose a stronger password'
+      );
     });
 
     it('should return all validation errors for weak password', () => {
@@ -289,14 +332,15 @@ describe('SecurityManager', () => {
         size: 1024 * 1024, // 1MB
       });
 
-      const result = await SecurityManager.validateFileUpload('/path/to/image.jpg');
+      const result =
+        await SecurityManager.validateFileUpload('/path/to/image.jpg');
 
       expect(result.isValid).toBe(true);
       expect(result.errors).toEqual([]);
       expect(result.fileInfo).toEqual({
         size: 1024 * 1024,
         type: 'image/jpg',
-        name: 'image.jpg'
+        name: 'image.jpg',
       });
     });
 
@@ -305,7 +349,9 @@ describe('SecurityManager', () => {
         exists: false,
       });
 
-      const result = await SecurityManager.validateFileUpload('/path/to/nonexistent.jpg');
+      const result = await SecurityManager.validateFileUpload(
+        '/path/to/nonexistent.jpg'
+      );
 
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('File does not exist');
@@ -317,10 +363,13 @@ describe('SecurityManager', () => {
         size: 11 * 1024 * 1024, // 11MB (over 10MB limit)
       });
 
-      const result = await SecurityManager.validateFileUpload('/path/to/large.jpg');
+      const result =
+        await SecurityManager.validateFileUpload('/path/to/large.jpg');
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('File size exceeds maximum allowed size of 10MB');
+      expect(result.errors).toContain(
+        'File size exceeds maximum allowed size of 10MB'
+      );
     });
 
     it('should reject file without extension', async () => {
@@ -329,7 +378,9 @@ describe('SecurityManager', () => {
         size: 1024,
       });
 
-      const result = await SecurityManager.validateFileUpload('/path/to/noextension');
+      const result = await SecurityManager.validateFileUpload(
+        '/path/to/noextension'
+      );
 
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('File must have a valid extension');
@@ -341,10 +392,14 @@ describe('SecurityManager', () => {
         size: 1024,
       });
 
-      const result = await SecurityManager.validateFileUpload('/path/to/document.pdf');
+      const result = await SecurityManager.validateFileUpload(
+        '/path/to/document.pdf'
+      );
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Only JPEG, PNG, and WebP images are allowed');
+      expect(result.errors).toContain(
+        'Only JPEG, PNG, and WebP images are allowed'
+      );
     });
 
     it('should accept different image formats', async () => {
@@ -356,7 +411,9 @@ describe('SecurityManager', () => {
           size: 1024,
         });
 
-        const result = await SecurityManager.validateFileUpload(`/path/to/image.${format}`);
+        const result = await SecurityManager.validateFileUpload(
+          `/path/to/image.${format}`
+        );
 
         expect(result.isValid).toBe(true);
         expect(result.fileInfo?.type).toBe(`image/${format}`);
@@ -371,7 +428,9 @@ describe('SecurityManager', () => {
         size: 1024,
       });
 
-      const result = await SecurityManager.validateFileUpload(`/path/to/${longFilename}`);
+      const result = await SecurityManager.validateFileUpload(
+        `/path/to/${longFilename}`
+      );
 
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Filename is too long');
@@ -383,14 +442,23 @@ describe('SecurityManager', () => {
         size: 1024,
       });
 
-      const result = await SecurityManager.validateFileUpload('/path/../../../etc/passwd.jpg');
+      const result = await SecurityManager.validateFileUpload(
+        '/path/../../../etc/passwd.jpg'
+      );
 
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Invalid filename detected');
     });
 
     it('should reject reserved Windows filenames', async () => {
-      const reservedNames = ['con.jpg', 'prn.jpg', 'aux.jpg', 'nul.jpg', 'com1.jpg', 'lpt1.jpg'];
+      const reservedNames = [
+        'con.jpg',
+        'prn.jpg',
+        'aux.jpg',
+        'nul.jpg',
+        'com1.jpg',
+        'lpt1.jpg',
+      ];
 
       for (const name of reservedNames) {
         (FileSystem.getInfoAsync as jest.Mock).mockResolvedValue({
@@ -398,7 +466,9 @@ describe('SecurityManager', () => {
           size: 1024,
         });
 
-        const result = await SecurityManager.validateFileUpload(`/path/to/${name}`);
+        const result = await SecurityManager.validateFileUpload(
+          `/path/to/${name}`
+        );
 
         expect(result.isValid).toBe(false);
         expect(result.errors).toContain('Invalid filename detected');
@@ -406,9 +476,12 @@ describe('SecurityManager', () => {
     });
 
     it('should handle FileSystem errors gracefully', async () => {
-      (FileSystem.getInfoAsync as jest.Mock).mockRejectedValue(new Error('FileSystem error'));
+      (FileSystem.getInfoAsync as jest.Mock).mockRejectedValue(
+        new Error('FileSystem error')
+      );
 
-      const result = await SecurityManager.validateFileUpload('/path/to/image.jpg');
+      const result =
+        await SecurityManager.validateFileUpload('/path/to/image.jpg');
 
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Failed to validate file');
@@ -426,11 +499,16 @@ describe('SecurityManager', () => {
     });
 
     it('should handle storage errors', async () => {
-      (SecureStore.setItemAsync as jest.Mock).mockRejectedValue(new Error('Storage error'));
+      (SecureStore.setItemAsync as jest.Mock).mockRejectedValue(
+        new Error('Storage error')
+      );
 
       const result = await SecurityManager.secureStore('key', 'value');
 
-      expect(logger.error).toHaveBeenCalledWith('Secure storage failed:', expect.any(Error));
+      expect(logger.error).toHaveBeenCalledWith(
+        'Secure storage failed:',
+        expect.any(Error)
+      );
       expect(result).toBe(false);
     });
 
@@ -444,11 +522,16 @@ describe('SecurityManager', () => {
     });
 
     it('should handle retrieval errors', async () => {
-      (SecureStore.getItemAsync as jest.Mock).mockRejectedValue(new Error('Retrieval error'));
+      (SecureStore.getItemAsync as jest.Mock).mockRejectedValue(
+        new Error('Retrieval error')
+      );
 
       const result = await SecurityManager.secureRetrieve('key');
 
-      expect(logger.error).toHaveBeenCalledWith('Secure retrieval failed:', expect.any(Error));
+      expect(logger.error).toHaveBeenCalledWith(
+        'Secure retrieval failed:',
+        expect.any(Error)
+      );
       expect(result).toBeNull();
     });
   });
@@ -470,7 +553,7 @@ describe('SecurityManager', () => {
         token: 'token-456',
         secret: 'my-secret',
         creditCard: '1234-5678-9012-3456',
-        ssn: '123-45-6789'
+        ssn: '123-45-6789',
       };
 
       const sanitized = SecurityManager.sanitizeForLogging(data);
@@ -482,7 +565,7 @@ describe('SecurityManager', () => {
         token: '[REDACTED]',
         secret: '[REDACTED]',
         creditCard: '[REDACTED]',
-        ssn: '[REDACTED]'
+        ssn: '[REDACTED]',
       });
     });
 
@@ -491,7 +574,7 @@ describe('SecurityManager', () => {
         PASSWORD: 'secret',
         ApiKey: 'key',
         access_token: 'token',
-        SECRET_KEY: 'secret'
+        SECRET_KEY: 'secret',
       };
 
       const sanitized = SecurityManager.sanitizeForLogging(data);
@@ -500,7 +583,7 @@ describe('SecurityManager', () => {
         PASSWORD: '[REDACTED]',
         ApiKey: '[REDACTED]',
         access_token: '[REDACTED]',
-        SECRET_KEY: '[REDACTED]'
+        SECRET_KEY: '[REDACTED]',
       });
     });
 
@@ -509,7 +592,7 @@ describe('SecurityManager', () => {
         user: 'john',
         userPassword: 'secret',
         passwordReset: 'token',
-        keychain: 'keys'
+        keychain: 'keys',
       };
 
       const sanitized = SecurityManager.sanitizeForLogging(data);
@@ -518,7 +601,7 @@ describe('SecurityManager', () => {
         user: 'john',
         userPassword: '[REDACTED]',
         passwordReset: '[REDACTED]',
-        keychain: '[REDACTED]'
+        keychain: '[REDACTED]',
       });
     });
 
@@ -600,10 +683,12 @@ describe('SecurityManager', () => {
     it('should load persisted rate limit data', async () => {
       const futureTime = Date.now() + 10000;
       const persistedData = {
-        'user4': { count: 2, resetTime: futureTime }
+        user4: { count: 2, resetTime: futureTime },
       };
 
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(persistedData));
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(
+        JSON.stringify(persistedData)
+      );
       (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
 
       // Should respect the persisted count
@@ -618,61 +703,89 @@ describe('SecurityManager', () => {
     it('should filter out expired entries when loading', async () => {
       const now = Date.now();
       const persistedData = {
-        'expired': { count: 5, resetTime: now - 1000 },
-        'valid': { count: 2, resetTime: now + 10000 }
+        expired: { count: 5, resetTime: now - 1000 },
+        valid: { count: 2, resetTime: now + 10000 },
       };
 
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(persistedData));
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(
+        JSON.stringify(persistedData)
+      );
       (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
 
       await SecurityManager.checkRateLimit('expired', 3, 60000);
 
       // Expired entry should have been reset
-      expect(await SecurityManager.checkRateLimit('expired', 3, 60000)).toBe(true);
+      expect(await SecurityManager.checkRateLimit('expired', 3, 60000)).toBe(
+        true
+      );
     });
 
     it('should handle AsyncStorage errors gracefully', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockRejectedValue(new Error('Storage error'));
+      (AsyncStorage.getItem as jest.Mock).mockRejectedValue(
+        new Error('Storage error')
+      );
       (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
 
       const result = await SecurityManager.checkRateLimit('user5', 5, 1000);
 
       expect(result).toBe(true);
-      expect(logger.error).toHaveBeenCalledWith('Failed to load rate limit data:', expect.any(Error));
+      expect(logger.error).toHaveBeenCalledWith(
+        'Failed to load rate limit data:',
+        expect.any(Error)
+      );
     });
 
     it('should handle save errors gracefully', async () => {
       (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
-      (AsyncStorage.setItem as jest.Mock).mockRejectedValue(new Error('Save error'));
+      (AsyncStorage.setItem as jest.Mock).mockRejectedValue(
+        new Error('Save error')
+      );
 
       const result = await SecurityManager.checkRateLimit('user6', 5, 1000);
 
       expect(result).toBe(true);
-      expect(logger.error).toHaveBeenCalledWith('Failed to save rate limit data:', expect.any(Error));
+      expect(logger.error).toHaveBeenCalledWith(
+        'Failed to save rate limit data:',
+        expect.any(Error)
+      );
     });
   });
 
   describe('Static Methods', () => {
     describe('checkRateLimit (static)', () => {
-      it('should delegate to InputValidationMiddleware', () => {
-        (InputValidationMiddleware.validateRateLimit as jest.Mock).mockReturnValue({
+      it('should delegate to InputValidationMiddleware', async () => {
+        (
+          InputValidationMiddleware.validateRateLimit as jest.Mock
+        ).mockResolvedValue({
           allowed: true,
-          remaining: 5
+          remaining: 5,
         });
 
-        const result = SecurityManager.constructor.checkRateLimit('user1', 10, 60000);
+        const result = await SecurityManager.constructor.checkRateLimit(
+          'user1',
+          10,
+          60000
+        );
 
-        expect(InputValidationMiddleware.validateRateLimit).toHaveBeenCalledWith('user1', 10, 60000);
+        expect(
+          InputValidationMiddleware.validateRateLimit
+        ).toHaveBeenCalledWith('user1', 10, 60000);
         expect(result).toBe(true);
       });
 
-      it('should return false when rate limit exceeded', () => {
-        (InputValidationMiddleware.validateRateLimit as jest.Mock).mockReturnValue({
+      it('should return false when rate limit exceeded', async () => {
+        (
+          InputValidationMiddleware.validateRateLimit as jest.Mock
+        ).mockResolvedValue({
           allowed: false,
-          remaining: 0
+          remaining: 0,
         });
 
-        const result = SecurityManager.constructor.checkRateLimit('user1', 10, 60000);
+        const result = await SecurityManager.constructor.checkRateLimit(
+          'user1',
+          10,
+          60000
+        );
 
         expect(result).toBe(false);
       });
@@ -680,33 +793,63 @@ describe('SecurityManager', () => {
 
     describe('hasPermission', () => {
       it('should allow access when user role meets required level', () => {
-        expect(SecurityManager.constructor.hasPermission('admin', 'homeowner')).toBe(true);
-        expect(SecurityManager.constructor.hasPermission('admin', 'contractor')).toBe(true);
-        expect(SecurityManager.constructor.hasPermission('admin', 'admin')).toBe(true);
+        expect(
+          SecurityManager.constructor.hasPermission('admin', 'homeowner')
+        ).toBe(true);
+        expect(
+          SecurityManager.constructor.hasPermission('admin', 'contractor')
+        ).toBe(true);
+        expect(
+          SecurityManager.constructor.hasPermission('admin', 'admin')
+        ).toBe(true);
       });
 
       it('should deny access when user role is below required level', () => {
-        expect(SecurityManager.constructor.hasPermission('guest', 'homeowner')).toBe(false);
-        expect(SecurityManager.constructor.hasPermission('guest', 'admin')).toBe(false);
-        expect(SecurityManager.constructor.hasPermission('homeowner', 'admin')).toBe(false);
-        expect(SecurityManager.constructor.hasPermission('contractor', 'admin')).toBe(false);
+        expect(
+          SecurityManager.constructor.hasPermission('guest', 'homeowner')
+        ).toBe(false);
+        expect(
+          SecurityManager.constructor.hasPermission('guest', 'admin')
+        ).toBe(false);
+        expect(
+          SecurityManager.constructor.hasPermission('homeowner', 'admin')
+        ).toBe(false);
+        expect(
+          SecurityManager.constructor.hasPermission('contractor', 'admin')
+        ).toBe(false);
       });
 
       it('should handle equal permission levels', () => {
-        expect(SecurityManager.constructor.hasPermission('homeowner', 'homeowner')).toBe(true);
-        expect(SecurityManager.constructor.hasPermission('contractor', 'contractor')).toBe(true);
-        expect(SecurityManager.constructor.hasPermission('homeowner', 'contractor')).toBe(true);
-        expect(SecurityManager.constructor.hasPermission('contractor', 'homeowner')).toBe(true);
+        expect(
+          SecurityManager.constructor.hasPermission('homeowner', 'homeowner')
+        ).toBe(true);
+        expect(
+          SecurityManager.constructor.hasPermission('contractor', 'contractor')
+        ).toBe(true);
+        expect(
+          SecurityManager.constructor.hasPermission('homeowner', 'contractor')
+        ).toBe(true);
+        expect(
+          SecurityManager.constructor.hasPermission('contractor', 'homeowner')
+        ).toBe(true);
       });
 
       it('should default unknown roles to guest level', () => {
-        expect(SecurityManager.constructor.hasPermission('unknown', 'homeowner')).toBe(false);
-        expect(SecurityManager.constructor.hasPermission('invalid', 'admin')).toBe(false);
+        expect(
+          SecurityManager.constructor.hasPermission('unknown', 'homeowner')
+        ).toBe(false);
+        expect(
+          SecurityManager.constructor.hasPermission('invalid', 'admin')
+        ).toBe(false);
       });
 
       it('should handle undefined required role', () => {
-        expect(SecurityManager.constructor.hasPermission('admin', 'undefined')).toBe(true);
-        expect(SecurityManager.constructor.hasPermission('guest', 'undefined')).toBe(true);
+        expect(
+          SecurityManager.constructor.hasPermission('admin', 'undefined')
+        ).toBe(true);
+        expect(
+          SecurityManager.constructor.hasPermission('guest', 'undefined')
+        ).toBe(true);
       });
     });
   });
@@ -722,7 +865,7 @@ describe('SecurityManager', () => {
         MAX_FILE_SIZE: 10 * 1024 * 1024,
         ALLOWED_IMAGE_TYPES: ['image/jpeg', 'image/png', 'image/webp'],
         MAX_FILENAME_LENGTH: 255,
-        SENSITIVE_DATA_KEYS: ['password', 'token', 'secret', 'key']
+        SENSITIVE_DATA_KEYS: ['password', 'token', 'secret', 'key'],
       });
     });
 
@@ -749,13 +892,15 @@ describe('SecurityManager', () => {
       (InputValidationMiddleware.validateText as jest.Mock).mockReturnValue({
         isValid: true,
         errors: [],
-        sanitized: 'text without tags'
+        sanitized: 'text without tags',
       });
 
-      (SqlInjectionProtection.scanForSqlInjection as jest.Mock).mockReturnValue({
-        isSafe: true,
-        threats: []
-      });
+      (SqlInjectionProtection.scanForSqlInjection as jest.Mock).mockReturnValue(
+        {
+          isSafe: true,
+          threats: [],
+        }
+      );
 
       const result = SecurityManager.validateTextInput('<div>text</div>');
 
@@ -769,16 +914,18 @@ describe('SecurityManager', () => {
         'file:name.jpg',
         'file|name.jpg',
         'file*name.jpg',
-        'file?name.jpg'
+        'file?name.jpg',
       ];
 
       for (const name of suspiciousNames) {
         (FileSystem.getInfoAsync as jest.Mock).mockResolvedValue({
           exists: true,
-          size: 1024
+          size: 1024,
         });
 
-        const result = await SecurityManager.validateFileUpload(`/path/${name}`);
+        const result = await SecurityManager.validateFileUpload(
+          `/path/${name}`
+        );
         expect(result.errors).toContain('Invalid filename detected');
       }
     });
@@ -789,13 +936,15 @@ describe('SecurityManager', () => {
       (InputValidationMiddleware.validateText as jest.Mock).mockReturnValue({
         isValid: false,
         errors: ['Input is required'],
-        sanitized: ''
+        sanitized: '',
       });
 
-      (SqlInjectionProtection.scanForSqlInjection as jest.Mock).mockReturnValue({
-        isSafe: true,
-        threats: []
-      });
+      (SqlInjectionProtection.scanForSqlInjection as jest.Mock).mockReturnValue(
+        {
+          isSafe: true,
+          threats: [],
+        }
+      );
 
       const result = SecurityManager.validateTextInput('');
 
@@ -809,15 +958,19 @@ describe('SecurityManager', () => {
       (InputValidationMiddleware.validateText as jest.Mock).mockReturnValue({
         isValid: false,
         errors: ['Text exceeds maximum length'],
-        sanitized: longInput.substring(0, 1000)
+        sanitized: longInput.substring(0, 1000),
       });
 
-      (SqlInjectionProtection.scanForSqlInjection as jest.Mock).mockReturnValue({
-        isSafe: true,
-        threats: []
-      });
+      (SqlInjectionProtection.scanForSqlInjection as jest.Mock).mockReturnValue(
+        {
+          isSafe: true,
+          threats: [],
+        }
+      );
 
-      const result = SecurityManager.validateTextInput(longInput, { maxLength: 1000 });
+      const result = SecurityManager.validateTextInput(longInput, {
+        maxLength: 1000,
+      });
 
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Text exceeds maximum length');
@@ -836,8 +989,8 @@ describe('SecurityManager', () => {
       const results = await Promise.all(promises);
 
       // First 3 should succeed, last 2 should fail
-      expect(results.slice(0, 3).every(r => r === true)).toBe(true);
-      expect(results.slice(3).every(r => r === false)).toBe(true);
+      expect(results.slice(0, 3).every((r) => r === true)).toBe(true);
+      expect(results.slice(3).every((r) => r === false)).toBe(true);
     });
 
     it('should handle malformed JSON in AsyncStorage', async () => {
@@ -857,25 +1010,27 @@ describe('SecurityManager', () => {
       (InputValidationMiddleware.validateText as jest.Mock).mockReturnValue({
         isValid: true,
         errors: [],
-        sanitized: 'sanitized'
+        sanitized: 'sanitized',
       });
 
       (InputValidationMiddleware.validateEmail as jest.Mock).mockReturnValue({
         isValid: true,
         errors: [],
-        sanitized: 'test@example.com'
+        sanitized: 'test@example.com',
       });
 
-      (SqlInjectionProtection.scanForSqlInjection as jest.Mock).mockReturnValue({
-        isSafe: true,
-        threats: []
-      });
+      (SqlInjectionProtection.scanForSqlInjection as jest.Mock).mockReturnValue(
+        {
+          isSafe: true,
+          threats: [],
+        }
+      );
 
       // Validate username
       const usernameResult = SecurityManager.validateTextInput('johndoe', {
         minLength: 3,
         maxLength: 20,
-        pattern: /^[a-zA-Z0-9_]+$/
+        pattern: /^[a-zA-Z0-9_]+$/,
       });
 
       // Validate email
@@ -893,11 +1048,13 @@ describe('SecurityManager', () => {
       // Mock file validation
       (FileSystem.getInfoAsync as jest.Mock).mockResolvedValue({
         exists: true,
-        size: 2 * 1024 * 1024 // 2MB
+        size: 2 * 1024 * 1024, // 2MB
       });
 
       // Validate file
-      const validationResult = await SecurityManager.validateFileUpload('/path/to/profile.jpg');
+      const validationResult = await SecurityManager.validateFileUpload(
+        '/path/to/profile.jpg'
+      );
 
       expect(validationResult.isValid).toBe(true);
       expect(validationResult.fileInfo).toBeDefined();
@@ -912,17 +1069,17 @@ describe('SecurityManager', () => {
           password: 'secret',
           profile: {
             name: 'John',
-            apiKey: 'key-123'
-          }
+            apiKey: 'key-123',
+          },
         },
         session: {
           token: 'session-token',
-          expires: '2024-01-01'
+          expires: '2024-01-01',
         },
         metadata: {
           userAgent: 'Mozilla/5.0',
-          ipAddress: '192.168.1.1'
-        }
+          ipAddress: '192.168.1.1',
+        },
       };
 
       const sanitized = SecurityManager.sanitizeForLogging(complexData);

@@ -1,6 +1,6 @@
 /**
  * Quote Processing Logic
- * 
+ *
  * Handles quote creation and updates linked to bids.
  * Extracted from route.ts to improve maintainability.
  */
@@ -45,11 +45,13 @@ export function prepareQuoteData(
 ): QuotePayload {
   const quoteSubtotal = validatedData.subtotal ?? validatedData.bidAmount;
   const quoteTaxRate = validatedData.taxRate ?? 0;
-  const quoteTaxAmount = validatedData.taxAmount ?? (quoteSubtotal * quoteTaxRate) / 100;
+  const quoteTaxAmount =
+    validatedData.taxAmount ?? (quoteSubtotal * quoteTaxRate) / 100;
   const quoteTotalAmount = validatedData.totalAmount ?? validatedData.bidAmount;
-  const quoteLineItems = validatedData.lineItems && validatedData.lineItems.length > 0
-    ? validatedData.lineItems
-    : [];
+  const quoteLineItems =
+    validatedData.lineItems && validatedData.lineItems.length > 0
+      ? validatedData.lineItems
+      : [];
 
   return {
     contractor_id: contractorId,
@@ -73,7 +75,9 @@ export function prepareQuoteData(
 /**
  * Check if quote already exists for a bid
  */
-export async function checkExistingQuote(quoteId: string | null | undefined): Promise<{ id: string } | null> {
+async function checkExistingQuote(
+  quoteId: string | null | undefined
+): Promise<{ id: string } | null> {
   if (!quoteId) {
     return null;
   }
@@ -90,7 +94,7 @@ export async function checkExistingQuote(quoteId: string | null | undefined): Pr
 /**
  * Create a new quote
  */
-export async function createQuote(
+async function createQuote(
   quotePayload: QuotePayload
 ): Promise<{ quote: unknown; error: unknown }> {
   const { data: newQuote, error: quoteInsertError } = await serverSupabase
@@ -108,7 +112,7 @@ export async function createQuote(
 /**
  * Update an existing quote
  */
-export async function updateQuote(
+async function updateQuote(
   quoteId: string,
   quotePayload: QuotePayload
 ): Promise<{ quote: unknown; error: unknown }> {
@@ -125,10 +129,7 @@ export async function updateQuote(
 /**
  * Link quote to bid
  */
-export async function linkQuoteToBid(
-  bidId: string,
-  quoteId: string
-): Promise<void> {
+async function linkQuoteToBid(bidId: string, quoteId: string): Promise<void> {
   const { error: linkError } = await serverSupabase
     .from('bids')
     .update({ quote_id: quoteId })
@@ -157,7 +158,10 @@ export async function processQuote(
 
   if (existingQuote?.id) {
     // Update existing quote
-    const { quote, error: quoteUpdateError } = await updateQuote(existingQuote.id, quotePayload);
+    const { quote, error: quoteUpdateError } = await updateQuote(
+      existingQuote.id,
+      quotePayload
+    );
 
     if (quoteUpdateError) {
       logger.error('Failed to update quote', {
@@ -165,7 +169,10 @@ export async function processQuote(
         contractorId: quotePayload.contractor_id,
         jobId: quotePayload.job_id,
         quoteId: existingQuote.id,
-        error: quoteUpdateError instanceof Error ? quoteUpdateError.message : 'Unknown error',
+        error:
+          quoteUpdateError instanceof Error
+            ? quoteUpdateError.message
+            : 'Unknown error',
       });
       // Don't fail the bid if quote update fails, but log it
       return null;
@@ -181,7 +188,10 @@ export async function processQuote(
         service: 'contractor',
         contractorId: quotePayload.contractor_id,
         jobId: quotePayload.job_id,
-        error: quoteInsertError instanceof Error ? quoteInsertError.message : 'Unknown error',
+        error:
+          quoteInsertError instanceof Error
+            ? quoteInsertError.message
+            : 'Unknown error',
       });
       // Don't fail the bid if quote creation fails, but log it
       return null;
@@ -195,4 +205,3 @@ export async function processQuote(
     return quote;
   }
 }
-

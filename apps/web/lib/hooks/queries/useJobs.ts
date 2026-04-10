@@ -29,7 +29,7 @@ async function fetchJobs(filters?: {
   if (filters?.limit) params.set('limit', String(filters.limit));
   if (filters?.cursor) params.set('cursor', filters.cursor);
   if (filters?.status) {
-    filters.status.forEach(s => params.append('status', s));
+    filters.status.forEach((s) => params.append('status', s));
   }
 
   const response = await fetch(`/api/jobs?${params.toString()}`, {
@@ -37,7 +37,9 @@ async function fetchJobs(filters?: {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to fetch jobs' }));
+    const error = await response
+      .json()
+      .catch(() => ({ error: 'Failed to fetch jobs' }));
     throw new Error(error.error || 'Failed to fetch jobs');
   }
 
@@ -53,7 +55,9 @@ async function fetchJob(jobId: string): Promise<JobDetail> {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to fetch job' }));
+    const error = await response
+      .json()
+      .catch(() => ({ error: 'Failed to fetch job' }));
     throw new Error(error.error || 'Failed to fetch job');
   }
 
@@ -75,7 +79,9 @@ async function createJob(jobData: {
   property_id?: string;
 }): Promise<JobDetail> {
   // Get CSRF token
-  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+  const csrfToken = document
+    .querySelector('meta[name="csrf-token"]')
+    ?.getAttribute('content');
 
   const response = await fetch('/api/jobs', {
     method: 'POST',
@@ -88,7 +94,9 @@ async function createJob(jobData: {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to create job' }));
+    const error = await response
+      .json()
+      .catch(() => ({ error: 'Failed to create job' }));
     throw new Error(error.error || 'Failed to create job');
   }
 
@@ -99,15 +107,20 @@ async function createJob(jobData: {
 /**
  * Update an existing job
  */
-async function updateJob(jobId: string, updates: Partial<{
-  title: string;
-  description: string;
-  category: string;
-  budget: number;
-  location: string;
-  status: string;
-}>): Promise<JobDetail> {
-  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+async function updateJob(
+  jobId: string,
+  updates: Partial<{
+    title: string;
+    description: string;
+    category: string;
+    budget: number;
+    location: string;
+    status: string;
+  }>
+): Promise<JobDetail> {
+  const csrfToken = document
+    .querySelector('meta[name="csrf-token"]')
+    ?.getAttribute('content');
 
   const response = await fetch(`/api/jobs/${jobId}`, {
     method: 'PATCH',
@@ -120,7 +133,9 @@ async function updateJob(jobId: string, updates: Partial<{
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to update job' }));
+    const error = await response
+      .json()
+      .catch(() => ({ error: 'Failed to update job' }));
     throw new Error(error.error || 'Failed to update job');
   }
 
@@ -239,26 +254,37 @@ export function useUpdateJob(jobId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (updates: Parameters<typeof updateJob>[1]) => updateJob(jobId, updates),
+    mutationFn: (updates: Parameters<typeof updateJob>[1]) =>
+      updateJob(jobId, updates),
     onMutate: async (updates) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: queryKeys.jobs.details(jobId) });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.jobs.details(jobId),
+      });
 
       // Snapshot previous value
-      const previousJob = queryClient.getQueryData(queryKeys.jobs.details(jobId));
+      const previousJob = queryClient.getQueryData(
+        queryKeys.jobs.details(jobId)
+      );
 
       // Optimistically update cache
-      queryClient.setQueryData(queryKeys.jobs.details(jobId), (old: unknown) => ({
-        ...(old as Record<string, unknown>),
-        ...updates,
-      }));
+      queryClient.setQueryData(
+        queryKeys.jobs.details(jobId),
+        (old: unknown) => ({
+          ...(old as Record<string, unknown>),
+          ...updates,
+        })
+      );
 
       return { previousJob };
     },
     onError: (error, variables, context) => {
       // Rollback on error
       if (context?.previousJob) {
-        queryClient.setQueryData(queryKeys.jobs.details(jobId), context.previousJob);
+        queryClient.setQueryData(
+          queryKeys.jobs.details(jobId),
+          context.previousJob
+        );
       }
 
       logger.error('Failed to update job', error, {
@@ -294,7 +320,7 @@ export function useUpdateJob(jobId: string) {
  * </Link>
  * ```
  */
-export function usePrefetchJob() {
+function usePrefetchJob() {
   const queryClient = useQueryClient();
 
   return (jobId: string) => {

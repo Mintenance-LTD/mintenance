@@ -1,9 +1,9 @@
 /**
  * Self-Modifying Agent Base Class
- * 
+ *
  * Base class for agents that learn to modify their own update rules
  * Implements dynamic key/value/query projections based on context
- * 
+ *
  * Reference: Paper "Self-Modifying Titans" section
  * Learn update algorithm: W_{t+1} = W_t(I - x_t x_t^T) - η_{t+1}∇L
  */
@@ -25,7 +25,7 @@ export interface SelfModificationConfig {
 /**
  * Performance metrics for self-modification
  */
-export interface PerformanceMetrics {
+interface PerformanceMetrics {
   accuracy: number;
   errorRate: number;
   latency: number;
@@ -34,10 +34,10 @@ export interface PerformanceMetrics {
 
 /**
  * Self-Modifying Agent Base Class
- * 
+ *
  * Provides foundation for agents that can modify their own update rules
  */
-export abstract class SelfModifyingAgent {
+abstract class SelfModifyingAgent {
   protected config: SelfModificationConfig;
   protected performanceHistory: PerformanceMetrics[] = [];
   protected modificationCount: number = 0;
@@ -132,8 +132,10 @@ export abstract class SelfModifyingAgent {
 
     if (older.length === 0) return;
 
-    const recentAvgAccuracy = recent.reduce((sum, m) => sum + m.accuracy, 0) / recent.length;
-    const olderAvgAccuracy = older.reduce((sum, m) => sum + m.accuracy, 0) / older.length;
+    const recentAvgAccuracy =
+      recent.reduce((sum, m) => sum + m.accuracy, 0) / recent.length;
+    const olderAvgAccuracy =
+      older.reduce((sum, m) => sum + m.accuracy, 0) / older.length;
 
     const performanceDrop = olderAvgAccuracy - recentAvgAccuracy;
     const threshold = this.config.modificationThreshold || 0.1;
@@ -148,7 +150,9 @@ export abstract class SelfModifyingAgent {
    * Trigger self-modification
    * Override in subclasses to implement specific modification logic
    */
-  protected abstract triggerSelfModification(performanceDrop: number): Promise<void>;
+  protected abstract triggerSelfModification(
+    performanceDrop: number
+  ): Promise<void>;
 
   /**
    * Get performance history
@@ -175,4 +179,3 @@ export abstract class SelfModifyingAgent {
     });
   }
 }
-

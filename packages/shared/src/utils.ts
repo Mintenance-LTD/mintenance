@@ -41,13 +41,13 @@ export function throttle<T extends (...args: unknown[]) => any>(
 /**
  * Create a delay/sleep function
  */
-export function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 /**
  * Retry async function with exponential backoff
  */
-export async function retry<T>(
+async function retry<T>(
   fn: () => Promise<T>,
   maxAttempts: number = 3,
   baseDelay: number = 1000
@@ -71,17 +71,17 @@ export async function retry<T>(
 /**
  * Deterministic hash function for string to number
  * Used for consistent hashing in A/B testing, caching, etc.
- * 
+ *
  * @param str - String to hash
  * @returns Positive integer hash value
- * 
+ *
  * @example
  * hashString('user123_experiment456') // Returns consistent hash
  */
 export function hashString(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash = (hash << 5) - hash + str.charCodeAt(i);
     hash |= 0; // Convert to 32-bit integer
   }
   return Math.abs(hash);

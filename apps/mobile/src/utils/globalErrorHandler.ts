@@ -1,7 +1,9 @@
 // Use the global ErrorUtils provided by React Native
 import { logger } from './logger';
 declare const ErrorUtils: {
-  setGlobalHandler: (handler: (error: Error | unknown, isFatal?: boolean) => void) => void;
+  setGlobalHandler: (
+    handler: (error: Error | unknown, isFatal?: boolean) => void
+  ) => void;
 };
 
 // Global error handler for unhandled JS errors
@@ -60,7 +62,7 @@ export const setupGlobalErrorHandler = () => {
 };
 
 // Custom error logger
-export const logError = (error: Error, context?: unknown) => {
+const logError = (error: Error, context?: unknown) => {
   logger.error('App Error:', error, context);
 
   import('@sentry/react-native')
@@ -77,7 +79,7 @@ export const logError = (error: Error, context?: unknown) => {
 };
 
 // Performance monitoring
-export const trackPerformance = (operation: string, duration: number) => {
+const trackPerformance = (operation: string, duration: number) => {
   logger.debug(`Performance: ${operation} took ${duration}ms`);
 
   import('@sentry/react-native')

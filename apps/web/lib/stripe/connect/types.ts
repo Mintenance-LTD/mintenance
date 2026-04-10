@@ -34,7 +34,7 @@ export interface PayoutBalance {
   eligibleForPayout: boolean;
 }
 
-export interface PayoutTransferRecord {
+interface PayoutTransferRecord {
   id: string;
   contractorId: string;
   stripeTransferId: string;

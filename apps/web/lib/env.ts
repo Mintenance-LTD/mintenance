@@ -216,7 +216,7 @@ const envSchema = z.object({
 });
 
 // Type inference from schema
-export type Env = z.infer<typeof envSchema>;
+type Env = z.infer<typeof envSchema>;
 
 /**
  * Validate environment variables

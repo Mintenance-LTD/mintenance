@@ -15,7 +15,7 @@ import {
   TrendingUp,
   HelpCircle,
   LogOut,
-  LucideIcon
+  LucideIcon,
 } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { cn } from '@/lib/utils';
@@ -48,14 +48,25 @@ function getIconComponent(iconName: string): LucideIcon {
   };
 
   // Ensure currencyDollar always returns PoundSterling, never DollarSign
-  if (iconName === 'currencyDollar' || iconName === 'currency' || iconName === 'dollar') {
+  if (
+    iconName === 'currencyDollar' ||
+    iconName === 'currency' ||
+    iconName === 'dollar'
+  ) {
     return PoundSterling;
   }
 
   return iconMap[iconName] || LayoutDashboard; // Default to LayoutDashboard if not found
 }
 
-export function MenuTab({ icon, label, href, isActive = false, isExpanded = true, onClick }: MenuTabProps) {
+function MenuTab({
+  icon,
+  label,
+  href,
+  isActive = false,
+  isExpanded = true,
+  onClick,
+}: MenuTabProps) {
   // Always render the same structure to prevent hydration mismatches
   // Use CSS classes instead of inline styles to avoid style normalization issues
   const linkClassName = cn(
@@ -81,19 +92,28 @@ export function MenuTab({ icon, label, href, isActive = false, isExpanded = true
   } as React.CSSProperties;
 
   // Standardize icon color - always use theme colors, never hardcoded
-  const iconColor = isActive ? theme.colors.secondary : theme.colors.textInverse;
+  const iconColor = isActive
+    ? theme.colors.secondary
+    : theme.colors.textInverse;
 
   // CRITICAL: Always resolve icon deterministically - ensure currencyDollar ALWAYS maps to PoundSterling
   // This prevents any hydration mismatches or screen-size-dependent rendering
   // Resolve icon synchronously (not in useMemo) to ensure consistent SSR/client rendering
-  const normalizedIconName = icon === 'currencyDollar' || icon === 'currency' || icon === 'dollar'
-    ? 'currencyDollar'
-    : icon;
+  const normalizedIconName =
+    icon === 'currencyDollar' || icon === 'currency' || icon === 'dollar'
+      ? 'currencyDollar'
+      : icon;
   const IconComponent = getIconComponent(normalizedIconName);
 
   // Ensure className is always a string to prevent className.split errors
-  const classNameString = typeof linkClassName === 'string' ? linkClassName : String(linkClassName || '');
-  const labelClassNameString = typeof labelClassName === 'string' ? labelClassName : String(labelClassName || '');
+  const classNameString =
+    typeof linkClassName === 'string'
+      ? linkClassName
+      : String(linkClassName || '');
+  const labelClassNameString =
+    typeof labelClassName === 'string'
+      ? labelClassName
+      : String(labelClassName || '');
 
   return (
     <Link
@@ -107,14 +127,15 @@ export function MenuTab({ icon, label, href, isActive = false, isExpanded = true
         <IconComponent
           size={22}
           style={{ color: iconColor }}
-          aria-hidden="true"
+          aria-hidden='true'
         />
       </span>
       <span className={labelClassNameString} suppressHydrationWarning>
         {label}
       </span>
-      {isActive && <div className={styles.activeIndicator} suppressHydrationWarning />}
+      {isActive && (
+        <div className={styles.activeIndicator} suppressHydrationWarning />
+      )}
     </Link>
   );
 }
-

@@ -7,11 +7,16 @@ type SupabaseLike = SupabaseClient | MockSupabase;
 interface MockSupabase {
   auth: {
     signUp: (args: unknown) => Promise<{ data: null; error: Error }>;
-    signInWithPassword: (args: unknown) => Promise<{ data: null; error: Error }>;
+    signInWithPassword: (
+      args: unknown
+    ) => Promise<{ data: null; error: Error }>;
     signOut: () => Promise<{ error: null }>;
     getSession: () => Promise<{ data: { session: null }; error: null }>;
     getUser: () => Promise<{ data: { user: null }; error: null }>;
-    onAuthStateChange: (cb: unknown) => { data: { subscription: { unsubscribe: () => void } }; error: null };
+    onAuthStateChange: (cb: unknown) => {
+      data: { subscription: { unsubscribe: () => void } };
+      error: null;
+    };
   };
   from: (table: string) => {
     select: () => unknown;
@@ -35,10 +40,15 @@ interface MockSupabase {
   };
 }
 
-const extra: Record<string, unknown> = (Constants as { expoConfig?: { extra?: Record<string, unknown> } })?.expoConfig?.extra ?? {};
-const useMockFlag = (process.env.EXPO_PUBLIC_USE_MOCK ?? '').toLowerCase() === 'true';
-const supabaseUrl = (process.env.EXPO_PUBLIC_SUPABASE_URL ?? extra.supabaseUrl) as string | undefined;
-const supabaseAnonKey = (process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? extra.supabaseAnonKey) as string | undefined;
+const extra: Record<string, unknown> =
+  (Constants as { expoConfig?: { extra?: Record<string, unknown> } })
+    ?.expoConfig?.extra ?? {};
+const useMockFlag =
+  (process.env.EXPO_PUBLIC_USE_MOCK ?? '').toLowerCase() === 'true';
+const supabaseUrl = (process.env.EXPO_PUBLIC_SUPABASE_URL ??
+  extra.supabaseUrl) as string | undefined;
+const supabaseAnonKey = (process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
+  extra.supabaseAnonKey) as string | undefined;
 
 const validateCredentials = (url?: string, key?: string) => {
   const errors: string[] = [];
@@ -53,7 +63,9 @@ const validateCredentials = (url?: string, key?: string) => {
   if (url) {
     const dashboardPattern = /supabase\.com\/dashboard\/project\//i;
     if (dashboardPattern.test(url)) {
-      errors.push('Dashboard URL detected. Use the API URL (https://<project>.supabase.co).');
+      errors.push(
+        'Dashboard URL detected. Use the API URL (https://<project>.supabase.co).'
+      );
     }
     const apiPattern = /^https:\/\/[a-z0-9-]+\.supabase\.co$/i;
     if (!dashboardPattern.test(url) && !apiPattern.test(url)) {
@@ -122,9 +134,16 @@ try {
 
 export const isSupabaseConfigured = credentialsValid && !useMockFlag;
 
-export const testSupabaseConnection = async (): Promise<{ success: boolean; error?: string; latency?: number }> => {
+const testSupabaseConnection = async (): Promise<{
+  success: boolean;
+  error?: string;
+  latency?: number;
+}> => {
   if (useMockFlag || !credentialsValid) {
-    return { success: false, error: 'Mock client active or credentials invalid' };
+    return {
+      success: false,
+      error: 'Mock client active or credentials invalid',
+    };
   }
 
   try {
@@ -146,7 +165,9 @@ export const testSupabaseConnection = async (): Promise<{ success: boolean; erro
 export { supabase };
 
 function createMockSupabase(): MockSupabase {
-  const mockError = new Error('Mock Supabase client - configure real credentials to enable data access');
+  const mockError = new Error(
+    'Mock Supabase client - configure real credentials to enable data access'
+  );
 
   const createQueryChain = (): unknown => {
     const chain: Record<string | symbol, unknown> = {
@@ -158,8 +179,9 @@ function createMockSupabase(): MockSupabase {
       single: () => Promise.resolve({ data: null, error: null }),
     };
 
-    chain.then = (onResolve: ((value: unknown) => unknown) | null | undefined) =>
-      Promise.resolve({ data: [], error: null }).then(onResolve);
+    chain.then = (
+      onResolve: ((value: unknown) => unknown) | null | undefined
+    ) => Promise.resolve({ data: [], error: null }).then(onResolve);
     chain[Symbol.asyncIterator] = async function* () {};
     return chain;
   };
@@ -171,7 +193,10 @@ function createMockSupabase(): MockSupabase {
       signOut: async () => ({ error: null }),
       getSession: async () => ({ data: { session: null }, error: null }),
       getUser: async () => ({ data: { user: null }, error: null }),
-      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } }, error: null }),
+      onAuthStateChange: () => ({
+        data: { subscription: { unsubscribe: () => {} } },
+        error: null,
+      }),
     },
     from: (table: string) => {
       logger.warn(`[Supabase: MOCK] Query to table: ${table}`);

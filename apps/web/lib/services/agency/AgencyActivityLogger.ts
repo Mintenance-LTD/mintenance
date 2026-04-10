@@ -1,7 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 
-export type AgencyActionType =
+type AgencyActionType =
   | 'property_added'
   | 'property_deleted'
   | 'team_member_invited'

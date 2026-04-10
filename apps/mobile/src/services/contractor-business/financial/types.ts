@@ -1,6 +1,11 @@
-import type { Invoice, InvoiceLineItem, ExpenseRecord, PaymentRecord } from '../types';
+import type {
+  Invoice,
+  InvoiceLineItem,
+  ExpenseRecord,
+  PaymentRecord,
+} from '../types';
 
-export type { Invoice, InvoiceLineItem, ExpenseRecord, PaymentRecord };
+export type { InvoiceLineItem };
 
 export interface DatabaseInvoiceRow {
   id: string;
@@ -41,7 +46,7 @@ export interface DatabaseExpenseRow {
   updated_at: string;
 }
 
-export interface DatabasePaymentRow {
+interface DatabasePaymentRow {
   id: string;
   contractor_id: string;
   invoice_id?: string | null;

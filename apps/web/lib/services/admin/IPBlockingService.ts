@@ -1,7 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 
-export interface BlockedIP {
+interface BlockedIP {
   id: string;
   ip_address: string;
   ip_range?: string;
@@ -22,8 +22,9 @@ export class IPBlockingService {
    */
   static async isIPBlocked(ipAddress: string): Promise<boolean> {
     try {
-      const { data, error } = await serverSupabase
-        .rpc('is_ip_blocked', { p_ip_address: ipAddress });
+      const { data, error } = await serverSupabase.rpc('is_ip_blocked', {
+        p_ip_address: ipAddress,
+      });
 
       if (error) {
         logger.error('Error checking if IP is blocked', {
@@ -70,7 +71,8 @@ export class IPBlockingService {
 
       if (error) {
         // If IP already exists, update it
-        if (error.code === '23505') { // Unique violation
+        if (error.code === '23505') {
+          // Unique violation
           const { data: updated, error: updateError } = await serverSupabase
             .from('blocked_ips')
             .update({
@@ -161,18 +163,23 @@ export class IPBlockingService {
   /**
    * Get all blocked IPs
    */
-  static async getBlockedIPs(options: {
-    activeOnly?: boolean;
-    limit?: number;
-    offset?: number;
-  } = {}): Promise<{
+  static async getBlockedIPs(
+    options: {
+      activeOnly?: boolean;
+      limit?: number;
+      offset?: number;
+    } = {}
+  ): Promise<{
     ips: BlockedIP[];
     total: number;
   }> {
     try {
       let query = serverSupabase
         .from('blocked_ips')
-        .select('*, blocked_by_user:blocked_by(id, email, first_name, last_name)', { count: 'exact' })
+        .select(
+          '*, blocked_by_user:blocked_by(id, email, first_name, last_name)',
+          { count: 'exact' }
+        )
         .order('blocked_at', { ascending: false });
 
       if (options.activeOnly !== false) {
@@ -184,7 +191,10 @@ export class IPBlockingService {
       }
 
       if (options.offset) {
-        query = query.range(options.offset, options.offset + (options.limit || 50) - 1);
+        query = query.range(
+          options.offset,
+          options.offset + (options.limit || 50) - 1
+        );
       }
 
       const { data, error, count } = await query;
@@ -250,4 +260,3 @@ export class IPBlockingService {
     }
   }
 }
-

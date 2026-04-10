@@ -27,7 +27,7 @@ export type SubscriptionPlan = 'free' | 'basic' | 'professional' | 'enterprise';
 
 export interface SubscriptionFeatures {
   maxJobs: number | null;
-  maxActiveJobs: number;
+  maxActiveJobs: number | null;
   prioritySupport: boolean;
   advancedAnalytics: boolean;
   customBranding: boolean;
@@ -100,29 +100,35 @@ export class SubscriptionService {
         return [];
       }
 
-      return (features || []).map((feature) => {
-        const planPricing =
-          this.PLAN_PRICING[feature.plan_type as SubscriptionPlan];
-        const amountInPence = planPricing?.amount || 0;
-        // Convert from pence to pounds for display (free tier is 0)
-        const priceInPounds = amountInPence / 100;
+      return (
+        (features || [])
+          // Hide the 'free' plan — 'basic' serves as the free tier
+          .filter((feature) => feature.plan_type !== 'free')
+          .map((feature) => {
+            const planPricing =
+              this.PLAN_PRICING[feature.plan_type as SubscriptionPlan];
+            const amountInPence = planPricing?.amount || 0;
+            // Convert from pence to pounds for display (free tier is 0)
+            const priceInPounds = amountInPence / 100;
 
-        return {
-          planType: feature.plan_type as SubscriptionPlan,
-          name: planPricing?.name || feature.plan_type,
-          price: priceInPounds,
-          currency: 'gbp',
-          features: {
-            maxJobs: feature.max_jobs,
-            maxActiveJobs: feature.max_active_jobs || 0,
-            prioritySupport: feature.priority_support || false,
-            advancedAnalytics: feature.advanced_analytics || false,
-            customBranding: feature.custom_branding || false,
-            apiAccess: feature.api_access || false,
-            additionalFeatures: feature.additional_features || {},
-          },
-        };
-      });
+            return {
+              planType: feature.plan_type as SubscriptionPlan,
+              name: planPricing?.name || feature.plan_type,
+              price: priceInPounds,
+              currency: 'gbp',
+              features: {
+                maxJobs: feature.max_jobs,
+                // Preserve null for unlimited (null || 0 was incorrectly converting unlimited to 0)
+                maxActiveJobs: feature.max_active_jobs ?? null,
+                prioritySupport: feature.priority_support || false,
+                advancedAnalytics: feature.advanced_analytics || false,
+                customBranding: feature.custom_branding || false,
+                apiAccess: feature.api_access || false,
+                additionalFeatures: feature.additional_features || {},
+              },
+            };
+          })
+      );
     } catch (err) {
       logger.error('Error getting available plans', {
         service: 'SubscriptionService',
@@ -240,7 +246,7 @@ export class SubscriptionService {
       const result = data[0];
       return {
         maxJobs: result.max_jobs,
-        maxActiveJobs: result.max_active_jobs || 0,
+        maxActiveJobs: result.max_active_jobs ?? null,
         prioritySupport: result.priority_support || false,
         advancedAnalytics: result.advanced_analytics || false,
         customBranding: result.custom_branding || false,

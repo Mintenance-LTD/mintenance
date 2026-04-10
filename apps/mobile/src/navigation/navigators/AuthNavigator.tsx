@@ -16,17 +16,13 @@ import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider'
 // SCREEN WRAPPERS WITH ERROR BOUNDARIES
 // ============================================================================
 
-const SafeLoginScreen = withScreenErrorBoundary(
-  LoginScreen,
-  'Login',
-  { fallbackRoute: 'Login' }
-);
+const SafeLoginScreen = withScreenErrorBoundary(LoginScreen, 'Login', {
+  fallbackRoute: 'Login',
+});
 
-const SafeRegisterScreen = withScreenErrorBoundary(
-  RegisterScreen,
-  'Register',
-  { fallbackRoute: 'Login' }
-);
+const SafeRegisterScreen = withScreenErrorBoundary(RegisterScreen, 'Register', {
+  fallbackRoute: 'Login',
+});
 
 const SafeForgotPasswordScreen = withScreenErrorBoundary(
   ForgotPasswordScreen,
@@ -52,7 +48,7 @@ const SafeMFAVerificationScreen = withScreenErrorBoundary(
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 
-export const AuthNavigator: React.FC = () => {
+const AuthNavigator: React.FC = () => {
   return (
     <AuthStack.Navigator
       screenOptions={{
@@ -60,30 +56,30 @@ export const AuthNavigator: React.FC = () => {
         gestureEnabled: true,
         animation: 'slide_from_right',
       }}
-      initialRouteName="Login"
+      initialRouteName='Login'
     >
       <AuthStack.Screen
-        name="Login"
+        name='Login'
         component={SafeLoginScreen}
         options={{ title: 'Sign In' }}
       />
       <AuthStack.Screen
-        name="Register"
+        name='Register'
         component={SafeRegisterScreen}
         options={{ title: 'Create Account' }}
       />
       <AuthStack.Screen
-        name="ForgotPassword"
+        name='ForgotPassword'
         component={SafeForgotPasswordScreen}
         options={{ title: 'Reset Password' }}
       />
       <AuthStack.Screen
-        name="ResetPassword"
+        name='ResetPassword'
         component={SafeResetPasswordScreen}
         options={{ title: 'New Password' }}
       />
       <AuthStack.Screen
-        name="MFAVerification"
+        name='MFAVerification'
         component={SafeMFAVerificationScreen}
         options={{ title: 'Verify Identity', gestureEnabled: false }}
       />

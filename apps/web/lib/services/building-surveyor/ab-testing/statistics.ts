@@ -4,12 +4,12 @@
 
 import type { ABTestResult } from './types';
 
-export const Z_SCORE_95 = 1.96;  // 95% confidence
+const Z_SCORE_95 = 1.96; // 95% confidence
 
 /**
  * Approximation of the normal cumulative distribution function
  */
-export function normalCDF(z: number): number {
+function normalCDF(z: number): number {
   const a1 = 0.254829592;
   const a2 = -0.284496736;
   const a3 = 1.421413741;
@@ -25,8 +25,8 @@ export function normalCDF(z: number): number {
   const t3 = t2 * t;
   const t4 = t3 * t;
   const t5 = t4 * t;
-  const y = 1.0 - ((((a5 * t5 + a4 * t4) + a3 * t3) + a2 * t2) + a1 * t) *
-            Math.exp(-z * z);
+  const y =
+    1.0 - (a5 * t5 + a4 * t4 + a3 * t3 + a2 * t2 + a1 * t) * Math.exp(-z * z);
 
   return 0.5 * (1.0 + sign * y);
 }
@@ -47,8 +47,8 @@ export function calculateStatisticalSignificance(
 
   // Calculate standard error
   const se = Math.sqrt(
-    (controlStd * controlStd / controlN) +
-    (treatmentStd * treatmentStd / treatmentN)
+    (controlStd * controlStd) / controlN +
+      (treatmentStd * treatmentStd) / treatmentN
   );
 
   // Calculate z-score
@@ -65,8 +65,8 @@ export function calculateStatisticalSignificance(
   // Calculate effect size (Cohen's d)
   const pooledStd = Math.sqrt(
     ((controlN - 1) * controlStd * controlStd +
-     (treatmentN - 1) * treatmentStd * treatmentStd) /
-    (controlN + treatmentN - 2)
+      (treatmentN - 1) * treatmentStd * treatmentStd) /
+      (controlN + treatmentN - 2)
   );
   const effectSize = (treatmentMean - controlMean) / (pooledStd || 0.001);
 
@@ -77,6 +77,6 @@ export function calculateStatisticalSignificance(
     p_value: pValue,
     confidence_interval: ci,
     effect_size: effectSize,
-    power: power
+    power: power,
   };
 }

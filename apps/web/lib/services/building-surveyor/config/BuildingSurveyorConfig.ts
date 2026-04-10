@@ -14,76 +14,76 @@
  * damage taxonomy, fusion weights, and confidence thresholds.
  */
 export interface DomainConfig {
-    id: string;
-    displayName: string;
-    damageTypes: string[];
-    classNames: string[];
-    fusionWeights: {
-        sam3: number;
-        gpt4: number;
-        sceneGraph: number;
-    };
-    confidenceThresholds: {
-        high: number;
-        medium: number;
-        low: number;
-    };
-    agreementThreshold: number;
-    safetyCriticalClasses: string[];
-    nodeTypes: string[];
-    edgeTypes: string[];
-    modelPath?: string;
-    modelVersion?: string;
+  id: string;
+  displayName: string;
+  damageTypes: string[];
+  classNames: string[];
+  fusionWeights: {
+    sam3: number;
+    gpt4: number;
+    sceneGraph: number;
+  };
+  confidenceThresholds: {
+    high: number;
+    medium: number;
+    low: number;
+  };
+  agreementThreshold: number;
+  safetyCriticalClasses: string[];
+  nodeTypes: string[];
+  edgeTypes: string[];
+  modelPath?: string;
+  modelVersion?: string;
 }
 
-export interface BuildingSurveyorConfig {
-    // API Keys
-    openaiApiKey: string | undefined;
+interface BuildingSurveyorConfig {
+  // API Keys
+  openaiApiKey: string | undefined;
 
-    // Timeouts (ms)
-    detectorTimeoutMs: number;
-    visionTimeoutMs: number;
+  // Timeouts (ms)
+  detectorTimeoutMs: number;
+  visionTimeoutMs: number;
 
-    // Image Processing
-    imageBaseArea: number;
+  // Image Processing
+  imageBaseArea: number;
 
-    // Feature Extraction
-    useLearnedFeatures: boolean;
+  // Feature Extraction
+  useLearnedFeatures: boolean;
 
-    // Memory & Learning
-    useTitans: boolean;
+  // Memory & Learning
+  useTitans: boolean;
 
-    // Hybrid Inference
-    useHybridInference: boolean;
+  // Hybrid Inference
+  useHybridInference: boolean;
 
-    // A/B Testing
-    abTest: {
-        sfnRateThreshold: number;
-        coverageViolationThreshold: number;
-        automationSpikeThreshold: number;
-        criticObservationsThreshold: number;
-        calibrationDataThreshold: number;
-    };
+  // A/B Testing
+  abTest: {
+    sfnRateThreshold: number;
+    coverageViolationThreshold: number;
+    automationSpikeThreshold: number;
+    criticObservationsThreshold: number;
+    calibrationDataThreshold: number;
+  };
 
-    // Data Collection
-    autoValidationEnabled: boolean;
+  // Data Collection
+  autoValidationEnabled: boolean;
 
-    // YOLO Configuration
-    yolo: {
-        dataYamlPath: string | undefined;
-    };
+  // YOLO Configuration
+  yolo: {
+    dataYamlPath: string | undefined;
+  };
 
-    // SAM 3 Configuration
-    sam3: {
-        serviceUrl: string;
-        enabled: boolean;
-        modelVersion: string;
-        rolloutPercentage: number;
-        timeoutMs: number;
-    };
+  // SAM 3 Configuration
+  sam3: {
+    serviceUrl: string;
+    enabled: boolean;
+    modelVersion: string;
+    rolloutPercentage: number;
+    timeoutMs: number;
+  };
 
-    // Active domain (defaults to 'residential')
-    activeDomainId: string;
+  // Active domain (defaults to 'residential')
+  activeDomainId: string;
 }
 
 import { env, isDevelopment } from '../../../env';
@@ -96,122 +96,128 @@ import { railDomain } from './domains/rail';
  * Load and validate configuration from environment variables
  */
 export function loadBuildingSurveyorConfig(): BuildingSurveyorConfig {
-    // Use validated env.OPENAI_API_KEY if available, otherwise fall back to process.env
-    // This handles cases where validation might have issues but the key is still present
-    const openaiApiKey = env.OPENAI_API_KEY || process.env.OPENAI_API_KEY;
-    
-    // Log warning if OpenAI key is missing in non-development environments
-    if (!openaiApiKey && !isDevelopment()) {
-        logger.warn('OpenAI API key not configured - AI features will be disabled', {
-            service: 'BuildingSurveyorConfig',
-        });
-    }
+  // Use validated env.OPENAI_API_KEY if available, otherwise fall back to process.env
+  // This handles cases where validation might have issues but the key is still present
+  const openaiApiKey = env.OPENAI_API_KEY || process.env.OPENAI_API_KEY;
 
-    return {
-        // API Keys
-        openaiApiKey,
+  // Log warning if OpenAI key is missing in non-development environments
+  if (!openaiApiKey && !isDevelopment()) {
+    logger.warn(
+      'OpenAI API key not configured - AI features will be disabled',
+      {
+        service: 'BuildingSurveyorConfig',
+      }
+    );
+  }
 
-        // Timeouts (ms)
-        detectorTimeoutMs: Number.parseInt(
-            process.env.BUILDING_SURVEYOR_DETECTOR_TIMEOUT_MS || '7000',
-            10
-        ),
-        visionTimeoutMs: Number.parseInt(
-            process.env.BUILDING_SURVEYOR_VISION_TIMEOUT_MS || '9000',
-            10
-        ),
+  return {
+    // API Keys
+    openaiApiKey,
 
-        // Image Processing
-        imageBaseArea: Number.parseInt(
-            process.env.BUILDING_SURVEYOR_IMAGE_BASE_AREA || '786432', // 1024 * 768
-            10
-        ),
+    // Timeouts (ms)
+    detectorTimeoutMs: Number.parseInt(
+      process.env.BUILDING_SURVEYOR_DETECTOR_TIMEOUT_MS || '7000',
+      10
+    ),
+    visionTimeoutMs: Number.parseInt(
+      process.env.BUILDING_SURVEYOR_VISION_TIMEOUT_MS || '9000',
+      10
+    ),
 
-        // Feature Extraction
-        useLearnedFeatures: process.env.USE_LEARNED_FEATURES === 'true',
+    // Image Processing
+    imageBaseArea: Number.parseInt(
+      process.env.BUILDING_SURVEYOR_IMAGE_BASE_AREA || '786432', // 1024 * 768
+      10
+    ),
 
-        // Memory & Learning
-        useTitans: process.env.USE_TITANS === 'true',
+    // Feature Extraction
+    useLearnedFeatures: process.env.USE_LEARNED_FEATURES === 'true',
 
-        // Hybrid Inference (default: false until models are trained)
-        useHybridInference: process.env.USE_HYBRID_INFERENCE === 'true',
+    // Memory & Learning
+    useTitans: process.env.USE_TITANS === 'true',
 
-        // A/B Testing
-        abTest: {
-            sfnRateThreshold: Number.parseFloat(
-                process.env.AB_TEST_SFN_RATE_THRESHOLD || '0.1'
-            ),
-            coverageViolationThreshold: Number.parseFloat(
-                process.env.AB_TEST_COVERAGE_VIOLATION_THRESHOLD || '5.0'
-            ),
-            automationSpikeThreshold: Number.parseFloat(
-                process.env.AB_TEST_AUTOMATION_SPIKE_THRESHOLD || '20.0'
-            ),
-            criticObservationsThreshold: Number.parseInt(
-                process.env.AB_TEST_CRITIC_OBSERVATIONS_THRESHOLD || '100',
-                10
-            ),
-            calibrationDataThreshold: Number.parseInt(
-                process.env.AB_TEST_CALIBRATION_DATA_THRESHOLD || '100',
-                10
-            ),
-        },
+    // Hybrid Inference (default: false until models are trained)
+    useHybridInference: process.env.USE_HYBRID_INFERENCE === 'true',
 
-        // Data Collection
-        autoValidationEnabled: process.env.BUILDING_SURVEYOR_AUTO_VALIDATION_ENABLED === 'true',
+    // A/B Testing
+    abTest: {
+      sfnRateThreshold: Number.parseFloat(
+        process.env.AB_TEST_SFN_RATE_THRESHOLD || '0.1'
+      ),
+      coverageViolationThreshold: Number.parseFloat(
+        process.env.AB_TEST_COVERAGE_VIOLATION_THRESHOLD || '5.0'
+      ),
+      automationSpikeThreshold: Number.parseFloat(
+        process.env.AB_TEST_AUTOMATION_SPIKE_THRESHOLD || '20.0'
+      ),
+      criticObservationsThreshold: Number.parseInt(
+        process.env.AB_TEST_CRITIC_OBSERVATIONS_THRESHOLD || '100',
+        10
+      ),
+      calibrationDataThreshold: Number.parseInt(
+        process.env.AB_TEST_CALIBRATION_DATA_THRESHOLD || '100',
+        10
+      ),
+    },
 
-        // YOLO Configuration
-        yolo: {
-            dataYamlPath: process.env.YOLO_DATA_YAML_PATH,
-        },
+    // Data Collection
+    autoValidationEnabled:
+      process.env.BUILDING_SURVEYOR_AUTO_VALIDATION_ENABLED === 'true',
 
-        // SAM 3 Configuration
-        sam3: {
-            serviceUrl: process.env.SAM3_SERVICE_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:8001'),
-            enabled: process.env.ENABLE_SAM3_SEGMENTATION === 'true',
-            modelVersion: process.env.SAM_MODEL_VERSION || '3',
-            rolloutPercentage: Number.parseInt(
-                process.env.SAM3_ROLLOUT_PERCENTAGE || '0',
-                10
-            ),
-            timeoutMs: Number.parseInt(
-                process.env.SAM3_TIMEOUT_MS || '30000',
-                10
-            ),
-        },
+    // YOLO Configuration
+    yolo: {
+      dataYamlPath: process.env.YOLO_DATA_YAML_PATH,
+    },
 
-        // Active domain
-        activeDomainId: process.env.BUILDING_SURVEYOR_DOMAIN || 'residential',
-    };
+    // SAM 3 Configuration
+    sam3: {
+      serviceUrl:
+        process.env.SAM3_SERVICE_URL ||
+        (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:8001'),
+      enabled: process.env.ENABLE_SAM3_SEGMENTATION === 'true',
+      modelVersion: process.env.SAM_MODEL_VERSION || '3',
+      rolloutPercentage: Number.parseInt(
+        process.env.SAM3_ROLLOUT_PERCENTAGE || '0',
+        10
+      ),
+      timeoutMs: Number.parseInt(process.env.SAM3_TIMEOUT_MS || '30000', 10),
+    },
+
+    // Active domain
+    activeDomainId: process.env.BUILDING_SURVEYOR_DOMAIN || 'residential',
+  };
 }
 
 /**
  * Validate configuration and throw errors for missing required values
  */
 export function validateConfig(config: BuildingSurveyorConfig): void {
-    const errors: string[] = [];
+  const errors: string[] = [];
 
-    // Validate timeouts
-    if (config.detectorTimeoutMs <= 0) {
-        errors.push('BUILDING_SURVEYOR_DETECTOR_TIMEOUT_MS must be positive');
-    }
-    if (config.visionTimeoutMs <= 0) {
-        errors.push('BUILDING_SURVEYOR_VISION_TIMEOUT_MS must be positive');
-    }
+  // Validate timeouts
+  if (config.detectorTimeoutMs <= 0) {
+    errors.push('BUILDING_SURVEYOR_DETECTOR_TIMEOUT_MS must be positive');
+  }
+  if (config.visionTimeoutMs <= 0) {
+    errors.push('BUILDING_SURVEYOR_VISION_TIMEOUT_MS must be positive');
+  }
 
-    // Validate image base area
-    if (config.imageBaseArea <= 0) {
-        errors.push('BUILDING_SURVEYOR_IMAGE_BASE_AREA must be positive');
-    }
+  // Validate image base area
+  if (config.imageBaseArea <= 0) {
+    errors.push('BUILDING_SURVEYOR_IMAGE_BASE_AREA must be positive');
+  }
 
-    // Validate A/B test thresholds
-    if (config.abTest.sfnRateThreshold < 0 || config.abTest.sfnRateThreshold > 1) {
-        errors.push('AB_TEST_SFN_RATE_THRESHOLD must be between 0 and 1');
-    }
+  // Validate A/B test thresholds
+  if (
+    config.abTest.sfnRateThreshold < 0 ||
+    config.abTest.sfnRateThreshold > 1
+  ) {
+    errors.push('AB_TEST_SFN_RATE_THRESHOLD must be between 0 and 1');
+  }
 
-    if (errors.length > 0) {
-        throw new Error(`Configuration validation failed:\n${errors.join('\n')}`);
-    }
+  if (errors.length > 0) {
+    throw new Error(`Configuration validation failed:\n${errors.join('\n')}`);
+  }
 }
 
 /**
@@ -223,60 +229,60 @@ let configInstance: BuildingSurveyorConfig | null = null;
  * Get the singleton configuration instance
  */
 export function getConfig(): BuildingSurveyorConfig {
-    if (!configInstance) {
-        configInstance = loadBuildingSurveyorConfig();
-        validateConfig(configInstance);
-    }
-    return configInstance;
+  if (!configInstance) {
+    configInstance = loadBuildingSurveyorConfig();
+    validateConfig(configInstance);
+  }
+  return configInstance;
 }
 
 /**
  * Reset configuration (useful for testing)
  */
 export function resetConfig(): void {
-    configInstance = null;
+  configInstance = null;
 }
 
 // ─── Domain Registry ────────────────────────────────────────────────
 
 const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
-    residential: residentialDomain,
-    industrial: industrialDomain,
-    rail: railDomain,
+  residential: residentialDomain,
+  industrial: industrialDomain,
+  rail: railDomain,
 };
 
 /**
  * Get the domain config for the currently active domain
  */
 export function getActiveDomain(): DomainConfig {
-    const config = getConfig();
-    return getDomainConfig(config.activeDomainId);
+  const config = getConfig();
+  return getDomainConfig(config.activeDomainId);
 }
 
 /**
  * Get domain config by ID. Falls back to residential if unknown.
  */
-export function getDomainConfig(domainId: string): DomainConfig {
-    const domain = DOMAIN_REGISTRY[domainId];
-    if (!domain) {
-        logger.warn(`Unknown domain "${domainId}", falling back to residential`, {
-            service: 'BuildingSurveyorConfig',
-        });
-        return DOMAIN_REGISTRY.residential;
-    }
-    return domain;
+function getDomainConfig(domainId: string): DomainConfig {
+  const domain = DOMAIN_REGISTRY[domainId];
+  if (!domain) {
+    logger.warn(`Unknown domain "${domainId}", falling back to residential`, {
+      service: 'BuildingSurveyorConfig',
+    });
+    return DOMAIN_REGISTRY.residential;
+  }
+  return domain;
 }
 
 /**
  * List all registered domain IDs
  */
-export function getRegisteredDomains(): string[] {
-    return Object.keys(DOMAIN_REGISTRY);
+function getRegisteredDomains(): string[] {
+  return Object.keys(DOMAIN_REGISTRY);
 }
 
 /**
  * Register a new domain at runtime (e.g. loaded from DB)
  */
-export function registerDomain(domain: DomainConfig): void {
-    DOMAIN_REGISTRY[domain.id] = domain;
+function registerDomain(domain: DomainConfig): void {
+  DOMAIN_REGISTRY[domain.id] = domain;
 }

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import { logger } from '../utils/logger';
 
-export interface NetworkState {
+interface NetworkState {
   isConnected: boolean;
   isInternetReachable: boolean;
   type: NetInfoState['type'];
@@ -42,7 +42,8 @@ export const useNetworkState = () => {
           connectionQuality = 'excellent';
         } else if (isCellular) {
           // Check cellular generation if available
-          const cellularGeneration = (state.details as Record<string, unknown>)?.cellularGeneration;
+          const cellularGeneration = (state.details as Record<string, unknown>)
+            ?.cellularGeneration;
           switch (cellularGeneration) {
             case '5g':
               connectionQuality = 'excellent';

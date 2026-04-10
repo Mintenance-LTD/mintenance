@@ -3,7 +3,7 @@
 import React from 'react';
 import { theme } from '@/lib/theme';
 
-export interface LoadingSpinnerProps {
+interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';
   color?: string;
   message?: string;
@@ -60,15 +60,17 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
     <div style={containerStyles}>
       <div style={spinnerStyles} />
       {message && <div style={messageStyles}>{message}</div>}
-      
+
       <style jsx>{`
         @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
         }
       `}</style>
     </div>
   );
 };
-
-export default LoadingSpinner;

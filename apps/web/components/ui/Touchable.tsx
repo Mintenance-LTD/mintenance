@@ -33,8 +33,12 @@ export const Touchable: React.FC<TouchableProps> = ({
   'data-testid': testId,
 }) => {
   const [isPressed, setIsPressed] = useState(false);
-  const [ripples, setRipples] = useState<Array<{ id: number; x: number; y: number }>>([]);
-  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [ripples, setRipples] = useState<
+    Array<{ id: number; x: number; y: number }>
+  >([]);
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(
+    null
+  );
   const elementRef = useRef<HTMLDivElement>(null);
   const rippleIdRef = useRef(0);
 
@@ -48,8 +52,14 @@ export const Touchable: React.FC<TouchableProps> = ({
     if (!rippleEffect || !elementRef.current) return;
 
     const rect = elementRef.current.getBoundingClientRect();
-    const x = 'touches' in event ? event.touches[0].clientX - rect.left : event.clientX - rect.left;
-    const y = 'touches' in event ? event.touches[0].clientY - rect.top : event.clientY - rect.top;
+    const x =
+      'touches' in event
+        ? event.touches[0].clientX - rect.left
+        : event.clientX - rect.left;
+    const y =
+      'touches' in event
+        ? event.touches[0].clientY - rect.top
+        : event.clientY - rect.top;
 
     const newRipple = {
       id: rippleIdRef.current++,
@@ -57,11 +67,11 @@ export const Touchable: React.FC<TouchableProps> = ({
       y,
     };
 
-    setRipples(prev => [...prev, newRipple]);
+    setRipples((prev) => [...prev, newRipple]);
 
     // Remove ripple after animation
     setTimeout(() => {
-      setRipples(prev => prev.filter(ripple => ripple.id !== newRipple.id));
+      setRipples((prev) => prev.filter((ripple) => ripple.id !== newRipple.id));
     }, 600);
   };
 
@@ -160,7 +170,7 @@ export const Touchable: React.FC<TouchableProps> = ({
       onTouchCancel={handlePressCancel}
       aria-label={ariaLabel}
       data-testid={testId}
-      role="button"
+      role='button'
       tabIndex={disabled ? -1 : 0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -170,12 +180,12 @@ export const Touchable: React.FC<TouchableProps> = ({
       }}
     >
       {children}
-      
+
       {/* Press overlay */}
       <div style={overlayStyles} />
-      
+
       {/* Ripple effects */}
-      {ripples.map(ripple => (
+      {ripples.map((ripple) => (
         <div
           key={ripple.id}
           style={{
@@ -195,12 +205,12 @@ export const Touchable: React.FC<TouchableProps> = ({
             opacity: 0;
           }
         }
-        
+
         .touchable:focus-visible {
           outline: 2px solid ${theme.colors.borderFocus};
           outline-offset: 2px;
         }
-        
+
         .touchable:active {
           transform: scale(0.98);
         }
@@ -304,7 +314,7 @@ interface TouchableCardProps extends TouchableProps {
   padding?: 'sm' | 'md' | 'lg';
 }
 
-export const TouchableCard: React.FC<TouchableCardProps> = ({
+const TouchableCard: React.FC<TouchableCardProps> = ({
   children,
   elevation = 'sm',
   padding = 'md',
@@ -344,5 +354,3 @@ export const TouchableCard: React.FC<TouchableCardProps> = ({
     </Touchable>
   );
 };
-
-export default Touchable;

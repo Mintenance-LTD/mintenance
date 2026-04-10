@@ -17,10 +17,10 @@ import type { SetupIntentCreateResponse } from '../connect/types';
 /**
  * Get or create a Stripe customer for a user. Idempotent.
  */
-export async function ensureStripeCustomer(
+async function ensureStripeCustomer(
   userId: string,
   email: string,
-  name?: string,
+  name?: string
 ): Promise<string> {
   const { data: profile, error } = await serverSupabase
     .from('profiles')
@@ -49,7 +49,7 @@ export async function ensureStripeCustomer(
     logger.error(
       'Failed to persist stripe_customer_id after customer creation',
       updateError,
-      { service: 'stripe-elements', userId, stripeCustomerId: customer.id },
+      { service: 'stripe-elements', userId, stripeCustomerId: customer.id }
     );
     throw new Error('Failed to link Stripe customer to profile');
   }
@@ -64,7 +64,7 @@ export async function ensureStripeCustomer(
 export async function createSetupIntentForUser(
   userId: string,
   email: string,
-  name?: string,
+  name?: string
 ): Promise<SetupIntentCreateResponse> {
   const customerId = await ensureStripeCustomer(userId, email, name);
 

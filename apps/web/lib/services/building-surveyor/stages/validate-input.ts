@@ -2,7 +2,7 @@ import { logger } from '@mintenance/shared';
 import { validateURLs } from '@/lib/security/url-validation';
 import { getConfig } from '../config/BuildingSurveyorConfig';
 
-export interface ValidationResult {
+interface ValidationResult {
   openaiApiKey: string;
   validatedImageUrls: string[];
 }

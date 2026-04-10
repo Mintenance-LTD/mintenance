@@ -131,11 +131,10 @@ export interface AgentResult {
   metadata?: Record<string, unknown>;
 }
 
-export interface LearningData {
+interface LearningData {
   userId: string;
   eventType: string;
   context: Record<string, unknown>;
   outcome?: Record<string, unknown>;
   timestamp: string;
 }
-

@@ -1,6 +1,6 @@
 /**
  * Idempotency Utility
- * 
+ *
  * Provides idempotency key management for critical operations to prevent
  * duplicate processing of requests (e.g., payments, escrow releases, bid submissions).
  */
@@ -8,7 +8,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 
-export interface IdempotencyResult<T> {
+interface IdempotencyResult<T> {
   isDuplicate: boolean;
   cachedResult?: T;
   idempotencyKey: string;
@@ -35,7 +35,7 @@ const LOCK_TIMEOUT_MS = 30000;
  * @param ttl - Time to live in milliseconds (default: 30 seconds)
  * @returns Lock result with acquisition status and lock ID
  */
-export async function acquireDistributedLock(
+async function acquireDistributedLock(
   key: string,
   ttl: number = LOCK_TIMEOUT_MS
 ): Promise<LockResult> {
@@ -103,7 +103,7 @@ export async function acquireDistributedLock(
  * @param key - The key that was locked
  * @param lockId - Optional lock ID (will be computed from key if not provided)
  */
-export async function releaseDistributedLock(
+async function releaseDistributedLock(
   key: string,
   lockId?: number
 ): Promise<void> {
@@ -285,16 +285,14 @@ export async function storeIdempotencyResult<T>(
   metadata?: Record<string, unknown>
 ): Promise<void> {
   try {
-    const { error } = await serverSupabase
-      .from('idempotency_keys')
-      .insert({
-        idempotency_key: idempotencyKey,
-        operation,
-        result,
-        user_id: userId || null,
-        metadata: metadata || null,
-        created_at: new Date().toISOString(),
-      });
+    const { error } = await serverSupabase.from('idempotency_keys').insert({
+      idempotency_key: idempotencyKey,
+      operation,
+      result,
+      user_id: userId || null,
+      metadata: metadata || null,
+      created_at: new Date().toISOString(),
+    });
 
     if (error) {
       // If it's a unique constraint violation, that's okay - means another request already stored it
@@ -325,17 +323,23 @@ export async function storeIdempotencyResult<T>(
 /**
  * Generate an idempotency key for an operation
  */
-export function generateIdempotencyKey(
+function generateIdempotencyKey(
   operation: string,
   userId: string,
   resourceId?: string
 ): string {
   const timestamp = Date.now();
   const random = crypto.randomUUID();
-  const parts = [operation, userId, resourceId || '', timestamp.toString(), random]
+  const parts = [
+    operation,
+    userId,
+    resourceId || '',
+    timestamp.toString(),
+    random,
+  ]
     .filter(Boolean)
     .join('_');
-  
+
   return `${parts}`.substring(0, 255); // Ensure it fits in database
 }
 
@@ -357,4 +361,3 @@ export function getIdempotencyKeyFromRequest(
   // Generate one based on request content
   return generateIdempotencyKey(operation, userId, resourceId);
 }
-

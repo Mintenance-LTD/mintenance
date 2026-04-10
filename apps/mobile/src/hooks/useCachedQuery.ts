@@ -34,7 +34,7 @@ interface CachedQueryOptions<TData> {
 /**
  * Enhanced useQuery with multi-layer caching
  */
-export function useCachedQuery<TData>({
+function useCachedQuery<TData>({
   queryKey,
   queryFn,
   cacheTime = CACHE_TIMES.DYNAMIC,
@@ -110,7 +110,7 @@ export function useCachedQuery<TData>({
 /**
  * Hook for prefetching data with caching
  */
-export function usePrefetchCached() {
+function usePrefetchCached() {
   const queryClient = useQueryClient();
   const cacheService = CacheService.getInstance();
 
@@ -153,7 +153,7 @@ export function usePrefetchCached() {
 /**
  * Hook for cached mutations with optimistic updates
  */
-export function useCachedMutation<TData, TVariables>({
+function useCachedMutation<TData, TVariables>({
   mutationFn,
   invalidateKeys,
   optimisticUpdate,
@@ -224,7 +224,7 @@ export function useCachedMutation<TData, TVariables>({
 /**
  * Hook for getting cache statistics
  */
-export function useCacheStats() {
+function useCacheStats() {
   const cacheService = CacheService.getInstance();
 
   return useQuery({
@@ -238,7 +238,7 @@ export function useCacheStats() {
 /**
  * Hook for clearing cache
  */
-export function useClearCache() {
+function useClearCache() {
   const queryClient = useQueryClient();
   const cacheService = CacheService.getInstance();
 
@@ -268,7 +268,7 @@ export function useClearCache() {
 /**
  * Example usage patterns
  */
-export const CACHE_PATTERNS = {
+const CACHE_PATTERNS = {
   // Static data (rarely changes)
   STATIC: {
     cacheTime: CACHE_TIMES.STATIC,
@@ -308,7 +308,7 @@ export const CACHE_PATTERNS = {
 /**
  * Example: Jobs list with disk caching
  */
-export function useJobsWithCache() {
+function useJobsWithCache() {
   return useCachedQuery<Job[]>({
     queryKey: [QUERY_KEYS.JOBS],
     queryFn: async () => {
@@ -329,7 +329,7 @@ export function useJobsWithCache() {
 /**
  * Example: Contractor profile with static caching
  */
-export function useContractorProfile(contractorId: string) {
+function useContractorProfile(contractorId: string) {
   return useCachedQuery({
     queryKey: [QUERY_KEYS.CONTRACTORS, contractorId],
     queryFn: async () => {
@@ -354,7 +354,7 @@ export function useContractorProfile(contractorId: string) {
 /**
  * Example: Create job with optimistic update
  */
-export function useCreateJob() {
+function useCreateJob() {
   return useCachedMutation<Job, Record<string, unknown>>({
     mutationFn: (jobData) => mobileApiClient.post('/api/jobs', jobData),
     invalidateKeys: [[QUERY_KEYS.JOBS]],

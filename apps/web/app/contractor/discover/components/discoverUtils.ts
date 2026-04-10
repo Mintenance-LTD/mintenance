@@ -8,7 +8,7 @@
 export { calculateDistance } from '@/lib/utils/location';
 
 /** Map a job priority string to Tailwind colour classes. */
-export function getUrgencyColor(priority: string | null): string {
+function getUrgencyColor(priority: string | null): string {
   switch (priority?.toLowerCase()) {
     case 'high':
       return 'bg-rose-100 text-rose-700 border-rose-600';
@@ -23,24 +23,22 @@ export function getUrgencyColor(priority: string | null): string {
 
 /** Return a short, human-readable location from a property object. */
 export function formatLocation(
-  property: { address: string; postcode: string } | null,
+  property: { address: string; postcode: string } | null
 ): string {
   if (!property) return 'Location not specified';
   return property.address.split(',')[0] || property.postcode || 'UK';
 }
 
 /** Full name of a homeowner, falling back to "Homeowner". */
-export function getHomeownerName(
-  homeowner: { first_name: string; last_name: string } | null,
+function getHomeownerName(
+  homeowner: { first_name: string; last_name: string } | null
 ): string {
   if (!homeowner) return 'Homeowner';
   return `${homeowner.first_name} ${homeowner.last_name}`;
 }
 
 /** First letter of the homeowner's first name, for avatar fallback. */
-export function getHomeownerInitial(
-  homeowner: { first_name: string } | null,
-): string {
+function getHomeownerInitial(homeowner: { first_name: string } | null): string {
   if (!homeowner || !homeowner.first_name) return 'H';
   return homeowner.first_name.charAt(0).toUpperCase();
 }

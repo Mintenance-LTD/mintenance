@@ -26,10 +26,10 @@ export const BudgetRangeSlider: React.FC<BudgetRangeSliderProps> = ({
           style={styles.input}
           value={minValue}
           onChangeText={onMinChange}
-          keyboardType="numeric"
-          placeholder="Min"
+          keyboardType='numeric'
+          placeholder='Min'
           placeholderTextColor={theme.colors.textTertiary}
-          accessibilityLabel="Minimum budget"
+          accessibilityLabel='Minimum budget'
         />
       </View>
       <View style={styles.separator}>
@@ -41,10 +41,10 @@ export const BudgetRangeSlider: React.FC<BudgetRangeSliderProps> = ({
           style={styles.input}
           value={maxValue}
           onChangeText={onMaxChange}
-          keyboardType="numeric"
-          placeholder="Max"
+          keyboardType='numeric'
+          placeholder='Max'
           placeholderTextColor={theme.colors.textTertiary}
-          accessibilityLabel="Maximum budget"
+          accessibilityLabel='Maximum budget'
         />
       </View>
     </View>
@@ -106,5 +106,3 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
-
-export default BudgetRangeSlider;

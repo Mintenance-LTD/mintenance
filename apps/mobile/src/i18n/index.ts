@@ -58,7 +58,7 @@ const getDeviceLanguage = (): Language => {
 // Language persistence
 const LANGUAGE_STORAGE_KEY = 'user_language_preference';
 
-export const saveLanguagePreference = async (language: Language) => {
+const saveLanguagePreference = async (language: Language) => {
   try {
     await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, language);
   } catch (error) {
@@ -66,7 +66,7 @@ export const saveLanguagePreference = async (language: Language) => {
   }
 };
 
-export const getLanguagePreference = async (): Promise<Language | null> => {
+const getLanguagePreference = async (): Promise<Language | null> => {
   try {
     const language = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
     return language as Language;

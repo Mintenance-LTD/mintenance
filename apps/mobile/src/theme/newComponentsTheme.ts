@@ -5,7 +5,7 @@
 
 import { theme } from './index';
 
-export const newComponentsTheme = {
+const newComponentsTheme = {
   colors: {
     // Use existing primary colors
     primary: theme.colors.primary, // Emerald green
@@ -50,7 +50,7 @@ export const newComponentsTheme = {
     // Special cards
     cardBackground: theme.colors.primary,
   },
-  
+
   spacing: theme.spacing,
   borderRadius: theme.borderRadius,
   typography: theme.typography,

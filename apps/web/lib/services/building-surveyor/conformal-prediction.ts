@@ -6,15 +6,18 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { ContextFeatureService } from './ContextFeatureService';
-import { normalizeDamageCategory, normalizePropertyType } from './normalization-utils';
+import {
+  normalizeDamageCategory,
+  normalizePropertyType,
+} from './normalization-utils';
 
-export interface ConformalPredictionResult {
+interface ConformalPredictionResult {
   stratum: string;
   quantile: number;
   predictionSet: string[];
 }
 
-export interface CalibrationDataPoint {
+interface CalibrationDataPoint {
   trueClass: string;
   trueProbability: number;
   nonconformityScore: number;
@@ -35,7 +38,9 @@ export async function mondrianConformalPrediction(
   }
 ): Promise<ConformalPredictionResult> {
   const ageBin = ContextFeatureService.getPropertyAgeBin(context.propertyAge);
-  const normalizedDamageCategory = normalizeDamageCategory(context.damageCategory);
+  const normalizedDamageCategory = normalizeDamageCategory(
+    context.damageCategory
+  );
   const normalizedPropertyType = normalizePropertyType(context.propertyType);
 
   // Start with most specific stratum (4 dimensions)
@@ -67,7 +72,7 @@ export async function mondrianConformalPrediction(
   const n_cal = calibrationData.length;
 
   // Small Sample Beta Correction (SSBC)
-  const alpha = 0.10; // Target 90% coverage
+  const alpha = 0.1; // Target 90% coverage
   let alpha_prime = alpha;
 
   if (n_cal < 100) {
@@ -75,7 +80,9 @@ export async function mondrianConformalPrediction(
   }
 
   // Compute conformal quantile
-  const nonconformityScores = calibrationData.map(cal => 1 - cal.trueProbability);
+  const nonconformityScores = calibrationData.map(
+    (cal) => 1 - cal.trueProbability
+  );
   const quantile = weightedQuantile(
     nonconformityScores,
     calibrationData.map(() => 1.0), // Default weight
@@ -93,7 +100,7 @@ export async function mondrianConformalPrediction(
     'pest',
   ];
 
-  const predictionSet = allClasses.filter(cls => {
+  const predictionSet = allClasses.filter((cls) => {
     const score = 1 - fusionMean;
     return score <= quantile;
   });
@@ -113,7 +120,9 @@ export async function mondrianConformalPrediction(
 /**
  * Get calibration data for a stratum
  */
-export async function getCalibrationData(stratum: string): Promise<CalibrationDataPoint[]> {
+async function getCalibrationData(
+  stratum: string
+): Promise<CalibrationDataPoint[]> {
   try {
     const { data } = await serverSupabase
       .from('ab_calibration_data')
@@ -122,7 +131,7 @@ export async function getCalibrationData(stratum: string): Promise<CalibrationDa
       .order('created_at', { ascending: false })
       .limit(1000);
 
-    return (data || []).map(d => ({
+    return (data || []).map((d) => ({
       trueClass: d.true_class,
       trueProbability: parseFloat(d.true_probability),
       nonconformityScore: parseFloat(d.nonconformity_score),
@@ -141,7 +150,7 @@ export async function getCalibrationData(stratum: string): Promise<CalibrationDa
 /**
  * Compute weighted quantile
  */
-export function weightedQuantile(
+function weightedQuantile(
   scores: number[],
   weights: number[],
   percentile: number
@@ -170,7 +179,7 @@ export function weightedQuantile(
  * Beta quantile for Small Sample Beta Correction (SSBC)
  * Special case: Beta(n+1, 1) has closed form: p^(1/(n+1))
  */
-export function betaQuantile(p: number, a: number, b: number): number {
+function betaQuantile(p: number, a: number, b: number): number {
   if (b === 1) {
     return Math.pow(p, 1 / a);
   }
@@ -181,4 +190,3 @@ export function betaQuantile(p: number, a: number, b: number): number {
   // In production, could use full Newton-Raphson from ab_test_harness
   return Math.pow(p, 1 / (a + b));
 }
-

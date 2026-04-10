@@ -10,7 +10,7 @@ const TOKEN_REFRESH_THRESHOLD_SECONDS = 300; // 5 minutes
  * Parse a JWT payload to extract claims such as expiration.
  * Returns null if the token is malformed.
  */
-export const parseJWT = (token: string): { exp?: number } | null => {
+const parseJWT = (token: string): { exp?: number } | null => {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;

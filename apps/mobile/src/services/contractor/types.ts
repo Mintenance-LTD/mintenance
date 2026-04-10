@@ -69,7 +69,7 @@ export interface DatabaseReviewRow {
   };
 }
 
-export interface DatabaseMatchRow {
+interface DatabaseMatchRow {
   id: string;
   homeowner_id: string;
   contractor_id: string;

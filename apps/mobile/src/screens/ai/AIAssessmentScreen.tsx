@@ -57,14 +57,20 @@ export const AIAssessmentScreen: React.FC = () => {
       setResult(data.analysis);
     },
     onError: (err: Error) => {
-      Alert.alert('Analysis Failed', err.message || 'Could not analyze the image. Please try again.');
+      Alert.alert(
+        'Analysis Failed',
+        err.message || 'Could not analyze the image. Please try again.'
+      );
     },
   });
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Camera roll access is needed to select photos.');
+      Alert.alert(
+        'Permission Required',
+        'Camera roll access is needed to select photos.'
+      );
       return;
     }
 
@@ -85,7 +91,10 @@ export const AIAssessmentScreen: React.FC = () => {
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Camera access is needed to take photos.');
+      Alert.alert(
+        'Permission Required',
+        'Camera access is needed to take photos.'
+      );
       return;
     }
 
@@ -114,33 +123,60 @@ export const AIAssessmentScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
-      <ScreenHeader title="AI Assessment" showBack onBack={() => navigation.goBack()} />
+      <StatusBar
+        barStyle='dark-content'
+        backgroundColor={theme.colors.backgroundSecondary}
+      />
+      <ScreenHeader
+        title='AI Assessment'
+        showBack
+        onBack={() => navigation.goBack()}
+      />
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+      >
         {!imageUri ? (
           <View style={styles.uploadSection}>
             <View style={styles.iconCircle}>
-              <Ionicons name="camera-outline" size={48} color={theme.colors.textSecondary} />
+              <Ionicons
+                name='camera-outline'
+                size={48}
+                color={theme.colors.textSecondary}
+              />
             </View>
             <Text style={styles.uploadTitle}>Analyze Property Damage</Text>
             <Text style={styles.uploadDescription}>
-              Take a photo or choose from your gallery to get an AI-powered damage assessment
-              with cost estimates.
+              Take a photo or choose from your gallery to get an AI-powered
+              damage assessment with cost estimates.
             </Text>
             <View style={styles.buttonRow}>
-              <Button variant="primary" onPress={takePhoto} title="Take Photo" style={styles.actionBtn as ViewStyle} />
-              <Button variant="secondary" onPress={pickImage} title="Gallery" style={styles.actionBtn as ViewStyle} />
+              <Button
+                variant='primary'
+                onPress={takePhoto}
+                title='Take Photo'
+                style={styles.actionBtn as ViewStyle}
+              />
+              <Button
+                variant='secondary'
+                onPress={pickImage}
+                title='Gallery'
+                style={styles.actionBtn as ViewStyle}
+              />
             </View>
           </View>
         ) : (
           <>
-            <Card variant="elevated" padding="sm" style={styles.imageCard}>
+            <Card variant='elevated' padding='sm' style={styles.imageCard}>
               <Image source={{ uri: imageUri }} style={styles.previewImage} />
               <Button
-                variant="ghost"
-                size="sm"
-                onPress={() => { setImageUri(null); setResult(null); }}
+                variant='ghost'
+                size='sm'
+                onPress={() => {
+                  setImageUri(null);
+                  setResult(null);
+                }}
                 style={styles.retakeBtn}
               >
                 Choose Different Photo
@@ -148,20 +184,26 @@ export const AIAssessmentScreen: React.FC = () => {
             </Card>
 
             {analyzeMutation.isPending && (
-              <Card variant="elevated" padding="md" style={styles.loadingCard}>
-                <Ionicons name="sparkles" size={24} color="#8B5CF6" />
+              <Card variant='elevated' padding='md' style={styles.loadingCard}>
+                <Ionicons name='sparkles' size={24} color='#8B5CF6' />
                 <Text style={styles.loadingText}>Analyzing image...</Text>
               </Card>
             )}
 
             {result && (
               <>
-                <Card variant="elevated" padding="md" style={styles.resultCard}>
+                <Card variant='elevated' padding='md' style={styles.resultCard}>
                   <View style={styles.resultHeader}>
                     <Text style={styles.resultTitle}>Assessment Result</Text>
                     <Badge
-                      variant={result.severity === 'low' ? 'success' : result.severity === 'critical' ? 'error' : 'warning'}
-                      size="sm"
+                      variant={
+                        result.severity === 'low'
+                          ? 'success'
+                          : result.severity === 'critical'
+                            ? 'error'
+                            : 'warning'
+                      }
+                      size='sm'
                     >
                       {result.severity.toUpperCase()}
                     </Badge>
@@ -177,22 +219,38 @@ export const AIAssessmentScreen: React.FC = () => {
                   </View>
                   <View style={styles.resultRow}>
                     <Text style={styles.resultLabel}>Estimated Cost</Text>
-                    <Text style={[styles.resultValue, { color: theme.colors.textPrimary }]}>
-                      {formatCost(result.estimatedCostMin)} - {formatCost(result.estimatedCostMax)}
+                    <Text
+                      style={[
+                        styles.resultValue,
+                        { color: theme.colors.textPrimary },
+                      ]}
+                    >
+                      {formatCost(result.estimatedCostMin)} -{' '}
+                      {formatCost(result.estimatedCostMax)}
                     </Text>
                   </View>
                   <View style={styles.resultRow}>
                     <Text style={styles.resultLabel}>Confidence</Text>
-                    <Text style={styles.resultValue}>{Math.round(result.confidence * 100)}%</Text>
+                    <Text style={styles.resultValue}>
+                      {Math.round(result.confidence * 100)}%
+                    </Text>
                   </View>
                 </Card>
 
                 {result.recommendedActions.length > 0 && (
-                  <Card variant="elevated" padding="md" style={styles.actionsCard}>
+                  <Card
+                    variant='elevated'
+                    padding='md'
+                    style={styles.actionsCard}
+                  >
                     <Text style={styles.actionsTitle}>Recommended Actions</Text>
                     {result.recommendedActions.map((action, idx) => (
                       <View key={idx} style={styles.actionItem}>
-                        <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
+                        <Ionicons
+                          name='checkmark-circle'
+                          size={18}
+                          color={theme.colors.primary}
+                        />
                         <Text style={styles.actionText}>{action}</Text>
                       </View>
                     ))}
@@ -200,10 +258,10 @@ export const AIAssessmentScreen: React.FC = () => {
                 )}
 
                 <Button
-                  variant="primary"
+                  variant='primary'
                   fullWidth
                   onPress={handleCreateJob}
-                  title="Create Job from Assessment"
+                  title='Create Job from Assessment'
                   style={styles.createJobBtn as ViewStyle}
                 />
               </>
@@ -238,7 +296,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -341,5 +404,3 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 });
-
-export default AIAssessmentScreen;

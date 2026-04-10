@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import { logger } from '@mintenance/shared';
 
-export interface PlatformAdapter<T> {
+interface PlatformAdapter<T> {
   web: T;
   mobile: T;
 }
@@ -21,7 +21,7 @@ export function isMobile(): boolean {
   return Platform.OS !== 'web';
 }
 
-export interface PlatformCapabilities {
+interface PlatformCapabilities {
   biometrics: boolean;
   camera: boolean;
   location: boolean;
@@ -32,8 +32,12 @@ export interface PlatformCapabilities {
 
 export const platformCapabilities: PlatformCapabilities = Platform.select({
   web: {
-    biometrics: typeof navigator !== 'undefined' && !!(navigator.credentials && navigator.credentials.create), // WebAuthn support
-    camera: typeof navigator !== 'undefined' && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia), // HTML5 Media API
+    biometrics:
+      typeof navigator !== 'undefined' &&
+      !!(navigator.credentials && navigator.credentials.create), // WebAuthn support
+    camera:
+      typeof navigator !== 'undefined' &&
+      !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia), // HTML5 Media API
     location: typeof navigator !== 'undefined' && !!navigator.geolocation, // Web Geolocation API
     notifications: typeof window !== 'undefined' && 'Notification' in window, // Web Push API
     haptics: typeof navigator !== 'undefined' && 'vibrate' in navigator, // Web vibration API
@@ -68,12 +72,14 @@ export class WebPlatformServices {
       };
 
       const credential = await navigator.credentials.get({
-        publicKey: publicKeyCredentialRequestOptions
+        publicKey: publicKeyCredentialRequestOptions,
       });
 
       return !!credential;
     } catch (error) {
-      logger.warn('WebAuthn authentication failed', { error: error instanceof Error ? error.message : String(error) });
+      logger.warn('WebAuthn authentication failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       return false;
     }
   }
@@ -87,10 +93,12 @@ export class WebPlatformServices {
     try {
       return await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment' },
-        audio: false
+        audio: false,
       });
     } catch (error) {
-      logger.warn('Web camera access failed', { error: error instanceof Error ? error.message : String(error) });
+      logger.warn('Web camera access failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       return null;
     }
   }
@@ -120,7 +128,9 @@ export class WebPlatformServices {
       const permission = await Notification.requestPermission();
       return permission === 'granted';
     } catch (error) {
-      logger.warn('Web notification permission failed', { error: error instanceof Error ? error.message : String(error) });
+      logger.warn('Web notification permission failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       return false;
     }
   }
@@ -128,8 +138,15 @@ export class WebPlatformServices {
   /**
    * Show Web Notification
    */
-  static async showWebNotification(title: string, options: NotificationOptions = {}): Promise<void> {
-    if (!platformCapabilities.notifications || Notification.permission !== 'granted') return;
+  static async showWebNotification(
+    title: string,
+    options: NotificationOptions = {}
+  ): Promise<void> {
+    if (
+      !platformCapabilities.notifications ||
+      Notification.permission !== 'granted'
+    )
+      return;
 
     try {
       if ('serviceWorker' in navigator) {
@@ -137,13 +154,15 @@ export class WebPlatformServices {
         await registration.showNotification(title, {
           ...options,
           icon: options.icon || '/assets/notification-icon.png',
-          badge: '/assets/badge-icon.png'
+          badge: '/assets/badge-icon.png',
         });
       } else {
         new Notification(title, options);
       }
     } catch (error) {
-      logger.warn('Web notification failed', { error: error instanceof Error ? error.message : String(error) });
+      logger.warn('Web notification failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -159,7 +178,9 @@ export class WebPlatformServices {
   /**
    * Web File Picker
    */
-  static async pickWebFile(options: { accept?: string; multiple?: boolean } = {}): Promise<FileList | null> {
+  static async pickWebFile(
+    options: { accept?: string; multiple?: boolean } = {}
+  ): Promise<FileList | null> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const win = window as any;
     if (!platformCapabilities.fileSystem && !win.showOpenFilePicker) {
@@ -179,11 +200,15 @@ export class WebPlatformServices {
 
     try {
       const [fileHandle] = await win.showOpenFilePicker({
-        types: options.accept ? [{
-          description: 'Allowed files',
-          accept: { [options.accept]: [] }
-        }] : [],
-        multiple: options.multiple || false
+        types: options.accept
+          ? [
+              {
+                description: 'Allowed files',
+                accept: { [options.accept]: [] },
+              },
+            ]
+          : [],
+        multiple: options.multiple || false,
       });
 
       const file = await fileHandle.getFile();
@@ -191,7 +216,9 @@ export class WebPlatformServices {
       dataTransfer.items.add(file);
       return dataTransfer.files;
     } catch (error) {
-      logger.warn('Web file picker failed', { error: error instanceof Error ? error.message : String(error) });
+      logger.warn('Web file picker failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       return null;
     }
   }
@@ -200,12 +227,12 @@ export class WebPlatformServices {
 /**
  * Responsive Design Utilities for Web
  */
-export class WebResponsiveUtils {
+class WebResponsiveUtils {
   static readonly breakpoints = {
     mobile: 768,
     tablet: 1024,
     desktop: 1440,
-    wide: 1920
+    wide: 1920,
   };
 
   static getCurrentBreakpoint(): 'mobile' | 'tablet' | 'desktop' | 'wide' {
@@ -237,7 +264,7 @@ export class WebResponsiveUtils {
 
     return {
       width: window.innerWidth,
-      height: window.innerHeight
+      height: window.innerHeight,
     };
   }
 }
@@ -245,13 +272,13 @@ export class WebResponsiveUtils {
 /**
  * Web-Specific Component Adaptations
  */
-export const webComponentAdaptations = {
+const webComponentAdaptations = {
   /**
    * TouchableOpacity replacement for web
    */
   TouchableOpacity: Platform.select({
     web: require('react-native').TouchableOpacity,
-    default: require('react-native').TouchableOpacity
+    default: require('react-native').TouchableOpacity,
   }),
 
   /**
@@ -259,7 +286,7 @@ export const webComponentAdaptations = {
    */
   ScrollView: Platform.select({
     web: require('react-native').ScrollView,
-    default: require('react-native').ScrollView
+    default: require('react-native').ScrollView,
   }),
 
   /**
@@ -267,11 +294,11 @@ export const webComponentAdaptations = {
    */
   SafeAreaView: Platform.select({
     web: require('react-native').SafeAreaView,
-    default: require('react-native').SafeAreaView
-  })
+    default: require('react-native').SafeAreaView,
+  }),
 };
 
-export interface ResponsiveBreakpoints {
+interface ResponsiveBreakpoints {
   mobile: number;
   tablet: number;
   desktop: number;

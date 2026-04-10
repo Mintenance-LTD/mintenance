@@ -24,7 +24,7 @@ export const useTypedNavigation = <T extends keyof RootStackParamList>() =>
 /**
  * Type-safe version of useRoute for root navigation
  */
-export const useTypedRoute = <T extends keyof RootStackParamList>() =>
+const useTypedRoute = <T extends keyof RootStackParamList>() =>
   useRoute<RouteProp<RootStackParamList, T>>();
 
 // ============================================================================
@@ -40,19 +40,20 @@ export const useJobsNavigation = <T extends keyof JobsStackParamList>() =>
 /**
  * Type-safe route hook for Jobs feature
  */
-export const useJobsRoute = <T extends keyof JobsStackParamList>() =>
+const useJobsRoute = <T extends keyof JobsStackParamList>() =>
   useRoute<RouteProp<JobsStackParamList, T>>();
 
 /**
  * Type-safe navigation hook for Messaging feature
  */
-export const useMessagingNavigation = <T extends keyof MessagingStackParamList>() =>
-  useNavigation<NativeStackNavigationProp<MessagingStackParamList, T>>();
+export const useMessagingNavigation = <
+  T extends keyof MessagingStackParamList,
+>() => useNavigation<NativeStackNavigationProp<MessagingStackParamList, T>>();
 
 /**
  * Type-safe route hook for Messaging feature
  */
-export const useMessagingRoute = <T extends keyof MessagingStackParamList>() =>
+const useMessagingRoute = <T extends keyof MessagingStackParamList>() =>
   useRoute<RouteProp<MessagingStackParamList, T>>();
 
 /**
@@ -64,7 +65,7 @@ export const useProfileNavigation = <T extends keyof ProfileStackParamList>() =>
 /**
  * Type-safe route hook for Profile feature
  */
-export const useProfileRoute = <T extends keyof ProfileStackParamList>() =>
+const useProfileRoute = <T extends keyof ProfileStackParamList>() =>
   useRoute<RouteProp<ProfileStackParamList, T>>();
 
 // ============================================================================
@@ -131,7 +132,7 @@ export const hasRoute = (
   routeName: keyof RootStackParamList
 ): boolean => {
   const state = navigation.getState();
-  return state.routes.some(route => route.name === routeName);
+  return state.routes.some((route) => route.name === routeName);
 };
 
 /**
@@ -151,7 +152,7 @@ export const getCurrentRouteName = (
 /**
  * Enhanced navigation hook with role-based guards and error handling
  */
-export const useEnhancedNavigation = () => {
+const useEnhancedNavigation = () => {
   const navigation = useTypedNavigation();
   const { user } = useAuth();
   const haptics = useHaptics();
@@ -173,8 +174,14 @@ export const useEnhancedNavigation = () => {
       }
 
       // Role-based guard
-      if (options?.allowedRoles && user && !options.allowedRoles.includes(user.role as 'homeowner' | 'contractor')) {
-        logger.warn(`Navigation blocked: User role ${user.role} not allowed for ${screen}`);
+      if (
+        options?.allowedRoles &&
+        user &&
+        !options.allowedRoles.includes(user.role as 'homeowner' | 'contractor')
+      ) {
+        logger.warn(
+          `Navigation blocked: User role ${user.role} not allowed for ${screen}`
+        );
         const fallback = options.fallbackScreen || 'Main';
         (navigation.navigate as (...args: unknown[]) => void)(fallback);
         return false;
@@ -206,7 +213,9 @@ export const useEnhancedNavigation = () => {
     }
   };
 
-  const goBackWithFallback = (fallbackScreen: keyof RootStackParamList = 'Main') => {
+  const goBackWithFallback = (
+    fallbackScreen: keyof RootStackParamList = 'Main'
+  ) => {
     try {
       haptics.buttonPress();
 
@@ -266,16 +275,20 @@ export const useEnhancedNavigation = () => {
 /**
  * Navigation flow helper for common user journeys
  */
-export const useNavigationFlows = () => {
+const useNavigationFlows = () => {
   const { navigateWithGuard, user } = useEnhancedNavigation();
 
   const navigateToJobDetails = (jobId: string) => {
-    return navigateWithGuard('Main', {
-      screen: 'JobsTab',
-      params: { screen: 'JobDetails', params: { jobId } }
-    }, {
-      requiresAuth: true,
-    });
+    return navigateWithGuard(
+      'Main',
+      {
+        screen: 'JobsTab',
+        params: { screen: 'JobDetails', params: { jobId } },
+      },
+      {
+        requiresAuth: true,
+      }
+    );
   };
 
   const navigateToMessaging = (params: {
@@ -284,41 +297,53 @@ export const useNavigationFlows = () => {
     otherUserId?: string;
     otherUserName?: string;
   }) => {
-    return navigateWithGuard('Main', {
-      screen: 'MessagingTab',
-      params: {
-        screen: 'Messaging',
+    return navigateWithGuard(
+      'Main',
+      {
+        screen: 'MessagingTab',
         params: {
-          conversationId: params.conversationId,
-          jobTitle: params.jobTitle,
-          recipientId: params.otherUserId,
-          recipientName: params.otherUserName,
+          screen: 'Messaging',
+          params: {
+            conversationId: params.conversationId,
+            jobTitle: params.jobTitle,
+            recipientId: params.otherUserId,
+            recipientName: params.otherUserName,
+          },
         },
       },
-    }, {
-      requiresAuth: true,
-    });
+      {
+        requiresAuth: true,
+      }
+    );
   };
 
   const navigateToCreateJob = () => {
-    return navigateWithGuard('Modal', {
-      screen: 'ServiceRequest'
-    }, {
-      requiresAuth: true,
-      allowedRoles: ['homeowner'],
-      fallbackScreen: 'Main',
-    });
+    return navigateWithGuard(
+      'Modal',
+      {
+        screen: 'ServiceRequest',
+      },
+      {
+        requiresAuth: true,
+        allowedRoles: ['homeowner'],
+        fallbackScreen: 'Main',
+      }
+    );
   };
 
   const navigateToBidSubmission = (jobId: string) => {
-    return navigateWithGuard('Main', {
-      screen: 'JobsTab',
-      params: { screen: 'BidSubmission', params: { jobId } }
-    }, {
-      requiresAuth: true,
-      allowedRoles: ['contractor'],
-      fallbackScreen: 'Main',
-    });
+    return navigateWithGuard(
+      'Main',
+      {
+        screen: 'JobsTab',
+        params: { screen: 'BidSubmission', params: { jobId } },
+      },
+      {
+        requiresAuth: true,
+        allowedRoles: ['contractor'],
+        fallbackScreen: 'Main',
+      }
+    );
   };
 
   return {

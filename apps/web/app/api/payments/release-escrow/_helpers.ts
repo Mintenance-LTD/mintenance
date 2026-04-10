@@ -21,13 +21,13 @@ import { EmailService } from '@/lib/email-service';
 // Types
 // ---------------------------------------------------------------------------
 
-export interface FeeBreakdown {
+interface FeeBreakdown {
   platformFee: number;
   contractorAmount: number;
   stripeFee: number;
 }
 
-export interface JobRef {
+interface JobRef {
   id: string;
   title: string;
   homeowner_id: string;

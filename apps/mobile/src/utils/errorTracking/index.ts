@@ -16,7 +16,7 @@ export * from './ErrorTypes';
 /**
  * Enhanced Error Analytics Engine
  */
-export class EnhancedErrorAnalytics {
+class EnhancedErrorAnalytics {
   private static instance: EnhancedErrorAnalytics;
   private errorCapture: ErrorCapture;
   private errorReporting: ErrorReporting;
@@ -28,7 +28,7 @@ export class EnhancedErrorAnalytics {
   private errorCounts = {
     total: 0,
     byCategory: new Map(),
-    bySeverity: new Map()
+    bySeverity: new Map(),
   };
   private recentErrors: unknown[] = [];
 
@@ -51,12 +51,18 @@ export class EnhancedErrorAnalytics {
    * Initialize the analytics system
    */
   private initialize(): void {
-    logger.info('EnhancedErrorAnalytics', 'Initializing advanced error analytics');
+    logger.info(
+      'EnhancedErrorAnalytics',
+      'Initializing advanced error analytics'
+    );
 
     // Start cleanup routine
     this.errorRecovery.startCleanupRoutine(() => this.performCleanup());
 
-    logger.info('EnhancedErrorAnalytics', 'Advanced error analytics initialized');
+    logger.info(
+      'EnhancedErrorAnalytics',
+      'Advanced error analytics initialized'
+    );
   }
 
   /**
@@ -73,13 +79,26 @@ export class EnhancedErrorAnalytics {
 
     try {
       // Generate error signature for pattern recognition
-      const signature = this.errorCapture.generateErrorSignature(error, context);
+      const signature = this.errorCapture.generateErrorSignature(
+        error,
+        context
+      );
 
       // Create error occurrence
-      const occurrence = this.errorCapture.createErrorOccurrence(error, context, userId);
+      const occurrence = this.errorCapture.createErrorOccurrence(
+        error,
+        context,
+        userId
+      );
 
       // Update or create error pattern
-      this.errorAnalytics.updateErrorPattern(signature, error, category, severity, occurrence);
+      this.errorAnalytics.updateErrorPattern(
+        signature,
+        error,
+        category,
+        severity,
+        occurrence
+      );
 
       // Update user profile
       if (userId) {
@@ -90,7 +109,13 @@ export class EnhancedErrorAnalytics {
       this.errorAnalytics.addOccurrence(occurrence);
 
       // Report to Sentry
-      const eventId = this.errorReporting.reportError(error, category, severity, context, userId);
+      const eventId = this.errorReporting.reportError(
+        error,
+        category,
+        severity,
+        context,
+        userId
+      );
 
       // Generate insights and recommendations
       this.errorAnalytics.generateInsights(signature);
@@ -99,12 +124,16 @@ export class EnhancedErrorAnalytics {
         signature,
         category,
         severity,
-        eventId
+        eventId,
       });
 
       return eventId;
     } catch (trackingError) {
-      logger.error('EnhancedErrorAnalytics', 'Failed to track error analytics', trackingError as Error);
+      logger.error(
+        'EnhancedErrorAnalytics',
+        'Failed to track error analytics',
+        trackingError as Error
+      );
       return '';
     }
   }
@@ -124,30 +153,36 @@ export class EnhancedErrorAnalytics {
   /**
    * Generate error trends analysis
    */
-  generateErrorTrends(period: import('./ErrorTypes').ErrorTrend['period'] = '24h'): import('./ErrorTypes').ErrorTrend {
+  generateErrorTrends(
+    period: import('./ErrorTypes').ErrorTrend['period'] = '24h'
+  ): import('./ErrorTypes').ErrorTrend {
     return this.errorAnalytics.generateErrorTrends(period);
   }
 
   /**
    * Get error patterns with insights
    */
-  getErrorPatterns(options: {
-    limit?: number;
-    category?: import('./ErrorTypes').ErrorCategory;
-    severity?: import('./ErrorTypes').ErrorSeverity;
-    timeRange?: number;
-    sortBy?: 'frequency' | 'impact' | 'recent';
-  } = {}): import('./ErrorTypes').ErrorPattern[] {
+  getErrorPatterns(
+    options: {
+      limit?: number;
+      category?: import('./ErrorTypes').ErrorCategory;
+      severity?: import('./ErrorTypes').ErrorSeverity;
+      timeRange?: number;
+      sortBy?: 'frequency' | 'impact' | 'recent';
+    } = {}
+  ): import('./ErrorTypes').ErrorPattern[] {
     return this.errorAnalytics.getErrorPatterns(options);
   }
 
   /**
    * Get user error profiles
    */
-  getUserErrorProfiles(options: {
-    limit?: number;
-    sortBy?: 'errorCount' | 'errorRate' | 'recent';
-  } = {}): import('./ErrorTypes').UserErrorProfile[] {
+  getUserErrorProfiles(
+    options: {
+      limit?: number;
+      sortBy?: 'errorCount' | 'errorRate' | 'recent';
+    } = {}
+  ): import('./ErrorTypes').UserErrorProfile[] {
     return this.errorAnalytics.getUserErrorProfiles(options);
   }
 
@@ -171,9 +206,9 @@ export class EnhancedErrorAnalytics {
   } {
     const counts = this.errorAnalytics.getAnalyticsCounts();
     const estimatedMemory =
-      (counts.patternsCount * 1000) +
-      (counts.occurrencesCount * 500) +
-      (counts.userProfilesCount * 200);
+      counts.patternsCount * 1000 +
+      counts.occurrencesCount * 500 +
+      counts.userProfilesCount * 200;
 
     return {
       enabled: this.analyticsEnabled,
@@ -181,7 +216,7 @@ export class EnhancedErrorAnalytics {
       recentOccurrences: counts.occurrencesCount,
       sessionsTracked: this.errorCapture.getBreadcrumbsCount(),
       userProfiles: counts.userProfilesCount,
-      memoryUsage: `~${Math.round(estimatedMemory / 1024)}KB`
+      memoryUsage: `~${Math.round(estimatedMemory / 1024)}KB`,
     };
   }
 
@@ -191,7 +226,10 @@ export class EnhancedErrorAnalytics {
   setAnalyticsEnabled(enabled: boolean): void {
     this.analyticsEnabled = enabled;
     this.errorReporting.setReportingEnabled(enabled);
-    logger.info('EnhancedErrorAnalytics', `Analytics ${enabled ? 'enabled' : 'disabled'}`);
+    logger.info(
+      'EnhancedErrorAnalytics',
+      `Analytics ${enabled ? 'enabled' : 'disabled'}`
+    );
   }
 
   /**
@@ -218,7 +256,7 @@ export class EnhancedErrorAnalytics {
    */
   private performCleanup(): void {
     const now = Date.now();
-    const oneWeekAgo = now - (7 * 24 * 60 * 60 * 1000);
+    const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
 
     // Clean old data from all modules
     this.errorAnalytics.performCleanup(oneWeekAgo);
@@ -228,7 +266,7 @@ export class EnhancedErrorAnalytics {
     logger.debug('EnhancedErrorAnalytics', 'Cleanup completed', {
       patternsCount: counts.patternsCount,
       occurrencesCount: counts.occurrencesCount,
-      sessionsCount: this.errorCapture.getBreadcrumbsCount()
+      sessionsCount: this.errorCapture.getBreadcrumbsCount(),
     });
   }
 
@@ -265,17 +303,23 @@ export class EnhancedErrorAnalytics {
 export const enhancedErrorAnalytics = EnhancedErrorAnalytics.getInstance();
 
 // Convenience functions
-export const trackEnhancedError = (
+const trackEnhancedError = (
   error: Error,
   category: import('./ErrorTypes').ErrorCategory,
   severity: import('./ErrorTypes').ErrorSeverity = ErrorSeverity.ERROR,
   context: import('./ErrorTypes').ErrorContext = {},
   userId?: string
 ): string => {
-  return enhancedErrorAnalytics.trackError(error, category, severity, context, userId);
+  return enhancedErrorAnalytics.trackError(
+    error,
+    category,
+    severity,
+    context,
+    userId
+  );
 };
 
-export const addErrorBreadcrumb = (
+const addErrorBreadcrumb = (
   message: string,
   category: string,
   level: 'debug' | 'info' | 'warning' | 'error' = 'info',
@@ -284,19 +328,26 @@ export const addErrorBreadcrumb = (
   enhancedErrorAnalytics.addBreadcrumb(message, category, level, data);
 };
 
-export const getErrorTrends = (period: import('./ErrorTypes').ErrorTrend['period'] = '24h'): import('./ErrorTypes').ErrorTrend => {
+const getErrorTrends = (
+  period: import('./ErrorTypes').ErrorTrend['period'] = '24h'
+): import('./ErrorTypes').ErrorTrend => {
   return enhancedErrorAnalytics.generateErrorTrends(period);
 };
 
-export const getTopErrorPatterns = (limit: number = 10): import('./ErrorTypes').ErrorPattern[] => {
+const getTopErrorPatterns = (
+  limit: number = 10
+): import('./ErrorTypes').ErrorPattern[] => {
   return enhancedErrorAnalytics.getErrorPatterns({ limit, sortBy: 'impact' });
 };
 
-export const generateErrorReport = (): string => {
+const generateErrorReport = (): string => {
   return enhancedErrorAnalytics.generateAnalyticsReport();
 };
 
 // Auto-initialize analytics in production
 if (!__DEV__) {
-  logger.info('EnhancedErrorAnalytics', 'Auto-initializing enhanced error analytics');
+  logger.info(
+    'EnhancedErrorAnalytics',
+    'Auto-initializing enhanced error analytics'
+  );
 }

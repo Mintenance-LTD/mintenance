@@ -2,7 +2,12 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
-export type MediationStatus = 'pending' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+type MediationStatus =
+  | 'pending'
+  | 'scheduled'
+  | 'in_progress'
+  | 'completed'
+  | 'cancelled';
 
 /**
  * Service for mediation coordination
@@ -129,4 +134,3 @@ export class MediationService {
     }
   }
 }
-

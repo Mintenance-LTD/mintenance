@@ -1,7 +1,7 @@
 import { Alert } from 'react-native';
 import { logger } from './logger';
 
-export interface AppError extends Error {
+interface AppError extends Error {
   code?: string;
   statusCode?: number;
   userMessage?: string;
@@ -138,7 +138,10 @@ export class ErrorHandler {
     // Import Sentry dynamically to avoid circular dependencies
     import('../config/sentry')
       .then(({ captureException }) => {
-        captureException(error instanceof Error ? error : new Error(String(error)), { context });
+        captureException(
+          error instanceof Error ? error : new Error(String(error)),
+          { context }
+        );
       })
       .catch(() => {
         // Fallback if Sentry fails
@@ -175,8 +178,7 @@ export class ErrorHandler {
 
   static isNetworkError(error: unknown): boolean {
     const err = error as Partial<AppError>;
-    const offline =
-      typeof navigator !== 'undefined' && !navigator.onLine;
+    const offline = typeof navigator !== 'undefined' && !navigator.onLine;
     return (
       err.code === 'NETWORK_ERROR' ||
       err.message?.toLowerCase?.().includes('network') ||
@@ -189,7 +191,8 @@ export class ErrorHandler {
     return (
       err.statusCode === 401 ||
       err.code === '42501' ||
-      err.message?.includes('permission denied') || false
+      err.message?.includes('permission denied') ||
+      false
     );
   }
 
@@ -198,7 +201,8 @@ export class ErrorHandler {
     return (
       err.statusCode === 400 ||
       err.statusCode === 422 ||
-      err.message?.includes('validation') || false
+      err.message?.includes('validation') ||
+      false
     );
   }
 
@@ -278,7 +282,10 @@ export class ErrorHandler {
         const retryDelay = backoff ? delay * Math.pow(2, attempt - 1) : delay;
         logger.warn(
           `Retrying operation in ${retryDelay}ms (attempt ${attempt}/${maxAttempts})`,
-          { context, error: error instanceof Error ? error.message : String(error) }
+          {
+            context,
+            error: error instanceof Error ? error.message : String(error),
+          }
         );
 
         await new Promise((resolve) => setTimeout(resolve, retryDelay));

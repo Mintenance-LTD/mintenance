@@ -34,7 +34,7 @@ export interface HeaderMenuItem {
   onPress: () => void;
 }
 
-export interface NavigationHeaderProps {
+interface NavigationHeaderProps {
   title: string;
   showMenuIcon?: boolean;
   showBackIcon?: boolean;
@@ -79,7 +79,9 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   const insets = useSafeAreaInsets();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const iconColor = tintColor || theme.colors.textPrimary;
-  const subtitleColor = tintColor ? `${tintColor}B3` : theme.colors.textSecondary;
+  const subtitleColor = tintColor
+    ? `${tintColor}B3`
+    : theme.colors.textSecondary;
 
   const handleBackPress = () => {
     if (onBackPress) {
@@ -106,36 +108,47 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
 
   return (
     <>
-      <View
-        style={[
-          styles.container,
-          { paddingTop: insets.top },
-          style,
-        ]}
-      >
+      <View style={[styles.container, { paddingTop: insets.top }, style]}>
         <View style={styles.headerContent}>
           {/* Left — logo or back */}
           {showBackIcon ? (
             <TouchableOpacity
               style={styles.iconButton}
               onPress={handleBackPress}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-              testID="back-icon-button"
+              accessibilityRole='button'
+              accessibilityLabel='Go back'
+              testID='back-icon-button'
             >
-              <Ionicons name="arrow-back" size={22} color={iconColor} />
+              <Ionicons name='arrow-back' size={22} color={iconColor} />
             </TouchableOpacity>
           ) : (
-            <View style={styles.logoContainer} testID="menu-icon-button">
+            <View style={styles.logoContainer} testID='menu-icon-button'>
               <Image source={appIcon} style={styles.logoIcon} />
             </View>
           )}
 
           {/* Title */}
           <View style={styles.titleContainer}>
-            <Text style={[styles.title, tintColor ? { color: tintColor } : undefined, titleStyle]} numberOfLines={1}>{title}</Text>
+            <Text
+              style={[
+                styles.title,
+                tintColor ? { color: tintColor } : undefined,
+                titleStyle,
+              ]}
+              numberOfLines={1}
+            >
+              {title}
+            </Text>
             {subtitle && (
-              <Text style={[styles.subtitle, tintColor ? { color: subtitleColor } : undefined]} numberOfLines={1}>{subtitle}</Text>
+              <Text
+                style={[
+                  styles.subtitle,
+                  tintColor ? { color: subtitleColor } : undefined,
+                ]}
+                numberOfLines={1}
+              >
+                {subtitle}
+              </Text>
             )}
           </View>
 
@@ -146,15 +159,19 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
                 <TouchableOpacity
                   style={styles.iconButton}
                   onPress={onNotificationPress}
-                  accessibilityRole="button"
+                  accessibilityRole='button'
                   accessibilityLabel={
                     notificationCount > 0
                       ? `Notifications, ${notificationCount} unread`
                       : 'Notifications'
                   }
-                  testID="notification-button"
+                  testID='notification-button'
                 >
-                  <Ionicons name="notifications-outline" size={22} color={iconColor} />
+                  <Ionicons
+                    name='notifications-outline'
+                    size={22}
+                    color={iconColor}
+                  />
                   {notificationCount > 0 && (
                     <View style={styles.badge}>
                       <Text style={styles.badgeText}>
@@ -168,9 +185,9 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
                 <TouchableOpacity
                   style={styles.avatarButton}
                   onPress={handleAvatarPress}
-                  accessibilityRole="button"
-                  accessibilityLabel="Open profile menu"
-                  testID="user-avatar-button"
+                  accessibilityRole='button'
+                  accessibilityLabel='Open profile menu'
+                  testID='user-avatar-button'
                 >
                   <Text style={styles.avatarText}>{userInitials}</Text>
                 </TouchableOpacity>
@@ -180,8 +197,8 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
             <TouchableOpacity
               style={styles.iconButton}
               onPress={rightIcon.onPress}
-              accessibilityRole="button"
-              testID="right-icon-button"
+              accessibilityRole='button'
+              testID='right-icon-button'
             >
               <Ionicons name={rightIcon.name} size={22} color={iconColor} />
             </TouchableOpacity>
@@ -196,7 +213,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
         <Modal
           visible={dropdownOpen}
           transparent
-          animationType="fade"
+          animationType='fade'
           onRequestClose={() => setDropdownOpen(false)}
         >
           <TouchableOpacity
@@ -209,11 +226,15 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
             {(userName || userRole) && (
               <View style={styles.dropdownHeader}>
                 <View style={styles.dropdownAvatar}>
-                  <Text style={styles.dropdownAvatarText}>{userInitials || '?'}</Text>
+                  <Text style={styles.dropdownAvatarText}>
+                    {userInitials || '?'}
+                  </Text>
                 </View>
                 <View style={styles.dropdownUserInfo}>
                   {userName && (
-                    <Text style={styles.dropdownUserName} numberOfLines={1}>{userName}</Text>
+                    <Text style={styles.dropdownUserName} numberOfLines={1}>
+                      {userName}
+                    </Text>
                   )}
                   {userRole && (
                     <Text style={styles.dropdownUserRole}>{userRole}</Text>
@@ -235,16 +256,31 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
                   onPress={() => handleItemPress(item)}
                   activeOpacity={0.7}
                 >
-                  <View style={[styles.dropdownItemIcon, { backgroundColor: item.iconBg }]}>
-                    <Ionicons name={item.icon} size={17} color={item.iconColor} />
+                  <View
+                    style={[
+                      styles.dropdownItemIcon,
+                      { backgroundColor: item.iconBg },
+                    ]}
+                  >
+                    <Ionicons
+                      name={item.icon}
+                      size={17}
+                      color={item.iconColor}
+                    />
                   </View>
                   <View style={styles.dropdownItemText}>
                     <Text style={styles.dropdownItemLabel}>{item.label}</Text>
                     {item.subtitle && (
-                      <Text style={styles.dropdownItemSubtitle}>{item.subtitle}</Text>
+                      <Text style={styles.dropdownItemSubtitle}>
+                        {item.subtitle}
+                      </Text>
                     )}
                   </View>
-                  <Ionicons name="chevron-forward" size={14} color={theme.colors.textTertiary} />
+                  <Ionicons
+                    name='chevron-forward'
+                    size={14}
+                    color={theme.colors.textTertiary}
+                  />
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -278,7 +314,12 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   iconPlaceholder: { width: 44, height: 44 },
-  logoContainer: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
+  logoContainer: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   logoIcon: { width: 32, height: 32, borderRadius: 8 },
   titleContainer: { flex: 1, paddingHorizontal: 8, justifyContent: 'center' },
   title: {
@@ -411,5 +452,3 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
 });
-
-export default NavigationHeader;

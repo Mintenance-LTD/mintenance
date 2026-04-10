@@ -4,7 +4,7 @@ import { theme } from '../../theme';
 
 type CardVariant = 'default' | 'elevated' | 'outlined';
 
-export interface CardProps {
+interface CardProps {
   children?: React.ReactNode;
   variant?: CardVariant;
   padding?: string;
@@ -18,7 +18,12 @@ const VARIANT_STYLES: Record<CardVariant, ViewStyle> = {
   elevated: {
     backgroundColor: theme.colors.surface,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },

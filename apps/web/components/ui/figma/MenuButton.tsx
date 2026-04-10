@@ -13,7 +13,13 @@ interface MenuButtonProps {
   icon?: string;
 }
 
-export function MenuButton({ label, href, onClick, isExpanded = true, icon = 'plus' }: MenuButtonProps) {
+function MenuButton({
+  label,
+  href,
+  onClick,
+  isExpanded = true,
+  icon = 'plus',
+}: MenuButtonProps) {
   const iconContainerStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
@@ -61,7 +67,13 @@ export function MenuButton({ label, href, onClick, isExpanded = true, icon = 'pl
           }}
         >
           {label.split(' ').map((word, idx, arr) => (
-            <span key={idx} style={{ display: 'block', marginBottom: idx < arr.length - 1 ? '0' : '0' }}>
+            <span
+              key={idx}
+              style={{
+                display: 'block',
+                marginBottom: idx < arr.length - 1 ? '0' : '0',
+              }}
+            >
               {word}
             </span>
           ))}
@@ -106,4 +118,3 @@ export function MenuButton({ label, href, onClick, isExpanded = true, icon = 'pl
     </button>
   );
 }
-

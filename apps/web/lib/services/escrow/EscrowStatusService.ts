@@ -1,7 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 
-export interface EscrowStatus {
+interface EscrowStatus {
   status: string;
   blockingReasons: string[];
   nextAction: string | null;
@@ -47,7 +47,8 @@ export class EscrowStatusService {
 
       const blockingReasons = await this.getBlockingReasons(escrowId);
       const estimatedReleaseDate = await this.getEstimatedReleaseDate(escrowId);
-      const canRelease = blockingReasons.length === 0 && escrow.status === 'held';
+      const canRelease =
+        blockingReasons.length === 0 && escrow.status === 'held';
 
       return {
         status: escrow.status,
@@ -58,8 +59,12 @@ export class EscrowStatusService {
         adminHoldStatus: escrow.admin_hold_status || 'none',
         homeownerApproval: escrow.homeowner_approval || false,
         photoVerificationStatus: escrow.photo_verification_status,
-        coolingOffEndsAt: escrow.cooling_off_ends_at ? new Date(escrow.cooling_off_ends_at) : null,
-        autoApprovalDate: escrow.auto_approval_date ? new Date(escrow.auto_approval_date) : null,
+        coolingOffEndsAt: escrow.cooling_off_ends_at
+          ? new Date(escrow.cooling_off_ends_at)
+          : null,
+        autoApprovalDate: escrow.auto_approval_date
+          ? new Date(escrow.auto_approval_date)
+          : null,
       };
     } catch (error) {
       logger.error('Error getting escrow status', error, {
@@ -102,17 +107,25 @@ export class EscrowStatusService {
       const reasons: string[] = [];
 
       // Check admin hold
-      if (escrow.admin_hold_status === 'admin_hold' || escrow.admin_hold_status === 'pending_review') {
+      if (
+        escrow.admin_hold_status === 'admin_hold' ||
+        escrow.admin_hold_status === 'pending_review'
+      ) {
         reasons.push('Admin review pending');
       }
 
-      if (escrow.admin_hold_status === 'admin_hold' && escrow.release_blocked_reason) {
+      if (
+        escrow.admin_hold_status === 'admin_hold' &&
+        escrow.release_blocked_reason
+      ) {
         reasons.push(escrow.release_blocked_reason);
       }
 
       // Check homeowner approval
       if (!escrow.homeowner_approval) {
-        const autoApprovalDate = escrow.auto_approval_date ? new Date(escrow.auto_approval_date) : null;
+        const autoApprovalDate = escrow.auto_approval_date
+          ? new Date(escrow.auto_approval_date)
+          : null;
         if (!autoApprovalDate || autoApprovalDate > new Date()) {
           reasons.push('Waiting for homeowner approval');
         }
@@ -139,12 +152,17 @@ export class EscrowStatusService {
       if (escrow.cooling_off_ends_at) {
         const coolingOffEnds = new Date(escrow.cooling_off_ends_at);
         if (coolingOffEnds > new Date()) {
-          reasons.push(`Cooling-off period ends ${coolingOffEnds.toLocaleString()}`);
+          reasons.push(
+            `Cooling-off period ends ${coolingOffEnds.toLocaleString()}`
+          );
         }
       }
 
       // Check status
-      if (escrow.status !== 'held' && escrow.status !== 'awaiting_homeowner_approval') {
+      if (
+        escrow.status !== 'held' &&
+        escrow.status !== 'awaiting_homeowner_approval'
+      ) {
         reasons.push(`Escrow status is ${escrow.status}`);
       }
 
@@ -205,7 +223,7 @@ export class EscrowStatusService {
         return null;
       }
 
-      return new Date(Math.max(...dates.map(d => d.getTime())));
+      return new Date(Math.max(...dates.map((d) => d.getTime())));
     } catch (error) {
       logger.error('Error getting estimated release date', error, {
         service: 'EscrowStatusService',
@@ -271,7 +289,10 @@ export class EscrowStatusService {
       return 'Waiting for photo verification';
     }
 
-    if (escrow.cooling_off_ends_at && new Date(escrow.cooling_off_ends_at) > new Date()) {
+    if (
+      escrow.cooling_off_ends_at &&
+      new Date(escrow.cooling_off_ends_at) > new Date()
+    ) {
       return 'Cooling-off period active';
     }
 
@@ -283,16 +304,15 @@ export class EscrowStatusService {
    */
   private static determineNextActionFromStatus(status: string): string {
     const actionMap: Record<string, string> = {
-      'admin_hold': 'Waiting for admin review',
-      'admin_review': 'Admin reviewing escrow',
-      'awaiting_homeowner_approval': 'Waiting for homeowner approval',
-      'cooling_off': 'Cooling-off period active',
-      'held': 'Ready for release',
-      'released': 'Released',
-      'completed': 'Completed',
+      admin_hold: 'Waiting for admin review',
+      admin_review: 'Admin reviewing escrow',
+      awaiting_homeowner_approval: 'Waiting for homeowner approval',
+      cooling_off: 'Cooling-off period active',
+      held: 'Ready for release',
+      released: 'Released',
+      completed: 'Completed',
     };
 
     return actionMap[status] || 'Processing';
   }
 }
-

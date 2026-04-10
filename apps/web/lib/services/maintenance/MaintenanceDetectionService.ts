@@ -4,124 +4,128 @@
  */
 
 import { LocalYOLOInferenceService } from '../building-surveyor/LocalYOLOInferenceService';
-import { SAM3Service } from '../building-surveyor/SAM3Service';
-import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@/lib/logger';
+import { runYOLODetection } from './YOLODetectionHandler';
+import {
+  enhanceWithSAM3,
+  calculateSeverityFromSegmentation as _calculateSeverityFromSegmentation,
+  getConfidenceExplanation as _getConfidenceExplanation,
+} from './SAM3EnhancementHandler';
 
 // Maintenance issue categories
 export const MAINTENANCE_CATEGORIES = {
   // Plumbing (5)
-  'pipe_leak': {
+  pipe_leak: {
     contractor: 'plumber',
     urgency: 'high',
     timeEstimate: '1-2h',
     category: 'plumbing',
-    id: 0
+    id: 0,
   },
-  'faucet_drip': {
+  faucet_drip: {
     contractor: 'plumber',
     urgency: 'medium',
     timeEstimate: '30min',
     category: 'plumbing',
-    id: 1
+    id: 1,
   },
-  'toilet_issue': {
+  toilet_issue: {
     contractor: 'plumber',
     urgency: 'medium',
     timeEstimate: '1h',
     category: 'plumbing',
-    id: 2
+    id: 2,
   },
-  'water_heater': {
+  water_heater: {
     contractor: 'plumber',
     urgency: 'high',
     timeEstimate: '2-4h',
     category: 'plumbing',
-    id: 3
+    id: 3,
   },
-  'drain_blocked': {
+  drain_blocked: {
     contractor: 'plumber',
     urgency: 'low',
     timeEstimate: '1h',
     category: 'plumbing',
-    id: 4
+    id: 4,
   },
 
   // Electrical (3)
-  'outlet_damage': {
+  outlet_damage: {
     contractor: 'electrician',
     urgency: 'high',
     timeEstimate: '1h',
     category: 'electrical',
-    id: 5
+    id: 5,
   },
-  'light_fixture': {
+  light_fixture: {
     contractor: 'electrician',
     urgency: 'low',
     timeEstimate: '30min',
     category: 'electrical',
-    id: 6
+    id: 6,
   },
-  'circuit_breaker': {
+  circuit_breaker: {
     contractor: 'electrician',
     urgency: 'high',
     timeEstimate: '1-2h',
     category: 'electrical',
-    id: 7
+    id: 7,
   },
 
   // Structure (4)
-  'wall_crack': {
+  wall_crack: {
     contractor: 'general',
     urgency: 'low',
     timeEstimate: '2-4h',
     category: 'structural',
-    id: 8
+    id: 8,
   },
-  'ceiling_stain': {
+  ceiling_stain: {
     contractor: 'roofer',
     urgency: 'medium',
     timeEstimate: '2-3h',
     category: 'structural',
-    id: 9
+    id: 9,
   },
-  'window_broken': {
+  window_broken: {
     contractor: 'glazier',
     urgency: 'medium',
     timeEstimate: '1h',
     category: 'structural',
-    id: 10
+    id: 10,
   },
-  'door_issue': {
+  door_issue: {
     contractor: 'carpenter',
     urgency: 'low',
     timeEstimate: '1-2h',
     category: 'structural',
-    id: 11
+    id: 11,
   },
 
   // HVAC (3)
-  'ac_not_cooling': {
+  ac_not_cooling: {
     contractor: 'hvac',
     urgency: 'medium',
     timeEstimate: '1-2h',
     category: 'hvac',
-    id: 12
+    id: 12,
   },
-  'heating_issue': {
+  heating_issue: {
     contractor: 'hvac',
     urgency: 'high',
     timeEstimate: '2-3h',
     category: 'hvac',
-    id: 13
+    id: 13,
   },
-  'vent_blocked': {
+  vent_blocked: {
     contractor: 'hvac',
     urgency: 'low',
     timeEstimate: '30min',
     category: 'hvac',
-    id: 14
-  }
+    id: 14,
+  },
 };
 
 export interface MaintenanceDetection {
@@ -172,7 +176,7 @@ export class MaintenanceDetectionService extends LocalYOLOInferenceService {
 
     try {
       // Step 1: Run YOLO detection
-      const yoloDetections = await this.runYOLODetection(imageUrl, options);
+      const yoloDetections = await runYOLODetection(imageUrl, options);
 
       if (yoloDetections.length === 0) {
         logger.info('No maintenance issues detected by YOLO');
@@ -181,11 +185,10 @@ export class MaintenanceDetectionService extends LocalYOLOInferenceService {
 
       // Step 2: Optionally enhance with SAM3 segmentation
       if (options.useSAM3 && process.env.ENABLE_SAM3_SEGMENTATION === 'true') {
-        return await this.enhanceWithSAM3(imageUrl, yoloDetections);
+        return await enhanceWithSAM3(imageUrl, yoloDetections);
       }
 
       return yoloDetections;
-
     } catch (error) {
       logger.error('Maintenance detection failed:', error);
       throw error;
@@ -196,220 +199,12 @@ export class MaintenanceDetectionService extends LocalYOLOInferenceService {
   }
 
   /**
-   * Run YOLO detection for maintenance issues
-   */
-  private static async runYOLODetection(
-    imageUrl: string,
-    options: {
-      confidenceThreshold?: number;
-    }
-  ): Promise<MaintenanceDetection[]> {
-    // Check if we have a local model
-    const hasLocalModel = await this.checkLocalModel();
-
-    let detections;
-    if (hasLocalModel) {
-      // TODO: Implement local YOLO model detection
-      // Use local YOLO model (FREE after training!)
-      logger.warn('Local model found but detectWithLocalModel not yet implemented, using Roboflow fallback');
-      const { RoboflowDetectionService } = await import('../building-surveyor/RoboflowDetectionService');
-      const roboflowResults = await RoboflowDetectionService.detect([imageUrl]);
-      detections = this.convertRoboflowToLocal(roboflowResults as unknown as Record<string, unknown>[]);
-    } else {
-      // Fallback to Roboflow during bootstrap phase
-      logger.warn('Local model not found, using Roboflow fallback');
-      const { RoboflowDetectionService } = await import('../building-surveyor/RoboflowDetectionService');
-      const roboflowResults = await RoboflowDetectionService.detect([imageUrl]);
-      detections = this.convertRoboflowToLocal(roboflowResults as unknown as Record<string, unknown>[]);
-    }
-
-    // Map to maintenance-specific format
-    return detections.map((d: Record<string, unknown>) => this.mapToMaintenanceDetection(d));
-  }
-
-  /**
-   * Check if local model exists
-   */
-  private static async checkLocalModel(): Promise<boolean> {
-    try {
-      const supabase = serverSupabase;
-      const { data } = await supabase
-        .from('yolo_models')
-        .select('id')
-        .eq('model_name', this.MODEL_NAME)
-        .eq('is_active', true)
-        .single();
-
-      return !!data;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * Convert Roboflow format to local format
-   */
-  private static convertRoboflowToLocal(roboflowDetections: Record<string, unknown>[]): Record<string, unknown>[] {
-    return roboflowDetections.map((d: Record<string, unknown>) => ({
-      class_id: this.getClassIdFromName(d.class as string),
-      confidence: d.confidence as number,
-      bbox: {
-        x: (d.x as number) - (d.width as number) / 2,
-        y: (d.y as number) - (d.height as number) / 2,
-        width: d.width as number,
-        height: d.height as number
-      }
-    }));
-  }
-
-  /**
-   * Get class ID from issue name
-   */
-  private static getClassIdFromName(className: string): number {
-    const category = Object.entries(MAINTENANCE_CATEGORIES).find(
-      ([key, val]) => key === className
-    );
-    return category ? category[1].id : -1;
-  }
-
-  /**
-   * Map detection to maintenance format
-   */
-  private static mapToMaintenanceDetection(detection: Record<string, unknown>): MaintenanceDetection {
-    const issueType = Object.keys(MAINTENANCE_CATEGORIES)[detection.class_id as number];
-    const category = MAINTENANCE_CATEGORIES[issueType as keyof typeof MAINTENANCE_CATEGORIES];
-
-    if (!category) {
-      throw new Error(`Unknown class ID: ${detection.class_id}`);
-    }
-
-    const bbox = detection.bbox as { x: number; y: number; width: number; height: number };
-    return {
-      issue_type: issueType,
-      confidence: detection.confidence as number,
-      bbox,
-      severity: this.estimateSeverity(bbox),
-      requires_immediate_attention: this.isUrgent(category.urgency),
-      category: category.category,
-      contractor_type: category.contractor,
-      estimated_time: category.timeEstimate
-    };
-  }
-
-  /**
-   * Estimate severity based on detection
-   */
-  private static estimateSeverity(bbox: { width: number; height: number }): 'minor' | 'moderate' | 'major' | 'critical' {
-    // Use bounding box size as proxy for severity
-    const area = bbox.width * bbox.height;
-    const imageArea = 640 * 640; // Assuming standard YOLO input size
-    const percentage = (area / imageArea) * 100;
-
-    if (percentage < 5) return 'minor';
-    if (percentage < 15) return 'moderate';
-    if (percentage < 30) return 'major';
-    return 'critical';
-  }
-
-  /**
-   * Check if issue is urgent
-   */
-  private static isUrgent(urgency: string): boolean {
-    return urgency === 'high' || urgency === 'immediate';
-  }
-
-  /**
-   * Enhance detections with SAM3 segmentation
-   */
-  private static async enhanceWithSAM3(
-    imageUrl: string,
-    yoloDetections: MaintenanceDetection[]
-  ): Promise<EnhancedMaintenanceDetection[]> {
-    try {
-      // Use YOLO bounding boxes as prompts for SAM3
-      const boxes = yoloDetections.map(d => [
-        d.bbox.x,
-        d.bbox.y,
-        d.bbox.x + d.bbox.width,
-        d.bbox.y + d.bbox.height
-      ]);
-
-      // TODO: Implement SAM3 precision enhancement
-      // This requires refactoring SAM3Service.segment to accept box-based segmentation
-      // For now, return YOLO-only results
-      logger.debug('SAM3 precision enhancement not yet implemented, returning YOLO-only results');
-
-      return yoloDetections.map((detection) => {
-        return {
-          ...detection,
-          precise_mask: null,
-          mask_confidence: detection.confidence,
-          pixel_count: 0,
-          affected_area_percentage: 0,
-          boundaries: []
-        } as unknown as EnhancedMaintenanceDetection;
-      });
-
-    } catch (error) {
-      logger.error('SAM3 enhancement failed:', error);
-      return yoloDetections;
-    }
-  }
-
-  /**
-   * Extract boundaries from mask
-   */
-  private static extractBoundaries(mask: number[][]): {
-    top: number;
-    bottom: number;
-    left: number;
-    right: number;
-  } {
-    let top = mask.length;
-    let bottom = 0;
-    let left = mask[0]?.length || 0;
-    let right = 0;
-
-    for (let y = 0; y < mask.length; y++) {
-      for (let x = 0; x < mask[y].length; x++) {
-        if (mask[y][x] === 1) {
-          top = Math.min(top, y);
-          bottom = Math.max(bottom, y);
-          left = Math.min(left, x);
-          right = Math.max(right, x);
-        }
-      }
-    }
-
-    return { top, bottom, left, right };
-  }
-
-  /**
    * Calculate severity from segmentation
    */
   static calculateSeverityFromSegmentation(
     detection: EnhancedMaintenanceDetection
   ): 'minor' | 'moderate' | 'major' | 'critical' {
-    if (!detection.affected_area_percentage) {
-      return detection.severity;
-    }
-
-    // Different thresholds for different issue types
-    const thresholds: Record<string, { minor: number; moderate: number; major: number }> = {
-      'pipe_leak': { minor: 2, moderate: 5, major: 10 },
-      'wall_crack': { minor: 1, moderate: 3, major: 5 },
-      'ceiling_stain': { minor: 5, moderate: 10, major: 20 },
-      'outlet_damage': { minor: 0.5, moderate: 1, major: 2 },
-      'default': { minor: 3, moderate: 7, major: 15 }
-    };
-
-    const threshold = thresholds[detection.issue_type] || thresholds.default;
-    const percentage = detection.affected_area_percentage;
-
-    if (percentage < threshold.minor) return 'minor';
-    if (percentage < threshold.moderate) return 'moderate';
-    if (percentage < threshold.major) return 'major';
-    return 'critical';
+    return _calculateSeverityFromSegmentation(detection);
   }
 
   /**
@@ -420,24 +215,6 @@ export class MaintenanceDetectionService extends LocalYOLOInferenceService {
     message: string;
     shouldRequestMorePhotos: boolean;
   } {
-    if (confidence >= 0.85) {
-      return {
-        level: 'high',
-        message: 'High confidence detection',
-        shouldRequestMorePhotos: false
-      };
-    } else if (confidence >= 0.60) {
-      return {
-        level: 'medium',
-        message: 'Moderate confidence - verification recommended',
-        shouldRequestMorePhotos: false
-      };
-    } else {
-      return {
-        level: 'low',
-        message: 'Low confidence - better photos needed',
-        shouldRequestMorePhotos: true
-      };
-    }
+    return _getConfidenceExplanation(confidence);
   }
 }

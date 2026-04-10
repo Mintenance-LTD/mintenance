@@ -1,6 +1,6 @@
 /**
  * Button Component - Native Implementation
- * 
+ *
  * React Native-specific Button component using design tokens
  */
 import React, { forwardRef, useState } from 'react';
@@ -20,10 +20,13 @@ import { mobileTokens } from '@mintenance/design-tokens';
 import type { NativeButtonProps } from './types';
 /**
  * Button Component for React Native
- * 
+ *
  * Uses design tokens for consistent styling across platforms
  */
-export const Button = forwardRef<ComponentRef<typeof TouchableOpacity>, NativeButtonProps>(
+export const Button = forwardRef<
+  ComponentRef<typeof TouchableOpacity>,
+  NativeButtonProps
+>(
   (
     {
       children,
@@ -50,7 +53,13 @@ export const Button = forwardRef<ComponentRef<typeof TouchableOpacity>, NativeBu
     const [isPressed, setIsPressed] = useState(false);
     const isDisabled = disabled || loading;
     // Get button styles using design tokens
-    const buttonStyles = getButtonStyles(variant, size, fullWidth, isDisabled, isPressed);
+    const buttonStyles = getButtonStyles(
+      variant,
+      size,
+      fullWidth,
+      isDisabled,
+      isPressed
+    );
     const textStyles = getTextStyles(variant, size, isDisabled);
     const handlePressIn = () => {
       if (isDisabled) return;
@@ -80,11 +89,14 @@ export const Button = forwardRef<ComponentRef<typeof TouchableOpacity>, NativeBu
         return (
           <View style={styles.contentContainer}>
             <ActivityIndicator
-              size="small"
+              size='small'
               color={getTextColor(variant, isDisabled)}
               style={{ marginRight: mobileTokens.spacing.sm }}
             />
-            <Text style={[textStyles, textStyle as TextStyle]} numberOfLines={1}>
+            <Text
+              style={[textStyles, textStyle as TextStyle]}
+              numberOfLines={1}
+            >
               {typeof children === 'string' ? children : 'Loading...'}
             </Text>
           </View>
@@ -92,11 +104,19 @@ export const Button = forwardRef<ComponentRef<typeof TouchableOpacity>, NativeBu
       }
       return (
         <View style={styles.contentContainer}>
-          {leftIcon && <View style={{ marginRight: mobileTokens.spacing.sm }}>{leftIcon}</View>}
+          {leftIcon && (
+            <View style={{ marginRight: mobileTokens.spacing.sm }}>
+              {leftIcon}
+            </View>
+          )}
           <Text style={[textStyles, textStyle as TextStyle]} numberOfLines={1}>
             {children}
           </Text>
-          {rightIcon && <View style={{ marginLeft: mobileTokens.spacing.sm }}>{rightIcon}</View>}
+          {rightIcon && (
+            <View style={{ marginLeft: mobileTokens.spacing.sm }}>
+              {rightIcon}
+            </View>
+          )}
         </View>
       );
     };
@@ -117,7 +137,10 @@ export const Button = forwardRef<ComponentRef<typeof TouchableOpacity>, NativeBu
           disabled={isDisabled}
           activeOpacity={1}
           accessibilityRole={accessibilityRole}
-          accessibilityLabel={accessibilityLabel || (typeof children === 'string' ? children : undefined)}
+          accessibilityLabel={
+            accessibilityLabel ||
+            (typeof children === 'string' ? children : undefined)
+          }
           accessibilityHint={accessibilityHint}
           accessibilityState={{
             disabled: isDisabled,
@@ -155,50 +178,78 @@ const getButtonStyles = (
   }
   // Size padding
   const sizePadding = {
-    sm: { paddingHorizontal: mobileTokens.spacing.md, paddingVertical: mobileTokens.spacing.sm },
-    md: { paddingHorizontal: mobileTokens.spacing.lg, paddingVertical: mobileTokens.spacing.md },
-    lg: { paddingHorizontal: mobileTokens.spacing.xl, paddingVertical: mobileTokens.spacing.lg },
-    xl: { paddingHorizontal: mobileTokens.spacing['2xl'], paddingVertical: mobileTokens.spacing.xl },
+    sm: {
+      paddingHorizontal: mobileTokens.spacing.md,
+      paddingVertical: mobileTokens.spacing.sm,
+    },
+    md: {
+      paddingHorizontal: mobileTokens.spacing.lg,
+      paddingVertical: mobileTokens.spacing.md,
+    },
+    lg: {
+      paddingHorizontal: mobileTokens.spacing.xl,
+      paddingVertical: mobileTokens.spacing.lg,
+    },
+    xl: {
+      paddingHorizontal: mobileTokens.spacing['2xl'],
+      paddingVertical: mobileTokens.spacing.xl,
+    },
   };
   // Variant styles
   const variantStyles: Record<string, ViewStyle> = {
     primary: {
-      backgroundColor: disabled ? mobileTokens.colors.gray400 : mobileTokens.colors.primary,
+      backgroundColor: disabled
+        ? mobileTokens.colors.gray400
+        : mobileTokens.colors.primary,
       ...mobileTokens.shadows.sm,
     },
     secondary: {
-      backgroundColor: disabled ? mobileTokens.colors.gray200 : mobileTokens.colors.secondary,
+      backgroundColor: disabled
+        ? mobileTokens.colors.gray200
+        : mobileTokens.colors.secondary,
       ...mobileTokens.shadows.sm,
     },
     outline: {
       backgroundColor: 'transparent',
       borderWidth: 2,
-      borderColor: disabled ? mobileTokens.colors.gray300 : mobileTokens.colors.primary,
+      borderColor: disabled
+        ? mobileTokens.colors.gray300
+        : mobileTokens.colors.primary,
     },
     ghost: {
       backgroundColor: 'transparent',
     },
     danger: {
-      backgroundColor: disabled ? mobileTokens.colors.gray400 : mobileTokens.colors.error,
+      backgroundColor: disabled
+        ? mobileTokens.colors.gray400
+        : mobileTokens.colors.error,
       ...mobileTokens.shadows.sm,
     },
     destructive: {
-      backgroundColor: disabled ? mobileTokens.colors.gray400 : mobileTokens.colors.error,
+      backgroundColor: disabled
+        ? mobileTokens.colors.gray400
+        : mobileTokens.colors.error,
       ...mobileTokens.shadows.sm,
     },
     success: {
-      backgroundColor: disabled ? mobileTokens.colors.gray400 : mobileTokens.colors.success,
+      backgroundColor: disabled
+        ? mobileTokens.colors.gray400
+        : mobileTokens.colors.success,
       ...mobileTokens.shadows.sm,
     },
     link: {
       backgroundColor: 'transparent',
     },
     'gradient-primary': {
-      backgroundColor: disabled ? mobileTokens.colors.gray400 : mobileTokens.colors.primary,
+      backgroundColor: disabled
+        ? mobileTokens.colors.gray400
+        : mobileTokens.colors.primary,
       ...mobileTokens.shadows.base,
     },
     'gradient-success': {
-      backgroundColor: disabled ? mobileTokens.colors.gray400 : mobileTokens.colors.success,
+      backgroundColor: disabled
+        ? mobileTokens.colors.gray400
+        : mobileTokens.colors.success,
       ...mobileTokens.shadows.base,
     },
   };
@@ -209,17 +260,28 @@ const getButtonStyles = (
     opacity: disabled ? 0.6 : 1,
   };
 };
-const getTextStyles = (variant: string, size: string, disabled: boolean): TextStyle => {
+const getTextStyles = (
+  variant: string,
+  size: string,
+  disabled: boolean
+): TextStyle => {
   const baseStyle: TextStyle = {
-    fontSize: mobileTokens.typography.rawFontSize[size === 'sm' ? 'sm' : size === 'xl' ? 'lg' : 'base'],
+    fontSize:
+      mobileTokens.typography.rawFontSize[
+        size === 'sm' ? 'sm' : size === 'xl' ? 'lg' : 'base'
+      ],
     fontWeight: mobileTokens.typography.fontWeight.semibold,
     textAlign: 'center',
   };
   const textColors: Record<string, string> = {
     primary: mobileTokens.colors.white,
     secondary: mobileTokens.colors.white,
-    outline: disabled ? mobileTokens.colors.gray500 : mobileTokens.colors.primary,
-    ghost: disabled ? mobileTokens.colors.gray500 : mobileTokens.colors.textPrimary,
+    outline: disabled
+      ? mobileTokens.colors.gray500
+      : mobileTokens.colors.primary,
+    ghost: disabled
+      ? mobileTokens.colors.gray500
+      : mobileTokens.colors.textPrimary,
     danger: mobileTokens.colors.white,
     destructive: mobileTokens.colors.white,
     success: mobileTokens.colors.white,
@@ -251,4 +313,3 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
-export default Button;

@@ -7,9 +7,17 @@
  */
 
 import { logger } from '../utils/logger';
-import type { SearchResult, SearchFilters, SearchSuggestion } from '@mintenance/ai-core';
+import type {
+  SearchResult,
+  SearchFilters,
+  SearchSuggestion,
+} from '@mintenance/ai-core';
 
-export type { SearchResult, SearchFilters, SearchSuggestion } from '@mintenance/ai-core';
+export type {
+  SearchResult,
+  SearchFilters,
+  SearchSuggestion,
+} from '@mintenance/ai-core';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
 
@@ -84,7 +92,9 @@ export class AISearchService {
   /**
    * Get trending searches
    */
-  static async getTrendingSearches(limit: number = 10): Promise<SearchSuggestion[]> {
+  static async getTrendingSearches(
+    limit: number = 10
+  ): Promise<SearchSuggestion[]> {
     try {
       const data = await apiFetch<{ trending: SearchSuggestion[] }>(
         `/ai/trending-searches?limit=${limit}`
@@ -99,7 +109,10 @@ export class AISearchService {
   /**
    * Search for similar jobs
    */
-  static async findSimilarJobs(jobId: string, limit: number = 5): Promise<SearchResult[]> {
+  static async findSimilarJobs(
+    jobId: string,
+    limit: number = 5
+  ): Promise<SearchResult[]> {
     try {
       const data = await apiFetch<{ similar: SearchResult[] }>(
         `/ai/similar-jobs/${jobId}?limit=${limit}`
@@ -135,5 +148,3 @@ export class AISearchService {
     }));
   }
 }
-
-export default AISearchService;

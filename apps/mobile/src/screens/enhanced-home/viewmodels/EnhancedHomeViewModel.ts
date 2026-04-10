@@ -1,9 +1,9 @@
 /**
  * EnhancedHome ViewModel
- * 
+ *
  * Business logic and state management for Enhanced Home screen.
  * Handles special offers, services, and contractor data.
- * 
+ *
  * @filesize Target: <200 lines
  * @compliance MVVM pattern - Business logic only
  */
@@ -34,7 +34,7 @@ export interface TopContractor {
   distance: string;
 }
 
-export interface EnhancedHomeState {
+interface EnhancedHomeState {
   location: string;
   searchQuery: string;
   specialOffers: SpecialOffer[];
@@ -44,7 +44,7 @@ export interface EnhancedHomeState {
   error: string | null;
 }
 
-export interface EnhancedHomeActions {
+interface EnhancedHomeActions {
   handleLocationChange: (location: string) => void;
   handleSearch: (query: string) => void;
   handleServicePress: (serviceId: string) => void;
@@ -53,7 +53,8 @@ export interface EnhancedHomeActions {
   handleRefresh: () => Promise<void>;
 }
 
-export interface EnhancedHomeViewModel extends EnhancedHomeState, EnhancedHomeActions {}
+interface EnhancedHomeViewModel
+  extends EnhancedHomeState, EnhancedHomeActions {}
 
 /**
  * Custom hook providing Enhanced Home screen business logic
@@ -146,10 +147,10 @@ export const useEnhancedHomeViewModel = (): EnhancedHomeViewModel => {
   const handleRefresh = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       logger.info('Data refreshed successfully');
     } catch (err) {
       logger.error('Failed to refresh data', err);

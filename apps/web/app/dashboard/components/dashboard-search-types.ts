@@ -37,6 +37,7 @@ export interface DashboardWithAirbnbSearchProps {
       location: string;
       email: string;
     };
+    properties: Property[];
     metrics: {
       totalSpent: number;
       activeJobs: number;

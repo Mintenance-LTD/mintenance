@@ -4,7 +4,7 @@ import { logger } from '@mintenance/shared';
 /**
  * Verified portfolio item from contractor_posts table
  */
-export interface VerifiedPortfolioItem {
+interface VerifiedPortfolioItem {
   id: string;
   contractor_id: string;
   post_type: 'portfolio';
@@ -107,7 +107,9 @@ export class PortfolioVerificationService {
   /**
    * Get verified portfolio items for a contractor
    */
-  static async getVerifiedPortfolio(contractorId: string): Promise<VerifiedPortfolioItem[]> {
+  static async getVerifiedPortfolio(
+    contractorId: string
+  ): Promise<VerifiedPortfolioItem[]> {
     try {
       const { data, error } = await serverSupabase
         .from('contractor_posts')
@@ -136,4 +138,3 @@ export class PortfolioVerificationService {
     }
   }
 }
-

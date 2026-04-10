@@ -22,7 +22,7 @@ export interface JobWithPhotos {
   [key: string]: unknown;
 }
 
-export interface PhotoData {
+interface PhotoData {
   job_id: string;
   photo_url: string;
   display_order?: number;

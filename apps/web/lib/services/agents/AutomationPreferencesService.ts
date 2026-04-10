@@ -1,7 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 
-export interface AutomationPreferences {
+interface AutomationPreferences {
   userId: string;
   autoAcceptBids: boolean;
   autoRescheduleWeather: boolean;
@@ -21,7 +21,9 @@ export class AutomationPreferencesService {
   /**
    * Get automation preferences for a user
    */
-  static async getPreferences(userId: string): Promise<AutomationPreferences | null> {
+  static async getPreferences(
+    userId: string
+  ): Promise<AutomationPreferences | null> {
     try {
       const { data, error } = await serverSupabase
         .from('automation_preferences')
@@ -86,13 +88,15 @@ export class AutomationPreferencesService {
         updateData.auto_complete_jobs = preferences.autoCompleteJobs;
       }
       if (preferences.autoApplyRiskPreventions !== undefined) {
-        updateData.auto_apply_risk_preventions = preferences.autoApplyRiskPreventions;
+        updateData.auto_apply_risk_preventions =
+          preferences.autoApplyRiskPreventions;
       }
       if (preferences.learningEnabled !== undefined) {
         updateData.learning_enabled = preferences.learningEnabled;
       }
       if (preferences.notificationLearningEnabled !== undefined) {
-        updateData.notification_learning_enabled = preferences.notificationLearningEnabled;
+        updateData.notification_learning_enabled =
+          preferences.notificationLearningEnabled;
       }
       if (preferences.quietHoursStart !== undefined) {
         updateData.quiet_hours_start = preferences.quietHoursStart || null;
@@ -114,13 +118,18 @@ export class AutomationPreferencesService {
           .from('automation_preferences')
           .insert({
             user_id: userId,
-            auto_accept_bids: preferences.autoAcceptBids ?? defaultPrefs.autoAcceptBids,
+            auto_accept_bids:
+              preferences.autoAcceptBids ?? defaultPrefs.autoAcceptBids,
             auto_reschedule_weather:
-              preferences.autoRescheduleWeather ?? defaultPrefs.autoRescheduleWeather,
-            auto_complete_jobs: preferences.autoCompleteJobs ?? defaultPrefs.autoCompleteJobs,
+              preferences.autoRescheduleWeather ??
+              defaultPrefs.autoRescheduleWeather,
+            auto_complete_jobs:
+              preferences.autoCompleteJobs ?? defaultPrefs.autoCompleteJobs,
             auto_apply_risk_preventions:
-              preferences.autoApplyRiskPreventions ?? defaultPrefs.autoApplyRiskPreventions,
-            learning_enabled: preferences.learningEnabled ?? defaultPrefs.learningEnabled,
+              preferences.autoApplyRiskPreventions ??
+              defaultPrefs.autoApplyRiskPreventions,
+            learning_enabled:
+              preferences.learningEnabled ?? defaultPrefs.learningEnabled,
             updated_at: new Date().toISOString(),
           });
 
@@ -175,7 +184,10 @@ export class AutomationPreferencesService {
   /**
    * Check if a specific automation is enabled for a user
    */
-  static async isEnabled(userId: string, automationType: keyof AutomationPreferences): Promise<boolean> {
+  static async isEnabled(
+    userId: string,
+    automationType: keyof AutomationPreferences
+  ): Promise<boolean> {
     const preferences = await this.getPreferences(userId);
     if (!preferences) {
       return false;
@@ -184,4 +196,3 @@ export class AutomationPreferencesService {
     return preferences[automationType] === true;
   }
 }
-

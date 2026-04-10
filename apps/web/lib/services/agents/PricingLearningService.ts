@@ -11,7 +11,10 @@ import { AgentLogger } from './AgentLogger';
 import { memoryManager } from '../ml-engine/memory/MemoryManager';
 import type { AgentResult, AgentContext } from './types';
 import type { ContinuumMemoryConfig } from '../ml-engine/memory/types';
-import type { BidWithJob, ContractorPricingPattern } from './PricingCalculations';
+import type {
+  BidWithJob,
+  ContractorPricingPattern,
+} from './PricingCalculations';
 
 const AGENT_NAME = 'pricing';
 let memorySystemInitialized = false;
@@ -19,7 +22,7 @@ let memorySystemInitialized = false;
 /**
  * Initialize continuum memory system for pricing (3-level multi-frequency).
  */
-export async function initializePricingMemory(): Promise<void> {
+async function initializePricingMemory(): Promise<void> {
   if (memorySystemInitialized) return;
 
   try {
@@ -86,7 +89,7 @@ export async function initializePricingMemory(): Promise<void> {
  * Extract pricing feature keys for memory system queries.
  * Keys: market features, category, location, job features (20-dim vector).
  */
-export async function extractPricingKeys(
+async function extractPricingKeys(
   category: string,
   location: string,
   jobBudget: number | null
@@ -94,14 +97,25 @@ export async function extractPricingKeys(
   const keys: number[] = [];
 
   // Category encoding (one-hot style)
-  const categories = ['plumbing', 'electrical', 'hvac', 'painting', 'carpentry', 'other'];
+  const categories = [
+    'plumbing',
+    'electrical',
+    'hvac',
+    'painting',
+    'carpentry',
+    'other',
+  ];
   const categoryIndex = categories.indexOf(category.toLowerCase());
   for (let i = 0; i < categories.length; i++) {
     keys.push(i === categoryIndex ? 1 : 0);
   }
 
   // Location features (simplified)
-  const region = location.split(',').map((p) => p.trim()).pop() || 'unknown';
+  const region =
+    location
+      .split(',')
+      .map((p) => p.trim())
+      .pop() || 'unknown';
   keys.push(region !== 'unknown' ? 1 : 0);
   keys.push(location.length > 0 ? Math.min(location.length / 50, 1) : 0);
 
@@ -140,7 +154,9 @@ export async function learnFromBidOutcome(
     // Get bid details
     const { data: bid, error: bidError } = await serverSupabase
       .from('bids')
-      .select('id, amount, contractor_id, job_id, pricing_recommendation_id, jobs!inner(category, location, budget)')
+      .select(
+        'id, amount, contractor_id, job_id, pricing_recommendation_id, jobs!inner(category, location, budget)'
+      )
       .eq('id', bidId)
       .single();
 
@@ -187,11 +203,21 @@ export async function learnFromBidOutcome(
     }
 
     // Update contractor pricing patterns
-    await updateContractorPricingPattern(bid.contractor_id, bid.amount, wasAccepted, job.category || '');
+    await updateContractorPricingPattern(
+      bid.contractor_id,
+      bid.amount,
+      wasAccepted,
+      job.category || ''
+    );
 
     // Update market analytics
     if (wasAccepted) {
-      await updateMarketAnalytics(job.category || '', job.location || '', bid.amount, job.budget || 0);
+      await updateMarketAnalytics(
+        job.category || '',
+        job.location || '',
+        bid.amount,
+        job.budget || 0
+      );
     }
 
     await AgentLogger.logDecision({
@@ -219,7 +245,10 @@ export async function learnFromBidOutcome(
       service: 'PricingAgent',
       bidId,
     });
-    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
   }
 }
 
@@ -240,14 +269,16 @@ async function updateContractorPricingPattern(
       .single();
 
     const totalBids = (pattern?.total_bids_count || 0) + 1;
-    const acceptedBids = (pattern?.accepted_bids_count || 0) + (wasAccepted ? 1 : 0);
+    const acceptedBids =
+      (pattern?.accepted_bids_count || 0) + (wasAccepted ? 1 : 0);
     const acceptanceRate = (acceptedBids / totalBids) * 100;
 
     const existingAvg = pattern?.avg_bid_amount || 0;
     const existingCount = pattern?.total_bids_count || 0;
-    const newAvg = existingCount > 0
-      ? (existingAvg * existingCount + bidAmount) / totalBids
-      : bidAmount;
+    const newAvg =
+      existingCount > 0
+        ? (existingAvg * existingCount + bidAmount) / totalBids
+        : bidAmount;
 
     let pricingStyle = 'variable';
     if (acceptanceRate >= 70 && existingAvg) {
@@ -263,13 +294,19 @@ async function updateContractorPricingPattern(
 
     const categoryPatterns = pattern?.category_patterns || {};
     if (!categoryPatterns[category]) {
-      categoryPatterns[category] = { totalBids: 0, acceptedBids: 0, avgPrice: 0 };
+      categoryPatterns[category] = {
+        totalBids: 0,
+        acceptedBids: 0,
+        avgPrice: 0,
+      };
     }
     const catPattern = categoryPatterns[category];
     catPattern.totalBids = (catPattern.totalBids || 0) + 1;
-    catPattern.acceptedBids = (catPattern.acceptedBids || 0) + (wasAccepted ? 1 : 0);
+    catPattern.acceptedBids =
+      (catPattern.acceptedBids || 0) + (wasAccepted ? 1 : 0);
     catPattern.avgPrice =
-      ((catPattern.avgPrice || 0) * (catPattern.totalBids - 1) + bidAmount) / catPattern.totalBids;
+      ((catPattern.avgPrice || 0) * (catPattern.totalBids - 1) + bidAmount) /
+      catPattern.totalBids;
 
     if (pattern) {
       await serverSupabase
@@ -281,7 +318,8 @@ async function updateContractorPricingPattern(
           acceptance_rate: acceptanceRate,
           pricing_style: pricingStyle,
           category_patterns: categoryPatterns,
-          patterns_learned_from_bids: (pattern.patterns_learned_from_bids || 0) + 1,
+          patterns_learned_from_bids:
+            (pattern.patterns_learned_from_bids || 0) + 1,
           last_analyzed_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })

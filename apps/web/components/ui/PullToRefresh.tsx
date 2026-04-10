@@ -30,7 +30,7 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
   const [pullDistance, setPullDistance] = useState(0);
   const [startY, setStartY] = useState(0);
   const [canPull, setCanPull] = useState(false);
-  
+
   const containerRef = useRef<HTMLDivElement>(null);
   const refreshIndicatorRef = useRef<HTMLDivElement>(null);
 
@@ -77,12 +77,16 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
         setPullDistance(0);
         setIsPulling(false);
       }
-      
+
       setCanPull(false);
     };
 
-    container.addEventListener('touchstart', handleTouchStart, { passive: false });
-    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchstart', handleTouchStart, {
+      passive: false,
+    });
+    container.addEventListener('touchmove', handleTouchMove, {
+      passive: false,
+    });
     container.addEventListener('touchend', handleTouchEnd);
 
     return () => {
@@ -90,7 +94,15 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
       container.removeEventListener('touchmove', handleTouchMove);
       container.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [canPull, isPulling, isRefreshing, pullDistance, startY, threshold, onRefresh]);
+  }, [
+    canPull,
+    isPulling,
+    isRefreshing,
+    pullDistance,
+    startY,
+    threshold,
+    onRefresh,
+  ]);
 
   const containerStyles = {
     position: 'relative' as const,
@@ -141,7 +153,7 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
         />
       );
     }
-    
+
     return (
       <div
         style={{
@@ -150,7 +162,7 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
           border: `2px solid ${theme.colors.textSecondary}`,
           borderBottom: '2px solid transparent',
           borderRadius: '50%',
-          transform: `rotate(${Math.min(pullDistance / threshold * 180, 180)}deg)`,
+          transform: `rotate(${Math.min((pullDistance / threshold) * 180, 180)}deg)`,
           transition: 'transform 0.2s ease-out',
         }}
       />
@@ -164,34 +176,35 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
       style={containerStyles}
     >
       {/* Refresh Indicator */}
-      <div
-        ref={refreshIndicatorRef}
-        style={refreshIndicatorStyles}
-      >
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: theme.spacing[2],
-          color: theme.colors.textSecondary,
-          fontSize: theme.typography.fontSize.sm,
-          fontWeight: theme.typography.fontWeight.medium,
-        }}>
+      <div ref={refreshIndicatorRef} style={refreshIndicatorStyles}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing[2],
+            color: theme.colors.textSecondary,
+            fontSize: theme.typography.fontSize.sm,
+            fontWeight: theme.typography.fontWeight.medium,
+          }}
+        >
           {getRefreshIcon()}
           <span>{getRefreshText()}</span>
         </div>
       </div>
 
       {/* Content */}
-      <div style={contentStyles}>
-        {children}
-      </div>
+      <div style={contentStyles}>{children}</div>
 
       <style jsx>{`
         @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
         }
-        
+
         .pull-to-refresh {
           -webkit-overflow-scrolling: touch;
         }
@@ -199,5 +212,3 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
     </div>
   );
 };
-
-export default PullToRefresh;

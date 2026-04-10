@@ -152,7 +152,9 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
       .eq('user_id', user.id)
       .then(({ data }) => {
         if (data?.length) {
-          setFavoriteIds(new Set(data.map((f: { property_id: string }) => f.property_id)));
+          setFavoriteIds(
+            new Set(data.map((f: { property_id: string }) => f.property_id))
+          );
         }
       });
   }, [user?.id]);
@@ -372,5 +374,3 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
     </SafeAreaView>
   );
 };
-
-export default PropertiesScreen;

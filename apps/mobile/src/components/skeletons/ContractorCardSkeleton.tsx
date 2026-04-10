@@ -14,7 +14,7 @@ import { View, StyleSheet } from 'react-native';
 import { Skeleton, SkeletonAvatar, SkeletonGroup } from './Skeleton';
 import { theme } from '../../theme';
 
-export interface ContractorCardSkeletonProps {
+interface ContractorCardSkeletonProps {
   /**
    * Number of skeleton cards to render
    * @default 1
@@ -28,9 +28,9 @@ export interface ContractorCardSkeletonProps {
   showPortfolio?: boolean;
 }
 
-const SingleContractorCardSkeleton: React.FC<Omit<ContractorCardSkeletonProps, 'count'>> = ({
-  showPortfolio = false,
-}) => {
+const SingleContractorCardSkeleton: React.FC<
+  Omit<ContractorCardSkeletonProps, 'count'>
+> = ({ showPortfolio = false }) => {
   return (
     <View style={styles.card}>
       {/* Header with Avatar */}
@@ -38,12 +38,27 @@ const SingleContractorCardSkeleton: React.FC<Omit<ContractorCardSkeletonProps, '
         <SkeletonAvatar size={56} />
 
         <View style={styles.headerInfo}>
-          <Skeleton width={120} height={18} borderRadius={6} style={styles.marginBottom} />
+          <Skeleton
+            width={120}
+            height={18}
+            borderRadius={6}
+            style={styles.marginBottom}
+          />
           <View style={styles.ratingRow}>
             <Skeleton width={70} height={14} borderRadius={6} />
-            <Skeleton width={50} height={14} borderRadius={6} style={styles.marginLeft} />
+            <Skeleton
+              width={50}
+              height={14}
+              borderRadius={6}
+              style={styles.marginLeft}
+            />
           </View>
-          <Skeleton width={80} height={20} borderRadius={10} style={styles.badge} />
+          <Skeleton
+            width={80}
+            height={20}
+            borderRadius={10}
+            style={styles.badge}
+          />
         </View>
 
         <Skeleton width={32} height={32} borderRadius={16} />
@@ -51,14 +66,19 @@ const SingleContractorCardSkeleton: React.FC<Omit<ContractorCardSkeletonProps, '
 
       {/* Bio */}
       <SkeletonGroup gap={8} style={styles.bio}>
-        <Skeleton width="100%" height={14} borderRadius={6} />
-        <Skeleton width="90%" height={14} borderRadius={6} />
-        <Skeleton width="75%" height={14} borderRadius={6} />
+        <Skeleton width='100%' height={14} borderRadius={6} />
+        <Skeleton width='90%' height={14} borderRadius={6} />
+        <Skeleton width='75%' height={14} borderRadius={6} />
       </SkeletonGroup>
 
       {/* Skills */}
       <View style={styles.skillsSection}>
-        <Skeleton width={60} height={14} borderRadius={6} style={styles.marginBottom} />
+        <Skeleton
+          width={60}
+          height={14}
+          borderRadius={6}
+          style={styles.marginBottom}
+        />
         <View style={styles.skills}>
           <Skeleton width={70} height={24} borderRadius={12} />
           <Skeleton width={85} height={24} borderRadius={12} />
@@ -70,15 +90,15 @@ const SingleContractorCardSkeleton: React.FC<Omit<ContractorCardSkeletonProps, '
       {/* Portfolio */}
       {showPortfolio && (
         <View style={styles.portfolio}>
-          <Skeleton width={80} height={14} borderRadius={6} style={styles.marginBottom} />
+          <Skeleton
+            width={80}
+            height={14}
+            borderRadius={6}
+            style={styles.marginBottom}
+          />
           <View style={styles.portfolioGrid}>
             {[1, 2, 3, 4].map((item) => (
-              <Skeleton
-                key={item}
-                width="23%"
-                height={80}
-                borderRadius={8}
-              />
+              <Skeleton key={item} width='23%' height={80} borderRadius={8} />
             ))}
           </View>
         </View>
@@ -87,23 +107,38 @@ const SingleContractorCardSkeleton: React.FC<Omit<ContractorCardSkeletonProps, '
       {/* Stats */}
       <View style={styles.stats}>
         <View style={styles.stat}>
-          <Skeleton width={40} height={20} borderRadius={6} style={styles.marginBottom} />
+          <Skeleton
+            width={40}
+            height={20}
+            borderRadius={6}
+            style={styles.marginBottom}
+          />
           <Skeleton width={50} height={12} borderRadius={6} />
         </View>
         <View style={styles.stat}>
-          <Skeleton width={40} height={20} borderRadius={6} style={styles.marginBottom} />
+          <Skeleton
+            width={40}
+            height={20}
+            borderRadius={6}
+            style={styles.marginBottom}
+          />
           <Skeleton width={60} height={12} borderRadius={6} />
         </View>
         <View style={styles.stat}>
-          <Skeleton width={40} height={20} borderRadius={6} style={styles.marginBottom} />
+          <Skeleton
+            width={40}
+            height={20}
+            borderRadius={6}
+            style={styles.marginBottom}
+          />
           <Skeleton width={70} height={12} borderRadius={6} />
         </View>
       </View>
 
       {/* Action Buttons */}
       <View style={styles.actions}>
-        <Skeleton width="48%" height={44} borderRadius={12} />
-        <Skeleton width="48%" height={44} borderRadius={12} />
+        <Skeleton width='48%' height={44} borderRadius={12} />
+        <Skeleton width='48%' height={44} borderRadius={12} />
       </View>
     </View>
   );
@@ -116,7 +151,10 @@ export const ContractorCardSkeleton: React.FC<ContractorCardSkeletonProps> = ({
   return (
     <View style={styles.container}>
       {Array.from({ length: count }).map((_, index) => (
-        <SingleContractorCardSkeleton key={index} showPortfolio={showPortfolio} />
+        <SingleContractorCardSkeleton
+          key={index}
+          showPortfolio={showPortfolio}
+        />
       ))}
     </View>
   );

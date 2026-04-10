@@ -90,7 +90,7 @@ const SafeQuickJobPostScreen = withScreenErrorBoundary(
 
 const ModalStack = createNativeStackNavigator<ModalStackParamList>();
 
-export const ModalNavigator: React.FC = () => {
+const ModalNavigator: React.FC = () => {
   return (
     <ModalStack.Navigator
       screenOptions={{
@@ -101,7 +101,7 @@ export const ModalNavigator: React.FC = () => {
       }}
     >
       <ModalStack.Screen
-        name="ServiceRequest"
+        name='ServiceRequest'
         component={SafeServiceRequestScreen}
         options={{
           title: 'Request Service',
@@ -110,7 +110,7 @@ export const ModalNavigator: React.FC = () => {
       />
 
       <ModalStack.Screen
-        name="CreateQuote"
+        name='CreateQuote'
         component={SafeCreateQuoteScreen}
         options={({ route }) => ({
           title: route.params?.jobId ? 'Quote for Job' : 'Create Quote',
@@ -119,7 +119,7 @@ export const ModalNavigator: React.FC = () => {
       />
 
       <ModalStack.Screen
-        name="MeetingSchedule"
+        name='MeetingSchedule'
         component={SafeMeetingScheduleScreen}
         options={{
           title: 'Schedule Meeting',
@@ -128,7 +128,7 @@ export const ModalNavigator: React.FC = () => {
       />
 
       <ModalStack.Screen
-        name="MeetingDetails"
+        name='MeetingDetails'
         component={SafeMeetingDetailsScreen}
         options={{
           title: 'Meeting Details',
@@ -137,7 +137,7 @@ export const ModalNavigator: React.FC = () => {
       />
 
       <ModalStack.Screen
-        name="ContractorProfile"
+        name='ContractorProfile'
         component={SafeContractorProfileScreen}
         options={({ route }) => ({
           title: route.params?.contractorName || 'Contractor Profile',
@@ -146,7 +146,7 @@ export const ModalNavigator: React.FC = () => {
       />
 
       <ModalStack.Screen
-        name="EnhancedHome"
+        name='EnhancedHome'
         component={SafeEnhancedHomeScreen}
         options={{
           title: 'Home',
@@ -155,7 +155,7 @@ export const ModalNavigator: React.FC = () => {
       />
 
       <ModalStack.Screen
-        name="Notifications"
+        name='Notifications'
         component={SafeNotificationScreen}
         options={{
           title: 'Notifications',
@@ -163,7 +163,7 @@ export const ModalNavigator: React.FC = () => {
         }}
       />
       <ModalStack.Screen
-        name="AIAssessment"
+        name='AIAssessment'
         component={SafeAIAssessmentScreen}
         options={{
           title: 'AI Assessment',
@@ -172,7 +172,7 @@ export const ModalNavigator: React.FC = () => {
       />
 
       <ModalStack.Screen
-        name="AISearch"
+        name='AISearch'
         component={SafeAISearchScreen}
         options={{
           title: 'AI Search',
@@ -181,7 +181,7 @@ export const ModalNavigator: React.FC = () => {
       />
 
       <ModalStack.Screen
-        name="QuickJobPost"
+        name='QuickJobPost'
         component={SafeQuickJobPostScreen}
         options={{
           title: 'Post a Quick Job',

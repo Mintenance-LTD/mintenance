@@ -2,7 +2,7 @@ import type { User } from '@mintenance/types';
 import { logger } from '../../utils/logger';
 import type { DatabaseUserRow } from './types';
 
-export function mapRowToUser(row: DatabaseUserRow): User {
+function mapRowToUser(row: DatabaseUserRow): User {
   return {
     id: row.id,
     email: row.email,
@@ -36,11 +36,24 @@ export async function saveUser(
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   await db.runAsync(query, [
-    user.id, user.email, user.first_name, user.last_name, user.role,
-    user.phone || null, user.profile_image_url || null, user.bio || null,
-    user.rating || 0, user.jobs_count || 0, 1, null, null,
-    user.location || null, user.created_at, user.updated_at,
-    markDirty ? null : new Date().toISOString(), markDirty ? 1 : 0,
+    user.id,
+    user.email,
+    user.first_name,
+    user.last_name,
+    user.role,
+    user.phone || null,
+    user.profile_image_url || null,
+    user.bio || null,
+    user.rating || 0,
+    user.jobs_count || 0,
+    1,
+    null,
+    null,
+    user.location || null,
+    user.created_at,
+    user.updated_at,
+    markDirty ? null : new Date().toISOString(),
+    markDirty ? 1 : 0,
   ]);
   logger.debug('User saved to local database', { userId: user.id, markDirty });
 }
@@ -49,11 +62,18 @@ export async function getUser(
   db: import('expo-sqlite').SQLiteDatabase,
   userId: string
 ): Promise<User | null> {
-  const result = await db.getFirstAsync<DatabaseUserRow>('SELECT * FROM users WHERE id = ?', [userId]);
+  const result = await db.getFirstAsync<DatabaseUserRow>(
+    'SELECT * FROM users WHERE id = ?',
+    [userId]
+  );
   return result ? mapRowToUser(result) : null;
 }
 
-export async function getAllUsers(db: import('expo-sqlite').SQLiteDatabase): Promise<User[]> {
-  const rows = await db.getAllAsync<DatabaseUserRow>('SELECT * FROM users ORDER BY created_at DESC');
+export async function getAllUsers(
+  db: import('expo-sqlite').SQLiteDatabase
+): Promise<User[]> {
+  const rows = await db.getAllAsync<DatabaseUserRow>(
+    'SELECT * FROM users ORDER BY created_at DESC'
+  );
   return rows.map((row) => mapRowToUser(row));
 }

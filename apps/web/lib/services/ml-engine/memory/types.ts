@@ -1,6 +1,6 @@
 /**
  * Nested Learning Memory Types
- * 
+ *
  * Type definitions for Continuum Memory System and Nested Learning components
  * Based on "Nested Learning: The Illusion of Deep Learning Architectures" paper
  */
@@ -91,7 +91,7 @@ export interface ContextFlow {
 /**
  * Context flow batch for memory updates
  */
-export interface ContextFlowBatch {
+interface ContextFlowBatch {
   memoryStateId: string;
   level: number;
   flows: ContextFlow[];
@@ -129,7 +129,7 @@ export interface MemoryQueryResult {
  * Associative memory mapping
  * M: K → V where K is keys and V is values
  */
-export interface AssociativeMemory {
+interface AssociativeMemory {
   keys: number[][];
   values: number[][];
   compressedParameters?: MemoryParameters;
@@ -154,13 +154,16 @@ export interface MemoryPerformanceMetrics {
 /**
  * Self-modification event
  */
-export interface SelfModificationEvent {
+interface SelfModificationEvent {
   agentName: string;
-  modificationType: 'frequency_adjustment' | 'chunk_size_adjustment' | 'learning_rate_adjustment' | 'architecture_change';
+  modificationType:
+    | 'frequency_adjustment'
+    | 'chunk_size_adjustment'
+    | 'learning_rate_adjustment'
+    | 'architecture_change';
   before: Record<string, unknown>;
   after: Record<string, unknown>;
   reason: string;
   performanceImpact: number;
   timestamp: Date;
 }
-

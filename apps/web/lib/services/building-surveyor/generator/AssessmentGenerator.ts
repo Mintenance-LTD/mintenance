@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { fetchWithOpenAIRetry } from '@/lib/utils/openai-rate-limit';
 import { BuildingPathologyRAGService } from '../BuildingPathologyRAGService';
 
-export const USE_MINT_AI_VLM = process.env.USE_MINT_AI_VLM === 'true';
+const USE_MINT_AI_VLM = process.env.USE_MINT_AI_VLM === 'true';
 const MINT_AI_VLM_API_KEY = process.env.MINT_AI_VLM_API_KEY?.trim() || '';
 
 /** Configurable OpenAI model — set OPENAI_MODEL env var to use a different model (e.g. gpt-4.1, gpt-4o-mini) */
@@ -68,7 +68,7 @@ export interface GeneratorMessage {
       >;
 }
 
-export interface GeneratorResult {
+interface GeneratorResult {
   content: string;
   model: string;
   usage?: {

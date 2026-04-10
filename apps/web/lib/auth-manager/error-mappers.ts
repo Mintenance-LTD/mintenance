@@ -3,7 +3,7 @@
  * No side effects, no state dependencies.
  */
 
-export interface MappedAuthError {
+interface MappedAuthError {
   matched: boolean;
   error: string;
 }
@@ -40,10 +40,7 @@ export function mapLoginAuthError(authError: {
   }
 
   // Rate limiting
-  if (
-    message.includes('too many requests') ||
-    message.includes('rate limit')
-  ) {
+  if (message.includes('too many requests') || message.includes('rate limit')) {
     return {
       matched: true,
       error: 'Too many login attempts. Please try again later.',
@@ -118,7 +115,7 @@ export function mapRegistrationThrownError(error: Error): string | null {
  * Return a user-safe error message (no internal details exposed).
  * Only allows through messages that match known-safe strings.
  */
-export function getSafeErrorMessage(error: unknown): string {
+function getSafeErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     const safeMessages = [
       'User not found',

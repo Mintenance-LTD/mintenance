@@ -1,5 +1,11 @@
 // Contract interface matching DB: public.contracts
-export type ContractStatus = 'draft' | 'pending_homeowner' | 'pending_contractor' | 'accepted' | 'rejected' | 'cancelled';
+export type ContractStatus =
+  | 'draft'
+  | 'pending_homeowner'
+  | 'pending_contractor'
+  | 'accepted'
+  | 'rejected'
+  | 'cancelled';
 
 export interface Contract {
   id: string;
@@ -23,11 +29,21 @@ export interface Contract {
   // Populated relations
   job?: { id: string; title: string; description?: string };
   homeowner?: { id: string; first_name: string; last_name: string };
-  contractor?: { id: string; first_name: string; last_name: string; company_name?: string };
+  contractor?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    company_name?: string;
+  };
 }
 
 // Dispute interface matching DB: public.disputes
-export type DisputeStatus = 'open' | 'under_review' | 'resolved' | 'escalated' | 'closed';
+export type DisputeStatus =
+  | 'open'
+  | 'under_review'
+  | 'resolved'
+  | 'escalated'
+  | 'closed';
 
 export interface Dispute {
   id: string;
@@ -107,7 +123,7 @@ export interface JobDetail extends JobSummary {
   timeline?: TimelineEvent[];
 }
 
-export interface Message {
+interface Message {
   id: string;
   senderId: string;
   content: string;
@@ -122,12 +138,17 @@ export interface ThreadSummary {
   unreadCount?: number;
 }
 
-export interface Payment {
+interface Payment {
   id: string;
   jobId: string;
   amount: number;
   currency: string;
-  status: 'requires_payment' | 'processing' | 'succeeded' | 'failed' | 'refunded';
+  status:
+    | 'requires_payment'
+    | 'processing'
+    | 'succeeded'
+    | 'failed'
+    | 'refunded';
   createdAt: string;
 }
 
@@ -135,4 +156,3 @@ export interface Paginated<T> {
   items: T[];
   nextCursor?: string;
 }
-

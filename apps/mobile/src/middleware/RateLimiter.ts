@@ -61,7 +61,7 @@ const LIMITS: Record<string, RateLimitConfig> = {
  */
 export function checkRateLimit(
   action: keyof typeof LIMITS,
-  identifier: string = 'default',
+  identifier: string = 'default'
 ): boolean {
   const config = LIMITS[action];
   if (!config) return true;
@@ -80,7 +80,9 @@ export function checkRateLimit(
 
   if (bucket.count > config.maxAttempts) {
     const waitSec = Math.ceil((bucket.resetTime - now) / 1000);
-    logger.warn(`[RateLimiter] ${action} blocked for ${identifier} — retry in ${waitSec}s`);
+    logger.warn(
+      `[RateLimiter] ${action} blocked for ${identifier} — retry in ${waitSec}s`
+    );
     return false;
   }
 
@@ -92,7 +94,7 @@ export function checkRateLimit(
  */
 export function resetRateLimit(
   action: keyof typeof LIMITS,
-  identifier: string = 'default',
+  identifier: string = 'default'
 ): void {
   buckets.delete(`${action}:${identifier}`);
 }
@@ -100,9 +102,9 @@ export function resetRateLimit(
 /**
  * Get remaining attempts for an action.
  */
-export function getRemainingAttempts(
+function getRemainingAttempts(
   action: keyof typeof LIMITS,
-  identifier: string = 'default',
+  identifier: string = 'default'
 ): number {
   const config = LIMITS[action];
   if (!config) return Infinity;
@@ -118,10 +120,13 @@ export function getRemainingAttempts(
 // Clean up expired buckets every 5 minutes (single interval, guarded against re-import)
 let _cleanupTimer: ReturnType<typeof setInterval> | null = null;
 if (!_cleanupTimer) {
-  _cleanupTimer = setInterval(() => {
-    const now = Date.now();
-    for (const [key, bucket] of buckets) {
-      if (now > bucket.resetTime) buckets.delete(key);
-    }
-  }, 5 * 60 * 1000);
+  _cleanupTimer = setInterval(
+    () => {
+      const now = Date.now();
+      for (const [key, bucket] of buckets) {
+        if (now > bucket.resetTime) buckets.delete(key);
+      }
+    },
+    5 * 60 * 1000
+  );
 }

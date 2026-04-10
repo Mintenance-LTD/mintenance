@@ -12,7 +12,7 @@ import { SyncManager } from '../services/SyncManager';
 import { logger } from '../utils/logger';
 import type { Job, User } from '@mintenance/types';
 
-export interface OfflineQueryOptions {
+interface OfflineQueryOptions {
   queryKey: QueryKey;
   queryFn: () => Promise<unknown>;
   staleTime?: number;
@@ -23,7 +23,7 @@ export interface OfflineQueryOptions {
   placeholderData?: unknown;
 }
 
-export interface OfflineMutationOptions<TVariables = unknown, TData = unknown> {
+interface OfflineMutationOptions<TVariables = unknown, TData = unknown> {
   mutationFn: (variables: TVariables) => Promise<TData>;
   onlineOnly?: boolean; // Fail immediately if offline
   entity: string;
@@ -478,7 +478,7 @@ const cacheMessagesData = async (
 };
 
 // Hook to get offline sync status
-export const useOfflineSyncStatus = () => {
+const useOfflineSyncStatus = () => {
   const { isOnline } = useNetworkState();
   const [syncStatus, setSyncStatus] = React.useState<unknown>(null);
 

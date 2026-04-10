@@ -1,14 +1,25 @@
 import React from 'react';
 import { theme } from '@/lib/theme';
 
-export type StatusBadgeVariant = 'completed' | 'delayed' | 'at_risk' | 'on_going' | 'posted' | 'approved' | 'in_review' | 'pending';
+type StatusBadgeVariant =
+  | 'completed'
+  | 'delayed'
+  | 'at_risk'
+  | 'on_going'
+  | 'posted'
+  | 'approved'
+  | 'in_review'
+  | 'pending';
 
 interface StatusBadgeProps {
   status: StatusBadgeVariant;
   label?: string;
 }
 
-const statusConfig: Record<StatusBadgeVariant, { bg: string; text: string; border: string }> = {
+const statusConfig: Record<
+  StatusBadgeVariant,
+  { bg: string; text: string; border: string }
+> = {
   completed: {
     bg: '#ECFDF5',
     text: '#047857',
@@ -57,7 +68,7 @@ export function StatusBadge({ status, label }: StatusBadgeProps) {
 
   return (
     <span
-      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
+      className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap'
       style={{
         backgroundColor: config.bg,
         color: config.text,
@@ -68,4 +79,3 @@ export function StatusBadge({ status, label }: StatusBadgeProps) {
     </span>
   );
 }
-

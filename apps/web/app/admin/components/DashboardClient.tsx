@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import styles from '../admin.module.css';
 import { AdminCharts } from './AdminCharts';
@@ -38,54 +39,46 @@ function getGreeting(): string {
   return 'Good evening';
 }
 
+async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
+  const response = await fetch('/api/admin/dashboard/metrics');
+  if (!response.ok) {
+    throw new Error('Failed to fetch dashboard metrics');
+  }
+  return response.json();
+}
+
 export function DashboardClient({
   initialMetrics,
 }: {
   initialMetrics: DashboardMetrics;
 }) {
-  const [metrics, setMetrics] = useState(initialMetrics);
-  const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [mounted, setMounted] = useState(false);
+
+  const { data: metrics, isFetching: loading } = useQuery<DashboardMetrics>({
+    queryKey: ['admin', 'dashboard', 'metrics'],
+    queryFn: fetchDashboardMetrics,
+    initialData: initialMetrics,
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
+    meta: {
+      onError: (err: unknown) => {
+        logger.error('Error fetching dashboard metrics:', err);
+      },
+    },
+  });
 
   useEffect(() => {
     setMounted(true);
     setLastUpdated(new Date());
   }, []);
 
-  // Polling with abort cleanup + visibility check
+  // Update lastUpdated timestamp when data changes
   useEffect(() => {
-    const abortCtrl = new AbortController();
-    const fetchMetrics = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch('/api/admin/dashboard/metrics', {
-          signal: abortCtrl.signal,
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setMetrics(data);
-          setLastUpdated(new Date());
-        }
-      } catch (error) {
-        if ((error as Error).name !== 'AbortError') {
-          logger.error('Error fetching dashboard metrics:', error);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMetrics();
-    const interval = setInterval(() => {
-      if (!document.hidden) fetchMetrics();
-    }, 30000);
-
-    return () => {
-      abortCtrl.abort();
-      clearInterval(interval);
-    };
-  }, []);
+    if (metrics !== initialMetrics) {
+      setLastUpdated(new Date());
+    }
+  }, [metrics, initialMetrics]);
 
   const efficiency =
     metrics.totalJobs > 0

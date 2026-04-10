@@ -1,6 +1,6 @@
 /**
  * Adaptive Update Engine
- * 
+ *
  * Learns optimal update frequencies based on performance
  * Adjusts chunk sizes (C^(ℓ)) dynamically
  * Monitors prediction accuracy and adapts memory update rules
@@ -14,7 +14,7 @@ import type { MemoryLevel } from '../ml-engine/memory/types';
 /**
  * Adaptive update configuration
  */
-export interface AdaptiveUpdateConfig {
+interface AdaptiveUpdateConfig {
   agentName: string;
   minChunkSize?: number; // Minimum chunk size (default: 1)
   maxChunkSize?: number; // Maximum chunk size (default: 10000)
@@ -25,7 +25,7 @@ export interface AdaptiveUpdateConfig {
 /**
  * Performance analysis result
  */
-export interface PerformanceAnalysis {
+interface PerformanceAnalysis {
   averageAccuracy: number;
   accuracyTrend: 'improving' | 'stable' | 'degrading';
   optimalFrequency: number;
@@ -35,7 +35,7 @@ export interface PerformanceAnalysis {
 
 /**
  * Adaptive Update Engine
- * 
+ *
  * Learns optimal update frequencies and chunk sizes based on performance
  */
 export class AdaptiveUpdateEngine {
@@ -79,7 +79,7 @@ export class AdaptiveUpdateEngine {
   private async analyzeAndAdapt(): Promise<void> {
     try {
       const analysis = this.analyzePerformance();
-      
+
       if (analysis.confidence > 0.7) {
         // High confidence, apply adaptation
         await this.adaptMemoryLevels(analysis);
@@ -101,7 +101,8 @@ export class AdaptiveUpdateEngine {
 
     if (older.length === 0) {
       return {
-        averageAccuracy: recent.reduce((sum, p) => sum + p.accuracy, 0) / recent.length,
+        averageAccuracy:
+          recent.reduce((sum, p) => sum + p.accuracy, 0) / recent.length,
         accuracyTrend: 'stable',
         optimalFrequency: 1,
         recommendedChunkSize: 10,
@@ -109,8 +110,10 @@ export class AdaptiveUpdateEngine {
       };
     }
 
-    const recentAvg = recent.reduce((sum, p) => sum + p.accuracy, 0) / recent.length;
-    const olderAvg = older.reduce((sum, p) => sum + p.accuracy, 0) / older.length;
+    const recentAvg =
+      recent.reduce((sum, p) => sum + p.accuracy, 0) / recent.length;
+    const olderAvg =
+      older.reduce((sum, p) => sum + p.accuracy, 0) / older.length;
 
     let trend: 'improving' | 'stable' | 'degrading' = 'stable';
     if (recentAvg > olderAvg + 0.05) {
@@ -153,7 +156,9 @@ export class AdaptiveUpdateEngine {
   /**
    * Adapt memory levels based on performance analysis
    */
-  private async adaptMemoryLevels(analysis: PerformanceAnalysis): Promise<void> {
+  private async adaptMemoryLevels(
+    analysis: PerformanceAnalysis
+  ): Promise<void> {
     try {
       const levels = memoryManager.getMemoryLevels(this.config.agentName);
 
@@ -161,7 +166,7 @@ export class AdaptiveUpdateEngine {
         // Adjust chunk size based on analysis
         const adaptation = this.config.adaptationRate || 0.1;
         const currentChunkSize = level.chunkSize;
-        
+
         let newChunkSize = currentChunkSize;
         if (analysis.accuracyTrend === 'degrading') {
           // Decrease chunk size (update more frequently)
@@ -202,7 +207,10 @@ export class AdaptiveUpdateEngine {
   /**
    * Update chunk size in database
    */
-  private async updateChunkSize(level: number, newChunkSize: number): Promise<void> {
+  private async updateChunkSize(
+    level: number,
+    newChunkSize: number
+  ): Promise<void> {
     try {
       const { error } = await serverSupabase
         .from('continuum_memory_states')
@@ -240,4 +248,3 @@ export class AdaptiveUpdateEngine {
     this.performanceHistory = [];
   }
 }
-

@@ -6,7 +6,14 @@
  */
 
 import React, { Component, ReactNode, ErrorInfo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { logger } from '../utils/logger';
 import ErrorRecoveryManager, {
@@ -66,7 +73,10 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
     });
 
     // Get recovery strategy
-    const strategy = this.errorRecoveryManager.getRecoveryStrategy(error, context);
+    const strategy = this.errorRecoveryManager.getRecoveryStrategy(
+      error,
+      context
+    );
 
     // Update state with strategy
     this.setState({ strategy });
@@ -81,7 +91,11 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
     );
   }
 
-  private reportError(error: Error, context: ErrorContext, strategy: RecoveryStrategy) {
+  private reportError(
+    error: Error,
+    context: ErrorContext,
+    strategy: RecoveryStrategy
+  ) {
     try {
       // Report to Sentry
       const { captureException } = require('../config/sentry');
@@ -89,7 +103,9 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
         tags: {
           errorBoundary: 'enhanced',
           strategy: strategy.type,
-          priority: this.errorRecoveryManager.categorizeError(error)?.priority || 'unknown',
+          priority:
+            this.errorRecoveryManager.categorizeError(error)?.priority ||
+            'unknown',
         },
         contexts: {
           errorBoundary: context,
@@ -166,7 +182,9 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
     if (this.props.onNavigate) {
       this.props.onNavigate(target);
     } else {
-      logger.info('Redirect requested but no navigation handler provided', { target });
+      logger.info('Redirect requested but no navigation handler provided', {
+        target,
+      });
     }
   };
 
@@ -179,10 +197,13 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
         'The app needs to be refreshed to recover from this error.',
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Refresh', onPress: () => {
-            // In a real app, this would trigger app refresh
-            logger.info('App refresh requested');
-          }},
+          {
+            text: 'Refresh',
+            onPress: () => {
+              // In a real app, this would trigger app refresh
+              logger.info('App refresh requested');
+            },
+          },
         ]
       );
     }
@@ -191,7 +212,9 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
   private handleReportError = () => {
     if (!this.state.error || !this.state.errorId) return;
 
-    const category = this.errorRecoveryManager.categorizeError(this.state.error);
+    const category = this.errorRecoveryManager.categorizeError(
+      this.state.error
+    );
     const stats = this.errorRecoveryManager.getErrorStatistics();
 
     Alert.alert(
@@ -220,7 +243,11 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
   };
 
   private renderCustomFallback() {
-    if (!this.props.fallbackComponent || !this.state.error || !this.state.strategy) {
+    if (
+      !this.props.fallbackComponent ||
+      !this.state.error ||
+      !this.state.strategy
+    ) {
       return null;
     }
 
@@ -238,42 +265,49 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
   private renderDefaultErrorUI() {
     if (!this.state.error || !this.state.strategy) return null;
 
-    const category = this.errorRecoveryManager.categorizeError(this.state.error);
-    const canRetry = this.state.strategy.type === 'retry' &&
+    const category = this.errorRecoveryManager.categorizeError(
+      this.state.error
+    );
+    const canRetry =
+      this.state.strategy.type === 'retry' &&
       (!this.state.strategy.maxAttempts ||
-       this.state.recoveryAttempt < this.state.strategy.maxAttempts);
+        this.state.recoveryAttempt < this.state.strategy.maxAttempts);
 
     return (
-      <View style={styles.container} testID="enhanced-error-boundary">
+      <View style={styles.container} testID='enhanced-error-boundary'>
         {/* Error Icon */}
         <View style={styles.iconContainer}>
           <Ionicons
-            name={this.getErrorIcon(category?.priority) as React.ComponentProps<typeof Ionicons>['name']}
+            name={
+              this.getErrorIcon(category?.priority) as React.ComponentProps<
+                typeof Ionicons
+              >['name']
+            }
             size={64}
             color={this.getErrorColor(category?.priority)}
-            accessibilityLabel="Error icon"
+            accessibilityLabel='Error icon'
           />
         </View>
 
         {/* Error Title */}
-        <Text
-          style={styles.title}
-          accessibilityRole="header"
-        >
+        <Text style={styles.title} accessibilityRole='header'>
           {category?.name || 'Something went wrong'}
         </Text>
 
         {/* Error Message */}
-        <Text style={styles.message} accessibilityHint="Error description">
+        <Text style={styles.message} accessibilityHint='Error description'>
           {this.state.strategy.message ||
-           'We encountered an unexpected error. Our team has been notified.'}
+            'We encountered an unexpected error. Our team has been notified.'}
         </Text>
 
         {/* Recovery Actions */}
         <View style={styles.actionsContainer}>
           {this.state.isRecovering ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={theme.colors.textPrimary} />
+              <ActivityIndicator
+                size='small'
+                color={theme.colors.textPrimary}
+              />
               <Text style={styles.loadingText}>Recovering...</Text>
             </View>
           ) : (
@@ -282,13 +316,19 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
                 <TouchableOpacity
                   style={[styles.button, styles.primaryButton]}
                   onPress={this.handleRecovery}
-                  accessibilityRole="button"
-                  accessibilityLabel="Try again"
-                  accessibilityHint="Attempt to recover from the error"
+                  accessibilityRole='button'
+                  accessibilityLabel='Try again'
+                  accessibilityHint='Attempt to recover from the error'
                 >
-                  <Ionicons name="refresh" size={20} color={theme.colors.textInverse} />
+                  <Ionicons
+                    name='refresh'
+                    size={20}
+                    color={theme.colors.textInverse}
+                  />
                   <Text style={styles.primaryButtonText}>
-                    {this.state.strategy.type === 'retry' ? 'Try Again' : 'Recover'}
+                    {this.state.strategy.type === 'retry'
+                      ? 'Try Again'
+                      : 'Recover'}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -296,12 +336,18 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
               {this.state.strategy.redirectTarget && (
                 <TouchableOpacity
                   style={[styles.button, styles.secondaryButton]}
-                  onPress={() => this.handleRedirect(this.state.strategy!.redirectTarget!)}
-                  accessibilityRole="button"
-                  accessibilityLabel="Go to safe area"
-                  accessibilityHint="Navigate to a stable part of the app"
+                  onPress={() =>
+                    this.handleRedirect(this.state.strategy!.redirectTarget!)
+                  }
+                  accessibilityRole='button'
+                  accessibilityLabel='Go to safe area'
+                  accessibilityHint='Navigate to a stable part of the app'
                 >
-                  <Ionicons name="home" size={20} color={theme.colors.textPrimary} />
+                  <Ionicons
+                    name='home'
+                    size={20}
+                    color={theme.colors.textPrimary}
+                  />
                   <Text style={styles.secondaryButtonText}>Go to Home</Text>
                 </TouchableOpacity>
               )}
@@ -309,11 +355,15 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
               <TouchableOpacity
                 style={[styles.button, styles.tertiaryButton]}
                 onPress={this.handleReportError}
-                accessibilityRole="button"
-                accessibilityLabel="Report error"
-                accessibilityHint="Send error report to help improve the app"
+                accessibilityRole='button'
+                accessibilityLabel='Report error'
+                accessibilityHint='Send error report to help improve the app'
               >
-                <Ionicons name="bug" size={16} color={theme.colors.textSecondary} />
+                <Ionicons
+                  name='bug'
+                  size={16}
+                  color={theme.colors.textSecondary}
+                />
                 <Text style={styles.tertiaryButtonText}>Report Issue</Text>
               </TouchableOpacity>
             </>
@@ -341,19 +391,27 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
 
   private getErrorIcon(priority?: string): string {
     switch (priority) {
-      case 'critical': return 'alert-circle';
-      case 'high': return 'warning';
-      case 'medium': return 'information-circle';
-      default: return 'help-circle';
+      case 'critical':
+        return 'alert-circle';
+      case 'high':
+        return 'warning';
+      case 'medium':
+        return 'information-circle';
+      default:
+        return 'help-circle';
     }
   }
 
   private getErrorColor(priority?: string): string {
     switch (priority) {
-      case 'critical': return theme.colors.error;
-      case 'high': return theme.colors.accent;
-      case 'medium': return theme.colors.textPrimary;
-      default: return theme.colors.textSecondary;
+      case 'critical':
+        return theme.colors.error;
+      case 'high':
+        return theme.colors.accent;
+      case 'medium':
+        return theme.colors.textPrimary;
+      default:
+        return theme.colors.textSecondary;
     }
   }
 
@@ -475,5 +533,3 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
 });
-
-export default EnhancedErrorBoundary;

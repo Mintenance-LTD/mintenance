@@ -8,7 +8,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 
-export type W9Status = 'not_submitted' | 'submitted' | 'verified';
+type W9Status = 'not_submitted' | 'submitted' | 'verified';
 export type Form1099Status =
   | 'not_available'
   | 'pending'
@@ -72,7 +72,7 @@ export async function fetchTaxSummaries(): Promise<{
   return res.json();
 }
 
-export const fadeIn = {
+const fadeIn = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 },
 };

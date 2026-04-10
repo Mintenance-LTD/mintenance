@@ -1,6 +1,6 @@
 /**
  * Client Management Types
- * 
+ *
  * Contains all TypeScript interfaces and types for client management functionality.
  */
 
@@ -71,7 +71,7 @@ export interface ClientFinancials {
   paymentRating: number;
 }
 
-export interface PaymentRecord {
+interface PaymentRecord {
   jobId: string;
   amount: number;
   dueDate: string;
@@ -94,7 +94,7 @@ export interface Property {
   createdAt: string;
 }
 
-export interface MaintenanceRecord {
+interface MaintenanceRecord {
   jobId: string;
   date: string;
   serviceType: string;
@@ -105,11 +105,18 @@ export interface MaintenanceRecord {
   notes?: string;
 }
 
-export interface ClientInteraction {
+interface ClientInteraction {
   id: string;
   clientId: string;
   contractorId: string;
-  type: 'call' | 'email' | 'meeting' | 'job' | 'follow_up' | 'complaint' | 'compliment';
+  type:
+    | 'call'
+    | 'email'
+    | 'meeting'
+    | 'job'
+    | 'follow_up'
+    | 'complaint'
+    | 'compliment';
   subject: string;
   description: string;
   outcome?: string;
@@ -213,7 +220,14 @@ export interface ClientFilters {
 }
 
 export interface ClientSortOptions {
-  field: 'firstName' | 'lastName' | 'status' | 'priority' | 'createdAt' | 'lastJobDate' | 'totalValue';
+  field:
+    | 'firstName'
+    | 'lastName'
+    | 'status'
+    | 'priority'
+    | 'createdAt'
+    | 'lastJobDate'
+    | 'totalValue';
   direction: 'asc' | 'desc';
 }
 
@@ -236,7 +250,22 @@ export interface CreateClientRequest {
 
 export interface UpdateClientRequest {
   id: string;
-  updates: Partial<Pick<Client, 'firstName' | 'lastName' | 'email' | 'phone' | 'companyName' | 'address' | 'status' | 'priority' | 'tags' | 'notes' | 'preferences'>>;
+  updates: Partial<
+    Pick<
+      Client,
+      | 'firstName'
+      | 'lastName'
+      | 'email'
+      | 'phone'
+      | 'companyName'
+      | 'address'
+      | 'status'
+      | 'priority'
+      | 'tags'
+      | 'notes'
+      | 'preferences'
+    >
+  >;
 }
 
 export interface ClientSearchParams {

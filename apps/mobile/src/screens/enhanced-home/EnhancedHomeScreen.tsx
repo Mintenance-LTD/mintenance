@@ -32,20 +32,20 @@ export const EnhancedHomeScreen: React.FC = () => {
 
   if (viewModel.error) {
     return (
-      <ErrorView
-        message={viewModel.error}
-        onRetry={viewModel.handleRefresh}
-      />
+      <ErrorView message={viewModel.error} onRetry={viewModel.handleRefresh} />
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
+      <StatusBar
+        barStyle='dark-content'
+        backgroundColor={theme.colors.backgroundSecondary}
+      />
       <LocationHeader
         location={viewModel.location}
-        onLocationPress={() => { }}
-        onNotificationPress={() => { }}
+        onLocationPress={() => {}}
+        onNotificationPress={() => {}}
         hasNotifications
       />
 
@@ -56,7 +56,7 @@ export const EnhancedHomeScreen: React.FC = () => {
         <SearchFilterBar
           value={viewModel.searchQuery}
           onChangeText={viewModel.handleSearch}
-          onFilterPress={() => { }}
+          onFilterPress={() => {}}
         />
 
         <SpecialOffersCarousel
@@ -72,7 +72,7 @@ export const EnhancedHomeScreen: React.FC = () => {
         <TopContractorsList
           contractors={viewModel.topContractors}
           onContractorPress={viewModel.handleContractorPress}
-          onSeeAllPress={() => { }}
+          onSeeAllPress={() => {}}
         />
       </ScrollView>
     </SafeAreaView>
@@ -88,5 +88,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-
-export default EnhancedHomeScreen;

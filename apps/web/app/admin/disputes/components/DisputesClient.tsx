@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { theme } from '@/lib/theme';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { Button } from '@/components/ui/Button';
@@ -29,21 +30,49 @@ import {
 import { ResolveDisputeDialog } from './ResolveDisputeDialog';
 import { DisputesPageHeader } from './DisputesPageHeader';
 
+interface DisputesResponse {
+  data: Dispute[];
+  stats: Stats;
+  pagination: Pagination;
+}
+
+async function fetchDisputes(params: {
+  page: number;
+  statusFilter: StatusFilter;
+}): Promise<DisputesResponse> {
+  const searchParams = new URLSearchParams({
+    page: params.page.toString(),
+    limit: '20',
+  });
+  if (params.statusFilter !== 'all')
+    searchParams.append('status', params.statusFilter);
+
+  const response = await fetch(
+    `/api/admin/disputes?${searchParams.toString()}`,
+    { credentials: 'include' }
+  );
+  if (!response.ok) throw new Error('Failed to fetch disputes');
+  const data = await response.json();
+  return {
+    data: data.data ?? [],
+    stats: data.stats ?? {
+      open: 0,
+      reviewing: 0,
+      resolved: 0,
+      totalAmountAtRisk: 0,
+    },
+    pagination: data.pagination ?? {
+      page: 1,
+      limit: 20,
+      total: 0,
+      totalPages: 0,
+    },
+  };
+}
+
 export function DisputesClient() {
-  const [disputes, setDisputes] = useState<Dispute[]>([]);
-  const [stats, setStats] = useState<Stats>({
-    open: 0,
-    reviewing: 0,
-    resolved: 0,
-    totalAmountAtRisk: 0,
-  });
-  const [pagination, setPagination] = useState<Pagination>({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 0,
-  });
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
   const [resolveDialog, setResolveDialog] = useState(false);
@@ -55,60 +84,44 @@ export function DisputesClient() {
     message: string;
   }>({ open: false, message: '' });
 
-  const fetchDisputes = useCallback(
-    async (page: number = 1) => {
-      setLoading(true);
-      try {
-        const params = new URLSearchParams({
-          page: page.toString(),
-          limit: '20',
-        });
-        if (statusFilter !== 'all') params.append('status', statusFilter);
+  const queryKey = ['admin', 'disputes', { page, statusFilter }];
 
-        const response = await fetch(
-          `/api/admin/disputes?${params.toString()}`,
-          {
-            credentials: 'include',
-          }
-        );
-        if (!response.ok) throw new Error('Failed to fetch disputes');
-        const data = await response.json();
-        setDisputes(data.data ?? []);
-        setStats(
-          data.stats ?? {
-            open: 0,
-            reviewing: 0,
-            resolved: 0,
-            totalAmountAtRisk: 0,
-          }
-        );
-        setPagination(
-          data.pagination ?? { page: 1, limit: 20, total: 0, totalPages: 0 }
-        );
-      } catch (error) {
-        logger.error('Error fetching disputes:', error);
-        setErrorDialog({
-          open: true,
-          message: 'Failed to load disputes. Please try again.',
-        });
-      } finally {
-        setLoading(false);
-      }
+  const { data, isLoading: loading } = useQuery<DisputesResponse>({
+    queryKey,
+    queryFn: () => fetchDisputes({ page, statusFilter }),
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
+    placeholderData: (previousData) => previousData,
+    meta: {
+      onError: (err: unknown) => {
+        logger.error('Error fetching disputes:', err);
+      },
     },
-    [statusFilter]
-  );
+  });
 
-  useEffect(() => {
-    const abortController = new AbortController();
-    fetchDisputes(1);
-    const interval = setInterval(() => {
-      if (!document.hidden) fetchDisputes(pagination.page);
-    }, 30000);
-    return () => {
-      abortController.abort();
-      clearInterval(interval);
-    };
-  }, [fetchDisputes]); // eslint-disable-line react-hooks/exhaustive-deps
+  const disputes = data?.data ?? [];
+  const stats: Stats = data?.stats ?? {
+    open: 0,
+    reviewing: 0,
+    resolved: 0,
+    totalAmountAtRisk: 0,
+  };
+  const pagination: Pagination = data?.pagination ?? {
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  };
+
+  const invalidateDisputes = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['admin', 'disputes'] });
+  }, [queryClient]);
+
+  // Reset page when filter changes
+  const handleStatusFilterChange = useCallback((value: StatusFilter) => {
+    setStatusFilter(value);
+    setPage(1);
+  }, []);
 
   const handleResolve = async () => {
     if (!selectedDispute) return;
@@ -154,7 +167,7 @@ export function DisputesClient() {
       setResolveDialog(false);
       setSelectedDispute(null);
       setResolveNotes('');
-      await fetchDisputes(pagination.page);
+      invalidateDisputes();
     } catch (error) {
       logger.error('Error resolving dispute:', error);
       setErrorDialog({ open: true, message: (error as Error).message });
@@ -188,7 +201,7 @@ export function DisputesClient() {
         throw new Error(errorData.error || 'Failed to hold escrow');
       }
 
-      await fetchDisputes(pagination.page);
+      invalidateDisputes();
     } catch (error) {
       logger.error('Error holding dispute:', error);
       setErrorDialog({ open: true, message: (error as Error).message });
@@ -209,7 +222,7 @@ export function DisputesClient() {
       <DisputesPageHeader
         stats={stats}
         statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
+        onStatusFilterChange={handleStatusFilterChange}
       />
 
       {/* Disputes Table */}
@@ -311,14 +324,14 @@ export function DisputesClient() {
                 <div style={{ display: 'flex', gap: theme.spacing[2] }}>
                   <Button
                     variant='secondary'
-                    onClick={() => fetchDisputes(pagination.page - 1)}
+                    onClick={() => setPage(pagination.page - 1)}
                     disabled={pagination.page === 1}
                   >
                     Previous
                   </Button>
                   <Button
                     variant='secondary'
-                    onClick={() => fetchDisputes(pagination.page + 1)}
+                    onClick={() => setPage(pagination.page + 1)}
                     disabled={pagination.page >= pagination.totalPages}
                   >
                     Next

@@ -3,7 +3,7 @@ import { logger } from '@mintenance/shared';
 
 // ── Types ───────────────────────────────────────────────────────────
 
-export interface ContractorTaxProfile {
+interface ContractorTaxProfile {
   id: string;
   contractor_id: string;
   tax_name: string;
@@ -18,7 +18,7 @@ export interface ContractorTaxProfile {
   zip_code: string;
 }
 
-export interface TaxYearSummary {
+interface TaxYearSummary {
   id: string;
   contractor_id: string;
   tax_year: number;
@@ -31,7 +31,7 @@ export interface TaxYearSummary {
   updated_at: string;
 }
 
-export interface CompanyInfo {
+interface CompanyInfo {
   name: string;
   tin: string;
   address_line1: string;
@@ -42,7 +42,7 @@ export interface CompanyInfo {
   phone: string | null;
 }
 
-export interface Form1099NECData {
+interface Form1099NECData {
   tax_year: number;
   payer: CompanyInfo;
   recipient: {
@@ -62,7 +62,7 @@ export interface Form1099NECData {
   generated_at: string;
 }
 
-export interface Generate1099Result {
+interface Generate1099Result {
   contractor_id: string;
   success: boolean;
   data?: Form1099NECData;
@@ -84,7 +84,7 @@ export class Form1099Service {
    * but have not yet had one generated.
    */
   static async getContractorsRequiring1099(
-    taxYear: number,
+    taxYear: number
   ): Promise<TaxYearSummary[]> {
     const { data, error } = await serverSupabase
       .from('tax_year_summaries')
@@ -99,7 +99,9 @@ export class Form1099Service {
         service: 'Form1099Service',
         taxYear,
       });
-      throw new Error(`Failed to fetch contractors requiring 1099: ${error.message}`);
+      throw new Error(
+        `Failed to fetch contractors requiring 1099: ${error.message}`
+      );
     }
 
     return (data ?? []) as TaxYearSummary[];
@@ -113,7 +115,7 @@ export class Form1099Service {
    */
   static async generate1099Data(
     contractorId: string,
-    taxYear: number,
+    taxYear: number
   ): Promise<Form1099NECData> {
     // 1. Fetch contractor tax profile
     const { data: taxProfile, error: profileError } = await serverSupabase
@@ -132,7 +134,7 @@ export class Form1099Service {
         city,
         state,
         zip_code
-        `,
+        `
       )
       .eq('contractor_id', contractorId)
       .single();
@@ -157,13 +159,17 @@ export class Form1099Service {
 
     if (summaryError || !summary) {
       const msg = summaryError?.message ?? 'Tax year summary not found';
-      logger.error('Missing tax year summary for 1099 generation', summaryError, {
-        service: 'Form1099Service',
-        contractorId,
-        taxYear,
-      });
+      logger.error(
+        'Missing tax year summary for 1099 generation',
+        summaryError,
+        {
+          service: 'Form1099Service',
+          contractorId,
+          taxYear,
+        }
+      );
       throw new Error(
-        `Contractor ${contractorId} missing tax year summary for ${taxYear}: ${msg}`,
+        `Contractor ${contractorId} missing tax year summary for ${taxYear}: ${msg}`
       );
     }
 
@@ -200,7 +206,7 @@ export class Form1099Service {
    */
   static async markAsGenerated(
     contractorId: string,
-    taxYear: number,
+    taxYear: number
   ): Promise<void> {
     const now = new Date().toISOString();
 
@@ -234,7 +240,7 @@ export class Form1099Service {
    * Get the full 1099 history for a contractor, ordered by year descending.
    */
   static async getContractor1099History(
-    contractorId: string,
+    contractorId: string
   ): Promise<TaxYearSummary[]> {
     const { data, error } = await serverSupabase
       .from('tax_year_summaries')
@@ -259,7 +265,7 @@ export class Form1099Service {
    */
   static async generateBatch(
     contractorIds: string[],
-    taxYear: number,
+    taxYear: number
   ): Promise<Generate1099Result[]> {
     const results: Generate1099Result[] = [];
 
@@ -302,7 +308,7 @@ export class Form1099Service {
     if (!name || !tin || !addressLine1 || !city || !state || !zip) {
       throw new Error(
         'Missing required COMPANY_* environment variables for 1099 generation. ' +
-        'Required: COMPANY_NAME, COMPANY_TIN, COMPANY_ADDRESS_LINE1, COMPANY_CITY, COMPANY_STATE, COMPANY_ZIP_CODE',
+          'Required: COMPANY_NAME, COMPANY_TIN, COMPANY_ADDRESS_LINE1, COMPANY_CITY, COMPANY_STATE, COMPANY_ZIP_CODE'
       );
     }
 

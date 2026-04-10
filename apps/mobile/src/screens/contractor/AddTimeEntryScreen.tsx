@@ -309,5 +309,3 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
-
-export default AddTimeEntryScreen;

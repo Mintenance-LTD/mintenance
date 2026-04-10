@@ -67,7 +67,7 @@ const URGENCY_MULTIPLIER: Record<string, number> = {
   high: 1.3,
 };
 
-export class AIPricingEngine {
+class AIPricingEngine {
   async analyzePricing(input: JobPricingInput): Promise<PricingAnalysis> {
     try {
       logger.info('Starting pricing analysis', { jobTitle: input.title });
@@ -79,9 +79,13 @@ export class AIPricingEngine {
       const complexity = this.estimateComplexity(input);
 
       const complexityMult =
-        complexity === 'specialist' ? 1.5 :
-        complexity === 'complex' ? 1.3 :
-        complexity === 'moderate' ? 1.1 : 1.0;
+        complexity === 'specialist'
+          ? 1.5
+          : complexity === 'complex'
+            ? 1.3
+            : complexity === 'moderate'
+              ? 1.1
+              : 1.0;
 
       const optimal = Math.round(baseRate * urgencyMult * complexityMult);
       const min = Math.round(optimal * 0.75);
@@ -113,15 +117,39 @@ export class AIPricingEngine {
     }
   }
 
-  private estimateComplexity(input: JobPricingInput): PricingAnalysis['complexity'] {
+  private estimateComplexity(
+    input: JobPricingInput
+  ): PricingAnalysis['complexity'] {
     const desc = (input.description + ' ' + input.title).toLowerCase();
-    const specialistKeywords = ['rewire', 'boiler', 'structural', 'asbestos', 'gas', 'extension', 'loft conversion'];
-    const complexKeywords = ['renovation', 'bathroom', 'kitchen', 'refurbish', 'replace', 'install'];
-    const moderateKeywords = ['repair', 'fix', 'leak', 'broken', 'update', 'upgrade'];
+    const specialistKeywords = [
+      'rewire',
+      'boiler',
+      'structural',
+      'asbestos',
+      'gas',
+      'extension',
+      'loft conversion',
+    ];
+    const complexKeywords = [
+      'renovation',
+      'bathroom',
+      'kitchen',
+      'refurbish',
+      'replace',
+      'install',
+    ];
+    const moderateKeywords = [
+      'repair',
+      'fix',
+      'leak',
+      'broken',
+      'update',
+      'upgrade',
+    ];
 
-    if (specialistKeywords.some(k => desc.includes(k))) return 'specialist';
-    if (complexKeywords.some(k => desc.includes(k))) return 'complex';
-    if (moderateKeywords.some(k => desc.includes(k))) return 'moderate';
+    if (specialistKeywords.some((k) => desc.includes(k))) return 'specialist';
+    if (complexKeywords.some((k) => desc.includes(k))) return 'complex';
+    if (moderateKeywords.some((k) => desc.includes(k))) return 'moderate';
     return 'simple';
   }
 
@@ -136,13 +164,15 @@ export class AIPricingEngine {
       factors.push({
         name: 'High Urgency',
         impact: (urgencyMult - 1) * 100,
-        description: 'Urgent jobs attract premium rates due to schedule disruption',
+        description:
+          'Urgent jobs attract premium rates due to schedule disruption',
       });
     } else if (urgencyMult < 1.0) {
       factors.push({
         name: 'Flexible Timeline',
         impact: (urgencyMult - 1) * 100,
-        description: 'Non-urgent jobs may receive competitive bids from available contractors',
+        description:
+          'Non-urgent jobs may receive competitive bids from available contractors',
       });
     }
 
@@ -163,25 +193,40 @@ export class AIPricingEngine {
     return factors;
   }
 
-  private estimateMarketData(input: JobPricingInput, baseRate: number): MarketData {
+  private estimateMarketData(
+    input: JobPricingInput,
+    baseRate: number
+  ): MarketData {
     return {
       averagePrice: baseRate,
-      demandLevel: input.urgency === 'high' ? 'high' : input.urgency === 'low' ? 'low' : 'medium',
+      demandLevel:
+        input.urgency === 'high'
+          ? 'high'
+          : input.urgency === 'low'
+            ? 'low'
+            : 'medium',
       competitorCount: Math.floor(Math.random() * 10) + 5,
     };
   }
 
-  private generateRecommendations(input: JobPricingInput, optimal: number): string[] {
+  private generateRecommendations(
+    input: JobPricingInput,
+    optimal: number
+  ): string[] {
     const recommendations: string[] = [];
 
     recommendations.push('Include detailed photos to attract better bids');
 
     if (input.homeownerBudget && input.homeownerBudget < optimal * 0.8) {
-      recommendations.push('Your budget is below the market average - consider increasing for quality work');
+      recommendations.push(
+        'Your budget is below the market average - consider increasing for quality work'
+      );
     }
 
     if (input.urgency === 'high') {
-      recommendations.push('Urgent jobs benefit from a slightly higher budget to attract immediate availability');
+      recommendations.push(
+        'Urgent jobs benefit from a slightly higher budget to attract immediate availability'
+      );
     }
 
     recommendations.push('Request quotes from multiple contractors to compare');
@@ -198,8 +243,18 @@ export class AIPricingEngine {
         optimal: baseRate,
       },
       confidence: 0.5,
-      factors: [{ name: 'Category Base Rate', impact: 0, description: 'Estimated from category averages' }],
-      marketData: { averagePrice: baseRate, demandLevel: 'medium', competitorCount: 8 },
+      factors: [
+        {
+          name: 'Category Base Rate',
+          impact: 0,
+          description: 'Estimated from category averages',
+        },
+      ],
+      marketData: {
+        averagePrice: baseRate,
+        demandLevel: 'medium',
+        competitorCount: 8,
+      },
       recommendations: ['Add more details for a more accurate estimate'],
       complexity: 'moderate',
     };
@@ -208,5 +263,3 @@ export class AIPricingEngine {
 
 // Singleton instance
 export const aiPricingEngine = new AIPricingEngine();
-
-export default AIPricingEngine;

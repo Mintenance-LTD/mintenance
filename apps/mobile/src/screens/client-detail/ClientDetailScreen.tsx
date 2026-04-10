@@ -16,7 +16,10 @@ import type { RouteProp } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useToast } from '../../components/ui/Toast';
-import type { ProfileStackParamList, RootTabParamList } from '../../navigation/types';
+import type {
+  ProfileStackParamList,
+  RootTabParamList,
+} from '../../navigation/types';
 import { theme } from '../../theme';
 
 interface ClientData {
@@ -44,16 +47,23 @@ const STATUS_COLORS: Record<string, string> = {
   former: theme.colors.textTertiary,
 };
 
-export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({ navigation, route }) => {
+export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({
+  navigation,
+  route,
+}) => {
   const insets = useSafeAreaInsets();
   const toast = useToast();
-  const tabNavigation = useNavigation<BottomTabNavigationProp<RootTabParamList>>();
+  const tabNavigation =
+    useNavigation<BottomTabNavigationProp<RootTabParamList>>();
   const { client: rawClient } = route.params;
   const client = rawClient as unknown as ClientData;
 
   const handleCall = async () => {
     if (!client.phone) {
-      toast.error('No phone number', 'This client has no phone number on record.');
+      toast.error(
+        'No phone number',
+        'This client has no phone number on record.'
+      );
       return;
     }
     const url = `tel:${client.phone}`;
@@ -86,14 +96,23 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({ navigati
     } as never);
   };
 
-  const statusColor = STATUS_COLORS[client.relationship_status as string] ?? theme.colors.textSecondary;
+  const statusColor =
+    STATUS_COLORS[client.relationship_status as string] ??
+    theme.colors.textSecondary;
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons
+            name='arrow-back'
+            size={24}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {client.first_name} {client.last_name}
@@ -106,26 +125,53 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({ navigati
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
-              {client.first_name.charAt(0)}{client.last_name.charAt(0)}
+              {client.first_name.charAt(0)}
+              {client.last_name.charAt(0)}
             </Text>
           </View>
           <Text style={styles.clientName}>
             {client.first_name} {client.last_name}
           </Text>
           <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-            <Text style={styles.statusText}>{client.relationship_status.toUpperCase()}</Text>
+            <Text style={styles.statusText}>
+              {client.relationship_status.toUpperCase()}
+            </Text>
           </View>
         </View>
 
         {/* Quick Actions */}
         <View style={styles.actionsRow}>
           {[
-            { icon: 'call' as const, label: 'Call', onPress: handleCall, bg: theme.colors.primaryLight, color: theme.colors.primary },
-            { icon: 'mail' as const, label: 'Email', onPress: handleEmail, bg: '#DBEAFE', color: '#3B82F6' },
-            { icon: 'chatbubble' as const, label: 'Message', onPress: handleMessage, bg: '#EDE9FE', color: '#8B5CF6' },
+            {
+              icon: 'call' as const,
+              label: 'Call',
+              onPress: handleCall,
+              bg: theme.colors.primaryLight,
+              color: theme.colors.primary,
+            },
+            {
+              icon: 'mail' as const,
+              label: 'Email',
+              onPress: handleEmail,
+              bg: '#DBEAFE',
+              color: '#3B82F6',
+            },
+            {
+              icon: 'chatbubble' as const,
+              label: 'Message',
+              onPress: handleMessage,
+              bg: '#EDE9FE',
+              color: '#8B5CF6',
+            },
           ].map((action) => (
-            <TouchableOpacity key={action.label} style={styles.actionBtn} onPress={action.onPress}>
-              <View style={[styles.actionIconWrap, { backgroundColor: action.bg }]}>
+            <TouchableOpacity
+              key={action.label}
+              style={styles.actionBtn}
+              onPress={action.onPress}
+            >
+              <View
+                style={[styles.actionIconWrap, { backgroundColor: action.bg }]}
+              >
                 <Ionicons name={action.icon} size={20} color={action.color} />
               </View>
               <Text style={styles.actionBtnText}>{action.label}</Text>
@@ -138,14 +184,22 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({ navigati
           <Text style={styles.sectionTitle}>CONTACT</Text>
           <View style={styles.detailRow}>
             <View style={styles.detailIconWrap}>
-              <Ionicons name="mail-outline" size={14} color={theme.colors.textSecondary} />
+              <Ionicons
+                name='mail-outline'
+                size={14}
+                color={theme.colors.textSecondary}
+              />
             </View>
             <Text style={styles.detailText}>{client.email}</Text>
           </View>
           {client.phone ? (
             <View style={styles.detailRow}>
               <View style={styles.detailIconWrap}>
-                <Ionicons name="call-outline" size={14} color={theme.colors.textSecondary} />
+                <Ionicons
+                  name='call-outline'
+                  size={14}
+                  color={theme.colors.textSecondary}
+                />
               </View>
               <Text style={styles.detailText}>{client.phone}</Text>
             </View>
@@ -161,7 +215,10 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({ navigati
               <Text style={styles.statLabel}>Jobs</Text>
             </View>
             <View style={styles.stat}>
-              <Text style={styles.statValue}>{'\u00A3'}{client.total_revenue?.toLocaleString() || '0'}</Text>
+              <Text style={styles.statValue}>
+                {'\u00A3'}
+                {client.total_revenue?.toLocaleString() || '0'}
+              </Text>
               <Text style={styles.statLabel}>Revenue</Text>
             </View>
             <View style={styles.stat}>
@@ -174,10 +231,19 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({ navigati
           {client.last_job_date ? (
             <View style={[styles.detailRow, { marginTop: 12 }]}>
               <View style={styles.detailIconWrap}>
-                <Ionicons name="time-outline" size={14} color={theme.colors.textSecondary} />
+                <Ionicons
+                  name='time-outline'
+                  size={14}
+                  color={theme.colors.textSecondary}
+                />
               </View>
               <Text style={styles.detailText}>
-                Last job: {new Date(client.last_job_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                Last job:{' '}
+                {new Date(client.last_job_date).toLocaleDateString('en-GB', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                })}
               </Text>
             </View>
           ) : null}
@@ -202,7 +268,13 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
   },
   headerButton: { padding: 8, width: 40 },
-  headerTitle: { flex: 1, fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary, textAlign: 'center' },
+  headerTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    textAlign: 'center',
+  },
   scroll: { flex: 1 },
   profileCard: {
     alignItems: 'center',
@@ -212,7 +284,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -225,10 +302,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  avatarText: { fontSize: 24, fontWeight: '700', color: theme.colors.textInverse },
-  clientName: { fontSize: 20, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 8 },
+  avatarText: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: theme.colors.textInverse,
+  },
+  clientName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: 8,
+  },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  statusText: { fontSize: 11, fontWeight: '700', color: theme.colors.textInverse },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.textInverse,
+  },
   actionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -238,7 +328,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -250,7 +345,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionBtnText: { fontSize: 12, color: theme.colors.textPrimary, fontWeight: '600' },
+  actionBtnText: {
+    fontSize: 12,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+  },
   section: {
     backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
@@ -258,12 +357,29 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
-  sectionTitle: { fontSize: 12, fontWeight: '700', color: theme.colors.textTertiary, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.8 },
-  detailRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textTertiary,
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 4,
+  },
   detailIconWrap: {
     width: 28,
     height: 28,
@@ -275,8 +391,10 @@ const styles = StyleSheet.create({
   detailText: { fontSize: 14, color: theme.colors.textPrimary },
   statsRow: { flexDirection: 'row', justifyContent: 'space-around' },
   stat: { alignItems: 'center' },
-  statValue: { fontSize: 20, fontWeight: '700', color: theme.colors.textPrimary },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
   statLabel: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
 });
-
-export default ClientDetailScreen;

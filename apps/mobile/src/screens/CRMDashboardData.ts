@@ -12,7 +12,7 @@ export interface DerivedClient {
   relationship_status: 'active' | 'prospect' | 'inactive';
 }
 
-export interface JobRecord {
+interface JobRecord {
   id: string;
   homeowner_id: string;
   status: string;
@@ -48,7 +48,7 @@ export const STATUS_DOT: Record<string, string> = {
 
 const NINETY_DAYS = 90 * 24 * 60 * 60 * 1000;
 
-export function deriveClients(jobs: JobRecord[]): DerivedClient[] {
+function deriveClients(jobs: JobRecord[]): DerivedClient[] {
   const map = new Map<
     string,
     { jobs: JobRecord[]; owner: JobRecord['homeowner'] }

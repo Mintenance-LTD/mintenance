@@ -22,7 +22,7 @@ export type BadgeVariant =
 
 export type BadgeSize = 'sm' | 'md' | 'lg';
 
-export interface BadgeProps {
+interface BadgeProps {
   children: React.ReactNode;
   variant?: BadgeVariant;
   size?: BadgeSize;
@@ -75,18 +75,37 @@ export const Badge: React.FC<BadgeProps> = ({
 
   const handlePressIn = () => {
     setIsPressed(true);
-    Animated.spring(scaleAnimation, { toValue: 0.95, useNativeDriver: true, tension: 300, friction: 10 }).start();
+    Animated.spring(scaleAnimation, {
+      toValue: 0.95,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
   };
 
   const handlePressOut = () => {
     setIsPressed(false);
-    Animated.spring(scaleAnimation, { toValue: 1, useNativeDriver: true, tension: 300, friction: 10 }).start();
+    Animated.spring(scaleAnimation, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
   };
 
   const renderContent = () => (
     <View style={styles.content}>
-      {icon && <Ionicons name={icon} size={iconSz} color={iconColor} style={styles.icon} />}
-      <Text style={[badgeTextStyles, textStyle]} numberOfLines={1}>{children}</Text>
+      {icon && (
+        <Ionicons
+          name={icon}
+          size={iconSz}
+          color={iconColor}
+          style={styles.icon}
+        />
+      )}
+      <Text style={[badgeTextStyles, textStyle]} numberOfLines={1}>
+        {children}
+      </Text>
     </View>
   );
 
@@ -99,8 +118,10 @@ export const Badge: React.FC<BadgeProps> = ({
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           activeOpacity={1}
-          accessibilityRole="button"
-          accessibilityLabel={typeof children === 'string' ? children : undefined}
+          accessibilityRole='button'
+          accessibilityLabel={
+            typeof children === 'string' ? children : undefined
+          }
           accessibilityState={{ selected: isPressed }}
           testID={testID}
         >
@@ -111,13 +132,18 @@ export const Badge: React.FC<BadgeProps> = ({
   }
 
   return (
-    <View style={[badgeStyles, style]} accessibilityRole="text" accessibilityLabel={typeof children === 'string' ? children : undefined} testID={testID}>
+    <View
+      style={[badgeStyles, style]}
+      accessibilityRole='text'
+      accessibilityLabel={typeof children === 'string' ? children : undefined}
+      testID={testID}
+    >
       {renderContent()}
     </View>
   );
 };
 
-export interface ChipProps extends BadgeProps {
+interface ChipProps extends BadgeProps {
   selected?: boolean;
   onDelete?: () => void;
   deleteIcon?: keyof typeof Ionicons.glyphMap;
@@ -143,10 +169,25 @@ export const Chip: React.FC<ChipProps> = ({
 
   const renderContent = () => (
     <View style={styles.chipContent}>
-      {icon && <Ionicons name={icon} size={iconSz} color={iconColor} style={styles.icon} />}
-      <Text style={[chipTextStyles, textStyle]} numberOfLines={1}>{children}</Text>
+      {icon && (
+        <Ionicons
+          name={icon}
+          size={iconSz}
+          color={iconColor}
+          style={styles.icon}
+        />
+      )}
+      <Text style={[chipTextStyles, textStyle]} numberOfLines={1}>
+        {children}
+      </Text>
       {onDelete && (
-        <TouchableOpacity onPress={onDelete} style={styles.deleteButton} accessibilityRole="button" accessibilityLabel="Remove" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+        <TouchableOpacity
+          onPress={onDelete}
+          style={styles.deleteButton}
+          accessibilityRole='button'
+          accessibilityLabel='Remove'
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
           <Ionicons name={deleteIcon} size={iconSz} color={iconColor} />
         </TouchableOpacity>
       )}
@@ -155,20 +196,32 @@ export const Chip: React.FC<ChipProps> = ({
 
   if (onPress) {
     return (
-      <TouchableOpacity style={[chipStyles, style]} onPress={onPress} accessibilityRole="button" accessibilityLabel={typeof children === 'string' ? children : undefined} accessibilityState={{ selected }} testID={testID}>
+      <TouchableOpacity
+        style={[chipStyles, style]}
+        onPress={onPress}
+        accessibilityRole='button'
+        accessibilityLabel={typeof children === 'string' ? children : undefined}
+        accessibilityState={{ selected }}
+        testID={testID}
+      >
         {renderContent()}
       </TouchableOpacity>
     );
   }
 
   return (
-    <View style={[chipStyles, style]} accessibilityRole="text" accessibilityLabel={typeof children === 'string' ? children : undefined} testID={testID}>
+    <View
+      style={[chipStyles, style]}
+      accessibilityRole='text'
+      accessibilityLabel={typeof children === 'string' ? children : undefined}
+      testID={testID}
+    >
       {renderContent()}
     </View>
   );
 };
 
-export interface NotificationBadgeProps {
+interface NotificationBadgeProps {
   count: number;
   maxCount?: number;
   size?: BadgeSize;
@@ -193,13 +246,24 @@ export const NotificationBadge: React.FC<NotificationBadgeProps> = ({
   const notificationStyles = getNotificationBadgeStyles(size);
 
   return (
-    <View style={[notificationStyles, getBadgeStyles(variant, size, true), style]} accessibilityRole="text" accessibilityLabel={`${count} notification${count !== 1 ? 's' : ''}`} testID={testID}>
-      <Text style={getBadgeTextStyles(variant, size)} numberOfLines={1}>{displayCount}</Text>
+    <View
+      style={[notificationStyles, getBadgeStyles(variant, size, true), style]}
+      accessibilityRole='text'
+      accessibilityLabel={`${count} notification${count !== 1 ? 's' : ''}`}
+      testID={testID}
+    >
+      <Text style={getBadgeTextStyles(variant, size)} numberOfLines={1}>
+        {displayCount}
+      </Text>
     </View>
   );
 };
 
-const getBadgeStyles = (variant: BadgeVariant, size: BadgeSize, rounded: boolean): ViewStyle => {
+const getBadgeStyles = (
+  variant: BadgeVariant,
+  size: BadgeSize,
+  rounded: boolean
+): ViewStyle => {
   const sizeStyles = getSizeStyles(size);
   return {
     ...sizeStyles,
@@ -210,7 +274,11 @@ const getBadgeStyles = (variant: BadgeVariant, size: BadgeSize, rounded: boolean
   };
 };
 
-const getChipStyles = (variant: BadgeVariant, size: BadgeSize, selected: boolean): ViewStyle => ({
+const getChipStyles = (
+  variant: BadgeVariant,
+  size: BadgeSize,
+  selected: boolean
+): ViewStyle => ({
   ...getBadgeStyles(variant, size, true),
   borderWidth: selected ? 0 : 1,
   borderColor: selected ? 'transparent' : theme.colors.border,
@@ -218,36 +286,62 @@ const getChipStyles = (variant: BadgeVariant, size: BadgeSize, selected: boolean
 
 const getSizeStyles = (size: BadgeSize): ViewStyle => {
   switch (size) {
-    case 'sm': return { paddingHorizontal: 8, paddingVertical: 2, minHeight: 20 };
-    case 'md': return { paddingHorizontal: 12, paddingVertical: 4, minHeight: 24 };
-    case 'lg': return { paddingHorizontal: 16, paddingVertical: 6, minHeight: 32 };
-    default: return {};
+    case 'sm':
+      return { paddingHorizontal: 8, paddingVertical: 2, minHeight: 20 };
+    case 'md':
+      return { paddingHorizontal: 12, paddingVertical: 4, minHeight: 24 };
+    case 'lg':
+      return { paddingHorizontal: 16, paddingVertical: 6, minHeight: 32 };
+    default:
+      return {};
   }
 };
 
-const getBadgeTextStyles = (variant: BadgeVariant, size: BadgeSize): TextStyle => ({
+const getBadgeTextStyles = (
+  variant: BadgeVariant,
+  size: BadgeSize
+): TextStyle => ({
   fontSize: size === 'sm' ? 12 : size === 'md' ? 13 : 15,
   fontWeight: '500',
   color: VARIANT_TEXT[variant],
   textAlign: 'center',
 });
 
-const getChipTextStyles = (variant: BadgeVariant, size: BadgeSize, selected: boolean): TextStyle => {
+const getChipTextStyles = (
+  variant: BadgeVariant,
+  size: BadgeSize,
+  selected: boolean
+): TextStyle => {
   const base = getBadgeTextStyles(variant, size);
-  if (!selected && variant === 'neutral') return { ...base, color: theme.colors.textPrimary };
+  if (!selected && variant === 'neutral')
+    return { ...base, color: theme.colors.textPrimary };
   return base;
 };
 
 const getNotificationBadgeStyles = (size: BadgeSize): ViewStyle => {
   const baseSize = size === 'sm' ? 18 : size === 'md' ? 20 : 24;
-  return { minWidth: baseSize, height: baseSize, justifyContent: 'center', alignItems: 'center', position: 'absolute', top: -8, right: -8 };
+  return {
+    minWidth: baseSize,
+    height: baseSize,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
+    top: -8,
+    right: -8,
+  };
 };
 
 const styles = StyleSheet.create({
-  content: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  chipContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   icon: { marginRight: 4 },
   deleteButton: { marginLeft: 4, padding: 2 },
 });
-
-export default Badge;

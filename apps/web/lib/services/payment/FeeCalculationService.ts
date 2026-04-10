@@ -3,43 +3,43 @@ import { logger } from '@/lib/logger';
 
 export type PaymentType = 'deposit' | 'final' | 'milestone';
 
-export interface FeeCalculationOptions {
+interface FeeCalculationOptions {
   /**
    * Payment type - affects fee rate
    * @default 'final'
    */
   paymentType?: PaymentType;
-  
+
   /**
    * Custom platform fee rate (as decimal, e.g., 0.05 for 5%)
    * If not provided, uses default rate based on payment type
    */
   platformFeeRate?: number;
-  
+
   /**
    * Minimum platform fee amount
    * @default 0.50
    */
   minPlatformFee?: number;
-  
+
   /**
    * Maximum platform fee amount
    * @default 50.00
    */
   maxPlatformFee?: number;
-  
+
   /**
    * Stripe processing fee rate (as decimal, e.g., 0.015 for 1.5%)
    * @default 0.015
    */
   stripeFeeRate?: number;
-  
+
   /**
    * Fixed Stripe processing fee
    * @default 0.20
    */
   stripeFixedFee?: number;
-  
+
   /**
    * Currency code for rounding precision
    * @default 'gbp'
@@ -47,27 +47,27 @@ export interface FeeCalculationOptions {
   currency?: string;
 }
 
-export interface FeeBreakdown extends FeeCalculation {
+interface FeeBreakdown extends FeeCalculation {
   /**
    * Original payment amount before fees
    */
   originalAmount: number;
-  
+
   /**
    * Payment type used for calculation
    */
   paymentType: PaymentType;
-  
+
   /**
    * Platform fee rate used (as decimal)
    */
   platformFeeRate: number;
-  
+
   /**
    * Stripe processing fee rate used (as decimal)
    */
   stripeFeeRate: number;
-  
+
   /**
    * Net platform revenue (platform fee minus Stripe costs)
    */
@@ -76,7 +76,7 @@ export interface FeeBreakdown extends FeeCalculation {
 
 /**
  * Centralized fee calculation service
- * 
+ *
  * Handles all fee calculations consistently across the platform:
  * - Platform fees (configurable rate, min/max limits)
  * - Stripe processing fees (1.5% + 20p, UK rates)
@@ -90,19 +90,19 @@ export class FeeCalculationService {
   private static readonly DEFAULT_CONFIG = {
     platformFeeRate: {
       deposit: 0.05, // 5% for deposits
-      final: 0.05,   // 5% for final payments
+      final: 0.05, // 5% for final payments
       milestone: 0.05, // 5% for milestone payments
     },
-    minPlatformFee: 0.50,
-    maxPlatformFee: 50.00,
+    minPlatformFee: 0.5,
+    maxPlatformFee: 50.0,
     stripeFeeRate: 0.015, // 1.5% (UK Stripe rate)
-    stripeFixedFee: 0.20, // £0.20 (UK Stripe fixed fee)
+    stripeFixedFee: 0.2, // £0.20 (UK Stripe fixed fee)
     currency: 'gbp',
   } as const;
 
   /**
    * Calculate fees for a payment amount
-   * 
+   *
    * @param amount - Payment amount in pounds
    * @param options - Fee calculation options
    * @returns Fee breakdown with all calculated values
@@ -125,8 +125,8 @@ export class FeeCalculationService {
     } = options;
 
     // Determine platform fee rate
-    const effectivePlatformFeeRate = platformFeeRate ?? 
-      this.DEFAULT_CONFIG.platformFeeRate[paymentType];
+    const effectivePlatformFeeRate =
+      platformFeeRate ?? this.DEFAULT_CONFIG.platformFeeRate[paymentType];
 
     // Calculate platform fee with min/max constraints
     let platformFee = amount * effectivePlatformFeeRate;
@@ -148,9 +148,7 @@ export class FeeCalculationService {
     // Calculate net platform revenue (platform fee minus Stripe costs)
     // Note: Stripe fee is typically charged on the full amount, not just platform fee
     // But for accounting purposes, we track net revenue as platform fee minus our Stripe costs
-    const netPlatformRevenue = this.roundToTwoDecimals(
-      platformFee - stripeFee
-    );
+    const netPlatformRevenue = this.roundToTwoDecimals(platformFee - stripeFee);
 
     // Ensure contractor amount is not negative
     if (contractorAmount < 0) {
@@ -178,7 +176,7 @@ export class FeeCalculationService {
 
   /**
    * Calculate fees in cents (for Stripe API)
-   * 
+   *
    * @param amountCents - Payment amount in cents
    * @param options - Fee calculation options
    * @returns Fee breakdown with amounts in cents
@@ -204,7 +202,7 @@ export class FeeCalculationService {
 
   /**
    * Get platform fee rate for a payment type
-   * 
+   *
    * @param paymentType - Type of payment
    * @returns Platform fee rate as decimal
    */
@@ -214,7 +212,7 @@ export class FeeCalculationService {
 
   /**
    * Get Stripe processing fee rate
-   * 
+   *
    * @returns Stripe fee rate as decimal
    */
   static getStripeFeeRate(): number {
@@ -223,7 +221,7 @@ export class FeeCalculationService {
 
   /**
    * Get Stripe fixed fee
-   * 
+   *
    * @returns Fixed Stripe fee amount
    */
   static getStripeFixedFee(): number {
@@ -232,7 +230,7 @@ export class FeeCalculationService {
 
   /**
    * Calculate platform fee only (without Stripe fees)
-   * 
+   *
    * @param amount - Payment amount
    * @param options - Fee calculation options
    * @returns Platform fee amount
@@ -247,7 +245,7 @@ export class FeeCalculationService {
 
   /**
    * Calculate Stripe processing fee only
-   * 
+   *
    * @param amount - Payment amount
    * @param options - Fee calculation options
    * @returns Stripe processing fee amount
@@ -266,7 +264,7 @@ export class FeeCalculationService {
 
   /**
    * Calculate contractor payout amount
-   * 
+   *
    * @param amount - Payment amount
    * @param options - Fee calculation options
    * @returns Amount contractor receives after all fees
@@ -281,7 +279,7 @@ export class FeeCalculationService {
 
   /**
    * Round amount to two decimal places
-   * 
+   *
    * @param amount - Amount to round
    * @returns Rounded amount
    */
@@ -291,7 +289,7 @@ export class FeeCalculationService {
 
   /**
    * Validate fee configuration
-   * 
+   *
    * @param options - Fee calculation options to validate
    * @throws Error if configuration is invalid
    */
@@ -315,7 +313,9 @@ export class FeeCalculationService {
       options.maxPlatformFee !== undefined &&
       options.minPlatformFee > options.maxPlatformFee
     ) {
-      throw new Error('Minimum platform fee cannot exceed maximum platform fee');
+      throw new Error(
+        'Minimum platform fee cannot exceed maximum platform fee'
+      );
     }
 
     if (options.stripeFeeRate !== undefined) {
@@ -329,4 +329,3 @@ export class FeeCalculationService {
     }
   }
 }
-

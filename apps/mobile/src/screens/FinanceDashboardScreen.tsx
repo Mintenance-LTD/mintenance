@@ -26,7 +26,7 @@ interface FinanceDashboardScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList>;
 }
 
-export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
+const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
   navigation,
 }) => {
   const { formatters } = useI18n();

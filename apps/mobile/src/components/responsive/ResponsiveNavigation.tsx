@@ -27,7 +27,7 @@ interface ResponsiveNavigationProps {
   children: React.ReactNode;
 }
 
-export const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
+const ResponsiveNavigation: React.FC<ResponsiveNavigationProps> = ({
   items,
   activeRoute,
   onNavigate,

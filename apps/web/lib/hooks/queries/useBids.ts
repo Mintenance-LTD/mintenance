@@ -16,7 +16,7 @@ import { logger } from '@mintenance/shared';
 /**
  * Bid data type
  */
-export interface Bid {
+interface Bid {
   id: string;
   job_id: string;
   contractor_id: string;
@@ -43,7 +43,9 @@ async function fetchJobBids(jobId: string): Promise<Bid[]> {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to fetch bids' }));
+    const error = await response
+      .json()
+      .catch(() => ({ error: 'Failed to fetch bids' }));
     throw new Error(error.error || 'Failed to fetch bids');
   }
 
@@ -60,7 +62,9 @@ async function fetchContractorBids(): Promise<Bid[]> {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to fetch bids' }));
+    const error = await response
+      .json()
+      .catch(() => ({ error: 'Failed to fetch bids' }));
     throw new Error(error.error || 'Failed to fetch bids');
   }
 
@@ -78,7 +82,9 @@ async function submitBid(bidData: {
   estimated_duration?: string;
   start_date?: string;
 }): Promise<Bid> {
-  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+  const csrfToken = document
+    .querySelector('meta[name="csrf-token"]')
+    ?.getAttribute('content');
 
   const response = await fetch('/api/bids', {
     method: 'POST',
@@ -91,7 +97,9 @@ async function submitBid(bidData: {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to submit bid' }));
+    const error = await response
+      .json()
+      .catch(() => ({ error: 'Failed to submit bid' }));
     throw new Error(error.error || 'Failed to submit bid');
   }
 
@@ -103,7 +111,9 @@ async function submitBid(bidData: {
  * Accept a bid
  */
 async function acceptBid(bidId: string): Promise<Bid> {
-  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+  const csrfToken = document
+    .querySelector('meta[name="csrf-token"]')
+    ?.getAttribute('content');
 
   const response = await fetch(`/api/bids/${bidId}/accept`, {
     method: 'POST',
@@ -115,7 +125,9 @@ async function acceptBid(bidId: string): Promise<Bid> {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to accept bid' }));
+    const error = await response
+      .json()
+      .catch(() => ({ error: 'Failed to accept bid' }));
     throw new Error(error.error || 'Failed to accept bid');
   }
 
@@ -188,7 +200,9 @@ export function useSubmitBid() {
     mutationFn: submitBid,
     onSuccess: (newBid) => {
       // Invalidate job bids query
-      queryClient.invalidateQueries({ queryKey: queryKeys.jobs.bids(newBid.job_id) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.jobs.bids(newBid.job_id),
+      });
 
       // Invalidate contractor's bids list
       queryClient.invalidateQueries({ queryKey: ['contractor', 'bids'] });
@@ -227,10 +241,14 @@ export function useAcceptBid() {
     mutationFn: acceptBid,
     onSuccess: (acceptedBid) => {
       // Invalidate all bids for this job
-      queryClient.invalidateQueries({ queryKey: queryKeys.jobs.bids(acceptedBid.job_id) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.jobs.bids(acceptedBid.job_id),
+      });
 
       // Invalidate job details (status changed)
-      queryClient.invalidateQueries({ queryKey: queryKeys.jobs.details(acceptedBid.job_id) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.jobs.details(acceptedBid.job_id),
+      });
 
       logger.info('Bid accepted successfully', {
         service: 'bids',

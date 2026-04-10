@@ -8,7 +8,7 @@
 import type { EnhancedFusionInput } from '../EnhancedBayesianFusionService';
 import type { SceneGraphFeatures } from '../scene_graph_features';
 
-export interface ModalityProbability {
+interface ModalityProbability {
   probability: number;
   confidence: number;
   quality: number;
@@ -26,14 +26,17 @@ const DEFAULT_PROBABILITY: ModalityProbability = {
  * because YOLO tends to be conservative.
  */
 export function extractYOLOProbability(
-  yoloEvidence?: EnhancedFusionInput['yoloEvidence'],
+  yoloEvidence?: EnhancedFusionInput['yoloEvidence']
 ): ModalityProbability {
   if (!yoloEvidence || yoloEvidence.totalDetections === 0) {
     return DEFAULT_PROBABILITY;
   }
 
   const maxDetections = 10;
-  const detectionRate = Math.min(1, yoloEvidence.totalDetections / maxDetections);
+  const detectionRate = Math.min(
+    1,
+    yoloEvidence.totalDetections / maxDetections
+  );
   const probability = detectionRate * (yoloEvidence.avgConfidence / 100);
   const quality = yoloEvidence.avgConfidence > 70 ? 0.9 : 0.7;
 
@@ -50,7 +53,7 @@ export function extractYOLOProbability(
  * instance-weighted confidence otherwise.
  */
 export function extractSAM3Probability(
-  sam3Evidence?: EnhancedFusionInput['sam3Evidence'],
+  sam3Evidence?: EnhancedFusionInput['sam3Evidence']
 ): ModalityProbability {
   if (!sam3Evidence || !sam3Evidence.damageTypes) {
     return DEFAULT_PROBABILITY;
@@ -98,7 +101,7 @@ export function extractSAM3Probability(
  * Maps the severity string to a probability, boosted when critical hazards flagged.
  */
 export function extractGPT4Probability(
-  gpt4Assessment?: EnhancedFusionInput['gpt4Assessment'],
+  gpt4Assessment?: EnhancedFusionInput['gpt4Assessment']
 ): ModalityProbability {
   if (!gpt4Assessment) {
     return DEFAULT_PROBABILITY;
@@ -137,7 +140,7 @@ export function extractGPT4Probability(
  * and inverted structural integrity.
  */
 export function extractSceneGraphProbability(
-  sceneGraph: SceneGraphFeatures,
+  sceneGraph: SceneGraphFeatures
 ): ModalityProbability {
   const features = sceneGraph.compactFeatureVector || sceneGraph.featureVector;
 
@@ -151,7 +154,7 @@ export function extractSceneGraphProbability(
     hasCriticalHazard * 0.35 +
       crackDensity * 0.25 +
       damageSeverity * 0.25 +
-      (1 - structuralIntegrity) * 0.15,
+      (1 - structuralIntegrity) * 0.15
   );
 
   return {

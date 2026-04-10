@@ -22,10 +22,16 @@
  */
 
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, AccessibilityInfo, ViewStyle } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  Animated,
+  AccessibilityInfo,
+  ViewStyle,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../theme';
-export interface SkeletonProps {
+interface SkeletonProps {
   /**
    * Width of the skeleton
    * Can be a number (in pixels) or a string (percentage)
@@ -82,7 +88,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
 
   useEffect(() => {
     // Check if reduced motion is enabled
-    AccessibilityInfo.isReduceMotionEnabled().then(enabled => {
+    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
       setReduceMotion(enabled);
     });
   }, []);
@@ -119,20 +125,22 @@ export const Skeleton: React.FC<SkeletonProps> = ({
 
   return (
     <View
-      style={[
-        styles.container,
-        {
-          width: width as ViewStyle['width'],
-          height: height as ViewStyle['height'],
-          borderRadius,
-          backgroundColor,
-          overflow: 'hidden' as const,
-        },
-        style,
-      ] as ViewStyle[]}
+      style={
+        [
+          styles.container,
+          {
+            width: width as ViewStyle['width'],
+            height: height as ViewStyle['height'],
+            borderRadius,
+            backgroundColor,
+            overflow: 'hidden' as const,
+          },
+          style,
+        ] as ViewStyle[]
+      }
       accessible={true}
-      accessibilityLabel="Loading"
-      accessibilityRole="progressbar"
+      accessibilityLabel='Loading'
+      accessibilityRole='progressbar'
     >
       {animate && !reduceMotion && (
         <Animated.View
@@ -158,7 +166,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
 /**
  * Group of skeleton elements with consistent spacing
  */
-export interface SkeletonGroupProps {
+interface SkeletonGroupProps {
   children: React.ReactNode;
   gap?: number;
   style?: ViewStyle;
@@ -169,22 +177,18 @@ export const SkeletonGroup: React.FC<SkeletonGroupProps> = ({
   gap = 12,
   style,
 }) => {
-  return (
-    <View style={[{ gap }, style]}>
-      {children}
-    </View>
-  );
+  return <View style={[{ gap }, style]}>{children}</View>;
 };
 
 /**
  * Pre-built skeleton for text content
  */
-export interface SkeletonTextProps extends Omit<SkeletonProps, 'width' | 'height'> {
+interface SkeletonTextProps extends Omit<SkeletonProps, 'width' | 'height'> {
   lines?: number;
   lineHeight?: number;
 }
 
-export const SkeletonText: React.FC<SkeletonTextProps> = ({
+const SkeletonText: React.FC<SkeletonTextProps> = ({
   lines = 3,
   lineHeight = 16,
   ...props
@@ -206,7 +210,10 @@ export const SkeletonText: React.FC<SkeletonTextProps> = ({
 /**
  * Pre-built skeleton for avatars
  */
-export interface SkeletonAvatarProps extends Omit<SkeletonProps, 'width' | 'height' | 'borderRadius'> {
+interface SkeletonAvatarProps extends Omit<
+  SkeletonProps,
+  'width' | 'height' | 'borderRadius'
+> {
   size?: number;
 }
 
@@ -215,23 +222,18 @@ export const SkeletonAvatar: React.FC<SkeletonAvatarProps> = ({
   ...props
 }) => {
   return (
-    <Skeleton
-      width={size}
-      height={size}
-      borderRadius={size / 2}
-      {...props}
-    />
+    <Skeleton width={size} height={size} borderRadius={size / 2} {...props} />
   );
 };
 
 /**
  * Pre-built skeleton for buttons
  */
-export interface SkeletonButtonProps extends Omit<SkeletonProps, 'width' | 'height'> {
+interface SkeletonButtonProps extends Omit<SkeletonProps, 'width' | 'height'> {
   size?: 'sm' | 'md' | 'lg';
 }
 
-export const SkeletonButton: React.FC<SkeletonButtonProps> = ({
+const SkeletonButton: React.FC<SkeletonButtonProps> = ({
   size = 'md',
   ...props
 }) => {
@@ -247,7 +249,7 @@ export const SkeletonButton: React.FC<SkeletonButtonProps> = ({
 /**
  * Pre-built skeleton for images
  */
-export interface SkeletonImageProps extends Omit<SkeletonProps, 'height'> {
+interface SkeletonImageProps extends Omit<SkeletonProps, 'height'> {
   aspectRatio?: number;
 }
 
@@ -264,12 +266,7 @@ export const SkeletonImage: React.FC<SkeletonImageProps> = ({
   };
 
   return (
-    <Skeleton
-      width={width}
-      height={getHeight()}
-      borderRadius={12}
-      {...props}
-    />
+    <Skeleton width={width} height={getHeight()} borderRadius={12} {...props} />
   );
 };
 
@@ -289,5 +286,3 @@ const styles = StyleSheet.create({
     height: '100%',
   },
 });
-
-export default Skeleton;

@@ -10,7 +10,7 @@ interface LifecycleStep {
   status: 'completed' | 'current' | 'upcoming';
 }
 
-export interface JobLifecycleTimelineProps {
+interface JobLifecycleTimelineProps {
   jobStatus: string;
   contractStatus: string;
   escrowStatus: string;
@@ -18,7 +18,7 @@ export interface JobLifecycleTimelineProps {
   completionConfirmed: boolean;
 }
 
-export interface NextActionCardProps {
+interface NextActionCardProps {
   jobId: string;
   jobStatus: string;
   contractStatus: string;
@@ -43,18 +43,25 @@ export function JobLifecycleTimeline({
 
   // Step 1: Posted
   const isPosted = true; // Always completed if we can see the job
-  steps.push({ label: 'Job Posted', status: isPosted ? 'completed' : 'upcoming' });
+  steps.push({
+    label: 'Job Posted',
+    status: isPosted ? 'completed' : 'upcoming',
+  });
 
   // Step 2: Bids Received
   const hasBids = bidCount > 0;
   const isBidsStep = jobStatus === 'posted' && !hasBids;
   steps.push({
-    label: hasBids ? `${bidCount} Bid${bidCount !== 1 ? 's' : ''} Received` : 'Awaiting Bids',
+    label: hasBids
+      ? `${bidCount} Bid${bidCount !== 1 ? 's' : ''} Received`
+      : 'Awaiting Bids',
     status: isBidsStep ? 'current' : hasBids ? 'completed' : 'upcoming',
   });
 
   // Step 3: Bid Accepted
-  const bidAccepted = ['assigned', 'in_progress', 'completed'].includes(jobStatus);
+  const bidAccepted = ['assigned', 'in_progress', 'completed'].includes(
+    jobStatus
+  );
   const isBidReview = jobStatus === 'posted' && hasBids;
   steps.push({
     label: 'Bid Accepted',
@@ -63,18 +70,29 @@ export function JobLifecycleTimeline({
 
   // Step 4: Contract Signed
   const contractSigned = contractStatus === 'accepted';
-  const isContractStep = bidAccepted && !contractSigned && contractStatus !== 'none';
+  const isContractStep =
+    bidAccepted && !contractSigned && contractStatus !== 'none';
   steps.push({
     label: 'Contract Signed',
-    status: isContractStep ? 'current' : contractSigned ? 'completed' : 'upcoming',
+    status: isContractStep
+      ? 'current'
+      : contractSigned
+        ? 'completed'
+        : 'upcoming',
   });
 
   // Step 5: Payment Secured
-  const paymentSecured = ['held', 'release_pending', 'released'].includes(escrowStatus);
+  const paymentSecured = ['held', 'release_pending', 'released'].includes(
+    escrowStatus
+  );
   const isPaymentStep = contractSigned && !paymentSecured;
   steps.push({
     label: 'Payment in Escrow',
-    status: isPaymentStep ? 'current' : paymentSecured ? 'completed' : 'upcoming',
+    status: isPaymentStep
+      ? 'current'
+      : paymentSecured
+        ? 'completed'
+        : 'upcoming',
   });
 
   // Step 6: Work In Progress
@@ -90,7 +108,11 @@ export function JobLifecycleTimeline({
   const isCompletionStep = isCompleted && !completionConfirmed;
   steps.push({
     label: 'Completed',
-    status: isCompletionStep ? 'current' : completionConfirmed ? 'completed' : 'upcoming',
+    status: isCompletionStep
+      ? 'current'
+      : completionConfirmed
+        ? 'completed'
+        : 'upcoming',
   });
 
   // Step 8: Approved & Paid
@@ -100,15 +122,15 @@ export function JobLifecycleTimeline({
   });
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-      <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-5">
+    <div className='bg-white rounded-xl border border-gray-200 shadow-sm p-6'>
+      <h3 className='text-sm font-semibold text-gray-600 uppercase tracking-wide mb-5'>
         Job Progress
       </h3>
-      <div className="space-y-0">
+      <div className='space-y-0'>
         {steps.map((step, i) => (
-          <div key={step.label} className="flex items-start gap-3">
+          <div key={step.label} className='flex items-start gap-3'>
             {/* Vertical line + circle */}
-            <div className="flex flex-col items-center">
+            <div className='flex flex-col items-center'>
               <div
                 className={`w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 ${
                   step.status === 'completed'
@@ -119,25 +141,41 @@ export function JobLifecycleTimeline({
                 }`}
               >
                 {step.status === 'completed' && (
-                  <svg className="w-full h-full text-white" viewBox="0 0 14 14" fill="none">
-                    <path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <svg
+                    className='w-full h-full text-white'
+                    viewBox='0 0 14 14'
+                    fill='none'
+                  >
+                    <path
+                      d='M3.5 7L6 9.5L10.5 4.5'
+                      stroke='currentColor'
+                      strokeWidth='2'
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                    />
                   </svg>
                 )}
               </div>
               {i < steps.length - 1 && (
-                <div className={`w-0.5 h-6 ${
-                  step.status === 'completed' ? 'bg-emerald-300' : 'bg-gray-200'
-                }`} />
+                <div
+                  className={`w-0.5 h-6 ${
+                    step.status === 'completed'
+                      ? 'bg-emerald-300'
+                      : 'bg-gray-200'
+                  }`}
+                />
               )}
             </div>
             {/* Label */}
-            <span className={`text-sm pt-px ${
-              step.status === 'completed'
-                ? 'text-gray-900 font-medium'
-                : step.status === 'current'
-                  ? 'text-teal-700 font-semibold'
-                  : 'text-gray-400'
-            }`}>
+            <span
+              className={`text-sm pt-px ${
+                step.status === 'completed'
+                  ? 'text-gray-900 font-medium'
+                  : step.status === 'current'
+                    ? 'text-teal-700 font-semibold'
+                    : 'text-gray-400'
+              }`}
+            >
               {step.label}
             </span>
           </div>
@@ -171,32 +209,43 @@ export function NextActionCard({
     ctaHref = '#bids-section';
     urgency = 'action';
   } else if (jobStatus === 'posted') {
-    message = 'Your job is live. Contractors in your area will be able to see and bid on it.';
+    message =
+      'Your job is live. Contractors in your area will be able to see and bid on it.';
     ctaLabel = '';
     urgency = 'info';
   } else if (jobStatus === 'assigned' && contractStatus === 'pending') {
-    message = 'A contract has been created. Review the terms and sign to proceed with the job.';
+    message =
+      'A contract has been created. Review the terms and sign to proceed with the job.';
     ctaLabel = 'Review Contract';
     ctaHref = '#contract-section';
     urgency = 'action';
-  } else if (jobStatus === 'assigned' && contractStatus === 'accepted' && !['held', 'release_pending', 'released'].includes(escrowStatus)) {
-    message = 'Both parties have signed the contract. Make payment to secure funds in escrow so work can begin.';
+  } else if (
+    jobStatus === 'assigned' &&
+    contractStatus === 'accepted' &&
+    !['held', 'release_pending', 'released'].includes(escrowStatus)
+  ) {
+    message =
+      'Both parties have signed the contract. Make payment to secure funds in escrow so work can begin.';
     ctaLabel = 'Make Payment';
     ctaHref = `/jobs/${jobId}/payment`;
     urgency = 'urgent';
   } else if (jobStatus === 'assigned') {
-    message = 'Payment is secured. The contractor will begin work soon. You\'ll receive updates as the job progresses.';
+    message =
+      "Payment is secured. The contractor will begin work soon. You'll receive updates as the job progresses.";
     urgency = 'info';
   } else if (jobStatus === 'in_progress') {
-    message = 'Work is underway. The contractor will upload completion photos when the job is done.';
+    message =
+      'Work is underway. The contractor will upload completion photos when the job is done.';
     urgency = 'info';
   } else if (jobStatus === 'completed' && !completionConfirmed) {
-    message = 'The contractor has completed the work. Review the before/after photos and approve to release payment.';
+    message =
+      'The contractor has completed the work. Review the before/after photos and approve to release payment.';
     ctaLabel = 'Review & Approve';
     ctaHref = '#photo-review';
     urgency = 'urgent';
   } else if (completionConfirmed) {
-    message = 'This job is complete. Payment has been released to the contractor.';
+    message =
+      'This job is complete. Payment has been released to the contractor.';
     urgency = 'info';
   } else {
     return null;
@@ -230,18 +279,24 @@ export function NextActionCard({
 
   return (
     <div className={`rounded-xl border p-5 ${bgColors[urgency]}`}>
-      <div className="flex items-start gap-2.5 mb-3">
+      <div className='flex items-start gap-2.5 mb-3'>
         {urgency === 'urgent' && (
-          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse flex-shrink-0 mt-1" />
+          <span className='w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse flex-shrink-0 mt-1' />
         )}
         {urgency === 'action' && (
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 flex-shrink-0 mt-1" />
+          <span className='w-2.5 h-2.5 rounded-full bg-amber-500 flex-shrink-0 mt-1' />
         )}
         <div>
           <h4 className={`text-sm font-semibold mb-1 ${textColors[urgency]}`}>
-            {urgency === 'urgent' ? 'Action Required' : urgency === 'action' ? 'Next Step' : 'Status'}
+            {urgency === 'urgent'
+              ? 'Action Required'
+              : urgency === 'action'
+                ? 'Next Step'
+                : 'Status'}
           </h4>
-          <p className={`text-sm ${textColors[urgency]} opacity-90`}>{message}</p>
+          <p className={`text-sm ${textColors[urgency]} opacity-90`}>
+            {message}
+          </p>
         </div>
       </div>
       {ctaLabel && ctaHref && (

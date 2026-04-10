@@ -70,7 +70,7 @@ export function encodeGeohash(
  * @param geohash - Geohash string
  * @returns Array of neighbor geohashes
  */
-export function getGeohashNeighbors(geohash: string): string[] {
+function getGeohashNeighbors(geohash: string): string[] {
   // Simplified implementation
   // For production, use a proper geohash library that handles edge cases
   const neighbors: string[] = [];
@@ -87,7 +87,7 @@ export function getGeohashNeighbors(geohash: string): string[] {
  * @param geohash - Geohash string
  * @returns Bounding box coordinates
  */
-export function getGeohashBounds(geohash: string): {
+function getGeohashBounds(geohash: string): {
   north: number;
   south: number;
   east: number;

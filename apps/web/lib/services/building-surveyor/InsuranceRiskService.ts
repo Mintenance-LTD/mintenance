@@ -1,19 +1,19 @@
 /**
  * Insurance Risk Service
- * 
+ *
  * Handles insurance risk assessment and premium impact calculation
  * for building damage assessments.
  */
 
 import type { PremiumImpact } from './types';
 
-export interface RiskFactor {
+interface RiskFactor {
   factor: string;
   severity: 'low' | 'medium' | 'high';
   impact: string;
 }
 
-export interface InsuranceRiskResult {
+interface InsuranceRiskResult {
   riskFactors: RiskFactor[];
   riskScore: number;
   premiumImpact: PremiumImpact;
@@ -33,7 +33,10 @@ export class InsuranceRiskService {
       const severity = factor.severity as 'low' | 'medium' | 'high';
       return {
         factor: factor.factor || 'unknown_risk',
-        severity: (severity === 'low' || severity === 'medium' || severity === 'high') ? severity : 'medium',
+        severity:
+          severity === 'low' || severity === 'medium' || severity === 'high'
+            ? severity
+            : 'medium',
         impact: factor.impact || 'May affect insurance coverage',
       };
     });
@@ -89,9 +92,15 @@ export class InsuranceRiskService {
   /**
    * Normalize premium impact
    */
-  private static normalizePremiumImpact(impact: string | PremiumImpact | undefined | null): PremiumImpact {
+  private static normalizePremiumImpact(
+    impact: string | PremiumImpact | undefined | null
+  ): PremiumImpact {
     const valid: PremiumImpact[] = ['none', 'low', 'medium', 'high'];
-    if (impact && typeof impact === 'string' && valid.includes(impact as PremiumImpact)) {
+    if (
+      impact &&
+      typeof impact === 'string' &&
+      valid.includes(impact as PremiumImpact)
+    ) {
       return impact as PremiumImpact;
     }
     const i = String(impact).toLowerCase();
@@ -107,4 +116,3 @@ export class InsuranceRiskService {
     return 'none';
   }
 }
-

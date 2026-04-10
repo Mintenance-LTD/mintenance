@@ -14,7 +14,7 @@ import type { NextRequest } from 'next/server';
 import { logger } from '@mintenance/shared';
 
 /** Deterministic 32-bit string hash for user bucketing. */
-export function simpleHash(str: string): number {
+function simpleHash(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
@@ -25,7 +25,7 @@ export function simpleHash(str: string): number {
 }
 
 /** Rollout percentage from env, validated 0–100. Defaults to 0. */
-export function getRolloutPercentage(): number {
+function getRolloutPercentage(): number {
   const percentage = process.env.NEXT_PUBLIC_ROLLOUT_PERCENTAGE;
   if (!percentage) return 0;
 

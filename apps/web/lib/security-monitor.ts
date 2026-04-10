@@ -2,9 +2,17 @@ import { NextRequest } from 'next/server';
 import { serverSupabase } from './api/supabaseServer';
 import { logger } from './logger';
 
-export interface SecurityEvent {
+interface SecurityEvent {
   id?: string;
-  event_type: 'auth_failure' | 'rate_limit' | 'xss_attempt' | 'injection_attempt' | 'suspicious_activity' | 'webhook_failure' | 'gdpr_access' | 'admin_action';
+  event_type:
+    | 'auth_failure'
+    | 'rate_limit'
+    | 'xss_attempt'
+    | 'injection_attempt'
+    | 'suspicious_activity'
+    | 'webhook_failure'
+    | 'gdpr_access'
+    | 'admin_action';
   severity: 'low' | 'medium' | 'high' | 'critical';
   user_id?: string;
   ip_address: string;
@@ -35,7 +43,7 @@ interface IPRecord {
   firstSeen: number;
 }
 
-export class SecurityMonitor {
+class SecurityMonitor {
   private static instance: SecurityMonitor;
   private eventQueue: SecurityEvent[] = [];
   private readonly BATCH_SIZE = 10;
@@ -81,7 +89,7 @@ export class SecurityMonitor {
     const now = Date.now();
     const existing = this.ipEventCounts.get(ip);
 
-    if (existing && (now - existing.firstSeen) < BLOCK_THRESHOLDS.WINDOW_MS) {
+    if (existing && now - existing.firstSeen < BLOCK_THRESHOLDS.WINDOW_MS) {
       existing.count++;
     } else {
       this.ipEventCounts.set(ip, { count: 1, firstSeen: now });
@@ -110,12 +118,15 @@ export class SecurityMonitor {
       this.blockedIPs.set(ip, now + BLOCK_THRESHOLDS.BLOCK_DURATION_MS);
       this.ipEventCounts.delete(ip);
 
-      logger.error(`[security-monitor] IP auto-blocked due to ${existing.count} high-severity events`, {
-        service: 'security_monitor',
-        ip,
-        eventCount: existing.count,
-        blockDurationMinutes: BLOCK_THRESHOLDS.BLOCK_DURATION_MS / 60_000,
-      });
+      logger.error(
+        `[security-monitor] IP auto-blocked due to ${existing.count} high-severity events`,
+        {
+          service: 'security_monitor',
+          ip,
+          eventCount: existing.count,
+          blockDurationMinutes: BLOCK_THRESHOLDS.BLOCK_DURATION_MS / 60_000,
+        }
+      );
     }
   }
 
@@ -139,7 +150,9 @@ export class SecurityMonitor {
   /**
    * Log a security event
    */
-  async logEvent(event: Omit<SecurityEvent, 'id' | 'timestamp' | 'resolved'>): Promise<void> {
+  async logEvent(
+    event: Omit<SecurityEvent, 'id' | 'timestamp' | 'resolved'>
+  ): Promise<void> {
     const securityEvent: SecurityEvent = {
       ...event,
       timestamp: new Date(),
@@ -350,9 +363,8 @@ export class SecurityMonitor {
     const eventsToFlush = this.eventQueue.splice(0, this.BATCH_SIZE);
 
     try {
-      const { error } = await serverSupabase
-        .from('security_events')
-        .insert(eventsToFlush.map(event => ({
+      const { error } = await serverSupabase.from('security_events').insert(
+        eventsToFlush.map((event) => ({
           event_type: event.event_type,
           severity: event.severity,
           user_id: event.user_id,
@@ -364,7 +376,8 @@ export class SecurityMonitor {
           details: event.details,
           metadata: event.metadata,
           resolved: event.resolved,
-        })));
+        }))
+      );
 
       if (error) {
         logger.error('Failed to log security events', error);
@@ -400,7 +413,9 @@ export class SecurityMonitor {
   /**
    * Get security metrics
    */
-  async getSecurityMetrics(timeframe: '1h' | '24h' | '7d' | '30d' = '24h'): Promise<unknown> {
+  async getSecurityMetrics(
+    timeframe: '1h' | '24h' | '7d' | '30d' = '24h'
+  ): Promise<unknown> {
     const timeframes = {
       '1h': '1 hour',
       '24h': '24 hours',
@@ -411,7 +426,10 @@ export class SecurityMonitor {
     const { data, error } = await serverSupabase
       .from('security_events')
       .select('*')
-      .gte('created_at', new Date(Date.now() - this.getTimeframeMs(timeframe)).toISOString());
+      .gte(
+        'created_at',
+        new Date(Date.now() - this.getTimeframeMs(timeframe)).toISOString()
+      );
 
     if (error) {
       logger.error('Failed to fetch security metrics', error);
@@ -427,7 +445,10 @@ export class SecurityMonitor {
     };
   }
 
-  private groupBy(data: Record<string, unknown>[], key: string): Record<string, number> {
+  private groupBy(
+    data: Record<string, unknown>[],
+    key: string
+  ): Record<string, number> {
     return data.reduce<Record<string, number>>((acc, item) => {
       const keyVal = String(item[key]);
       const currentCount = acc[keyVal] as number | undefined;
@@ -436,7 +457,9 @@ export class SecurityMonitor {
     }, {});
   }
 
-  private getTopIPs(data: Record<string, unknown>[]): Array<{ ip: string; count: number }> {
+  private getTopIPs(
+    data: Record<string, unknown>[]
+  ): Array<{ ip: string; count: number }> {
     const ipCounts = this.groupBy(data, 'ip_address');
     return Object.entries(ipCounts)
       .map(([ip, count]) => ({ ip, count: count as number }))
@@ -451,7 +474,9 @@ export class SecurityMonitor {
       '7d': 7 * 24 * 60 * 60 * 1000,
       '30d': 30 * 24 * 60 * 60 * 1000,
     };
-    return multipliers[timeframe as keyof typeof multipliers] || multipliers['24h'];
+    return (
+      multipliers[timeframe as keyof typeof multipliers] || multipliers['24h']
+    );
   }
 }
 

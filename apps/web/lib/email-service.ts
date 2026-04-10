@@ -23,31 +23,12 @@ import {
   workApprovedTemplate,
   changesRequestedTemplate,
   paymentReleasedTemplate,
+  invoiceNotificationTemplate,
   newsletterWelcomeTemplate,
   tenantInviteTemplate,
   tenantJobNotificationTemplate,
 } from './email-templates';
-export type { TenantInviteData } from './email-templates';
-
 // Re-export data interfaces for consumers that import them from this module
-export type {
-  QuoteEmailData,
-  BidEmailData,
-  ConnectionRequestEmailData,
-  ContractNotificationData,
-  MessageNotificationData,
-  PaymentConfirmationData,
-  PaymentReceivedData,
-  BidAcceptedData,
-  ContractSignedData,
-  JobStartedData,
-  JobCompletedData,
-  LocationSharingData,
-  WorkApprovedData,
-  ChangesRequestedData,
-  PaymentReleasedData,
-} from './email-templates';
-
 interface EmailOptions {
   to: string;
   subject: string;
@@ -62,7 +43,8 @@ export class EmailService {
   private static brevoKey = process.env.BREVO_API_KEY;
   private static sendgridKey = process.env.SENDGRID_API_KEY;
   private static resendKey = process.env.RESEND_API_KEY;
-  private static fromEmail = process.env.EMAIL_FROM || 'noreply@mintenance.co.uk';
+  private static fromEmail =
+    process.env.EMAIL_FROM || 'noreply@mintenance.co.uk';
   private static fromName = process.env.EMAIL_FROM_NAME || 'Mintenance ltd';
   private static baseUrl =
     process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com';
@@ -367,6 +349,18 @@ export class EmailService {
       this.getUnsubscribeFooter()
     );
     return this.sendEmail({ to: contractorEmail, subject, html, text });
+  }
+
+  /** Send invoice notification email to homeowner/client */
+  static async sendInvoiceNotificationEmail(
+    clientEmail: string,
+    data: Parameters<typeof invoiceNotificationTemplate>[0]
+  ): Promise<boolean> {
+    const { subject, html, text } = invoiceNotificationTemplate(
+      data,
+      this.getUnsubscribeFooter()
+    );
+    return this.sendEmail({ to: clientEmail, subject, html, text });
   }
 
   /** Send tenant invitation email */

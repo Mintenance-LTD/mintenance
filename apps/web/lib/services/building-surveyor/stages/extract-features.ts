@@ -2,7 +2,10 @@ import { logger } from '@mintenance/shared';
 import { memoryManager } from '../../ml-engine/memory/MemoryManager';
 import { ImageQualityService } from '../ImageQualityService';
 import { extractDetectionFeatures } from '../feature-extractor';
-import { isLearnedFeaturesEnabled, getLearnedFeatureExtractor } from '../initialization/BuildingSurveyorInitializationService';
+import {
+  isLearnedFeaturesEnabled,
+  getLearnedFeatureExtractor,
+} from '../initialization/BuildingSurveyorInitializationService';
 import type {
   AssessmentContext,
   Phase1BuildingAssessment,
@@ -14,7 +17,7 @@ import type { MemoryQueryResult } from '../../ml-engine/memory/types';
 
 const AGENT_NAME = 'building-surveyor';
 
-export interface FeatureExtractionResult {
+interface FeatureExtractionResult {
   finalFeatures: number[];
   sceneGraphFeatures: unknown;
   sceneGraph: unknown;
@@ -31,7 +34,7 @@ export async function extractAllFeatures(
   roboflowDetections: RoboflowDetection[],
   visionAnalysis: VisionAnalysisSummary | null,
   sam3Segmentation: DamageTypeSegmentation | undefined,
-  context?: AssessmentContext,
+  context?: AssessmentContext
 ): Promise<{
   finalFeatures: number[];
   sceneGraphFeatures: unknown;
@@ -42,21 +45,23 @@ export async function extractAllFeatures(
   // Image quality metrics
   const imageQuality = await ImageQualityService.getAverageQualityMetrics(
     validatedImageUrls,
-    visionAnalysis,
+    visionAnalysis
   );
 
   // Scene graph
   const { SceneGraphBuilder } = await import('../scene_graph');
-  const { SceneGraphFeatureExtractor } = await import('../scene_graph_features');
+  const { SceneGraphFeatureExtractor } =
+    await import('../scene_graph_features');
 
   const sceneGraph = SceneGraphBuilder.buildSceneGraph(
     roboflowDetections,
     visionAnalysis,
     validatedImageUrls.length,
-    sam3Segmentation,
+    sam3Segmentation
   );
 
-  const sceneGraphFeatures = SceneGraphFeatureExtractor.extractFeatures(sceneGraph);
+  const sceneGraphFeatures =
+    SceneGraphFeatureExtractor.extractFeatures(sceneGraph);
 
   // Detection features (fallback)
   const features = await extractDetectionFeatures(
@@ -66,12 +71,11 @@ export async function extractAllFeatures(
     roboflowDetections,
     visionAnalysis,
     isLearnedFeaturesEnabled(),
-    getLearnedFeatureExtractor(),
+    getLearnedFeatureExtractor()
   );
 
-  const finalFeatures = sceneGraph.nodes.length > 0
-    ? sceneGraphFeatures.featureVector
-    : features;
+  const finalFeatures =
+    sceneGraph.nodes.length > 0 ? sceneGraphFeatures.featureVector : features;
 
   // Memory adjustments
   const memoryAdjustments: number[] = [0, 0, 0, 0, 0];
@@ -86,7 +90,11 @@ export async function extractAllFeatures(
 
     const memoryResults: MemoryQueryResult[] = [];
     for (let level = 0; level < 3; level++) {
-      const result = await memoryManager.query(AGENT_NAME, processedFeatures.slice(0, 40), level);
+      const result = await memoryManager.query(
+        AGENT_NAME,
+        processedFeatures.slice(0, 40),
+        level
+      );
       if (result.values && result.values.length === 5) {
         memoryResults.push(result);
       }

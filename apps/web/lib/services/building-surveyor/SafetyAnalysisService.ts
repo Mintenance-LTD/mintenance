@@ -1,6 +1,6 @@
 /**
  * Safety Analysis Service
- * 
+ *
  * Handles safety hazard detection, normalization, and scoring
  * for building damage assessments.
  */
@@ -17,7 +17,7 @@ interface RawSafetyHazard {
   urgency?: string;
 }
 
-export interface SafetyHazard {
+interface SafetyHazard {
   type: string;
   severity: SafetyHazardSeverity;
   location: string;
@@ -26,7 +26,7 @@ export interface SafetyHazard {
   urgency: UrgencyLevel;
 }
 
-export interface SafetyAnalysisResult {
+interface SafetyAnalysisResult {
   hazards: SafetyHazard[];
   hasCriticalHazards: boolean;
   overallSafetyScore: number;
@@ -36,7 +36,9 @@ export class SafetyAnalysisService {
   /**
    * Process safety hazards from AI response
    */
-  static processSafetyHazards(hazards: RawSafetyHazard[]): SafetyAnalysisResult {
+  static processSafetyHazards(
+    hazards: RawSafetyHazard[]
+  ): SafetyAnalysisResult {
     const processedHazards = hazards.map((h) => ({
       type: h.type || 'unknown_hazard',
       severity: this.normalizeSafetySeverity(h.severity),
@@ -62,7 +64,9 @@ export class SafetyAnalysisService {
   /**
    * Normalize safety hazard severity
    */
-  private static normalizeSafetySeverity(severity: string | undefined): SafetyHazardSeverity {
+  private static normalizeSafetySeverity(
+    severity: string | undefined
+  ): SafetyHazardSeverity {
     const valid: SafetyHazardSeverity[] = ['low', 'medium', 'high', 'critical'];
     if (severity && valid.includes(severity as SafetyHazardSeverity)) {
       return severity as SafetyHazardSeverity;
@@ -84,7 +88,13 @@ export class SafetyAnalysisService {
    * Normalize urgency level
    */
   private static normalizeUrgency(urgency: string | undefined): UrgencyLevel {
-    const valid: UrgencyLevel[] = ['immediate', 'urgent', 'soon', 'planned', 'monitor'];
+    const valid: UrgencyLevel[] = [
+      'immediate',
+      'urgent',
+      'soon',
+      'planned',
+      'monitor',
+    ];
     if (urgency && valid.includes(urgency as UrgencyLevel)) {
       return urgency as UrgencyLevel;
     }
@@ -145,7 +155,8 @@ export class SafetyAnalysisService {
       'asbestos',
       'mold_toxicity',
     ];
-    return criticalTypes.some(type => damageType.toLowerCase().includes(type));
+    return criticalTypes.some((type) =>
+      damageType.toLowerCase().includes(type)
+    );
   }
 }
-

@@ -1,14 +1,14 @@
 /**
  * Platform Detection Hook
- * 
+ *
  * Detects if code is running on web or React Native platform
  */
-export type Platform = 'web' | 'native';
+type Platform = 'web' | 'native';
 let platform: Platform | null = null;
 /**
  * Detect platform
  */
-export function detectPlatform(): Platform {
+function detectPlatform(): Platform {
   if (platform !== null) {
     return platform;
   }
@@ -27,13 +27,13 @@ export function detectPlatform(): Platform {
 /**
  * Check if running on web
  */
-export function isWeb(): boolean {
+function isWeb(): boolean {
   return detectPlatform() === 'web';
 }
 /**
  * Check if running on native (React Native)
  */
-export function isNative(): boolean {
+function isNative(): boolean {
   return detectPlatform() === 'native';
 }
 /**

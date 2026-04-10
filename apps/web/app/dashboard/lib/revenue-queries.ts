@@ -11,7 +11,7 @@ import { logger } from '@mintenance/shared';
 // TYPES
 // ==========================================================
 
-export interface MonthlyRevenue {
+interface MonthlyRevenue {
   /** Month label (e.g., "Jan", "Feb") */
   month: string;
   /** Year (e.g., 2025) */
@@ -24,7 +24,7 @@ export interface MonthlyRevenue {
   monthKey: string;
 }
 
-export interface RevenueStats {
+interface RevenueStats {
   /** Total revenue/spending across all months */
   total: number;
   /** Average revenue per month */
@@ -85,7 +85,9 @@ export async function getMonthlyRevenue(
       .order('created_at', { ascending: true });
 
     if (error) {
-      logger.error('[getMonthlyRevenue] Error fetching payments', error, { service: 'lib' });
+      logger.error('[getMonthlyRevenue] Error fetching payments', error, {
+        service: 'lib',
+      });
       // Return empty months instead of failing
       return generateEmptyMonths(months);
     }
@@ -128,7 +130,9 @@ export async function getMonthlyRevenue(
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth();
       const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
-      const monthLabel = currentDate.toLocaleString('en-GB', { month: 'short' });
+      const monthLabel = currentDate.toLocaleString('en-GB', {
+        month: 'short',
+      });
 
       // Use actual data if available, otherwise zero
       result.push(
@@ -146,7 +150,9 @@ export async function getMonthlyRevenue(
 
     return result;
   } catch (error) {
-    logger.error('[getMonthlyRevenue] Unexpected error', error, { service: 'lib' });
+    logger.error('[getMonthlyRevenue] Unexpected error', error, {
+      service: 'lib',
+    });
     return generateEmptyMonths(months);
   }
 }
@@ -230,7 +236,7 @@ function generateEmptyMonths(months: number): MonthlyRevenue[] {
 /**
  * Format currency for display
  */
-export function formatRevenue(amount: number): string {
+function formatRevenue(amount: number): string {
   return new Intl.NumberFormat('en-GB', {
     style: 'currency',
     currency: 'GBP',
@@ -242,7 +248,7 @@ export function formatRevenue(amount: number): string {
 /**
  * Format growth percentage
  */
-export function formatGrowth(percentage: number): string {
+function formatGrowth(percentage: number): string {
   const sign = percentage >= 0 ? '+' : '';
   return `${sign}${percentage.toFixed(1)}%`;
 }
@@ -251,6 +257,6 @@ export function formatGrowth(percentage: number): string {
 // EXPORTS FOR TESTING
 // ==========================================================
 
-export const __testing = {
+const __testing = {
   generateEmptyMonths,
 };

@@ -16,7 +16,7 @@ export function escapeHtml(s: string): string {
 export const year = () => new Date().getFullYear();
 
 /** Shared base CSS included in every template */
-export function baseCSS(headerColor: string, extraCSS = ''): string {
+function baseCSS(headerColor: string, extraCSS = ''): string {
   return `
     body{margin:0;padding:0;background-color:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;line-height:1.6;color:#1f2937;-webkit-font-smoothing:antialiased}
     .wrapper{width:100%;background-color:#f3f4f6;padding:40px 0}

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { logger } from '@mintenance/shared';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import toast from 'react-hot-toast';
@@ -11,6 +10,21 @@ import type {
   NotificationPrefs,
   UserWithLocation,
 } from './types';
+import {
+  saveProfile,
+  uploadAvatar,
+  changePassword,
+  saveNotificationPreferences,
+  exportUserData,
+  deleteAccount,
+  sendVerificationCode,
+  verifyPhoneCode,
+  resendVerificationCode,
+  togglePrivacySetting,
+  fetchPaymentMethods,
+  fetchPrivacySettings,
+  type PaymentMethod,
+} from './settings-api';
 
 export function useSettingsState() {
   const router = useRouter();
@@ -26,18 +40,9 @@ export function useSettingsState() {
   const [verificationPhoneNumber, setVerificationPhoneNumber] = useState('');
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
 
-  interface PaymentMethod {
-    id: string;
-    brand: string;
-    last4: string;
-    expMonth: number;
-    expYear: number;
-    isDefault: boolean;
-  }
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loadingPayments, setLoadingPayments] = useState(false);
 
-  // Privacy settings (stored in profiles.settings JSONB)
   const [privacySettings, setPrivacySettings] = useState<{
     profileVisible: boolean;
     shareActivityData: boolean;
@@ -61,20 +66,22 @@ export function useSettingsState() {
     confirmPassword: '',
   });
 
-  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPrefs>({
-    emailJobs: true,
-    emailMessages: true,
-    emailPayments: true,
-    emailMarketing: false,
-    smsJobs: false,
-    smsMessages: true,
-    smsPayments: true,
-    smsMarketing: false,
-    pushJobs: true,
-    pushMessages: true,
-    pushPayments: true,
-    pushMarketing: false,
-  });
+  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPrefs>(
+    {
+      emailJobs: true,
+      emailMessages: true,
+      emailPayments: true,
+      emailMarketing: false,
+      smsJobs: false,
+      smsMessages: true,
+      smsPayments: true,
+      smsMarketing: false,
+      pushJobs: true,
+      pushMessages: true,
+      pushPayments: true,
+      pushMarketing: false,
+    }
+  );
 
   // Check URL params to open a specific tab
   useEffect(() => {
@@ -109,22 +116,8 @@ export function useSettingsState() {
   useEffect(() => {
     if (!user) return;
     setLoadingPayments(true);
-    fetch('/api/payments/methods')
-      .then(res => res.ok ? res.json() : Promise.reject(res))
-      .then(data => {
-        const methods = (data.paymentMethods || []).map((pm: Record<string, unknown>) => ({
-          id: pm.id as string,
-          brand: (pm.card as Record<string, unknown>)?.brand as string || 'card',
-          last4: (pm.card as Record<string, unknown>)?.last4 as string || '****',
-          expMonth: (pm.card as Record<string, unknown>)?.exp_month as number || 0,
-          expYear: (pm.card as Record<string, unknown>)?.exp_year as number || 0,
-          isDefault: pm.isDefault as boolean || false,
-        }));
-        setPaymentMethods(methods);
-      })
-      .catch(() => {
-        setPaymentMethods([]);
-      })
+    fetchPaymentMethods()
+      .then(setPaymentMethods)
       .finally(() => setLoadingPayments(false));
   }, [user]);
 
@@ -138,37 +131,19 @@ export function useSettingsState() {
   // Load privacy settings from profiles.settings JSONB
   useEffect(() => {
     if (!user) return;
-    (async () => {
-      try {
-        const res = await fetch('/api/users/settings');
-        if (res.ok) {
-          const json = await res.json();
-          if (json.data?.privacy) {
-            setPrivacySettings(json.data.privacy);
-          }
-        }
-      } catch {
-        // fall through — defaults are fine
-      }
-    })();
+    fetchPrivacySettings().then((result) => {
+      if (result) setPrivacySettings(result);
+    });
   }, [user]);
 
-  const handleTogglePrivacy = async (key: 'profileVisible' | 'shareActivityData'): Promise<void> => {
-    const updated = { ...privacySettings, [key]: !privacySettings[key] };
-    setPrivacySettings(updated); // optimistic
-    try {
-      const res = await fetch('/api/users/settings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}) },
-        body: JSON.stringify({ privacy: updated }),
-      });
-      if (!res.ok) {
-        setPrivacySettings(privacySettings); // revert
-        toast.error('Failed to save privacy setting');
-      }
-    } catch {
-      setPrivacySettings(privacySettings); // revert
-      toast.error('Failed to save privacy setting');
+  const handleTogglePrivacy = async (
+    key: 'profileVisible' | 'shareActivityData'
+  ): Promise<void> => {
+    const prev = { ...privacySettings };
+    setPrivacySettings({ ...privacySettings, [key]: !privacySettings[key] }); // optimistic
+    const result = await togglePrivacySetting(key, prev, csrfToken);
+    if (!result) {
+      setPrivacySettings(prev); // revert
     }
   };
 
@@ -192,107 +167,34 @@ export function useSettingsState() {
   const handleSaveProfile = async (): Promise<void> => {
     setIsSaving(true);
     try {
-      const response = await fetch('/api/user/update-profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}) },
-        body: JSON.stringify({
-          firstName: profileData.first_name,
-          lastName: profileData.last_name,
-          phone: profileData.phone,
-          bio: profileData.bio,
-          profileImageUrl: profileData.profile_image_url || undefined,
-          address: profileData.address,
-          city: profileData.city,
-          postcode: profileData.postcode,
-        }),
-      });
-
-      if (response.ok) {
-        toast.success('Profile updated successfully');
-        refresh();
-      } else {
-        toast.error('Failed to update profile');
-      }
-    } catch {
-      toast.error('Error updating profile');
+      await saveProfile(profileData, csrfToken, refresh);
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleAvatarUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>,
+    e: React.ChangeEvent<HTMLInputElement>
   ): Promise<void> => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    const formData = new FormData();
-    formData.append('profileImage', file);
-
-    try {
-      const response = await fetch('/api/user/update-profile', {
-        method: 'POST',
-        headers: csrfToken ? { 'x-csrf-token': csrfToken } : {},
-        body: formData,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.profileImageUrl) {
-          setProfileData(prev => ({ ...prev, profile_image_url: data.profileImageUrl }));
-          toast.success('Profile picture updated');
-          refresh();
-        }
-      } else {
-        toast.error('Failed to upload image');
-      }
-    } catch {
-      toast.error('Error uploading image');
+    const url = await uploadAvatar(file, csrfToken, refresh);
+    if (url) {
+      setProfileData((prev) => ({ ...prev, profile_image_url: url }));
     }
   };
 
   const handleChangePassword = async (): Promise<void> => {
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
-    if (passwordData.newPassword.length < 8) {
-      toast.error('Password must be at least 8 characters');
-      return;
-    }
-
     setIsSaving(true);
     try {
-      // Verify current password by signing in, then update via Supabase Auth
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
-
-      // Verify current password
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email: user?.email || '',
-        password: passwordData.currentPassword,
-      });
-      if (authError) {
-        toast.error('Current password is incorrect');
-        return;
+      const success = await changePassword(passwordData, user?.email || '');
+      if (success) {
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        });
       }
-
-      // Update to new password
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: passwordData.newPassword,
-      });
-      if (updateError) {
-        toast.error(updateError.message || 'Failed to change password');
-        return;
-      }
-
-      toast.success('Password changed successfully');
-      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } catch {
-      toast.error('Error changing password');
     } finally {
       setIsSaving(false);
     }
@@ -301,21 +203,7 @@ export function useSettingsState() {
   const handleSaveNotifications = async (): Promise<void> => {
     setIsSaving(true);
     try {
-      const res = await fetch('/api/users/notification-preferences', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
-        },
-        body: JSON.stringify(notificationPrefs),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error?.message || data.message || 'Failed to save');
-      }
-      toast.success('Notification preferences updated');
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Error updating notification preferences');
+      await saveNotificationPreferences(notificationPrefs, csrfToken);
     } finally {
       setIsSaving(false);
     }
@@ -324,130 +212,41 @@ export function useSettingsState() {
   const handleExportData = async (): Promise<void> => {
     setIsExporting(true);
     try {
-      const response = await fetch('/api/user/export-data', { method: 'POST', headers: csrfToken ? { 'x-csrf-token': csrfToken } : {} });
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'my-data.json';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-        toast.success('Data exported successfully!');
-      } else {
-        toast.error('Failed to export data');
-      }
-    } catch {
-      toast.error('Error exporting data');
+      await exportUserData(csrfToken);
     } finally {
       setIsExporting(false);
     }
   };
 
   const handleDeleteAccount = async (): Promise<void> => {
-    try {
-      const response = await fetch('/api/user/delete-account', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
-        },
-        body: JSON.stringify({ confirmation: 'DELETE' }),
-      });
-      if (response.ok) {
-        toast.success('Account deleted successfully');
-        window.location.href = '/login?deleted=true';
-      } else {
-        toast.error('Failed to delete account');
-      }
-    } catch {
-      toast.error('Error deleting account');
-    }
+    await deleteAccount(csrfToken);
   };
 
   const handleSendVerificationCode = async (): Promise<void> => {
     setIsSaving(true);
     try {
-      if (!csrfToken) {
-        toast.error('Security token not available. Please refresh the page.');
-        return;
+      const success = await sendVerificationCode(user?.phone || '', csrfToken);
+      if (success) {
+        setVerificationPhoneNumber(user?.phone || '');
+        setShowVerificationDialog(true);
+        setVerificationCode('');
       }
-
-      toast.loading('Sending verification code...', { id: 'verify' });
-
-      const sendResponse = await fetch('/api/auth/verify-phone', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-csrf-token': csrfToken,
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          action: 'send',
-          phoneNumber: user?.phone,
-        }),
-      });
-
-      const sendData = await sendResponse.json();
-
-      if (!sendResponse.ok) {
-        toast.error(sendData.error || 'Failed to send verification code', { id: 'verify' });
-        setIsSaving(false);
-        return;
-      }
-
-      toast.success('Verification code sent to your phone!', { id: 'verify' });
-      setVerificationPhoneNumber(user?.phone || '');
-      setShowVerificationDialog(true);
-      setVerificationCode('');
-    } catch (error) {
-      logger.error('Verification error:', error);
-      toast.error('Failed to send verification code. Please try again.', { id: 'verify' });
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleVerifyCode = async (): Promise<void> => {
-    if (verificationCode.length !== 6) {
-      toast.error('Please enter a 6-digit code');
-      return;
-    }
-
     setIsSaving(true);
     try {
-      toast.loading('Verifying code...', { id: 'verify-code' });
-
-      const verifyResponse = await fetch('/api/auth/verify-phone', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-csrf-token': csrfToken || '',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          action: 'verify',
-          code: verificationCode,
-        }),
-      });
-
-      const verifyData = await verifyResponse.json();
-
-      if (!verifyResponse.ok) {
-        toast.error(verifyData.error || 'Invalid verification code', { id: 'verify-code' });
+      const success = await verifyPhoneCode(verificationCode, csrfToken);
+      if (success) {
+        setShowVerificationDialog(false);
         setVerificationCode('');
-        return;
+        refresh();
+      } else {
+        setVerificationCode('');
       }
-
-      toast.success('Phone number verified successfully!', { id: 'verify-code' });
-      setShowVerificationDialog(false);
-      setVerificationCode('');
-      refresh();
-    } catch (error) {
-      logger.error('Verification error:', error);
-      toast.error('Verification failed. Please try again.', { id: 'verify-code' });
     } finally {
       setIsSaving(false);
     }
@@ -456,29 +255,13 @@ export function useSettingsState() {
   const handleResendCode = async (): Promise<void> => {
     setIsSaving(true);
     try {
-      toast.loading('Resending code...', { id: 'resend' });
-
-      const resendResponse = await fetch('/api/auth/verify-phone', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-csrf-token': csrfToken || '',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          action: 'send',
-          phoneNumber: verificationPhoneNumber,
-        }),
-      });
-
-      if (resendResponse.ok) {
-        toast.success('New verification code sent!', { id: 'resend' });
+      const success = await resendVerificationCode(
+        verificationPhoneNumber,
+        csrfToken
+      );
+      if (success) {
         setVerificationCode('');
-      } else {
-        toast.error('Failed to resend code. Please try again.', { id: 'resend' });
       }
-    } catch {
-      toast.error('Failed to resend code', { id: 'resend' });
     } finally {
       setIsSaving(false);
     }

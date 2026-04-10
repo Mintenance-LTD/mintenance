@@ -14,7 +14,7 @@ import type { AutoReleaseRule } from './types';
 export async function getApplicableRule(
   contractorTier: string,
   jobValue: number,
-  jobCategory: string,
+  jobCategory: string
 ): Promise<AutoReleaseRule | null> {
   try {
     const { data: rules, error } = await serverSupabase
@@ -81,9 +81,9 @@ export async function getApplicableRule(
  * Assess job risk level based on predictions + contractor dispute history.
  * Returns a multiplier to apply to the base hold period.
  */
-export async function assessJobRisk(
+async function assessJobRisk(
   jobId: string,
-  contractorId: string,
+  contractorId: string
 ): Promise<{ multiplier: number }> {
   try {
     const { data: risks } = await serverSupabase
@@ -120,9 +120,7 @@ export async function assessJobRisk(
  * Return the number of extra hold days to add based on contractor dispute history.
  * Capped at 7 days.
  */
-export async function getDisputeHistoryPenalty(
-  contractorId: string,
-): Promise<number> {
+async function getDisputeHistoryPenalty(contractorId: string): Promise<number> {
   try {
     const { count: disputeCount } = await serverSupabase
       .from('escrow_transactions')
@@ -151,12 +149,11 @@ export async function getDisputeHistoryPenalty(
 export async function calculateAutoReleaseDate(
   escrowId: string,
   jobId: string,
-  contractorId: string,
+  contractorId: string
 ): Promise<Date | null> {
   try {
-    const { TrustScoreService } = await import(
-      '@/lib/services/contractor/TrustScoreService'
-    );
+    const { TrustScoreService } =
+      await import('@/lib/services/contractor/TrustScoreService');
 
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
@@ -171,9 +168,8 @@ export async function calculateAutoReleaseDate(
     const trustHoldPeriodDays =
       await TrustScoreService.getHoldPeriodDays(contractorId);
 
-    const { PayoutTierService } = await import(
-      '@/lib/services/payment/PayoutTierService'
-    );
+    const { PayoutTierService } =
+      await import('@/lib/services/payment/PayoutTierService');
     let contractorTier = 'standard';
     try {
       const tier = await PayoutTierService.calculateTier(contractorId);
@@ -195,7 +191,7 @@ export async function calculateAutoReleaseDate(
     const rule = await getApplicableRule(
       escrowTier,
       job.budget || 0,
-      job.category || '',
+      job.category || ''
     );
 
     let holdPeriodDays = trustHoldPeriodDays;
@@ -205,7 +201,7 @@ export async function calculateAutoReleaseDate(
 
     const riskLevel = await assessJobRisk(jobId, contractorId);
     holdPeriodDays = Math.ceil(
-      holdPeriodDays * (rule?.riskMultiplier || 1.0) * riskLevel.multiplier,
+      holdPeriodDays * (rule?.riskMultiplier || 1.0) * riskLevel.multiplier
     );
 
     const disputePenalty = await getDisputeHistoryPenalty(contractorId);

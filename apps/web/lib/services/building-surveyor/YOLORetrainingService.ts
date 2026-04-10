@@ -1,8 +1,8 @@
 /**
  * YOLO Retraining Service
- * 
+ *
  * Manages scheduled retraining of YOLO model with continuous learning.
- * 
+ *
  * Features:
  * - Check if enough corrections collected
  * - Trigger retraining automatically
@@ -22,7 +22,7 @@ import { readFileSync } from 'fs';
 
 const execAsync = promisify(exec);
 
-export interface RetrainingConfig {
+interface RetrainingConfig {
   minCorrections: number; // Minimum corrections before retraining
   maxCorrections: number; // Maximum corrections per training run
   retrainingIntervalDays: number; // Days between retraining checks
@@ -36,7 +36,7 @@ const DEFAULT_CONFIG: RetrainingConfig = {
   autoApprove: false,
 };
 
-export interface RetrainingJob {
+interface RetrainingJob {
   id: string;
   status: 'pending' | 'running' | 'completed' | 'failed';
   correctionsCount: number;
@@ -80,7 +80,7 @@ export class YOLORetrainingService {
   static async shouldRetrain(): Promise<boolean> {
     try {
       const stats = await YOLOCorrectionService.getCorrectionStats();
-      
+
       // Check if enough approved corrections
       if (stats.approved < this.config.minCorrections) {
         logger.debug('Not enough corrections for retraining', {
@@ -102,7 +102,8 @@ export class YOLORetrainingService {
       // Check last retraining time
       const lastRetraining = await this.getLastRetrainingTime();
       if (lastRetraining) {
-        const daysSince = (Date.now() - lastRetraining.getTime()) / (1000 * 60 * 60 * 24);
+        const daysSince =
+          (Date.now() - lastRetraining.getTime()) / (1000 * 60 * 60 * 24);
         if (daysSince < this.config.retrainingIntervalDays) {
           logger.debug('Too soon since last retraining', {
             service: 'YOLORetrainingService',
@@ -184,7 +185,11 @@ export class YOLORetrainingService {
       await YOLOTrainingDataService.exportCorrectionsToYOLO(outputDir);
 
       // 3. Execute Python retraining script
-      const scriptPath = join(process.cwd(), 'scripts', 'retrain-yolo-continuous.py');
+      const scriptPath = join(
+        process.cwd(),
+        'scripts',
+        'retrain-yolo-continuous.py'
+      );
       const command = `python "${scriptPath}" --output-dir "${outputDir}"`;
 
       logger.info('Executing retraining script', {
@@ -215,7 +220,7 @@ export class YOLORetrainingService {
       };
 
       // 5. Mark corrections as used
-      const correctionIds = corrections.map(c => c.id!).filter(Boolean);
+      const correctionIds = corrections.map((c) => c.id!).filter(Boolean);
       await YOLOCorrectionService.markAsUsedInTraining(
         correctionIds,
         modelVersion || 'unknown'
@@ -308,7 +313,7 @@ export class YOLORetrainingService {
     try {
       const modelsDir = join(process.cwd(), 'apps', 'web', 'models');
       const fs = require('fs');
-      
+
       if (!fs.existsSync(modelsDir)) {
         return undefined;
       }
@@ -318,15 +323,24 @@ export class YOLORetrainingService {
         path: string;
         mtime: Date;
       }
-      
-      const files = fs.readdirSync(modelsDir)
-        .filter((f: string) => f.startsWith('yolov11-continuous-') && f.endsWith('.onnx'))
-        .map((f: string): FileWithMtime => ({
-          name: f,
-          path: join(modelsDir, f),
-          mtime: fs.statSync(join(modelsDir, f)).mtime,
-        }))
-        .sort((a: FileWithMtime, b: FileWithMtime) => b.mtime.getTime() - a.mtime.getTime());
+
+      const files = fs
+        .readdirSync(modelsDir)
+        .filter(
+          (f: string) =>
+            f.startsWith('yolov11-continuous-') && f.endsWith('.onnx')
+        )
+        .map(
+          (f: string): FileWithMtime => ({
+            name: f,
+            path: join(modelsDir, f),
+            mtime: fs.statSync(join(modelsDir, f)).mtime,
+          })
+        )
+        .sort(
+          (a: FileWithMtime, b: FileWithMtime) =>
+            b.mtime.getTime() - a.mtime.getTime()
+        );
 
       return files.length > 0 ? files[0].path : undefined;
     } catch (error) {
@@ -341,12 +355,17 @@ export class YOLORetrainingService {
   /**
    * Load model metrics from metadata file
    */
-  private static async loadModelMetrics(modelVersion?: string): Promise<RetrainingJob['metrics']> {
+  private static async loadModelMetrics(
+    modelVersion?: string
+  ): Promise<RetrainingJob['metrics']> {
     if (!modelVersion) return undefined;
 
     try {
       const modelsDir = join(process.cwd(), 'apps', 'web', 'models');
-      const metadataPath = join(modelsDir, `model-metadata-${modelVersion}.json`);
+      const metadataPath = join(
+        modelsDir,
+        `model-metadata-${modelVersion}.json`
+      );
 
       if (!require('fs').existsSync(metadataPath)) {
         return undefined;
@@ -370,19 +389,22 @@ export class YOLORetrainingService {
     try {
       const { error } = await serverSupabase
         .from('yolo_retraining_jobs')
-        .upsert({
-          id: job.id,
-          status: job.status,
-          corrections_count: job.correctionsCount,
-          model_version: job.modelVersion,
-          onnx_path: job.onnxPath,
-          metrics_jsonb: job.metrics || {},
-          started_at: job.startedAt?.toISOString(),
-          completed_at: job.completedAt?.toISOString(),
-          error_message: job.error,
-        }, {
-          onConflict: 'id',
-        });
+        .upsert(
+          {
+            id: job.id,
+            status: job.status,
+            corrections_count: job.correctionsCount,
+            model_version: job.modelVersion,
+            onnx_path: job.onnxPath,
+            metrics_jsonb: job.metrics || {},
+            started_at: job.startedAt?.toISOString(),
+            completed_at: job.completedAt?.toISOString(),
+            error_message: job.error,
+          },
+          {
+            onConflict: 'id',
+          }
+        );
 
       if (error) {
         logger.error('Failed to save retraining job to database', {
@@ -439,7 +461,9 @@ export class YOLORetrainingService {
         onnxPath: data.onnx_path || undefined,
         metrics: data.metrics_jsonb || undefined,
         startedAt: data.started_at ? new Date(data.started_at) : undefined,
-        completedAt: data.completed_at ? new Date(data.completed_at) : undefined,
+        completedAt: data.completed_at
+          ? new Date(data.completed_at)
+          : undefined,
         error: data.error_message || undefined,
       };
     } catch (error) {
@@ -451,4 +475,3 @@ export class YOLORetrainingService {
     }
   }
 }
-

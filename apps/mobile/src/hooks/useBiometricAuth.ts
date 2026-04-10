@@ -1,6 +1,6 @@
 /**
  * Biometric Authentication Hook
- * 
+ *
  * Handles all biometric authentication logic including:
  * - Checking availability
  * - Enabling/disabling biometric auth
@@ -15,9 +15,11 @@ import { Session } from '@supabase/supabase-js';
 import { logger } from '../utils/logger';
 import { trackUserAction, addBreadcrumb } from '../utils/sentryUtils';
 
-export interface BiometricAuthHook {
+interface BiometricAuthHook {
   biometricAvailable: boolean;
-  signInWithBiometrics: () => Promise<{ user: User; session: Session | null } | undefined>;
+  signInWithBiometrics: () => Promise<
+    { user: User; session: Session | null } | undefined
+  >;
   isBiometricAvailable: () => Promise<boolean>;
   isBiometricEnabled: () => Promise<boolean>;
   enableBiometric: (user: User, session: Session | null) => Promise<void>;
@@ -79,45 +81,53 @@ export const useBiometricAuth = (): BiometricAuthHook => {
     return BiometricService.isBiometricEnabled();
   }, []);
 
-  const enableBiometric = useCallback(async (user: User, session: Session | null): Promise<void> => {
-    if (!session?.access_token || !session?.refresh_token) {
-      throw new Error('Unable to enable biometric authentication without an active session');
-    }
+  const enableBiometric = useCallback(
+    async (user: User, session: Session | null): Promise<void> => {
+      if (!session?.access_token || !session?.refresh_token) {
+        throw new Error(
+          'Unable to enable biometric authentication without an active session'
+        );
+      }
 
-    await BiometricService.enableBiometric(user.email, {
-      accessToken: session.access_token,
-      refreshToken: session.refresh_token,
-    });
-  }, []);
+      await BiometricService.enableBiometric(user.email, {
+        accessToken: session.access_token,
+        refreshToken: session.refresh_token,
+      });
+    },
+    []
+  );
 
   const disableBiometric = useCallback(async (): Promise<void> => {
     await BiometricService.disableBiometric();
   }, []);
 
-  const promptEnableBiometric = useCallback((user: User, session: unknown) => {
-    const s = session as Session | null;
-    if (!biometricAvailable || !s?.access_token || !s?.refresh_token) {
-      return;
-    }
+  const promptEnableBiometric = useCallback(
+    (user: User, session: unknown) => {
+      const s = session as Session | null;
+      if (!biometricAvailable || !s?.access_token || !s?.refresh_token) {
+        return;
+      }
 
-    setTimeout(() => {
-      void BiometricService.promptEnableBiometric(
-        user.email,
-        async () => {
-          const latestSession = ((await AuthService.getCurrentSession()) ?? s) as Session | null;
+      setTimeout(() => {
+        void BiometricService.promptEnableBiometric(user.email, async () => {
+          const latestSession = ((await AuthService.getCurrentSession()) ??
+            s) as Session | null;
 
           if (!latestSession?.access_token || !latestSession?.refresh_token) {
-            throw new Error('Session tokens are required to enable biometric authentication');
+            throw new Error(
+              'Session tokens are required to enable biometric authentication'
+            );
           }
 
           await BiometricService.enableBiometric(user.email, {
             accessToken: latestSession.access_token,
             refreshToken: latestSession.refresh_token,
           });
-        }
-      );
-    }, 1000);
-  }, [biometricAvailable]);
+        });
+      }, 1000);
+    },
+    [biometricAvailable]
+  );
 
   return {
     biometricAvailable,

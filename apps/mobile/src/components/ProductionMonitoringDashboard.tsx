@@ -6,13 +6,21 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  Platform,
+} from 'react-native';
 import {
   dashboardData,
   systemMonitoring,
   performanceTracking,
   errorTracking,
-  webPlatform
+  webPlatform,
 } from '../utils/productionSetupGuide';
 import { logger } from '../utils/logger';
 import { theme } from '../theme';
@@ -44,7 +52,12 @@ interface DashboardStatus {
     status: string;
     issues: unknown[];
     lastAudit?: number;
-    vulnerabilities?: { critical?: number; high?: number; medium?: number; low?: number };
+    vulnerabilities?: {
+      critical?: number;
+      high?: number;
+      medium?: number;
+      low?: number;
+    };
   };
   health: {
     status: string;
@@ -53,7 +66,7 @@ interface DashboardStatus {
   };
 }
 
-export function ProductionMonitoringDashboard() {
+function ProductionMonitoringDashboard() {
   const [status, setStatus] = useState<DashboardStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(Date.now());
@@ -76,7 +89,9 @@ export function ProductionMonitoringDashboard() {
       setLastRefresh(Date.now());
     } catch (error) {
       logger.error('Failed to load dashboard data', error);
-      errorTracking.trackError(error as Error, { context: 'dashboard_load_failure' });
+      errorTracking.trackError(error as Error, {
+        context: 'dashboard_load_failure',
+      });
     } finally {
       setLoading(false);
     }
@@ -89,10 +104,13 @@ export function ProductionMonitoringDashboard() {
 
   const runQuickHealthCheck = async () => {
     try {
-      Alert.alert('Health Check', 'Running quick health check...', [{ text: 'OK' }]);
+      Alert.alert('Health Check', 'Running quick health check...', [
+        { text: 'OK' },
+      ]);
 
       const healthStatus = await systemMonitoring.checkHealth();
-      const readinessStatus = await systemMonitoring.checkReadiness('development');
+      const readinessStatus =
+        await systemMonitoring.checkReadiness('development');
 
       Alert.alert(
         'Health Check Results',
@@ -100,13 +118,17 @@ export function ProductionMonitoringDashboard() {
         [{ text: 'OK' }]
       );
     } catch (error) {
-      Alert.alert('Health Check Failed', error instanceof Error ? error.message : 'Unknown error');
+      Alert.alert(
+        'Health Check Failed',
+        error instanceof Error ? error.message : 'Unknown error'
+      );
     }
   };
 
   const getStatusColor = (status: string, score?: number) => {
     if (status === 'healthy' || status === 'ready') return theme.colors.primary;
-    if (status === 'warning' || (score && score < 80)) return theme.colors.accent;
+    if (status === 'warning' || (score && score < 80))
+      return theme.colors.accent;
     if (status === 'error' || status === 'not_ready') return theme.colors.error;
     return theme.colors.textTertiary;
   };
@@ -147,12 +169,20 @@ export function ProductionMonitoringDashboard() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>🚀 Production Monitoring</Text>
-        <Text style={styles.subtitle}>Last updated: {formatTimestamp(lastRefresh)}</Text>
+        <Text style={styles.subtitle}>
+          Last updated: {formatTimestamp(lastRefresh)}
+        </Text>
         <View style={styles.headerButtons}>
-          <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh}>
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={handleRefresh}
+          >
             <Text style={styles.refreshButtonText}>Refresh</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.healthButton} onPress={runQuickHealthCheck}>
+          <TouchableOpacity
+            style={styles.healthButton}
+            onPress={runQuickHealthCheck}
+          >
             <Text style={styles.healthButtonText}>Health Check</Text>
           </TouchableOpacity>
         </View>
@@ -163,19 +193,31 @@ export function ProductionMonitoringDashboard() {
         <Text style={styles.cardTitle}>📊 Overall Status</Text>
         <View style={styles.statusRow}>
           <Text style={styles.statusLabel}>System Status:</Text>
-          <Text style={[styles.statusValue, { color: getStatusColor(status.overall.status) }]}>
+          <Text
+            style={[
+              styles.statusValue,
+              { color: getStatusColor(status.overall.status) },
+            ]}
+          >
             {status.overall.status.toUpperCase()}
           </Text>
         </View>
         <View style={styles.statusRow}>
           <Text style={styles.statusLabel}>Health Score:</Text>
-          <Text style={[styles.statusValue, { color: getStatusColor('', status.overall.score) }]}>
+          <Text
+            style={[
+              styles.statusValue,
+              { color: getStatusColor('', status.overall.score) },
+            ]}
+          >
             {status.overall.score}/100
           </Text>
         </View>
         <View style={styles.statusRow}>
           <Text style={styles.statusLabel}>Last Check:</Text>
-          <Text style={styles.statusValue}>{formatTimestamp(status.overall.lastCheck)}</Text>
+          <Text style={styles.statusValue}>
+            {formatTimestamp(status.overall.lastCheck)}
+          </Text>
         </View>
       </View>
 
@@ -186,7 +228,9 @@ export function ProductionMonitoringDashboard() {
           <View style={styles.metric}>
             <Text style={styles.metricLabel}>Startup Time</Text>
             <Text style={styles.metricValue}>
-              {status.performance.startupTime ? `${status.performance.startupTime}ms` : 'N/A'}
+              {status.performance.startupTime
+                ? `${status.performance.startupTime}ms`
+                : 'N/A'}
             </Text>
           </View>
           <View style={styles.metric}>
@@ -198,13 +242,17 @@ export function ProductionMonitoringDashboard() {
           <View style={styles.metric}>
             <Text style={styles.metricLabel}>Navigation Time</Text>
             <Text style={styles.metricValue}>
-              {status.performance.navigationTime ? `${status.performance.navigationTime}ms` : 'N/A'}
+              {status.performance.navigationTime
+                ? `${status.performance.navigationTime}ms`
+                : 'N/A'}
             </Text>
           </View>
           <View style={styles.metric}>
             <Text style={styles.metricLabel}>API Response</Text>
             <Text style={styles.metricValue}>
-              {status.performance.apiResponseTime ? `${status.performance.apiResponseTime}ms` : 'N/A'}
+              {status.performance.apiResponseTime
+                ? `${status.performance.apiResponseTime}ms`
+                : 'N/A'}
             </Text>
           </View>
         </View>
@@ -216,7 +264,17 @@ export function ProductionMonitoringDashboard() {
         <View style={styles.metricsGrid}>
           <View style={styles.metric}>
             <Text style={styles.metricLabel}>Error Rate</Text>
-            <Text style={[styles.metricValue, { color: (status.errors.errorRate ?? 0) > 0.01 ? theme.colors.error : theme.colors.primary }]}>
+            <Text
+              style={[
+                styles.metricValue,
+                {
+                  color:
+                    (status.errors.errorRate ?? 0) > 0.01
+                      ? theme.colors.error
+                      : theme.colors.primary,
+                },
+              ]}
+            >
               {((status.errors.errorRate ?? 0) * 100).toFixed(2)}%
             </Text>
           </View>
@@ -230,7 +288,17 @@ export function ProductionMonitoringDashboard() {
           </View>
           <View style={styles.metric}>
             <Text style={styles.metricLabel}>Critical Errors</Text>
-            <Text style={[styles.metricValue, { color: (status.errors.criticalErrors ?? 0) > 0 ? theme.colors.error : theme.colors.primary }]}>
+            <Text
+              style={[
+                styles.metricValue,
+                {
+                  color:
+                    (status.errors.criticalErrors ?? 0) > 0
+                      ? theme.colors.error
+                      : theme.colors.primary,
+                },
+              ]}
+            >
               {status.errors.criticalErrors ?? 0}
             </Text>
           </View>
@@ -243,29 +311,55 @@ export function ProductionMonitoringDashboard() {
         <View style={styles.statusRow}>
           <Text style={styles.statusLabel}>Last Audit:</Text>
           <Text style={styles.statusValue}>
-            {status.security.lastAudit ? formatTimestamp(status.security.lastAudit) : 'Never'}
+            {status.security.lastAudit
+              ? formatTimestamp(status.security.lastAudit)
+              : 'Never'}
           </Text>
         </View>
         <View style={styles.vulnerabilitiesGrid}>
           <View style={styles.vulnerability}>
             <Text style={styles.vulnerabilityLabel}>Critical</Text>
-            <Text style={[styles.vulnerabilityValue, { color: (status.security.vulnerabilities?.critical ?? 0) > 0 ? theme.colors.error : theme.colors.primary }]}>
+            <Text
+              style={[
+                styles.vulnerabilityValue,
+                {
+                  color:
+                    (status.security.vulnerabilities?.critical ?? 0) > 0
+                      ? theme.colors.error
+                      : theme.colors.primary,
+                },
+              ]}
+            >
               {status.security.vulnerabilities?.critical ?? 0}
             </Text>
           </View>
           <View style={styles.vulnerability}>
             <Text style={styles.vulnerabilityLabel}>High</Text>
-            <Text style={[styles.vulnerabilityValue, { color: (status.security.vulnerabilities?.high ?? 0) > 0 ? theme.colors.accent : theme.colors.primary }]}>
+            <Text
+              style={[
+                styles.vulnerabilityValue,
+                {
+                  color:
+                    (status.security.vulnerabilities?.high ?? 0) > 0
+                      ? theme.colors.accent
+                      : theme.colors.primary,
+                },
+              ]}
+            >
               {status.security.vulnerabilities?.high ?? 0}
             </Text>
           </View>
           <View style={styles.vulnerability}>
             <Text style={styles.vulnerabilityLabel}>Medium</Text>
-            <Text style={styles.vulnerabilityValue}>{status.security.vulnerabilities?.medium ?? 0}</Text>
+            <Text style={styles.vulnerabilityValue}>
+              {status.security.vulnerabilities?.medium ?? 0}
+            </Text>
           </View>
           <View style={styles.vulnerability}>
             <Text style={styles.vulnerabilityLabel}>Low</Text>
-            <Text style={styles.vulnerabilityValue}>{status.security.vulnerabilities?.low ?? 0}</Text>
+            <Text style={styles.vulnerabilityValue}>
+              {status.security.vulnerabilities?.low ?? 0}
+            </Text>
           </View>
         </View>
       </View>
@@ -276,14 +370,25 @@ export function ProductionMonitoringDashboard() {
           <Text style={styles.cardTitle}>🌐 Web Platform Status</Text>
           <View style={styles.statusRow}>
             <Text style={styles.statusLabel}>Optimizations:</Text>
-            <Text style={[styles.statusValue, { color: webPlatform.isOptimized() ? theme.colors.primary : theme.colors.accent }]}>
+            <Text
+              style={[
+                styles.statusValue,
+                {
+                  color: webPlatform.isOptimized()
+                    ? theme.colors.primary
+                    : theme.colors.accent,
+                },
+              ]}
+            >
               {webPlatform.isOptimized() ? 'Active' : 'Inactive'}
             </Text>
           </View>
           <View style={styles.statusRow}>
             <Text style={styles.statusLabel}>Core Web Vitals:</Text>
             <Text style={styles.statusValue}>
-              {webPlatform.getCoreWebVitals() ? 'Monitoring Active' : 'Not Available'}
+              {webPlatform.getCoreWebVitals()
+                ? 'Monitoring Active'
+                : 'Not Available'}
             </Text>
           </View>
         </View>
@@ -294,26 +399,38 @@ export function ProductionMonitoringDashboard() {
         <Text style={styles.cardTitle}>💚 System Health</Text>
         <View style={styles.statusRow}>
           <Text style={styles.statusLabel}>Health Status:</Text>
-          <Text style={[styles.statusValue, { color: getStatusColor(status.health.status) }]}>
+          <Text
+            style={[
+              styles.statusValue,
+              { color: getStatusColor(status.health.status) },
+            ]}
+          >
             {status.health.status.toUpperCase()}
           </Text>
         </View>
         <View style={styles.statusRow}>
           <Text style={styles.statusLabel}>Uptime:</Text>
           <Text style={styles.statusValue}>
-            {Math.floor(status.health.uptime / (1000 * 60 * 60))}h {Math.floor((status.health.uptime % (1000 * 60 * 60)) / (1000 * 60))}m
+            {Math.floor(status.health.uptime / (1000 * 60 * 60))}h{' '}
+            {Math.floor(
+              (status.health.uptime % (1000 * 60 * 60)) / (1000 * 60)
+            )}
+            m
           </Text>
         </View>
         <View style={styles.statusRow}>
           <Text style={styles.statusLabel}>Last Check:</Text>
-          <Text style={styles.statusValue}>{formatTimestamp(status.health.lastCheck ?? Date.now())}</Text>
+          <Text style={styles.statusValue}>
+            {formatTimestamp(status.health.lastCheck ?? Date.now())}
+          </Text>
         </View>
       </View>
 
       {/* Footer */}
       <View style={styles.footer}>
         <Text style={styles.footerText}>
-          Production monitoring system active. All metrics are updated in real-time.
+          Production monitoring system active. All metrics are updated in
+          real-time.
         </Text>
       </View>
     </ScrollView>

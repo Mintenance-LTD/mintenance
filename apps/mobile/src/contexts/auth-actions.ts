@@ -21,7 +21,7 @@ import {
 } from './auth-session-manager';
 
 /** Shared setter interface for auth state updates. */
-export interface AuthStateDispatch {
+interface AuthStateDispatch {
   setUser: (user: User | null) => void;
   setSession: (session: AuthSession | null) => void;
   setLoading: (loading: boolean) => void;

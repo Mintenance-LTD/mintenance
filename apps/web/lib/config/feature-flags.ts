@@ -33,7 +33,7 @@ export enum FeatureFlag {
 /**
  * Feature flag variations for SAM3 rollout
  */
-export interface SAM3RolloutConfig {
+interface SAM3RolloutConfig {
   enabled: boolean;
   rolloutPercentage: number;
   skipYoloThreshold: number; // Confidence threshold to skip YOLO
@@ -63,7 +63,7 @@ const DEFAULT_FLAGS: Record<string, unknown> = {
 /**
  * Feature Flag Service
  */
-export class FeatureFlagService {
+class FeatureFlagService {
   private static instance: FeatureFlagService;
   private ldClient?: LDClient;
   private flags: LDFlagSet = {};
@@ -397,10 +397,7 @@ export class FeatureFlagService {
 export const featureFlags = FeatureFlagService.getInstance();
 
 // React hook for feature flags
-export function useFeatureFlag<T = unknown>(
-  flag: FeatureFlag,
-  defaultValue: T
-): T {
+function useFeatureFlag<T = unknown>(flag: FeatureFlag, defaultValue: T): T {
   const [value, setValue] = React.useState<T>(() =>
     typeof window !== 'undefined'
       ? featureFlags.getFlag(flag, defaultValue)
@@ -434,9 +431,7 @@ interface FeatureFlagRequest {
   connection?: { remoteAddress?: string };
 }
 
-export async function initializeFeatureFlags(
-  req: FeatureFlagRequest
-): Promise<void> {
+async function initializeFeatureFlags(req: FeatureFlagRequest): Promise<void> {
   const userId =
     req.cookies?.userId || (req.headers['x-user-id'] as string | undefined);
   const attributes = {
@@ -452,4 +447,3 @@ export async function initializeFeatureFlags(
 
 // Export for use in other modules
 import React from 'react';
-export default featureFlags;

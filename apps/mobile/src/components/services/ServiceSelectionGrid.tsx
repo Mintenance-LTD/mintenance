@@ -67,10 +67,12 @@ export const ServiceSelectionGrid: React.FC<ServiceSelectionGridProps> = ({
               key={service.id}
               service={service}
               onPress={() => onServiceSelect(service)}
-              style={[
-                styles.serviceCard,
-                index % 2 === 0 ? styles.leftCard : styles.rightCard,
-              ] as object}
+              style={
+                [
+                  styles.serviceCard,
+                  index % 2 === 0 ? styles.leftCard : styles.rightCard,
+                ] as object
+              }
             />
           ))}
         </View>
@@ -85,7 +87,11 @@ interface ServiceCardProps {
   style?: import('react-native').ViewStyle;
 }
 
-const ServiceCard: React.FC<ServiceCardProps> = ({ service, onPress, style }) => {
+const ServiceCard: React.FC<ServiceCardProps> = ({
+  service,
+  onPress,
+  style,
+}) => {
   return (
     <TouchableOpacity style={[styles.card, style]} onPress={onPress}>
       {service.isPopular && (
@@ -94,8 +100,15 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, onPress, style }) =>
         </View>
       )}
 
-      <View style={[styles.iconContainer, { backgroundColor: service.color + '20' }]}>
-        <Text style={[styles.icon, { color: service.color }]}>{service.icon}</Text>
+      <View
+        style={[
+          styles.iconContainer,
+          { backgroundColor: service.color + '20' },
+        ]}
+      >
+        <Text style={[styles.icon, { color: service.color }]}>
+          {service.icon}
+        </Text>
       </View>
 
       <View style={styles.cardContent}>
@@ -115,7 +128,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, onPress, style }) =>
 };
 
 // Special offers component inspired by the beauty salon's discount cards
-export const SpecialOffersSection: React.FC<{
+const SpecialOffersSection: React.FC<{
   offers: {
     id: string;
     title: string;
@@ -147,7 +160,9 @@ export const SpecialOffersSection: React.FC<{
               </View>
               <Text style={styles.offerTitle}>{offer.title}</Text>
               <Text style={styles.offerDescription}>{offer.description}</Text>
-              <Text style={styles.validUntil}>Valid until {offer.validUntil}</Text>
+              <Text style={styles.validUntil}>
+                Valid until {offer.validUntil}
+              </Text>
             </View>
             <TouchableOpacity style={styles.claimButton}>
               <Text style={styles.claimButtonText}>Claim</Text>

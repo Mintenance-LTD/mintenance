@@ -45,14 +45,22 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
   route,
 }) => {
   const insets = useSafeAreaInsets();
-  const { jobId, clientName: initialClientName, clientEmail: initialClientEmail } = route.params || {};
-  const viewModel = useCreateQuoteViewModel(jobId, initialClientName, initialClientEmail);
+  const {
+    jobId,
+    clientName: initialClientName,
+    clientEmail: initialClientEmail,
+  } = route.params || {};
+  const viewModel = useCreateQuoteViewModel(
+    jobId,
+    initialClientName,
+    initialClientEmail
+  );
 
   if (viewModel.loading && viewModel.lineItems.length === 0) {
     return (
       <View style={styles.loadingContainer}>
-        <StatusBar barStyle="dark-content" />
-        <ActivityIndicator size="large" color={theme.colors.textPrimary} />
+        <StatusBar barStyle='dark-content' />
+        <ActivityIndicator size='large' color={theme.colors.textPrimary} />
         <Text style={styles.loadingText}>Creating quote...</Text>
       </View>
     );
@@ -64,11 +72,13 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
   const step1Done = true;
   const step2Done = viewModel.lineItems.length > 0;
   const step3Done = viewModel.totalAmount > 0;
-  const progressSteps = [step1Done, step2Done, step3Done].filter(Boolean).length;
+  const progressSteps = [step1Done, step2Done, step3Done].filter(
+    Boolean
+  ).length;
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle='dark-content' />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -80,10 +90,14 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
             <TouchableOpacity
               style={styles.backBtn}
               onPress={() => navigation.goBack()}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
+              accessibilityRole='button'
+              accessibilityLabel='Go back'
             >
-              <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
+              <Ionicons
+                name='arrow-back'
+                size={20}
+                color={theme.colors.textPrimary}
+              />
             </TouchableOpacity>
             <View style={styles.headerCenter}>
               <Text style={styles.headerTitle}>New Quote</Text>
@@ -92,10 +106,14 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
             <TouchableOpacity
               style={styles.templateBtn}
               onPress={() => viewModel.setShowTemplateModal(true)}
-              accessibilityRole="button"
-              accessibilityLabel="Use template"
+              accessibilityRole='button'
+              accessibilityLabel='Use template'
             >
-              <Ionicons name="document-text-outline" size={18} color={theme.colors.textPrimary} />
+              <Ionicons
+                name='document-text-outline'
+                size={18}
+                color={theme.colors.textPrimary}
+              />
             </TouchableOpacity>
           </View>
 
@@ -112,16 +130,37 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
             ))}
           </View>
           <View style={styles.progressLabels}>
-            <Text style={[styles.progressLabel, step1Done && styles.progressLabelActive]}>Details</Text>
-            <Text style={[styles.progressLabel, step2Done && styles.progressLabelActive]}>Items</Text>
-            <Text style={[styles.progressLabel, step3Done && styles.progressLabelActive]}>Review</Text>
+            <Text
+              style={[
+                styles.progressLabel,
+                step1Done && styles.progressLabelActive,
+              ]}
+            >
+              Details
+            </Text>
+            <Text
+              style={[
+                styles.progressLabel,
+                step2Done && styles.progressLabelActive,
+              ]}
+            >
+              Items
+            </Text>
+            <Text
+              style={[
+                styles.progressLabel,
+                step3Done && styles.progressLabelActive,
+              ]}
+            >
+              Review
+            </Text>
           </View>
         </View>
 
         <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps='handled'
           contentContainerStyle={{ paddingBottom: 140, paddingTop: 16 }}
         >
           <View style={styles.formContainer}>
@@ -130,7 +169,9 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
               setProjectTitle={viewModel.setProjectTitle}
               onTemplatePress={() => viewModel.setShowTemplateModal(true)}
               selectedTemplate={viewModel.selectedTemplate}
-              templates={viewModel.templates as unknown as { id: string; name: string }[]}
+              templates={
+                viewModel.templates as unknown as { id: string; name: string }[]
+              }
             />
 
             <ClientInfo
@@ -165,7 +206,12 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
         </ScrollView>
 
         {/* Floating total bar */}
-        <View style={[styles.floatingBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        <View
+          style={[
+            styles.floatingBar,
+            { paddingBottom: Math.max(insets.bottom, 12) },
+          ]}
+        >
           <View style={styles.floatingTop}>
             <View>
               <Text style={styles.floatingLabel}>Total</Text>
@@ -175,7 +221,8 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
             </View>
             <View style={styles.itemBadge}>
               <Text style={styles.itemBadgeText}>
-                {viewModel.lineItems.length} {viewModel.lineItems.length === 1 ? 'item' : 'items'}
+                {viewModel.lineItems.length}{' '}
+                {viewModel.lineItems.length === 1 ? 'item' : 'items'}
               </Text>
             </View>
           </View>
@@ -338,5 +385,3 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
 });
-
-export default CreateQuoteScreen;

@@ -1,11 +1,11 @@
 /**
  * Feature Flags System
  * Centralized feature flag management for A/B testing and gradual rollouts
- * 
+ *
  * Usage:
  * ```typescript
  * import { isFeatureEnabled } from '@/lib/feature-flags';
- * 
+ *
  * if (await isFeatureEnabled('new-dashboard', userId)) {
  *   return <NewDashboard />;
  * }
@@ -66,22 +66,26 @@ const FEATURE_FLAGS: Record<FeatureFlagName, FeatureFlagConfig> = {
   },
   'ai-damage-assessment': {
     name: 'ai-damage-assessment',
-    description: 'AI-powered building damage assessment (disabled: ML backend not production-ready)',
+    description:
+      'AI-powered building damage assessment (disabled: ML backend not production-ready)',
     defaultEnabled: false,
   },
   'ai-cost-estimation': {
     name: 'ai-cost-estimation',
-    description: 'AI-powered cost estimation (disabled: ML backend not production-ready)',
+    description:
+      'AI-powered cost estimation (disabled: ML backend not production-ready)',
     defaultEnabled: false,
   },
   'ai-recommendations': {
     name: 'ai-recommendations',
-    description: 'Rule-based predictive maintenance recommendations surfaced on homeowner dashboard',
+    description:
+      'Rule-based predictive maintenance recommendations surfaced on homeowner dashboard',
     defaultEnabled: true,
   },
   'ml-image-analysis': {
     name: 'ml-image-analysis',
-    description: 'ML image analysis for damage detection (disabled: TF.js backend is mocked)',
+    description:
+      'ML image analysis for damage detection (disabled: TF.js backend is mocked)',
     defaultEnabled: false,
   },
 };
@@ -92,7 +96,7 @@ const FEATURE_FLAGS: Record<FeatureFlagName, FeatureFlagConfig> = {
 
 /**
  * Check if a feature flag is enabled for a user
- * 
+ *
  * Priority order:
  * 1. Database override (feature_flags table)
  * 2. User-specific enablement
@@ -106,7 +110,7 @@ export async function isFeatureEnabled(
   userRole?: string
 ): Promise<boolean> {
   const config = FEATURE_FLAGS[flagName];
-  
+
   if (!config) {
     logger.warn(`[FeatureFlags] Unknown feature flag: ${flagName}`);
     return false;
@@ -127,7 +131,9 @@ export async function isFeatureEnabled(
       }
     } catch (error) {
       // Table might not exist yet, continue with other checks
-      logger.debug(`[FeatureFlags] Could not check database override: ${error}`);
+      logger.debug(
+        `[FeatureFlags] Could not check database override: ${error}`
+      );
     }
   }
 
@@ -161,7 +167,7 @@ export async function isFeatureEnabled(
 /**
  * Get all enabled feature flags for a user
  */
-export async function getEnabledFeatures(
+async function getEnabledFeatures(
   userId?: string,
   userRole?: string
 ): Promise<FeatureFlagName[]> {
@@ -184,7 +190,7 @@ function hashUserId(userId: string): number {
   let hash = 0;
   for (let i = 0; i < userId.length; i++) {
     const char = userId.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32-bit integer
   }
   return Math.abs(hash);
@@ -193,14 +199,16 @@ function hashUserId(userId: string): number {
 /**
  * Get feature flag configuration (for admin/debugging)
  */
-export function getFeatureFlagConfig(flagName: FeatureFlagName): FeatureFlagConfig | undefined {
+function getFeatureFlagConfig(
+  flagName: FeatureFlagName
+): FeatureFlagConfig | undefined {
   return FEATURE_FLAGS[flagName];
 }
 
 /**
  * Get all feature flag configurations
  */
-export function getAllFeatureFlags(): Record<FeatureFlagName, FeatureFlagConfig> {
+function getAllFeatureFlags(): Record<FeatureFlagName, FeatureFlagConfig> {
   return FEATURE_FLAGS;
 }
 
@@ -212,4 +220,3 @@ export function getAllFeatureFlags(): Record<FeatureFlagName, FeatureFlagConfig>
  * Note: Client-side hook is available at @/hooks/useFeatureFlag
  * This file is server-side only
  */
-

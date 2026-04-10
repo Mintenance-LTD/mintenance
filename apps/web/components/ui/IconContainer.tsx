@@ -5,7 +5,7 @@ import { theme } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 import { getIconContainerStyle } from '@/lib/theme-enhancements';
 
-export interface IconContainerProps {
+interface IconContainerProps {
   children: React.ReactNode;
   size?: number;
   color?: string;
@@ -16,14 +16,14 @@ export interface IconContainerProps {
 
 /**
  * IconContainer - Standardized icon wrapper with background, sizing, and colors
- * 
+ *
  * Follows design system:
  * - Standard sizes: 20px (nav), 24px (actions), 32px, 48px
  * - Background: Subtle gradient with color tint
  * - Border radius: 8px (lg) by default
  * - Consistent spacing and colors from theme
  */
-export function IconContainer({
+function IconContainer({
   children,
   size = 24,
   color,
@@ -62,4 +62,3 @@ export function IconContainer({
     </div>
   );
 }
-

@@ -4,7 +4,7 @@ import type { HomeownerSubscriptionTier } from '@/lib/feature-access-config';
 
 type EligibleRole = 'homeowner' | 'contractor';
 
-export interface EarlyAccessResult {
+interface EarlyAccessResult {
   eligible: boolean;
   role: EligibleRole | null;
   cohortLimit: number | null;
@@ -28,7 +28,9 @@ function isEarlyAccessEnabled(): boolean {
  *
  * "First" is determined by profiles.created_at ascending.
  */
-export async function getEarlyAccessEntitlement(userId: string): Promise<EarlyAccessResult> {
+export async function getEarlyAccessEntitlement(
+  userId: string
+): Promise<EarlyAccessResult> {
   if (!isEarlyAccessEnabled()) {
     return {
       eligible: false,
@@ -52,15 +54,30 @@ export async function getEarlyAccessEntitlement(userId: string): Promise<EarlyAc
         userId,
         error: grantError.message,
       });
-      return { eligible: false, role: null, cohortLimit: null, reason: 'error' };
+      return {
+        eligible: false,
+        role: null,
+        cohortLimit: null,
+        reason: 'error',
+      };
     }
 
     if (!grant) {
-      return { eligible: false, role: null, cohortLimit: null, reason: 'not_in_cohort' };
+      return {
+        eligible: false,
+        role: null,
+        cohortLimit: null,
+        reason: 'not_in_cohort',
+      };
     }
 
     if (grant.role !== 'homeowner' && grant.role !== 'contractor') {
-      return { eligible: false, role: null, cohortLimit: null, reason: 'role_not_supported' };
+      return {
+        eligible: false,
+        role: null,
+        cohortLimit: null,
+        reason: 'role_not_supported',
+      };
     }
 
     const eligible = true;
@@ -86,7 +103,9 @@ export async function getEarlyAccessEntitlement(userId: string): Promise<EarlyAc
  * Resolve the effective homeowner subscription tier, checking early access first.
  * Use this instead of querying homeowner_subscriptions directly.
  */
-export async function getEffectiveHomeownerTier(userId: string): Promise<HomeownerSubscriptionTier> {
+export async function getEffectiveHomeownerTier(
+  userId: string
+): Promise<HomeownerSubscriptionTier> {
   const earlyAccess = await getEarlyAccessEntitlement(userId);
 
   if (earlyAccess.eligible && earlyAccess.role === 'homeowner') {

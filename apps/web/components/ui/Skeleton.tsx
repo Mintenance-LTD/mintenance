@@ -28,7 +28,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import tokens from '@/lib/design-tokens';
 
-export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
+interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
    * Whether the shimmer animation is enabled
    * @default true
@@ -55,7 +55,18 @@ export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const Skeleton = React.forwardRef<HTMLDivElement, SkeletonProps>(
-  ({ className, animate = true, variant = 'default', width, height, style, ...props }, ref) => {
+  (
+    {
+      className,
+      animate = true,
+      variant = 'default',
+      width,
+      height,
+      style,
+      ...props
+    },
+    ref
+  ) => {
     const variantStyles = {
       default: '',
       text: 'h-4 rounded-md',
@@ -94,12 +105,12 @@ const Skeleton = React.forwardRef<HTMLDivElement, SkeletonProps>(
           className
         )}
         style={combinedStyle}
-        aria-busy="true"
-        aria-live="polite"
-        role="status"
+        aria-busy='true'
+        aria-live='polite'
+        role='status'
         {...props}
       >
-        <span className="sr-only">Loading...</span>
+        <span className='sr-only'>Loading...</span>
       </div>
     );
   }
@@ -132,18 +143,18 @@ SkeletonGroup.displayName = 'SkeletonGroup';
 /**
  * Pre-built skeleton for text content with automatic width variation
  */
-export interface SkeletonTextProps extends Omit<SkeletonProps, 'variant'> {
+interface SkeletonTextProps extends Omit<SkeletonProps, 'variant'> {
   lines?: number;
 }
 
 export const SkeletonText = React.forwardRef<HTMLDivElement, SkeletonTextProps>(
   ({ lines = 3, className, ...props }, ref) => {
     return (
-      <SkeletonGroup ref={ref} gap="sm" className={className}>
+      <SkeletonGroup ref={ref} gap='sm' className={className}>
         {Array.from({ length: lines }).map((_, index) => (
           <Skeleton
             key={index}
-            variant="text"
+            variant='text'
             width={index === lines - 1 ? '80%' : '100%'}
             {...props}
           />
@@ -158,57 +169,59 @@ SkeletonText.displayName = 'SkeletonText';
 /**
  * Pre-built skeleton for avatar/profile pictures
  */
-export interface SkeletonAvatarProps extends Omit<SkeletonProps, 'variant'> {
+interface SkeletonAvatarProps extends Omit<SkeletonProps, 'variant'> {
   size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
-export const SkeletonAvatar = React.forwardRef<HTMLDivElement, SkeletonAvatarProps>(
-  ({ size = 'md', className, ...props }, ref) => {
-    const sizeClasses = {
-      sm: 'h-8 w-8',
-      md: 'h-10 w-10',
-      lg: 'h-12 w-12',
-      xl: 'h-16 w-16',
-    };
+export const SkeletonAvatar = React.forwardRef<
+  HTMLDivElement,
+  SkeletonAvatarProps
+>(({ size = 'md', className, ...props }, ref) => {
+  const sizeClasses = {
+    sm: 'h-8 w-8',
+    md: 'h-10 w-10',
+    lg: 'h-12 w-12',
+    xl: 'h-16 w-16',
+  };
 
-    return (
-      <Skeleton
-        ref={ref}
-        variant="circular"
-        className={cn(sizeClasses[size], className)}
-        {...props}
-      />
-    );
-  }
-);
+  return (
+    <Skeleton
+      ref={ref}
+      variant='circular'
+      className={cn(sizeClasses[size], className)}
+      {...props}
+    />
+  );
+});
 
 SkeletonAvatar.displayName = 'SkeletonAvatar';
 
 /**
  * Pre-built skeleton for buttons
  */
-export interface SkeletonButtonProps extends Omit<SkeletonProps, 'variant'> {
+interface SkeletonButtonProps extends Omit<SkeletonProps, 'variant'> {
   size?: 'sm' | 'md' | 'lg';
 }
 
-export const SkeletonButton = React.forwardRef<HTMLDivElement, SkeletonButtonProps>(
-  ({ size = 'md', className, ...props }, ref) => {
-    const sizeClasses = {
-      sm: 'h-9 w-20',
-      md: 'h-10 w-24',
-      lg: 'h-12 w-32',
-    };
+export const SkeletonButton = React.forwardRef<
+  HTMLDivElement,
+  SkeletonButtonProps
+>(({ size = 'md', className, ...props }, ref) => {
+  const sizeClasses = {
+    sm: 'h-9 w-20',
+    md: 'h-10 w-24',
+    lg: 'h-12 w-32',
+  };
 
-    return (
-      <Skeleton
-        ref={ref}
-        variant="rectangular"
-        className={cn(sizeClasses[size], 'rounded-lg', className)}
-        {...props}
-      />
-    );
-  }
-);
+  return (
+    <Skeleton
+      ref={ref}
+      variant='rectangular'
+      className={cn(sizeClasses[size], 'rounded-lg', className)}
+      {...props}
+    />
+  );
+});
 
 SkeletonButton.displayName = 'SkeletonButton';
 
@@ -232,28 +245,29 @@ SkeletonBadge.displayName = 'SkeletonBadge';
 /**
  * Pre-built skeleton for images
  */
-export interface SkeletonImageProps extends Omit<SkeletonProps, 'variant'> {
+interface SkeletonImageProps extends Omit<SkeletonProps, 'variant'> {
   aspectRatio?: 'square' | 'video' | 'photo';
 }
 
-export const SkeletonImage = React.forwardRef<HTMLDivElement, SkeletonImageProps>(
-  ({ aspectRatio = 'photo', className, ...props }, ref) => {
-    const aspectClasses = {
-      square: 'aspect-square',
-      video: 'aspect-video',
-      photo: 'aspect-[4/3]',
-    };
+export const SkeletonImage = React.forwardRef<
+  HTMLDivElement,
+  SkeletonImageProps
+>(({ aspectRatio = 'photo', className, ...props }, ref) => {
+  const aspectClasses = {
+    square: 'aspect-square',
+    video: 'aspect-video',
+    photo: 'aspect-[4/3]',
+  };
 
-    return (
-      <Skeleton
-        ref={ref}
-        variant="rectangular"
-        className={cn(aspectClasses[aspectRatio], 'w-full', className)}
-        {...props}
-      />
-    );
-  }
-);
+  return (
+    <Skeleton
+      ref={ref}
+      variant='rectangular'
+      className={cn(aspectClasses[aspectRatio], 'w-full', className)}
+      {...props}
+    />
+  );
+});
 
 SkeletonImage.displayName = 'SkeletonImage';
 

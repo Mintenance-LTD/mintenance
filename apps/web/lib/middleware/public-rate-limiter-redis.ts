@@ -49,9 +49,15 @@ function getLimiters() {
   return limiters;
 }
 
-export const publicRateLimiter = { limit: async () => ({ success: true, remaining: 999, reset: Date.now() + 60000 }) } as unknown as Ratelimit;
-export const searchRateLimiter = publicRateLimiter;
-export const resourceRateLimiter = publicRateLimiter;
+const publicRateLimiter = {
+  limit: async () => ({
+    success: true,
+    remaining: 999,
+    reset: Date.now() + 60000,
+  }),
+} as unknown as Ratelimit;
+const searchRateLimiter = publicRateLimiter;
+const resourceRateLimiter = publicRateLimiter;
 
 /**
  * Get client identifier from request
@@ -91,11 +97,14 @@ export async function checkPublicRateLimit(
   if (!limiters) {
     const isProduction = process.env.NODE_ENV === 'production';
     if (isProduction) {
-      logger.error('Redis not configured in production — rate limiting unavailable, rejecting request', {
-        service: 'rate-limiter-redis',
-        tier,
-        identifier,
-      });
+      logger.error(
+        'Redis not configured in production — rate limiting unavailable, rejecting request',
+        {
+          service: 'rate-limiter-redis',
+          tier,
+          identifier,
+        }
+      );
       return {
         allowed: false,
         remaining: 0,
@@ -110,7 +119,12 @@ export async function checkPublicRateLimit(
     };
   }
 
-  const limiter = tier === 'search' ? limiters.search : tier === 'resource' ? limiters.resource : limiters.public;
+  const limiter =
+    tier === 'search'
+      ? limiters.search
+      : tier === 'resource'
+        ? limiters.resource
+        : limiters.public;
 
   try {
     const result = await limiter.limit(identifier);
@@ -142,11 +156,15 @@ export async function checkPublicRateLimit(
     const isProduction = process.env.NODE_ENV === 'production';
     if (isProduction) {
       // SECURITY: Fail closed in production when Redis is unavailable
-      logger.error('Redis rate limit check failed — rejecting request (fail closed)', error, {
-        service: 'rate-limiter-redis',
-        tier,
-        identifier,
-      });
+      logger.error(
+        'Redis rate limit check failed — rejecting request (fail closed)',
+        error,
+        {
+          service: 'rate-limiter-redis',
+          tier,
+          identifier,
+        }
+      );
       return {
         allowed: false,
         remaining: 0,
@@ -155,11 +173,15 @@ export async function checkPublicRateLimit(
       };
     }
     // In development, allow through to avoid blocking local dev
-    logger.error('Redis rate limit check failed, allowing request (dev mode)', error, {
-      service: 'rate-limiter-redis',
-      tier,
-      identifier,
-    });
+    logger.error(
+      'Redis rate limit check failed, allowing request (dev mode)',
+      error,
+      {
+        service: 'rate-limiter-redis',
+        tier,
+        identifier,
+      }
+    );
     return {
       allowed: true,
       remaining: 999,
@@ -171,7 +193,7 @@ export async function checkPublicRateLimit(
 /**
  * Create rate limit response headers
  */
-export function createPublicRateLimitHeaders(result: {
+function createPublicRateLimitHeaders(result: {
   remaining: number;
   reset: number;
   retryAfter?: number;
@@ -191,7 +213,7 @@ export function createPublicRateLimitHeaders(result: {
 /**
  * Middleware wrapper for public contractor endpoints
  */
-export async function withPublicRateLimit(
+async function withPublicRateLimit(
   request: NextRequest,
   handler: (request: NextRequest) => Promise<NextResponse>,
   tier: 'public' | 'search' | 'resource' = 'public'
@@ -228,7 +250,7 @@ export async function withPublicRateLimit(
 /**
  * Redis health check
  */
-export async function checkRedisHealth(): Promise<boolean> {
+async function checkRedisHealth(): Promise<boolean> {
   if (!redis) return false;
   try {
     await redis.ping();

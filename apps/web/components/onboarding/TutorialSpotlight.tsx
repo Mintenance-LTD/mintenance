@@ -136,7 +136,7 @@ export function TutorialSpotlight(props: TutorialSpotlightProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/40 z-[9998]"
+          className='fixed inset-0 bg-black/40 z-[9998]'
           onClick={onSkip}
         />
       )}
@@ -148,7 +148,7 @@ export function TutorialSpotlight(props: TutorialSpotlightProps) {
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className="fixed pointer-events-none z-[9998]"
+          className='fixed pointer-events-none z-[9998]'
           style={{
             top: targetRect.top - 4,
             left: targetRect.left - 4,
@@ -156,7 +156,8 @@ export function TutorialSpotlight(props: TutorialSpotlightProps) {
             height: targetRect.height + 8,
             borderRadius: 10,
             border: '2px solid #0d9488',
-            boxShadow: '0 0 0 3px rgba(13, 148, 136, 0.25), 0 0 20px rgba(13, 148, 136, 0.15)',
+            boxShadow:
+              '0 0 0 3px rgba(13, 148, 136, 0.25), 0 0 20px rgba(13, 148, 136, 0.15)',
             background: 'rgba(13, 148, 136, 0.05)',
           }}
         />
@@ -168,23 +169,23 @@ export function TutorialSpotlight(props: TutorialSpotlightProps) {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 10 }}
         transition={{ duration: 0.25, delay: 0.05 }}
-        className="bg-white rounded-2xl shadow-xl border border-gray-200 p-5 w-[380px] max-w-[calc(100vw-32px)]"
+        className='bg-white rounded-2xl shadow-xl border border-gray-200 p-5 w-[380px] max-w-[calc(100vw-32px)]'
         style={cardStyle}
-        role="dialog"
+        role='dialog'
         aria-modal={isWelcomeStep ? 'true' : undefined}
-        aria-labelledby="tutorial-title"
+        aria-labelledby='tutorial-title'
       >
         {/* Close button */}
         <button
           onClick={onSkip}
-          className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
-          aria-label="Close tutorial"
+          className='absolute top-3 right-3 p-1.5 rounded-full hover:bg-gray-100 transition-colors'
+          aria-label='Close tutorial'
         >
-          <X className="w-4 h-4 text-gray-400" />
+          <X className='w-4 h-4 text-gray-400' />
         </button>
 
         {/* Progress bar */}
-        <div className="flex items-center gap-1.5 mb-3">
+        <div className='flex items-center gap-1.5 mb-3'>
           {Array.from({ length: totalSteps }).map((_, idx) => (
             <div
               key={idx}
@@ -192,10 +193,10 @@ export function TutorialSpotlight(props: TutorialSpotlightProps) {
                 idx === stepIndex
                   ? 'w-6 bg-teal-500'
                   : idx < stepIndex
-                  ? 'w-1.5 bg-teal-500'
-                  : 'w-1.5 bg-gray-200'
+                    ? 'w-1.5 bg-teal-500'
+                    : 'w-1.5 bg-gray-200'
               }`}
-              role="progressbar"
+              role='progressbar'
               aria-valuenow={stepIndex + 1}
               aria-valuemin={1}
               aria-valuemax={totalSteps}
@@ -205,29 +206,32 @@ export function TutorialSpotlight(props: TutorialSpotlightProps) {
         </div>
 
         {/* Step counter */}
-        <div className="text-xs font-medium text-teal-600 mb-1.5">
+        <div className='text-xs font-medium text-teal-600 mb-1.5'>
           Step {stepIndex + 1} of {totalSteps}
         </div>
 
         {/* Title */}
-        <h2 id="tutorial-title" className="text-lg font-bold text-gray-900 mb-2">
+        <h2
+          id='tutorial-title'
+          className='text-lg font-bold text-gray-900 mb-2'
+        >
           {step?.title || 'Tutorial Step'}
         </h2>
 
         {/* Description */}
-        <p className="text-sm text-gray-600 mb-5 leading-relaxed">
+        <p className='text-sm text-gray-600 mb-5 leading-relaxed'>
           {step?.description || 'Follow the tutorial steps to get started.'}
         </p>
 
         {/* Action buttons */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+        <div className='flex items-center justify-between gap-2'>
+          <div className='flex items-center gap-2'>
             {!isFirstStep && onPrevious && (
               <button
                 onClick={onPrevious}
-                className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-1.5 text-sm"
+                className='px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-1.5 text-sm'
               >
-                <ArrowLeft className="w-3.5 h-3.5" />
+                <ArrowLeft className='w-3.5 h-3.5' />
                 Back
               </button>
             )}
@@ -235,7 +239,7 @@ export function TutorialSpotlight(props: TutorialSpotlightProps) {
             {isFirstStep && (
               <button
                 onClick={onSkip}
-                className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                className='px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors'
               >
                 Skip Tour
               </button>
@@ -244,17 +248,17 @@ export function TutorialSpotlight(props: TutorialSpotlightProps) {
 
           <button
             onClick={isLastStep ? onComplete : onNext}
-            className="px-5 py-1.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-1.5 text-sm font-medium"
+            className='px-5 py-1.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-1.5 text-sm font-medium'
           >
             {isLastStep ? (
               <>
-                <Check className="w-3.5 h-3.5" />
+                <Check className='w-3.5 h-3.5' />
                 Got it!
               </>
             ) : (
               <>
                 {step?.nextLabel || 'Next'}
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className='w-3.5 h-3.5' />
               </>
             )}
           </button>
@@ -263,5 +267,3 @@ export function TutorialSpotlight(props: TutorialSpotlightProps) {
     </AnimatePresence>
   );
 }
-
-export default TutorialSpotlight;

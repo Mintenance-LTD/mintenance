@@ -11,15 +11,6 @@ import {
 import type { ContractorLocation } from './ServiceAreasGeo';
 
 // Re-export geo utilities so existing imports from this module still work
-export {
-  haversineDistance,
-  calculateDistance,
-  calculateTravelCharge,
-  isLocationInServiceArea,
-  findContractorsForLocation,
-  type ContractorLocation,
-} from './ServiceAreasGeo';
-
 // =====================================================
 // SERVICE AREAS INTERFACES
 // =====================================================
@@ -57,7 +48,7 @@ export interface ServiceArea {
   updated_at: string;
 }
 
-export interface ServiceAreaCoverage {
+interface ServiceAreaCoverage {
   id: string;
   service_area_id: string;
   job_id?: string;
@@ -71,7 +62,7 @@ export interface ServiceAreaCoverage {
   created_at: string;
 }
 
-export interface AreaPerformance {
+interface AreaPerformance {
   id: string;
   service_area_id: string;
   period_start: string;
@@ -86,7 +77,7 @@ export interface AreaPerformance {
   created_at: string;
 }
 
-export interface ServiceRoute {
+interface ServiceRoute {
   id: string;
   contractor_id: string;
   route_name: string;

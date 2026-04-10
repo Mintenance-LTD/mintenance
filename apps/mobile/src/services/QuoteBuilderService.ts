@@ -3,23 +3,42 @@
  * All implementation lives in quotes/*.ts; this file is the public API surface.
  */
 export type {
-  QuoteTemplate, QuoteLineItemTemplate, ContractorQuote, QuoteLineItem,
-  QuoteRevision, QuoteInteraction, QuoteAnalytics,
-  CreateQuoteTemplateData, CreateQuoteData, UpdateQuoteData,
-  QuoteFilters, QuoteSummaryStats,
+  QuoteTemplate,
+  ContractorQuote,
+  CreateQuoteData,
+  QuoteSummaryStats,
 } from './quotes/types';
 
 import {
-  createQuoteTemplate, getQuoteTemplates, getQuoteTemplate,
-  getQuoteTemplateLineItems, updateQuoteTemplate, deleteQuoteTemplate,
+  createQuoteTemplate,
+  getQuoteTemplates,
+  getQuoteTemplate,
+  getQuoteTemplateLineItems,
+  updateQuoteTemplate,
+  deleteQuoteTemplate,
 } from './quotes/TemplateCRUD';
 import {
-  createQuote, getQuotes, getQuote, getQuoteLineItems,
-  updateQuote, sendQuote,
+  createQuote,
+  getQuotes,
+  getQuote,
+  getQuoteLineItems,
+  updateQuote,
+  sendQuote,
 } from './quotes/QuoteCRUD';
-import { duplicateQuote, deleteQuote, generateQuotePDF } from './quotes/QuoteOperations';
-import { trackQuoteInteraction, getQuoteAnalytics, getQuoteSummaryStats } from './quotes/QuoteAnalytics';
-import { getQuoteRevisions, createQuoteRevision } from './quotes/QuoteRevisions';
+import {
+  duplicateQuote,
+  deleteQuote,
+  generateQuotePDF,
+} from './quotes/QuoteOperations';
+import {
+  trackQuoteInteraction,
+  getQuoteAnalytics,
+  getQuoteSummaryStats,
+} from './quotes/QuoteAnalytics';
+import {
+  getQuoteRevisions,
+  createQuoteRevision,
+} from './quotes/QuoteRevisions';
 
 export class QuoteBuilderService {
   // Template methods
@@ -50,5 +69,3 @@ export class QuoteBuilderService {
   static getQuoteRevisions = getQuoteRevisions;
   static createQuoteRevision = createQuoteRevision;
 }
-
-export default QuoteBuilderService;

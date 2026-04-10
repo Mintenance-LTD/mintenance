@@ -55,7 +55,7 @@ export const useAccessibleText = (
 };
 
 // Hook for getting accessible colors with high contrast support
-export const useAccessibleColors = () => {
+const useAccessibleColors = () => {
   const [isHighContrastEnabled, setIsHighContrastEnabled] = useState(false);
 
   useEffect(() => {
@@ -88,7 +88,7 @@ export const useAccessibleColors = () => {
 };
 
 // Hook for accessible touch targets
-export const useAccessibleTouchTarget = (baseSize: number) => {
+const useAccessibleTouchTarget = (baseSize: number) => {
   const [isScreenReaderEnabled, setIsScreenReaderEnabled] = useState(false);
 
   useEffect(() => {

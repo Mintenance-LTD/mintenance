@@ -11,19 +11,19 @@ export const TEST_HOMEOWNER = {
   password: 'Test1234!',
 };
 
-export const TEST_CONTRACTOR = {
+const TEST_CONTRACTOR = {
   email: 'test-contractor@example.com',
   password: 'Test1234!',
 };
 
 // Test job ID for flows that require an existing job (must exist in test DB)
-export const TEST_JOB_ID = 'e2e-test-job-001';
+const TEST_JOB_ID = 'e2e-test-job-001';
 
 /**
  * Log in as a specific user via the login screen.
  * Assumes the app starts on the login screen or is already logged out.
  */
-export async function loginAs(email: string, password: string) {
+async function loginAs(email: string, password: string) {
   await waitFor(element(by.id('login-screen')))
     .toBeVisible()
     .withTimeout(10000);
@@ -77,11 +77,11 @@ export async function navigateToTab(tabLabel: string) {
 /**
  * Scroll down in a scrollable view until an element is visible.
  */
-export async function scrollToElement(
+async function scrollToElement(
   elementMatcher: Detox.NativeMatcher,
   scrollViewId: string,
   direction: 'up' | 'down' = 'down',
-  pixels = 200,
+  pixels = 200
 ) {
   await waitFor(element(elementMatcher))
     .toBeVisible()
@@ -111,7 +111,7 @@ export async function tapText(primary: string, fallback?: string) {
  */
 export async function waitForText(
   text: string,
-  timeout = 10000,
+  timeout = 10000
 ): Promise<boolean> {
   try {
     await waitFor(element(by.text(text)))

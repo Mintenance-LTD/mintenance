@@ -103,7 +103,7 @@ const mutationCache = new MutationCache({
 });
 
 // Create optimized Query Client
-export const createQueryClient = () => {
+const createQueryClient = () => {
   return new QueryClient({
     queryCache,
     mutationCache,
@@ -119,7 +119,10 @@ export const createQueryClient = () => {
         // Retry configuration
         retry: (failureCount, error: unknown) => {
           // Don't retry on 4xx errors (client errors)
-          if (((error as { status?: number })?.status ?? 0) >= 400 && ((error as { status?: number })?.status ?? 0) < 500) {
+          if (
+            ((error as { status?: number })?.status ?? 0) >= 400 &&
+            ((error as { status?: number })?.status ?? 0) < 500
+          ) {
             return false;
           }
 
@@ -165,10 +168,10 @@ export const createQueryClient = () => {
 };
 
 // Query client instance (singleton)
-export const queryClient = createQueryClient();
+const queryClient = createQueryClient();
 
 // Helper function to create query keys
-export const createQueryKey = (
+const createQueryKey = (
   prefix: keyof typeof QUERY_KEYS,
   ...params: (string | number | object | undefined)[]
 ) => {
@@ -176,7 +179,7 @@ export const createQueryKey = (
 };
 
 // Helper function to prefetch queries
-export const prefetchQuery = async <T>(
+const prefetchQuery = async <T>(
   queryKey: unknown[],
   queryFn: () => Promise<T>,
   staleTime: number = STALE_TIMES.DYNAMIC
@@ -189,11 +192,13 @@ export const prefetchQuery = async <T>(
 };
 
 // Helper function to warm cache with multiple queries
-export const warmCache = async (queries: {
-  queryKey: unknown[];
-  queryFn: () => Promise<unknown>;
-  staleTime?: number;
-}[]) => {
+const warmCache = async (
+  queries: {
+    queryKey: unknown[];
+    queryFn: () => Promise<unknown>;
+    staleTime?: number;
+  }[]
+) => {
   logger.info('Warming cache', { count: queries.length });
 
   const startTime = Date.now();
@@ -211,7 +216,7 @@ export const warmCache = async (queries: {
 };
 
 // Helper function for optimistic updates
-export const optimisticUpdate = <T>(
+const optimisticUpdate = <T>(
   queryKey: unknown[],
   updater: (oldData: T | undefined) => T
 ) => {
@@ -231,7 +236,7 @@ export const optimisticUpdate = <T>(
 };
 
 // Helper function to invalidate related queries
-export const invalidateQueries = (
+const invalidateQueries = (
   prefix: keyof typeof QUERY_KEYS,
   exact: boolean = false
 ) => {
@@ -242,22 +247,22 @@ export const invalidateQueries = (
 };
 
 // Helper function to clear all cache
-export const clearCache = () => {
+const clearCache = () => {
   logger.warn('Clearing all React Query cache');
   queryClient.clear();
 };
 
 // Helper function to get cache stats
-export const getCacheStats = () => {
+const getCacheStats = () => {
   const cache = queryClient.getQueryCache();
   const queries = cache.getAll();
 
   const stats = {
     total: queries.length,
-    stale: queries.filter(q => q.isStale()).length,
-    fetching: queries.filter(q => q.state.fetchStatus === 'fetching').length,
-    paused: queries.filter(q => q.state.fetchStatus === 'paused').length,
-    inactive: queries.filter(q => !q.getObserversCount()).length,
+    stale: queries.filter((q) => q.isStale()).length,
+    fetching: queries.filter((q) => q.state.fetchStatus === 'fetching').length,
+    paused: queries.filter((q) => q.state.fetchStatus === 'paused').length,
+    inactive: queries.filter((q) => !q.getObserversCount()).length,
   };
 
   logger.debug('Cache stats', stats);
@@ -265,6 +270,6 @@ export const getCacheStats = () => {
 };
 
 // Export types
-export type QueryKeyPrefix = keyof typeof QUERY_KEYS;
-export type CacheTime = typeof CACHE_TIMES[keyof typeof CACHE_TIMES];
-export type StaleTime = typeof STALE_TIMES[keyof typeof STALE_TIMES];
+type QueryKeyPrefix = keyof typeof QUERY_KEYS;
+type CacheTime = (typeof CACHE_TIMES)[keyof typeof CACHE_TIMES];
+type StaleTime = (typeof STALE_TIMES)[keyof typeof STALE_TIMES];

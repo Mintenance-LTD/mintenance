@@ -194,18 +194,14 @@ export function useContractData(jobId: string, userRole: string) {
     ((userRole === 'contractor' && !contract.contractor_signed_at) ||
       (userRole === 'homeowner' && !contract.homeowner_signed_at));
 
-  // Close modal on Escape
+  // Close inline detail on Escape
   useEffect(() => {
     if (!isModalOpen) return;
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setIsModalOpen(false);
     };
     document.addEventListener('keydown', handleEsc);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', handleEsc);
-      document.body.style.overflow = '';
-    };
+    return () => document.removeEventListener('keydown', handleEsc);
   }, [isModalOpen]);
 
   return {

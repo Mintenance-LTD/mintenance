@@ -18,7 +18,7 @@ function addBreadcrumb(
 
 let notificationQueue: QueuedNotification[] = [];
 
-export function getQueue(): QueuedNotification[] {
+function getQueue(): QueuedNotification[] {
   return notificationQueue;
 }
 
@@ -64,7 +64,7 @@ export async function processNotificationQueue(): Promise<void> {
     const queuedNotifications: QueuedNotification[] = queueData
       ? JSON.parse(queueData)
       : [];
-    const unprocessed = queuedNotifications.filter(q => !q.processed);
+    const unprocessed = queuedNotifications.filter((q) => !q.processed);
 
     addBreadcrumb('Processing notification queue', 'info', {
       queueSize: queuedNotifications.length,
@@ -92,7 +92,7 @@ export async function processNotificationQueue(): Promise<void> {
 }
 
 async function processQueue(): Promise<void> {
-  const unprocessed = notificationQueue.filter(q => !q.processed);
+  const unprocessed = notificationQueue.filter((q) => !q.processed);
 
   if (unprocessed.length === 0) return;
 
@@ -114,8 +114,8 @@ async function processQueue(): Promise<void> {
 
   // Clear old processed notifications (keep last 50)
   notificationQueue = notificationQueue
-    .filter(q => !q.processed)
-    .concat(notificationQueue.filter(q => q.processed).slice(-50));
+    .filter((q) => !q.processed)
+    .concat(notificationQueue.filter((q) => q.processed).slice(-50));
 
   await AsyncStorage.setItem(
     NOTIFICATION_QUEUE_KEY,
@@ -144,7 +144,7 @@ async function getQueuedNotifications(): Promise<QueuedNotification[]> {
     const queueData = await AsyncStorage.getItem(NOTIFICATION_QUEUE_KEY);
     if (!queueData) return [];
     const parsed = JSON.parse(queueData) as QueuedNotification[];
-    return parsed.filter(q => !q.processed);
+    return parsed.filter((q) => !q.processed);
   } catch (error) {
     logger.error('Failed to get queued notifications', error);
     return [];
@@ -152,14 +152,18 @@ async function getQueuedNotifications(): Promise<QueuedNotification[]> {
 }
 
 export async function processQueuedNotifications(
-  handleResponseFn: (response: Notifications.NotificationResponse) => Promise<void>
+  handleResponseFn: (
+    response: Notifications.NotificationResponse
+  ) => Promise<void>
 ): Promise<void> {
   try {
     const queuedNotifications = await getQueuedNotifications();
 
     if (queuedNotifications.length === 0) return;
 
-    logger.info(`Processing ${queuedNotifications.length} queued notifications`);
+    logger.info(
+      `Processing ${queuedNotifications.length} queued notifications`
+    );
 
     for (const notification of queuedNotifications) {
       try {
