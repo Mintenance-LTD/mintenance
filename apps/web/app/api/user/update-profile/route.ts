@@ -4,7 +4,6 @@ import { sanitizeText } from '@/lib/sanitizer';
 import { logger } from '@mintenance/shared';
 import { AutomationPreferencesService } from '@/lib/services/agents/AutomationPreferencesService';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-import { validateRequest } from '@/lib/validation/validator';
 import { updateProfileSchema } from '@/lib/validation/schemas';
 
 // Type definition for user profile update data
@@ -21,7 +20,12 @@ interface UserProfileUpdateData {
 }
 
 // Profile image security configuration
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const ALLOWED_IMAGE_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+];
 const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -51,7 +55,10 @@ async function handleFormDataUpdate(request: Request, user: { id: string }) {
   if (profileImageFile && profileImageFile.size > 0) {
     if (!ALLOWED_IMAGE_TYPES.includes(profileImageFile.type)) {
       return NextResponse.json(
-        { error: 'Invalid image type. Only JPEG, PNG, and WebP images are allowed.' },
+        {
+          error:
+            'Invalid image type. Only JPEG, PNG, and WebP images are allowed.',
+        },
         { status: 400 }
       );
     }
@@ -59,7 +66,10 @@ async function handleFormDataUpdate(request: Request, user: { id: string }) {
     const fileExt = profileImageFile.name.split('.').pop()?.toLowerCase();
     if (!fileExt || !ALLOWED_IMAGE_EXTENSIONS.includes(fileExt)) {
       return NextResponse.json(
-        { error: 'Invalid file extension. Only jpg, jpeg, png, and webp are allowed.' },
+        {
+          error:
+            'Invalid file extension. Only jpg, jpeg, png, and webp are allowed.',
+        },
         { status: 400 }
       );
     }
@@ -76,11 +86,20 @@ async function handleFormDataUpdate(request: Request, user: { id: string }) {
 
     const { error: uploadError } = await serverSupabase.storage
       .from('profile-images')
-      .upload(filePath, profileImageFile, { cacheControl: '3600', upsert: true });
+      .upload(filePath, profileImageFile, {
+        cacheControl: '3600',
+        upsert: true,
+      });
 
     if (uploadError) {
-      logger.error('Profile image upload error', uploadError, { service: 'user', userId: user.id });
-      return NextResponse.json({ error: 'Failed to upload profile image' }, { status: 500 });
+      logger.error('Profile image upload error', uploadError, {
+        service: 'user',
+        userId: user.id,
+      });
+      return NextResponse.json(
+        { error: 'Failed to upload profile image' },
+        { status: 500 }
+      );
     }
 
     const { data: urlData } = serverSupabase.storage
@@ -104,15 +123,24 @@ async function handleFormDataUpdate(request: Request, user: { id: string }) {
   if (firstName) updateData.first_name = sanitizeText(firstName, 50);
   if (lastName) updateData.last_name = sanitizeText(lastName, 50);
   if (email) updateData.email = sanitizeText(email, 255);
-  if (phone !== null && phone !== undefined) updateData.phone = phone ? sanitizeText(phone, 20) : null;
-  if (bio !== null && bio !== undefined) updateData.bio = bio ? sanitizeText(bio, 1000) : null;
-  if (address !== null && address !== undefined) updateData.address = address ? sanitizeText(address, 500) : null;
-  if (city !== null && city !== undefined) updateData.city = city ? sanitizeText(city, 100) : null;
-  if (postcode !== null && postcode !== undefined) updateData.postcode = postcode ? sanitizeText(postcode, 20) : null;
+  if (phone !== null && phone !== undefined)
+    updateData.phone = phone ? sanitizeText(phone, 20) : null;
+  if (bio !== null && bio !== undefined)
+    updateData.bio = bio ? sanitizeText(bio, 1000) : null;
+  if (address !== null && address !== undefined)
+    updateData.address = address ? sanitizeText(address, 500) : null;
+  if (city !== null && city !== undefined)
+    updateData.city = city ? sanitizeText(city, 100) : null;
+  if (postcode !== null && postcode !== undefined)
+    updateData.postcode = postcode ? sanitizeText(postcode, 20) : null;
   if (profileImageUrl) updateData.profile_image_url = profileImageUrl;
 
   if (Object.keys(updateData).length === 0) {
-    return NextResponse.json({ success: true, profileImageUrl: null, message: 'No changes to update' });
+    return NextResponse.json({
+      success: true,
+      profileImageUrl: null,
+      message: 'No changes to update',
+    });
   }
 
   const { error: updateError } = await serverSupabase
@@ -121,14 +149,24 @@ async function handleFormDataUpdate(request: Request, user: { id: string }) {
     .eq('id', user.id);
 
   if (updateError) {
-    logger.error('Profile update error', updateError, { service: 'user', userId: user.id, updateData });
+    logger.error('Profile update error', updateError, {
+      service: 'user',
+      userId: user.id,
+      updateData,
+    });
     return NextResponse.json(
-      { error: `Failed to update profile: ${updateError.message || updateError.details || 'Unknown error'}` },
+      {
+        error: `Failed to update profile: ${updateError.message || updateError.details || 'Unknown error'}`,
+      },
       { status: 500 }
     );
   }
 
-  return NextResponse.json({ success: true, profileImageUrl, message: 'Profile updated successfully' });
+  return NextResponse.json({
+    success: true,
+    profileImageUrl,
+    message: 'Profile updated successfully',
+  });
 }
 
 async function handleJsonUpdate(request: Request, user: { id: string }) {
@@ -137,26 +175,69 @@ async function handleJsonUpdate(request: Request, user: { id: string }) {
     automationPreferences: z.record(z.string(), z.unknown()).optional(),
   });
 
-  const validation = await validateRequest(request as never, extendedProfileSchema);
-  if (validation instanceof NextResponse) return validation;
-  const { data: validatedBody } = validation;
-
-  const updateData: UserProfileUpdateData = {};
-  if (validatedBody.firstName !== undefined) updateData.first_name = validatedBody.firstName;
-  if (validatedBody.lastName !== undefined) updateData.last_name = validatedBody.lastName;
-  if (validatedBody.phone !== undefined) updateData.phone = validatedBody.phone || null;
-  if (validatedBody.bio !== undefined) updateData.bio = validatedBody.bio || null;
-  if (validatedBody.address !== undefined) updateData.address = validatedBody.address || null;
-  if (validatedBody.city !== undefined) updateData.city = validatedBody.city || null;
-  if (validatedBody.postcode !== undefined) updateData.postcode = validatedBody.postcode || null;
-  if (validatedBody.profileImageUrl !== undefined) updateData.profile_image_url = validatedBody.profileImageUrl;
-
-  if (validatedBody.automationPreferences) {
-    await AutomationPreferencesService.updatePreferences(user.id, validatedBody.automationPreferences);
+  // Strip empty/whitespace-only string fields so they are treated as "not provided".
+  // This lets the client safely forward prefilled-but-unchanged form values without
+  // tripping validation (e.g. empty phone failing the phone regex).
+  let rawBody: Record<string, unknown>;
+  try {
+    rawBody = (await request.json()) as Record<string, unknown>;
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+  const cleanedBody: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(rawBody)) {
+    if (typeof value === 'string' && value.trim() === '') continue;
+    cleanedBody[key] = value;
   }
 
-  if (Object.keys(updateData).length === 0 && !validatedBody.automationPreferences) {
-    return NextResponse.json({ success: true, message: 'No changes to update' });
+  const parsed = extendedProfileSchema.safeParse(cleanedBody);
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        error: 'Validation failed',
+        errors: parsed.error.issues.map((i) => ({
+          field: i.path.join('.'),
+          message: i.message,
+        })),
+      },
+      { status: 400 }
+    );
+  }
+  const validatedBody = parsed.data;
+
+  const updateData: UserProfileUpdateData = {};
+  if (validatedBody.firstName !== undefined)
+    updateData.first_name = validatedBody.firstName;
+  if (validatedBody.lastName !== undefined)
+    updateData.last_name = validatedBody.lastName;
+  if (validatedBody.phone !== undefined)
+    updateData.phone = validatedBody.phone || null;
+  if (validatedBody.bio !== undefined)
+    updateData.bio = validatedBody.bio || null;
+  if (validatedBody.address !== undefined)
+    updateData.address = validatedBody.address || null;
+  if (validatedBody.city !== undefined)
+    updateData.city = validatedBody.city || null;
+  if (validatedBody.postcode !== undefined)
+    updateData.postcode = validatedBody.postcode || null;
+  if (validatedBody.profileImageUrl !== undefined)
+    updateData.profile_image_url = validatedBody.profileImageUrl;
+
+  if (validatedBody.automationPreferences) {
+    await AutomationPreferencesService.updatePreferences(
+      user.id,
+      validatedBody.automationPreferences
+    );
+  }
+
+  if (
+    Object.keys(updateData).length === 0 &&
+    !validatedBody.automationPreferences
+  ) {
+    return NextResponse.json({
+      success: true,
+      message: 'No changes to update',
+    });
   }
 
   const { error: updateError } = await serverSupabase
@@ -165,12 +246,21 @@ async function handleJsonUpdate(request: Request, user: { id: string }) {
     .eq('id', user.id);
 
   if (updateError) {
-    logger.error('Profile update error', updateError, { service: 'user', userId: user.id, updateData });
+    logger.error('Profile update error', updateError, {
+      service: 'user',
+      userId: user.id,
+      updateData,
+    });
     return NextResponse.json(
-      { error: `Failed to update profile: ${updateError.message || updateError.details || 'Unknown error'}` },
+      {
+        error: `Failed to update profile: ${updateError.message || updateError.details || 'Unknown error'}`,
+      },
       { status: 500 }
     );
   }
 
-  return NextResponse.json({ success: true, message: 'Profile updated successfully' });
+  return NextResponse.json({
+    success: true,
+    message: 'Profile updated successfully',
+  });
 }

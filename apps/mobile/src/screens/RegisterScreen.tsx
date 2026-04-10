@@ -16,7 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthStackParamList } from '../navigation/types';
 
-import Button from '../components/ui/Button';
+import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Banner } from '../components/ui/Banner';
 import { RoleSelector } from './register/components/RoleSelector';
@@ -51,9 +51,10 @@ const FormProgress: React.FC<FormProgressProps> = ({ currentStep }) => {
                   style={[
                     progressStyles.line,
                     {
-                      backgroundColor: isCompleted || isActive
-                        ? theme.colors.primary
-                        : theme.colors.border,
+                      backgroundColor:
+                        isCompleted || isActive
+                          ? theme.colors.primary
+                          : theme.colors.border,
                     },
                   ]}
                 />
@@ -68,7 +69,11 @@ const FormProgress: React.FC<FormProgressProps> = ({ currentStep }) => {
                   ]}
                 >
                   {isCompleted ? (
-                    <Ionicons name="checkmark" size={16} color={theme.colors.textInverse} />
+                    <Ionicons
+                      name='checkmark'
+                      size={16}
+                      color={theme.colors.textInverse}
+                    />
                   ) : (
                     <Text
                       style={[
@@ -141,7 +146,10 @@ const progressStyles = StyleSheet.create({
   },
 });
 
-type RegisterScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
+type RegisterScreenNavigationProp = NativeStackNavigationProp<
+  AuthStackParamList,
+  'Register'
+>;
 
 interface Props {
   navigation?: RegisterScreenNavigationProp;
@@ -168,7 +176,8 @@ const RegisterScreen: React.FC<Props> = () => {
 
   const currentStep = useMemo(() => {
     if (form.email.trim().length > 0) return 3;
-    if (form.firstName.trim().length > 0 && form.lastName.trim().length > 0) return 2;
+    if (form.firstName.trim().length > 0 && form.lastName.trim().length > 0)
+      return 2;
     return 1;
   }, [form.firstName, form.lastName, form.email]);
 
@@ -176,18 +185,20 @@ const RegisterScreen: React.FC<Props> = () => {
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container}>
         <FadeIn duration={500}>
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <Image
-              source={require('../../assets/icon.png')}
-              style={styles.headerLogo}
-              resizeMode='contain'
-              accessible={false}
-            />
-            <Text style={styles.headerTitle} accessibilityRole='header'>Mintenance</Text>
+          <View style={styles.header}>
+            <View style={styles.headerContent}>
+              <Image
+                source={require('../../assets/icon.png')}
+                style={styles.headerLogo}
+                resizeMode='contain'
+                accessible={false}
+              />
+              <Text style={styles.headerTitle} accessibilityRole='header'>
+                Mintenance
+              </Text>
+            </View>
+            <Text style={styles.headerSubtitle}>Create your free account</Text>
           </View>
-          <Text style={styles.headerSubtitle}>Create your free account</Text>
-        </View>
         </FadeIn>
 
         <KeyboardAvoidingView
@@ -199,21 +210,31 @@ const RegisterScreen: React.FC<Props> = () => {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps='handled'
           >
-            <SlideIn direction="up" distance={20} duration={400} delay={200}>
-            <View style={styles.formHeading}>
-              <Text style={styles.formTitle}>Get Started</Text>
-              <Text style={styles.formSubtitle}>Fill in your details to create an account</Text>
-            </View>
+            <SlideIn direction='up' distance={20} duration={400} delay={200}>
+              <View style={styles.formHeading}>
+                <Text style={styles.formTitle}>Get Started</Text>
+                <Text style={styles.formSubtitle}>
+                  Fill in your details to create an account
+                </Text>
+              </View>
             </SlideIn>
 
             <FormProgress currentStep={currentStep} />
 
             <View style={styles.formContainer}>
               {submissionSuccess ? (
-                <Banner message={submissionSuccess} variant='success' testID='register-success-banner' />
+                <Banner
+                  message={submissionSuccess}
+                  variant='success'
+                  testID='register-success-banner'
+                />
               ) : null}
               {submissionError ? (
-                <Banner message={submissionError} variant='error' testID='register-error-banner' />
+                <Banner
+                  message={submissionError}
+                  variant='error'
+                  testID='register-error-banner'
+                />
               ) : null}
 
               <RoleSelector
@@ -224,7 +245,7 @@ const RegisterScreen: React.FC<Props> = () => {
               <Text style={styles.sectionLabel}>Personal Details</Text>
 
               <Input
-                testID="first-name-input"
+                testID='first-name-input'
                 label='First Name'
                 placeholder='First Name'
                 value={form.firstName}
@@ -243,7 +264,7 @@ const RegisterScreen: React.FC<Props> = () => {
               />
 
               <Input
-                testID="last-name-input"
+                testID='last-name-input'
                 label='Last Name'
                 placeholder='Last Name'
                 value={form.lastName}
@@ -264,7 +285,7 @@ const RegisterScreen: React.FC<Props> = () => {
               <Text style={styles.sectionLabel}>Contact Information</Text>
 
               <Input
-                testID="email-input"
+                testID='email-input'
                 label='Email'
                 placeholder='Email'
                 value={form.email}
@@ -302,7 +323,7 @@ const RegisterScreen: React.FC<Props> = () => {
               <Text style={styles.sectionLabel}>Create Password</Text>
 
               <Input
-                testID="password-input"
+                testID='password-input'
                 label='Password'
                 placeholder='Password'
                 value={form.password}
@@ -310,7 +331,9 @@ const RegisterScreen: React.FC<Props> = () => {
                 onBlur={() => validateOnBlur('password')}
                 errorText={fieldErrors.password}
                 leftIcon='lock-closed-outline'
-                rightIcon={form.passwordVisible ? 'eye-off-outline' : 'eye-outline'}
+                rightIcon={
+                  form.passwordVisible ? 'eye-off-outline' : 'eye-outline'
+                }
                 onRightIconPress={togglePasswordVisibility}
                 secureTextEntry={!form.passwordVisible}
                 accessibilityHint='Create a secure password with at least 8 characters'
@@ -324,7 +347,7 @@ const RegisterScreen: React.FC<Props> = () => {
               <PasswordStrengthBar password={form.password} />
 
               <Input
-                testID="confirm-password-input"
+                testID='confirm-password-input'
                 label='Confirm Password'
                 placeholder='Confirm Password'
                 value={form.confirmPassword}
@@ -356,7 +379,9 @@ const RegisterScreen: React.FC<Props> = () => {
                 onPress={handleRegister}
                 disabled={loading}
                 loading={loading}
-                accessibilityLabel={loading ? 'Creating account' : 'Create account'}
+                accessibilityLabel={
+                  loading ? 'Creating account' : 'Create account'
+                }
                 fullWidth
                 style={{ borderRadius: 28, marginBottom: 16 }}
               />
@@ -364,7 +389,9 @@ const RegisterScreen: React.FC<Props> = () => {
               <View style={styles.loginSection}>
                 <View style={styles.loginDivider} />
                 <View style={styles.loginLinkContainer}>
-                  <Text style={styles.loginPromptText}>Already have an account?</Text>
+                  <Text style={styles.loginPromptText}>
+                    Already have an account?
+                  </Text>
                   <TouchableOpacity
                     onPress={() => navigation.navigate('Login')}
                     accessibilityRole='link'
@@ -381,14 +408,14 @@ const RegisterScreen: React.FC<Props> = () => {
 
         <TermsModal
           visible={showTermsModal}
-          title="Terms"
-          testID="terms-modal"
+          title='Terms'
+          testID='terms-modal'
           onClose={() => setShowTermsModal(false)}
         />
         <TermsModal
           visible={showPrivacyModal}
-          title="Privacy"
-          testID="privacy-modal"
+          title='Privacy'
+          testID='privacy-modal'
           onClose={() => setShowPrivacyModal(false)}
         />
       </View>

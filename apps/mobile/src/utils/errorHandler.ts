@@ -318,5 +318,3 @@ export const handleError = (error: Error | unknown, context?: string) => {
 export const safeAsync = <T>(promise: Promise<T>, context?: string) => {
   return ErrorHandler.handleAsync(promise, context);
 };
-
-export default ErrorHandler;

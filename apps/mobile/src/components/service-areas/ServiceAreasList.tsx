@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ServiceAreaCard } from '../ServiceAreaCard';
-import Button from '../ui/Button';
+import { Button } from '../ui/Button';
 import type { ServiceArea } from '../../services/ServiceAreasService';
 import { theme } from '../../theme';
 
@@ -29,12 +29,18 @@ export const ServiceAreasList: React.FC<ServiceAreasListProps> = ({
     const items: ListItem[] = [];
 
     if (activeAreas.length > 0) {
-      items.push({ type: 'header', title: `Active Areas (${activeAreas.length})` });
+      items.push({
+        type: 'header',
+        title: `Active Areas (${activeAreas.length})`,
+      });
       activeAreas.forEach((area) => items.push({ type: 'area', area }));
     }
 
     if (inactiveAreas.length > 0) {
-      items.push({ type: 'header', title: `Inactive Areas (${inactiveAreas.length})` });
+      items.push({
+        type: 'header',
+        title: `Inactive Areas (${inactiveAreas.length})`,
+      });
       inactiveAreas.forEach((area) => items.push({ type: 'area', area }));
     }
 
@@ -75,7 +81,8 @@ export const ServiceAreasList: React.FC<ServiceAreasListProps> = ({
           />
           <Text style={styles.emptyTitle}>No service areas yet</Text>
           <Text style={styles.emptyText}>
-            Add your first service area so homeowners nearby can find you for jobs in your preferred locations.
+            Add your first service area so homeowners nearby can find you for
+            jobs in your preferred locations.
           </Text>
           <Button
             variant='primary'

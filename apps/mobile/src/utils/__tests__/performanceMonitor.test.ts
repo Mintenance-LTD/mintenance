@@ -1,4 +1,4 @@
-import performanceMonitor from '../performanceMonitor';
+import { performanceMonitor } from '../performanceMonitor';
 
 describe('performanceMonitor', () => {
   it('exports the monitoring singleton', () => {

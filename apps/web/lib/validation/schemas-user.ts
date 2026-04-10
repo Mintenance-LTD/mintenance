@@ -10,14 +10,15 @@ export const updateProfileSchema = z.object({
     .string()
     .min(1, 'First name required')
     .max(100, 'First name too long')
-    .regex(/^[a-zA-Z\s-']+$/, 'First name contains invalid characters')
+    // Allow Unicode letters (accents, non-Latin), spaces, hyphens, apostrophes
+    .regex(/^[\p{L}\s'-]+$/u, 'First name contains invalid characters')
     .transform((val) => sanitizeText(val, 100))
     .optional(),
   lastName: z
     .string()
     .min(1, 'Last name required')
     .max(100, 'Last name too long')
-    .regex(/^[a-zA-Z\s-']+$/, 'Last name contains invalid characters')
+    .regex(/^[\p{L}\s'-]+$/u, 'Last name contains invalid characters')
     .transform((val) => sanitizeText(val, 100))
     .optional(),
   phone: z

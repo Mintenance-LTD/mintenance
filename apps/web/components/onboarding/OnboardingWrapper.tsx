@@ -24,7 +24,25 @@ export function OnboardingWrapper({
 }: OnboardingWrapperProps) {
   const markServerComplete = useCallback(async () => {
     try {
-      await fetch('/api/onboarding/complete', { method: 'POST' });
+      const csrfToken =
+        typeof document !== 'undefined'
+          ? document.cookie
+              .split('; ')
+              .find(
+                (c) =>
+                  c.startsWith('csrf-token=') ||
+                  c.startsWith('__Host-csrf-token=')
+              )
+              ?.split('=')[1]
+          : undefined;
+      await fetch('/api/onboarding/complete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
+        },
+        body: '{}',
+      });
     } catch {
       // Silent fail — localStorage state is the primary guard
     }

@@ -12,7 +12,7 @@ import {
   Bid,
   DatabaseUser,
   DatabaseJob,
-  DatabaseMessage
+  DatabaseMessage,
 } from '../types/standardized';
 
 import {
@@ -21,7 +21,7 @@ import {
   mapDatabaseJobToJob,
   mapJobToDatabaseJob,
   mapDatabaseMessageToMessage,
-  mapMessageToDatabaseMessage
+  mapMessageToDatabaseMessage,
 } from './fieldMapper';
 
 type AnyRecord = Record<string, unknown>;
@@ -45,13 +45,20 @@ export function convertDatabaseUserToUser(dbUser: AnyRecord): User {
     latitude: dbUser.latitude as number | undefined,
     longitude: dbUser.longitude as number | undefined,
     address: dbUser.address as string | undefined,
-    profileImageUrl: (dbUser.profile_image_url || dbUser.profileImageUrl) as string | undefined,
+    profileImageUrl: (dbUser.profile_image_url || dbUser.profileImageUrl) as
+      | string
+      | undefined,
     bio: dbUser.bio as string | undefined,
     rating: dbUser.rating as number | undefined,
-    totalJobsCompleted: (dbUser.total_jobs_completed ?? dbUser.totalJobsCompleted) as number | undefined,
-    isAvailable: (dbUser.is_available ?? dbUser.isAvailable) as boolean | undefined,
-    isVerified: (dbUser.is_verified ?? dbUser.isVerified) as boolean | undefined,
-    phone: dbUser.phone as string | undefined
+    totalJobsCompleted: (dbUser.total_jobs_completed ??
+      dbUser.totalJobsCompleted) as number | undefined,
+    isAvailable: (dbUser.is_available ?? dbUser.isAvailable) as
+      | boolean
+      | undefined,
+    isVerified: (dbUser.is_verified ?? dbUser.isVerified) as
+      | boolean
+      | undefined,
+    phone: dbUser.phone as string | undefined,
   };
 }
 
@@ -76,7 +83,7 @@ export function convertUserToDatabaseUser(user: User): DatabaseUser {
     total_jobs_completed: user.totalJobsCompleted,
     is_available: user.isAvailable,
     is_verified: user.isVerified,
-    phone: user.phone
+    phone: user.phone,
   };
 }
 
@@ -94,7 +101,9 @@ export function convertDatabaseJobToJob(dbJob: AnyRecord): Job {
     description: dbJob.description as string,
     location: dbJob.location as string,
     homeownerId: (dbJob.homeowner_id || dbJob.homeownerId) as string,
-    contractorId: (dbJob.contractor_id || dbJob.contractorId) as string | undefined,
+    contractorId: (dbJob.contractor_id || dbJob.contractorId) as
+      | string
+      | undefined,
     status: dbJob.status as Job['status'],
     budget: dbJob.budget as number,
     createdAt: (dbJob.created_at || dbJob.createdAt) as string,
@@ -104,9 +113,15 @@ export function convertDatabaseJobToJob(dbJob: AnyRecord): Job {
     priority: dbJob.priority as Job['priority'],
     photos: dbJob.photos as string[] | undefined,
     // Convert related entities if present
-    homeowner: dbJob.homeowner ? convertDatabaseUserToUser(dbJob.homeowner as AnyRecord) : undefined,
-    contractor: dbJob.contractor ? convertDatabaseUserToUser(dbJob.contractor as AnyRecord) : undefined,
-    bids: dbJob.bids ? (dbJob.bids as AnyRecord[]).map(convertDatabaseBidToBid) : undefined
+    homeowner: dbJob.homeowner
+      ? convertDatabaseUserToUser(dbJob.homeowner as AnyRecord)
+      : undefined,
+    contractor: dbJob.contractor
+      ? convertDatabaseUserToUser(dbJob.contractor as AnyRecord)
+      : undefined,
+    bids: dbJob.bids
+      ? (dbJob.bids as AnyRecord[]).map(convertDatabaseBidToBid)
+      : undefined,
   };
 }
 
@@ -128,7 +143,7 @@ export function convertJobToDatabaseJob(job: Job): DatabaseJob {
     category: job.category,
     subcategory: job.subcategory,
     priority: job.priority,
-    photos: job.photos
+    photos: job.photos,
   };
 }
 
@@ -147,29 +162,40 @@ export function convertDatabaseMessageToMessage(dbMessage: AnyRecord): Message {
     senderId: (dbMessage.sender_id || dbMessage.senderId) as string,
     receiverId: (dbMessage.receiver_id || dbMessage.receiverId) as string,
     messageText: (dbMessage.message_text || dbMessage.messageText) as string,
-    messageType: (dbMessage.message_type || dbMessage.messageType) as Message['messageType'],
-    attachmentUrl: (dbMessage.attachment_url || dbMessage.attachmentUrl) as string | undefined,
+    messageType: (dbMessage.message_type ||
+      dbMessage.messageType) as Message['messageType'],
+    attachmentUrl: (dbMessage.attachment_url || dbMessage.attachmentUrl) as
+      | string
+      | undefined,
     read: dbMessage.read as boolean,
     createdAt: (dbMessage.created_at || dbMessage.createdAt) as string,
     syncedAt: (dbMessage.synced_at || dbMessage.syncedAt) as string | undefined,
     callId: (dbMessage.call_id || dbMessage.callId) as string | undefined,
-    callDuration: (dbMessage.call_duration || dbMessage.callDuration) as number | undefined,
+    callDuration: (dbMessage.call_duration || dbMessage.callDuration) as
+      | number
+      | undefined,
     // Convert related entities if present
     sender: sender ? convertDatabaseUserToUser(sender) : undefined,
-    receiver: dbMessage.receiver ? convertDatabaseUserToUser(dbMessage.receiver as AnyRecord) : undefined,
-    job: dbMessage.job ? convertDatabaseJobToJob(dbMessage.job as AnyRecord) : undefined,
+    receiver: dbMessage.receiver
+      ? convertDatabaseUserToUser(dbMessage.receiver as AnyRecord)
+      : undefined,
+    job: dbMessage.job
+      ? convertDatabaseJobToJob(dbMessage.job as AnyRecord)
+      : undefined,
     // Computed fields
     senderName: sender
       ? `${(sender.first_name as string) || ''} ${(sender.last_name as string) || ''}`.trim()
       : undefined,
-    senderRole: (sender?.role as string) ?? undefined
+    senderRole: (sender?.role as string) ?? undefined,
   };
 }
 
 /**
  * Convert application message to database message
  */
-export function convertMessageToDatabaseMessage(message: Message): DatabaseMessage {
+export function convertMessageToDatabaseMessage(
+  message: Message
+): DatabaseMessage {
   return {
     id: message.id,
     job_id: message.jobId,
@@ -182,7 +208,7 @@ export function convertMessageToDatabaseMessage(message: Message): DatabaseMessa
     created_at: message.createdAt,
     synced_at: message.syncedAt,
     call_id: message.callId,
-    call_duration: message.callDuration
+    call_duration: message.callDuration,
   };
 }
 
@@ -214,7 +240,7 @@ export function convertDatabaseBidToBid(dbBid: AnyRecord): Bid {
     jobTitle: job?.title as string | undefined,
     jobDescription: job?.description as string | undefined,
     jobLocation: job?.location as string | undefined,
-    jobBudget: job?.budget as number | undefined
+    jobBudget: job?.budget as number | undefined,
   };
 }
 
@@ -230,7 +256,9 @@ export function convertDatabaseJobsToJobs(dbJobs: AnyRecord[]): Job[] {
   return dbJobs.map(convertDatabaseJobToJob);
 }
 
-export function convertDatabaseMessagesToMessages(dbMessages: AnyRecord[]): Message[] {
+export function convertDatabaseMessagesToMessages(
+  dbMessages: AnyRecord[]
+): Message[] {
   return dbMessages.map(convertDatabaseMessageToMessage);
 }
 
@@ -242,7 +270,10 @@ export function convertDatabaseBidsToBids(dbBids: AnyRecord[]): Bid[] {
 // GENERIC CONVERSION UTILITIES
 // =============================================
 
-export function convertDatabaseEntity(dbEntity: AnyRecord, entityType: string): unknown {
+export function convertDatabaseEntity(
+  dbEntity: AnyRecord,
+  entityType: string
+): unknown {
   switch (entityType) {
     case 'user':
       return convertDatabaseUserToUser(dbEntity);
@@ -257,7 +288,10 @@ export function convertDatabaseEntity(dbEntity: AnyRecord, entityType: string): 
   }
 }
 
-export function convertApplicationEntity(appEntity: unknown, entityType: string): unknown {
+export function convertApplicationEntity(
+  appEntity: unknown,
+  entityType: string
+): unknown {
   switch (entityType) {
     case 'user':
       return convertUserToDatabaseUser(appEntity as User);
@@ -274,7 +308,10 @@ export function convertApplicationEntity(appEntity: unknown, entityType: string)
 // VALIDATION HELPERS
 // =============================================
 
-export function normalizeFieldNames(obj: unknown, targetFormat: 'snake_case' | 'camelCase'): unknown {
+export function normalizeFieldNames(
+  obj: unknown,
+  targetFormat: 'snake_case' | 'camelCase'
+): unknown {
   if (!obj || typeof obj !== 'object') return obj;
 
   const normalized: Record<string, unknown> = {};
@@ -283,11 +320,18 @@ export function normalizeFieldNames(obj: unknown, targetFormat: 'snake_case' | '
     let normalizedKey = key;
 
     if (targetFormat === 'snake_case') {
-      normalizedKey = key.replace(/([A-Z])/g, '_$1').replace(/^_/, '').toLowerCase();
+      normalizedKey = key
+        .replace(/([A-Z])/g, '_$1')
+        .replace(/^_/, '')
+        .toLowerCase();
     } else {
       const leadingUnderscores = key.match(/^_+/)?.[0] ?? '';
       const coreKey = key.slice(leadingUnderscores.length);
-      normalizedKey = leadingUnderscores + coreKey.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
+      normalizedKey =
+        leadingUnderscores +
+        coreKey.replace(/_([a-z])/g, (_, letter: string) =>
+          letter.toUpperCase()
+        );
     }
 
     normalized[normalizedKey] = value;
@@ -304,27 +348,25 @@ export const TypeConversion = {
   user: {
     fromDatabase: convertDatabaseUserToUser,
     toDatabase: convertUserToDatabaseUser,
-    arrayFromDatabase: convertDatabaseUsersToUsers
+    arrayFromDatabase: convertDatabaseUsersToUsers,
   },
   job: {
     fromDatabase: convertDatabaseJobToJob,
     toDatabase: convertJobToDatabaseJob,
-    arrayFromDatabase: convertDatabaseJobsToJobs
+    arrayFromDatabase: convertDatabaseJobsToJobs,
   },
   message: {
     fromDatabase: convertDatabaseMessageToMessage,
     toDatabase: convertMessageToDatabaseMessage,
-    arrayFromDatabase: convertDatabaseMessagesToMessages
+    arrayFromDatabase: convertDatabaseMessagesToMessages,
   },
   bid: {
     fromDatabase: convertDatabaseBidToBid,
-    arrayFromDatabase: convertDatabaseBidsToBids
+    arrayFromDatabase: convertDatabaseBidsToBids,
   },
   generic: {
     fromDatabase: convertDatabaseEntity,
     toDatabase: convertApplicationEntity,
-    normalizeFields: normalizeFieldNames
-  }
+    normalizeFields: normalizeFieldNames,
+  },
 };
-
-export default TypeConversion;

@@ -1,6 +1,5 @@
 import { renderHook, act } from '@testing-library/react-native';
-import useI18n from '../useI18n';
-
+import { useI18n } from '../useI18n';
 
 // Mock dependencies
 jest.mock('../../utils/logger', () => ({

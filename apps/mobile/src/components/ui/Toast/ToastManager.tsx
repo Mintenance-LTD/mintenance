@@ -309,5 +309,3 @@ const styles = StyleSheet.create({
     zIndex: 999999,
   },
 });
-
-export default ToastManager;

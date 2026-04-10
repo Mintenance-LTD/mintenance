@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal } from 'react-native';
-import Button from '../ui/Button';
+import { Button } from '../ui/Button';
 import type { ServiceArea } from '../../services/ServiceAreasService';
 import { theme } from '../../theme';
 
@@ -11,12 +11,9 @@ interface DeleteConfirmationModalProps {
   onConfirm: () => void;
 }
 
-export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
-  visible,
-  selectedArea,
-  onClose,
-  onConfirm,
-}) => {
+export const DeleteConfirmationModal: React.FC<
+  DeleteConfirmationModalProps
+> = ({ visible, selectedArea, onClose, onConfirm }) => {
   return (
     <Modal
       visible={visible}

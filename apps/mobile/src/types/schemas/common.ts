@@ -22,7 +22,8 @@ export const NameSchema = z
   .min(1, 'Name is required')
   .max(50, 'Name must be less than 50 characters')
   .regex(
-    /^[a-zA-Z\s\-']+$/,
+    // Unicode letters (accents, non-Latin scripts), spaces, hyphens, apostrophes
+    /^[\p{L}\s'-]+$/u,
     'Name can only contain letters, spaces, hyphens, and apostrophes'
   );
 

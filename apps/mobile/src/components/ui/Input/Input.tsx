@@ -61,28 +61,66 @@ export const Input = forwardRef<TextInput, InputProps>(
     ref
   ) => {
     const [isFocused, setIsFocused] = useState(false);
-    const [hasValue, setHasValue] = useState(!!textInputProps.value || !!textInputProps.defaultValue);
+    const [hasValue, setHasValue] = useState(
+      !!textInputProps.value || !!textInputProps.defaultValue
+    );
     const borderAnimation = useRef(new Animated.Value(0)).current;
-    const labelAnimation = useRef(new Animated.Value(textInputProps.value || textInputProps.defaultValue ? 1 : 0)).current;
+    const labelAnimation = useRef(
+      new Animated.Value(
+        textInputProps.value || textInputProps.defaultValue ? 1 : 0
+      )
+    ).current;
 
-    const containerStyles = getContainerStyles(variant, size, state, isFocused, fullWidth, !!leftIcon, !!rightIcon);
+    const containerStyles = getContainerStyles(
+      variant,
+      size,
+      state,
+      isFocused,
+      fullWidth,
+      !!leftIcon,
+      !!rightIcon
+    );
     const textStyles = getTextStyles(size, state);
     const iconColor = getIconColor(state, isFocused);
 
-    const handleFocus = (e: import('react-native').NativeSyntheticEvent<import('react-native').TargetedEvent>) => {
+    const handleFocus = (
+      e: import('react-native').NativeSyntheticEvent<
+        import('react-native').TargetedEvent
+      >
+    ) => {
       setIsFocused(true);
       Animated.parallel([
-        Animated.timing(borderAnimation, { toValue: 1, duration: 150, useNativeDriver: false }),
-        Animated.timing(labelAnimation, { toValue: 1, duration: 150, useNativeDriver: false }),
+        Animated.timing(borderAnimation, {
+          toValue: 1,
+          duration: 150,
+          useNativeDriver: false,
+        }),
+        Animated.timing(labelAnimation, {
+          toValue: 1,
+          duration: 150,
+          useNativeDriver: false,
+        }),
       ]).start();
       textInputProps.onFocus?.(e);
     };
 
-    const handleBlur = (e: import('react-native').NativeSyntheticEvent<import('react-native').TargetedEvent>) => {
+    const handleBlur = (
+      e: import('react-native').NativeSyntheticEvent<
+        import('react-native').TargetedEvent
+      >
+    ) => {
       setIsFocused(false);
-      Animated.timing(borderAnimation, { toValue: 0, duration: 150, useNativeDriver: false }).start();
+      Animated.timing(borderAnimation, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: false,
+      }).start();
       if (!hasValue) {
-        Animated.timing(labelAnimation, { toValue: 0, duration: 150, useNativeDriver: false }).start();
+        Animated.timing(labelAnimation, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: false,
+        }).start();
       }
       textInputProps.onBlur?.(e);
     };
@@ -100,9 +138,17 @@ export const Input = forwardRef<TextInput, InputProps>(
           left: 16,
           backgroundColor: theme.colors.backgroundSecondary,
           paddingHorizontal: 4,
-          fontSize: labelAnimation.interpolate({ inputRange: [0, 1], outputRange: [15, 13] }),
-          top: labelAnimation.interpolate({ inputRange: [0, 1], outputRange: [12, -8] }),
-          color: isFocused ? theme.colors.textPrimary : theme.colors.textSecondary,
+          fontSize: labelAnimation.interpolate({
+            inputRange: [0, 1],
+            outputRange: [15, 13],
+          }),
+          top: labelAnimation.interpolate({
+            inputRange: [0, 1],
+            outputRange: [12, -8],
+          }),
+          color: isFocused
+            ? theme.colors.textPrimary
+            : theme.colors.textSecondary,
           zIndex: 1,
         };
         return (
@@ -130,7 +176,11 @@ export const Input = forwardRef<TextInput, InputProps>(
       return (
         <IconComponent
           onPress={onPress}
-          style={[styles.iconContainer, position === 'left' && styles.leftIconContainer, position === 'right' && styles.rightIconContainer]}
+          style={[
+            styles.iconContainer,
+            position === 'left' && styles.leftIconContainer,
+            position === 'right' && styles.rightIconContainer,
+          ]}
           disabled={state === 'disabled'}
           accessibilityRole={onPress ? 'button' : undefined}
           accessibilityLabel={onPress ? `${iconName} button` : undefined}
@@ -143,7 +193,11 @@ export const Input = forwardRef<TextInput, InputProps>(
     const renderHelperText = () => {
       const text = errorText || helperText;
       if (!text) return null;
-      return <Text style={[styles.helperText, errorText && styles.errorText]}>{text}</Text>;
+      return (
+        <Text style={[styles.helperText, errorText && styles.errorText]}>
+          {text}
+        </Text>
+      );
     };
 
     return (
@@ -158,7 +212,11 @@ export const Input = forwardRef<TextInput, InputProps>(
             onBlur={handleBlur}
             onChangeText={handleChangeText}
             editable={state !== 'disabled'}
-            placeholderTextColor={variant === 'outline' && label ? 'transparent' : theme.colors.textTertiary}
+            placeholderTextColor={
+              variant === 'outline' && label
+                ? 'transparent'
+                : theme.colors.textTertiary
+            }
             selectionColor={theme.colors.textPrimary}
             {...textInputProps}
           />
@@ -196,7 +254,10 @@ const getContainerStyles = (
         borderWidth: isFocused ? 2 : 1,
         borderRadius: 12,
         borderColor: getBorderColor(state, isFocused),
-        backgroundColor: state === 'disabled' ? theme.colors.backgroundSecondary : theme.colors.textInverse,
+        backgroundColor:
+          state === 'disabled'
+            ? theme.colors.backgroundSecondary
+            : theme.colors.textInverse,
       };
     case 'filled':
       return {
@@ -204,7 +265,10 @@ const getContainerStyles = (
         borderRadius: 12,
         borderBottomLeftRadius: 0,
         borderBottomRightRadius: 0,
-        backgroundColor: state === 'disabled' ? theme.colors.border : theme.colors.backgroundSecondary,
+        backgroundColor:
+          state === 'disabled'
+            ? theme.colors.border
+            : theme.colors.backgroundSecondary,
         borderBottomWidth: isFocused ? 2 : 1,
         borderBottomColor: getBorderColor(state, isFocused),
       };
@@ -224,7 +288,8 @@ const getContainerStyles = (
 const getTextStyles = (size: InputSize, state: InputState) => ({
   flex: 1,
   fontSize: INPUT_SIZES[size].fontSize,
-  color: state === 'disabled' ? theme.colors.textTertiary : theme.colors.textPrimary,
+  color:
+    state === 'disabled' ? theme.colors.textTertiary : theme.colors.textPrimary,
 });
 
 const getBorderColor = (state: InputState, isFocused: boolean): string => {
@@ -279,5 +344,3 @@ const styles = StyleSheet.create({
     color: theme.colors.error,
   },
 });
-
-export default Input;

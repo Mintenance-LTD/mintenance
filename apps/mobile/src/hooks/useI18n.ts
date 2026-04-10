@@ -260,5 +260,3 @@ const useDirectionValue = <T>(ltrValue: T, rtlValue: T) => {
   const { isRTL } = useI18n();
   return isRTL ? rtlValue : ltrValue;
 };
-
-export default useI18n;

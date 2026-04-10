@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 
-import Button from '../components/ui/Button';
+import { Button } from '../components/ui/Button';
 import { TERMS_URL, PRIVACY_URL } from '../config/legal';
 import { ResponsiveContainer } from '../components/responsive';
 import { ProfileHeader } from './profile/components/ProfileHeader';
@@ -369,14 +369,16 @@ const ProfileScreen: React.FC = () => {
                     icon: 'shield-checkmark-outline',
                     iconColor: '#3B82F6',
                     iconBg: '#DBEAFE',
-                    onPress: () => navigation.navigate('ContractorVerification'),
+                    onPress: () =>
+                      navigation.navigate('ContractorVerification'),
                   },
                   {
                     label: 'Business Profile',
                     icon: 'briefcase-outline',
                     iconColor: theme.colors.primary,
                     iconBg: theme.colors.primaryLight,
-                    onPress: () => navigation.navigate('BusinessProfile' as never),
+                    onPress: () =>
+                      navigation.navigate('BusinessProfile' as never),
                   },
                 ]}
               />

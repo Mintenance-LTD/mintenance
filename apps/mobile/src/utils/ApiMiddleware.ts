@@ -463,5 +463,3 @@ export class ProtectedSupabaseClient {
 
 // Export singleton middleware instance
 export const apiMiddleware = new ApiMiddleware();
-
-export default apiMiddleware;

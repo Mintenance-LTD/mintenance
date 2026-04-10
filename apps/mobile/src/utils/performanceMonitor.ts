@@ -286,5 +286,3 @@ if (__DEV__) {
     performanceMonitor.recordMemoryUsage();
   }, 30000);
 }
-
-export default performanceMonitor;

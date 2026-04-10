@@ -55,7 +55,9 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
     try {
       setError(null);
       // Use API endpoint (runs server-side with service_role, bypasses RLS)
-      const res = await mobileApiClient.get<{ clients: DerivedClient[] }>('/api/contractor/clients');
+      const res = await mobileApiClient.get<{ clients: DerivedClient[] }>(
+        '/api/contractor/clients'
+      );
       setClients(res.clients || []);
     } catch (err) {
       logger.error('Error loading CRM data', err);
@@ -335,5 +337,3 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
     </View>
   );
 };
-
-export default CRMDashboardScreen;

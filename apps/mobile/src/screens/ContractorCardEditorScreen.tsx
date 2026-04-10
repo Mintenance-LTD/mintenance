@@ -229,5 +229,3 @@ export const ContractorCardEditorScreen: React.FC<
     </View>
   );
 };
-
-export default ContractorCardEditorScreen;
