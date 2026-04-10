@@ -9,7 +9,7 @@ import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import SqlInjectionProtection from './SqlInjectionProtection';
-import InputValidationMiddleware from '../middleware/InputValidationMiddleware';
+import { InputValidationMiddleware } from '../middleware/InputValidationMiddleware';
 import { logger } from './logger';
 
 // Conditional import for FileSystem to handle test environments
@@ -482,4 +482,3 @@ class SecurityManagerService {
 
 export { SecurityManagerService };
 export const SecurityManager = new SecurityManagerService();
-export default SecurityManager;

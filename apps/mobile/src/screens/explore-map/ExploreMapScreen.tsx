@@ -458,5 +458,3 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
     </View>
   );
 };
-
-export default ExploreMapScreen;

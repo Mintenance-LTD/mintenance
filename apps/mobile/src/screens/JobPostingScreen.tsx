@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import Button from '../components/ui/Button';
+import { Button } from '../components/ui/Button';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { JobsStackParamList } from '../navigation/types';
 import { useAuth } from '../contexts/AuthContext';
@@ -20,7 +20,11 @@ import { useCreateJob } from '../hooks/useJobs';
 import { logger } from '../utils/logger';
 import { SecurityManager } from '../utils/SecurityManager';
 import { PerformanceOptimizer } from '../utils/PerformanceOptimizer';
-import { ErrorManager, ErrorCategory, ErrorSeverity } from '../utils/ErrorManager';
+import {
+  ErrorManager,
+  ErrorCategory,
+  ErrorSeverity,
+} from '../utils/ErrorManager';
 import { JobPostingFormFields } from './job-form/JobPostingFormFields';
 import { theme } from '../theme';
 
@@ -50,10 +54,14 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
   const [category, setCategory] = useState('handyman');
   const [urgency, setUrgency] = useState<'low' | 'medium' | 'high'>('medium');
   const [budget, setBudget] = useState('');
-  const [aiPricingAnalysis, setAIPricingAnalysis] = useState<PricingAnalysis | null>(null);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [aiPricingAnalysis, setAIPricingAnalysis] =
+    useState<PricingAnalysis | null>(null);
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, string>
+  >({});
   const [photos, setPhotos] = useState<string[]>([]);
-  const [buildingAssessment, setBuildingAssessment] = useState<BuildingAssessment | null>(null);
+  const [buildingAssessment, setBuildingAssessment] =
+    useState<BuildingAssessment | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
@@ -89,19 +97,23 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
       });
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const newPhotoUri = result.assets[0].uri;
-        if (newPhotoUri.startsWith('file://') || newPhotoUri.startsWith('content://')) {
-          const validation = await SecurityManager.validateFileUpload(newPhotoUri);
+        if (
+          newPhotoUri.startsWith('file://') ||
+          newPhotoUri.startsWith('content://')
+        ) {
+          const validation =
+            await SecurityManager.validateFileUpload(newPhotoUri);
           if (!validation.isValid) {
             ErrorManager.handleValidationError(validation.errors);
             return;
           }
         }
-        setPhotos(prev => [...prev, newPhotoUri]);
+        setPhotos((prev) => [...prev, newPhotoUri]);
       }
       PerformanceOptimizer.endMetric('photo-selection');
     } catch (error) {
       if (typeof error === 'string' && error.includes('testing')) {
-        setPhotos(prev => [...prev, `photo-${photos.length}`]);
+        setPhotos((prev) => [...prev, `photo-${photos.length}`]);
       } else {
         ErrorManager.handleError(error as Error, {
           category: ErrorCategory.SYSTEM,
@@ -112,29 +124,35 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleRemovePhoto = (index: number) => {
-    setPhotos(prev => prev.filter((_, i) => i !== index));
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
   const validateField = (fieldName: string, value: string): string => {
     switch (fieldName) {
       case 'title':
         if (!value.trim()) return 'Title is required';
-        if (value.trim().length < 10) return 'Job title must be at least 10 characters';
-        if (value.trim().length > 100) return 'Job title cannot exceed 100 characters';
+        if (value.trim().length < 10)
+          return 'Job title must be at least 10 characters';
+        if (value.trim().length > 100)
+          return 'Job title cannot exceed 100 characters';
         return '';
       case 'description':
         if (!value.trim()) return 'Description is required';
-        if (value.trim().length < 20) return 'Description must be at least 20 characters';
-        if (value.trim().length > 500) return 'Description cannot exceed 500 characters';
+        if (value.trim().length < 20)
+          return 'Description must be at least 20 characters';
+        if (value.trim().length > 500)
+          return 'Description cannot exceed 500 characters';
         return '';
       case 'location':
         if (!value.trim()) return 'Location is required';
-        if (value.trim().length < 5) return 'Please provide a more specific location';
+        if (value.trim().length < 5)
+          return 'Please provide a more specific location';
         return '';
       case 'budget':
         if (!value.trim()) return 'Budget is required';
         const budgetNumber = parseFloat(value);
-        if (isNaN(budgetNumber) || budgetNumber <= 0) return 'Budget must be a positive number';
+        if (isNaN(budgetNumber) || budgetNumber <= 0)
+          return 'Budget must be a positive number';
         if (budgetNumber > 50000) return 'Budget cannot exceed £50,000';
         if (budgetNumber < 10) return 'Minimum budget is £10';
         return '';
@@ -145,13 +163,21 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleFieldChange = (fieldName: string, value: string) => {
     switch (fieldName) {
-      case 'title': setTitle(value); break;
-      case 'description': setDescription(value); break;
-      case 'location': setLocation(value); break;
-      case 'budget': setBudget(value); break;
+      case 'title':
+        setTitle(value);
+        break;
+      case 'description':
+        setDescription(value);
+        break;
+      case 'location':
+        setLocation(value);
+        break;
+      case 'budget':
+        setBudget(value);
+        break;
     }
     const error = validateField(fieldName, value);
-    setValidationErrors(prev => ({ ...prev, [fieldName]: error }));
+    setValidationErrors((prev) => ({ ...prev, [fieldName]: error }));
   };
 
   const handleSubmit = async () => {
@@ -159,10 +185,25 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
     setSubmissionError(null);
     setSubmissionSuccess(false);
 
-    const titleValidation = SecurityManager.validateTextInput(title, { maxLength: 100, minLength: 3, fieldName: 'Title' });
-    const descriptionValidation = SecurityManager.validateTextInput(description, { maxLength: 1000, minLength: 10, fieldName: 'Description' });
-    const locationValidation = SecurityManager.validateTextInput(location, { maxLength: 200, minLength: 2, fieldName: 'Location' });
-    const allErrors = [...titleValidation.errors, ...descriptionValidation.errors, ...locationValidation.errors];
+    const titleValidation = SecurityManager.validateTextInput(title, {
+      maxLength: 100,
+      minLength: 3,
+      fieldName: 'Title',
+    });
+    const descriptionValidation = SecurityManager.validateTextInput(
+      description,
+      { maxLength: 1000, minLength: 10, fieldName: 'Description' }
+    );
+    const locationValidation = SecurityManager.validateTextInput(location, {
+      maxLength: 200,
+      minLength: 2,
+      fieldName: 'Location',
+    });
+    const allErrors = [
+      ...titleValidation.errors,
+      ...descriptionValidation.errors,
+      ...locationValidation.errors,
+    ];
 
     const errors = {
       title: validateField('title', title),
@@ -172,11 +213,14 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
     };
     setValidationErrors(errors);
 
-    if (Object.values(errors).some(e => e !== '') || allErrors.length > 0) {
+    if (Object.values(errors).some((e) => e !== '') || allErrors.length > 0) {
       if (allErrors.length > 0) {
         ErrorManager.handleValidationError(allErrors);
       } else {
-        Alert.alert('Validation Error', 'Please fix the errors in the form before submitting');
+        Alert.alert(
+          'Validation Error',
+          'Please fix the errors in the form before submitting'
+        );
       }
       return;
     }
@@ -188,7 +232,11 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
 
     const budgetNumber = parseFloat(budget);
 
-    if (aiPricingAnalysis && Math.abs(budgetNumber - aiPricingAnalysis.suggestedPrice.optimal) > aiPricingAnalysis.suggestedPrice.optimal * 0.3) {
+    if (
+      aiPricingAnalysis &&
+      Math.abs(budgetNumber - aiPricingAnalysis.suggestedPrice.optimal) >
+        aiPricingAnalysis.suggestedPrice.optimal * 0.3
+    ) {
       const proceed = await new Promise<boolean>((resolve) => {
         Alert.alert(
           'Budget Notice',
@@ -204,7 +252,12 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
 
     setIsSubmitting(true);
     try {
-      logger.info('Submitting job posting', { title, category, urgency, budget: budgetNumber });
+      logger.info('Submitting job posting', {
+        title,
+        category,
+        urgency,
+        budget: budgetNumber,
+      });
       const result = await createJobMutation.mutateAsync({
         title: title.trim(),
         description: description.trim(),
@@ -223,7 +276,10 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
     } catch (error) {
       logger.error('Job posting failed:', error);
       setSubmissionError((error as Error).message || 'Failed to create job');
-      ErrorManager.handleError(error as Error, { category: ErrorCategory.SYSTEM, severity: ErrorSeverity.HIGH });
+      ErrorManager.handleError(error as Error, {
+        category: ErrorCategory.SYSTEM,
+        severity: ErrorSeverity.HIGH,
+      });
     } finally {
       setIsSubmitting(false);
       PerformanceOptimizer.endMetric('job-submission');
@@ -236,10 +292,14 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityRole='button'
+          accessibilityLabel='Go back'
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          <Ionicons
+            name='arrow-back'
+            size={24}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Post a Job</Text>
         <View style={{ width: 40 }} />
@@ -281,24 +341,32 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
 
       <View style={styles.footer}>
         {submissionSuccess && (
-          <View testID="success-message" style={styles.messageContainer}>
+          <View testID='success-message' style={styles.messageContainer}>
             <View style={styles.successIconWrap}>
-              <Ionicons name="checkmark-circle" size={16} color={theme.colors.primary} />
+              <Ionicons
+                name='checkmark-circle'
+                size={16}
+                color={theme.colors.primary}
+              />
             </View>
             <Text style={styles.successText}>Job posted successfully!</Text>
           </View>
         )}
         {submissionError && (
-          <View testID="error-message" style={styles.messageContainer}>
+          <View testID='error-message' style={styles.messageContainer}>
             <View style={styles.errorIconWrap}>
-              <Ionicons name="alert-circle" size={16} color={theme.colors.error} />
+              <Ionicons
+                name='alert-circle'
+                size={16}
+                color={theme.colors.error}
+              />
             </View>
             <Text style={styles.errorText}>{submissionError}</Text>
           </View>
         )}
         {isSubmitting && (
-          <View testID="loading-spinner" style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color={theme.colors.primary} />
+          <View testID='loading-spinner' style={styles.loadingContainer}>
+            <ActivityIndicator size='small' color={theme.colors.primary} />
             <Text style={styles.loadingText}>Posting job...</Text>
           </View>
         )}
@@ -306,11 +374,16 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
           style={[styles.submitButton, isSubmitting && { opacity: 0.5 }]}
           onPress={handleSubmit}
           disabled={isSubmitting}
-          accessibilityRole="button"
+          accessibilityRole='button'
           accessibilityLabel={isSubmitting ? 'Posting job' : 'Post job'}
           accessibilityState={{ disabled: isSubmitting }}
         >
-          <Ionicons name="add-circle-outline" size={20} color={theme.colors.textInverse} style={{ marginRight: 8 }} />
+          <Ionicons
+            name='add-circle-outline'
+            size={20}
+            color={theme.colors.textInverse}
+            style={{ marginRight: 8 }}
+          />
           <Text style={styles.submitButtonText}>
             {isSubmitting ? 'Posting...' : 'Post Job'}
           </Text>

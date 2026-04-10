@@ -21,7 +21,7 @@ import { AuthStackParamList } from '../navigation/types';
 import { useAccessibleText } from '../hooks/useAccessibleText';
 import { useHaptics } from '../utils/haptics';
 import { useI18n } from '../hooks/useI18n';
-import Button from '../components/ui/Button';
+import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Banner } from '../components/ui/Banner';
 import { theme, gradients } from '../theme';

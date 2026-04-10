@@ -433,5 +433,3 @@ const s = StyleSheet.create({
     lineHeight: 17,
   },
 });
-
-export default ServiceAreasScreen;

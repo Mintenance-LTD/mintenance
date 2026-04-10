@@ -7,7 +7,7 @@ import JobsScreen from '../../screens/JobsScreen';
 import { JobDetailsScreen } from '../../screens/job-details';
 import JobPostingScreen from '../../screens/JobPostingScreen';
 import BidSubmissionScreen from '../../screens/BidSubmissionScreen';
-import PaymentScreen from '../../screens/PaymentScreen';
+import { PaymentScreen } from '../../screens/PaymentScreen';
 import { JobTimelineScreen } from '../../screens/job-details/JobTimelineScreen';
 import { DisputeScreen } from '../../screens/DisputeScreen';
 import { BidReviewScreen } from '../../screens/BidReviewScreen';

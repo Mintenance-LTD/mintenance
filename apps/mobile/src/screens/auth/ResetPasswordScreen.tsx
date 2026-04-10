@@ -9,8 +9,11 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import Button from '../../components/ui/Button';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
+import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Banner } from '../../components/ui/Banner';
 import { Ionicons } from '@expo/vector-icons';
@@ -95,14 +98,19 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  const StrengthIndicator: React.FC<{ met: boolean; label: string }> = ({ met, label }) => (
+  const StrengthIndicator: React.FC<{ met: boolean; label: string }> = ({
+    met,
+    label,
+  }) => (
     <View style={styles.strengthRow}>
       <Ionicons
         name={met ? 'checkmark-circle' : 'ellipse-outline'}
         size={16}
         color={met ? theme.colors.primary : theme.colors.textTertiary}
       />
-      <Text style={[styles.strengthLabel, met && styles.strengthLabelMet]}>{label}</Text>
+      <Text style={[styles.strengthLabel, met && styles.strengthLabelMet]}>
+        {label}
+      </Text>
     </View>
   );
 
@@ -115,10 +123,10 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
               <Image
                 source={require('../../../assets/icon.png')}
                 style={styles.headerLogo}
-                resizeMode="contain"
+                resizeMode='contain'
                 accessible={false}
               />
-              <Text style={styles.headerTitle} accessibilityRole="header">
+              <Text style={styles.headerTitle} accessibilityRole='header'>
                 Mintenance
               </Text>
             </View>
@@ -126,21 +134,27 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
 
           <View style={styles.successContainer}>
             <View style={styles.successIconWrap}>
-              <Ionicons name="checkmark-circle" size={48} color={theme.colors.primary} accessible={false} />
+              <Ionicons
+                name='checkmark-circle'
+                size={48}
+                color={theme.colors.primary}
+                accessible={false}
+              />
             </View>
-            <Text style={styles.successTitle} accessibilityRole="header">
+            <Text style={styles.successTitle} accessibilityRole='header'>
               Password Updated!
             </Text>
             <Text style={styles.successMessage}>
-              Your password has been successfully reset. You can now sign in with your new password.
+              Your password has been successfully reset. You can now sign in
+              with your new password.
             </Text>
 
             <TouchableOpacity
               style={styles.backButton}
               onPress={() => navigation.navigate('Login')}
-              accessibilityRole="button"
-              accessibilityLabel="Back to login"
-              accessibilityHint="Double tap to return to the login screen"
+              accessibilityRole='button'
+              accessibilityLabel='Back to login'
+              accessibilityHint='Double tap to return to the login screen'
             >
               <Text style={styles.backButtonText}>Back to Login</Text>
             </TouchableOpacity>
@@ -157,21 +171,25 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
           <TouchableOpacity
             style={styles.backIconButton}
             onPress={() => navigation.goBack()}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            accessibilityHint="Return to previous screen"
+            accessibilityRole='button'
+            accessibilityLabel='Go back'
+            accessibilityHint='Return to previous screen'
           >
-            <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+            <Ionicons
+              name='arrow-back'
+              size={24}
+              color={theme.colors.textPrimary}
+            />
           </TouchableOpacity>
 
           <View style={styles.headerContent}>
             <Image
               source={require('../../../assets/icon.png')}
               style={styles.headerLogo}
-              resizeMode="contain"
+              resizeMode='contain'
               accessible={false}
             />
-            <Text style={styles.headerTitle} accessibilityRole="header">
+            <Text style={styles.headerTitle} accessibilityRole='header'>
               New Password
             </Text>
           </View>
@@ -184,18 +202,30 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
           <ScrollView
             contentContainerStyle={styles.scrollContainer}
             showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
+            keyboardShouldPersistTaps='handled'
           >
             {errorMessage ? (
-              <Banner message={errorMessage} variant="error" testID="reset-error-banner" />
+              <Banner
+                message={errorMessage}
+                variant='error'
+                testID='reset-error-banner'
+              />
             ) : null}
 
             <View style={styles.formContainer}>
               <View style={styles.instructionContainer}>
                 <View style={styles.lockIconWrap}>
-                  <Ionicons name="lock-closed" size={28} color="#3B82F6" accessible={false} />
+                  <Ionicons
+                    name='lock-closed'
+                    size={28}
+                    color='#3B82F6'
+                    accessible={false}
+                  />
                 </View>
-                <Text style={styles.instructionTitle} accessibilityRole="header">
+                <Text
+                  style={styles.instructionTitle}
+                  accessibilityRole='header'
+                >
                   Set a new password
                 </Text>
                 <Text style={styles.instructionText}>
@@ -204,60 +234,71 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
               </View>
 
               <Input
-                label="New Password"
-                placeholder="New Password"
+                label='New Password'
+                placeholder='New Password'
                 value={password}
                 onChangeText={(value) => {
                   clearError();
                   setPassword(value);
                 }}
-                leftIcon="lock-closed-outline"
+                leftIcon='lock-closed-outline'
                 rightIcon={showPassword ? 'eye-off-outline' : 'eye-outline'}
                 onRightIconPress={() => setShowPassword(!showPassword)}
                 secureTextEntry={!showPassword}
-                autoCapitalize="none"
+                autoCapitalize='none'
                 autoCorrect={false}
-                textContentType="newPassword"
-                accessibilityHint="Enter your new password"
-                variant="outline"
-                size="lg"
+                textContentType='newPassword'
+                accessibilityHint='Enter your new password'
+                variant='outline'
+                size='lg'
                 fullWidth
                 required
               />
 
               <View style={styles.strengthContainer}>
-                <StrengthIndicator met={strength.hasMinLength} label="At least 8 characters" />
-                <StrengthIndicator met={strength.hasUppercase} label="One uppercase letter" />
-                <StrengthIndicator met={strength.hasNumber} label="One number" />
+                <StrengthIndicator
+                  met={strength.hasMinLength}
+                  label='At least 8 characters'
+                />
+                <StrengthIndicator
+                  met={strength.hasUppercase}
+                  label='One uppercase letter'
+                />
+                <StrengthIndicator
+                  met={strength.hasNumber}
+                  label='One number'
+                />
               </View>
 
               <Input
-                label="Confirm Password"
-                placeholder="Confirm Password"
+                label='Confirm Password'
+                placeholder='Confirm Password'
                 value={confirmPassword}
                 onChangeText={(value) => {
                   clearError();
                   setConfirmPassword(value);
                 }}
-                leftIcon="lock-closed-outline"
+                leftIcon='lock-closed-outline'
                 secureTextEntry={!showPassword}
-                autoCapitalize="none"
+                autoCapitalize='none'
                 autoCorrect={false}
-                textContentType="newPassword"
-                accessibilityHint="Re-enter your new password to confirm"
-                variant="outline"
-                size="lg"
+                textContentType='newPassword'
+                accessibilityHint='Re-enter your new password to confirm'
+                variant='outline'
+                size='lg'
                 fullWidth
                 required
               />
 
               <Button
-                variant="primary"
+                variant='primary'
                 title={loading ? 'Updating...' : 'Reset Password'}
                 onPress={handleResetPassword}
                 disabled={loading}
                 loading={loading}
-                accessibilityLabel={loading ? 'Updating password' : 'Reset password'}
+                accessibilityLabel={
+                  loading ? 'Updating password' : 'Reset password'
+                }
                 fullWidth
                 style={{ borderRadius: 28, marginTop: 16, marginBottom: 24 }}
               />
@@ -265,9 +306,9 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
               <TouchableOpacity
                 style={styles.backLinkButton}
                 onPress={() => navigation.navigate('Login')}
-                accessibilityRole="button"
-                accessibilityLabel="Back to login"
-                accessibilityHint="Return to login screen"
+                accessibilityRole='button'
+                accessibilityLabel='Back to login'
+                accessibilityHint='Return to login screen'
               >
                 <Text style={styles.backLinkText}>Back to Login</Text>
               </TouchableOpacity>

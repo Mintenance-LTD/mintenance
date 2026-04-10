@@ -6,7 +6,7 @@ import {
   Mutation,
 } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import HapticService from '../utils/haptics';
+import { HapticService } from '../utils/haptics';
 import { logger } from '../utils/logger';
 
 // ============================================================================

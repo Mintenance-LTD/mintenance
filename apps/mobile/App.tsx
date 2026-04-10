@@ -9,7 +9,7 @@ import { StripeProvider } from '@stripe/stripe-react-native';
 import { logger } from './src/utils/logger';
 import { config } from './src/config/environment';
 import { AuthProvider } from './src/contexts/AuthContext';
-import AppNavigator from './src/navigation/AppNavigator';
+import { AppNavigator } from './src/navigation/AppNavigator';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import QueryProvider from './src/providers/QueryProvider';
 import { AnimatedSplash } from './src/components/AnimatedSplash';
@@ -32,9 +32,7 @@ Sentry.init({
   environment: process.env.EXPO_PUBLIC_ENVIRONMENT || 'development',
   debug: __DEV__,
   tracesSampleRate: __DEV__ ? 1.0 : 0.1,
-  integrations: [
-    Sentry.reactNavigationIntegration(),
-  ],
+  integrations: [Sentry.reactNavigationIntegration()],
   beforeSend(event, hint) {
     if (__DEV__ && !process.env.EXPO_PUBLIC_SENTRY_DEBUG) {
       return null;
@@ -79,7 +77,9 @@ export default function App(): React.JSX.Element {
           'Inter-SemiBold': require('./assets/fonts/Inter-SemiBold.ttf'),
           'Inter-Bold': require('./assets/fonts/Inter-Bold.ttf'),
         }).catch(() => {
-          logger.warn('Custom fonts not available, using system fonts', { service: 'app' });
+          logger.warn('Custom fonts not available, using system fonts', {
+            service: 'app',
+          });
         });
         await HapticService.initialize();
         // Register background sync for offline queue processing
@@ -110,7 +110,7 @@ export default function App(): React.JSX.Element {
   if (!stripePublishableKey) {
     logger.warn(
       'Stripe publishable key not configured - payment features disabled',
-      { service: 'app' },
+      { service: 'app' }
     );
   }
 
@@ -126,23 +126,21 @@ export default function App(): React.JSX.Element {
         >
           <StripeProvider
             publishableKey={stripePublishableKey || 'pk_test_placeholder'}
-            merchantIdentifier="merchant.com.mintenance.app"
-            urlScheme="mintenance"
+            merchantIdentifier='merchant.com.mintenance.app'
+            urlScheme='mintenance'
           >
             <ThemeProvider>
               <QueryProvider>
                 <AuthProvider>
                   <AppNavigator />
-                  <StatusBar style="auto" />
+                  <StatusBar style='auto' />
                 </AuthProvider>
               </QueryProvider>
             </ThemeProvider>
           </StripeProvider>
         </ErrorBoundary>
 
-        {showSplash && (
-          <AnimatedSplash onFinish={() => setShowSplash(false)} />
-        )}
+        {showSplash && <AnimatedSplash onFinish={() => setShowSplash(false)} />}
       </View>
     </SafeAreaProvider>
   );

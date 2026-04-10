@@ -8,4 +8,3 @@
 import { SecurityAuditService } from './core/SecurityAuditService';
 
 export const securityAuditService = new SecurityAuditService();
-export default securityAuditService;

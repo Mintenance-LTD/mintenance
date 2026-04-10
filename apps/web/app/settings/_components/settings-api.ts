@@ -9,22 +9,27 @@ export async function saveProfile(
   refresh: () => void
 ): Promise<boolean> {
   try {
+    const body: Record<string, string> = {};
+    if (profileData.first_name?.trim())
+      body.firstName = profileData.first_name.trim();
+    if (profileData.last_name?.trim())
+      body.lastName = profileData.last_name.trim();
+    if (profileData.phone?.trim()) body.phone = profileData.phone.trim();
+    if (profileData.bio?.trim()) body.bio = profileData.bio.trim();
+    if (profileData.profile_image_url?.trim())
+      body.profileImageUrl = profileData.profile_image_url.trim();
+    if (profileData.address?.trim()) body.address = profileData.address.trim();
+    if (profileData.city?.trim()) body.city = profileData.city.trim();
+    if (profileData.postcode?.trim())
+      body.postcode = profileData.postcode.trim();
+
     const response = await fetch('/api/user/update-profile', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
       },
-      body: JSON.stringify({
-        firstName: profileData.first_name,
-        lastName: profileData.last_name,
-        phone: profileData.phone,
-        bio: profileData.bio,
-        profileImageUrl: profileData.profile_image_url || undefined,
-        address: profileData.address,
-        city: profileData.city,
-        postcode: profileData.postcode,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (response.ok) {
