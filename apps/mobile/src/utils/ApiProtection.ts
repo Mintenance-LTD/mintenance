@@ -13,4 +13,4 @@ export {
   apiProtectionService,
 } from './api-protection/ApiProtectionService';
 
-import apiProtectionServiceDefault from './api-protection/ApiProtectionService';
+import { apiProtectionService as apiProtectionServiceDefault } from './api-protection/ApiProtectionService';

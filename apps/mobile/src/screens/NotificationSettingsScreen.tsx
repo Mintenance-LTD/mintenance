@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import Button from '../components/ui/Button';
+import { Button } from '../components/ui/Button';
 import { mobileApiClient } from '../utils/mobileApiClient';
 // supabase import removed — notification prefs now use /api/users/notification-preferences
 import { useAuth } from '../contexts/AuthContext';

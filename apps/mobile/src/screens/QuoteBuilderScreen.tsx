@@ -460,5 +460,3 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
     </View>
   );
 };
-
-export default QuoteBuilderScreen;

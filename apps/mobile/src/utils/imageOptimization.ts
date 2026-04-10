@@ -368,5 +368,3 @@ export const imageOptimization = {
   trackLoad: trackImageLoad,
   getCacheStats: getImageCacheStats,
 };
-
-export default imageOptimization;

@@ -11,7 +11,14 @@ import {
 } from 'react-native';
 import { theme } from '../../theme';
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'tertiary' | 'ghost' | 'danger' | 'success';
+type ButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'outline'
+  | 'tertiary'
+  | 'ghost'
+  | 'danger'
+  | 'success';
 
 export interface ButtonProps {
   title?: string;
@@ -41,14 +48,45 @@ export interface ButtonProps {
   rightIcon?: string;
 }
 
-const VARIANT_STYLES: Record<ButtonVariant, { backgroundColor: string; color: string; borderColor: string }> = {
-  primary: { backgroundColor: theme.colors.primary, color: theme.colors.textInverse, borderColor: 'transparent' },
-  secondary: { backgroundColor: theme.colors.backgroundSecondary, color: theme.colors.textPrimary, borderColor: theme.colors.border },
-  outline: { backgroundColor: 'transparent', color: theme.colors.textPrimary, borderColor: theme.colors.border },
-  tertiary: { backgroundColor: 'transparent', color: '#3B82F6', borderColor: 'transparent' },
-  ghost: { backgroundColor: 'transparent', color: theme.colors.textSecondary, borderColor: 'transparent' },
-  danger: { backgroundColor: theme.colors.error, color: theme.colors.textInverse, borderColor: 'transparent' },
-  success: { backgroundColor: theme.colors.primary, color: theme.colors.textInverse, borderColor: 'transparent' },
+const VARIANT_STYLES: Record<
+  ButtonVariant,
+  { backgroundColor: string; color: string; borderColor: string }
+> = {
+  primary: {
+    backgroundColor: theme.colors.primary,
+    color: theme.colors.textInverse,
+    borderColor: 'transparent',
+  },
+  secondary: {
+    backgroundColor: theme.colors.backgroundSecondary,
+    color: theme.colors.textPrimary,
+    borderColor: theme.colors.border,
+  },
+  outline: {
+    backgroundColor: 'transparent',
+    color: theme.colors.textPrimary,
+    borderColor: theme.colors.border,
+  },
+  tertiary: {
+    backgroundColor: 'transparent',
+    color: '#3B82F6',
+    borderColor: 'transparent',
+  },
+  ghost: {
+    backgroundColor: 'transparent',
+    color: theme.colors.textSecondary,
+    borderColor: 'transparent',
+  },
+  danger: {
+    backgroundColor: theme.colors.error,
+    color: theme.colors.textInverse,
+    borderColor: 'transparent',
+  },
+  success: {
+    backgroundColor: theme.colors.primary,
+    color: theme.colors.textInverse,
+    borderColor: 'transparent',
+  },
 };
 
 export const Button: React.FC<ButtonProps> = ({
@@ -69,7 +107,9 @@ export const Button: React.FC<ButtonProps> = ({
   testID,
 }) => {
   const variantStyles = VARIANT_STYLES[variant];
-  const backgroundColor = disabled ? theme.colors.textTertiary : variantStyles.backgroundColor;
+  const backgroundColor = disabled
+    ? theme.colors.textTertiary
+    : variantStyles.backgroundColor;
   const borderColor = variantStyles.borderColor;
   const color = variantStyles.color;
   const isTertiary = variant === 'tertiary';
@@ -86,17 +126,22 @@ export const Button: React.FC<ButtonProps> = ({
       disabled={disabled || loading}
       accessibilityRole='button'
       accessibilityLabel={accessibilityLabel || title}
-      accessibilityState={accessibilityState || { disabled: disabled || loading, busy: loading }}
+      accessibilityState={
+        accessibilityState || { disabled: disabled || loading, busy: loading }
+      }
       testID={testID}
       style={[
         styles.base,
-        iconOnly ? styles.iconOnly : (size === 'sm' ? styles.sm : styles.md),
+        iconOnly ? styles.iconOnly : size === 'sm' ? styles.sm : styles.md,
         {
           backgroundColor,
           borderColor,
           width: fullWidth ? ('100%' as const) : undefined,
         },
-        !disabled && !loading && backgroundColor !== 'transparent' && styles.shadow,
+        !disabled &&
+          !loading &&
+          backgroundColor !== 'transparent' &&
+          styles.shadow,
         style,
       ]}
     >
@@ -171,7 +216,12 @@ const styles = StyleSheet.create({
   },
   shadow: {
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },

@@ -12,12 +12,15 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Button from '../components/ui/Button';
+import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { HELP_LINKS } from '../config/links';
 import { theme } from '../theme';
 
-const QUICK_ACTION_STYLES: Record<string, { iconColor: string; iconBg: string }> = {
+const QUICK_ACTION_STYLES: Record<
+  string,
+  { iconColor: string; iconBg: string }
+> = {
   contact: { iconColor: '#3B82F6', iconBg: '#DBEAFE' },
   chat: { iconColor: '#8B5CF6', iconBg: '#EDE9FE' },
   call: { iconColor: theme.colors.primary, iconBg: theme.colors.primaryLight },
@@ -28,7 +31,10 @@ const RESOURCE_STYLES: Record<string, { iconColor: string; iconBg: string }> = {
   book: { iconColor: '#3B82F6', iconBg: '#DBEAFE' },
   'play-circle': { iconColor: theme.colors.error, iconBg: '#FEE2E2' },
   globe: { iconColor: '#8B5CF6', iconBg: '#EDE9FE' },
-  people: { iconColor: theme.colors.primary, iconBg: theme.colors.primaryLight },
+  people: {
+    iconColor: theme.colors.primary,
+    iconBg: theme.colors.primaryLight,
+  },
 };
 
 const HelpCenterScreen: React.FC = () => {
@@ -146,9 +152,21 @@ const HelpCenterScreen: React.FC = () => {
 
   const resources = [
     { icon: 'book' as const, label: 'User Guide', url: HELP_LINKS.userGuide },
-    { icon: 'play-circle' as const, label: 'Video Tutorials', url: HELP_LINKS.videos },
-    { icon: 'globe' as const, label: 'Knowledge Base', url: HELP_LINKS.knowledgeBase },
-    { icon: 'people' as const, label: 'Community Forum', url: HELP_LINKS.community },
+    {
+      icon: 'play-circle' as const,
+      label: 'Video Tutorials',
+      url: HELP_LINKS.videos,
+    },
+    {
+      icon: 'globe' as const,
+      label: 'Knowledge Base',
+      url: HELP_LINKS.knowledgeBase,
+    },
+    {
+      icon: 'people' as const,
+      label: 'Community Forum',
+      url: HELP_LINKS.community,
+    },
   ];
 
   return (
@@ -158,7 +176,11 @@ const HelpCenterScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name='arrow-back' size={24} color={theme.colors.textPrimary} />
+          <Ionicons
+            name='arrow-back'
+            size={24}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Help Center</Text>
         <View style={styles.placeholder} />
@@ -183,7 +205,10 @@ const HelpCenterScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>Get Help Now</Text>
           <View style={styles.quickActionsGrid}>
             {quickActions.map((action) => {
-              const colors = QUICK_ACTION_STYLES[action.id] || { iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary };
+              const colors = QUICK_ACTION_STYLES[action.id] || {
+                iconColor: theme.colors.textSecondary,
+                iconBg: theme.colors.backgroundSecondary,
+              };
               return (
                 <TouchableOpacity
                   key={action.id}
@@ -191,7 +216,12 @@ const HelpCenterScreen: React.FC = () => {
                   onPress={action.action}
                   activeOpacity={0.7}
                 >
-                  <View style={[styles.quickActionIcon, { backgroundColor: colors.iconBg }]}>
+                  <View
+                    style={[
+                      styles.quickActionIcon,
+                      { backgroundColor: colors.iconBg },
+                    ]}
+                  >
                     <Ionicons
                       name={action.icon as keyof typeof Ionicons.glyphMap}
                       size={22}
@@ -214,17 +244,31 @@ const HelpCenterScreen: React.FC = () => {
           {filteredFaqs.map((faq, idx) => (
             <TouchableOpacity
               key={faq.id}
-              style={[styles.faqItem, idx < filteredFaqs.length - 1 && styles.faqItemBorder]}
+              style={[
+                styles.faqItem,
+                idx < filteredFaqs.length - 1 && styles.faqItemBorder,
+              ]}
               onPress={() => toggleFaq(faq.id)}
               activeOpacity={0.7}
             >
               <View style={styles.faqQuestion}>
                 <Text style={styles.faqQuestionText}>{faq.question}</Text>
-                <View style={[styles.faqChevronWrap, expandedFaq === faq.id && styles.faqChevronActive]}>
+                <View
+                  style={[
+                    styles.faqChevronWrap,
+                    expandedFaq === faq.id && styles.faqChevronActive,
+                  ]}
+                >
                   <Ionicons
-                    name={expandedFaq === faq.id ? 'chevron-up' : 'chevron-down'}
+                    name={
+                      expandedFaq === faq.id ? 'chevron-up' : 'chevron-down'
+                    }
                     size={16}
-                    color={expandedFaq === faq.id ? theme.colors.textInverse : theme.colors.textTertiary}
+                    color={
+                      expandedFaq === faq.id
+                        ? theme.colors.textInverse
+                        : theme.colors.textTertiary
+                    }
                   />
                 </View>
               </View>
@@ -239,7 +283,11 @@ const HelpCenterScreen: React.FC = () => {
           {filteredFaqs.length === 0 && searchQuery && (
             <View style={styles.noResults}>
               <View style={styles.noResultsIconWrap}>
-                <Ionicons name='search' size={28} color={theme.colors.textTertiary} />
+                <Ionicons
+                  name='search'
+                  size={28}
+                  color={theme.colors.textTertiary}
+                />
               </View>
               <Text style={styles.noResultsText}>No results found</Text>
               <Text style={styles.noResultsSubtext}>
@@ -254,21 +302,40 @@ const HelpCenterScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>Additional Resources</Text>
 
           {resources.map((res, idx) => {
-            const colors = RESOURCE_STYLES[res.icon] || { iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary };
+            const colors = RESOURCE_STYLES[res.icon] || {
+              iconColor: theme.colors.textSecondary,
+              iconBg: theme.colors.backgroundSecondary,
+            };
             return (
               <TouchableOpacity
                 key={res.icon}
-                style={[styles.resourceItem, idx < resources.length - 1 && styles.resourceItemBorder]}
+                style={[
+                  styles.resourceItem,
+                  idx < resources.length - 1 && styles.resourceItemBorder,
+                ]}
                 onPress={() => Linking.openURL(res.url)}
                 activeOpacity={0.7}
               >
                 <View style={styles.resourceLeft}>
-                  <View style={[styles.resourceIconWrap, { backgroundColor: colors.iconBg }]}>
-                    <Ionicons name={res.icon} size={17} color={colors.iconColor} />
+                  <View
+                    style={[
+                      styles.resourceIconWrap,
+                      { backgroundColor: colors.iconBg },
+                    ]}
+                  >
+                    <Ionicons
+                      name={res.icon}
+                      size={17}
+                      color={colors.iconColor}
+                    />
                   </View>
                   <Text style={styles.resourceText}>{res.label}</Text>
                 </View>
-                <Ionicons name='chevron-forward' size={14} color={theme.colors.textTertiary} />
+                <Ionicons
+                  name='chevron-forward'
+                  size={14}
+                  color={theme.colors.textTertiary}
+                />
               </TouchableOpacity>
             );
           })}

@@ -15,5 +15,3 @@ export const testHelpers = {
   // - mockTimers
   // - assertErrorThrown
 };
-
-export default testHelpers;

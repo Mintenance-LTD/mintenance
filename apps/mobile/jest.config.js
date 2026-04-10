@@ -16,7 +16,13 @@ module.exports = {
     '/__tests__/setup/',
     '/__tests__/mocks/',
     '/e2e/',
+    '/\\.claude/worktrees/',
   ],
+  // Prevent jest from walking outside apps/mobile into sibling worktree copies
+  watchPathIgnorePatterns: ['/\\.claude/worktrees/', '/node_modules/'],
+  // Snapshot resolver stays within rootDir; prevent obsolete snapshot scans
+  // across worktree copies of apps/mobile/.
+  modulePathIgnorePatterns: ['<rootDir>/../../\\.claude/worktrees/'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@mintenance/types$': '<rootDir>/../../packages/types/src',
@@ -46,16 +52,15 @@ module.exports = {
     // Mock react-native-reanimated to fix test issues
     '^react-native-reanimated$':
       '<rootDir>/__mocks__/react-native-reanimated.js',
-    // Mock other commonly failing modules
-    '^\\.\\./services/(.*)$': '<rootDir>/src/services/$1',
-    '^\\.\\.\\/\\.\\./services/(.*)$': '<rootDir>/src/services/$1',
-    '^\\.\\.\\./\\.\\./services/(.*)$': '<rootDir>/src/services/$1',
-    '^\\.\\./hooks/(.*)$': '<rootDir>/src/hooks/$1',
-    '^\\.\\.\\./\\.\\./hooks/(.*)$': '<rootDir>/src/hooks/$1',
-    '^\\.\\./components/(.*)$': '<rootDir>/src/components/$1',
-    '^\\.\\.\\./\\.\\./components/(.*)$': '<rootDir>/src/components/$1',
-    '^\\.\\./utils/(.*)$': '<rootDir>/src/utils/$1',
-    '^\\.\\.\\./\\.\\./utils/(.*)$': '<rootDir>/src/utils/$1',
+    // NOTE: Previous overbroad mappers for `^../services/`, `^../hooks/`,
+    // `^../components/`, `^../utils/` were removed because they also matched
+    // internal relative imports inside node_modules packages like
+    // @react-navigation/native-stack (which has `import x from '../utils/...'`
+    // in its own source files). This was causing module-resolution failures
+    // like "Could not locate module ../utils/useAnimatedHeaderHeight.js".
+    // Jest's default resolver already handles relative imports correctly
+    // from the importing file's location — no mapping needed. Use the
+    // `@/*` path alias (defined above) for absolute src/ imports.
   },
   transformIgnorePatterns: [
     'node_modules/(?!(react-native|@react-native|@testing-library/react-native|expo|expo-.*|@expo|@expo/.*|expo-modules-core|@supabase|@stripe|@tanstack|@sentry|@react-native-community|@react-navigation|react-native-deck-swiper|react-native-maps|react-native-gesture-handler|react-native-vector-icons|react-native-reanimated|react-native-worklets|react-native-screens|react-native-safe-area-context)/)',

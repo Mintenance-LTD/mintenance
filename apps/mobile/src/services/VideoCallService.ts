@@ -46,5 +46,3 @@ export class VideoCallService {
   static startScreenShare = startScreenShare;
   static stopScreenShare = stopScreenShare;
 }
-
-export default VideoCallService;

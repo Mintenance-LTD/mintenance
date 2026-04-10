@@ -10,8 +10,11 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import Button from '../../components/ui/Button';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
+import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Banner } from '../../components/ui/Banner';
 import { Ionicons } from '@expo/vector-icons';
@@ -71,7 +74,13 @@ const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
       setCategory(job.category ?? '');
       setPriority((job.priority as 'low' | 'medium' | 'high') ?? 'medium');
       setBudget(job.budget != null ? String(job.budget) : '');
-      setLocation(typeof job.location === 'string' ? job.location : (job.location ? JSON.stringify(job.location) : ''));
+      setLocation(
+        typeof job.location === 'string'
+          ? job.location
+          : job.location
+            ? JSON.stringify(job.location)
+            : ''
+      );
     } catch (error) {
       logger.error('Failed to fetch job for editing', error);
       setErrorMessage(
@@ -137,7 +146,7 @@ const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size='large' color={theme.colors.primary} />
           <Text style={styles.loadingText}>Loading job details...</Text>
         </View>
       </SafeAreaView>
@@ -151,20 +160,28 @@ const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
           <View style={[styles.headerBar, { paddingTop: insets.top + 8 }]}>
             <TouchableOpacity
               onPress={() => navigation.goBack()}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
+              accessibilityRole='button'
+              accessibilityLabel='Go back'
               style={styles.headerBackBtn}
             >
-              <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+              <Ionicons
+                name='arrow-back'
+                size={24}
+                color={theme.colors.textPrimary}
+              />
             </TouchableOpacity>
             <Text style={styles.headerBarTitle}>Edit Job</Text>
             <View style={styles.headerSpacer} />
           </View>
           <View style={styles.errorContainer}>
-            <Banner message={errorMessage} variant="error" testID="job-edit-error-banner" />
+            <Banner
+              message={errorMessage}
+              variant='error'
+              testID='job-edit-error-banner'
+            />
             <Button
-              variant="secondary"
-              title="Go Back"
+              variant='secondary'
+              title='Go Back'
               onPress={() => navigation.goBack()}
               fullWidth
               style={{ marginTop: 16, borderRadius: 14 }}
@@ -181,11 +198,11 @@ const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
         <View style={[styles.headerBar, { paddingTop: insets.top + 8 }]}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
-            accessibilityRole="button"
-            accessibilityLabel="Cancel editing"
+            accessibilityRole='button'
+            accessibilityLabel='Cancel editing'
             style={styles.headerBackBtn}
           >
-            <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
+            <Ionicons name='close' size={24} color={theme.colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerBarTitle}>Edit Job</Text>
           <View style={styles.headerSpacer} />
@@ -198,32 +215,42 @@ const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
           <ScrollView
             contentContainerStyle={styles.scrollContainer}
             showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
+            keyboardShouldPersistTaps='handled'
           >
             {errorMessage ? (
-              <Banner message={errorMessage} variant="error" testID="job-edit-error-banner" />
+              <Banner
+                message={errorMessage}
+                variant='error'
+                testID='job-edit-error-banner'
+              />
             ) : null}
 
             <Input
-              label="Title"
-              placeholder="Job title"
+              label='Title'
+              placeholder='Job title'
               value={title}
-              onChangeText={(v) => { clearError(); setTitle(v); }}
-              variant="outline"
-              size="lg"
+              onChangeText={(v) => {
+                clearError();
+                setTitle(v);
+              }}
+              variant='outline'
+              size='lg'
               fullWidth
               required
             />
 
             <Input
-              label="Description"
-              placeholder="Describe the work needed"
+              label='Description'
+              placeholder='Describe the work needed'
               value={description}
-              onChangeText={(v) => { clearError(); setDescription(v); }}
+              onChangeText={(v) => {
+                clearError();
+                setDescription(v);
+              }}
               multiline
               numberOfLines={4}
-              variant="outline"
-              size="lg"
+              variant='outline'
+              size='lg'
               fullWidth
               required
             />
@@ -239,11 +266,19 @@ const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
                 <TouchableOpacity
                   key={cat}
                   style={[styles.chip, category === cat && styles.chipSelected]}
-                  onPress={() => { clearError(); setCategory(cat); }}
-                  accessibilityRole="button"
+                  onPress={() => {
+                    clearError();
+                    setCategory(cat);
+                  }}
+                  accessibilityRole='button'
                   accessibilityState={{ selected: category === cat }}
                 >
-                  <Text style={[styles.chipText, category === cat && styles.chipTextSelected]}>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      category === cat && styles.chipTextSelected,
+                    ]}
+                  >
                     {cat}
                   </Text>
                 </TouchableOpacity>
@@ -255,13 +290,22 @@ const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
               {PRIORITIES.map((p) => (
                 <TouchableOpacity
                   key={p}
-                  style={[styles.priorityChip, priority === p && styles.priorityChipSelected]}
-                  onPress={() => { clearError(); setPriority(p); }}
-                  accessibilityRole="button"
+                  style={[
+                    styles.priorityChip,
+                    priority === p && styles.priorityChipSelected,
+                  ]}
+                  onPress={() => {
+                    clearError();
+                    setPriority(p);
+                  }}
+                  accessibilityRole='button'
                   accessibilityState={{ selected: priority === p }}
                 >
                   <Text
-                    style={[styles.priorityChipText, priority === p && styles.priorityChipTextSelected]}
+                    style={[
+                      styles.priorityChipText,
+                      priority === p && styles.priorityChipTextSelected,
+                    ]}
                   >
                     {p.charAt(0).toUpperCase() + p.slice(1)}
                   </Text>
@@ -270,37 +314,43 @@ const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
             </View>
 
             <Input
-              label="Budget"
-              placeholder="e.g. 500"
+              label='Budget'
+              placeholder='e.g. 500'
               value={budget}
-              onChangeText={(v) => { clearError(); setBudget(v.replace(/[^0-9.]/g, '')); }}
-              keyboardType="numeric"
-              leftIcon="cash-outline"
-              variant="outline"
-              size="lg"
+              onChangeText={(v) => {
+                clearError();
+                setBudget(v.replace(/[^0-9.]/g, ''));
+              }}
+              keyboardType='numeric'
+              leftIcon='cash-outline'
+              variant='outline'
+              size='lg'
               fullWidth
             />
 
             <Input
-              label="Location"
-              placeholder="Address or area"
+              label='Location'
+              placeholder='Address or area'
               value={location}
-              onChangeText={(v) => { clearError(); setLocation(v); }}
-              leftIcon="location-outline"
-              variant="outline"
-              size="lg"
+              onChangeText={(v) => {
+                clearError();
+                setLocation(v);
+              }}
+              leftIcon='location-outline'
+              variant='outline'
+              size='lg'
               fullWidth
             />
 
             <View style={styles.buttonRow}>
               <Button
-                variant="secondary"
-                title="Cancel"
+                variant='secondary'
+                title='Cancel'
                 onPress={() => navigation.goBack()}
                 style={{ flex: 1, borderRadius: 14, marginRight: 8 }}
               />
               <Button
-                variant="primary"
+                variant='primary'
                 title={saving ? 'Saving...' : 'Save Changes'}
                 onPress={handleSave}
                 disabled={saving}

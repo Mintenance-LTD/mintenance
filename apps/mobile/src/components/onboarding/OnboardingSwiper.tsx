@@ -323,5 +323,3 @@ export const contractorSlides: OnboardingSlide[] = [
     backgroundColor: '#F3E8FF',
   },
 ];
-
-export default OnboardingSwiper;

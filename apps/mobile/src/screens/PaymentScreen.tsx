@@ -45,7 +45,13 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
 }) => {
   const { user } = useAuth();
   const rootNavigation = useNavigation();
-  const { jobId, amount, contractorId, jobTitle, useEscrow = true } = route.params;
+  const {
+    jobId,
+    amount,
+    contractorId,
+    jobTitle,
+    useEscrow = true,
+  } = route.params;
 
   const payment = usePayment({
     userId: user?.id,
@@ -58,96 +64,132 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
   });
 
   if (payment.loading) {
-    return <LoadingSpinner message="Loading payment options..." />;
+    return <LoadingSpinner message='Loading payment options...' />;
   }
 
   if (payment.error) {
-    return <ErrorView message={payment.error} onRetry={payment.loadPaymentMethods} />;
+    return (
+      <ErrorView message={payment.error} onRetry={payment.loadPaymentMethods} />
+    );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScreenHeader title="Payment" onBackPress={() => navigation.goBack()} />
+      <ScreenHeader title='Payment' onBackPress={() => navigation.goBack()} />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <PaymentSummaryCard
-          jobTitle={jobTitle}
-          jobId={jobId}
-          amount={amount}
-          platformFee={payment.platformFee}
-          contractorPayout={payment.contractorPayout}
-          totalAmount={payment.totalAmount}
-          useEscrow={useEscrow}
-        />
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+        >
+          <PaymentSummaryCard
+            jobTitle={jobTitle}
+            jobId={jobId}
+            amount={amount}
+            platformFee={payment.platformFee}
+            contractorPayout={payment.contractorPayout}
+            totalAmount={payment.totalAmount}
+            useEscrow={useEscrow}
+          />
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment Method</Text>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Payment Method</Text>
 
-          {payment.paymentMethods.length === 0 ? (
-            <TouchableOpacity
-              style={styles.addMethodButton}
-              onPress={() => {
-                (rootNavigation as unknown as { navigate: (screen: string, params?: Record<string, unknown>) => void })
-                  .navigate('Main', { screen: 'ProfileTab', params: { screen: 'AddPaymentMethod' } });
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Add payment method"
-            >
-              <View style={styles.addMethodIconWrap}>
-                <Ionicons name="add" size={22} color={theme.colors.primary} />
-              </View>
-              <View style={styles.addMethodContent}>
-                <Text style={styles.addMethodText}>Add Payment Method</Text>
-                <Text style={styles.addMethodSubtext}>Credit card, debit card, or bank account</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
-            </TouchableOpacity>
-          ) : (
-            payment.paymentMethods.map(method => (
-              <PaymentMethodOption
-                key={method.id}
-                method={method}
-                isSelected={payment.selectedMethod?.id === method.id}
-                onSelect={() => payment.setSelectedMethod(method)}
-              />
-            ))
-          )}
-        </View>
-
-        {useEscrow && <EscrowInfoCard />}
-
-        <View style={styles.securityNote}>
-          <View style={styles.securityIconWrap}>
-            <Ionicons name="shield-checkmark" size={16} color={theme.colors.primary} />
+            {payment.paymentMethods.length === 0 ? (
+              <TouchableOpacity
+                style={styles.addMethodButton}
+                onPress={() => {
+                  (
+                    rootNavigation as unknown as {
+                      navigate: (
+                        screen: string,
+                        params?: Record<string, unknown>
+                      ) => void;
+                    }
+                  ).navigate('Main', {
+                    screen: 'ProfileTab',
+                    params: { screen: 'AddPaymentMethod' },
+                  });
+                }}
+                accessibilityRole='button'
+                accessibilityLabel='Add payment method'
+              >
+                <View style={styles.addMethodIconWrap}>
+                  <Ionicons name='add' size={22} color={theme.colors.primary} />
+                </View>
+                <View style={styles.addMethodContent}>
+                  <Text style={styles.addMethodText}>Add Payment Method</Text>
+                  <Text style={styles.addMethodSubtext}>
+                    Credit card, debit card, or bank account
+                  </Text>
+                </View>
+                <Ionicons
+                  name='chevron-forward'
+                  size={16}
+                  color={theme.colors.textTertiary}
+                />
+              </TouchableOpacity>
+            ) : (
+              payment.paymentMethods.map((method) => (
+                <PaymentMethodOption
+                  key={method.id}
+                  method={method}
+                  isSelected={payment.selectedMethod?.id === method.id}
+                  onSelect={() => payment.setSelectedMethod(method)}
+                />
+              ))
+            )}
           </View>
-          <Text style={styles.securityText}>
-            Your payment is protected by 256-bit SSL encryption and held securely in escrow.
-          </Text>
-        </View>
-      </ScrollView>
+
+          {useEscrow && <EscrowInfoCard />}
+
+          <View style={styles.securityNote}>
+            <View style={styles.securityIconWrap}>
+              <Ionicons
+                name='shield-checkmark'
+                size={16}
+                color={theme.colors.primary}
+              />
+            </View>
+            <Text style={styles.securityText}>
+              Your payment is protected by 256-bit SSL encryption and held
+              securely in escrow.
+            </Text>
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
 
       <View style={styles.paymentButtonContainer}>
         <TouchableOpacity
-          style={[styles.paymentButton, (payment.processing || !payment.selectedMethod) && styles.paymentButtonDisabled]}
+          style={[
+            styles.paymentButton,
+            (payment.processing || !payment.selectedMethod) &&
+              styles.paymentButtonDisabled,
+          ]}
           onPress={payment.handlePayment}
           disabled={payment.processing || !payment.selectedMethod}
-          accessibilityRole="button"
+          accessibilityRole='button'
           accessibilityLabel={`Pay ${'\u00A3'}${payment.totalAmount.toFixed(2)}`}
-          accessibilityState={{ disabled: payment.processing || !payment.selectedMethod }}
+          accessibilityState={{
+            disabled: payment.processing || !payment.selectedMethod,
+          }}
         >
           {payment.processing ? (
-            <LoadingSpinner size="small" color={theme.colors.textInverse} />
+            <LoadingSpinner size='small' color={theme.colors.textInverse} />
           ) : (
             <>
-              <Ionicons name="lock-closed" size={18} color={theme.colors.textInverse} />
+              <Ionicons
+                name='lock-closed'
+                size={18}
+                color={theme.colors.textInverse}
+              />
               <Text style={styles.paymentButtonText}>
-                Pay {'\u00A3'}{payment.totalAmount.toFixed(2)}
+                Pay {'\u00A3'}
+                {payment.totalAmount.toFixed(2)}
               </Text>
             </>
           )}
@@ -258,5 +300,3 @@ const styles = StyleSheet.create({
     color: theme.colors.textInverse,
   },
 });
-
-export default PaymentScreen;

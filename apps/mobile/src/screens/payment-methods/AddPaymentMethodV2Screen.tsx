@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useStripe } from '@stripe/stripe-react-native';
-import Button from '../../components/ui/Button';
+import { Button } from '../../components/ui/Button';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { logger } from '../../utils/logger';
 import { useToast } from '../../components/ui/Toast';
@@ -117,14 +117,14 @@ const AddPaymentMethodV2Screen: React.FC = () => {
 
         {initializing && (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <ActivityIndicator size='large' color={theme.colors.primary} />
           </View>
         )}
 
         {!initializing && error && (
           <View style={styles.errorBox}>
             <Text style={styles.errorText}>{error}</Text>
-            <Button onPress={initialisePaymentSheet} title="Try again" />
+            <Button onPress={initialisePaymentSheet} title='Try again' />
           </View>
         )}
 

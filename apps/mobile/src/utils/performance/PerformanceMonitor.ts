@@ -69,7 +69,10 @@ export class PerformanceMonitor {
     return this.budgetEnforcer.removeBudgetRule(ruleId);
   }
 
-  updateBudgetRule(ruleId: string, updates: Partial<BudgetEnforcementRule>): boolean {
+  updateBudgetRule(
+    ruleId: string,
+    updates: Partial<BudgetEnforcementRule>
+  ): boolean {
     return this.budgetEnforcer.updateBudgetRule(ruleId, updates);
   }
 
@@ -96,7 +99,13 @@ export class PerformanceMonitor {
     tags?: Record<string, string>
   ): void {
     const threshold = this.budgetEnforcer.getBudget(name);
-    const metric = this.metricsCollector.recordMetric(name, value, category, tags, threshold);
+    const metric = this.metricsCollector.recordMetric(
+      name,
+      value,
+      category,
+      tags,
+      threshold
+    );
 
     // Enforce budget
     const violation = this.budgetEnforcer.enforceMetric(metric);
@@ -155,7 +164,12 @@ export class PerformanceMonitor {
     this.metricsCollector.recordMemoryUsage();
   }
 
-  trackNetworkRequest(url: string, startTime: number, endTime: number, success: boolean): void {
+  trackNetworkRequest(
+    url: string,
+    startTime: number,
+    endTime: number,
+    success: boolean
+  ): void {
     this.metricsCollector.trackNetworkRequest(url, startTime, endTime, success);
   }
 
@@ -257,10 +271,18 @@ export class PerformanceMonitor {
   /**
    * Record multiple metrics (stub for compatibility)
    */
-  recordMetrics(serviceName: string, responseTime: number, context?: unknown): void {
+  recordMetrics(
+    serviceName: string,
+    responseTime: number,
+    context?: unknown
+  ): void {
     this.recordMetric(`${serviceName}_response_time`, responseTime, 'custom');
     if (context) {
-      logger.info('PerformanceMonitor', `Recorded metrics for ${serviceName}`, context);
+      logger.info(
+        'PerformanceMonitor',
+        `Recorded metrics for ${serviceName}`,
+        context
+      );
     }
   }
 }
@@ -270,4 +292,3 @@ export class PerformanceMonitor {
 // ============================================================================
 
 export const performanceMonitor = PerformanceMonitor.getInstance();
-export default performanceMonitor;

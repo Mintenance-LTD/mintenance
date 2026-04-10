@@ -9,8 +9,11 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import Button from '../components/ui/Button';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
+import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Banner } from '../components/ui/Banner';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,7 +23,10 @@ import { AuthStackParamList } from '../navigation/types';
 import { logger } from '../utils/logger';
 import { theme } from '../theme';
 
-type ForgotPasswordScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'ForgotPassword'>;
+type ForgotPasswordScreenNavigationProp = NativeStackNavigationProp<
+  AuthStackParamList,
+  'ForgotPassword'
+>;
 
 interface Props {
   navigation: ForgotPasswordScreenNavigationProp;
@@ -105,19 +111,28 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
                 resizeMode='contain'
                 accessible={false}
               />
-              <Text style={styles.headerTitle} accessibilityRole='header'>Mintenance</Text>
+              <Text style={styles.headerTitle} accessibilityRole='header'>
+                Mintenance
+              </Text>
             </View>
           </View>
 
           <View style={styles.successContainer}>
             <View style={styles.successIconWrap}>
-              <Ionicons name='checkmark-circle' size={48} color={theme.colors.primary} accessible={false} />
+              <Ionicons
+                name='checkmark-circle'
+                size={48}
+                color={theme.colors.primary}
+                accessible={false}
+              />
             </View>
-            <Text style={styles.successTitle} accessibilityRole='header'>Email Sent!</Text>
+            <Text style={styles.successTitle} accessibilityRole='header'>
+              Email Sent!
+            </Text>
             <Text style={styles.successMessage}>
               We've sent a password reset link to{' '}
-              <Text style={styles.emailHighlight}>{email}</Text>. Please check your email
-              and follow the instructions.
+              <Text style={styles.emailHighlight}>{email}</Text>. Please check
+              your email and follow the instructions.
             </Text>
 
             {resendTimer > 0 ? (
@@ -159,106 +174,122 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container}>
-      {/* Header with Back Button */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity
-          style={styles.backIconButton}
-          onPress={() => navigation.goBack()}
-          accessibilityRole='button'
-          accessibilityLabel='Go back'
-          accessibilityHint='Return to login screen'
-        >
-          <Ionicons name='arrow-back' size={24} color={theme.colors.textPrimary} />
-        </TouchableOpacity>
-
-        <View style={styles.headerContent}>
-          <Image
-            source={require('../../assets/icon.png')}
-            style={styles.headerLogo}
-            resizeMode='contain'
-            accessible={false}
-          />
-          <Text style={styles.headerTitle} accessibilityRole='header'>Reset Password</Text>
-        </View>
-      </View>
-
-      <KeyboardAvoidingView
-        style={styles.keyboardContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps='handled'
-        >
-          {errorMessage ? (
-            <Banner
-              message={errorMessage}
-              variant='error'
-              testID='reset-error-banner'
+        {/* Header with Back Button */}
+        <View style={[styles.header, { paddingTop: insets.top }]}>
+          <TouchableOpacity
+            style={styles.backIconButton}
+            onPress={() => navigation.goBack()}
+            accessibilityRole='button'
+            accessibilityLabel='Go back'
+            accessibilityHint='Return to login screen'
+          >
+            <Ionicons
+              name='arrow-back'
+              size={24}
+              color={theme.colors.textPrimary}
             />
-          ) : null}
-          <View style={styles.formContainer}>
-            <View style={styles.instructionContainer}>
-              <View style={styles.mailIconWrap}>
-                <Ionicons name='mail' size={28} color='#3B82F6' accessible={false} />
-              </View>
-              <Text style={styles.instructionTitle} accessibilityRole='header'>Forgot your password?</Text>
-              <Text style={styles.instructionText}>
-                Enter your email address and we'll send you a link to reset your
-                password.
-              </Text>
-            </View>
+          </TouchableOpacity>
 
-            <Input
-              label='Email Address'
-              placeholder='Email Address'
-              value={email}
-              onChangeText={(value) => {
-                clearError();
-                setEmail(value);
-              }}
-              leftIcon='mail-outline'
-              keyboardType='email-address'
-              autoCapitalize='none'
-              autoCorrect={false}
-              accessibilityHint='Enter your email address to receive a password reset link'
-              textContentType='emailAddress'
-              autoComplete='email'
-              autoFocus
-              variant='outline'
-              size='lg'
-              fullWidth
-              required
+          <View style={styles.headerContent}>
+            <Image
+              source={require('../../assets/icon.png')}
+              style={styles.headerLogo}
+              resizeMode='contain'
+              accessible={false}
             />
-
-            <Button
-              variant='primary'
-              title={loading ? 'Sending...' : 'Send Reset Link'}
-              onPress={handleResetPassword}
-              disabled={loading}
-              loading={loading}
-              accessibilityLabel={
-                loading ? 'Sending reset email' : 'Send reset email'
-              }
-              fullWidth
-              style={{ borderRadius: 28, marginBottom: 24 }}
-            />
-
-            <TouchableOpacity
-              style={styles.backLinkButton}
-              onPress={() => navigation.goBack()}
-              accessibilityRole='button'
-              accessibilityLabel='Back to login'
-              accessibilityHint='Return to login screen'
-            >
-              <Text style={styles.backLinkText}>Back to Login</Text>
-            </TouchableOpacity>
+            <Text style={styles.headerTitle} accessibilityRole='header'>
+              Reset Password
+            </Text>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
-  </SafeAreaView>
+        </View>
+
+        <KeyboardAvoidingView
+          style={styles.keyboardContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps='handled'
+          >
+            {errorMessage ? (
+              <Banner
+                message={errorMessage}
+                variant='error'
+                testID='reset-error-banner'
+              />
+            ) : null}
+            <View style={styles.formContainer}>
+              <View style={styles.instructionContainer}>
+                <View style={styles.mailIconWrap}>
+                  <Ionicons
+                    name='mail'
+                    size={28}
+                    color='#3B82F6'
+                    accessible={false}
+                  />
+                </View>
+                <Text
+                  style={styles.instructionTitle}
+                  accessibilityRole='header'
+                >
+                  Forgot your password?
+                </Text>
+                <Text style={styles.instructionText}>
+                  Enter your email address and we'll send you a link to reset
+                  your password.
+                </Text>
+              </View>
+
+              <Input
+                label='Email Address'
+                placeholder='Email Address'
+                value={email}
+                onChangeText={(value) => {
+                  clearError();
+                  setEmail(value);
+                }}
+                leftIcon='mail-outline'
+                keyboardType='email-address'
+                autoCapitalize='none'
+                autoCorrect={false}
+                accessibilityHint='Enter your email address to receive a password reset link'
+                textContentType='emailAddress'
+                autoComplete='email'
+                autoFocus
+                variant='outline'
+                size='lg'
+                fullWidth
+                required
+              />
+
+              <Button
+                variant='primary'
+                title={loading ? 'Sending...' : 'Send Reset Link'}
+                onPress={handleResetPassword}
+                disabled={loading}
+                loading={loading}
+                accessibilityLabel={
+                  loading ? 'Sending reset email' : 'Send reset email'
+                }
+                fullWidth
+                style={{ borderRadius: 28, marginBottom: 24 }}
+              />
+
+              <TouchableOpacity
+                style={styles.backLinkButton}
+                onPress={() => navigation.goBack()}
+                accessibilityRole='button'
+                accessibilityLabel='Back to login'
+                accessibilityHint='Return to login screen'
+              >
+                <Text style={styles.backLinkText}>Back to Login</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </View>
+    </SafeAreaView>
   );
 };
 

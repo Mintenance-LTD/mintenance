@@ -1,6 +1,6 @@
 /**
  * Performance Optimizer
- * 
+ *
  * Advanced performance optimization utilities for React Native.
  */
 
@@ -51,7 +51,7 @@ class PerformanceOptimizerService {
     delay: number
   ): (...args: Parameters<T>) => void {
     let timeoutId: NodeJS.Timeout;
-    
+
     return (...args: Parameters<T>) => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => func(...args), delay);
@@ -66,12 +66,12 @@ class PerformanceOptimizerService {
     limit: number
   ): (...args: Parameters<T>) => void {
     let inThrottle: boolean;
-    
+
     return (...args: Parameters<T>) => {
       if (!inThrottle) {
         func(...args);
         inThrottle = true;
-        setTimeout(() => inThrottle = false, limit);
+        setTimeout(() => (inThrottle = false), limit);
       }
     };
   }
@@ -88,7 +88,7 @@ class PerformanceOptimizerService {
    */
   public batchOperations(operations: (() => void)[]): void {
     InteractionManager.runAfterInteractions(() => {
-      operations.forEach(op => op());
+      operations.forEach((op) => op());
     });
   }
 }
@@ -125,5 +125,3 @@ export function useThrottle<T extends (...args: unknown[]) => unknown>(
 
   return throttledCallback as T;
 }
-
-export default PerformanceOptimizer;
