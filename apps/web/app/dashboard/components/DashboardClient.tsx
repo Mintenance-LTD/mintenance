@@ -3,6 +3,7 @@
 import React from 'react';
 import { DashboardWithAirbnbSearch } from './DashboardWithAirbnbSearch';
 import type { MaintenanceRecommendation } from '@/lib/services/RecommendationsService';
+import type { Property } from './dashboard-search-types';
 
 interface DashboardClientProps {
   data: {
@@ -13,6 +14,7 @@ interface DashboardClientProps {
       location: string;
       email: string;
     };
+    properties: Property[];
     metrics: {
       totalSpent: number;
       activeJobs: number;

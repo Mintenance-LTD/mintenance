@@ -36,15 +36,20 @@ export type SupabaseMessageRow = {
   sender?: SupabasePerson | null;
 };
 
-/** Actual production messages table schema (uses thread_id, content, read_by) */
+/**
+ * Actual production messages table schema (verified against live DB):
+ * id, job_id, sender_id, receiver_id, content, message_type,
+ * attachment_url, read, created_at
+ */
 export type ActualMessageRow = {
   id: string;
-  thread_id: string;
+  job_id: string;
   sender_id: string;
+  receiver_id: string;
   content: string;
   message_type: string | null;
-  metadata: Record<string, unknown> | null;
-  read_by: string[];
+  attachment_url: string | null;
+  read: boolean | null;
   created_at: string;
   sender?: SupabasePerson | null;
 };
@@ -55,17 +60,18 @@ export const mapActualMessageRow = (
   jobId: string,
   currentUserId: string
 ): Message => {
+  // currentUserId is accepted for API compatibility; read state is a bool
+  // stored per-message (receiver-flag) so it's the same for all viewers.
+  void currentUserId;
   return {
     id: row.id,
-    jobId,
+    jobId: row.job_id || jobId,
     senderId: row.sender_id,
-    receiverId: '', // Not stored in actual schema
+    receiverId: row.receiver_id,
     messageText: row.content || '',
     messageType: normalizeMessageType(row.message_type),
-    attachmentUrl: row.metadata?.attachment_url as string | undefined,
-    read: Array.isArray(row.read_by)
-      ? row.read_by.includes(currentUserId)
-      : false,
+    attachmentUrl: row.attachment_url ?? undefined,
+    read: row.read === true,
     createdAt: row.created_at,
     senderName: row.sender
       ? formatDisplayName(row.sender, {

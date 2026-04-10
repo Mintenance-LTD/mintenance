@@ -296,6 +296,15 @@ export default async function DashboardPage2025() {
       location: '',
       email: user.email || '',
     },
+    properties: properties.map((p) => ({
+      id: String(p.id),
+      property_name:
+        typeof p.property_name === 'string' ? p.property_name : null,
+      address: typeof p.address === 'string' ? p.address : null,
+      photos: Array.isArray(p.photos) ? (p.photos as string[]) : undefined,
+      property_type:
+        typeof p.property_type === 'string' ? p.property_type : undefined,
+    })),
     metrics: {
       totalSpent,
       activeJobs: activeJobs.length,

@@ -22,7 +22,6 @@ import { PredictiveRecommendations } from './PredictiveRecommendations';
 import { BidsReceivedSection } from './BidsReceivedSection';
 import { categoryImages } from './dashboard-search-types';
 import type {
-  Property,
   DashboardWithAirbnbSearchProps,
   PortfolioAccessState,
 } from './dashboard-search-types';
@@ -32,6 +31,7 @@ export function DashboardWithAirbnbSearch({
 }: DashboardWithAirbnbSearchProps) {
   const {
     homeowner,
+    properties = [],
     metrics,
     activeJobs,
     pendingBids = [],
@@ -39,21 +39,9 @@ export function DashboardWithAirbnbSearch({
     upcomingAppointments = [],
     recommendations = [],
   } = data;
-  const { data: properties = [], isLoading: loadingProperties } = useQuery<
-    Property[]
-  >({
-    queryKey: ['dashboard', 'properties'],
-    queryFn: async () => {
-      const res = await fetch('/api/properties');
-      const data = await res.json();
-      return data.properties ?? [];
-    },
-    meta: {
-      onError: (error: unknown) => {
-        logger.error('Failed to fetch properties', { error });
-      },
-    },
-  });
+  // Properties now come from the server via props — no client fetch needed.
+  // This avoids a JWT/cookie round-trip that was returning empty for the
+  // property selector modal while the /properties page (server component) worked.
 
   const { data: portfolioAccess = null, isLoading: loadingPortfolioAccess } =
     useQuery<PortfolioAccessState | null>({

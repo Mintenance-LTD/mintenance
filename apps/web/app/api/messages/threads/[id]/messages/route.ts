@@ -57,25 +57,14 @@ export const GET = withApiHandler(
       throw new NotFoundError('Thread not found or access denied');
     }
 
-    // Find the message thread for this job
-    const { data: threadData } = await serverSupabase
-      .from('message_threads')
-      .select('id')
-      .eq('job_id', jobId)
-      .single();
-
-    if (!threadData) {
-      // No thread yet — return empty messages
-      return NextResponse.json({ messages: [] });
-    }
-
-    // Fetch messages by thread_id (actual DB schema)
+    // Fetch messages by job_id (actual DB schema — messages table has job_id,
+    // sender_id, receiver_id, content, read; NOT thread_id/metadata/read_by)
     const { data: messageData, error: messagesError } = await serverSupabase
       .from('messages')
       .select(
-        'id, thread_id, sender_id, content, message_type, metadata, read_by, created_at'
+        'id, job_id, sender_id, receiver_id, content, message_type, attachment_url, read, created_at'
       )
-      .eq('thread_id', threadData.id)
+      .eq('job_id', jobId)
       .order('created_at', { ascending: true });
 
     if (messagesError) {
@@ -90,6 +79,22 @@ export const GET = withApiHandler(
     const messages = (messageData ?? []).map((row: ActualMessageRow) =>
       mapActualMessageRow(row, jobId, user.id)
     );
+
+    // Mark messages addressed to this user as read (fire and forget)
+    Promise.resolve(
+      serverSupabase
+        .from('messages')
+        .update({ read: true })
+        .eq('job_id', jobId)
+        .eq('receiver_id', user.id)
+        .eq('read', false)
+    ).catch((err: unknown) => {
+      logger.error('Failed to mark messages as read', err, {
+        service: 'messages',
+        jobId,
+        userId: user.id,
+      });
+    });
 
     return NextResponse.json({ messages });
   }
@@ -171,48 +176,29 @@ export const POST = withApiHandler(
       }
     }
 
-    // Find or create message thread for this job
-    let { data: threadData } = await serverSupabase
-      .from('message_threads')
-      .select('id')
-      .eq('job_id', jobId)
-      .single();
-
-    if (!threadData) {
-      const { data: newThread } = await serverSupabase
-        .from('message_threads')
-        .insert({
-          job_id: jobId,
-          participant_ids: [user.id, receiverId].filter(Boolean),
-          last_message_at: new Date().toISOString(),
-        })
-        .select('id')
-        .single();
-      threadData = newThread;
+    if (!receiverId) {
+      throw new BadRequestError(
+        'Cannot determine message receiver — job missing contractor or homeowner'
+      );
     }
 
-    if (!threadData) {
-      throw new BadRequestError('Failed to find or create message thread');
-    }
-
-    // Insert message using actual DB schema (thread_id, sender_id, content, metadata, read_by)
+    // Insert message using actual DB schema: job_id, sender_id, receiver_id,
+    // content, message_type, attachment_url, read
     const insertPayload: Record<string, unknown> = {
-      thread_id: threadData.id,
+      job_id: jobId,
       sender_id: user.id,
+      receiver_id: receiverId,
       content: messageText,
       message_type: messageType,
-      metadata: {
-        receiver_id: receiverId,
-        attachment_url: attachmentUrl || undefined,
-      },
-      read_by: [] as string[],
+      attachment_url: attachmentUrl ?? null,
+      read: false,
     };
 
     const { data: inserted, error: insertError } = await serverSupabase
       .from('messages')
       .insert(insertPayload)
       .select(
-        'id, thread_id, sender_id, content, message_type, metadata, read_by, created_at'
+        'id, job_id, sender_id, receiver_id, content, message_type, attachment_url, read, created_at'
       )
       .single();
 
