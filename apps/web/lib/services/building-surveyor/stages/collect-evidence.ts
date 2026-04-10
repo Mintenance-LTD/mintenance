@@ -2,10 +2,7 @@ import { logger } from '@mintenance/shared';
 import { RoboflowDetectionService } from '../RoboflowDetectionService';
 import { runWithTimeout } from '../utils/timeout-utils';
 import { MonitoringService } from '@/lib/services/monitoring/MonitoringService';
-import type {
-  RoboflowDetection,
-  VisionAnalysisSummary,
-} from '../types';
+import type { RoboflowDetection, VisionAnalysisSummary } from '../types';
 import type { DamageTypeSegmentation } from '../SAM3Service';
 
 const AGENT_NAME = 'building-surveyor';
@@ -14,14 +11,14 @@ function recordMetric(metric: string, payload: Record<string, unknown>): void {
   MonitoringService.record(metric, { agentName: AGENT_NAME, ...payload });
 }
 
-export interface EvidenceResult {
+interface EvidenceResult {
   roboflowDetections: RoboflowDetection[];
   visionAnalysis: VisionAnalysisSummary | null;
   sam3Segmentation: DamageTypeSegmentation | undefined;
   hasMachineEvidence: boolean;
 }
 
-export interface PreRunEvidence {
+interface PreRunEvidence {
   roboflowDetections: RoboflowDetection[];
   visionAnalysis: VisionAnalysisSummary | null;
   sam3Segmentation?: DamageTypeSegmentation;
@@ -36,7 +33,7 @@ export async function collectEvidence(
   validatedImageUrls: string[],
   detectorTimeoutMs: number,
   _visionTimeoutMs: number,
-  preRunEvidence?: PreRunEvidence,
+  preRunEvidence?: PreRunEvidence
 ): Promise<EvidenceResult> {
   if (preRunEvidence) {
     return {
@@ -44,7 +41,8 @@ export async function collectEvidence(
       visionAnalysis: preRunEvidence.visionAnalysis ?? null,
       sam3Segmentation: preRunEvidence.sam3Segmentation,
       hasMachineEvidence:
-        preRunEvidence.roboflowDetections.length > 0 || !!preRunEvidence.visionAnalysis,
+        preRunEvidence.roboflowDetections.length > 0 ||
+        !!preRunEvidence.visionAnalysis,
     };
   }
 
@@ -52,7 +50,7 @@ export async function collectEvidence(
   const roboflowResult = await runWithTimeout(
     () => RoboflowDetectionService.detect(validatedImageUrls),
     detectorTimeoutMs,
-    'roboflow-detect',
+    'roboflow-detect'
   );
 
   const roboflowDetections: RoboflowDetection[] =
@@ -64,9 +62,10 @@ export async function collectEvidence(
     logger.warn('Roboflow detection unavailable', {
       service: 'BuildingSurveyorService',
       timedOut: roboflowResult.timedOut,
-      error: roboflowResult.error instanceof Error
-        ? roboflowResult.error.message
-        : roboflowResult.error,
+      error:
+        roboflowResult.error instanceof Error
+          ? roboflowResult.error.message
+          : roboflowResult.error,
     });
   }
 
@@ -93,13 +92,26 @@ export async function collectEvidence(
 
   // Optional SAM3 segmentation
   let sam3Segmentation: DamageTypeSegmentation | undefined;
-  if (process.env.ENABLE_SAM3_SEGMENTATION === 'true' && validatedImageUrls.length > 0) {
+  if (
+    process.env.ENABLE_SAM3_SEGMENTATION === 'true' &&
+    validatedImageUrls.length > 0
+  ) {
     try {
       const { SAM3Service } = await import('../SAM3Service');
       const isSAM3Available = await SAM3Service.healthCheck();
       if (isSAM3Available) {
-        const damageTypes = ['water damage', 'crack', 'rot', 'mold', 'stain', 'structural damage'];
-        const result = await SAM3Service.segmentDamageTypes(validatedImageUrls[0], damageTypes);
+        const damageTypes = [
+          'water damage',
+          'crack',
+          'rot',
+          'mold',
+          'stain',
+          'structural damage',
+        ];
+        const result = await SAM3Service.segmentDamageTypes(
+          validatedImageUrls[0],
+          damageTypes
+        );
         sam3Segmentation = result || undefined;
       }
     } catch (error) {

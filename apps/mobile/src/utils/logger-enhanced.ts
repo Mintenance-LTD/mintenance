@@ -19,7 +19,7 @@ const baseLogger: EnhancedLogger = createLogger({
   minLogLevel: __DEV__ ? 'debug' : 'info',
   enableDatadog: !__DEV__ && process.env.EXPO_PUBLIC_DATADOG_ENABLED === 'true',
   datadogApiKey: process.env.DATADOG_API_KEY,
-  enableSentry: !__DEV__
+  enableSentry: !__DEV__,
 });
 
 // Add mobile-specific context
@@ -43,9 +43,12 @@ let appStateSubscription: { remove: () => void } | undefined;
 
 if (Platform.OS !== 'web') {
   import('react-native').then(({ AppState }) => {
-    appStateSubscription = AppState.addEventListener('change', (nextAppState) => {
-      logger.info('App state changed', { appState: nextAppState });
-    });
+    appStateSubscription = AppState.addEventListener(
+      'change',
+      (nextAppState) => {
+        logger.info('App state changed', { appState: nextAppState });
+      }
+    );
   });
 }
 
@@ -54,30 +57,33 @@ if (Platform.OS !== 'web') {
 /**
  * Log navigation events
  */
-export function logNavigation(from: string, to: string, params?: unknown): void {
+function logNavigation(from: string, to: string, params?: unknown): void {
   logger.info('Navigation', {
     from,
     to,
     params: params ? JSON.stringify(params) : undefined,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 }
 
 /**
  * Log screen views
  */
-export function logScreenView(screenName: string, metadata?: Record<string, unknown>): void {
+function logScreenView(
+  screenName: string,
+  metadata?: Record<string, unknown>
+): void {
   logger.info('Screen view', {
     screenName,
     ...metadata,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 }
 
 /**
  * Log user interactions
  */
-export function logInteraction(
+function logInteraction(
   component: string,
   action: string,
   metadata?: Record<string, unknown>
@@ -86,14 +92,14 @@ export function logInteraction(
     component,
     action,
     ...metadata,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 }
 
 /**
  * Log API calls
  */
-export function logApiCall(
+function logApiCall(
   method: string,
   endpoint: string,
   status?: number,
@@ -105,7 +111,7 @@ export function logApiCall(
       method,
       endpoint,
       status,
-      duration
+      duration,
     });
   } else {
     const level = status && status >= 400 ? 'error' : 'info';
@@ -113,7 +119,7 @@ export function logApiCall(
       method,
       endpoint,
       status,
-      duration
+      duration,
     });
   }
 }
@@ -121,7 +127,7 @@ export function logApiCall(
 /**
  * Log performance metrics
  */
-export function logPerformance(
+function logPerformance(
   operation: string,
   duration: number,
   metadata?: Record<string, unknown>
@@ -130,14 +136,14 @@ export function logPerformance(
     operation,
     duration,
     ...metadata,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 }
 
 /**
  * Log storage operations
  */
-export function logStorage(
+function logStorage(
   operation: 'get' | 'set' | 'remove' | 'clear',
   key?: string,
   success: boolean = true,
@@ -146,13 +152,13 @@ export function logStorage(
   if (error) {
     logger.error('Storage operation failed', error, {
       operation,
-      key
+      key,
     });
   } else {
     logger.debug('Storage operation', {
       operation,
       key,
-      success
+      success,
     });
   }
 }
@@ -160,7 +166,7 @@ export function logStorage(
 /**
  * Log permission requests
  */
-export function logPermission(
+function logPermission(
   permission: string,
   status: string,
   metadata?: Record<string, unknown>
@@ -169,14 +175,14 @@ export function logPermission(
     permission,
     status,
     ...metadata,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 }
 
 /**
  * Log push notification events
  */
-export function logNotification(
+function logNotification(
   event: 'received' | 'opened' | 'dismissed',
   notificationId?: string,
   metadata?: Record<string, unknown>
@@ -185,14 +191,14 @@ export function logNotification(
     event,
     notificationId,
     ...metadata,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 }
 
 /**
  * Log authentication events
  */
-export function logAuth(
+function logAuth(
   action: 'login' | 'logout' | 'register' | 'refresh',
   success: boolean,
   method?: string,
@@ -201,13 +207,13 @@ export function logAuth(
   if (error) {
     logger.error('Authentication failed', error, {
       action,
-      method
+      method,
     });
   } else {
     logger.info('Authentication', {
       action,
       success,
-      method
+      method,
     });
   }
 }
@@ -215,11 +221,11 @@ export function logAuth(
 /**
  * Log offline/online status changes
  */
-export function logConnectivity(isConnected: boolean, connectionType?: string): void {
+function logConnectivity(isConnected: boolean, connectionType?: string): void {
   logger.info('Connectivity changed', {
     isConnected,
     connectionType,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 }
 
@@ -237,14 +243,14 @@ export function logMedia(
     mediaType,
     success,
     ...metadata,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 }
 
 /**
  * Log payment events
  */
-export function logPayment(
+function logPayment(
   action: string,
   amount?: number,
   currency?: string,
@@ -257,7 +263,7 @@ export function logPayment(
     amount,
     currency,
     success,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 
   if (error) {
@@ -270,31 +276,31 @@ export function logPayment(
 /**
  * Create a logger for a specific screen
  */
-export function createScreenLogger(screenName: string): EnhancedLogger {
+function createScreenLogger(screenName: string): EnhancedLogger {
   return logger.child({ screen: screenName });
 }
 
 /**
  * Create a logger for a specific service
  */
-export function createServiceLogger(serviceName: string): EnhancedLogger {
+function createServiceLogger(serviceName: string): EnhancedLogger {
   return logger.child({ service: serviceName });
 }
 
 /**
  * Log app crashes (to be called from error boundaries)
  */
-export function logCrash(error: Error, errorInfo?: unknown): void {
+function logCrash(error: Error, errorInfo?: unknown): void {
   logger.error('App crashed', error, {
     errorInfo: errorInfo ? JSON.stringify(errorInfo) : undefined,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 }
 
 /**
  * Initialize crash reporting
  */
-export function initializeCrashReporting(): void {
+function initializeCrashReporting(): void {
   if (!__DEV__) {
     // Set up global error handler
     const originalHandler = ErrorUtils.getGlobalHandler();
@@ -302,7 +308,7 @@ export function initializeCrashReporting(): void {
     ErrorUtils.setGlobalHandler((error, isFatal) => {
       logger.error('Unhandled error', error as Error, {
         isFatal,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       // Call original handler
@@ -316,36 +322,36 @@ export function initializeCrashReporting(): void {
 /**
  * Log session start (to be called on app launch)
  */
-export async function logSessionStart(): Promise<void> {
+async function logSessionStart(): Promise<void> {
   const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
   await AsyncStorage.setItem('sessionId', sessionId);
 
   logger.info('Session started', {
     sessionId,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 }
 
 /**
  * Log session end (to be called on app background/close)
  */
-export async function logSessionEnd(): Promise<void> {
+async function logSessionEnd(): Promise<void> {
   const sessionId = await AsyncStorage.getItem('sessionId');
 
   logger.info('Session ended', {
     sessionId: sessionId ?? undefined,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 }
 
 // Clean up on unmount
-export function cleanup(): void {
+function cleanup(): void {
   if (appStateSubscription) {
     appStateSubscription.remove();
   }
 }
 
 // Export the logger instance and type
-export { logger, EnhancedLogger };
+export { logger };
 export default logger;

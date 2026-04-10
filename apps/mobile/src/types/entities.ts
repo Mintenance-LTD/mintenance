@@ -1,4 +1,3 @@
-
 // Common data types used throughout the application
 export interface Job {
   id: string;
@@ -30,7 +29,7 @@ export interface Message {
   [key: string]: unknown;
 }
 
-export interface Notification {
+interface Notification {
   id: string;
   user_id: string;
   type: string;
@@ -41,7 +40,7 @@ export interface Notification {
   [key: string]: unknown;
 }
 
-export interface User {
+interface User {
   id: string;
   email: string;
   first_name?: string;

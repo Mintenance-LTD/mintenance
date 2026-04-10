@@ -15,7 +15,7 @@ const getTestId = () => ++testCounter;
 // USER FACTORIES
 // ============================================================================
 
-export interface TestUser {
+interface TestUser {
   id: string;
   email: string;
   role: 'homeowner' | 'contractor' | 'admin';
@@ -43,25 +43,31 @@ export const createTestUser = (overrides: Partial<TestUser> = {}): TestUser => {
   };
 };
 
-export const createTestHomeowner = (overrides: Partial<TestUser> = {}): TestUser => {
+export const createTestHomeowner = (
+  overrides: Partial<TestUser> = {}
+): TestUser => {
   return createTestUser({ role: 'homeowner', ...overrides });
 };
 
-export const createTestContractor = (overrides: Partial<TestUser> = {}): TestUser => {
+export const createTestContractor = (
+  overrides: Partial<TestUser> = {}
+): TestUser => {
   return createTestUser({
     role: 'contractor',
     first_name: 'Contractor',
     last_name: 'Pro',
-    ...overrides
+    ...overrides,
   });
 };
 
-export const createTestAdmin = (overrides: Partial<TestUser> = {}): TestUser => {
+export const createTestAdmin = (
+  overrides: Partial<TestUser> = {}
+): TestUser => {
   return createTestUser({
     role: 'admin',
     first_name: 'Admin',
     last_name: 'User',
-    ...overrides
+    ...overrides,
   });
 };
 
@@ -69,7 +75,7 @@ export const createTestAdmin = (overrides: Partial<TestUser> = {}): TestUser => 
 // JOB FACTORIES
 // ============================================================================
 
-export interface TestJob {
+interface TestJob {
   id: string;
   homeowner_id: string;
   title: string;
@@ -97,7 +103,8 @@ export const createTestJob = (overrides: Partial<TestJob> = {}): TestJob => {
     id,
     homeowner_id: overrides.homeowner_id ?? `user-test-${getTestId()}`,
     title: 'Fix leaking kitchen tap',
-    description: 'Kitchen tap has been dripping for a week. Needs repair or replacement.',
+    description:
+      'Kitchen tap has been dripping for a week. Needs repair or replacement.',
     category: 'plumbing',
     status: 'open',
     budget_min: budget * 0.8,
@@ -117,17 +124,21 @@ export const createTestJob = (overrides: Partial<TestJob> = {}): TestJob => {
 
 export const createTestJobWithPhotos = (photoCount = 3): TestJob => {
   return createTestJob({
-    photos: Array.from({ length: photoCount }, (_, i) =>
-      `https://example.com/job-photos/test-photo-${i + 1}.jpg`
+    photos: Array.from(
+      { length: photoCount },
+      (_, i) => `https://example.com/job-photos/test-photo-${i + 1}.jpg`
     ),
   });
 };
 
-export const createTestUrgentJob = (overrides: Partial<TestJob> = {}): TestJob => {
+export const createTestUrgentJob = (
+  overrides: Partial<TestJob> = {}
+): TestJob => {
   return createTestJob({
     urgency: 'urgent',
     title: 'URGENT: Burst pipe flooding bathroom',
-    description: 'Emergency! Water is flooding the bathroom. Need immediate help.',
+    description:
+      'Emergency! Water is flooding the bathroom. Need immediate help.',
     ...overrides,
   });
 };
@@ -136,7 +147,7 @@ export const createTestUrgentJob = (overrides: Partial<TestJob> = {}): TestJob =
 // BID FACTORIES
 // ============================================================================
 
-export interface TestBid {
+interface TestBid {
   id: string;
   job_id: string;
   contractor_id: string;
@@ -167,7 +178,9 @@ export const createTestBid = (overrides: Partial<TestBid> = {}): TestBid => {
   };
 };
 
-export const createTestAcceptedBid = (overrides: Partial<TestBid> = {}): TestBid => {
+export const createTestAcceptedBid = (
+  overrides: Partial<TestBid> = {}
+): TestBid => {
   return createTestBid({
     status: 'accepted',
     start_date: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
@@ -179,7 +192,7 @@ export const createTestAcceptedBid = (overrides: Partial<TestBid> = {}): TestBid
 // PAYMENT FACTORIES
 // ============================================================================
 
-export interface TestPayment {
+interface TestPayment {
   id: string;
   job_id: string;
   homeowner_id: string;
@@ -192,7 +205,9 @@ export interface TestPayment {
   updated_at: string;
 }
 
-export const createTestPayment = (overrides: Partial<TestPayment> = {}): TestPayment => {
+export const createTestPayment = (
+  overrides: Partial<TestPayment> = {}
+): TestPayment => {
   const id = `payment-test-${getTestId()}`;
 
   return {
@@ -210,7 +225,9 @@ export const createTestPayment = (overrides: Partial<TestPayment> = {}): TestPay
   };
 };
 
-export const createTestCompletedPayment = (overrides: Partial<TestPayment> = {}): TestPayment => {
+export const createTestCompletedPayment = (
+  overrides: Partial<TestPayment> = {}
+): TestPayment => {
   return createTestPayment({
     status: 'completed',
     stripe_payment_method_id: `pm_test_${getTestId()}`,
@@ -259,7 +276,7 @@ export const STRIPE_TEST_CARDS = {
 // PROFILE FACTORIES
 // ============================================================================
 
-export interface TestContractorProfile {
+interface TestContractorProfile {
   id: string;
   user_id: string;
   company_name: string;

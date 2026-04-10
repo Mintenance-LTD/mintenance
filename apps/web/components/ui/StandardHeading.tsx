@@ -37,40 +37,40 @@ import { cn } from '@/lib/utils';
 
 const headingVariants = cva(
   // Base styles for all headings
-  "font-semibold text-gray-900",
+  'font-semibold text-gray-900',
   {
     variants: {
       level: {
-        1: "text-4xl",    // 32px - Page titles
-        2: "text-2xl",    // 24px - Section headings
-        3: "text-xl",     // 20px - Subsection headings
-        4: "text-lg",     // 18px - Card titles
-        5: "text-base",   // 16px - Small headings
-        6: "text-sm",     // 14px - Tiny headings
+        1: 'text-4xl', // 32px - Page titles
+        2: 'text-2xl', // 24px - Section headings
+        3: 'text-xl', // 20px - Subsection headings
+        4: 'text-lg', // 18px - Card titles
+        5: 'text-base', // 16px - Small headings
+        6: 'text-sm', // 14px - Tiny headings
       },
       color: {
-        default: "text-gray-900",       // Primary heading color
-        primary: "text-ck-blue-600",    // Primary brand color
-        secondary: "text-ck-mint-600", // Secondary brand color
-        muted: "text-gray-600",         // Muted/secondary text
+        default: 'text-gray-900', // Primary heading color
+        primary: 'text-ck-blue-600', // Primary brand color
+        secondary: 'text-ck-mint-600', // Secondary brand color
+        muted: 'text-gray-600', // Muted/secondary text
       },
       weight: {
-        normal: "font-normal",     // 400
-        medium: "font-medium",     // 500
-        semibold: "font-semibold", // 600 (default)
-        bold: "font-bold",         // 700
+        normal: 'font-normal', // 400
+        medium: 'font-medium', // 500
+        semibold: 'font-semibold', // 600 (default)
+        bold: 'font-bold', // 700
       },
       spacing: {
-        tight: "tracking-tight",   // -0.025em
-        normal: "tracking-normal", // 0
-        wide: "tracking-wide",     // 0.025em
+        tight: 'tracking-tight', // -0.025em
+        normal: 'tracking-normal', // 0
+        wide: 'tracking-wide', // 0.025em
       },
     },
     defaultVariants: {
       level: 1,
-      color: "default",
-      weight: "semibold",
-      spacing: "normal",
+      color: 'default',
+      weight: 'semibold',
+      spacing: 'normal',
     },
   }
 );
@@ -79,8 +79,9 @@ const headingVariants = cva(
 // TYPE DEFINITIONS
 // ============================================
 
-export interface StandardHeadingProps
-  extends Omit<React.HTMLAttributes<HTMLHeadingElement>, 'color'>,
+interface StandardHeadingProps
+  extends
+    Omit<React.HTMLAttributes<HTMLHeadingElement>, 'color'>,
     VariantProps<typeof headingVariants> {
   /**
    * The heading level (1-6)
@@ -112,20 +113,12 @@ export interface StandardHeadingProps
  */
 const StandardHeading = forwardRef<HTMLHeadingElement, StandardHeadingProps>(
   (
-    {
-      level,
-      as,
-      color,
-      weight,
-      spacing,
-      className,
-      children,
-      ...props
-    },
+    { level, as, color, weight, spacing, className, children, ...props },
     ref
   ) => {
     // Determine the HTML tag to use
-    const Component = as || (`h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6');
+    const Component =
+      as || (`h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6');
 
     return (
       <Component
@@ -152,36 +145,40 @@ StandardHeading.displayName = 'StandardHeading';
  * PageTitle (H1)
  * Main page heading
  */
-export const PageTitle = forwardRef<HTMLHeadingElement, Omit<StandardHeadingProps, 'level'>>(
-  (props, ref) => <StandardHeading ref={ref} level={1} {...props} />
-);
+export const PageTitle = forwardRef<
+  HTMLHeadingElement,
+  Omit<StandardHeadingProps, 'level'>
+>((props, ref) => <StandardHeading ref={ref} level={1} {...props} />);
 PageTitle.displayName = 'PageTitle';
 
 /**
  * SectionHeading (H2)
  * Major section heading
  */
-export const SectionHeading = forwardRef<HTMLHeadingElement, Omit<StandardHeadingProps, 'level'>>(
-  (props, ref) => <StandardHeading ref={ref} level={2} {...props} />
-);
+export const SectionHeading = forwardRef<
+  HTMLHeadingElement,
+  Omit<StandardHeadingProps, 'level'>
+>((props, ref) => <StandardHeading ref={ref} level={2} {...props} />);
 SectionHeading.displayName = 'SectionHeading';
 
 /**
  * SubsectionHeading (H3)
  * Subsection heading
  */
-export const SubsectionHeading = forwardRef<HTMLHeadingElement, Omit<StandardHeadingProps, 'level'>>(
-  (props, ref) => <StandardHeading ref={ref} level={3} {...props} />
-);
+export const SubsectionHeading = forwardRef<
+  HTMLHeadingElement,
+  Omit<StandardHeadingProps, 'level'>
+>((props, ref) => <StandardHeading ref={ref} level={3} {...props} />);
 SubsectionHeading.displayName = 'SubsectionHeading';
 
 /**
  * CardHeading (H4)
  * Card and component titles
  */
-export const CardHeading = forwardRef<HTMLHeadingElement, Omit<StandardHeadingProps, 'level'>>(
-  (props, ref) => <StandardHeading ref={ref} level={4} {...props} />
-);
+export const CardHeading = forwardRef<
+  HTMLHeadingElement,
+  Omit<StandardHeadingProps, 'level'>
+>((props, ref) => <StandardHeading ref={ref} level={4} {...props} />);
 CardHeading.displayName = 'CardHeading';
 
 // ============================================
@@ -206,15 +203,13 @@ export const HeadingGroup: React.FC<HeadingGroupProps> = ({
   spacing = 'md',
 }) => {
   const spacingClasses = {
-    sm: 'space-y-1',  // 4px
-    md: 'space-y-2',  // 8px
-    lg: 'space-y-4',  // 16px
+    sm: 'space-y-1', // 4px
+    md: 'space-y-2', // 8px
+    lg: 'space-y-4', // 16px
   };
 
   return (
-    <div className={cn(spacingClasses[spacing], className)}>
-      {children}
-    </div>
+    <div className={cn(spacingClasses[spacing], className)}>{children}</div>
   );
 };
 
@@ -233,29 +228,26 @@ interface SupportingTextProps extends React.HTMLAttributes<HTMLParagraphElement>
  * Descriptive text that accompanies headings
  * Uses secondary text color
  */
-export const SupportingText = forwardRef<HTMLParagraphElement, SupportingTextProps>(
-  ({ children, size = 'base', className, ...props }, ref) => {
-    const sizeClasses = {
-      sm: 'text-sm',    // 14px
-      base: 'text-base', // 16px
-      lg: 'text-lg',    // 18px
-    };
+export const SupportingText = forwardRef<
+  HTMLParagraphElement,
+  SupportingTextProps
+>(({ children, size = 'base', className, ...props }, ref) => {
+  const sizeClasses = {
+    sm: 'text-sm', // 14px
+    base: 'text-base', // 16px
+    lg: 'text-lg', // 18px
+  };
 
-    return (
-      <p
-        ref={ref}
-        className={cn(
-          'text-gray-600',
-          sizeClasses[size],
-          className
-        )}
-        {...props}
-      >
-        {children}
-      </p>
-    );
-  }
-);
+  return (
+    <p
+      ref={ref}
+      className={cn('text-gray-600', sizeClasses[size], className)}
+      {...props}
+    >
+      {children}
+    </p>
+  );
+});
 
 SupportingText.displayName = 'SupportingText';
 

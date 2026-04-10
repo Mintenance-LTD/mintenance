@@ -6,7 +6,7 @@ import { logger } from '@mintenance/shared';
  * Implements OWASP password storage best practices
  */
 // Password hashing algorithms
-export enum HashAlgorithm {
+enum HashAlgorithm {
   BCRYPT = 'bcrypt',
   ARGON2ID = 'argon2id',
   SCRYPT = 'scrypt', // Backup option

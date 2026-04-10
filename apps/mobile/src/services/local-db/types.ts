@@ -1,4 +1,4 @@
-export interface LocalDatabaseConfig {
+interface LocalDatabaseConfig {
   name: string;
   version: number;
 }
@@ -74,7 +74,7 @@ export interface DatabaseSyncMetadataRow {
   is_dirty: number;
 }
 
-export interface DatabaseStorageInfoRow {
+interface DatabaseStorageInfoRow {
   total?: number;
   dirty?: number;
   actions?: number;

@@ -13,7 +13,7 @@ import { logger } from '../utils/logger';
 /**
  * Hook to get message threads for current user (conversations list)
  */
-export const useMessageThreads = () => {
+const useMessageThreads = () => {
   const { user } = useAuth();
 
   return useOfflineQuery({
@@ -136,7 +136,7 @@ export const useUnreadMessageCount = () => {
 /**
  * Hook to search messages in a job conversation
  */
-export const useSearchJobMessages = (
+const useSearchJobMessages = (
   jobId: string,
   searchTerm: string,
   limit: number = 20

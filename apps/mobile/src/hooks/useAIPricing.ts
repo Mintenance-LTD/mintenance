@@ -7,13 +7,13 @@ import {
 } from '../services/AIPricingEngine';
 import { logger } from '../utils/logger';
 
-export interface PricingState {
+interface PricingState {
   analysis: PricingAnalysis | null;
   isLoading: boolean;
   error: string | null;
 }
 
-export const useCachedPricing = (jobId: string, analysis: PricingAnalysis | null) => {
+const useCachedPricing = (jobId: string, analysis: PricingAnalysis | null) => {
   return useQuery({
     queryKey: ['pricing', jobId],
     queryFn: async () => analysis,
@@ -158,7 +158,10 @@ export const useAIPricing = () => {
 
   // Get pricing recommendations for contractors
   const getContractorRecommendations = useCallback(
-    (analysis: PricingAnalysis, contractorProfile?: { rating?: number; completedJobs?: number }) => {
+    (
+      analysis: PricingAnalysis,
+      contractorProfile?: { rating?: number; completedJobs?: number }
+    ) => {
       const recommendations = [...analysis.recommendations];
 
       // Add contractor-specific recommendations

@@ -19,11 +19,17 @@ import type { RootStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
 
 interface Props {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'RescheduleBooking'>;
+  navigation: NativeStackNavigationProp<
+    RootStackParamList,
+    'RescheduleBooking'
+  >;
   route: RouteProp<RootStackParamList, 'RescheduleBooking'>;
 }
 
-export const RescheduleBookingScreen: React.FC<Props> = ({ navigation, route }) => {
+export const RescheduleBookingScreen: React.FC<Props> = ({
+  navigation,
+  route,
+}) => {
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const { bookingId } = route.params;
@@ -60,7 +66,10 @@ export const RescheduleBookingScreen: React.FC<Props> = ({ navigation, route }) 
       await mobileApiClient.patch(`/api/bookings/${bookingId}/reschedule`, {
         newDateTime: selectedDate.toISOString(),
       });
-      toast.success('Booking rescheduled', `New date: ${formatDate(selectedDate)}`);
+      toast.success(
+        'Booking rescheduled',
+        `New date: ${formatDate(selectedDate)}`
+      );
       navigation.goBack();
     } catch {
       toast.error('Failed to reschedule', 'Please try again.');
@@ -70,17 +79,32 @@ export const RescheduleBookingScreen: React.FC<Props> = ({ navigation, route }) 
   };
 
   const formatDate = (date: Date) =>
-    date.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' });
+    date.toLocaleDateString('en-GB', {
+      weekday: 'long',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
 
   const formatTime = (date: Date) =>
     date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.surface} />
+      <StatusBar
+        barStyle='dark-content'
+        backgroundColor={theme.colors.surface}
+      />
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons
+            name='arrow-back'
+            size={24}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Reschedule Booking</Text>
         <View style={styles.headerButton} />
@@ -89,35 +113,53 @@ export const RescheduleBookingScreen: React.FC<Props> = ({ navigation, route }) 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Choose New Date & Time</Text>
-          <Text style={styles.cardSubtitle}>Select when you would like to reschedule your booking.</Text>
+          <Text style={styles.cardSubtitle}>
+            Select when you would like to reschedule your booking.
+          </Text>
 
-          <TouchableOpacity style={styles.pickerRow} onPress={() => setShowDatePicker(true)}>
+          <TouchableOpacity
+            style={styles.pickerRow}
+            onPress={() => setShowDatePicker(true)}
+          >
             <View style={styles.pickerIconWrap}>
-              <Ionicons name="calendar-outline" size={18} color="#3B82F6" />
+              <Ionicons name='calendar-outline' size={18} color='#3B82F6' />
             </View>
             <View style={styles.pickerInfo}>
               <Text style={styles.pickerLabel}>Date</Text>
               <Text style={styles.pickerValue}>{formatDate(selectedDate)}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.colors.textTertiary} />
+            <Ionicons
+              name='chevron-forward'
+              size={20}
+              color={theme.colors.textTertiary}
+            />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.pickerRow} onPress={() => setShowTimePicker(true)}>
-            <View style={[styles.pickerIconWrap, { backgroundColor: '#EDE9FE' }]}>
-              <Ionicons name="time-outline" size={18} color="#8B5CF6" />
+          <TouchableOpacity
+            style={styles.pickerRow}
+            onPress={() => setShowTimePicker(true)}
+          >
+            <View
+              style={[styles.pickerIconWrap, { backgroundColor: '#EDE9FE' }]}
+            >
+              <Ionicons name='time-outline' size={18} color='#8B5CF6' />
             </View>
             <View style={styles.pickerInfo}>
               <Text style={styles.pickerLabel}>Time</Text>
               <Text style={styles.pickerValue}>{formatTime(selectedDate)}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.colors.textTertiary} />
+            <Ionicons
+              name='chevron-forward'
+              size={20}
+              color={theme.colors.textTertiary}
+            />
           </TouchableOpacity>
         </View>
 
         {showDatePicker && (
           <DateTimePicker
             value={selectedDate}
-            mode="date"
+            mode='date'
             minimumDate={tomorrow}
             display={Platform.OS === 'ios' ? 'spinner' : 'default'}
             onChange={handleDateChange}
@@ -127,14 +169,17 @@ export const RescheduleBookingScreen: React.FC<Props> = ({ navigation, route }) 
         {showTimePicker && (
           <DateTimePicker
             value={selectedDate}
-            mode="time"
+            mode='time'
             display={Platform.OS === 'ios' ? 'spinner' : 'default'}
             onChange={handleTimeChange}
           />
         )}
 
         <TouchableOpacity
-          style={[styles.confirmButton, loading && styles.confirmButtonDisabled]}
+          style={[
+            styles.confirmButton,
+            loading && styles.confirmButtonDisabled,
+          ]}
           onPress={handleConfirm}
           disabled={loading}
         >
@@ -160,7 +205,11 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
   },
   headerButton: { padding: 8, width: 40 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
   content: { padding: 16 },
   card: {
     backgroundColor: theme.colors.surface,
@@ -168,12 +217,26 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 20,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 4 },
-  cardSubtitle: { fontSize: 14, color: theme.colors.textSecondary, marginBottom: 20 },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: 4,
+  },
+  cardSubtitle: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginBottom: 20,
+  },
   pickerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -190,8 +253,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pickerInfo: { flex: 1, marginLeft: 12 },
-  pickerLabel: { fontSize: 12, color: theme.colors.textTertiary, marginBottom: 2 },
-  pickerValue: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary },
+  pickerLabel: {
+    fontSize: 12,
+    color: theme.colors.textTertiary,
+    marginBottom: 2,
+  },
+  pickerValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
   confirmButton: {
     backgroundColor: theme.colors.textPrimary,
     borderRadius: 28,
@@ -199,7 +270,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   confirmButtonDisabled: { opacity: 0.6 },
-  confirmButtonText: { color: theme.colors.textInverse, fontSize: 16, fontWeight: '700' },
+  confirmButtonText: {
+    color: theme.colors.textInverse,
+    fontSize: 16,
+    fontWeight: '700',
+  },
 });
-
-export default RescheduleBookingScreen;

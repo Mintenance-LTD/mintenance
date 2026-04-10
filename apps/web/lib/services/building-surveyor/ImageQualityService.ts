@@ -12,7 +12,7 @@
 import { logger } from '@mintenance/shared';
 import type { VisionAnalysisSummary } from './types';
 
-export interface ImageQualityMetrics {
+interface ImageQualityMetrics {
   lightingQuality: number; // 0-1, higher = better lighting
   imageClarity: number; // 0-1, higher = sharper image
   blurScore: number; // 0-1, higher = more blur (inverse of clarity)

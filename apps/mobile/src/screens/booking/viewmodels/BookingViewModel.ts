@@ -35,7 +35,7 @@ export interface Booking {
   specialInstructions?: string;
 }
 
-export interface CancellationReason {
+interface CancellationReason {
   id: string;
   reason: string;
 }
@@ -73,7 +73,7 @@ export interface BookingViewModel {
   formatBookingTime: (dateString: string) => string;
 }
 
-export const cancellationReasons: CancellationReason[] = [
+const cancellationReasons: CancellationReason[] = [
   { id: 'schedule_change', reason: 'Schedule Change' },
   { id: 'weather_conditions', reason: 'Weather conditions' },
   { id: 'parking_availability', reason: 'Parking Availability' },
@@ -85,7 +85,7 @@ export const cancellationReasons: CancellationReason[] = [
 /**
  * Custom hook for Booking business logic
  */
-export const useBookingViewModel = (user: User | null): BookingViewModel => {
+const useBookingViewModel = (user: User | null): BookingViewModel => {
   const [activeTab, setActiveTab] = useState<BookingStatus>('upcoming');
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);

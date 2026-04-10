@@ -38,7 +38,7 @@ const URGENCY_COLORS: Record<
   monitor: { bg: '#EFF6FF', text: '#2563EB', icon: 'eye' },
 };
 
-export function getSeverityStyle(severity: string) {
+function getSeverityStyle(severity: string) {
   return SEVERITY_COLORS[severity] ?? { bg: '#F3F4F6', text: '#6B7280' };
 }
 

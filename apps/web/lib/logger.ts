@@ -13,19 +13,33 @@ try {
   // Headers not available in browser environment
 }
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 type JsonValue = string | number | boolean | null | JsonObject | JsonArray;
-interface JsonObject { [key: string]: JsonValue; }
+interface JsonObject {
+  [key: string]: JsonValue;
+}
 type JsonArray = JsonValue[];
 
 interface LogContext extends JsonObject {}
 
 // Sentry integration placeholder - can be initialized later
 interface SentryFunctions {
-  captureMessage: (message: string, level?: string, extra?: Record<string, unknown>) => void;
-  captureException: (exception: Error, context?: Record<string, unknown>) => void;
-  addBreadcrumb: (breadcrumb: { message: string; level?: string; category?: string; data?: unknown }) => void;
+  captureMessage: (
+    message: string,
+    level?: string,
+    extra?: Record<string, unknown>
+  ) => void;
+  captureException: (
+    exception: Error,
+    context?: Record<string, unknown>
+  ) => void;
+  addBreadcrumb: (breadcrumb: {
+    message: string;
+    level?: string;
+    category?: string;
+    data?: unknown;
+  }) => void;
 }
 
 let sentryFunctions: SentryFunctions = {
@@ -80,7 +94,7 @@ class Logger {
     context?: LogContext
   ): string {
     const timestamp = new Date().toISOString();
-    
+
     // Get request ID from headers if available (server-side only)
     let requestId = '';
     if (typeof window === 'undefined' && headers) {
@@ -94,7 +108,7 @@ class Logger {
         // Headers not available in this context
       }
     }
-    
+
     const contextStr = context ? ` | ${this.safeStringify(context)}` : '';
     return `[${timestamp}] ${requestId}${level.toUpperCase()}: ${message}${contextStr}`;
   }
@@ -116,7 +130,11 @@ class Logger {
     }
   }
 
-  debug(messageOrTag: string, contextOrMessage?: LogContext | unknown | string, maybeContext?: LogContext | unknown): void {
+  debug(
+    messageOrTag: string,
+    contextOrMessage?: LogContext | unknown | string,
+    maybeContext?: LogContext | unknown
+  ): void {
     const { message, context } = this.normalizeMessageArgs(
       messageOrTag,
       contextOrMessage,
@@ -136,7 +154,11 @@ class Logger {
     });
   }
 
-  info(messageOrTag: string, contextOrMessage?: LogContext | unknown | string, maybeContext?: LogContext | unknown): void {
+  info(
+    messageOrTag: string,
+    contextOrMessage?: LogContext | unknown | string,
+    maybeContext?: LogContext | unknown
+  ): void {
     const { message, context } = this.normalizeMessageArgs(
       messageOrTag,
       contextOrMessage,
@@ -157,7 +179,11 @@ class Logger {
     sentryFunctions.captureMessage(message, 'info');
   }
 
-  warn(messageOrTag: string, contextOrMessage?: LogContext | unknown | string, maybeContext?: LogContext | unknown): void {
+  warn(
+    messageOrTag: string,
+    contextOrMessage?: LogContext | unknown | string,
+    maybeContext?: LogContext | unknown
+  ): void {
     const { message, context } = this.normalizeMessageArgs(
       messageOrTag,
       contextOrMessage,
@@ -220,9 +246,10 @@ class Logger {
       : undefined;
     const ctx = isErr ? context : this.toContext(errorOrContextOrMessage);
     // Ensure ctx is a valid LogContext (has index signature) before sanitizing
-    const sanitizedContext = ctx && typeof ctx === 'object' && Object.keys(ctx).length > 0 
-      ? this.sanitizeContext(ctx as LogContext) 
-      : undefined;
+    const sanitizedContext =
+      ctx && typeof ctx === 'object' && Object.keys(ctx).length > 0
+        ? this.sanitizeContext(ctx as LogContext)
+        : undefined;
     const formattedMessage = this.formatMessage(
       'error',
       message,
@@ -360,7 +387,11 @@ class Logger {
       message,
       category: 'auth',
       level: success ? 'info' : 'warning',
-      data: { action, success, ...(this.toContext(context) || ({} as LogContext)) },
+      data: {
+        action,
+        success,
+        ...(this.toContext(context) || ({} as LogContext)),
+      },
     });
 
     if (!success) {

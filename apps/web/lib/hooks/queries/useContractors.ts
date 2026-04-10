@@ -17,7 +17,7 @@ import { logger } from '@mintenance/shared';
 /**
  * Contractor profile type
  */
-export interface ContractorProfile {
+interface ContractorProfile {
   id: string;
   first_name: string;
   last_name: string;
@@ -61,9 +61,10 @@ async function fetchContractors(filters?: {
   if (filters?.cursor) params.set('cursor', filters.cursor);
   if (filters?.location) params.set('location', filters.location);
   if (filters?.minRating) params.set('minRating', String(filters.minRating));
-  if (filters?.verified !== undefined) params.set('verified', String(filters.verified));
+  if (filters?.verified !== undefined)
+    params.set('verified', String(filters.verified));
   if (filters?.skills) {
-    filters.skills.forEach(s => params.append('skills', s));
+    filters.skills.forEach((s) => params.append('skills', s));
   }
 
   const response = await fetch(`/api/contractors?${params.toString()}`, {
@@ -71,7 +72,9 @@ async function fetchContractors(filters?: {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to fetch contractors' }));
+    const error = await response
+      .json()
+      .catch(() => ({ error: 'Failed to fetch contractors' }));
     throw new Error(error.error || 'Failed to fetch contractors');
   }
 
@@ -81,13 +84,17 @@ async function fetchContractors(filters?: {
 /**
  * Fetch single contractor by ID
  */
-async function fetchContractor(contractorId: string): Promise<ContractorProfile> {
+async function fetchContractor(
+  contractorId: string
+): Promise<ContractorProfile> {
   const response = await fetch(`/api/contractors/${contractorId}`, {
     credentials: 'include',
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to fetch contractor' }));
+    const error = await response
+      .json()
+      .catch(() => ({ error: 'Failed to fetch contractor' }));
     throw new Error(error.error || 'Failed to fetch contractor');
   }
 
@@ -99,12 +106,17 @@ async function fetchContractor(contractorId: string): Promise<ContractorProfile>
  * Fetch contractor reviews
  */
 async function fetchContractorReviews(contractorId: string, page = 1) {
-  const response = await fetch(`/api/contractors/${contractorId}/reviews?page=${page}`, {
-    credentials: 'include',
-  });
+  const response = await fetch(
+    `/api/contractors/${contractorId}/reviews?page=${page}`,
+    {
+      credentials: 'include',
+    }
+  );
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to fetch reviews' }));
+    const error = await response
+      .json()
+      .catch(() => ({ error: 'Failed to fetch reviews' }));
     throw new Error(error.error || 'Failed to fetch reviews');
   }
 
@@ -181,7 +193,10 @@ export function useContractor(contractorId: string | null | undefined) {
  * return <ReviewsList reviews={reviews.data} />;
  * ```
  */
-export function useContractorReviews(contractorId: string | null | undefined, page = 1) {
+export function useContractorReviews(
+  contractorId: string | null | undefined,
+  page = 1
+) {
   return useQuery({
     queryKey: queryKeys.contractors.reviews(contractorId || ''),
     queryFn: () => fetchContractorReviews(contractorId!, page),
@@ -205,10 +220,13 @@ export function useContractorReviews(contractorId: string | null | undefined, pa
  * />
  * ```
  */
-export function useContractorSearch(query: string, filters?: {
-  skills?: string[];
-  location?: string;
-}) {
+export function useContractorSearch(
+  query: string,
+  filters?: {
+    skills?: string[];
+    location?: string;
+  }
+) {
   const filterString = filters ? JSON.stringify(filters) : undefined;
 
   return useQuery({
@@ -217,12 +235,15 @@ export function useContractorSearch(query: string, filters?: {
       const params = new URLSearchParams({ query });
       if (filters?.location) params.set('location', filters.location);
       if (filters?.skills) {
-        filters.skills.forEach(s => params.append('skills', s));
+        filters.skills.forEach((s) => params.append('skills', s));
       }
 
-      const response = await fetch(`/api/contractors/search?${params.toString()}`, {
-        credentials: 'include',
-      });
+      const response = await fetch(
+        `/api/contractors/search?${params.toString()}`,
+        {
+          credentials: 'include',
+        }
+      );
 
       if (!response.ok) {
         throw new Error('Search failed');

@@ -7,7 +7,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import type { ToolRunSummary } from './types';
 
-export interface EvidenceRow {
+interface EvidenceRow {
   assessment_id: string;
   tool_name: string;
   step_index: number;
@@ -37,7 +37,10 @@ export async function writeEvidence(row: EvidenceRow): Promise<void> {
     });
 
     const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Evidence write timed out')), EVIDENCE_WRITE_TIMEOUT_MS),
+      setTimeout(
+        () => reject(new Error('Evidence write timed out')),
+        EVIDENCE_WRITE_TIMEOUT_MS
+      )
     );
 
     const { error } = await Promise.race([insertPromise, timeoutPromise]);
@@ -53,7 +56,10 @@ export async function writeEvidence(row: EvidenceRow): Promise<void> {
       throw error;
     }
   } catch (err) {
-    logger.error('EvidenceWriter: writeEvidence failed', { service: 'EvidenceWriter', err });
+    logger.error('EvidenceWriter: writeEvidence failed', {
+      service: 'EvidenceWriter',
+      err,
+    });
     throw err;
   }
 }

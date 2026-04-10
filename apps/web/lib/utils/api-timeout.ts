@@ -10,11 +10,11 @@ import { logger } from '@mintenance/shared';
 /**
  * Timeout configuration
  */
-export interface TimeoutConfig {
-  timeoutMs: number;          // Timeout in milliseconds
-  operation: string;          // Operation name for logging
-  retries?: number;           // Number of retries (default: 0)
-  retryDelayMs?: number;      // Delay between retries (default: 1000ms)
+interface TimeoutConfig {
+  timeoutMs: number; // Timeout in milliseconds
+  operation: string; // Operation name for logging
+  retries?: number; // Number of retries (default: 0)
+  retryDelayMs?: number; // Delay between retries (default: 1000ms)
 }
 
 /**
@@ -47,7 +47,12 @@ export async function withTimeout<T>(
   operation: () => Promise<T>,
   config: TimeoutConfig
 ): Promise<T> {
-  const { timeoutMs, operation: opName, retries = 0, retryDelayMs = 1000 } = config;
+  const {
+    timeoutMs,
+    operation: opName,
+    retries = 0,
+    retryDelayMs = 1000,
+  } = config;
 
   let lastError: Error | null = null;
 
@@ -62,7 +67,10 @@ export async function withTimeout<T>(
         const result = await Promise.race([
           operation(),
           new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new TimeoutError(opName, timeoutMs)), timeoutMs)
+            setTimeout(
+              () => reject(new TimeoutError(opName, timeoutMs)),
+              timeoutMs
+            )
           ),
         ]);
 
@@ -74,11 +82,14 @@ export async function withTimeout<T>(
         // If it's a timeout error and we have retries left, retry
         if (error instanceof TimeoutError && attempt < retries) {
           lastError = error;
-          logger.warn(`Timeout on attempt ${attempt + 1}/${retries + 1}, retrying...`, {
-            operation: opName,
-            timeoutMs,
-            attempt: attempt + 1,
-          });
+          logger.warn(
+            `Timeout on attempt ${attempt + 1}/${retries + 1}, retrying...`,
+            {
+              operation: opName,
+              timeoutMs,
+              attempt: attempt + 1,
+            }
+          );
 
           // Wait before retry
           await new Promise((resolve) => setTimeout(resolve, retryDelayMs));

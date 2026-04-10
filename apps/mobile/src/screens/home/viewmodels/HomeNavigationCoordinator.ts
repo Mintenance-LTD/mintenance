@@ -15,7 +15,7 @@ import { theme } from '../../../theme';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyNavigation = NavigationProp<Record<string, object | undefined>>;
 
-export interface HomeNavigationActions {
+interface HomeNavigationActions {
   openServiceRequest: (params?: Record<string, unknown>) => void;
   openJobsList: () => void;
   openInbox: () => void;
@@ -73,7 +73,7 @@ export class HomeNavigationCoordinator implements HomeNavigationActions {
   openMeetingSchedule = () => {
     this.haptics.light();
     this.navigation.getParent?.()?.navigate('Modal', {
-      screen: 'MeetingSchedule'
+      screen: 'MeetingSchedule',
     });
   };
 
@@ -98,7 +98,7 @@ export class HomeNavigationCoordinator implements HomeNavigationActions {
   openNotificationSettings = () => {
     this.haptics.light();
     this.navigation.getParent?.()?.navigate('Modal', {
-      screen: 'NotificationSettings'
+      screen: 'NotificationSettings',
     });
   };
 
@@ -110,7 +110,7 @@ export class HomeNavigationCoordinator implements HomeNavigationActions {
   openSupport = () => {
     this.haptics.selection();
     this.navigation.getParent?.()?.navigate('Modal', {
-      screen: 'HelpCenter'
+      screen: 'HelpCenter',
     });
   };
 }
@@ -118,7 +118,7 @@ export class HomeNavigationCoordinator implements HomeNavigationActions {
 /**
  * Custom hook for Home navigation
  */
-export const useHomeNavigation = (
+const useHomeNavigation = (
   navigation: AnyNavigation
 ): HomeNavigationActions => {
   const haptics = useHaptics();
@@ -142,7 +142,7 @@ export const useHomeNavigation = (
 /**
  * Navigation route definitions for type safety
  */
-export type HomeNavigationRoutes = {
+type HomeNavigationRoutes = {
   ServiceRequest: { params?: Record<string, unknown> };
   JobsList: undefined;
   MessagesList: undefined;
@@ -159,7 +159,7 @@ export type HomeNavigationRoutes = {
 /**
  * Quick action definitions for the dashboard
  */
-export interface QuickAction {
+interface QuickAction {
   id: string;
   title: string;
   subtitle?: string;
@@ -171,7 +171,7 @@ export interface QuickAction {
 /**
  * Generate quick actions based on user role
  */
-export const generateQuickActions = (
+const generateQuickActions = (
   userRole: 'homeowner' | 'contractor',
   navigation: HomeNavigationActions
 ): QuickAction[] => {

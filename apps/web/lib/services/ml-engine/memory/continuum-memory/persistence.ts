@@ -11,7 +11,7 @@ import type { MemoryLevel, MemoryParameters } from '../types';
 /**
  * Record shape returned from continuum_memory_states for initialization
  */
-export interface ExistingMemoryState {
+interface ExistingMemoryState {
   memory_level: number;
   parameters_jsonb: MemoryParameters;
   last_update_step: number | null;
@@ -53,18 +53,21 @@ export async function saveMemoryLevel(
   try {
     const { error } = await serverSupabase
       .from('continuum_memory_states')
-      .upsert({
-        agent_name: agentName,
-        memory_level: level.level,
-        parameters_jsonb: level.parameters,
-        chunk_size: level.chunkSize,
-        frequency: level.frequency,
-        last_update_step: level.lastUpdateStep,
-        last_updated: level.lastUpdateTime.toISOString(),
-        update_count: level.updateCount,
-      }, {
-        onConflict: 'agent_name,memory_level',
-      });
+      .upsert(
+        {
+          agent_name: agentName,
+          memory_level: level.level,
+          parameters_jsonb: level.parameters,
+          chunk_size: level.chunkSize,
+          frequency: level.frequency,
+          last_update_step: level.lastUpdateStep,
+          last_updated: level.lastUpdateTime.toISOString(),
+          update_count: level.updateCount,
+        },
+        {
+          onConflict: 'agent_name,memory_level',
+        }
+      );
 
     if (error) {
       logger.error('Failed to save memory level', {
@@ -100,16 +103,14 @@ export async function logUpdateHistory(
       .single();
 
     if (state) {
-      await serverSupabase
-        .from('memory_update_history')
-        .insert({
-          memory_state_id: state.id,
-          update_count: level.updateCount,
-          last_update_time: level.lastUpdateTime.toISOString(),
-          update_frequency: level.frequency,
-          error_reduction: errorReduction,
-          step: currentStep,
-        });
+      await serverSupabase.from('memory_update_history').insert({
+        memory_state_id: state.id,
+        update_count: level.updateCount,
+        last_update_time: level.lastUpdateTime.toISOString(),
+        update_frequency: level.frequency,
+        error_reduction: errorReduction,
+        step: currentStep,
+      });
     }
   } catch (error) {
     logger.error('Failed to log update history', error, {

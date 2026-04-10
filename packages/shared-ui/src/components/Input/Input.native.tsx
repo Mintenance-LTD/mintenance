@@ -1,6 +1,6 @@
 /**
  * Input Component - Native Implementation
- * 
+ *
  * React Native-specific Input component using design tokens
  */
 import React, { useState } from 'react';
@@ -17,7 +17,7 @@ import { mobileTokens } from '@mintenance/design-tokens';
 import type { NativeInputProps, InputSize } from './types';
 /**
  * Input Component for React Native
- * 
+ *
  * Uses design tokens for consistent styling across platforms
  */
 export const Input = React.forwardRef<TextInput, NativeInputProps>(
@@ -57,7 +57,10 @@ export const Input = React.forwardRef<TextInput, NativeInputProps>(
     const hasSuccess = success || !!successText;
     const showHelperText = helperText || errorText || successText;
     // Size styles
-    const sizeStyles: Record<InputSize, { padding: number; fontSize: number; minHeight: number }> = {
+    const sizeStyles: Record<
+      InputSize,
+      { padding: number; fontSize: number; minHeight: number }
+    > = {
       sm: {
         padding: mobileTokens.spacing.md,
         fontSize: mobileTokens.typography.rawFontSize.sm,
@@ -79,17 +82,28 @@ export const Input = React.forwardRef<TextInput, NativeInputProps>(
       flex: 1,
       borderRadius: mobileTokens.borderRadius.md,
       borderWidth: 1,
-      borderColor: hasError ? mobileTokens.colors.error : hasSuccess ? mobileTokens.colors.success : mobileTokens.colors.border,
-      backgroundColor: disabled ? mobileTokens.colors.gray100 : mobileTokens.colors.white,
+      borderColor: hasError
+        ? mobileTokens.colors.error
+        : hasSuccess
+          ? mobileTokens.colors.success
+          : mobileTokens.colors.border,
+      backgroundColor: disabled
+        ? mobileTokens.colors.gray100
+        : mobileTokens.colors.white,
       color: mobileTokens.colors.textPrimary,
       ...sizeStyles[size],
     };
     // Focus styles
-    const focusInputStyle: TextStyle = isFocused && !disabled
-      ? {
-          borderColor: hasError ? mobileTokens.colors.error : hasSuccess ? mobileTokens.colors.success : mobileTokens.colors.primary,
-        }
-      : {};
+    const focusInputStyle: TextStyle =
+      isFocused && !disabled
+        ? {
+            borderColor: hasError
+              ? mobileTokens.colors.error
+              : hasSuccess
+                ? mobileTokens.colors.success
+                : mobileTokens.colors.primary,
+          }
+        : {};
     return (
       <View style={[styles.container, containerStyle as ViewStyle]}>
         {label && (
@@ -101,11 +115,7 @@ export const Input = React.forwardRef<TextInput, NativeInputProps>(
           </Text>
         )}
         <View style={styles.inputWrapper}>
-          {leftIcon && (
-            <View style={styles.leftIcon}>
-              {leftIcon}
-            </View>
-          )}
+          {leftIcon && <View style={styles.leftIcon}>{leftIcon}</View>}
           <TextInput
             ref={ref}
             value={value}
@@ -114,7 +124,15 @@ export const Input = React.forwardRef<TextInput, NativeInputProps>(
             placeholderTextColor={mobileTokens.colors.textSecondary}
             editable={!disabled && !readOnly}
             autoFocus={autoFocus}
-            keyboardType={type === 'email' ? 'email-address' : type === 'number' ? 'numeric' : type === 'tel' ? 'phone-pad' : 'default'}
+            keyboardType={
+              type === 'email'
+                ? 'email-address'
+                : type === 'number'
+                  ? 'numeric'
+                  : type === 'tel'
+                    ? 'phone-pad'
+                    : 'default'
+            }
             secureTextEntry={type === 'password'}
             onChangeText={onChangeText}
             onBlur={() => {
@@ -125,22 +143,20 @@ export const Input = React.forwardRef<TextInput, NativeInputProps>(
               setIsFocused(true);
               onFocus?.();
             }}
-            style={StyleSheet.flatten([
-              baseInputStyle,
-              focusInputStyle,
-              leftIcon && { paddingLeft: mobileTokens.spacing.xl * 2 },
-              rightIcon && { paddingRight: mobileTokens.spacing.xl * 2 },
-              inputStyle as TextStyle | undefined,
-            ]) as TextStyle}
+            style={
+              StyleSheet.flatten([
+                baseInputStyle,
+                focusInputStyle,
+                leftIcon && { paddingLeft: mobileTokens.spacing.xl * 2 },
+                rightIcon && { paddingRight: mobileTokens.spacing.xl * 2 },
+                inputStyle as TextStyle | undefined,
+              ]) as TextStyle
+            }
             accessibilityLabel={accessibilityLabel || label}
             accessibilityHint={accessibilityHint}
             testID={testID}
           />
-          {rightIcon && (
-            <View style={styles.rightIcon}>
-              {rightIcon}
-            </View>
-          )}
+          {rightIcon && <View style={styles.rightIcon}>{rightIcon}</View>}
         </View>
         {showHelperText && (
           <Text
@@ -189,4 +205,3 @@ const styles = StyleSheet.create({
     color: mobileTokens.colors.textSecondary,
   },
 });
-export default Input;

@@ -4,7 +4,7 @@ import type {
   RootStackParamList,
   JobsStackParamList,
   MessagingStackParamList,
-  ProfileStackParamList
+  ProfileStackParamList,
 } from '../navigation/types';
 import { createStub } from './jest-globals';
 
@@ -12,7 +12,7 @@ import { createStub } from './jest-globals';
 // ENHANCED NAVIGATION MOCK FACTORY
 // ============================================================================
 
-export interface MockNavigationHelpers {
+interface MockNavigationHelpers {
   navigate: any;
   goBack: any;
   canGoBack: any;
@@ -43,29 +43,33 @@ export class NavigationMockFactory {
       setOptions: createStub(),
       dispatch: createStub(),
       reset: createStub(),
-      addListener: global.jest?.fn?.(() => global.jest?.fn?.()) || (() => () => {}), // Return unsubscribe function
+      addListener:
+        global.jest?.fn?.(() => global.jest?.fn?.()) || (() => () => {}), // Return unsubscribe function
       removeListener: createStub(),
       isFocused: global.jest?.fn?.(() => true) || (() => true),
       navigateDeprecated: createStub(),
       preload: createStub(),
-      getId: global.jest?.fn?.(() => 'test-screen-id') || (() => 'test-screen-id'),
-      getState: global.jest?.fn?.(() => ({
-        key: 'test-state',
-        index: 0,
-        routeNames: ['TestScreen'],
-        routes: [{ key: 'test-route', name: 'TestScreen', params: {} }],
-        history: [],
-        type: 'stack',
-        stale: false,
-      })) || (() => ({
-        key: 'test-state',
-        index: 0,
-        routeNames: ['TestScreen'],
-        routes: [{ key: 'test-route', name: 'TestScreen', params: {} }],
-        history: [],
-        type: 'stack',
-        stale: false,
-      })),
+      getId:
+        global.jest?.fn?.(() => 'test-screen-id') || (() => 'test-screen-id'),
+      getState:
+        global.jest?.fn?.(() => ({
+          key: 'test-state',
+          index: 0,
+          routeNames: ['TestScreen'],
+          routes: [{ key: 'test-route', name: 'TestScreen', params: {} }],
+          history: [],
+          type: 'stack',
+          stale: false,
+        })) ||
+        (() => ({
+          key: 'test-state',
+          index: 0,
+          routeNames: ['TestScreen'],
+          routes: [{ key: 'test-route', name: 'TestScreen', params: {} }],
+          history: [],
+          type: 'stack',
+          stale: false,
+        })),
       getParent: createStub(),
       setParams: createStub(),
       push: createStub(),
@@ -75,7 +79,10 @@ export class NavigationMockFactory {
     };
   }
 
-  static createAuthNavigationMock(): StackNavigationProp<AuthStackParamList, 'Login'> {
+  static createAuthNavigationMock(): StackNavigationProp<
+    AuthStackParamList,
+    'Login'
+  > {
     const baseMock = this.createBaseMock();
     return {
       ...baseMock,
@@ -85,7 +92,10 @@ export class NavigationMockFactory {
     } as unknown as StackNavigationProp<AuthStackParamList, 'Login'>;
   }
 
-  static createJobsNavigationMock(): StackNavigationProp<JobsStackParamList, 'JobsList'> {
+  static createJobsNavigationMock(): StackNavigationProp<
+    JobsStackParamList,
+    'JobsList'
+  > {
     const baseMock = this.createBaseMock();
     return {
       ...baseMock,
@@ -95,7 +105,10 @@ export class NavigationMockFactory {
     } as unknown as StackNavigationProp<JobsStackParamList, 'JobsList'>;
   }
 
-  static createRootNavigationMock(): StackNavigationProp<RootStackParamList, 'Main'> {
+  static createRootNavigationMock(): StackNavigationProp<
+    RootStackParamList,
+    'Main'
+  > {
     const baseMock = this.createBaseMock();
     return {
       ...baseMock,
@@ -105,17 +118,28 @@ export class NavigationMockFactory {
     } as unknown as StackNavigationProp<RootStackParamList, 'Main'>;
   }
 
-  static createMessagingNavigationMock(): StackNavigationProp<MessagingStackParamList, 'MessagesList'> {
+  static createMessagingNavigationMock(): StackNavigationProp<
+    MessagingStackParamList,
+    'MessagesList'
+  > {
     const baseMock = this.createBaseMock();
     return {
       ...baseMock,
-      navigate: jest.fn((screen: keyof MessagingStackParamList, params?: any) => {
-        // Navigation logging handled by navigation service in real app
-      }),
-    } as unknown as StackNavigationProp<MessagingStackParamList, 'MessagesList'>;
+      navigate: jest.fn(
+        (screen: keyof MessagingStackParamList, params?: any) => {
+          // Navigation logging handled by navigation service in real app
+        }
+      ),
+    } as unknown as StackNavigationProp<
+      MessagingStackParamList,
+      'MessagesList'
+    >;
   }
 
-  static createProfileNavigationMock(): StackNavigationProp<ProfileStackParamList, 'ProfileMain'> {
+  static createProfileNavigationMock(): StackNavigationProp<
+    ProfileStackParamList,
+    'ProfileMain'
+  > {
     const baseMock = this.createBaseMock();
     return {
       ...baseMock,
@@ -137,7 +161,7 @@ export class NavigationMockFactory {
   }
 
   static resetAllMocks(): void {
-    Object.values(this.createBaseMock()).forEach(mock => {
+    Object.values(this.createBaseMock()).forEach((mock) => {
       if (jest.isMockFunction(mock)) {
         mock.mockClear();
       }
@@ -149,11 +173,12 @@ export class NavigationMockFactory {
 // CONVENIENCE EXPORTS
 // ============================================================================
 
-export const mockAuthNavigation = NavigationMockFactory.createAuthNavigationMock();
-export const mockJobsNavigation = NavigationMockFactory.createJobsNavigationMock();
-export const mockRootNavigation = NavigationMockFactory.createRootNavigationMock();
-export const mockMessagingNavigation = NavigationMockFactory.createMessagingNavigationMock();
-export const mockProfileNavigation = NavigationMockFactory.createProfileNavigationMock();
-export const mockGenericNavigation = NavigationMockFactory.createGenericNavigationMock();
-
-export default NavigationMockFactory;
+const mockAuthNavigation = NavigationMockFactory.createAuthNavigationMock();
+const mockJobsNavigation = NavigationMockFactory.createJobsNavigationMock();
+const mockRootNavigation = NavigationMockFactory.createRootNavigationMock();
+const mockMessagingNavigation =
+  NavigationMockFactory.createMessagingNavigationMock();
+const mockProfileNavigation =
+  NavigationMockFactory.createProfileNavigationMock();
+const mockGenericNavigation =
+  NavigationMockFactory.createGenericNavigationMock();

@@ -65,7 +65,7 @@ export const SafeAddPaymentMethodV2Screen = withScreenErrorBoundary(
   'Add Payment Method',
   { fallbackRoute: 'PaymentMethods' }
 );
-export const SafeContractorPayoutsScreen = withScreenErrorBoundary(
+const SafeContractorPayoutsScreen = withScreenErrorBoundary(
   ContractorPayoutsScreen,
   'Contractor Payouts',
   { fallbackRoute: 'ProfileMain' }

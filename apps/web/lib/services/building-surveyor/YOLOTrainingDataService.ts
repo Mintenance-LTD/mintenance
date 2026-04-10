@@ -1,8 +1,8 @@
 /**
  * YOLO Training Data Service
- * 
+ *
  * Exports user corrections to YOLO training format and merges with base dataset.
- * 
+ *
  * This service:
  * 1. Fetches approved corrections from database
  * 2. Downloads corrected images
@@ -18,7 +18,7 @@ import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { loadClassNames } from './yolo-class-names';
 
-export interface MergedDataset {
+interface MergedDataset {
   trainImages: string[];
   trainLabels: string[];
   valImages: string[];
@@ -40,7 +40,7 @@ export interface MergedDataset {
 export class YOLOTrainingDataService {
   /**
    * Export all approved corrections to YOLO format
-   * 
+   *
    * @param outputDir - Directory to export training data
    * @param trainSplit - Training split ratio (default: 0.8)
    * @param valSplit - Validation split ratio (default: 0.1)
@@ -59,7 +59,7 @@ export class YOLOTrainingDataService {
 
       // 1. Get approved corrections
       const corrections = await YOLOCorrectionService.getApprovedCorrections();
-      
+
       if (corrections.length === 0) {
         logger.warn('No approved corrections found', {
           service: 'YOLOTrainingDataService',
@@ -76,15 +76,15 @@ export class YOLOTrainingDataService {
       const trainDir = join(outputDir, 'train');
       const valDir = join(outputDir, 'val');
       const testDir = join(outputDir, 'test');
-      
-      [trainDir, valDir, testDir].forEach(dir => {
+
+      [trainDir, valDir, testDir].forEach((dir) => {
         mkdirSync(join(dir, 'images'), { recursive: true });
         mkdirSync(join(dir, 'labels'), { recursive: true });
       });
 
       // 3. Load class names
       const classNames = loadClassNames(process.env.YOLO_DATA_YAML_PATH);
-      
+
       // 4. Process corrections
       const trainImages: string[] = [];
       const trainLabels: string[] = [];
@@ -96,7 +96,7 @@ export class YOLOTrainingDataService {
       for (let i = 0; i < corrections.length; i++) {
         const correction = corrections[i];
         const random = Math.random();
-        
+
         // Determine split
         let split: 'train' | 'val' | 'test';
         if (random < trainSplit) {
@@ -139,31 +139,79 @@ export class YOLOTrainingDataService {
 
       // 5. Merge with base dataset
       const baseDataset = this.getBaseDatasetPaths();
-      
+
       // Combine base + corrections
       const mergedDataset: MergedDataset = {
         trainImages: [
-          ...baseDataset.trainImages.map(img => join('..', 'Building Defect Detection 7.v2i.yolov11', 'train', 'images', img)),
+          ...baseDataset.trainImages.map((img) =>
+            join(
+              '..',
+              'Building Defect Detection 7.v2i.yolov11',
+              'train',
+              'images',
+              img
+            )
+          ),
           ...trainImages,
         ],
         trainLabels: [
-          ...baseDataset.trainLabels.map(lbl => join('..', 'Building Defect Detection 7.v2i.yolov11', 'train', 'labels', lbl)),
+          ...baseDataset.trainLabels.map((lbl) =>
+            join(
+              '..',
+              'Building Defect Detection 7.v2i.yolov11',
+              'train',
+              'labels',
+              lbl
+            )
+          ),
           ...trainLabels,
         ],
         valImages: [
-          ...baseDataset.valImages.map(img => join('..', 'Building Defect Detection 7.v2i.yolov11', 'valid', 'images', img)),
+          ...baseDataset.valImages.map((img) =>
+            join(
+              '..',
+              'Building Defect Detection 7.v2i.yolov11',
+              'valid',
+              'images',
+              img
+            )
+          ),
           ...valImages,
         ],
         valLabels: [
-          ...baseDataset.valLabels.map(lbl => join('..', 'Building Defect Detection 7.v2i.yolov11', 'valid', 'labels', lbl)),
+          ...baseDataset.valLabels.map((lbl) =>
+            join(
+              '..',
+              'Building Defect Detection 7.v2i.yolov11',
+              'valid',
+              'labels',
+              lbl
+            )
+          ),
           ...valLabels,
         ],
         testImages: [
-          ...baseDataset.testImages.map(img => join('..', 'Building Defect Detection 7.v2i.yolov11', 'test', 'images', img)),
+          ...baseDataset.testImages.map((img) =>
+            join(
+              '..',
+              'Building Defect Detection 7.v2i.yolov11',
+              'test',
+              'images',
+              img
+            )
+          ),
           ...testImages,
         ],
         testLabels: [
-          ...baseDataset.testLabels.map(lbl => join('..', 'Building Defect Detection 7.v2i.yolov11', 'test', 'labels', lbl)),
+          ...baseDataset.testLabels.map((lbl) =>
+            join(
+              '..',
+              'Building Defect Detection 7.v2i.yolov11',
+              'test',
+              'labels',
+              lbl
+            )
+          ),
           ...testLabels,
         ],
         dataYaml: {
@@ -227,7 +275,7 @@ export class YOLOTrainingDataService {
   private static getBaseDatasetOnly(outputDir: string): MergedDataset {
     const classNames = loadClassNames(process.env.YOLO_DATA_YAML_PATH);
     const basePath = 'Building Defect Detection 7.v2i.yolov11';
-    
+
     return {
       trainImages: [],
       trainLabels: [],
@@ -255,8 +303,8 @@ export class YOLOTrainingDataService {
     nc: number;
     names: string[];
   }): string {
-    const namesYaml = config.names.map(name => `  - ${name}`).join('\n');
-    
+    const namesYaml = config.names.map((name) => `  - ${name}`).join('\n');
+
     return `train: ${config.train}
 val: ${config.val}
 test: ${config.test}
@@ -287,7 +335,7 @@ ${namesYaml}
     };
   }> {
     const stats = await YOLOCorrectionService.getCorrectionStats();
-    
+
     return {
       baseDataset: {
         train: 3729, // From your dataset
@@ -307,4 +355,3 @@ ${namesYaml}
     };
   }
 }
-

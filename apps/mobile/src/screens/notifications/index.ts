@@ -3,10 +3,5 @@ export { NotificationTabs } from './NotificationTabs';
 export { CompactNotification } from './CompactNotification';
 export { NotificationEmpty } from './NotificationEmpty';
 export { navigateForNotification } from './notificationNavigation';
-export {
-  filterNotifications,
-  formatRelativeTime,
-  stripEmoji,
-} from './notificationFilters';
-export { FILTER_TABS, ICON_COLORS, getIconName } from './notificationConfig';
+export { filterNotifications } from './notificationFilters';
 export type { FilterTab } from './notificationConfig';

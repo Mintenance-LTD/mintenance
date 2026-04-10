@@ -26,7 +26,7 @@ export type ButtonVariant =
 
 export type ButtonSize = 'sm' | 'md' | 'lg' | 'xl';
 
-export type ButtonIconPosition = 'left' | 'right';
+type ButtonIconPosition = 'left' | 'right';
 
 export interface ButtonProps {
   children: React.ReactNode;
@@ -56,7 +56,10 @@ const BUTTON_SIZES = {
   xl: { height: 56, paddingHorizontal: 32, fontSize: 20 },
 };
 
-export const Button = forwardRef<React.ElementRef<typeof TouchableOpacity>, ButtonProps>(
+export const Button = forwardRef<
+  React.ElementRef<typeof TouchableOpacity>,
+  ButtonProps
+>(
   (
     {
       children,
@@ -84,7 +87,13 @@ export const Button = forwardRef<React.ElementRef<typeof TouchableOpacity>, Butt
     const [pressAnimation] = useState(new Animated.Value(1));
     const [isPressed, setIsPressed] = useState(false);
 
-    const buttonStyles = getButtonStyles(variant, size, fullWidth, disabled, loading);
+    const buttonStyles = getButtonStyles(
+      variant,
+      size,
+      fullWidth,
+      disabled,
+      loading
+    );
     const textStyles = getTextStyles(variant, size, disabled);
     const iconColor = getIconColor(variant, disabled);
     const computedIconSize = iconSize || (size === 'sm' ? 16 : 20);
@@ -139,7 +148,7 @@ export const Button = forwardRef<React.ElementRef<typeof TouchableOpacity>, Butt
         return (
           <View style={styles.loadingContainer}>
             <ActivityIndicator
-              size="small"
+              size='small'
               color={iconColor}
               style={{ marginRight: 8 }}
             />
@@ -178,7 +187,10 @@ export const Button = forwardRef<React.ElementRef<typeof TouchableOpacity>, Butt
           disabled={disabled || loading}
           activeOpacity={1}
           accessibilityRole={accessibilityRole}
-          accessibilityLabel={accessibilityLabel || (typeof children === 'string' ? children : undefined)}
+          accessibilityLabel={
+            accessibilityLabel ||
+            (typeof children === 'string' ? children : undefined)
+          }
           accessibilityHint={accessibilityHint}
           accessibilityState={{
             disabled: disabled || loading,
@@ -217,23 +229,54 @@ const getButtonStyles = (
   if (fullWidth) baseStyle.width = '100%';
 
   const shadow = Platform.select({
-    ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+    ios: {
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 10,
+    },
     android: { elevation: 2 },
   });
 
   switch (variant) {
     case 'primary':
-      return { ...baseStyle, backgroundColor: disabled || loading ? theme.colors.border : theme.colors.textPrimary, ...shadow };
+      return {
+        ...baseStyle,
+        backgroundColor:
+          disabled || loading ? theme.colors.border : theme.colors.textPrimary,
+        ...shadow,
+      };
     case 'secondary':
-      return { ...baseStyle, backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.colors.border };
+      return {
+        ...baseStyle,
+        backgroundColor: 'transparent',
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+      };
     case 'outline':
-      return { ...baseStyle, backgroundColor: 'transparent', borderWidth: 1, borderColor: disabled || loading ? theme.colors.border : theme.colors.textPrimary };
+      return {
+        ...baseStyle,
+        backgroundColor: 'transparent',
+        borderWidth: 1,
+        borderColor:
+          disabled || loading ? theme.colors.border : theme.colors.textPrimary,
+      };
     case 'ghost':
       return { ...baseStyle, backgroundColor: 'transparent' };
     case 'danger':
-      return { ...baseStyle, backgroundColor: disabled || loading ? theme.colors.border : theme.colors.error, ...shadow };
+      return {
+        ...baseStyle,
+        backgroundColor:
+          disabled || loading ? theme.colors.border : theme.colors.error,
+        ...shadow,
+      };
     case 'success':
-      return { ...baseStyle, backgroundColor: disabled || loading ? theme.colors.border : theme.colors.primary, ...shadow };
+      return {
+        ...baseStyle,
+        backgroundColor:
+          disabled || loading ? theme.colors.border : theme.colors.primary,
+        ...shadow,
+      };
     default:
       return baseStyle;
   }
@@ -254,12 +297,21 @@ const getTextStyles = (
     case 'primary':
     case 'danger':
     case 'success':
-      return { ...baseStyle, color: disabled ? theme.colors.textTertiary : theme.colors.textInverse };
+      return {
+        ...baseStyle,
+        color: disabled ? theme.colors.textTertiary : theme.colors.textInverse,
+      };
     case 'secondary':
-      return { ...baseStyle, color: disabled ? theme.colors.textTertiary : theme.colors.textPrimary };
+      return {
+        ...baseStyle,
+        color: disabled ? theme.colors.textTertiary : theme.colors.textPrimary,
+      };
     case 'outline':
     case 'ghost':
-      return { ...baseStyle, color: disabled ? theme.colors.textTertiary : theme.colors.textPrimary };
+      return {
+        ...baseStyle,
+        color: disabled ? theme.colors.textTertiary : theme.colors.textPrimary,
+      };
     default:
       return baseStyle;
   }
@@ -292,5 +344,3 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
-
-export default Button;

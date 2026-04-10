@@ -8,9 +8,14 @@ import { runDetectTool } from './DetectTool';
 import { runSegmentTool } from './SegmentTool';
 import { runVisionLabelsTool } from './VisionLabelsTool';
 import { runRetrieveMemoryTool } from './RetrieveMemoryTool';
-import type { DetectToolResult, SegmentToolResult, VisionLabelsToolResult, RetrieveMemoryToolResult } from './types';
+import type {
+  DetectToolResult,
+  SegmentToolResult,
+  VisionLabelsToolResult,
+  RetrieveMemoryToolResult,
+} from './types';
 
-export interface ToolSequenceInput {
+interface ToolSequenceInput {
   assessmentId: string;
   imageUrls: string[];
   jobId?: string;
@@ -19,7 +24,7 @@ export interface ToolSequenceInput {
   featureVector?: number[];
 }
 
-export interface ToolSequenceOutput {
+interface ToolSequenceOutput {
   detect: DetectToolResult;
   segment: SegmentToolResult;
   visionLabels: VisionLabelsToolResult;
@@ -32,36 +37,55 @@ export interface ToolSequenceOutput {
 export async function runToolSequenceAndWriteEvidence(
   input: ToolSequenceInput
 ): Promise<ToolSequenceOutput> {
-  const { assessmentId, imageUrls, jobId, damageTypesForSegment = [], featureVector } = input;
+  const {
+    assessmentId,
+    imageUrls,
+    jobId,
+    damageTypesForSegment = [],
+    featureVector,
+  } = input;
   const firstImage = imageUrls[0] ?? '';
 
   const detectRun = await runDetectTool({ imageUrls });
-  const { output_summary: detSummary, confidence_aggregate: detConf } = summaryToOutput(detectRun.summary);
+  const { output_summary: detSummary, confidence_aggregate: detConf } =
+    summaryToOutput(detectRun.summary);
   await writeEvidence({
     assessment_id: assessmentId,
     tool_name: 'detect',
     step_index: 0,
     input_refs: { imageCount: imageUrls.length },
-    output_summary: { ...detSummary, detectionCount: detectRun.result.detectionCount, damageTypesDetected: detectRun.result.damageTypesDetected },
+    output_summary: {
+      ...detSummary,
+      detectionCount: detectRun.result.detectionCount,
+      damageTypesDetected: detectRun.result.damageTypesDetected,
+    },
     confidence_aggregate: detConf,
   });
 
   const segmentRun = await runSegmentTool({
     imageUrl: firstImage,
-    damageTypes: damageTypesForSegment.length > 0 ? damageTypesForSegment : detectRun.result.damageTypesDetected,
+    damageTypes:
+      damageTypesForSegment.length > 0
+        ? damageTypesForSegment
+        : detectRun.result.damageTypesDetected,
   });
-  const { output_summary: segSummary, confidence_aggregate: segConf } = summaryToOutput(segmentRun.summary);
+  const { output_summary: segSummary, confidence_aggregate: segConf } =
+    summaryToOutput(segmentRun.summary);
   await writeEvidence({
     assessment_id: assessmentId,
     tool_name: 'segment',
     step_index: 1,
-    input_refs: { imageUrl: firstImage, damageTypes: segmentRun.params.damageTypes },
+    input_refs: {
+      imageUrl: firstImage,
+      damageTypes: segmentRun.params.damageTypes,
+    },
     output_summary: segSummary,
     confidence_aggregate: segConf,
   });
 
   const visionRun = await runVisionLabelsTool({ imageUrls });
-  const { output_summary: visSummary, confidence_aggregate: visConf } = summaryToOutput(visionRun.summary);
+  const { output_summary: visSummary, confidence_aggregate: visConf } =
+    summaryToOutput(visionRun.summary);
   await writeEvidence({
     assessment_id: assessmentId,
     tool_name: 'vision_labels',

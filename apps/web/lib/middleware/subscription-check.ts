@@ -8,7 +8,7 @@ import { getEarlyAccessEntitlement } from '@/lib/subscription/early-access';
 import type { SubscriptionPlan } from '@/lib/services/subscription/SubscriptionService';
 import { logger } from '@mintenance/shared';
 
-export interface SubscriptionCheckResult {
+interface SubscriptionCheckResult {
   allowed: boolean;
   requiresSubscription: boolean;
   trialStatus?: {
@@ -22,7 +22,7 @@ export interface SubscriptionCheckResult {
   message?: string;
 }
 
-export interface PortfolioModeCheckResult {
+interface PortfolioModeCheckResult {
   allowed: boolean;
   requiresSubscription: boolean;
   subscriptionStatus: string;
@@ -48,17 +48,20 @@ export async function checkSubscriptionAccess(
           status: 'active',
           planType: 'enterprise',
         },
-        message: 'Early access unlocked: full contractor subscription features.',
+        message:
+          'Early access unlocked: full contractor subscription features.',
       };
     }
 
     // Check if subscription is required
-    const requiresSubscription = await TrialService.requiresSubscription(contractorId);
+    const requiresSubscription =
+      await TrialService.requiresSubscription(contractorId);
 
     if (!requiresSubscription) {
       // Contractor has active trial or subscription
       const trialStatus = await TrialService.getTrialStatus(contractorId);
-      const subscription = await SubscriptionService.getContractorSubscription(contractorId);
+      const subscription =
+        await SubscriptionService.getContractorSubscription(contractorId);
 
       return {
         allowed: true,
@@ -79,10 +82,14 @@ export async function checkSubscriptionAccess(
     }
 
     // Subscription required - check if they have one
-    const subscription = await SubscriptionService.getContractorSubscription(contractorId);
+    const subscription =
+      await SubscriptionService.getContractorSubscription(contractorId);
 
     // Free tier is always allowed
-    if (subscription && (subscription.status === 'free' || subscription.status === 'active')) {
+    if (
+      subscription &&
+      (subscription.status === 'free' || subscription.status === 'active')
+    ) {
       return {
         allowed: true,
         requiresSubscription: subscription.status !== 'free',
@@ -97,7 +104,8 @@ export async function checkSubscriptionAccess(
     return {
       allowed: false,
       requiresSubscription: true,
-      message: 'Your trial has expired. Please subscribe to continue using the platform.',
+      message:
+        'Your trial has expired. Please subscribe to continue using the platform.',
     };
   } catch (err) {
     logger.error('Error checking subscription access', {
@@ -110,7 +118,8 @@ export async function checkSubscriptionAccess(
     return {
       allowed: true,
       requiresSubscription: false,
-      message: 'Unable to verify subscription status. Please contact support if issues persist.',
+      message:
+        'Unable to verify subscription status. Please contact support if issues persist.',
     };
   }
 }
@@ -140,7 +149,9 @@ export async function requireSubscriptionForAction(
     return NextResponse.json(
       {
         error: 'Subscription required',
-        message: checkResult.message || 'Please subscribe to continue using this feature.',
+        message:
+          checkResult.message ||
+          'Please subscribe to continue using this feature.',
         requiresSubscription: true,
       },
       { status: 402 } // 402 Payment Required
@@ -158,7 +169,9 @@ export async function requireSubscriptionForAction(
  * - If PORTFOLIO_MODE_OPEN_BETA=true, all authenticated users are allowed.
  * - Otherwise requires profiles.subscription_status to be "active" or "trial".
  */
-export async function checkPortfolioModeAccess(userId: string): Promise<PortfolioModeCheckResult> {
+export async function checkPortfolioModeAccess(
+  userId: string
+): Promise<PortfolioModeCheckResult> {
   try {
     const { data: profile, error } = await serverSupabase
       .from('profiles')
@@ -221,8 +234,11 @@ export async function checkPortfolioModeAccess(userId: string): Promise<Portfoli
       };
     }
 
-    const subscriptionStatus = String(profile.subscription_status || 'none').toLowerCase();
-    const hasPortfolioEntitlement = subscriptionStatus === 'active' || subscriptionStatus === 'trial';
+    const subscriptionStatus = String(
+      profile.subscription_status || 'none'
+    ).toLowerCase();
+    const hasPortfolioEntitlement =
+      subscriptionStatus === 'active' || subscriptionStatus === 'trial';
 
     if (hasPortfolioEntitlement) {
       return {
@@ -311,8 +327,10 @@ export async function checkSubscriptionLimits(
       return { allowed: true };
     }
 
-    const features = await SubscriptionService.getSubscriptionFeatures(contractorId);
-    const subscription = await SubscriptionService.getContractorSubscription(contractorId);
+    const features =
+      await SubscriptionService.getSubscriptionFeatures(contractorId);
+    const subscription =
+      await SubscriptionService.getContractorSubscription(contractorId);
 
     const planType: SubscriptionPlan = subscription?.planType ?? 'free';
 
@@ -344,7 +362,8 @@ export async function checkSubscriptionLimits(
         if (!features.advancedAnalytics) {
           return {
             allowed: false,
-            reason: 'Advanced analytics requires a Professional or Enterprise plan.',
+            reason:
+              'Advanced analytics requires a Professional or Enterprise plan.',
           };
         }
         break;
@@ -362,15 +381,31 @@ export async function checkSubscriptionLimits(
         break;
 
       case 'submit_bid': {
-        const limit = getFeatureLimit('CONTRACTOR_BID_LIMIT', 'contractor', planType);
+        const limit = getFeatureLimit(
+          'CONTRACTOR_BID_LIMIT',
+          'contractor',
+          planType
+        );
         if (limit === 'unlimited') {
           break;
         }
         const numericLimit = typeof limit === 'number' ? limit : 0;
         const { serverSupabase } = await import('@/lib/api/supabaseServer');
         const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+        const startOfMonth = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          1
+        ).toISOString();
+        const endOfMonth = new Date(
+          now.getFullYear(),
+          now.getMonth() + 1,
+          0,
+          23,
+          59,
+          59,
+          999
+        ).toISOString();
         const { count, error } = await serverSupabase
           .from('bids')
           .select('*', { count: 'exact', head: true })

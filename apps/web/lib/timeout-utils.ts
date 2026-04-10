@@ -4,7 +4,7 @@
 
 import { logger } from '@mintenance/shared';
 
-export interface TimeoutOptions<T = unknown> {
+interface TimeoutOptions<T = unknown> {
   timeoutMs?: number;
   fallbackValue?: T;
   errorMessage?: string;
@@ -20,7 +20,7 @@ export async function withTimeout<T>(
   const {
     timeoutMs = 25000, // 25 seconds default (leave 5s buffer for Vercel's 30s limit)
     fallbackValue = null as T | null,
-    errorMessage = 'Operation timed out'
+    errorMessage = 'Operation timed out',
   } = options;
 
   return Promise.race([
@@ -29,8 +29,8 @@ export async function withTimeout<T>(
       setTimeout(() => {
         reject(new Error(errorMessage));
       }, timeoutMs);
-    })
-  ]).catch(error => {
+    }),
+  ]).catch((error) => {
     if (error.message === errorMessage) {
       logger.warn('Operation timed out, returning fallback', {
         service: 'timeout-utils',
@@ -52,18 +52,18 @@ export async function batchOperations<T, R>(
   delayMs: number = 100
 ): Promise<R[]> {
   const results: R[] = [];
-  
+
   for (let i = 0; i < items.length; i += batchSize) {
     const batch = items.slice(i, i + batchSize);
     const batchResults = await processor(batch);
     results.push(...batchResults);
-    
+
     // Add delay between batches to prevent overwhelming the system
     if (i + batchSize < items.length) {
-      await new Promise(resolve => setTimeout(resolve, delayMs));
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }
-  
+
   return results;
 }
 
@@ -77,6 +77,6 @@ export function createTimeoutQuery<T>(
   return withTimeout(queryFn, {
     timeoutMs,
     fallbackValue: null as T | null,
-    errorMessage: `Database query timed out after ${timeoutMs}ms`
+    errorMessage: `Database query timed out after ${timeoutMs}ms`,
   });
 }

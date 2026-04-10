@@ -1,6 +1,6 @@
 /**
  * Marketing Management Types
- * 
+ *
  * Contains all TypeScript interfaces and types for marketing management functionality.
  */
 
@@ -8,7 +8,14 @@ export interface MarketingCampaign {
   id: string;
   contractorId: string;
   name: string;
-  type: 'social_media' | 'email' | 'ppc' | 'seo' | 'print' | 'referral' | 'content';
+  type:
+    | 'social_media'
+    | 'email'
+    | 'ppc'
+    | 'seo'
+    | 'print'
+    | 'referral'
+    | 'content';
   status: 'draft' | 'active' | 'paused' | 'completed' | 'cancelled';
   budget: number;
   spent: number;
@@ -117,7 +124,14 @@ export interface Lead {
   budget?: number;
   timeline?: string;
   urgency: 'low' | 'medium' | 'high';
-  status: 'new' | 'contacted' | 'qualified' | 'proposal_sent' | 'negotiating' | 'won' | 'lost';
+  status:
+    | 'new'
+    | 'contacted'
+    | 'qualified'
+    | 'proposal_sent'
+    | 'negotiating'
+    | 'won'
+    | 'lost';
   score: number;
   notes: string;
   tags: string[];
@@ -128,11 +142,17 @@ export interface Lead {
   updatedAt: string;
 }
 
-export interface LeadSource {
+interface LeadSource {
   id: string;
   contractorId: string;
   name: string;
-  type: 'website' | 'social_media' | 'referral' | 'advertising' | 'events' | 'cold_outreach';
+  type:
+    | 'website'
+    | 'social_media'
+    | 'referral'
+    | 'advertising'
+    | 'events'
+    | 'cold_outreach';
   url?: string;
   description?: string;
   isActive: boolean;
@@ -264,7 +284,14 @@ export interface MarketingFilters {
 }
 
 export interface MarketingSortOptions {
-  field: 'name' | 'status' | 'budget' | 'spent' | 'roi' | 'createdAt' | 'startDate';
+  field:
+    | 'name'
+    | 'status'
+    | 'budget'
+    | 'spent'
+    | 'roi'
+    | 'createdAt'
+    | 'startDate';
   direction: 'asc' | 'desc';
 }
 
@@ -283,7 +310,18 @@ export interface CreateCampaignRequest {
 
 export interface UpdateCampaignRequest {
   id: string;
-  updates: Partial<Pick<MarketingCampaign, 'name' | 'status' | 'budget' | 'endDate' | 'targetAudience' | 'objectives' | 'channels'>>;
+  updates: Partial<
+    Pick<
+      MarketingCampaign,
+      | 'name'
+      | 'status'
+      | 'budget'
+      | 'endDate'
+      | 'targetAudience'
+      | 'objectives'
+      | 'channels'
+    >
+  >;
 }
 
 export interface CampaignSearchParams {
@@ -327,7 +365,12 @@ export interface ContentCreationRequest {
 export interface MarketingRecommendation {
   id: string;
   contractorId: string;
-  type: 'campaign_optimization' | 'budget_allocation' | 'content_improvement' | 'audience_expansion' | 'competitor_response';
+  type:
+    | 'campaign_optimization'
+    | 'budget_allocation'
+    | 'content_improvement'
+    | 'audience_expansion'
+    | 'competitor_response';
   title: string;
   description: string;
   priority: 'low' | 'medium' | 'high';

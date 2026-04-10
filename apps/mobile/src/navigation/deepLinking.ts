@@ -93,7 +93,7 @@ const linkingConfig: LinkingOptions<RootStackParamList>['config'] = {
  *
  * Returns null if the notification does not contain actionable deep link data.
  */
-export function notificationToDeepLinkUrl(
+function notificationToDeepLinkUrl(
   data: NotificationDeepLinkData | undefined
 ): string | null {
   if (!data?.type) return null;

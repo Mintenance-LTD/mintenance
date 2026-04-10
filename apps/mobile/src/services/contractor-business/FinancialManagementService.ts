@@ -2,10 +2,24 @@
  * FinancialManagementService — thin facade over the financial/ subdirectory modules.
  * All implementation lives in financial/*.ts; this file is the public API surface.
  */
-import { createInvoice, updateInvoiceStatus, getInvoices, sendInvoice, generateInvoiceNumber } from './financial/InvoiceService';
-import { recordExpense, getExpenses, getExpenseCategories } from './financial/ExpenseService';
+import {
+  createInvoice,
+  updateInvoiceStatus,
+  getInvoices,
+  sendInvoice,
+  generateInvoiceNumber,
+} from './financial/InvoiceService';
+import {
+  recordExpense,
+  getExpenses,
+  getExpenseCategories,
+} from './financial/ExpenseService';
 import { recordPayment } from './financial/PaymentRecordService';
-import { calculateFinancialTotals, getFinancialSummary, calculateDueDate } from './financial/FinancialReporter';
+import {
+  calculateFinancialTotals,
+  getFinancialSummary,
+  calculateDueDate,
+} from './financial/FinancialReporter';
 
 export class FinancialManagementService {
   // Invoice
@@ -28,5 +42,3 @@ export class FinancialManagementService {
   static getFinancialSummary = getFinancialSummary;
   static calculateDueDate = calculateDueDate;
 }
-
-export default FinancialManagementService;

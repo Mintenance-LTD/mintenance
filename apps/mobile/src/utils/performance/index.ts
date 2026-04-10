@@ -11,12 +11,7 @@
 import { performanceMonitor } from './PerformanceMonitor';
 import { PerformanceMetric } from './types';
 
-export { PerformanceMonitor, performanceMonitor } from './PerformanceMonitor';
-export { MetricsCollector } from './MetricsCollector';
-export { BudgetEnforcer } from './BudgetEnforcer';
-export { BudgetRuleManager } from './BudgetRuleManager';
-export { Reporter } from './Reporter';
-
+export { performanceMonitor } from './PerformanceMonitor';
 // All types
 export * from './types';
 
@@ -25,7 +20,11 @@ export function measurePerformance(
   name?: string,
   category: PerformanceMetric['category'] = 'custom'
 ) {
-  return function (target: object, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (
+    target: object,
+    propertyKey: string,
+    descriptor: PropertyDescriptor
+  ) {
     const originalMethod = descriptor.value;
     const methodName = name || `${target.constructor.name}.${propertyKey}`;
 
@@ -48,20 +47,31 @@ export const usePerformanceMonitoring = () => {
     startTimer: performanceMonitor.startTimer.bind(performanceMonitor),
     measureAsync: performanceMonitor.measureAsync.bind(performanceMonitor),
     measureSync: performanceMonitor.measureSync.bind(performanceMonitor),
-    trackComponentRender: performanceMonitor.trackComponentRender.bind(performanceMonitor),
-    recordMemoryUsage: performanceMonitor.recordMemoryUsage.bind(performanceMonitor),
+    trackComponentRender:
+      performanceMonitor.trackComponentRender.bind(performanceMonitor),
+    recordMemoryUsage:
+      performanceMonitor.recordMemoryUsage.bind(performanceMonitor),
     generateReport: performanceMonitor.generateReport.bind(performanceMonitor),
-    getBudgetStatus: performanceMonitor.getBudgetStatus.bind(performanceMonitor),
-    getAdvancedBudgetStatus: performanceMonitor.getAdvancedBudgetStatus.bind(performanceMonitor),
-    generateBudgetReport: performanceMonitor.generateBudgetReport.bind(performanceMonitor),
+    getBudgetStatus:
+      performanceMonitor.getBudgetStatus.bind(performanceMonitor),
+    getAdvancedBudgetStatus:
+      performanceMonitor.getAdvancedBudgetStatus.bind(performanceMonitor),
+    generateBudgetReport:
+      performanceMonitor.generateBudgetReport.bind(performanceMonitor),
     addBudgetRule: performanceMonitor.addBudgetRule.bind(performanceMonitor),
-    removeBudgetRule: performanceMonitor.removeBudgetRule.bind(performanceMonitor),
-    updateBudgetRule: performanceMonitor.updateBudgetRule.bind(performanceMonitor),
-    setBudgetRuleEnabled: performanceMonitor.setBudgetRuleEnabled.bind(performanceMonitor),
-    getAllBudgetRules: performanceMonitor.getAllBudgetRules.bind(performanceMonitor),
-    setEnforcementEnabled: performanceMonitor.setEnforcementEnabled.bind(performanceMonitor),
+    removeBudgetRule:
+      performanceMonitor.removeBudgetRule.bind(performanceMonitor),
+    updateBudgetRule:
+      performanceMonitor.updateBudgetRule.bind(performanceMonitor),
+    setBudgetRuleEnabled:
+      performanceMonitor.setBudgetRuleEnabled.bind(performanceMonitor),
+    getAllBudgetRules:
+      performanceMonitor.getAllBudgetRules.bind(performanceMonitor),
+    setEnforcementEnabled:
+      performanceMonitor.setEnforcementEnabled.bind(performanceMonitor),
     onMetric: performanceMonitor.onMetric.bind(performanceMonitor),
-    onBudgetViolation: performanceMonitor.onBudgetViolation.bind(performanceMonitor),
+    onBudgetViolation:
+      performanceMonitor.onBudgetViolation.bind(performanceMonitor),
   };
 };
 

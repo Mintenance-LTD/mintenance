@@ -1,6 +1,6 @@
 import { logger } from '@mintenance/shared';
 
-export interface ExportFile {
+interface ExportFile {
   content: string | Buffer;
   contentType: string;
   filename: string;
@@ -47,7 +47,10 @@ export class ExportService {
   /**
    * Export users to CSV or PDF
    */
-  static async exportUsers(users: ExportableUser[], format: 'csv' | 'pdf'): Promise<ExportFile> {
+  static async exportUsers(
+    users: ExportableUser[],
+    format: 'csv' | 'pdf'
+  ): Promise<ExportFile> {
     if (format === 'csv') {
       return this.exportUsersToCSV(users);
     } else {
@@ -59,8 +62,17 @@ export class ExportService {
    * Export users to CSV
    */
   private static exportUsersToCSV(users: ExportableUser[]): ExportFile {
-    const headers = ['ID', 'Email', 'First Name', 'Last Name', 'Role', 'Company Name', 'Verified', 'Created At'];
-    const rows = users.map(user => [
+    const headers = [
+      'ID',
+      'Email',
+      'First Name',
+      'Last Name',
+      'Role',
+      'Company Name',
+      'Verified',
+      'Created At',
+    ];
+    const rows = users.map((user) => [
       user.id,
       user.email || '',
       user.first_name || '',
@@ -73,7 +85,9 @@ export class ExportService {
 
     const csvContent = [
       headers.join(','),
-      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      ...rows.map((row) =>
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+      ),
     ].join('\n');
 
     return {
@@ -119,7 +133,9 @@ export class ExportService {
             </tr>
           </thead>
           <tbody>
-            ${users.map(user => `
+            ${users
+              .map(
+                (user) => `
               <tr>
                 <td>${user.email || ''}</td>
                 <td>${(user.first_name || '') + ' ' + (user.last_name || '')}</td>
@@ -128,7 +144,9 @@ export class ExportService {
                 <td>${user.admin_verified ? 'Yes' : 'No'}</td>
                 <td>${new Date(user.created_at).toLocaleDateString('en-GB')}</td>
               </tr>
-            `).join('')}
+            `
+              )
+              .join('')}
           </tbody>
         </table>
       </body>
@@ -147,11 +165,14 @@ export class ExportService {
   /**
    * Export revenue data to CSV
    */
-  static async exportRevenue(data: {
-    metrics: RevenueMetrics;
-    trends: RevenueTrend[];
-    dateRange: { start: Date; end: Date };
-  }, format: 'csv' | 'pdf'): Promise<ExportFile> {
+  static async exportRevenue(
+    data: {
+      metrics: RevenueMetrics;
+      trends: RevenueTrend[];
+      dateRange: { start: Date; end: Date };
+    },
+    format: 'csv' | 'pdf'
+  ): Promise<ExportFile> {
     if (format === 'csv') {
       return this.exportRevenueToCSV(data);
     } else {
@@ -165,7 +186,7 @@ export class ExportService {
     dateRange: { start: Date; end: Date };
   }): ExportFile {
     const headers = ['Date', 'Revenue', 'Subscriptions', 'Transaction Fees'];
-    const rows = data.trends.map(trend => [
+    const rows = data.trends.map((trend) => [
       new Date(trend.date).toLocaleDateString('en-GB'),
       trend.revenue?.toFixed(2) || '0.00',
       trend.subscriptions || 0,
@@ -177,7 +198,7 @@ export class ExportService {
       `Total Revenue: £${data.metrics?.totalRevenue?.toFixed(2) || '0.00'}`,
       '',
       headers.join(','),
-      ...rows.map(row => row.map(cell => `"${String(cell)}"`).join(','))
+      ...rows.map((row) => row.map((cell) => `"${String(cell)}"`).join(',')),
     ].join('\n');
 
     return {
@@ -223,14 +244,18 @@ export class ExportService {
             </tr>
           </thead>
           <tbody>
-            ${data.trends.map(trend => `
+            ${data.trends
+              .map(
+                (trend) => `
               <tr>
                 <td>${new Date(trend.date).toLocaleDateString('en-GB')}</td>
                 <td>£${trend.revenue?.toFixed(2) || '0.00'}</td>
                 <td>${trend.subscriptions || 0}</td>
                 <td>£${trend.transactionFees?.toFixed(2) || '0.00'}</td>
               </tr>
-            `).join('')}
+            `
+              )
+              .join('')}
           </tbody>
         </table>
       </body>
@@ -247,9 +272,19 @@ export class ExportService {
   /**
    * Export security events to CSV
    */
-  static async exportSecurityEvents(events: SecurityEvent[]): Promise<ExportFile> {
-    const headers = ['Date', 'Type', 'Severity', 'IP Address', 'Endpoint', 'Details', 'Resolved'];
-    const rows = events.map(event => [
+  static async exportSecurityEvents(
+    events: SecurityEvent[]
+  ): Promise<ExportFile> {
+    const headers = [
+      'Date',
+      'Type',
+      'Severity',
+      'IP Address',
+      'Endpoint',
+      'Details',
+      'Resolved',
+    ];
+    const rows = events.map((event) => [
       new Date(event.created_at).toLocaleString('en-GB'),
       event.event_type || '',
       event.severity || '',
@@ -261,7 +296,9 @@ export class ExportService {
 
     const csvContent = [
       headers.join(','),
-      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      ...rows.map((row) =>
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+      ),
     ].join('\n');
 
     return {
@@ -271,4 +308,3 @@ export class ExportService {
     };
   }
 }
-

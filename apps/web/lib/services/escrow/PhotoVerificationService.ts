@@ -1,11 +1,4 @@
-export type {
-  PhotoQualityResult,
-  ComparisonResult,
-  GeolocationResult,
-  TimestampResult,
-  ValidationResult,
-  Photo,
-} from './photo-verification/types';
+export type { Photo } from './photo-verification/types';
 
 import type {
   PhotoQualityResult,

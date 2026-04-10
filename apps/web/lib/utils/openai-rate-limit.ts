@@ -1,13 +1,13 @@
 /**
  * OpenAI API Rate Limit Handling Utility
- * 
+ *
  * Provides retry logic with exponential backoff and rate limit header parsing
  * for OpenAI API requests.
  */
 
 import { logger } from '@mintenance/shared';
 
-export interface OpenAIRateLimitInfo {
+interface OpenAIRateLimitInfo {
   limitRequests: number | null;
   remainingRequests: number | null;
   limitTokens: number | null;
@@ -17,14 +17,14 @@ export interface OpenAIRateLimitInfo {
   retryAfter: number | null; // Seconds to wait
 }
 
-export interface RetryConfig {
+interface RetryConfig {
   maxAttempts: number;
   baseDelayMs: number;
   maxDelayMs: number;
   backoffMultiplier: number;
 }
 
-export interface RetryMetrics {
+interface RetryMetrics {
   totalRequests: number;
   totalRetries: number;
   requestsWithRetries: number; // Number of requests that required at least one retry
@@ -251,26 +251,29 @@ export async function withOpenAIRetry<T>(
   for (let attempt = 0; attempt <= finalConfig.maxAttempts; attempt++) {
     try {
       const result = await fn();
-      
+
       // If we had retries, track successful retry
       if (retryCount > 0) {
         retryMetrics.successfulAfterRetry++;
         retryMetrics.requestsWithRetries++;
       }
-      
+
       // Update metrics
       retryMetrics.totalRetries += retryCount;
       if (retryCount > 0) {
         retryMetrics.totalDelayTimeMs += totalDelayMs;
         if (retryMetrics.totalRetries > 0) {
-          retryMetrics.averageRetryDelayMs = retryMetrics.totalDelayTimeMs / retryMetrics.totalRetries;
+          retryMetrics.averageRetryDelayMs =
+            retryMetrics.totalDelayTimeMs / retryMetrics.totalRetries;
         }
       }
       if (retryMetrics.totalRequests > 0) {
-        retryMetrics.averageRetriesPerRequest = retryMetrics.totalRetries / retryMetrics.totalRequests;
-        retryMetrics.retryRate = (retryMetrics.requestsWithRetries / retryMetrics.totalRequests) * 100;
+        retryMetrics.averageRetriesPerRequest =
+          retryMetrics.totalRetries / retryMetrics.totalRequests;
+        retryMetrics.retryRate =
+          (retryMetrics.requestsWithRetries / retryMetrics.totalRequests) * 100;
       }
-      
+
       return result;
     } catch (error) {
       // Preserve the original error object to maintain rateLimitInfo
@@ -299,20 +302,24 @@ export async function withOpenAIRetry<T>(
           retryMetrics.failedAfterRetry++;
           retryMetrics.requestsWithRetries++;
         }
-        
+
         // Update metrics
         retryMetrics.totalRetries += retryCount;
         if (retryCount > 0) {
           retryMetrics.totalDelayTimeMs += totalDelayMs;
           if (retryMetrics.totalRetries > 0) {
-            retryMetrics.averageRetryDelayMs = retryMetrics.totalDelayTimeMs / retryMetrics.totalRetries;
+            retryMetrics.averageRetryDelayMs =
+              retryMetrics.totalDelayTimeMs / retryMetrics.totalRetries;
           }
         }
         if (retryMetrics.totalRequests > 0) {
-          retryMetrics.averageRetriesPerRequest = retryMetrics.totalRetries / retryMetrics.totalRequests;
-          retryMetrics.retryRate = (retryMetrics.requestsWithRetries / retryMetrics.totalRequests) * 100;
+          retryMetrics.averageRetriesPerRequest =
+            retryMetrics.totalRetries / retryMetrics.totalRequests;
+          retryMetrics.retryRate =
+            (retryMetrics.requestsWithRetries / retryMetrics.totalRequests) *
+            100;
         }
-        
+
         logger.error('OpenAI API request failed', {
           attempt: attempt + 1,
           maxAttempts: finalConfig.maxAttempts + 1,
@@ -322,7 +329,9 @@ export async function withOpenAIRetry<T>(
         });
         // Preserve rateLimitInfo in the thrown error
         if (lastRateLimitInfo) {
-          (lastError as Error & { rateLimitInfo?: OpenAIRateLimitInfo }).rateLimitInfo = lastRateLimitInfo;
+          (
+            lastError as Error & { rateLimitInfo?: OpenAIRateLimitInfo }
+          ).rateLimitInfo = lastRateLimitInfo;
         }
         throw lastError;
       }
@@ -344,7 +353,7 @@ export async function withOpenAIRetry<T>(
       });
 
       // Wait before retrying
-      await new Promise(resolve => setTimeout(resolve, delayMs));
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }
 
@@ -367,34 +376,39 @@ export async function fetchWithOpenAIRetry(
       const rateLimitInfo = parseRateLimitHeaders(response.headers);
       const errorText = await response.text();
       const error = new Error(`AI assessment failed: ${response.status}`);
-      
+
       // Attach rate limit info to error for better retry handling
-      (error as Error & { rateLimitInfo?: OpenAIRateLimitInfo }).rateLimitInfo = rateLimitInfo;
-      
+      (error as Error & { rateLimitInfo?: OpenAIRateLimitInfo }).rateLimitInfo =
+        rateLimitInfo;
+
       throw error;
     }
 
     if (!response.ok) {
       const errorText = await response.text();
       // Try to parse OpenAI error response for better error messages
-      let parsedError: { error?: { code?: string; message?: string; type?: string } } | null = null;
+      let parsedError: {
+        error?: { code?: string; message?: string; type?: string };
+      } | null = null;
       try {
         parsedError = JSON.parse(errorText);
       } catch {
         // If parsing fails, use raw error text
       }
-      
+
       // Create error with parsed information
-      const errorMessage = parsedError?.error?.code === 'invalid_api_key'
-        ? `OpenAI API key is invalid or expired (code: invalid_api_key)`
-        : parsedError?.error?.message
-        ? `OpenAI API error: ${parsedError.error.message}${parsedError.error.code ? ` (code: ${parsedError.error.code})` : ''}`
-        : `AI assessment failed: ${response.status}: ${errorText.substring(0, 200)}`;
-      
+      const errorMessage =
+        parsedError?.error?.code === 'invalid_api_key'
+          ? `OpenAI API key is invalid or expired (code: invalid_api_key)`
+          : parsedError?.error?.message
+            ? `OpenAI API error: ${parsedError.error.message}${parsedError.error.code ? ` (code: ${parsedError.error.code})` : ''}`
+            : `AI assessment failed: ${response.status}: ${errorText.substring(0, 200)}`;
+
       const error = new Error(errorMessage);
       // Attach error code for downstream handling
       if (parsedError?.error?.code) {
-        (error as Error & { openaiErrorCode?: string }).openaiErrorCode = parsedError.error.code;
+        (error as Error & { openaiErrorCode?: string }).openaiErrorCode =
+          parsedError.error.code;
       }
       throw error;
     }
@@ -402,4 +416,3 @@ export async function fetchWithOpenAIRetry(
     return response;
   }, config);
 }
-

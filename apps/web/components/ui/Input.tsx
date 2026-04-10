@@ -1,9 +1,9 @@
 /**
  * Input Component - Compatibility Wrapper
- * 
+ *
  * Wraps the shared Input component to maintain backward compatibility
  * with existing web app code while migrating to shared components.
- * 
+ *
  * This wrapper will be removed once all files are migrated.
  */
 
@@ -15,10 +15,20 @@ import type { WebInputProps } from '@mintenance/shared-ui';
 import { cn } from '@/lib/utils';
 
 // Extend shared Input props for backward compatibility
-export type InputType = 'text' | 'email' | 'password' | 'number' | 'search' | 'tel' | 'url' | 'datetime-local' | 'date' | 'time';
-export type InputSize = 'sm' | 'md' | 'lg';
+export type InputType =
+  | 'text'
+  | 'email'
+  | 'password'
+  | 'number'
+  | 'search'
+  | 'tel'
+  | 'url'
+  | 'datetime-local'
+  | 'date'
+  | 'time';
+type InputSize = 'sm' | 'md' | 'lg';
 
-export interface InputProps extends Omit<WebInputProps, 'type' | 'size' | 'error'> {
+interface InputProps extends Omit<WebInputProps, 'type' | 'size' | 'error'> {
   type?: InputType;
   size?: InputSize;
   label?: string;
@@ -39,36 +49,38 @@ export interface InputProps extends Omit<WebInputProps, 'type' | 'size' | 'error
  * Compatibility wrapper for Input component
  */
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({
-    type = 'text',
-    size = 'md',
-    label,
-    helperText,
-    error,
-    errorText,
-    success,
-    leftIcon,
-    rightIcon,
-    containerClassName,
-    containerStyle,
-    variant,
-    onRightIconClick,
-    fullWidth,
-    className = '',
-    id,
-    style,
-    ...props
-  }, ref) => {
+  (
+    {
+      type = 'text',
+      size = 'md',
+      label,
+      helperText,
+      error,
+      errorText,
+      success,
+      leftIcon,
+      rightIcon,
+      containerClassName,
+      containerStyle,
+      variant,
+      onRightIconClick,
+      fullWidth,
+      className = '',
+      id,
+      style,
+      ...props
+    },
+    ref
+  ) => {
     // Generate a stable ID using useId() to prevent hydration mismatches
     // This ensures the same ID is used on both server and client
     const generatedId = useId();
     const stableId = id || generatedId;
 
     // Map error prop (can be string or boolean) to errorText (string) and error (boolean)
-    const effectiveErrorText = typeof error === 'string' 
-      ? error 
-      : errorText;
-    const effectiveError = typeof error === 'boolean' ? error : !!effectiveErrorText;
+    const effectiveErrorText = typeof error === 'string' ? error : errorText;
+    const effectiveError =
+      typeof error === 'boolean' ? error : !!effectiveErrorText;
     const effectiveSuccess = success;
 
     // Normalize style prop to remove any border shorthand properties
@@ -76,15 +88,23 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     // so we must remove any shorthand 'border' properties to prevent React warnings
     const propsStyle = (props as { style?: React.CSSProperties }).style;
     const allStyles = [style, propsStyle].filter(Boolean);
-    const mergedStyle = allStyles.length > 0 
-      ? Object.assign({}, ...allStyles) 
-      : {};
-    
+    const mergedStyle =
+      allStyles.length > 0 ? Object.assign({}, ...allStyles) : {};
+
     // Remove all border-related properties from merged style
     const normalizedStyle: React.CSSProperties = {};
-    const borderShorthandProps = ['border', 'borderTop', 'borderRight', 'borderBottom', 'borderLeft', 'borderWidth', 'borderStyle', 'borderColor'];
-    
-    Object.keys(mergedStyle).forEach(key => {
+    const borderShorthandProps = [
+      'border',
+      'borderTop',
+      'borderRight',
+      'borderBottom',
+      'borderLeft',
+      'borderWidth',
+      'borderStyle',
+      'borderColor',
+    ];
+
+    Object.keys(mergedStyle).forEach((key) => {
       if (!borderShorthandProps.includes(key)) {
         normalizedStyle[key as keyof React.CSSProperties] = mergedStyle[key];
       }
@@ -96,8 +116,17 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     // Clean ALL border-related properties from props (including any that might come from React Hook Form)
     // This ensures no border shorthand properties slip through to the SharedInput component
     const cleanedProps: Record<string, unknown> = {};
-    const borderProps = ['border', 'borderTop', 'borderRight', 'borderBottom', 'borderLeft', 'borderWidth', 'borderStyle', 'borderColor'];
-    Object.keys(propsWithoutStyle).forEach(key => {
+    const borderProps = [
+      'border',
+      'borderTop',
+      'borderRight',
+      'borderBottom',
+      'borderLeft',
+      'borderWidth',
+      'borderStyle',
+      'borderColor',
+    ];
+    Object.keys(propsWithoutStyle).forEach((key) => {
       // Also check if the value itself is an object with border properties (nested styles)
       const value = propsWithoutStyle[key];
       if (borderProps.includes(key)) {
@@ -105,11 +134,19 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         return;
       }
       // If value is an object with a style property, clean it too
-      if (value && typeof value === 'object' && 'style' in value && typeof (value as Record<string, unknown>).style === 'object') {
+      if (
+        value &&
+        typeof value === 'object' &&
+        'style' in value &&
+        typeof (value as Record<string, unknown>).style === 'object'
+      ) {
         const cleanedValue = { ...(value as Record<string, unknown>) };
         const cleanedNestedStyle: Record<string, unknown> = {};
-        const styleObj = (value as Record<string, unknown>).style as Record<string, unknown>;
-        Object.keys(styleObj).forEach(styleKey => {
+        const styleObj = (value as Record<string, unknown>).style as Record<
+          string,
+          unknown
+        >;
+        Object.keys(styleObj).forEach((styleKey) => {
           if (!borderProps.includes(styleKey)) {
             cleanedNestedStyle[styleKey] = styleObj[styleKey];
           }

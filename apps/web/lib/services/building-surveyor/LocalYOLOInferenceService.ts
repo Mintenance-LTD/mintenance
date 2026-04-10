@@ -14,13 +14,19 @@ import { writeFileSync, unlinkSync, existsSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { createHash } from 'crypto';
-import { preprocessImageForYOLO, type PreprocessedImage } from './yolo-preprocessing';
-import { postprocessYOLOOutput, type YOLODetection } from './yolo-postprocessing';
+import {
+  preprocessImageForYOLO,
+  type PreprocessedImage,
+} from './yolo-preprocessing';
+import {
+  postprocessYOLOOutput,
+  type YOLODetection,
+} from './yolo-postprocessing';
 import { loadClassNames } from './yolo-class-names';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import type { RoboflowDetection } from './types';
 
-export interface LocalYOLOConfig {
+interface LocalYOLOConfig {
   /** Path to ONNX model file (if loading from file system) */
   modelPath?: string;
   /** Load from database instead of file system */
@@ -79,7 +85,7 @@ export class LocalYOLOInferenceService {
 
       // Load model from file system or database
       let modelPathToLoad: string;
-      
+
       if (config.loadFromDatabase) {
         logger.info('Loading YOLO model from database', {
           service: 'LocalYOLOInferenceService',
@@ -91,7 +97,9 @@ export class LocalYOLOInferenceService {
         );
       } else {
         if (!config.modelPath) {
-          throw new Error('modelPath is required when loadFromDatabase is false');
+          throw new Error(
+            'modelPath is required when loadFromDatabase is false'
+          );
         }
         modelPathToLoad = config.modelPath;
       }
@@ -122,7 +130,9 @@ export class LocalYOLOInferenceService {
         error,
         config,
       });
-      throw new Error(`Failed to initialize local YOLO model: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to initialize local YOLO model: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -141,7 +151,9 @@ export class LocalYOLOInferenceService {
    */
   static async detect(imageUrls: string[]): Promise<RoboflowDetection[]> {
     if (!this.isAvailable()) {
-      throw new Error('Local YOLO model not initialized. Call initialize() first.');
+      throw new Error(
+        'Local YOLO model not initialized. Call initialize() first.'
+      );
     }
 
     if (!this.config) {
@@ -169,18 +181,20 @@ export class LocalYOLOInferenceService {
         });
 
         // Convert to RoboflowDetection format
-        const roboflowDetections: RoboflowDetection[] = detections.map((det, index) => ({
-          id: `${det.className}-${det.x}-${det.y}-${index}`,
-          className: det.className,
-          confidence: Math.round(det.confidence * 100),
-          boundingBox: {
-            x: Math.round(det.x),
-            y: Math.round(det.y),
-            width: Math.round(det.width),
-            height: Math.round(det.height),
-          },
-          imageUrl,
-        }));
+        const roboflowDetections: RoboflowDetection[] = detections.map(
+          (det, index) => ({
+            id: `${det.className}-${det.x}-${det.y}-${index}`,
+            className: det.className,
+            confidence: Math.round(det.confidence * 100),
+            boundingBox: {
+              x: Math.round(det.x),
+              y: Math.round(det.y),
+              width: Math.round(det.width),
+              height: Math.round(det.height),
+            },
+            imageUrl,
+          })
+        );
 
         allDetections.push(...roboflowDetections);
       } catch (error) {
@@ -199,7 +213,9 @@ export class LocalYOLOInferenceService {
   /**
    * Run model inference on preprocessed tensor
    */
-  private static async runInference(tensor: Float32Array): Promise<Float32Array> {
+  private static async runInference(
+    tensor: Float32Array
+  ): Promise<Float32Array> {
     if (!this.model) {
       throw new Error('Model not initialized');
     }
@@ -231,12 +247,16 @@ export class LocalYOLOInferenceService {
    * Priority: 1) Storage (if migrated), 2) BYTEA (backward compatibility)
    * ONNX Runtime requires a file path, so we download and save to temp
    */
-  private static async loadModelFromDatabase(modelName: string): Promise<string> {
+  private static async loadModelFromDatabase(
+    modelName: string
+  ): Promise<string> {
     try {
       // First try to get active model, then fallback to latest
       const { data, error } = await serverSupabase
         .from('yolo_models')
-        .select('storage_path, storage_bucket, checksum, model_data, file_size, is_active')
+        .select(
+          'storage_path, storage_bucket, checksum, model_data, file_size, is_active'
+        )
         .eq('model_name', modelName)
         .order('is_active', { ascending: false }) // Active models first
         .order('updated_at', { ascending: false })
@@ -267,13 +287,15 @@ export class LocalYOLOInferenceService {
 
         try {
           // Download from Storage
-          const { data: storageData, error: downloadError } = await serverSupabase
-            .storage
-            .from(data.storage_bucket)
-            .download(data.storage_path);
+          const { data: storageData, error: downloadError } =
+            await serverSupabase.storage
+              .from(data.storage_bucket)
+              .download(data.storage_path);
 
           if (downloadError) {
-            throw new Error(`Storage download failed: ${downloadError.message}`);
+            throw new Error(
+              `Storage download failed: ${downloadError.message}`
+            );
           }
 
           if (!storageData) {
@@ -284,14 +306,19 @@ export class LocalYOLOInferenceService {
 
           // P0 Security: Validate checksum — reject tampered models
           if (data.checksum) {
-            const calculatedChecksum = createHash('sha256').update(modelBuffer).digest('hex');
+            const calculatedChecksum = createHash('sha256')
+              .update(modelBuffer)
+              .digest('hex');
             if (calculatedChecksum !== data.checksum) {
-              logger.error('YOLO model checksum mismatch — refusing to load potentially tampered model', {
-                service: 'LocalYOLOInferenceService',
-                modelName,
-                expected: data.checksum,
-                actual: calculatedChecksum,
-              });
+              logger.error(
+                'YOLO model checksum mismatch — refusing to load potentially tampered model',
+                {
+                  service: 'LocalYOLOInferenceService',
+                  modelName,
+                  expected: data.checksum,
+                  actual: calculatedChecksum,
+                }
+              );
               throw new Error(
                 `Model integrity check failed: checksum mismatch for ${modelName} (expected ${data.checksum.slice(0, 8)}..., got ${calculatedChecksum.slice(0, 8)}...)`
               );
@@ -302,16 +329,22 @@ export class LocalYOLOInferenceService {
               checksum: data.checksum,
             });
           } else {
-            logger.warn('No checksum stored for model — integrity cannot be verified', {
-              service: 'LocalYOLOInferenceService',
-              modelName,
-            });
+            logger.warn(
+              'No checksum stored for model — integrity cannot be verified',
+              {
+                service: 'LocalYOLOInferenceService',
+                modelName,
+              }
+            );
           }
         } catch (storageError: unknown) {
           logger.warn('Failed to load from Storage, trying BYTEA fallback', {
             service: 'LocalYOLOInferenceService',
             modelName,
-            error: storageError instanceof Error ? storageError.message : String(storageError),
+            error:
+              storageError instanceof Error
+                ? storageError.message
+                : String(storageError),
           });
 
           // Fallback to BYTEA if available
@@ -384,4 +417,3 @@ export class LocalYOLOInferenceService {
     }
   }
 }
-

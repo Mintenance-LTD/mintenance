@@ -3,7 +3,7 @@ import { PageHeader } from './PageHeader';
 import { Navigation } from './Navigation';
 import { theme } from '@/lib/theme';
 
-export interface LayoutProps {
+interface LayoutProps {
   children: React.ReactNode;
   title?: string;
   subtitle?: string;
@@ -56,7 +56,10 @@ export const Layout: React.FC<LayoutProps> = ({
   };
 
   return (
-    <div className={`layout layout--${variant} ${className}`} style={containerStyles}>
+    <div
+      className={`layout layout--${variant} ${className}`}
+      style={containerStyles}
+    >
       {/* Header */}
       {(title || navigation) && (
         <div>
@@ -69,18 +72,22 @@ export const Layout: React.FC<LayoutProps> = ({
               variant={variant}
             />
           )}
-          
+
           {navigation && (
-            <div style={{
-              backgroundColor: theme.colors.surface,
-              borderBottom: `1px solid ${theme.colors.border}`,
-              padding: `${theme.spacing[4]} ${theme.spacing[6]}`,
-            }}>
-              <div style={{
-                maxWidth: maxWidthMap[maxWidth],
-                margin: '0 auto',
-              }}>
-                <Navigation items={navigation} variant="horizontal" />
+            <div
+              style={{
+                backgroundColor: theme.colors.surface,
+                borderBottom: `1px solid ${theme.colors.border}`,
+                padding: `${theme.spacing[4]} ${theme.spacing[6]}`,
+              }}
+            >
+              <div
+                style={{
+                  maxWidth: maxWidthMap[maxWidth],
+                  margin: '0 auto',
+                }}
+              >
+                <Navigation items={navigation} variant='horizontal' />
               </div>
             </div>
           )}
@@ -88,9 +95,7 @@ export const Layout: React.FC<LayoutProps> = ({
       )}
 
       {/* Main Content */}
-      <main style={contentStyles}>
-        {children}
-      </main>
+      <main style={contentStyles}>{children}</main>
     </div>
   );
 };

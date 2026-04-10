@@ -33,7 +33,7 @@ export enum FeatureFlag {
 /**
  * Feature flag variations for SAM3 rollout
  */
-export interface SAM3RolloutConfig {
+interface SAM3RolloutConfig {
   enabled: boolean;
   rolloutPercentage: number;
   skipYoloThreshold: number; // Confidence threshold to skip YOLO

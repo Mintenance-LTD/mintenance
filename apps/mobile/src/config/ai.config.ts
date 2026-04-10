@@ -64,7 +64,7 @@ export const aiConfig = {
   limits: {
     maxImagesPerJob: 4, // Limit images sent to vision API for cost control
     maxRequestsPerMinute: 20,
-    maxCostPerRequest: 0.10, // USD
+    maxCostPerRequest: 0.1, // USD
   },
 };
 
@@ -87,7 +87,7 @@ export const getConfiguredAIService = (): string => {
 /**
  * Validate AI configuration (mobile version - no API keys expected)
  */
-export const validateAIConfig = (): {
+const validateAIConfig = (): {
   isValid: boolean;
   errors: string[];
   warnings: string[];
@@ -97,22 +97,30 @@ export const validateAIConfig = (): {
 
   // SECURITY CHECK: Ensure no API keys were accidentally added to mobile code
   if (aiConfig.openai.apiKey && aiConfig.openai.apiKey !== '') {
-    errors.push('⛔ SECURITY VIOLATION: OpenAI API key detected in mobile code!');
+    errors.push(
+      '⛔ SECURITY VIOLATION: OpenAI API key detected in mobile code!'
+    );
   }
   if (aiConfig.aws.accessKeyId && aiConfig.aws.accessKeyId !== '') {
-    errors.push('⛔ SECURITY VIOLATION: AWS access key detected in mobile code!');
+    errors.push(
+      '⛔ SECURITY VIOLATION: AWS access key detected in mobile code!'
+    );
   }
   if (aiConfig.aws.secretAccessKey && aiConfig.aws.secretAccessKey !== '') {
-    errors.push('⛔ SECURITY VIOLATION: AWS secret key detected in mobile code!');
+    errors.push(
+      '⛔ SECURITY VIOLATION: AWS secret key detected in mobile code!'
+    );
   }
   if (aiConfig.googleCloud.apiKey && aiConfig.googleCloud.apiKey !== '') {
-    errors.push('⛔ SECURITY VIOLATION: Google Cloud API key detected in mobile code!');
+    errors.push(
+      '⛔ SECURITY VIOLATION: Google Cloud API key detected in mobile code!'
+    );
   }
 
   if (errors.length > 0) {
     throw new Error(
       'API keys detected in mobile bundle! This is a critical security issue. ' +
-      'Remove all process.env references from mobile code.'
+        'Remove all process.env references from mobile code.'
     );
   }
 
@@ -137,5 +145,3 @@ try {
   logger.error('FATAL SECURITY ERROR:', error, { service: 'mobile' });
   throw error;
 }
-
-export default aiConfig;

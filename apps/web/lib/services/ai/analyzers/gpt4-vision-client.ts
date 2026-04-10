@@ -6,7 +6,7 @@ import { logger } from '@mintenance/shared';
 import { CostControlService } from '../CostControlService';
 import { fetchWithOpenAIRetry } from '@/lib/utils/openai-rate-limit';
 
-export interface GPT4VisionResult {
+interface GPT4VisionResult {
   success: boolean;
   data?: unknown;
   cost?: number;
@@ -31,7 +31,7 @@ export async function callGPT4Vision(
         role: 'user' as const,
         content: [
           { type: 'text' as const, text: prompt },
-          ...images.map(url => ({
+          ...images.map((url) => ({
             type: 'image_url' as const,
             image_url: { url, detail: 'auto' as const },
           })),

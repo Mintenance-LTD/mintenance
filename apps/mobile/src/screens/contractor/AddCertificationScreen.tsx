@@ -21,7 +21,10 @@ import type { ProfileStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
 
 interface Props {
-  navigation: NativeStackNavigationProp<ProfileStackParamList, 'AddCertification'>;
+  navigation: NativeStackNavigationProp<
+    ProfileStackParamList,
+    'AddCertification'
+  >;
 }
 
 const CATEGORY_OPTIONS = [
@@ -61,13 +64,14 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
   const issueDateISO = toISODate(issueDate);
   const expiryDateISO = toISODate(expiryDate);
   const isValid =
-    certName.trim().length > 0 &&
-    issuer.trim().length > 0 &&
-    !!issueDateISO;
+    certName.trim().length > 0 && issuer.trim().length > 0 && !!issueDateISO;
 
   const handleSave = async () => {
     if (!isValid) {
-      toast.error('Missing fields', 'Please enter the certificate name, issuer, and a valid issue date (DD/MM/YYYY).');
+      toast.error(
+        'Missing fields',
+        'Please enter the certificate name, issuer, and a valid issue date (DD/MM/YYYY).'
+      );
       return;
     }
 
@@ -86,7 +90,9 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
         expiry_date: expiryDateISO || null,
         category: selectedCategory || 'general',
       });
-      queryClient.invalidateQueries({ queryKey: ['contractor-certifications'] });
+      queryClient.invalidateQueries({
+        queryKey: ['contractor-certifications'],
+      });
       toast.success('Certification added', `${certName} has been saved`);
       navigation.goBack();
     } catch {
@@ -101,10 +107,16 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.surface} />
+      <StatusBar
+        barStyle='dark-content'
+        backgroundColor={theme.colors.surface}
+      />
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name='close' size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Certification</Text>
         <TouchableOpacity
@@ -112,36 +124,48 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
           onPress={handleSave}
           disabled={loading || !isValid}
         >
-          <Text style={[styles.saveButtonText, (!isValid || loading) && styles.saveButtonDisabled]}>
+          <Text
+            style={[
+              styles.saveButtonText,
+              (!isValid || loading) && styles.saveButtonDisabled,
+            ]}
+          >
             {loading ? 'Saving\u2026' : 'Save'}
           </Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps='handled'
+      >
         <View style={styles.card}>
           <Text style={styles.fieldLabel}>Certificate Name *</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. CSCS Card, Gas Safe Certificate"
+            placeholder='e.g. CSCS Card, Gas Safe Certificate'
             placeholderTextColor={theme.colors.textTertiary}
             value={certName}
             onChangeText={setCertName}
           />
 
-          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Issuing Organisation *</Text>
+          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>
+            Issuing Organisation *
+          </Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. CITB, Gas Safe Register"
+            placeholder='e.g. CITB, Gas Safe Register'
             placeholderTextColor={theme.colors.textTertiary}
             value={issuer}
             onChangeText={setIssuer}
           />
 
-          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Credential / Licence Number</Text>
+          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>
+            Credential / Licence Number
+          </Text>
           <TextInput
             style={styles.input}
-            placeholder="Optional"
+            placeholder='Optional'
             placeholderTextColor={theme.colors.textTertiary}
             value={credentialId}
             onChangeText={setCredentialId}
@@ -150,32 +174,46 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Issue Date</Text>
           <TextInput
             style={styles.input}
-            placeholder="DD/MM/YYYY"
+            placeholder='DD/MM/YYYY'
             placeholderTextColor={theme.colors.textTertiary}
             value={issueDate}
             onChangeText={setIssueDate}
-            keyboardType="numbers-and-punctuation"
+            keyboardType='numbers-and-punctuation'
           />
 
-          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Expiry Date</Text>
+          <Text style={[styles.fieldLabel, { marginTop: 16 }]}>
+            Expiry Date
+          </Text>
           <TextInput
             style={styles.input}
-            placeholder="DD/MM/YYYY (leave blank if no expiry)"
+            placeholder='DD/MM/YYYY (leave blank if no expiry)'
             placeholderTextColor={theme.colors.textTertiary}
             value={expiryDate}
             onChangeText={setExpiryDate}
-            keyboardType="numbers-and-punctuation"
+            keyboardType='numbers-and-punctuation'
           />
 
           <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Category</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.categoryScroll}
+          >
             {CATEGORY_OPTIONS.map((cat) => (
               <TouchableOpacity
                 key={cat.value}
-                style={[styles.categoryChip, selectedCategory === cat.value && styles.categoryChipActive]}
+                style={[
+                  styles.categoryChip,
+                  selectedCategory === cat.value && styles.categoryChipActive,
+                ]}
                 onPress={() => setSelectedCategory(cat.value)}
               >
-                <Text style={[styles.categoryText, selectedCategory === cat.value && styles.categoryTextActive]}>
+                <Text
+                  style={[
+                    styles.categoryText,
+                    selectedCategory === cat.value && styles.categoryTextActive,
+                  ]}
+                >
                   {cat.label}
                 </Text>
               </TouchableOpacity>
@@ -200,9 +238,17 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
   },
   headerButton: { padding: 8, width: 60 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
   saveButton: { alignItems: 'flex-end' },
-  saveButtonText: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
   saveButtonDisabled: { opacity: 0.5 },
   content: { padding: 16 },
   card: {
@@ -210,7 +256,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -243,5 +294,3 @@ const styles = StyleSheet.create({
   categoryText: { fontSize: 13, color: theme.colors.textSecondary },
   categoryTextActive: { color: theme.colors.textInverse, fontWeight: '600' },
 });
-
-export default AddCertificationScreen;

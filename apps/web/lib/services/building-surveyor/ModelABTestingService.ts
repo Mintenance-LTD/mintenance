@@ -10,14 +10,19 @@
 
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import type { ABTestConfig, ABTestResult, ModelAssignment } from './ab-testing/types';
-import { calculateVariantMetrics, createInconclusiveResult } from './ab-testing/metrics';
+import type {
+  ABTestConfig,
+  ABTestResult,
+  ModelAssignment,
+} from './ab-testing/types';
+import {
+  calculateVariantMetrics,
+  createInconclusiveResult,
+} from './ab-testing/metrics';
 import { calculateStatisticalSignificance } from './ab-testing/statistics';
 import { generateABTestRecommendation } from './ab-testing/recommendations';
 
 // Re-export types for backward compatibility
-export type { ABTestConfig, ABTestResult, ModelAssignment } from './ab-testing/types';
-
 // ============================================================================
 // MAIN SERVICE CLASS
 // ============================================================================
@@ -28,7 +33,9 @@ export class ModelABTestingService {
   /**
    * Create a new A/B test
    */
-  static async createABTest(config: Omit<ABTestConfig, 'test_id' | 'created_at' | 'status'>): Promise<ABTestConfig> {
+  static async createABTest(
+    config: Omit<ABTestConfig, 'test_id' | 'created_at' | 'status'>
+  ): Promise<ABTestConfig> {
     try {
       const supabase = serverSupabase;
 
@@ -36,35 +43,34 @@ export class ModelABTestingService {
         ...config,
         test_id: `ab_test_${Date.now()}`,
         status: 'draft',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       };
 
       // Validate traffic split
-      const totalTraffic = config.traffic_split.control_percentage + config.traffic_split.treatment_percentage;
+      const totalTraffic =
+        config.traffic_split.control_percentage +
+        config.traffic_split.treatment_percentage;
       if (totalTraffic > 100) {
         throw new Error('Traffic split cannot exceed 100%');
       }
 
       // Store in database
-      const { error } = await supabase
-        .from('model_ab_tests')
-        .insert({
-          test_id: test.test_id,
-          config_jsonb: test,
-          status: test.status,
-          created_at: test.created_at
-        });
+      const { error } = await supabase.from('model_ab_tests').insert({
+        test_id: test.test_id,
+        config_jsonb: test,
+        status: test.status,
+        created_at: test.created_at,
+      });
 
       if (error) throw error;
 
       logger.info('A/B test created', {
         testId: test.test_id,
         controlModel: test.control_model.version,
-        treatmentModel: test.treatment_model.version
+        treatmentModel: test.treatment_model.version,
       });
 
       return test;
-
     } catch (error) {
       logger.error('Failed to create A/B test', { error });
       throw error;
@@ -83,7 +89,7 @@ export class ModelABTestingService {
         .from('model_ab_tests')
         .update({
           status: 'running',
-          started_at: new Date().toISOString()
+          started_at: new Date().toISOString(),
         })
         .eq('test_id', testId);
 
@@ -93,7 +99,6 @@ export class ModelABTestingService {
 
       // Initialize monitoring
       this.startMonitoring(testId);
-
     } catch (error) {
       logger.error('Failed to start A/B test', { error, testId });
       throw error;
@@ -139,15 +144,16 @@ export class ModelABTestingService {
           user_id: userId,
           assigned_model: existing.assigned_model,
           assignment_timestamp: new Date().toISOString(),
-          assignment_method: 'sticky'
+          assignment_method: 'sticky',
         };
       }
 
       // Perform random assignment based on traffic split
       const randomValue = Math.random() * 100;
-      const assignedModel = randomValue < config.traffic_split.control_percentage
-        ? 'control'
-        : 'treatment';
+      const assignedModel =
+        randomValue < config.traffic_split.control_percentage
+          ? 'control'
+          : 'treatment';
 
       // Store assignment
       const assignment: ModelAssignment = {
@@ -155,24 +161,21 @@ export class ModelABTestingService {
         user_id: userId,
         assigned_model: assignedModel,
         assignment_timestamp: new Date().toISOString(),
-        assignment_method: 'random'
+        assignment_method: 'random',
       };
 
-      await supabase
-        .from('model_assignments')
-        .insert({
-          test_id: testId,
-          ...assignment
-        });
+      await supabase.from('model_assignments').insert({
+        test_id: testId,
+        ...assignment,
+      });
 
       logger.info('Model assigned', {
         testId,
         sessionId,
-        assignedModel
+        assignedModel,
       });
 
       return assignment;
-
     } catch (error) {
       logger.error('Failed to assign model', { error, testId, sessionId });
       // Default to control on error
@@ -181,7 +184,7 @@ export class ModelABTestingService {
         user_id: userId,
         assigned_model: 'control',
         assignment_timestamp: new Date().toISOString(),
-        assignment_method: 'random'
+        assignment_method: 'random',
       };
     }
   }
@@ -203,21 +206,20 @@ export class ModelABTestingService {
     try {
       const supabase = serverSupabase;
 
-      await supabase
-        .from('model_inference_logs')
-        .insert({
-          test_id: testId,
-          session_id: sessionId,
-          model_variant: model,
-          latency_ms: metrics.latency_ms,
-          success: metrics.success,
-          detections_count: metrics.detections_count,
-          avg_confidence: metrics.confidence_scores.length > 0
-            ? metrics.confidence_scores.reduce((a, b) => a + b, 0) / metrics.confidence_scores.length
+      await supabase.from('model_inference_logs').insert({
+        test_id: testId,
+        session_id: sessionId,
+        model_variant: model,
+        latency_ms: metrics.latency_ms,
+        success: metrics.success,
+        detections_count: metrics.detections_count,
+        avg_confidence:
+          metrics.confidence_scores.length > 0
+            ? metrics.confidence_scores.reduce((a, b) => a + b, 0) /
+              metrics.confidence_scores.length
             : 0,
-          timestamp: new Date().toISOString()
-        });
-
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
       // Log but don't throw - inference logging shouldn't break the main flow
       logger.warn('Failed to record inference', { error, testId, sessionId });
@@ -251,8 +253,12 @@ export class ModelABTestingService {
       }
 
       // Separate by variant
-      const controlData = inferences.filter((i: Record<string, unknown>) => i.model_variant === 'control');
-      const treatmentData = inferences.filter((i: Record<string, unknown>) => i.model_variant === 'treatment');
+      const controlData = inferences.filter(
+        (i: Record<string, unknown>) => i.model_variant === 'control'
+      );
+      const treatmentData = inferences.filter(
+        (i: Record<string, unknown>) => i.model_variant === 'treatment'
+      );
 
       // Calculate metrics for each variant
       const controlMetrics = calculateVariantMetrics(controlData);
@@ -286,17 +292,19 @@ export class ModelABTestingService {
         statistical_significance: significance,
         recommendation: recommendation.decision,
         confidence: recommendation.confidence,
-        reasons: recommendation.reasons
+        reasons: recommendation.reasons,
       };
 
       logger.info('A/B test analysis complete', {
         testId,
         recommendation: result.recommendation,
-        samples: { control: controlData.length, treatment: treatmentData.length }
+        samples: {
+          control: controlData.length,
+          treatment: treatmentData.length,
+        },
       });
 
       return result;
-
     } catch (error) {
       logger.error('Failed to analyze A/B test', { error, testId });
       throw error;
@@ -326,19 +334,25 @@ export class ModelABTestingService {
         result.treatment_samples >= config.minimum_sample_size;
 
       const hasStatisticalSignificance =
-        result.statistical_significance.p_value < (1 - config.confidence_level);
+        result.statistical_significance.p_value < 1 - config.confidence_level;
 
-      const shouldComplete = hasEnoughSamples && (
-        hasStatisticalSignificance ||
-        result.recommendation === 'deploy_treatment' ||
-        result.recommendation === 'keep_control'
-      );
+      const shouldComplete =
+        hasEnoughSamples &&
+        (hasStatisticalSignificance ||
+          result.recommendation === 'deploy_treatment' ||
+          result.recommendation === 'keep_control');
 
       if (shouldComplete) {
         // Auto-deploy or rollback based on configuration
-        if (result.recommendation === 'deploy_treatment' && config.auto_deploy_on_success) {
+        if (
+          result.recommendation === 'deploy_treatment' &&
+          config.auto_deploy_on_success
+        ) {
           await this.deployTreatment(testId);
-        } else if (result.recommendation === 'keep_control' && config.auto_rollback_on_failure) {
+        } else if (
+          result.recommendation === 'keep_control' &&
+          config.auto_rollback_on_failure
+        ) {
           await this.rollbackToControl(testId);
         }
 
@@ -347,20 +361,19 @@ export class ModelABTestingService {
           .from('model_ab_tests')
           .update({
             status: 'completed',
-            completed_at: new Date().toISOString()
+            completed_at: new Date().toISOString(),
           })
           .eq('test_id', testId);
 
         logger.info('A/B test auto-completed', {
           testId,
-          recommendation: result.recommendation
+          recommendation: result.recommendation,
         });
 
         return true;
       }
 
       return false;
-
     } catch (error) {
       logger.error('Failed to check auto-complete', { error, testId });
       return false;
@@ -396,9 +409,8 @@ export class ModelABTestingService {
 
       logger.info('Treatment model deployed', {
         testId,
-        modelVersion: config.treatment_model.version
+        modelVersion: config.treatment_model.version,
       });
-
     } catch (error) {
       logger.error('Failed to deploy treatment', { error, testId });
       throw error;
@@ -417,12 +429,11 @@ export class ModelABTestingService {
         .from('model_ab_tests')
         .update({
           status: 'rolled_back',
-          completed_at: new Date().toISOString()
+          completed_at: new Date().toISOString(),
         })
         .eq('test_id', testId);
 
       logger.info('Rolled back to control model', { testId });
-
     } catch (error) {
       logger.error('Failed to rollback', { error, testId });
       throw error;
@@ -431,16 +442,19 @@ export class ModelABTestingService {
 
   private static async startMonitoring(testId: string): Promise<void> {
     // Set up periodic monitoring
-    const checkInterval = setInterval(async () => {
-      try {
-        const shouldComplete = await this.checkAutoComplete(testId);
-        if (shouldComplete) {
-          clearInterval(checkInterval);
+    const checkInterval = setInterval(
+      async () => {
+        try {
+          const shouldComplete = await this.checkAutoComplete(testId);
+          if (shouldComplete) {
+            clearInterval(checkInterval);
+          }
+        } catch (error) {
+          logger.error('Monitoring check failed', { error, testId });
         }
-      } catch (error) {
-        logger.error('Monitoring check failed', { error, testId });
-      }
-    }, 60 * 60 * 1000);  // Check every hour
+      },
+      60 * 60 * 1000
+    ); // Check every hour
 
     // Store interval ID for cleanup if needed
     // In production, this would be stored in a more persistent way
@@ -459,7 +473,11 @@ export async function getModelForSession(
   sessionId: string,
   userId?: string
 ): Promise<'control' | 'treatment'> {
-  const assignment = await ModelABTestingService.assignModel(testId, sessionId, userId);
+  const assignment = await ModelABTestingService.assignModel(
+    testId,
+    sessionId,
+    userId
+  );
   return assignment.assigned_model;
 }
 
@@ -478,6 +496,8 @@ export async function recordModelPerformance(
     latency_ms: latencyMs,
     success,
     detections_count: detections.length,
-    confidence_scores: detections.map((d) => ((d as Record<string, unknown>).confidence as number) || 0)
+    confidence_scores: detections.map(
+      (d) => ((d as Record<string, unknown>).confidence as number) || 0
+    ),
   });
 }

@@ -63,5 +63,3 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.backgroundSecondary,
   },
 });
-
-export default HomeScreen;

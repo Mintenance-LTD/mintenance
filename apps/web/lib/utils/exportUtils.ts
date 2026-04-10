@@ -5,7 +5,7 @@
 import { sanitizeHtml } from '@/lib/sanitizer';
 import { logger } from '@mintenance/shared';
 
-export interface ExportData {
+interface ExportData {
   headers: string[];
   rows: (string | number)[][];
   title?: string;
@@ -15,16 +15,19 @@ export interface ExportData {
 /**
  * Export data as CSV file
  */
-export function exportToCSV(data: ExportData, filename: string = 'report.csv'): void {
+export function exportToCSV(
+  data: ExportData,
+  filename: string = 'report.csv'
+): void {
   const { headers, rows, title, metadata } = data;
-  
+
   let csvContent = '';
-  
+
   // Add title if provided
   if (title) {
     csvContent += `${title}\n\n`;
   }
-  
+
   // Add metadata if provided
   if (metadata) {
     Object.entries(metadata).forEach(([key, value]) => {
@@ -32,15 +35,15 @@ export function exportToCSV(data: ExportData, filename: string = 'report.csv'): 
     });
     csvContent += '\n';
   }
-  
+
   // Add headers
   csvContent += headers.map(escapeCSV).join(',') + '\n';
-  
+
   // Add rows
-  rows.forEach(row => {
-    csvContent += row.map(cell => escapeCSV(String(cell))).join(',') + '\n';
+  rows.forEach((row) => {
+    csvContent += row.map((cell) => escapeCSV(String(cell))).join(',') + '\n';
   });
-  
+
   // Create blob and download
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   downloadFile(blob, filename);
@@ -49,7 +52,10 @@ export function exportToCSV(data: ExportData, filename: string = 'report.csv'): 
 /**
  * Export data as JSON file
  */
-export function exportToJSON(data: unknown, filename: string = 'report.json'): void {
+export function exportToJSON(
+  data: unknown,
+  filename: string = 'report.json'
+): void {
   const jsonString = JSON.stringify(data, null, 2);
   const blob = new Blob([jsonString], { type: 'application/json' });
   downloadFile(blob, filename);
@@ -59,37 +65,66 @@ export function exportToJSON(data: unknown, filename: string = 'report.json'): v
  * Generate PDF from HTML content using browser's print functionality
  * SECURITY: Sanitizes HTML content to prevent XSS attacks
  */
-export function exportToPDF(elementId: string, filename: string = 'report.pdf'): void {
+export function exportToPDF(
+  elementId: string,
+  filename: string = 'report.pdf'
+): void {
   const element = document.getElementById(elementId);
   if (!element) {
-    logger.error(`Element with id "${elementId}" not found`, undefined, { service: 'export-utils', elementId });
+    logger.error(`Element with id "${elementId}" not found`, undefined, {
+      service: 'export-utils',
+      elementId,
+    });
     return;
   }
-  
+
   // SECURITY: Sanitize HTML content before manipulating innerHTML to prevent XSS
   // Store original body content
   const originalContents = document.body.innerHTML;
   const printContents = element.innerHTML;
-  
+
   // Sanitize the HTML content to remove any malicious scripts or event handlers
   const sanitizedContents = sanitizeHtml(printContents, {
-    allowedTags: ['p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div', 'span', 'img'],
+    allowedTags: [
+      'p',
+      'br',
+      'strong',
+      'em',
+      'ul',
+      'ol',
+      'li',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'table',
+      'thead',
+      'tbody',
+      'tr',
+      'th',
+      'td',
+      'div',
+      'span',
+      'img',
+    ],
     allowedAttributes: ['src', 'alt', 'class', 'style'],
     maxLength: 100000, // Limit content size to prevent DoS
   });
-  
+
   // Replace body with sanitized print content
   document.body.innerHTML = sanitizedContents;
-  
+
   // Add print styles
   addPrintStyles();
-  
+
   // Trigger print dialog
   window.print();
-  
+
   // Restore original content
   document.body.innerHTML = originalContents;
-  
+
   // Reload to restore event listeners
   window.location.reload();
 }
@@ -105,47 +140,57 @@ export async function exportToPDFAdvanced(
 ): Promise<void> {
   try {
     // Dynamic import to avoid bundling if not used
-    const jsPDF = (await import(/* webpackChunkName: "jspdf" */ 'jspdf' as string)).default;
-    const html2canvas = (await import(/* webpackChunkName: "html2canvas" */ 'html2canvas' as string)).default;
-    
+    const jsPDF = (
+      await import(/* webpackChunkName: "jspdf" */ 'jspdf' as string)
+    ).default;
+    const html2canvas = (
+      await import(
+        /* webpackChunkName: "html2canvas" */ 'html2canvas' as string
+      )
+    ).default;
+
     const element = document.getElementById(elementId);
     if (!element) {
       throw new Error(`Element with id "${elementId}" not found`);
     }
-    
+
     // Capture element as canvas
     const canvas = await html2canvas(element, {
       scale: 2,
       useCORS: true,
       logging: false,
     });
-    
+
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF({
       orientation: options?.orientation || 'portrait',
       unit: 'mm',
       format: options?.format || 'a4',
     });
-    
+
     const imgWidth = 210; // A4 width in mm
     const pageHeight = 297; // A4 height in mm
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
     let heightLeft = imgHeight;
     let position = 0;
-    
+
     pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
     heightLeft -= pageHeight;
-    
+
     while (heightLeft >= 0) {
       position = heightLeft - imgHeight;
       pdf.addPage();
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
     }
-    
+
     pdf.save(filename);
   } catch (error) {
-    logger.error('Error exporting to PDF', error, { service: 'export-utils', elementId, filename });
+    logger.error('Error exporting to PDF', error, {
+      service: 'export-utils',
+      elementId,
+      filename,
+    });
     // Fallback to basic print
     exportToPDF(elementId, filename);
   }
@@ -248,4 +293,3 @@ export function formatDateForExport(date: Date | string): string {
 export function formatCurrencyForExport(amount: number): string {
   return `£${amount.toFixed(2)}`;
 }
-

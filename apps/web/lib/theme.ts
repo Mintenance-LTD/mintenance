@@ -226,7 +226,7 @@ export const theme = {
   },
 };
 
-export type Theme = typeof theme;
+type Theme = typeof theme;
 
 // Utility functions for web (using design tokens)
 export const getColor = tokens.getColor;

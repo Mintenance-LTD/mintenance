@@ -47,7 +47,7 @@ const SAFE_PATTERNS = {
   safeString: /^[a-zA-Z0-9\s.,!?-]+$/,
 } as const;
 
-export class SqlInjectionProtection {
+class SqlInjectionProtection {
   /**
    * Scan input for SQL injection patterns
    */
@@ -58,7 +58,12 @@ export class SqlInjectionProtection {
     risk: 'low' | 'medium' | 'high' | 'critical';
   } {
     if (!input || typeof input !== 'string') {
-      return { isSafe: true, threats: [], sanitized: String(input || ''), risk: 'low' };
+      return {
+        isSafe: true,
+        threats: [],
+        sanitized: String(input || ''),
+        risk: 'low',
+      };
     }
 
     const threats: string[] = [];
@@ -81,11 +86,15 @@ export class SqlInjectionProtection {
         }
 
         // Log the threat
-        logger.warn('SqlInjectionProtection', 'SQL injection pattern detected', {
-          pattern: pattern.source,
-          input: sanitized.substring(0, 100),
-          matches: matches.slice(0, 3) // Log first 3 matches only
-        });
+        logger.warn(
+          'SqlInjectionProtection',
+          'SQL injection pattern detected',
+          {
+            pattern: pattern.source,
+            input: sanitized.substring(0, 100),
+            matches: matches.slice(0, 3), // Log first 3 matches only
+          }
+        );
       }
     }
 
@@ -103,7 +112,7 @@ export class SqlInjectionProtection {
       isSafe: threats.length === 0,
       threats,
       sanitized,
-      risk: riskLevel
+      risk: riskLevel,
     };
   }
 
@@ -116,20 +125,27 @@ export class SqlInjectionProtection {
     fieldName: string = 'input'
   ): { isValid: boolean; error?: string } {
     if (!input || typeof input !== 'string') {
-      return { isValid: false, error: `${fieldName} must be a non-empty string` };
+      return {
+        isValid: false,
+        error: `${fieldName} must be a non-empty string`,
+      };
     }
 
     const pattern = SAFE_PATTERNS[patternType];
     if (!pattern.test(input)) {
-      logger.warn('SqlInjectionProtection', 'Input failed safe pattern validation', {
-        fieldName,
-        patternType,
-        input: input.substring(0, 50)
-      });
+      logger.warn(
+        'SqlInjectionProtection',
+        'Input failed safe pattern validation',
+        {
+          fieldName,
+          patternType,
+          input: input.substring(0, 50),
+        }
+      );
 
       return {
         isValid: false,
-        error: `${fieldName} contains invalid characters for type ${patternType}`
+        error: `${fieldName} contains invalid characters for type ${patternType}`,
       };
     }
 
@@ -157,7 +173,7 @@ export class SqlInjectionProtection {
 
     logger.debug('SqlInjectionProtection', 'String escaped for SQL', {
       original: input.substring(0, 50),
-      escaped: escaped.substring(0, 50)
+      escaped: escaped.substring(0, 50),
     });
 
     return escaped;
@@ -166,7 +182,10 @@ export class SqlInjectionProtection {
   /**
    * Validate UUID format
    */
-  static validateUuid(uuid: string, fieldName: string = 'UUID'): { isValid: boolean; error?: string } {
+  static validateUuid(
+    uuid: string,
+    fieldName: string = 'UUID'
+  ): { isValid: boolean; error?: string } {
     return this.validateSafePattern(uuid, 'uuid', fieldName);
   }
 
@@ -179,7 +198,7 @@ export class SqlInjectionProtection {
       allowDecimal?: boolean;
       min?: number;
       max?: number;
-      fieldName?: string
+      fieldName?: string;
     } = {}
   ): { isValid: boolean; value?: number; error?: string } {
     const { allowDecimal = false, min, max, fieldName = 'number' } = options;
@@ -188,16 +207,20 @@ export class SqlInjectionProtection {
     const stringInput = String(input);
 
     // Check pattern
-    const pattern = allowDecimal ? SAFE_PATTERNS.decimal : SAFE_PATTERNS.numbers;
+    const pattern = allowDecimal
+      ? SAFE_PATTERNS.decimal
+      : SAFE_PATTERNS.numbers;
     if (!pattern.test(stringInput)) {
       return {
         isValid: false,
-        error: `${fieldName} must be a valid ${allowDecimal ? 'decimal' : 'integer'}`
+        error: `${fieldName} must be a valid ${allowDecimal ? 'decimal' : 'integer'}`,
       };
     }
 
     // Convert to number
-    const numValue = allowDecimal ? parseFloat(stringInput) : parseInt(stringInput, 10);
+    const numValue = allowDecimal
+      ? parseFloat(stringInput)
+      : parseInt(stringInput, 10);
 
     if (isNaN(numValue)) {
       return { isValid: false, error: `${fieldName} is not a valid number` };
@@ -228,7 +251,7 @@ export class SqlInjectionProtection {
     if (!sqlCheck.isSafe) {
       logger.warn('SqlInjectionProtection', 'Unsafe search query blocked', {
         query: query.substring(0, 50),
-        threats: sqlCheck.threats
+        threats: sqlCheck.threats,
       });
       return ''; // Return empty string for unsafe queries
     }
@@ -254,7 +277,12 @@ export class SqlInjectionProtection {
   static createSafeQuery(
     template: string,
     params: Record<string, unknown>
-  ): { query: string; safeParams: Record<string, unknown>; isValid: boolean; errors: string[] } {
+  ): {
+    query: string;
+    safeParams: Record<string, unknown>;
+    isValid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
     const safeParams: Record<string, unknown> = {};
 
@@ -287,7 +315,7 @@ export class SqlInjectionProtection {
       query: template,
       safeParams,
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -302,13 +330,13 @@ export class SqlInjectionProtection {
     // For now, just return allowed for development
     logger.debug('SqlInjectionProtection', 'Query rate limit check', {
       userId: userId.substring(0, 8),
-      queryType
+      queryType,
     });
 
     return {
       allowed: true,
       remaining: 100,
-      resetTime: Date.now() + 60000
+      resetTime: Date.now() + 60000,
     };
   }
 }

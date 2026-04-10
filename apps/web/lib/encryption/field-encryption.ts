@@ -12,7 +12,12 @@
  * - Context-bound encryption for additional security
  */
 
-import { createCipheriv, createDecipheriv, randomBytes, createHash } from 'crypto';
+import {
+  createCipheriv,
+  createDecipheriv,
+  randomBytes,
+  createHash,
+} from 'crypto';
 import { logger } from '@mintenance/shared';
 
 /**
@@ -78,7 +83,10 @@ export interface EncryptedField {
  * @param context - Context for key derivation (e.g., 'payment_method', 'card_number')
  * @returns Encrypted field object
  */
-export function encryptField(plaintext: string, context: string): EncryptedField {
+export function encryptField(
+  plaintext: string,
+  context: string
+): EncryptedField {
   try {
     // Generate unique IV for this encryption
     const iv = randomBytes(IV_LENGTH);
@@ -123,7 +131,10 @@ export function encryptField(plaintext: string, context: string): EncryptedField
  * @param context - Context used for key derivation (must match encryption context)
  * @returns Decrypted plaintext
  */
-export function decryptField(encryptedField: EncryptedField, context: string): string {
+export function decryptField(
+  encryptedField: EncryptedField,
+  context: string
+): string {
   try {
     // Validate context matches
     if (encryptedField.context && encryptedField.context !== context) {
@@ -163,14 +174,16 @@ export function decryptField(encryptedField: EncryptedField, context: string): s
       service: 'encryption',
       context,
     });
-    throw new Error('Failed to decrypt field - data may be corrupted or tampered with');
+    throw new Error(
+      'Failed to decrypt field - data may be corrupted or tampered with'
+    );
   }
 }
 
 /**
  * Payment data that may contain sensitive fields
  */
-export interface PaymentData {
+interface PaymentData {
   [key: string]: unknown;
 }
 
@@ -296,7 +309,9 @@ export function redactSensitiveData(data: unknown): unknown {
   if (typeof data === 'string') {
     // Check if it looks like a card number
     if (/^\d{13,19}$/.test(data.replace(/\s/g, ''))) {
-      return data.substring(0, 4) + '********' + data.substring(data.length - 4);
+      return (
+        data.substring(0, 4) + '********' + data.substring(data.length - 4)
+      );
     }
 
     // Check if it looks like an email
@@ -314,7 +329,9 @@ export function redactSensitiveData(data: unknown): unknown {
   }
 
   if (typeof data === 'object' && data !== null) {
-    const redacted: Record<string, unknown> = Array.isArray(data) ? [] as unknown as Record<string, unknown> : {};
+    const redacted: Record<string, unknown> = Array.isArray(data)
+      ? ([] as unknown as Record<string, unknown>)
+      : {};
 
     for (const key in data) {
       // Check if key name suggests sensitive data
@@ -332,7 +349,9 @@ export function redactSensitiveData(data: unknown): unknown {
       if (sensitiveKeys.some((sk) => key.toLowerCase().includes(sk))) {
         redacted[key] = '***REDACTED***';
       } else {
-        redacted[key] = redactSensitiveData((data as Record<string, unknown>)[key]);
+        redacted[key] = redactSensitiveData(
+          (data as Record<string, unknown>)[key]
+        );
       }
     }
 
@@ -374,9 +393,12 @@ export function validateEncryptionConfig(): boolean {
     const decrypted = decryptField(encrypted, 'test');
 
     if (decrypted !== testData) {
-      logger.error('Encryption validation failed - decrypted data does not match', {
-        service: 'encryption',
-      });
+      logger.error(
+        'Encryption validation failed - decrypted data does not match',
+        {
+          service: 'encryption',
+        }
+      );
       return false;
     }
 

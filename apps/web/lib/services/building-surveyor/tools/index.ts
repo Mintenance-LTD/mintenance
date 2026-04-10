@@ -11,4 +11,3 @@ export { runSegmentTool } from './SegmentTool';
 export { runVisionLabelsTool } from './VisionLabelsTool';
 export { runRetrieveMemoryTool } from './RetrieveMemoryTool';
 export { runToolSequenceAndWriteEvidence } from './runToolSequence';
-export type { ToolSequenceInput, ToolSequenceOutput } from './runToolSequence';

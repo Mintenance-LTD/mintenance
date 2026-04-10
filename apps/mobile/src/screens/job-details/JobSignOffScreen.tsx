@@ -335,5 +335,3 @@ const styles = StyleSheet.create({
     minWidth: 100,
   },
 });
-
-export default JobSignOffScreen;

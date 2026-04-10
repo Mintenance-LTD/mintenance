@@ -7,7 +7,7 @@ export interface AssessmentStep {
   required: boolean;
 }
 
-export interface AssessmentVideo {
+interface AssessmentVideo {
   id: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   uri?: string;
@@ -15,12 +15,12 @@ export interface AssessmentVideo {
   duration?: number;
 }
 
-export interface AssessmentResults {
+interface AssessmentResults {
   total_damages: number;
   confidence_level: string;
 }
 
-export interface AssessmentNavigationParams {
+interface AssessmentNavigationParams {
   propertyId?: string;
   propertyAddress?: string;
 }

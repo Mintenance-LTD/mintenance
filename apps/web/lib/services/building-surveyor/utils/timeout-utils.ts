@@ -3,7 +3,7 @@
  * Provides a consistent interface for running tasks with timeouts
  */
 
-export interface TimeoutResult<T> {
+interface TimeoutResult<T> {
   success: boolean;
   data?: T;
   error?: unknown;
@@ -18,7 +18,7 @@ export interface TimeoutResult<T> {
 export async function runWithTimeout<T>(
   task: () => Promise<T>,
   timeoutMs: number,
-  label: string,
+  label: string
 ): Promise<TimeoutResult<T>> {
   const start = Date.now();
   const timeoutError = new Error(`${label} timed out after ${timeoutMs}ms`);
@@ -49,4 +49,3 @@ export async function runWithTimeout<T>(
     }
   }
 }
-

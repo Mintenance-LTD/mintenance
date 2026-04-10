@@ -49,8 +49,8 @@ export const ALLOWED_MIME_TYPES = {
 // First few bytes of valid files to prevent MIME type spoofing
 const FILE_SIGNATURES: Record<string, number[][]> = {
   // Images
-  'image/jpeg': [[0xFF, 0xD8, 0xFF]],
-  'image/png': [[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]],
+  'image/jpeg': [[0xff, 0xd8, 0xff]],
+  'image/png': [[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]],
   'image/gif': [
     [0x47, 0x49, 0x46, 0x38, 0x37, 0x61], // GIF87a
     [0x47, 0x49, 0x46, 0x38, 0x39, 0x61], // GIF89a
@@ -62,35 +62,61 @@ const FILE_SIGNATURES: Record<string, number[][]> = {
   // Documents
   'application/pdf': [[0x25, 0x50, 0x44, 0x46]], // %PDF
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [
-    [0x50, 0x4B, 0x03, 0x04], // ZIP signature (DOCX is a ZIP file)
+    [0x50, 0x4b, 0x03, 0x04], // ZIP signature (DOCX is a ZIP file)
   ],
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': [
-    [0x50, 0x4B, 0x03, 0x04], // ZIP signature (XLSX is a ZIP file)
+    [0x50, 0x4b, 0x03, 0x04], // ZIP signature (XLSX is a ZIP file)
   ],
-  'application/msword': [[0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1]], // DOC (OLE2)
-  'application/vnd.ms-excel': [[0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1]], // XLS (OLE2)
+  'application/msword': [[0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]], // DOC (OLE2)
+  'application/vnd.ms-excel': [
+    [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1],
+  ], // XLS (OLE2)
 
   // Videos - More specific signatures
   'video/mp4': [
-    [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x6D, 0x70, 0x34, 0x32], // ftyp mp42
-    [0x00, 0x00, 0x00, 0x1C, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6F, 0x6D], // ftyp isom
-    [0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70, 0x4D, 0x34, 0x56], // ftyp M4V
+    [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x6d, 0x70, 0x34, 0x32], // ftyp mp42
+    [0x00, 0x00, 0x00, 0x1c, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d], // ftyp isom
+    [0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70, 0x4d, 0x34, 0x56], // ftyp M4V
   ],
   'video/quicktime': [
     [0x00, 0x00, 0x00, 0x14, 0x66, 0x74, 0x79, 0x70, 0x71, 0x74], // ftyp qt
   ],
-  'video/webm': [[0x1A, 0x45, 0xDF, 0xA3]], // EBML
+  'video/webm': [[0x1a, 0x45, 0xdf, 0xa3]], // EBML
   'video/x-msvideo': [[0x52, 0x49, 0x46, 0x46]], // RIFF (AVI)
 };
 
 // Dangerous file extensions that should always be blocked
 const DANGEROUS_EXTENSIONS = [
-  'exe', 'bat', 'cmd', 'com', 'pif', 'scr', 'vbs', 'js', 'jar',
-  'msi', 'app', 'deb', 'rpm', 'dmg', 'pkg', 'sh', 'bash', 'ps1',
-  'php', 'asp', 'aspx', 'jsp', 'cgi', 'pl', 'py', 'rb', 'go',
+  'exe',
+  'bat',
+  'cmd',
+  'com',
+  'pif',
+  'scr',
+  'vbs',
+  'js',
+  'jar',
+  'msi',
+  'app',
+  'deb',
+  'rpm',
+  'dmg',
+  'pkg',
+  'sh',
+  'bash',
+  'ps1',
+  'php',
+  'asp',
+  'aspx',
+  'jsp',
+  'cgi',
+  'pl',
+  'py',
+  'rb',
+  'go',
 ];
 
-export interface FileValidationResult {
+interface FileValidationResult {
   valid: boolean;
   errors: string[];
   warnings: string[];
@@ -113,7 +139,7 @@ function validateMagicNumber(buffer: Buffer, mimeType: string): boolean {
   }
 
   // Check if buffer starts with any of the valid signatures
-  return signatures.some(signature =>
+  return signatures.some((signature) =>
     signature.every((byte, index) => buffer[index] === byte)
   );
 }
@@ -215,9 +241,7 @@ export async function validateFile(
   // 4. Validate magic number (file signature)
   try {
     const buffer =
-      file instanceof File
-        ? Buffer.from(await file.arrayBuffer())
-        : file;
+      file instanceof File ? Buffer.from(await file.arrayBuffer()) : file;
 
     const magicNumberValid = validateMagicNumber(buffer.slice(0, 32), mimeType);
     if (!magicNumberValid) {
@@ -326,7 +350,7 @@ export async function validateFiles(
   const totalSize = results.reduce((sum, r) => sum + r.metadata.size, 0);
 
   return {
-    valid: results.every(r => r.valid),
+    valid: results.every((r) => r.valid),
     results,
     totalSize,
   };
@@ -335,7 +359,9 @@ export async function validateFiles(
 /**
  * Helper to validate image uploads
  */
-export async function validateImageUpload(file: File): Promise<FileValidationResult> {
+export async function validateImageUpload(
+  file: File
+): Promise<FileValidationResult> {
   return validateFile(file, {
     category: 'image',
     originalName: file.name,
@@ -346,7 +372,9 @@ export async function validateImageUpload(file: File): Promise<FileValidationRes
 /**
  * Helper to validate video uploads
  */
-export async function validateVideoUpload(file: File): Promise<FileValidationResult> {
+export async function validateVideoUpload(
+  file: File
+): Promise<FileValidationResult> {
   return validateFile(file, {
     category: 'video',
     originalName: file.name,
@@ -357,7 +385,9 @@ export async function validateVideoUpload(file: File): Promise<FileValidationRes
 /**
  * Helper to validate document uploads
  */
-export async function validateDocumentUpload(file: File): Promise<FileValidationResult> {
+export async function validateDocumentUpload(
+  file: File
+): Promise<FileValidationResult> {
   return validateFile(file, {
     category: 'document',
     originalName: file.name,
@@ -368,9 +398,7 @@ export async function validateDocumentUpload(file: File): Promise<FileValidation
 /**
  * Create standardized error response for validation failures
  */
-export function createValidationErrorResponse(
-  result: FileValidationResult
-): {
+export function createValidationErrorResponse(result: FileValidationResult): {
   error: string;
   details: string[];
   warnings?: string[];

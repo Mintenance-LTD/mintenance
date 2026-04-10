@@ -292,5 +292,3 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-export default HomeownerPhotoReviewScreen;

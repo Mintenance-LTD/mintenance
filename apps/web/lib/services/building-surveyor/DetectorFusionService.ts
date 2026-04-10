@@ -23,7 +23,7 @@ export interface DetectorOutput {
   detections: RoboflowDetection[];
 }
 
-export interface DetectorFusionResult {
+interface DetectorFusionResult {
   fusionMean: number;
   fusionVariance: number;
   detectorOutputs: {

@@ -11,7 +11,7 @@ import { mobileApiClient } from '../utils/mobileApiClient';
 import { supabase } from '../config/supabase';
 import { parseError, getUserFriendlyMessage } from '@mintenance/api-client';
 
-export interface PhotoMetadata {
+interface PhotoMetadata {
   url: string;
   type: 'before' | 'after' | 'video';
   geolocation?: {
@@ -23,7 +23,7 @@ export interface PhotoMetadata {
   angle?: string;
 }
 
-export interface PhotoUploadResult {
+interface PhotoUploadResult {
   success: boolean;
   photoId?: string;
   url?: string;

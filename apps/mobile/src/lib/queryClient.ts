@@ -1,4 +1,10 @@
-import { QueryClient, QueryCache, MutationCache, Query, Mutation } from '@tanstack/react-query';
+import {
+  QueryClient,
+  QueryCache,
+  MutationCache,
+  Query,
+  Mutation,
+} from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import HapticService from '../utils/haptics';
 import { logger } from '../utils/logger';
@@ -10,7 +16,10 @@ import { logger } from '../utils/logger';
 // here, because background refetch failures would interrupt the user.
 // ============================================================================
 
-const handleQueryError = (error: Error, query: Query<unknown, unknown, unknown, readonly unknown[]>): void => {
+const handleQueryError = (
+  error: Error,
+  query: Query<unknown, unknown, unknown, readonly unknown[]>
+): void => {
   logger.error('Query error', {
     queryKey: query.queryKey,
     message: error instanceof Error ? error.message : String(error),
@@ -23,7 +32,7 @@ const handleMutationError = (
   error: Error,
   _variables: unknown,
   _context: unknown,
-  mutation: Mutation<unknown, unknown, unknown, unknown>,
+  mutation: Mutation<unknown, unknown, unknown, unknown>
 ): void => {
   logger.error('Mutation error', {
     mutationKey: mutation.options.mutationKey,
@@ -106,7 +115,8 @@ export const queryClient = new QueryClient({
         const status = (error as { status?: number })?.status;
         const name = (error as { name?: string })?.name;
 
-        if (typeof status === 'number' && status >= 400 && status < 500) return false;
+        if (typeof status === 'number' && status >= 400 && status < 500)
+          return false;
         if (name === 'OfflineQueuedError') return false;
         return failureCount < 2;
       },
@@ -148,7 +158,11 @@ export const persistQueryClient = async () => {
         (acc, query) => {
           const { queryKey, state } = query;
           const serializedKey = JSON.stringify(queryKey);
-          if (state.status === 'success' && state.data && !isSensitiveQuery(serializedKey)) {
+          if (
+            state.status === 'success' &&
+            state.data &&
+            !isSensitiveQuery(serializedKey)
+          ) {
             acc.push({
               key: serializedKey,
               data: state.data,
@@ -162,16 +176,24 @@ export const persistQueryClient = async () => {
 
     // Apply TTL filter
     const now = Date.now();
-    const fresh = clientState.filter((e) => now - e.dataUpdatedAt <= CACHE_TTL_MS);
+    const fresh = clientState.filter(
+      (e) => now - e.dataUpdatedAt <= CACHE_TTL_MS
+    );
     // Sort by recency and cap entries
     fresh.sort((a, b) => b.dataUpdatedAt - a.dataUpdatedAt);
     const limited = fresh.slice(0, CACHE_MAX_ENTRIES);
 
     // Rehydrate to object shape for storage
-    const payload = limited.reduce((obj, e) => {
-      (obj as Record<string, unknown>)[e.key] = { data: e.data, dataUpdatedAt: e.dataUpdatedAt };
-      return obj;
-    }, {} as Record<string, unknown>);
+    const payload = limited.reduce(
+      (obj, e) => {
+        (obj as Record<string, unknown>)[e.key] = {
+          data: e.data,
+          dataUpdatedAt: e.dataUpdatedAt,
+        };
+        return obj;
+      },
+      {} as Record<string, unknown>
+    );
 
     await AsyncStorage.setItem('QUERY_CACHE', JSON.stringify(payload));
   } catch (error) {
@@ -183,7 +205,10 @@ export const restoreQueryClient = async () => {
   try {
     const cachedData = await AsyncStorage.getItem('QUERY_CACHE');
     if (cachedData) {
-      const parsedData = JSON.parse(cachedData) as Record<string, { data: unknown; dataUpdatedAt: number }>;
+      const parsedData = JSON.parse(cachedData) as Record<
+        string,
+        { data: unknown; dataUpdatedAt: number }
+      >;
 
       const entries = Object.entries(parsedData)
         .map(([key, value]) => ({ key, ...value }))
@@ -262,7 +287,7 @@ export const queryKeys = {
 } as const;
 
 // Utility functions for common operations
-export const invalidateQueries = {
+const invalidateQueries = {
   userProfile: (userId: string) =>
     queryClient.invalidateQueries({ queryKey: queryKeys.user.profile(userId) }),
   userStats: (userId: string) =>
@@ -276,5 +301,3 @@ export const invalidateQueries = {
   feedPosts: () =>
     queryClient.invalidateQueries({ queryKey: queryKeys.feed.all }),
 };
-
-export default queryClient;

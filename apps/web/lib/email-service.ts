@@ -28,30 +28,7 @@ import {
   tenantInviteTemplate,
   tenantJobNotificationTemplate,
 } from './email-templates';
-export type {
-  TenantInviteData,
-  InvoiceNotificationData,
-} from './email-templates';
-
 // Re-export data interfaces for consumers that import them from this module
-export type {
-  QuoteEmailData,
-  BidEmailData,
-  ConnectionRequestEmailData,
-  ContractNotificationData,
-  MessageNotificationData,
-  PaymentConfirmationData,
-  PaymentReceivedData,
-  BidAcceptedData,
-  ContractSignedData,
-  JobStartedData,
-  JobCompletedData,
-  LocationSharingData,
-  WorkApprovedData,
-  ChangesRequestedData,
-  PaymentReleasedData,
-} from './email-templates';
-
 interface EmailOptions {
   to: string;
   subject: string;

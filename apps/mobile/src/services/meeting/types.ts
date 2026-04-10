@@ -1,4 +1,8 @@
-import { ContractorMeeting, MeetingUpdate, LocationData } from '@mintenance/types';
+import {
+  ContractorMeeting,
+  MeetingUpdate,
+  LocationData,
+} from '@mintenance/types';
 import { ContractorLocationContext } from '../JobContextLocationService';
 
 export interface ContractorLocation {
@@ -62,7 +66,7 @@ export interface DatabaseMeetingRow {
   };
 }
 
-export interface DatabaseMeetingUpdateRow {
+interface DatabaseMeetingUpdateRow {
   id: string;
   meeting_id: string;
   update_type: MeetingUpdate['updateType'];
@@ -100,4 +104,4 @@ export interface SupabaseError {
   code?: string;
 }
 
-export type { ContractorMeeting, MeetingUpdate, LocationData };
+export type { ContractorMeeting };

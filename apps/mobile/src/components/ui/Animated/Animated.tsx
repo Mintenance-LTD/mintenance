@@ -1,16 +1,30 @@
 import React, { useRef, useEffect } from 'react';
-import {
-  Animated,
-  ViewStyle,
-  Easing,
-  PanResponder,
-} from 'react-native';
+import { Animated, ViewStyle, Easing, PanResponder } from 'react-native';
 import { theme } from '../../../theme';
 
-export type AnimationType = 'fadeIn' | 'fadeOut' | 'slideUp' | 'slideDown' | 'slideLeft' | 'slideRight' | 'scaleIn' | 'scaleOut' | 'bounceIn' | 'pulse' | 'shake' | 'rotate';
-export type EasingType = 'linear' | 'ease' | 'easeIn' | 'easeOut' | 'easeInOut' | 'bounce' | 'spring';
+type AnimationType =
+  | 'fadeIn'
+  | 'fadeOut'
+  | 'slideUp'
+  | 'slideDown'
+  | 'slideLeft'
+  | 'slideRight'
+  | 'scaleIn'
+  | 'scaleOut'
+  | 'bounceIn'
+  | 'pulse'
+  | 'shake'
+  | 'rotate';
+type EasingType =
+  | 'linear'
+  | 'ease'
+  | 'easeIn'
+  | 'easeOut'
+  | 'easeInOut'
+  | 'bounce'
+  | 'spring';
 
-export interface AnimatedViewProps {
+interface AnimatedViewProps {
   children: React.ReactNode;
   animation?: AnimationType;
   duration?: number;
@@ -23,7 +37,7 @@ export interface AnimatedViewProps {
   testID?: string;
 }
 
-export interface MicroInteractionProps {
+interface MicroInteractionProps {
   children: React.ReactNode;
   type: 'press' | 'hover' | 'focus' | 'loading';
   intensity?: 'subtle' | 'medium' | 'strong';
@@ -33,69 +47,241 @@ export interface MicroInteractionProps {
   testID?: string;
 }
 
-export const AnimatedView: React.FC<AnimatedViewProps> = ({
-  children, animation = 'fadeIn', duration = 300, delay = 0, easing = 'ease',
-  loop = false, autoPlay = true, onComplete, style, testID,
+const AnimatedView: React.FC<AnimatedViewProps> = ({
+  children,
+  animation = 'fadeIn',
+  duration = 300,
+  delay = 0,
+  easing = 'ease',
+  loop = false,
+  autoPlay = true,
+  onComplete,
+  style,
+  testID,
 }) => {
   const animatedValue = useRef(new Animated.Value(0)).current;
 
   const getEasing = (type: EasingType) => {
     switch (type) {
-      case 'linear': return Easing.linear;
-      case 'easeIn': return Easing.in(Easing.ease);
-      case 'easeOut': return Easing.out(Easing.ease);
-      case 'easeInOut': return Easing.inOut(Easing.ease);
-      case 'bounce': return Easing.bounce;
-      case 'spring': return Easing.elastic(2);
-      default: return Easing.ease;
+      case 'linear':
+        return Easing.linear;
+      case 'easeIn':
+        return Easing.in(Easing.ease);
+      case 'easeOut':
+        return Easing.out(Easing.ease);
+      case 'easeInOut':
+        return Easing.inOut(Easing.ease);
+      case 'bounce':
+        return Easing.bounce;
+      case 'spring':
+        return Easing.elastic(2);
+      default:
+        return Easing.ease;
     }
   };
 
   const getAnimationStyle = (): ViewStyle => {
     switch (animation) {
-      case 'fadeIn': return { opacity: animatedValue.interpolate({ inputRange: [0, 1], outputRange: [0, 1] }) };
-      case 'fadeOut': return { opacity: animatedValue.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) };
-      case 'slideUp': return { transform: [{ translateY: animatedValue.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) }], opacity: animatedValue };
-      case 'slideDown': return { transform: [{ translateY: animatedValue.interpolate({ inputRange: [0, 1], outputRange: [-50, 0] }) }], opacity: animatedValue };
-      case 'slideLeft': return { transform: [{ translateX: animatedValue.interpolate({ inputRange: [0, 1], outputRange: [100, 0] }) }], opacity: animatedValue };
-      case 'slideRight': return { transform: [{ translateX: animatedValue.interpolate({ inputRange: [0, 1], outputRange: [-100, 0] }) }], opacity: animatedValue };
-      case 'scaleIn': return { transform: [{ scale: animatedValue.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) }], opacity: animatedValue };
-      case 'scaleOut': return { transform: [{ scale: animatedValue.interpolate({ inputRange: [0, 1], outputRange: [1, 0.3] }) }], opacity: animatedValue.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) };
-      case 'bounceIn': return { transform: [{ scale: animatedValue.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 1.2, 1] }) }] };
-      case 'pulse': return { transform: [{ scale: animatedValue.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1.1, 1] }) }] };
-      case 'shake': return { transform: [{ translateX: animatedValue.interpolate({ inputRange: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1], outputRange: [0, -10, 10, -10, 10, -10, 10, -10, 10, -10, 0] }) }] };
-      case 'rotate': return { transform: [{ rotate: animatedValue.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] };
-      default: return {};
+      case 'fadeIn':
+        return {
+          opacity: animatedValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 1],
+          }),
+        };
+      case 'fadeOut':
+        return {
+          opacity: animatedValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [1, 0],
+          }),
+        };
+      case 'slideUp':
+        return {
+          transform: [
+            {
+              translateY: animatedValue.interpolate({
+                inputRange: [0, 1],
+                outputRange: [50, 0],
+              }),
+            },
+          ],
+          opacity: animatedValue,
+        };
+      case 'slideDown':
+        return {
+          transform: [
+            {
+              translateY: animatedValue.interpolate({
+                inputRange: [0, 1],
+                outputRange: [-50, 0],
+              }),
+            },
+          ],
+          opacity: animatedValue,
+        };
+      case 'slideLeft':
+        return {
+          transform: [
+            {
+              translateX: animatedValue.interpolate({
+                inputRange: [0, 1],
+                outputRange: [100, 0],
+              }),
+            },
+          ],
+          opacity: animatedValue,
+        };
+      case 'slideRight':
+        return {
+          transform: [
+            {
+              translateX: animatedValue.interpolate({
+                inputRange: [0, 1],
+                outputRange: [-100, 0],
+              }),
+            },
+          ],
+          opacity: animatedValue,
+        };
+      case 'scaleIn':
+        return {
+          transform: [
+            {
+              scale: animatedValue.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.3, 1],
+              }),
+            },
+          ],
+          opacity: animatedValue,
+        };
+      case 'scaleOut':
+        return {
+          transform: [
+            {
+              scale: animatedValue.interpolate({
+                inputRange: [0, 1],
+                outputRange: [1, 0.3],
+              }),
+            },
+          ],
+          opacity: animatedValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [1, 0],
+          }),
+        };
+      case 'bounceIn':
+        return {
+          transform: [
+            {
+              scale: animatedValue.interpolate({
+                inputRange: [0, 0.5, 1],
+                outputRange: [0, 1.2, 1],
+              }),
+            },
+          ],
+        };
+      case 'pulse':
+        return {
+          transform: [
+            {
+              scale: animatedValue.interpolate({
+                inputRange: [0, 0.5, 1],
+                outputRange: [1, 1.1, 1],
+              }),
+            },
+          ],
+        };
+      case 'shake':
+        return {
+          transform: [
+            {
+              translateX: animatedValue.interpolate({
+                inputRange: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
+                outputRange: [0, -10, 10, -10, 10, -10, 10, -10, 10, -10, 0],
+              }),
+            },
+          ],
+        };
+      case 'rotate':
+        return {
+          transform: [
+            {
+              rotate: animatedValue.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['0deg', '360deg'],
+              }),
+            },
+          ],
+        };
+      default:
+        return {};
     }
   };
 
   useEffect(() => {
     if (!autoPlay) return;
-    const config = { toValue: 1, duration, delay, easing: getEasing(easing), useNativeDriver: true };
+    const config = {
+      toValue: 1,
+      duration,
+      delay,
+      easing: getEasing(easing),
+      useNativeDriver: true,
+    };
     if (loop) {
-      Animated.loop(Animated.timing(animatedValue, config), { resetBeforeIteration: true }).start();
+      Animated.loop(Animated.timing(animatedValue, config), {
+        resetBeforeIteration: true,
+      }).start();
     } else {
       Animated.timing(animatedValue, config).start(onComplete);
     }
   }, [autoPlay, animation]);
 
-  return <Animated.View style={[getAnimationStyle(), style]} testID={testID}>{children}</Animated.View>;
+  return (
+    <Animated.View style={[getAnimationStyle(), style]} testID={testID}>
+      {children}
+    </Animated.View>
+  );
 };
 
-export const MicroInteraction: React.FC<MicroInteractionProps> = ({
-  children, type, intensity = 'medium', disabled = false, onPress, style, testID,
+const MicroInteraction: React.FC<MicroInteractionProps> = ({
+  children,
+  type,
+  intensity = 'medium',
+  disabled = false,
+  onPress,
+  style,
+  testID,
 }) => {
   const scaleValue = useRef(new Animated.Value(1)).current;
   const opacityValue = useRef(new Animated.Value(1)).current;
 
-  const vals = intensity === 'subtle' ? { scale: 0.98, opacity: 0.9, duration: 100 }
-    : intensity === 'strong' ? { scale: 0.92, opacity: 0.8, duration: 150 }
-    : { scale: 0.95, opacity: 0.85, duration: 120 };
+  const vals =
+    intensity === 'subtle'
+      ? { scale: 0.98, opacity: 0.9, duration: 100 }
+      : intensity === 'strong'
+        ? { scale: 0.92, opacity: 0.8, duration: 150 }
+        : { scale: 0.95, opacity: 0.85, duration: 120 };
 
   const animatePress = (pressed: boolean) => {
     if (disabled) return;
-    const anims = [Animated.timing(scaleValue, { toValue: pressed ? vals.scale : 1, duration: vals.duration, easing: Easing.out(Easing.ease), useNativeDriver: true })];
-    if (type === 'press') anims.push(Animated.timing(opacityValue, { toValue: pressed ? vals.opacity : 1, duration: vals.duration, useNativeDriver: true }));
+    const anims = [
+      Animated.timing(scaleValue, {
+        toValue: pressed ? vals.scale : 1,
+        duration: vals.duration,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+    ];
+    if (type === 'press')
+      anims.push(
+        Animated.timing(opacityValue, {
+          toValue: pressed ? vals.opacity : 1,
+          duration: vals.duration,
+          useNativeDriver: true,
+        })
+      );
     Animated.parallel(anims).start();
   };
 
@@ -103,13 +289,22 @@ export const MicroInteraction: React.FC<MicroInteractionProps> = ({
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: () => false,
     onPanResponderGrant: () => animatePress(true),
-    onPanResponderRelease: () => { animatePress(false); if (onPress) setTimeout(onPress, 50); },
+    onPanResponderRelease: () => {
+      animatePress(false);
+      if (onPress) setTimeout(onPress, 50);
+    },
     onPanResponderTerminate: () => animatePress(false),
   });
 
   return (
     <Animated.View
-      style={[{ transform: [{ scale: scaleValue }], ...(type === 'press' ? { opacity: opacityValue } : {}) }, style]}
+      style={[
+        {
+          transform: [{ scale: scaleValue }],
+          ...(type === 'press' ? { opacity: opacityValue } : {}),
+        },
+        style,
+      ]}
       {...panResponder.panHandlers}
       testID={testID}
     >
@@ -118,7 +313,7 @@ export const MicroInteraction: React.FC<MicroInteractionProps> = ({
   );
 };
 
-export interface StaggerAnimationProps {
+interface StaggerAnimationProps {
   children: React.ReactNode[];
   animation?: AnimationType;
   staggerDelay?: number;
@@ -128,17 +323,31 @@ export interface StaggerAnimationProps {
   testID?: string;
 }
 
-export const StaggerAnimation: React.FC<StaggerAnimationProps> = ({
-  children, animation = 'fadeIn', staggerDelay = 100, duration = 300, easing = 'ease', style, testID,
+const StaggerAnimation: React.FC<StaggerAnimationProps> = ({
+  children,
+  animation = 'fadeIn',
+  staggerDelay = 100,
+  duration = 300,
+  easing = 'ease',
+  style,
+  testID,
 }) => (
   <Animated.View style={style} testID={testID}>
     {React.Children.map(children, (child, index) => (
-      <AnimatedView key={index} animation={animation} duration={duration} delay={index * staggerDelay} easing={easing}>{child}</AnimatedView>
+      <AnimatedView
+        key={index}
+        animation={animation}
+        duration={duration}
+        delay={index * staggerDelay}
+        easing={easing}
+      >
+        {child}
+      </AnimatedView>
     ))}
   </Animated.View>
 );
 
-export interface LoadingAnimationProps {
+interface LoadingAnimationProps {
   type?: 'pulse' | 'rotate' | 'bounce' | 'wave';
   color?: string;
   size?: number;
@@ -147,33 +356,91 @@ export interface LoadingAnimationProps {
   testID?: string;
 }
 
-export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
-  type = 'pulse', color = theme.colors.textSecondary, size = 40, speed = 'normal', style, testID,
+const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
+  type = 'pulse',
+  color = theme.colors.textSecondary,
+  size = 40,
+  speed = 'normal',
+  style,
+  testID,
 }) => {
   const animatedValue = useRef(new Animated.Value(0)).current;
   const dur = speed === 'slow' ? 1200 : speed === 'fast' ? 600 : 800;
 
   useEffect(() => {
     const animation = Animated.loop(
-      Animated.timing(animatedValue, { toValue: 1, duration: dur, easing: type === 'bounce' ? Easing.bounce : Easing.linear, useNativeDriver: true }),
+      Animated.timing(animatedValue, {
+        toValue: 1,
+        duration: dur,
+        easing: type === 'bounce' ? Easing.bounce : Easing.linear,
+        useNativeDriver: true,
+      }),
       { resetBeforeIteration: true }
     );
     animation.start();
     return () => animation.stop();
   }, [type, speed]);
 
-  const baseStyle: ViewStyle = { width: size, height: size, backgroundColor: color, borderRadius: size / 2 };
+  const baseStyle: ViewStyle = {
+    width: size,
+    height: size,
+    backgroundColor: color,
+    borderRadius: size / 2,
+  };
 
   const getStyle = (): ViewStyle => {
     switch (type) {
-      case 'pulse': return { ...baseStyle, transform: [{ scale: animatedValue.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1.2, 1] }) }], opacity: animatedValue.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.7, 1, 0.7] }) };
-      case 'rotate': return { ...baseStyle, transform: [{ rotate: animatedValue.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] };
-      case 'bounce': return { ...baseStyle, transform: [{ translateY: animatedValue.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, -20, 0] }) }] };
-      default: return baseStyle;
+      case 'pulse':
+        return {
+          ...baseStyle,
+          transform: [
+            {
+              scale: animatedValue.interpolate({
+                inputRange: [0, 0.5, 1],
+                outputRange: [1, 1.2, 1],
+              }),
+            },
+          ],
+          opacity: animatedValue.interpolate({
+            inputRange: [0, 0.5, 1],
+            outputRange: [0.7, 1, 0.7],
+          }),
+        };
+      case 'rotate':
+        return {
+          ...baseStyle,
+          transform: [
+            {
+              rotate: animatedValue.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['0deg', '360deg'],
+              }),
+            },
+          ],
+        };
+      case 'bounce':
+        return {
+          ...baseStyle,
+          transform: [
+            {
+              translateY: animatedValue.interpolate({
+                inputRange: [0, 0.5, 1],
+                outputRange: [0, -20, 0],
+              }),
+            },
+          ],
+        };
+      default:
+        return baseStyle;
     }
   };
 
   return <Animated.View style={[getStyle(), style]} testID={testID} />;
 };
 
-export default { AnimatedView, MicroInteraction, StaggerAnimation, LoadingAnimation };
+export default {
+  AnimatedView,
+  MicroInteraction,
+  StaggerAnimation,
+  LoadingAnimation,
+};

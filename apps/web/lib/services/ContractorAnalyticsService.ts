@@ -9,14 +9,6 @@ import { getTrendsData } from './contractor-analytics/trends';
 import { getMarketData } from './contractor-analytics/market-data';
 import { generatePerformanceInsights } from './contractor-analytics/insights';
 
-export type {
-  ContractorAnalytics,
-  MonthlyTrend,
-  SkillPerformance,
-  MarketPosition,
-  PerformanceInsight,
-} from './contractor-analytics/types';
-
 export { generatePerformanceInsights } from './contractor-analytics/insights';
 
 import type {

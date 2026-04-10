@@ -1,9 +1,9 @@
 /**
  * MeetingSchedule ViewModel
- * 
+ *
  * Business logic for meeting scheduling.
  * Handles date/time selection, location services, and meeting creation.
- * 
+ *
  * @filesize Target: <150 lines
  * @compliance MVVM - Business logic only
  */
@@ -14,7 +14,12 @@ import * as Location from 'expo-location';
 import { logger } from '../../../utils/logger';
 import { useAuth } from '../../../contexts/AuthContext';
 import { MeetingService } from '../../../services/MeetingService';
-import type { ContractorMeeting, LocationData, User, Job } from '@mintenance/types';
+import type {
+  ContractorMeeting,
+  LocationData,
+  User,
+  Job,
+} from '@mintenance/types';
 
 export type MeetingType = 'site_visit' | 'consultation' | 'work_session';
 
@@ -26,7 +31,7 @@ export interface MeetingTypeOption {
   estimatedDuration: number;
 }
 
-export interface MeetingScheduleState {
+interface MeetingScheduleState {
   loading: boolean;
   selectedDate: Date;
   selectedTime: Date;
@@ -40,7 +45,7 @@ export interface MeetingScheduleState {
   meetingTypes: MeetingTypeOption[];
 }
 
-export interface MeetingScheduleActions {
+interface MeetingScheduleActions {
   setSelectedDate: (date: Date) => void;
   setSelectedTime: (time: Date) => void;
   setShowDatePicker: (show: boolean) => void;
@@ -53,7 +58,8 @@ export interface MeetingScheduleActions {
   goBack: () => void;
 }
 
-export interface MeetingScheduleViewModel extends MeetingScheduleState, MeetingScheduleActions {}
+interface MeetingScheduleViewModel
+  extends MeetingScheduleState, MeetingScheduleActions {}
 
 /**
  * Custom hook providing Meeting Schedule screen logic
@@ -75,7 +81,9 @@ export const useMeetingScheduleViewModel = (
   const [duration, setDuration] = useState(60);
   const [location, setLocation] = useState<LocationData | null>(null);
   const [notes, setNotes] = useState('');
-  const [locationStatus, setLocationStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [locationStatus, setLocationStatus] = useState<
+    'loading' | 'success' | 'error'
+  >('loading');
 
   const meetingTypes: MeetingTypeOption[] = [
     {
@@ -148,7 +156,12 @@ export const useMeetingScheduleViewModel = (
     try {
       // Combine date + time into a single ISO datetime
       const combined = new Date(selectedDate);
-      combined.setHours(selectedTime.getHours(), selectedTime.getMinutes(), 0, 0);
+      combined.setHours(
+        selectedTime.getHours(),
+        selectedTime.getMinutes(),
+        0,
+        0
+      );
 
       await MeetingService.createMeeting({
         jobId,
@@ -168,7 +181,17 @@ export const useMeetingScheduleViewModel = (
     } finally {
       setLoading(false);
     }
-  }, [user, location, contractorId, jobId, meetingType, selectedDate, selectedTime, duration, notes]);
+  }, [
+    user,
+    location,
+    contractorId,
+    jobId,
+    meetingType,
+    selectedDate,
+    selectedTime,
+    duration,
+    notes,
+  ]);
 
   const goBack = useCallback(() => {
     logger.info('Navigating back from MeetingSchedule');

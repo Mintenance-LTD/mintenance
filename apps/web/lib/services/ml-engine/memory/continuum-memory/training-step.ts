@@ -18,7 +18,7 @@ import {
   updateParametersSimplified,
 } from './error-calculations';
 
-export interface TrainingStepOptions {
+interface TrainingStepOptions {
   agentName: string;
   level: number;
   levelConfig: MemoryLevelConfig;
@@ -46,7 +46,8 @@ export function computeUpdatedParameters(
 
   if (useProperBackprop) {
     // Use proper backpropagation
-    const { weights, biases } = MLPBackpropagation.parametersToArrays(currentParameters);
+    const { weights, biases } =
+      MLPBackpropagation.parametersToArrays(currentParameters);
 
     const backpropConfig: BackpropConfig = {
       learningRate: levelConfig.learningRate,

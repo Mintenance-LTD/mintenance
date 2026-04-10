@@ -74,8 +74,6 @@ import { RateBookingScreen } from '../screens/booking/RateBookingScreen';
 import { BookingDetailsScreen } from '../screens/booking/BookingDetailsScreen';
 
 // Export types for backward compatibility
-export type { RootStackParamList, AuthStackParamList } from './types';
-
 // ============================================================================
 // WRAPPED SCREENS
 // ============================================================================

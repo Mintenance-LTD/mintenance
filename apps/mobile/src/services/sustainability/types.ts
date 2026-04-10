@@ -37,7 +37,7 @@ export interface GreenCertification {
   score_boost: number;
 }
 
-export interface SustainableMaterial {
+interface SustainableMaterial {
   id: string;
   name: string;
   category: string;

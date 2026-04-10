@@ -12,14 +12,7 @@ import { analyzeGeneralImage } from './analyzers/general-image-analyzer';
 import { analyzeJob } from './analyzers/job-analyzer';
 
 // Re-export all types for backwards compatibility
-export type {
-  AssessmentDomain,
-  AnalysisContext,
-  AnalysisResult,
-  AIServiceError,
-  GeneralImageAnalysis,
-  JobAnalysis,
-} from './analyzers/types';
+export type { AnalysisContext } from './analyzers/types';
 
 import type { AnalysisContext, AnalysisResult } from './analyzers/types';
 
@@ -106,10 +99,12 @@ export class UnifiedAIService {
       operational: !isEmergencyStopped && budgetStatus.daily.remaining > 0,
       budget: budgetStatus,
       services: {
-        'building-surveyor': !isEmergencyStopped && !!process.env.OPENAI_API_KEY,
-        'image-analysis': !isEmergencyStopped && !!process.env.GOOGLE_APPLICATION_CREDENTIALS,
+        'building-surveyor':
+          !isEmergencyStopped && !!process.env.OPENAI_API_KEY,
+        'image-analysis':
+          !isEmergencyStopped && !!process.env.GOOGLE_APPLICATION_CREDENTIALS,
         'job-analysis': !isEmergencyStopped && !!process.env.OPENAI_API_KEY,
-        'fallback': true,
+        fallback: true,
       },
     };
   }

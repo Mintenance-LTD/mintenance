@@ -1,7 +1,7 @@
 import React from 'react';
 import { theme } from '@/lib/theme';
 
-export interface SpinnerProps {
+interface SpinnerProps {
   size?: 'sm' | 'md' | 'lg';
   color?: string;
   className?: string;
@@ -9,13 +9,13 @@ export interface SpinnerProps {
 
 /**
  * Spinner Component
- * 
+ *
  * Simple loading spinner for inline use
  */
-export function Spinner({ 
-  size = 'md', 
+export function Spinner({
+  size = 'md',
   color = theme.colors.primary,
-  className = ''
+  className = '',
 }: SpinnerProps) {
   const sizeMap = {
     sm: '16px',
@@ -37,16 +37,20 @@ export function Spinner({
 
   return (
     <>
-      <div 
-        style={spinnerStyles} 
+      <div
+        style={spinnerStyles}
         className={className}
-        role="status"
-        aria-label="Loading"
+        role='status'
+        aria-label='Loading'
       />
       <style jsx>{`
         @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
         }
       `}</style>
     </>
@@ -54,4 +58,3 @@ export function Spinner({
 }
 
 export default Spinner;
-

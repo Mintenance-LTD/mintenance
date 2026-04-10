@@ -4,7 +4,7 @@ import React from 'react';
 import { theme } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 
-export interface StandardCardProps {
+interface StandardCardProps {
   children: React.ReactNode;
   className?: string;
   hover?: boolean;
@@ -15,7 +15,7 @@ export interface StandardCardProps {
 
 /**
  * StandardCard - Standardized card component for consistent styling
- * 
+ *
  * Follows design system:
  * - Padding: 24px (p-6) by default
  * - Border radius: 12px (rounded-xl)
@@ -44,9 +44,10 @@ export function StandardCard({
     outlined: 'bg-transparent border-2 border-gray-200 shadow-none',
   };
 
-  const hoverClasses = hover || onClick
-    ? 'hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer'
-    : '';
+  const hoverClasses =
+    hover || onClick
+      ? 'hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer'
+      : '';
 
   return (
     <div
@@ -71,4 +72,3 @@ export function StandardCard({
     </div>
   );
 }
-

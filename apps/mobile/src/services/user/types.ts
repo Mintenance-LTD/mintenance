@@ -1,6 +1,6 @@
 import { User } from '@mintenance/types';
 
-export interface DatabaseJobRow {
+interface DatabaseJobRow {
   id: string;
   status: string;
   budget: number;

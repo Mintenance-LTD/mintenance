@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 
-export interface IconConfig {
+interface IconConfig {
   name: keyof typeof Ionicons.glyphMap;
   color: string;
   bg: string;

@@ -14,7 +14,7 @@ import {
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 
-export interface ServiceArea {
+interface ServiceArea {
   id: string;
   city: string;
   state: string;
@@ -34,7 +34,7 @@ interface ServiceAreasMapProps {
 
 /**
  * ServiceAreasMap Component
- * 
+ *
  * Visual map showing contractor's service areas as circles
  * Displays coverage zones with color coding (active=green, inactive=gray)
  * Interactive: click on circle or marker to select area
@@ -82,13 +82,9 @@ export function ServiceAreasMap({
         circlesRef.current.push(circle);
 
         // Create center marker
-        const marker = createServiceAreaMarker(
-          mapInstance,
-          area,
-          () => {
-            onAreaClick?.(area);
-          }
-        );
+        const marker = createServiceAreaMarker(mapInstance, area, () => {
+          onAreaClick?.(area);
+        });
 
         // Highlight selected marker
         if (area.id === selectedAreaId) {
@@ -140,13 +136,14 @@ export function ServiceAreasMap({
             height: 80,
             margin: '0 auto 16px',
             borderRadius: '50%',
-            backgroundColor: theme.colors.primaryLight || theme.colors.primary + '20',
+            backgroundColor:
+              theme.colors.primaryLight || theme.colors.primary + '20',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Icon name="map" size={40} color={theme.colors.primary} />
+          <Icon name='map' size={40} color={theme.colors.primary} />
         </div>
         <h3
           style={{
@@ -178,8 +175,13 @@ export function ServiceAreasMap({
             border: `1px solid ${theme.colors.border}`,
           }}
         >
-          <Icon name="info" size={16} color={theme.colors.primary} />
-          <span style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary }}>
+          <Icon name='info' size={16} color={theme.colors.primary} />
+          <span
+            style={{
+              fontSize: theme.typography.fontSize.sm,
+              color: theme.colors.textSecondary,
+            }}
+          >
             Tip: Add a location, radius, and it will appear here
           </span>
         </div>
@@ -188,9 +190,10 @@ export function ServiceAreasMap({
   }
 
   // Calculate center point for initial map position
-  const centerPoint = serviceAreas.length > 0
-    ? { lat: serviceAreas[0].latitude, lng: serviceAreas[0].longitude }
-    : { lat: 51.5074, lng: -0.1278 }; // Fallback to London
+  const centerPoint =
+    serviceAreas.length > 0
+      ? { lat: serviceAreas[0].latitude, lng: serviceAreas[0].longitude }
+      : { lat: 51.5074, lng: -0.1278 }; // Fallback to London
 
   return (
     <div style={{ position: 'relative' }}>
@@ -231,8 +234,20 @@ export function ServiceAreasMap({
         >
           Legend
         </h4>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: theme.spacing[2],
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing[2],
+            }}
+          >
             <div
               style={{
                 width: 16,
@@ -243,11 +258,22 @@ export function ServiceAreasMap({
                 boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
               }}
             />
-            <span style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary }}>
+            <span
+              style={{
+                fontSize: theme.typography.fontSize.sm,
+                color: theme.colors.textSecondary,
+              }}
+            >
               Active Area
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing[2],
+            }}
+          >
             <div
               style={{
                 width: 16,
@@ -258,7 +284,12 @@ export function ServiceAreasMap({
                 boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
               }}
             />
-            <span style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary }}>
+            <span
+              style={{
+                fontSize: theme.typography.fontSize.sm,
+                color: theme.colors.textSecondary,
+              }}
+            >
               Inactive Area
             </span>
           </div>
@@ -270,9 +301,20 @@ export function ServiceAreasMap({
             borderTop: `1px solid ${theme.colors.border}`,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[1] }}>
-            <Icon name="info" size={14} color={theme.colors.primary} />
-            <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing[1],
+            }}
+          >
+            <Icon name='info' size={14} color={theme.colors.primary} />
+            <span
+              style={{
+                fontSize: theme.typography.fontSize.xs,
+                color: theme.colors.textSecondary,
+              }}
+            >
               Click area to view details
             </span>
           </div>
@@ -293,9 +335,20 @@ export function ServiceAreasMap({
           zIndex: 10,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3] }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing[3],
+          }}
+        >
           <div>
-            <div style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+            <div
+              style={{
+                fontSize: theme.typography.fontSize.xs,
+                color: theme.colors.textSecondary,
+              }}
+            >
               Total Areas
             </div>
             <div
@@ -316,7 +369,12 @@ export function ServiceAreasMap({
             }}
           />
           <div>
-            <div style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+            <div
+              style={{
+                fontSize: theme.typography.fontSize.xs,
+                color: theme.colors.textSecondary,
+              }}
+            >
               Active
             </div>
             <div
@@ -334,4 +392,3 @@ export function ServiceAreasMap({
     </div>
   );
 }
-

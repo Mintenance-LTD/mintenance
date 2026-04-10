@@ -12,7 +12,7 @@ import Stripe from 'stripe';
 /**
  * Standardized payment error codes for client consumption
  */
-export enum PaymentErrorCode {
+enum PaymentErrorCode {
   // Card errors
   CARD_DECLINED = 'card_declined',
   INSUFFICIENT_FUNDS = 'insufficient_funds',
@@ -49,7 +49,7 @@ export enum PaymentErrorCode {
 /**
  * Sanitized error response for client consumption
  */
-export interface SanitizedPaymentError {
+interface SanitizedPaymentError {
   code: PaymentErrorCode;
   message: string;
   retryable: boolean;
@@ -60,7 +60,7 @@ export interface SanitizedPaymentError {
 /**
  * Error context for structured logging
  */
-export interface PaymentErrorContext {
+interface PaymentErrorContext {
   userId?: string;
   jobId?: string;
   escrowTransactionId?: string;
@@ -74,94 +74,104 @@ export interface PaymentErrorContext {
 /**
  * Map of Stripe error types to user-friendly messages
  */
-const STRIPE_ERROR_MAP: Record<string, { code: PaymentErrorCode; message: string; retryable: boolean }> = {
+const STRIPE_ERROR_MAP: Record<
+  string,
+  { code: PaymentErrorCode; message: string; retryable: boolean }
+> = {
   // Card errors
-  'card_declined': {
+  card_declined: {
     code: PaymentErrorCode.CARD_DECLINED,
-    message: 'Your card was declined. Please try a different payment method or contact your bank.',
+    message:
+      'Your card was declined. Please try a different payment method or contact your bank.',
     retryable: true,
   },
-  'insufficient_funds': {
+  insufficient_funds: {
     code: PaymentErrorCode.INSUFFICIENT_FUNDS,
-    message: 'Your card has insufficient funds. Please use a different payment method.',
+    message:
+      'Your card has insufficient funds. Please use a different payment method.',
     retryable: true,
   },
-  'invalid_card_type': {
+  invalid_card_type: {
     code: PaymentErrorCode.INVALID_CARD,
     message: 'This card type is not accepted. Please use a different card.',
     retryable: true,
   },
-  'expired_card': {
+  expired_card: {
     code: PaymentErrorCode.EXPIRED_CARD,
     message: 'Your card has expired. Please use a different payment method.',
     retryable: true,
   },
-  'incorrect_cvc': {
+  incorrect_cvc: {
     code: PaymentErrorCode.INCORRECT_CVC,
     message: 'The card security code is incorrect. Please check and try again.',
     retryable: true,
   },
-  'processing_error': {
+  processing_error: {
     code: PaymentErrorCode.PROCESSING_ERROR,
     message: 'An error occurred while processing your card. Please try again.',
     retryable: true,
   },
-  'invalid_number': {
+  invalid_number: {
     code: PaymentErrorCode.INVALID_CARD,
     message: 'The card number is invalid. Please check and try again.',
     retryable: true,
   },
-  'invalid_expiry_month': {
+  invalid_expiry_month: {
     code: PaymentErrorCode.INVALID_CARD,
-    message: 'The card expiration month is invalid. Please check and try again.',
+    message:
+      'The card expiration month is invalid. Please check and try again.',
     retryable: true,
   },
-  'invalid_expiry_year': {
+  invalid_expiry_year: {
     code: PaymentErrorCode.INVALID_CARD,
     message: 'The card expiration year is invalid. Please check and try again.',
     retryable: true,
   },
 
   // Authentication errors
-  'authentication_required': {
+  authentication_required: {
     code: PaymentErrorCode.AUTHENTICATION_REQUIRED,
-    message: 'Additional authentication is required. Please complete the verification.',
+    message:
+      'Additional authentication is required. Please complete the verification.',
     retryable: true,
   },
 
   // Amount errors
-  'amount_too_small': {
+  amount_too_small: {
     code: PaymentErrorCode.AMOUNT_TOO_SMALL,
     message: 'The payment amount is too small. Minimum amount is $0.50.',
     retryable: false,
   },
-  'amount_too_large': {
+  amount_too_large: {
     code: PaymentErrorCode.AMOUNT_TOO_LARGE,
-    message: 'The payment amount exceeds the maximum allowed. Please contact support.',
+    message:
+      'The payment amount exceeds the maximum allowed. Please contact support.',
     retryable: false,
   },
-  'invalid_amount': {
+  invalid_amount: {
     code: PaymentErrorCode.INVALID_AMOUNT,
     message: 'The payment amount is invalid. Please check and try again.',
     retryable: false,
   },
 
   // Rate limiting
-  'rate_limit': {
+  rate_limit: {
     code: PaymentErrorCode.RATE_LIMIT_EXCEEDED,
-    message: 'Too many payment attempts. Please wait a few minutes and try again.',
+    message:
+      'Too many payment attempts. Please wait a few minutes and try again.',
     retryable: true,
   },
 
   // General errors
-  'api_error': {
+  api_error: {
     code: PaymentErrorCode.SERVER_ERROR,
     message: 'A server error occurred. Please try again later.',
     retryable: true,
   },
-  'invalid_request_error': {
+  invalid_request_error: {
     code: PaymentErrorCode.INVALID_REQUEST,
-    message: 'Invalid payment request. Please check your information and try again.',
+    message:
+      'Invalid payment request. Please check your information and try again.',
     retryable: false,
   },
 };
@@ -205,7 +215,8 @@ export function sanitizePaymentError(
       if (declineCode === 'lost_card' || declineCode === 'stolen_card') {
         return {
           code: PaymentErrorCode.CARD_DECLINED,
-          message: 'Your card was declined. Please contact your bank or use a different payment method.',
+          message:
+            'Your card was declined. Please contact your bank or use a different payment method.',
           retryable: true,
         };
       }
@@ -223,7 +234,8 @@ export function sanitizePaymentError(
     if (stripeError instanceof Stripe.errors.StripeAuthenticationError) {
       return {
         code: PaymentErrorCode.SERVER_ERROR,
-        message: 'Payment service authentication error. Please contact support.',
+        message:
+          'Payment service authentication error. Please contact support.',
         retryable: false,
       };
     }
@@ -232,7 +244,8 @@ export function sanitizePaymentError(
     if (stripeError instanceof Stripe.errors.StripeConnectionError) {
       return {
         code: PaymentErrorCode.NETWORK_ERROR,
-        message: 'Network error occurred. Please check your connection and try again.',
+        message:
+          'Network error occurred. Please check your connection and try again.',
         retryable: true,
       };
     }
@@ -255,7 +268,10 @@ export function sanitizePaymentError(
     // Check for specific error messages
     const errorMessage = error.message.toLowerCase();
 
-    if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
+    if (
+      errorMessage.includes('timeout') ||
+      errorMessage.includes('timed out')
+    ) {
       return {
         code: PaymentErrorCode.NETWORK_ERROR,
         message: 'Request timed out. Please try again.',
@@ -263,7 +279,10 @@ export function sanitizePaymentError(
       };
     }
 
-    if (errorMessage.includes('network') || errorMessage.includes('connection')) {
+    if (
+      errorMessage.includes('network') ||
+      errorMessage.includes('connection')
+    ) {
       return {
         code: PaymentErrorCode.NETWORK_ERROR,
         message: 'Network error occurred. Please check your connection.',
@@ -284,7 +303,8 @@ export function sanitizePaymentError(
   // Unknown error - don't leak any information
   return {
     code: PaymentErrorCode.UNKNOWN_ERROR,
-    message: 'An unexpected error occurred. Please try again or contact support.',
+    message:
+      'An unexpected error occurred. Please try again or contact support.',
     retryable: true,
   };
 }
@@ -296,7 +316,10 @@ export function sanitizePaymentError(
  * @param error - The error to log
  * @param context - Additional context for the error
  */
-export function logPaymentError(error: unknown, context: PaymentErrorContext): void {
+export function logPaymentError(
+  error: unknown,
+  context: PaymentErrorContext
+): void {
   const sanitized = sanitizePaymentError(error, true);
 
   // Build log metadata
@@ -359,7 +382,10 @@ export function createPaymentErrorResponse(
   logPaymentError(error, context);
 
   // Sanitize for client
-  const sanitized = sanitizePaymentError(error, process.env.NODE_ENV === 'development');
+  const sanitized = sanitizePaymentError(
+    error,
+    process.env.NODE_ENV === 'development'
+  );
 
   // Determine HTTP status code
   let status = 500;

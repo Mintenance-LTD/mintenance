@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Button } from './Button';
 import { theme } from '@/lib/theme';
 
-export interface NavigationItem {
+interface NavigationItem {
   label: string;
   href: string;
   icon?: React.ReactNode;
@@ -11,7 +11,7 @@ export interface NavigationItem {
   badge?: number;
 }
 
-export interface NavigationProps {
+interface NavigationProps {
   items: NavigationItem[];
   variant?: 'horizontal' | 'vertical' | 'tabs';
   className?: string;
@@ -42,8 +42,14 @@ export const Navigation: React.FC<NavigationProps> = ({
       display: 'flex',
       alignItems: 'center',
       gap: theme.spacing[2],
-      padding: variant === 'vertical' ? theme.spacing[3] : `${theme.spacing[2]} ${theme.spacing[3]}`,
-      borderRadius: variant === 'vertical' ? theme.borderRadius.lg : theme.borderRadius.base,
+      padding:
+        variant === 'vertical'
+          ? theme.spacing[3]
+          : `${theme.spacing[2]} ${theme.spacing[3]}`,
+      borderRadius:
+        variant === 'vertical'
+          ? theme.borderRadius.lg
+          : theme.borderRadius.base,
       textDecoration: 'none',
       fontSize: theme.typography.fontSize.md,
       fontWeight: theme.typography.fontWeight.medium,
@@ -56,8 +62,10 @@ export const Navigation: React.FC<NavigationProps> = ({
     if (item.active) {
       return {
         ...baseStyles,
-        backgroundColor: variant === 'vertical' ? theme.colors.primary : 'transparent',
-        color: variant === 'vertical' ? theme.colors.white : theme.colors.primary,
+        backgroundColor:
+          variant === 'vertical' ? theme.colors.primary : 'transparent',
+        color:
+          variant === 'vertical' ? theme.colors.white : theme.colors.primary,
         ...(variant === 'tabs' && {
           borderBottomColor: theme.colors.primary,
         }),
@@ -84,13 +92,18 @@ export const Navigation: React.FC<NavigationProps> = ({
   };
 
   return (
-    <nav className={`navigation navigation--${variant} ${className}`} style={containerStyles}>
+    <nav
+      className={`navigation navigation--${variant} ${className}`}
+      style={containerStyles}
+    >
       {items.map((item, index) => (
         <Link
           key={index}
           href={item.href}
           style={getItemStyles(item)}
-          className={item.active ? 'navigation__item--active' : 'navigation__item'}
+          className={
+            item.active ? 'navigation__item--active' : 'navigation__item'
+          }
         >
           {item.icon && (
             <span style={{ display: 'flex', alignItems: 'center' }}>
@@ -105,7 +118,6 @@ export const Navigation: React.FC<NavigationProps> = ({
           )}
         </Link>
       ))}
-
     </nav>
   );
 };

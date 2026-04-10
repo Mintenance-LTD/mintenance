@@ -18,7 +18,7 @@ interface SupportLink {
   href: string;
 }
 
-export interface EmptyStateProps {
+interface EmptyStateProps {
   icon?: string;
   title: string;
   description?: string;
@@ -35,10 +35,10 @@ export interface EmptyStateProps {
 
 /**
  * EmptyState Component
- * 
+ *
  * Displays an empty state with icon, title, description, and optional action.
  * Enhanced with better visual design and animations.
- * 
+ *
  * @example
  * <EmptyState
  *   icon="briefcase"
@@ -64,7 +64,9 @@ export function EmptyState({
 }: EmptyStateProps) {
   const isMinimal = variant === 'minimal';
   const isIllustrated = variant === 'illustrated';
-  const hasActions = Boolean(actionLabel && onAction) || Boolean(secondaryActionLabel && onSecondaryAction);
+  const hasActions =
+    Boolean(actionLabel && onAction) ||
+    Boolean(secondaryActionLabel && onSecondaryAction);
 
   const containerStyles: React.CSSProperties = {
     display: 'flex',
@@ -75,7 +77,10 @@ export function EmptyState({
     textAlign: 'center',
     borderRadius: theme.borderRadius['2xl'],
     border: `1px solid ${variant === 'default' ? `${theme.colors.border}66` : theme.colors.border}`,
-    backgroundColor: variant === 'default' ? `${theme.colors.primary}05` : theme.colors.backgroundSecondary,
+    backgroundColor:
+      variant === 'default'
+        ? `${theme.colors.primary}05`
+        : theme.colors.backgroundSecondary,
     boxShadow: isMinimal ? theme.shadows.lg : theme.shadows.md,
     ...getFadeInStyle(100),
     ...style,
@@ -124,7 +129,11 @@ export function EmptyState({
         <p
           style={{
             margin: 0,
-            marginBottom: nextSteps?.length ? theme.spacing[4] : hasActions ? theme.spacing[6] : 0,
+            marginBottom: nextSteps?.length
+              ? theme.spacing[4]
+              : hasActions
+                ? theme.spacing[6]
+                : 0,
             fontSize: theme.typography.fontSize.sm,
             color: theme.colors.textSecondary,
             maxWidth: '400px',
@@ -206,7 +215,7 @@ export function EmptyState({
                     }}
                   >
                     Learn more
-                    <span aria-hidden="true">→</span>
+                    <span aria-hidden='true'>→</span>
                   </Link>
                 )}
               </div>
@@ -226,12 +235,12 @@ export function EmptyState({
           }}
         >
           {actionLabel && onAction && (
-            <Button variant="primary" size="md" onClick={onAction}>
+            <Button variant='primary' size='md' onClick={onAction}>
               {actionLabel}
             </Button>
           )}
           {secondaryActionLabel && onSecondaryAction && (
-            <Button variant="ghost" size="md" onClick={onSecondaryAction}>
+            <Button variant='ghost' size='md' onClick={onSecondaryAction}>
               {secondaryActionLabel}
             </Button>
           )}

@@ -1,9 +1,9 @@
 /**
  * Button Component - Compatibility Wrapper
- * 
+ *
  * Wraps the shared Button component to maintain backward compatibility
  * with existing web app code while migrating to shared components.
- * 
+ *
  * This wrapper will be removed once all files are migrated.
  */
 
@@ -16,7 +16,7 @@ import { getGradient } from '@/lib/theme-enhancements';
 import { cn } from '@/lib/utils';
 
 // Extend shared Button props for backward compatibility
-export type ButtonVariant =
+type ButtonVariant =
   | 'primary'
   | 'secondary'
   | 'outline'
@@ -27,9 +27,9 @@ export type ButtonVariant =
   | 'gradient-primary' // Maps to 'primary' with gradient style
   | 'gradient-success'; // Maps to 'success' with gradient style
 
-export type ButtonSize = 'sm' | 'md' | 'lg' | 'xl';
+type ButtonSize = 'sm' | 'md' | 'lg' | 'xl';
 
-export interface ButtonProps extends Omit<WebButtonProps, 'variant'> {
+interface ButtonProps extends Omit<WebButtonProps, 'variant'> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
@@ -40,7 +40,7 @@ export interface ButtonProps extends Omit<WebButtonProps, 'variant'> {
 
 /**
  * Compatibility wrapper for Button component
- * 
+ *
  * Maps old variant names to new shared component variants
  */
 export function Button({
@@ -56,7 +56,17 @@ export function Button({
   ...props
 }: ButtonProps) {
   // Map old variants to new variants (only return variants supported by shared Button)
-  const mapVariant = (oldVariant?: ButtonVariant): 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'destructive' | 'success' | 'link' => {
+  const mapVariant = (
+    oldVariant?: ButtonVariant
+  ):
+    | 'primary'
+    | 'secondary'
+    | 'outline'
+    | 'ghost'
+    | 'danger'
+    | 'destructive'
+    | 'success'
+    | 'link' => {
     if (!oldVariant) return 'primary';
     switch (oldVariant) {
       case 'gradient-primary':
@@ -77,12 +87,15 @@ export function Button({
   };
 
   const mappedVariant = mapVariant(variant);
-  const isGradient = variant === 'gradient-primary' || variant === 'gradient-success';
+  const isGradient =
+    variant === 'gradient-primary' || variant === 'gradient-success';
 
   // Apply gradient style if needed
   const gradientStyle: React.CSSProperties = isGradient
     ? {
-        background: getGradient(variant === 'gradient-primary' ? 'primary' : 'success'),
+        background: getGradient(
+          variant === 'gradient-primary' ? 'primary' : 'success'
+        ),
         backgroundColor: 'transparent', // Override solid background
       }
     : {};

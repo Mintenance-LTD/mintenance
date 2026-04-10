@@ -21,63 +21,11 @@ import Animated from './Animated';
 import Toast from './Toast';
 import Banner from './Banner';
 
-export {
-  ErrorBoundary,
-  withErrorBoundary,
-  type ErrorBoundaryProps,
-  type ErrorFallbackProps,
-} from './ErrorBoundary';
-
 // Loading State Components
-export {
-  LoadingSpinner,
-  LoadingOverlay,
-  InlineLoader,
-  Skeleton,
-  SkeletonCard,
-  SkeletonList,
-  SkeletonDashboard,
-  SkeletonJobDetails,
-  SkeletonProfile,
-  type LoadingProps,
-  type SkeletonProps,
-  type SkeletonCardProps,
-} from './LoadingStates';
-
 // Standardized UI Components (default exports)
-export { default as Button } from './Button';
-export { default as Typography } from './Typography';
-export { default as Input } from './Input';
-export { default as Card } from './Card';
 export { default as Badge } from './Badge';
-export { default as ThemeToggle } from './ThemeToggle';
-export { default as Animated } from './Animated';
-export { default as Toast } from './Toast';
-export { default as Banner } from './Banner';
-
 // Named component exports
-export { type ButtonProps } from './Button';
-
-export {
-  H1,
-  H2,
-  H3,
-  H4,
-  H5,
-  H6,
-  Display1,
-  Display2,
-  Subtitle1,
-  Subtitle2,
-  Body1,
-  Body2,
-  Caption,
-  Overline,
-  type TypographyProps,
-  type TypographyVariant,
-  type TypographyColor,
-  type TypographyAlign,
-} from './Typography';
+export { H1, H2, H3, Body1, Body2, Caption } from './Typography';
 
 // Import directly from individual files to avoid export resolution issues
 
@@ -93,49 +41,8 @@ export {
 //   type CardProps,
 // } from './Card';
 
-export {
-  Chip,
-  NotificationBadge,
-  type BadgeProps,
-  type ChipProps,
-  type NotificationBadgeProps,
-} from './Badge';
-
-export {
-  ThemeModeSelector,
-  type ThemeToggleProps,
-  type ThemeModeSelectorProps,
-} from './ThemeToggle';
-
-export {
-  AnimatedView,
-  MicroInteraction,
-  StaggerAnimation,
-  LoadingAnimation,
-  type AnimatedViewProps,
-  type MicroInteractionProps,
-  type StaggerAnimationProps,
-  type LoadingAnimationProps,
-  type AnimationType,
-  type EasingType,
-} from './Animated';
-
-export {
-  ToastManager,
-  toastManager,
-  useToast,
-  type ToastProps,
-  type ToastConfig,
-  type ToastType,
-  type ToastPosition,
-  type ToastPreset,
-  type ToastAction,
-} from './Toast';
-
-export { type BannerProps } from './Banner';
-
 // Organized exports by category
-export const UI = {
+const UI = {
   // Error Handling
   ErrorBoundary: ErrorComponents.ErrorBoundary,
   withErrorBoundary: ErrorComponents.withErrorBoundary,
@@ -169,4 +76,3 @@ export const UI = {
 };
 
 // Default export for convenience
-export default UI;

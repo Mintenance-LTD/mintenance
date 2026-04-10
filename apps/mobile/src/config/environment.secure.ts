@@ -96,7 +96,7 @@ validateSecurityConfig();
 // In Expo apps, public credentials are provided via EXPO_PUBLIC_ environment variables.
 // These are embedded at build time and are appropriate for client-safe keys
 // (e.g., restricted Google Maps keys, publishable Stripe keys).
-export const getServerCredentials = {
+const getServerCredentials = {
   /**
    * Get Google Maps API key from environment
    * The key should have platform restrictions (iOS/Android bundle ID) configured

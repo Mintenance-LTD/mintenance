@@ -8,7 +8,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 
-export type W9Status = 'not_submitted' | 'submitted' | 'verified';
+type W9Status = 'not_submitted' | 'submitted' | 'verified';
 export type Form1099Status =
   | 'not_available'
   | 'pending'

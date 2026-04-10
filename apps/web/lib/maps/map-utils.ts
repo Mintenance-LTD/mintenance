@@ -1,11 +1,11 @@
 /**
  * Map Utilities
- * 
+ *
  * Shared utilities for Google Maps operations
  * Including marker creation, circle rendering, and bounds calculations
  */
 
-export interface ContractorMarkerData {
+interface ContractorMarkerData {
   id: string;
   name: string;
   latitude: number;
@@ -17,7 +17,7 @@ export interface ContractorMarkerData {
   primarySkillIcon?: string; // Icon for the primary skill
 }
 
-export interface ServiceAreaData {
+interface ServiceAreaData {
   id: string;
   latitude: number;
   longitude: number;
@@ -248,14 +248,14 @@ export function calculateDistance(
   const R = 6371; // Earth's radius in km
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  
+
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos((lat1 * Math.PI) / 180) *
       Math.cos((lat2 * Math.PI) / 180) *
       Math.sin(dLng / 2) *
       Math.sin(dLng / 2);
-  
+
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
@@ -347,4 +347,3 @@ export function clearMarkers(markers: google.maps.Marker[]): void {
 export function clearCircles(circles: google.maps.Circle[]): void {
   circles.forEach((circle) => circle.setMap(null));
 }
-

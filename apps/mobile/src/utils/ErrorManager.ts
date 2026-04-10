@@ -113,4 +113,3 @@ class ErrorManagerService {
 }
 
 export const ErrorManager = new ErrorManagerService();
-export default ErrorManager;

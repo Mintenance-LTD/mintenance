@@ -99,23 +99,37 @@ export const BookingStatusScreen: React.FC<{
       const bookingService = new BookingService();
       const prev = bookings;
       // optimistic update
-      setBookings(prev.map(b => b.id === selectedBooking.id ? { ...b, status: 'cancelled' } as Booking : b));
+      setBookings(
+        prev.map((b) =>
+          b.id === selectedBooking.id
+            ? ({ ...b, status: 'cancelled' } as Booking)
+            : b
+        )
+      );
       await bookingService.cancelBooking(selectedBooking.id, reason);
       setShowCancelModal(false);
       setSelectedBooking(null);
     } catch (err) {
       // rollback on failure
-      setBookings(prev => prev);
+      setBookings((prev) => prev);
       setShowCancelModal(true);
     }
   };
 
   const handleRescheduleBooking = (booking: Booking) => {
-    (navigation as { navigate: (screen: string, params?: Record<string, unknown>) => void }).navigate('RescheduleBooking', { bookingId: booking.id });
+    (
+      navigation as {
+        navigate: (screen: string, params?: Record<string, unknown>) => void;
+      }
+    ).navigate('RescheduleBooking', { bookingId: booking.id });
   };
 
   const handleRateBooking = (booking: Booking) => {
-    (navigation as { navigate: (screen: string, params?: Record<string, unknown>) => void }).navigate('RateBooking', { bookingId: booking.id });
+    (
+      navigation as {
+        navigate: (screen: string, params?: Record<string, unknown>) => void;
+      }
+    ).navigate('RateBooking', { bookingId: booking.id });
   };
 
   const handleShareBooking = (_booking: Booking) => {
@@ -123,7 +137,11 @@ export const BookingStatusScreen: React.FC<{
   };
 
   const handleViewBookingDetails = (booking: Booking) => {
-    (navigation as { navigate: (screen: string, params?: Record<string, unknown>) => void }).navigate('BookingDetails', { bookingId: booking.id });
+    (
+      navigation as {
+        navigate: (screen: string, params?: Record<string, unknown>) => void;
+      }
+    ).navigate('BookingDetails', { bookingId: booking.id });
   };
 
   // Loading state
@@ -133,16 +151,13 @@ export const BookingStatusScreen: React.FC<{
 
   // Error state
   if (error) {
-    return (
-      <BookingError
-        error={error}
-        onRetry={loadBookings}
-      />
-    );
+    return <BookingError error={error} onRetry={loadBookings} />;
   }
 
   // Filter bookings by active tab
-  const filteredBookings = bookings.filter(booking => booking.status === activeTab);
+  const filteredBookings = bookings.filter(
+    (booking) => booking.status === activeTab
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -150,15 +165,18 @@ export const BookingStatusScreen: React.FC<{
       {!loading && error && (
         <BookingError error={error} onRetry={loadBookings} />
       )}
-      {!loading && !error && bookings.filter(b => b.status === activeTab).length === 0 && (
-        <View accessibilityRole="summary" style={{ padding: 24 }}>
-          <Text style={{ color: theme.colors.textSecondary }}>
-            {activeTab === 'upcoming' && 'No upcoming bookings yet. Browse services to get started.'}
-            {activeTab === 'completed' && 'No completed bookings yet.'}
-            {activeTab === 'cancelled' && 'No cancelled bookings.'}
-          </Text>
-        </View>
-      )}
+      {!loading &&
+        !error &&
+        bookings.filter((b) => b.status === activeTab).length === 0 && (
+          <View accessibilityRole='summary' style={{ padding: 24 }}>
+            <Text style={{ color: theme.colors.textSecondary }}>
+              {activeTab === 'upcoming' &&
+                'No upcoming bookings yet. Browse services to get started.'}
+              {activeTab === 'completed' && 'No completed bookings yet.'}
+              {activeTab === 'cancelled' && 'No cancelled bookings.'}
+            </Text>
+          </View>
+        )}
       <BookingTabs
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -193,5 +211,3 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.backgroundSecondary,
   },
 });
-
-export default BookingStatusScreen;

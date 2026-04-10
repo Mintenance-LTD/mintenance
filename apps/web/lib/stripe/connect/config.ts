@@ -24,7 +24,7 @@ export const PRIMARY_CURRENCY = 'GBP';
 /** Fallback allowed currencies */
 export const SUPPORTED_CURRENCIES = ['GBP'] as const;
 
-export type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number];
+type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number];
 
 /**
  * Homeowner-facing payment methods. Cards are universal; BACS Direct Debit
@@ -32,7 +32,7 @@ export type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number];
  */
 export const HOMEOWNER_PAYMENT_METHOD_TYPES = ['card', 'bacs_debit'] as const;
 
-export type HomeownerPaymentMethodType =
+type HomeownerPaymentMethodType =
   (typeof HOMEOWNER_PAYMENT_METHOD_TYPES)[number];
 
 /**

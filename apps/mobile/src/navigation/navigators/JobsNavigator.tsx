@@ -121,7 +121,7 @@ const SafeJobEditScreen = withScreenErrorBoundary(JobEditScreen, 'Edit Job', {
 
 const JobsStack = createNativeStackNavigator<JobsStackParamList>();
 
-export const JobsNavigator: React.FC = () => {
+const JobsNavigator: React.FC = () => {
   return (
     <JobsStack.Navigator
       initialRouteName='JobsList'

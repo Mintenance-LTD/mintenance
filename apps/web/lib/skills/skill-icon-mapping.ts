@@ -9,44 +9,44 @@ export const SKILL_ICON_MAPPING: Record<string, string> = {
   'General Contracting': 'briefcase',
   'General Maintenance': 'briefcase',
   'Home Inspection': 'clipboard',
-  
+
   // Kitchen & Bathroom
   'Kitchen Remodeling': 'home',
   'Bathroom Renovation': 'home',
-  
+
   // Plumbing & Electrical
-  'Plumbing': 'briefcase',
+  Plumbing: 'briefcase',
   'Electrical Work': 'lightBulb',
-  
+
   // Construction & Building
-  'Carpentry': 'briefcase',
-  'Tiling': 'collection',
-  'Masonry': 'collection',
-  'Drywall': 'document',
+  Carpentry: 'briefcase',
+  Tiling: 'collection',
+  Masonry: 'collection',
+  Drywall: 'document',
   'Concrete Work': 'document',
-  
+
   // Finishing
-  'Painting': 'edit',
-  'Flooring': 'collection',
+  Painting: 'edit',
+  Flooring: 'collection',
   'Window Installation': 'building',
   'Door Installation': 'building',
-  
+
   // Exterior
-  'Roofing': 'home',
-  'Siding': 'home',
-  'Gutters': 'home',
+  Roofing: 'home',
+  Siding: 'home',
+  Gutters: 'home',
   'Deck Building': 'collection',
   'Fence Installation': 'collection',
-  
+
   // Systems
-  'HVAC': 'activity',
-  'Insulation': 'home',
-  
+  HVAC: 'activity',
+  Insulation: 'home',
+
   // Landscaping
-  'Landscaping': 'home',
-  
+  Landscaping: 'home',
+
   // Demolition
-  'Demolition': 'trash',
+  Demolition: 'trash',
 };
 
 /**
@@ -74,5 +74,4 @@ export const AVAILABLE_SKILL_ICONS = [
   'trash',
 ] as const;
 
-export type SkillIconName = typeof AVAILABLE_SKILL_ICONS[number];
-
+type SkillIconName = (typeof AVAILABLE_SKILL_ICONS)[number];

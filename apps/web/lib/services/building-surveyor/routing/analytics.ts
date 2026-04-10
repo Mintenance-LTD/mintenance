@@ -229,7 +229,7 @@ interface ConfidenceBucket {
 /**
  * Result of calibration analysis, including recommended threshold adjustments
  */
-export interface CalibrationAnalysisResult {
+interface CalibrationAnalysisResult {
   /** Number of calibration data points analysed */
   dataPointsAnalysed: number;
   /** Accuracy broken down by confidence level */

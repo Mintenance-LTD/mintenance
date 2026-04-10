@@ -1,13 +1,18 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 
-export type BackgroundCheckStatus = 'pending' | 'in_progress' | 'passed' | 'failed' | 'not_required';
-export type BackgroundCheckProvider = 'checkr' | 'goodhire' | 'sterling' | 'custom';
+type BackgroundCheckStatus =
+  | 'pending'
+  | 'in_progress'
+  | 'passed'
+  | 'failed'
+  | 'not_required';
+type BackgroundCheckProvider = 'checkr' | 'goodhire' | 'sterling' | 'custom';
 
 /**
  * Background check result data structure
  */
-export interface BackgroundCheckResultData {
+interface BackgroundCheckResultData {
   criminalRecords?: Array<{
     type: string;
     date: string;
@@ -72,7 +77,10 @@ export class BackgroundCheckService {
       }
 
       if (user.role !== 'contractor') {
-        return { success: false, error: 'Background checks are only available for contractors' };
+        return {
+          success: false,
+          error: 'Background checks are only available for contractors',
+        };
       }
 
       // Update status to in_progress
@@ -121,7 +129,10 @@ export class BackgroundCheckService {
           .from('profiles')
           .update({ background_check_status: 'pending' })
           .eq('id', userId);
-        return { success: false, error: 'Failed to initiate background check with provider' };
+        return {
+          success: false,
+          error: 'Failed to initiate background check with provider',
+        };
       }
 
       // Store check ID
@@ -161,13 +172,15 @@ export class BackgroundCheckService {
   }): Promise<string> {
     const checkrApiKey = process.env.CHECKR_API_KEY;
     if (!checkrApiKey) {
-      throw new Error('Checkr API key not configured. Set CHECKR_API_KEY environment variable.');
+      throw new Error(
+        'Checkr API key not configured. Set CHECKR_API_KEY environment variable.'
+      );
     }
 
     const response = await fetch('https://api.checkr.com/v1/candidates', {
       method: 'POST',
       headers: {
-        'Authorization': `Basic ${Buffer.from(checkrApiKey + ':').toString('base64')}`,
+        Authorization: `Basic ${Buffer.from(checkrApiKey + ':').toString('base64')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -199,13 +212,15 @@ export class BackgroundCheckService {
   }): Promise<string> {
     const goodHireApiKey = process.env.GOODHIRE_API_KEY;
     if (!goodHireApiKey) {
-      throw new Error('GoodHire API key not configured. Set GOODHIRE_API_KEY environment variable.');
+      throw new Error(
+        'GoodHire API key not configured. Set GOODHIRE_API_KEY environment variable.'
+      );
     }
 
     const response = await fetch('https://api.goodhire.com/v1/checks', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${goodHireApiKey}`,
+        Authorization: `Bearer ${goodHireApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -237,22 +252,27 @@ export class BackgroundCheckService {
   }): Promise<string> {
     const sterlingApiKey = process.env.STERLING_API_KEY;
     if (!sterlingApiKey) {
-      throw new Error('Sterling API key not configured. Set STERLING_API_KEY environment variable.');
+      throw new Error(
+        'Sterling API key not configured. Set STERLING_API_KEY environment variable.'
+      );
     }
 
-    const response = await fetch('https://api.sterlingcheck.com/v2/screenings', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${sterlingApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email: user.email,
-        phone: user.phone,
-      }),
-    });
+    const response = await fetch(
+      'https://api.sterlingcheck.com/v2/screenings',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${sterlingApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          first_name: user.first_name,
+          last_name: user.last_name,
+          email: user.email,
+          phone: user.phone,
+        }),
+      }
+    );
 
     if (!response.ok) {
       const body = await response.text();
@@ -333,11 +353,15 @@ export class BackgroundCheckService {
   /**
    * Get background check status for a user
    */
-  static async getCheckStatus(userId: string): Promise<BackgroundCheckResult | null> {
+  static async getCheckStatus(
+    userId: string
+  ): Promise<BackgroundCheckResult | null> {
     try {
       const { data: user, error } = await serverSupabase
         .from('profiles')
-        .select('background_check_status, background_check_provider, background_check_id, background_check_completed_at, background_check_result')
+        .select(
+          'background_check_status, background_check_provider, background_check_id, background_check_completed_at, background_check_result'
+        )
         .eq('id', userId)
         .single();
 
@@ -346,10 +370,15 @@ export class BackgroundCheckService {
       }
 
       return {
-        status: (user.background_check_status as BackgroundCheckStatus) || 'pending',
-        provider: (user.background_check_provider as BackgroundCheckProvider) || 'checkr',
+        status:
+          (user.background_check_status as BackgroundCheckStatus) || 'pending',
+        provider:
+          (user.background_check_provider as BackgroundCheckProvider) ||
+          'checkr',
         checkId: user.background_check_id || '',
-        completedAt: user.background_check_completed_at ? new Date(user.background_check_completed_at) : undefined,
+        completedAt: user.background_check_completed_at
+          ? new Date(user.background_check_completed_at)
+          : undefined,
         result: user.background_check_result || undefined,
       };
     } catch (error) {
@@ -361,4 +390,3 @@ export class BackgroundCheckService {
     }
   }
 }
-

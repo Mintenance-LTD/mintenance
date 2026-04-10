@@ -8,7 +8,7 @@ export interface SanitizationOptions {
   allowedAttributes?: Record<string, string[]>;
   stripTags?: boolean;
 }
-export interface SanitizationResult {
+interface SanitizationResult {
   value: string;
   wasModified: boolean;
   removedContent?: string[];
@@ -18,15 +18,18 @@ export abstract class BaseSanitizer {
    * Remove all HTML tags and normalize text
    * Consistent implementation across all platforms
    */
-  static sanitizeText(input: string | undefined | null, maxLength?: number): string {
+  static sanitizeText(
+    input: string | undefined | null,
+    maxLength?: number
+  ): string {
     if (!input || typeof input !== 'string') return '';
     // Remove all HTML tags
     let textOnly = input
       .replace(/<script[\s\S]*?<\/script>/gi, '') // Remove script tags first
-      .replace(/<style[\s\S]*?<\/style>/gi, '')   // Remove style tags
-      .replace(/<[^>]*>/g, '')                    // Remove all remaining tags
-      .replace(/&[a-zA-Z0-9#]+;/g, ' ')          // Replace HTML entities with spaces
-      .replace(/\s+/g, ' ')                       // Normalize whitespace
+      .replace(/<style[\s\S]*?<\/style>/gi, '') // Remove style tags
+      .replace(/<[^>]*>/g, '') // Remove all remaining tags
+      .replace(/&[a-zA-Z0-9#]+;/g, ' ') // Replace HTML entities with spaces
+      .replace(/\s+/g, ' ') // Normalize whitespace
       .trim();
     // Apply length limit
     const max = maxLength || 5000;
@@ -39,10 +42,10 @@ export abstract class BaseSanitizer {
   static escapeSQLWildcards(input: string | undefined | null): string {
     if (!input || typeof input !== 'string') return '';
     return input
-      .replace(/\\/g, '\\\\')  // Escape backslashes first
-      .replace(/%/g, '\\%')    // Escape SQL wildcard %
-      .replace(/_/g, '\\_')    // Escape SQL wildcard _
-      .replace(/'/g, "''");    // Escape single quotes
+      .replace(/\\/g, '\\\\') // Escape backslashes first
+      .replace(/%/g, '\\%') // Escape SQL wildcard %
+      .replace(/_/g, '\\_') // Escape SQL wildcard _
+      .replace(/'/g, "''"); // Escape single quotes
   }
   /**
    * Two-step sanitization for SQL queries
@@ -192,7 +195,8 @@ export abstract class BaseSanitizer {
     // Reject if more than 30% special characters
     if (specialCharRatio > 0.3) return false;
     // Check for obvious SQL keywords (case-insensitive)
-    const sqlKeywords = /\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b/i;
+    const sqlKeywords =
+      /\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b/i;
     if (sqlKeywords.test(input)) return false;
     return true;
   }

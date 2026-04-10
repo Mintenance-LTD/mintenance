@@ -7,7 +7,7 @@ import {
 import { logger } from '../../utils/logger';
 import { BUSINESS_SUITE_KEYS } from './keys';
 
-export const useMarketingCampaigns = (contractorId: string) => {
+const useMarketingCampaigns = (contractorId: string) => {
   const queryClient = useQueryClient();
   const createCampaign = useMutation({
     mutationFn: async (campaignData: Partial<MarketingCampaign>) => {

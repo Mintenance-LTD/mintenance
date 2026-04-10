@@ -52,19 +52,19 @@ export const VERSION_HEADERS = {
 // TYPES
 // ============================================================================
 
-export interface APIVersion {
+interface APIVersion {
   major: number;
   minor: number;
   raw: string;
 }
 
-export interface VersionConstraints {
+interface VersionConstraints {
   min?: string;
   max?: string;
   exact?: string;
 }
 
-export interface VersionInfo {
+interface VersionInfo {
   current: string;
   requested: string;
   isDeprecated: boolean;
@@ -142,7 +142,8 @@ export function getAPIVersion(request: NextRequest): string {
 
   // 2. Check query parameter
   const url = new URL(request.url);
-  const queryVersion = url.searchParams.get('api_version') || url.searchParams.get('v');
+  const queryVersion =
+    url.searchParams.get('api_version') || url.searchParams.get('v');
   if (queryVersion) {
     const parsed = parseVersion(queryVersion);
     if (parsed) {
@@ -208,8 +209,7 @@ export function getVersionInfo(requestedVersion: string): VersionInfo {
   const isDeprecated = DEPRECATED_VERSIONS.includes(requestedVersion);
   const isSunset = SUNSET_VERSIONS.includes(requestedVersion);
   const isSupported =
-    !isSunset &&
-    compareVersions(requestedVersion, MIN_API_VERSION) >= 0;
+    !isSunset && compareVersions(requestedVersion, MIN_API_VERSION) >= 0;
 
   return {
     current: CURRENT_API_VERSION,
@@ -337,7 +337,9 @@ export class APIVersionError extends Error {
 /**
  * API version middleware for use in Next.js middleware
  */
-export function apiVersionMiddleware(request: NextRequest): NextResponse | null {
+export function apiVersionMiddleware(
+  request: NextRequest
+): NextResponse | null {
   // Only apply to API routes
   if (!request.nextUrl.pathname.startsWith('/api')) {
     return null;
@@ -384,7 +386,10 @@ export function isVersion(request: NextRequest, version: string): boolean {
 /**
  * Check if request is for API version >= specified
  */
-export function isVersionAtLeast(request: NextRequest, minVersion: string): boolean {
+export function isVersionAtLeast(
+  request: NextRequest,
+  minVersion: string
+): boolean {
   const requestVersion = getAPIVersion(request);
   return compareVersions(requestVersion, minVersion) >= 0;
 }

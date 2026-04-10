@@ -9,13 +9,16 @@
  * - Momentum support (optional)
  */
 
-import { ActivationFunctions, type ActivationType } from './ActivationFunctions';
+import {
+  ActivationFunctions,
+  type ActivationType,
+} from './ActivationFunctions';
 import type { MemoryParameters, LayerParameters } from './types';
 
 /**
  * Gradients for all MLP parameters
  */
-export interface MLPGradients {
+interface MLPGradients {
   weightGradients: number[][][]; // Per layer: [layer][output][input]
   biasGradients: number[][]; // Per layer: [layer][output]
 }
@@ -23,7 +26,7 @@ export interface MLPGradients {
 /**
  * Forward pass result with intermediate activations
  */
-export interface ForwardPassResult {
+interface ForwardPassResult {
   activations: number[][]; // Activations after each layer (including input)
   preActivations: number[][]; // Pre-activation values (z = Wx + b)
   output: number[]; // Final output
@@ -241,10 +244,10 @@ export class MLPBackpropagation {
     let newMomentumState: MomentumState | undefined = momentumState;
     if (useMomentum && !momentumState) {
       newMomentumState = {
-        weightVelocities: weights.map(layer =>
-          layer.map(row => new Array(row.length).fill(0))
+        weightVelocities: weights.map((layer) =>
+          layer.map((row) => new Array(row.length).fill(0))
         ),
-        biasVelocities: biases.map(layer => new Array(layer.length).fill(0)),
+        biasVelocities: biases.map((layer) => new Array(layer.length).fill(0)),
       };
     }
 
@@ -268,7 +271,8 @@ export class MLPBackpropagation {
 
           if (useMomentum && newMomentumState) {
             // Momentum update: v = βv + ∇L
-            const velocity = momentumBeta * newMomentumState.weightVelocities[l][i][j] + grad;
+            const velocity =
+              momentumBeta * newMomentumState.weightVelocities[l][i][j] + grad;
             newMomentumState.weightVelocities[l][i][j] = velocity;
             update = learningRate * velocity;
           }
@@ -286,7 +290,8 @@ export class MLPBackpropagation {
         let update = learningRate * grad;
 
         if (useMomentum && newMomentumState) {
-          const velocity = momentumBeta * newMomentumState.biasVelocities[l][i] + grad;
+          const velocity =
+            momentumBeta * newMomentumState.biasVelocities[l][i] + grad;
           newMomentumState.biasVelocities[l][i] = velocity;
           update = learningRate * velocity;
         }
@@ -434,8 +439,8 @@ export class MLPBackpropagation {
     biases: number[][];
   } {
     return {
-      weights: params.layers.map(layer => layer.weights),
-      biases: params.layers.map(layer => layer.biases),
+      weights: params.layers.map((layer) => layer.weights),
+      biases: params.layers.map((layer) => layer.biases),
     };
   }
 
@@ -456,7 +461,8 @@ export class MLPBackpropagation {
     }));
 
     const totalParameters = layers.reduce(
-      (sum, layer) => sum + layer.inputSize * layer.outputSize + layer.outputSize,
+      (sum, layer) =>
+        sum + layer.inputSize * layer.outputSize + layer.outputSize,
       0
     );
 

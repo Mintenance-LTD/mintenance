@@ -8,7 +8,7 @@ import type { AITestResult, SafeLUCBResult } from './ABTestTypes';
 import { wilsonScoreUpper } from './ABTestMathUtils';
 import { DELTA_SAFETY } from './ABTestConfig';
 
-export interface Assignment {
+interface Assignment {
   id: string;
   armId: string;
   armName: string;
@@ -28,7 +28,7 @@ export async function getOrCreateAssignment(
 
   if (existing) {
     // Supabase join returns array, but we're selecting single row so take first element
-    const abArms = Array.isArray(existing.ab_arms) 
+    const abArms = Array.isArray(existing.ab_arms)
       ? (existing.ab_arms[0] as { name: string } | undefined)
       : (existing.ab_arms as { name: string } | undefined);
     return {
@@ -97,7 +97,8 @@ export async function logDecision(params: {
     cp_prediction_set: params.aiResult.cpPredictionSet,
     safety_ucb: params.lucbResult?.safetyUcb || 0,
     reward_ucb: params.lucbResult?.rewardUcb || 0,
-    safety_threshold: params.lucbResult?.safetyThreshold || params.deltaSafety || DELTA_SAFETY,
+    safety_threshold:
+      params.lucbResult?.safetyThreshold || params.deltaSafety || DELTA_SAFETY,
     exploration: params.lucbResult?.exploration || false,
     context_features: params.aiResult.contextFeatures,
     detector_outputs: params.aiResult.detectorOutputs,
@@ -105,7 +106,9 @@ export async function logDecision(params: {
   });
 }
 
-export async function checkSeedSafeSet(context: Record<string, unknown>): Promise<{
+export async function checkSeedSafeSet(
+  context: Record<string, unknown>
+): Promise<{
   isSafe: boolean;
   historicalCount: number;
   historicalSfnRate: number;
@@ -123,7 +126,10 @@ export async function checkSeedSafeSet(context: Record<string, unknown>): Promis
     .eq('property_type', propertyType)
     .eq('property_age_bin', propertyAgeBin)
     .eq('region', region)
-    .gte('validated_at', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString());
+    .gte(
+      'validated_at',
+      new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString()
+    );
 
   if (!data || data.length < 1000) {
     return {
@@ -134,7 +140,7 @@ export async function checkSeedSafeSet(context: Record<string, unknown>): Promis
     };
   }
 
-  const sfnCount = data.filter(v => v.sfn === true).length;
+  const sfnCount = data.filter((v) => v.sfn === true).length;
   const sfnRate = sfnCount / data.length;
 
   // Wilson score upper bound
@@ -149,4 +155,3 @@ export async function checkSeedSafeSet(context: Record<string, unknown>): Promis
     wilsonUpper,
   };
 }
-

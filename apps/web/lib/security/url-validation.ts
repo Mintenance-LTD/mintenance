@@ -1,6 +1,6 @@
 /**
  * URL Validation Utility for SSRF Protection
- * 
+ *
  * Validates URLs to prevent Server-Side Request Forgery (SSRF) attacks by:
  * - Checking against allowlist of trusted domains
  * - Blocking private/internal IP addresses
@@ -10,7 +10,7 @@
 
 import { logger } from '@mintenance/shared';
 
-export interface URLValidationResult {
+interface URLValidationResult {
   isValid: boolean;
   error?: string;
   normalizedUrl?: string;
@@ -49,11 +49,11 @@ function getAllowedDomains(): string[] {
   if (customDomainsEnv) {
     const customDomains = customDomainsEnv
       .split(',')
-      .map(domain => domain.trim())
-      .filter(domain => domain.length > 0);
+      .map((domain) => domain.trim())
+      .filter((domain) => domain.length > 0);
     return [...domains, ...customDomains];
   }
-  
+
   return domains;
 }
 
@@ -70,7 +70,7 @@ function ipToNumber(ip: string): number {
  */
 function isPrivateIP(ip: string): boolean {
   const ipNum = ipToNumber(ip);
-  
+
   for (const range of PRIVATE_IP_RANGES) {
     const startNum = ipToNumber(range.start);
     const endNum = ipToNumber(range.end);
@@ -78,7 +78,7 @@ function isPrivateIP(ip: string): boolean {
       return true;
     }
   }
-  
+
   return false;
 }
 
@@ -94,7 +94,11 @@ async function checkHostnameForPrivateIP(hostname: string): Promise<boolean> {
   }
 
   // Check for localhost variants
-  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
+  if (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '::1'
+  ) {
     return true;
   }
 
@@ -123,12 +127,12 @@ function isAllowedDomain(url: URL): boolean {
     // Normalize domain: ensure it has a leading dot for subdomain matching
     const normalizedDomain = domain.startsWith('.') ? domain : '.' + domain;
     const domainWithoutDot = normalizedDomain.slice(1);
-    
+
     // Check exact match (for domains without subdomains)
     if (hostname === domainWithoutDot) {
       return true;
     }
-    
+
     // Check if hostname ends with the normalized domain (for subdomains)
     // e.g., "abc123.supabase.co" ends with ".supabase.co"
     if (hostname.endsWith(normalizedDomain)) {
@@ -141,7 +145,7 @@ function isAllowedDomain(url: URL): boolean {
 
 /**
  * Validate and sanitize a URL to prevent SSRF attacks
- * 
+ *
  * @param urlString - The URL string to validate
  * @param requireAllowlist - If true, URL must be in allowlist. If false, only blocks private IPs
  * @returns Validation result with normalized URL if valid
@@ -161,7 +165,7 @@ export async function validateURL(
 
     // Remove leading/trailing whitespace
     const trimmedUrl = urlString.trim();
-    
+
     if (trimmedUrl.length === 0) {
       return {
         isValid: false,
@@ -173,7 +177,8 @@ export async function validateURL(
     if (trimmedUrl.startsWith('file:///') || trimmedUrl.startsWith('file://')) {
       return {
         isValid: false,
-        error: 'File URLs are not allowed. Images must be uploaded to cloud storage.',
+        error:
+          'File URLs are not allowed. Images must be uploaded to cloud storage.',
       };
     }
 
@@ -258,7 +263,10 @@ export async function validateURL(
 export async function validateURLs(
   urls: string[],
   requireAllowlist: boolean = true
-): Promise<{ valid: string[]; invalid: Array<{ url: string; error: string }> }> {
+): Promise<{
+  valid: string[];
+  invalid: Array<{ url: string; error: string }>;
+}> {
   const results = await Promise.all(
     urls.map(async (url) => {
       const validation = await validateURL(url, requireAllowlist);
@@ -286,16 +294,21 @@ export async function validateURLs(
 /**
  * Validate that URLs are from Supabase storage
  */
-export async function validateSupabaseStorageURL(urlString: string): Promise<URLValidationResult> {
+export async function validateSupabaseStorageURL(
+  urlString: string
+): Promise<URLValidationResult> {
   const result = await validateURL(urlString, true);
-  
+
   if (!result.isValid) {
     return result;
   }
 
   // Additional check: ensure it's a Supabase storage URL
   const url = new URL(result.normalizedUrl!);
-  if (!url.hostname.includes('supabase.co') && !url.hostname.includes('supabase.in')) {
+  if (
+    !url.hostname.includes('supabase.co') &&
+    !url.hostname.includes('supabase.in')
+  ) {
     return {
       isValid: false,
       error: 'URL must be from Supabase storage',
@@ -311,4 +324,3 @@ export async function validateSupabaseStorageURL(urlString: string): Promise<URL
 export function getAllowedImageDomains(): string[] {
   return getAllowedDomains();
 }
-

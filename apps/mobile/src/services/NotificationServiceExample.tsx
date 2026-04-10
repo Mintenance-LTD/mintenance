@@ -10,7 +10,10 @@ import { NotificationService } from './NotificationService';
 import type { NotificationData } from './notifications/types';
 import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
-import { useNavigationContainerRef , useFocusEffect } from '@react-navigation/native';
+import {
+  useNavigationContainerRef,
+  useFocusEffect,
+} from '@react-navigation/native';
 
 import * as Notifications from 'expo-notifications';
 
@@ -34,7 +37,9 @@ export function AppWithNotifications() {
           logger.info('Push token obtained', { token });
 
           // Get authenticated user
-          const { data: { user } } = await supabase.auth.getUser();
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
 
           if (user) {
             // Save token to database
@@ -82,7 +87,9 @@ export function RootNavigatorWithNotifications() {
   useEffect(() => {
     // Set navigation reference once it's ready
     if (navigationRef?.current) {
-      NotificationService.setNavigationRef(navigationRef.current as unknown as import('./notifications/types').NavigationRef);
+      NotificationService.setNavigationRef(
+        navigationRef.current as unknown as import('./notifications/types').NavigationRef
+      );
       logger.info('Navigation reference set for notification deep linking');
     }
   }, [navigationRef]);
@@ -106,7 +113,9 @@ export function HomeScreenWithBadgeUpdate() {
     useCallback(() => {
       const updateBadge = async () => {
         try {
-          const { data: { user } } = await supabase.auth.getUser();
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
 
           if (user) {
             const count = await NotificationService.getUnreadCount(user.id);
@@ -155,8 +164,10 @@ export function HomeScreenWithBadgeUpdate() {
 /**
  * Display list of notifications with mark as read functionality
  */
-export function NotificationListScreen() {
-  const [notifications, setNotifications] = React.useState<NotificationData[]>([]);
+function NotificationListScreen() {
+  const [notifications, setNotifications] = React.useState<NotificationData[]>(
+    []
+  );
   const [loading, setLoading] = React.useState(true);
 
   useEffect(() => {
@@ -166,13 +177,15 @@ export function NotificationListScreen() {
   const loadNotifications = async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       if (user) {
         const notifs = await NotificationService.getUserNotifications(
           user.id,
           50, // limit
-          0   // offset
+          0 // offset
         );
         setNotifications(notifs);
       }
@@ -189,8 +202,8 @@ export function NotificationListScreen() {
       await NotificationService.markAsRead(notificationId);
 
       // Update local state
-      setNotifications(prev =>
-        prev.map(n => (n.id === notificationId ? { ...n, read: true } : n))
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
       );
 
       // Navigation will happen automatically via deep link data
@@ -202,13 +215,15 @@ export function NotificationListScreen() {
 
   const handleMarkAllRead = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       if (user) {
         await NotificationService.markAllAsRead(user.id);
 
         // Update local state
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
 
         logger.info('All notifications marked as read');
       }
@@ -228,7 +243,7 @@ export function NotificationListScreen() {
 /**
  * Clean up notifications on logout
  */
-export function useLogoutWithNotificationCleanup() {
+function useLogoutWithNotificationCleanup() {
   const handleLogout = async () => {
     try {
       logger.info('Logging out...');
@@ -259,7 +274,7 @@ export function useLogoutWithNotificationCleanup() {
 /**
  * Example of sending notifications from your app (typically done on backend)
  */
-export async function sendJobUpdateNotification(
+async function sendJobUpdateNotification(
   homeownerId: string,
   jobId: string,
   jobTitle: string,
@@ -283,7 +298,7 @@ export async function sendJobUpdateNotification(
   }
 }
 
-export async function sendBidReceivedNotification(
+async function sendBidReceivedNotification(
   homeownerId: string,
   jobId: string,
   contractorName: string,
@@ -308,7 +323,7 @@ export async function sendBidReceivedNotification(
   }
 }
 
-export async function sendMessageNotification(
+async function sendMessageNotification(
   recipientId: string,
   conversationId: string,
   senderName: string,
@@ -340,7 +355,7 @@ export async function sendMessageNotification(
 /**
  * Schedule a reminder notification
  */
-export async function scheduleMeetingReminder(
+async function scheduleMeetingReminder(
   meetingId: string,
   meetingTitle: string,
   meetingTime: Date
@@ -378,7 +393,7 @@ export async function scheduleMeetingReminder(
 /**
  * Cancel a scheduled notification
  */
-export async function cancelScheduledReminder(notificationId: string) {
+async function cancelScheduledReminder(notificationId: string) {
   try {
     await NotificationService.cancelNotification(notificationId);
     logger.info('Scheduled notification cancelled', { notificationId });
@@ -395,7 +410,7 @@ export async function cancelScheduledReminder(notificationId: string) {
 /**
  * Update user notification preferences
  */
-export async function updateNotificationPreferences(
+async function updateNotificationPreferences(
   userId: string,
   preferences: {
     jobUpdates?: boolean;
@@ -407,9 +422,8 @@ export async function updateNotificationPreferences(
   }
 ) {
   try {
-    const currentPrefs = await NotificationService.getNotificationPreferences(
-      userId
-    );
+    const currentPrefs =
+      await NotificationService.getNotificationPreferences(userId);
 
     const updatedPrefs = {
       ...currentPrefs,
@@ -442,9 +456,11 @@ export async function updateNotificationPreferences(
 /**
  * Send a test notification (for development/testing)
  */
-export async function sendTestNotification() {
+async function sendTestNotification() {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (user) {
       await NotificationService.sendPushNotification(
@@ -468,7 +484,7 @@ export async function sendTestNotification() {
 /**
  * Test local notification (doesn't require backend)
  */
-export async function sendTestLocalNotification() {
+async function sendTestLocalNotification() {
   try {
     await Notifications.scheduleNotificationAsync({
       content: {

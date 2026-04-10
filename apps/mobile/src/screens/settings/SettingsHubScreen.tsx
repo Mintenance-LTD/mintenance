@@ -58,11 +58,15 @@ export const SettingsHubScreen: React.FC = () => {
     queryFn: async (): Promise<UserSettings> => {
       if (!user?.id) throw new Error('Not authenticated');
       try {
-        const res = await mobileApiClient.get<{ data: UserSettings }>('/api/users/settings');
-        return res.data || {
-          notifications: { email: true, push: true, sms: false },
-          privacy: { profileVisible: true, shareActivityData: false },
-        };
+        const res = await mobileApiClient.get<{ data: UserSettings }>(
+          '/api/users/settings'
+        );
+        return (
+          res.data || {
+            notifications: { email: true, push: true, sms: false },
+            privacy: { profileVisible: true, shareActivityData: false },
+          }
+        );
       } catch {
         return {
           notifications: { email: true, push: true, sms: false },
@@ -77,7 +81,10 @@ export const SettingsHubScreen: React.FC = () => {
     mutationFn: async (patch: Partial<UserSettings>) => {
       if (!user?.id) throw new Error('Not authenticated');
       const merged = { ...settings, ...patch };
-      await mobileApiClient.patch<{ success: boolean }>('/api/users/settings', merged);
+      await mobileApiClient.patch<{ success: boolean }>(
+        '/api/users/settings',
+        merged
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-settings', user?.id] });
@@ -97,27 +104,43 @@ export const SettingsHubScreen: React.FC = () => {
       style={[styles.row, !isLast && styles.rowBorder]}
       onPress={item.onPress}
       disabled={!item.onPress && !item.rightElement}
-      accessibilityRole="button"
+      accessibilityRole='button'
       accessibilityLabel={item.label}
       activeOpacity={0.7}
     >
       <View style={styles.rowLeft}>
-        <View style={[styles.iconChip, { backgroundColor: item.iconBg ?? theme.colors.backgroundSecondary }]}>
+        <View
+          style={[
+            styles.iconChip,
+            {
+              backgroundColor: item.iconBg ?? theme.colors.backgroundSecondary,
+            },
+          ]}
+        >
           <Ionicons
             name={item.icon as 'settings'}
             size={17}
-            color={item.destructive ? theme.colors.error : (item.iconColor ?? theme.colors.textSecondary)}
+            color={
+              item.destructive
+                ? theme.colors.error
+                : (item.iconColor ?? theme.colors.textSecondary)
+            }
           />
         </View>
-        <Text style={[styles.rowLabel, item.destructive && styles.destructiveText]}>
+        <Text
+          style={[styles.rowLabel, item.destructive && styles.destructiveText]}
+        >
           {item.label}
         </Text>
       </View>
-      {item.rightElement || (
-        item.onPress && (
-          <Ionicons name="chevron-forward" size={14} color={theme.colors.textTertiary} />
-        )
-      )}
+      {item.rightElement ||
+        (item.onPress && (
+          <Ionicons
+            name='chevron-forward'
+            size={14}
+            color={theme.colors.textTertiary}
+          />
+        ))}
     </TouchableOpacity>
   );
 
@@ -131,10 +154,34 @@ export const SettingsHubScreen: React.FC = () => {
   );
 
   const securityItems: SettingsRow[] = [
-    { label: 'Notification Preferences', icon: 'notifications-outline', iconColor: theme.colors.accent, iconBg: theme.colors.accentLight, onPress: () => navigation.navigate('NotificationSettings') },
-    { label: 'MFA Security', icon: 'shield-checkmark-outline', iconColor: '#6366F1', iconBg: '#EEF2FF', onPress: () => navigation.navigate('MFASecurity') },
-    { label: 'Payment Methods', icon: 'card-outline', iconColor: theme.colors.primary, iconBg: theme.colors.primaryLight, onPress: () => navigation.navigate('PaymentMethods') },
-    { label: 'Payment History', icon: 'receipt-outline', iconColor: '#3B82F6', iconBg: '#DBEAFE', onPress: () => navigation.navigate('PaymentHistory') },
+    {
+      label: 'Notification Preferences',
+      icon: 'notifications-outline',
+      iconColor: theme.colors.accent,
+      iconBg: theme.colors.accentLight,
+      onPress: () => navigation.navigate('NotificationSettings'),
+    },
+    {
+      label: 'MFA Security',
+      icon: 'shield-checkmark-outline',
+      iconColor: '#6366F1',
+      iconBg: '#EEF2FF',
+      onPress: () => navigation.navigate('MFASecurity'),
+    },
+    {
+      label: 'Payment Methods',
+      icon: 'card-outline',
+      iconColor: theme.colors.primary,
+      iconBg: theme.colors.primaryLight,
+      onPress: () => navigation.navigate('PaymentMethods'),
+    },
+    {
+      label: 'Payment History',
+      icon: 'receipt-outline',
+      iconColor: '#3B82F6',
+      iconBg: '#DBEAFE',
+      onPress: () => navigation.navigate('PaymentHistory'),
+    },
   ];
 
   const privacyItems: SettingsRow[] = [
@@ -147,7 +194,10 @@ export const SettingsHubScreen: React.FC = () => {
         <Switch
           value={settings?.privacy?.profileVisible ?? true}
           onValueChange={() => togglePrivacy('profileVisible')}
-          trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+          trackColor={{
+            false: theme.colors.border,
+            true: theme.colors.primary,
+          }}
           thumbColor={theme.colors.surface}
         />
       ),
@@ -161,7 +211,10 @@ export const SettingsHubScreen: React.FC = () => {
         <Switch
           value={settings?.privacy?.shareActivityData ?? false}
           onValueChange={() => togglePrivacy('shareActivityData')}
-          trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+          trackColor={{
+            false: theme.colors.border,
+            true: theme.colors.primary,
+          }}
           thumbColor={theme.colors.surface}
         />
       ),
@@ -186,18 +239,32 @@ export const SettingsHubScreen: React.FC = () => {
   ];
 
   const dangerItems: SettingsRow[] = [
-    { label: 'Export My Data', icon: 'download-outline', iconColor: theme.colors.textSecondary, iconBg: theme.colors.backgroundSecondary, onPress: () => navigation.navigate('DataExport') },
-    { label: 'Delete Account', icon: 'trash-outline', iconColor: theme.colors.error, iconBg: '#FEE2E2', onPress: () => navigation.navigate('DeleteAccount'), destructive: true },
+    {
+      label: 'Export My Data',
+      icon: 'download-outline',
+      iconColor: theme.colors.textSecondary,
+      iconBg: theme.colors.backgroundSecondary,
+      onPress: () => navigation.navigate('DataExport'),
+    },
+    {
+      label: 'Delete Account',
+      icon: 'trash-outline',
+      iconColor: theme.colors.error,
+      iconBg: '#FEE2E2',
+      onPress: () => navigation.navigate('DeleteAccount'),
+      destructive: true,
+    },
   ];
 
   return (
     <View style={styles.container}>
-      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      <StatusBar
+        translucent
+        backgroundColor='transparent'
+        barStyle='light-content'
+      />
       {/* Green gradient hero */}
-      <LinearGradient
-        colors={gradients.heroGreen}
-        style={styles.hero}
-      >
+      <LinearGradient colors={gradients.heroGreen} style={styles.hero}>
         <View style={styles.decorCircle1} />
         <View style={styles.decorCircle2} />
 
@@ -205,19 +272,28 @@ export const SettingsHubScreen: React.FC = () => {
 
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => (navigation as unknown as { goBack: () => void }).goBack()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
+          onPress={() =>
+            (navigation as unknown as { goBack: () => void }).goBack()
+          }
+          accessibilityRole='button'
+          accessibilityLabel='Go back'
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="chevron-back" size={22} color={theme.colors.textInverse} />
+          <Ionicons
+            name='chevron-back'
+            size={22}
+            color={theme.colors.textInverse}
+          />
         </TouchableOpacity>
 
         <Text style={styles.heroTitle}>Settings</Text>
         <Text style={styles.heroSubtitle}>Account, security & preferences</Text>
       </LinearGradient>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+      >
         {renderSection('Account & Security', securityItems)}
         {renderSection('Privacy', privacyItems)}
         {renderSection('Legal', legalItems)}
@@ -235,46 +311,92 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   decorCircle1: {
-    position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: 60,
+    position: 'absolute',
+    top: -30,
+    right: -30,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     backgroundColor: 'rgba(255,255,255,0.06)',
   },
   decorCircle2: {
-    position: 'absolute', bottom: -20, left: -20, width: 80, height: 80, borderRadius: 40,
+    position: 'absolute',
+    bottom: -20,
+    left: -20,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: 'rgba(255,255,255,0.06)',
   },
   backButton: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center', justifyContent: 'center', marginBottom: 14,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
   },
   heroTitle: {
-    fontSize: 26, fontWeight: '700', color: theme.colors.textInverse, letterSpacing: -0.5,
+    fontSize: 26,
+    fontWeight: '700',
+    color: theme.colors.textInverse,
+    letterSpacing: -0.5,
   },
   heroSubtitle: {
-    fontSize: 14, color: 'rgba(255,255,255,0.7)', marginTop: 4,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 4,
   },
   scrollView: { flex: 1 },
   content: { padding: 16, paddingBottom: 40 },
   section: { marginBottom: 24 },
   sectionTitle: {
-    fontSize: 12, fontWeight: '700', color: theme.colors.textTertiary, textTransform: 'uppercase',
-    letterSpacing: 0.8, marginBottom: 8, paddingHorizontal: 4,
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 8,
+    paddingHorizontal: 4,
   },
   card: {
-    backgroundColor: theme.colors.surface, borderRadius: 16, overflow: 'hidden',
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    overflow: 'hidden',
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
   row: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: 13, paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 13,
+    paddingHorizontal: 14,
   },
-  rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
+  rowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
+  },
   rowLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 12 },
-  iconChip: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  rowLabel: { fontSize: 15, fontWeight: '500', color: theme.colors.textPrimary },
+  iconChip: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: theme.colors.textPrimary,
+  },
   destructiveText: { color: theme.colors.error },
 });
-
-export default SettingsHubScreen;

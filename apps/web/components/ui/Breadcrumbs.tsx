@@ -4,13 +4,13 @@ import React from 'react';
 import Link from 'next/link';
 import { theme } from '@/lib/theme';
 
-export interface BreadcrumbItem {
+interface BreadcrumbItem {
   label: string;
   href?: string;
   current?: boolean;
 }
 
-export interface BreadcrumbsProps {
+interface BreadcrumbsProps {
   items: BreadcrumbItem[];
   className?: string;
   style?: React.CSSProperties;
@@ -63,36 +63,42 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
 
   return (
     <>
-      <nav 
+      <nav
         className={`breadcrumbs ${className}`}
         style={containerStyles}
-        aria-label="Breadcrumb navigation"
+        aria-label='Breadcrumb navigation'
       >
-        <ol style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: theme.spacing[2],
-          listStyle: 'none',
-          margin: 0,
-          padding: 0,
-        }}>
+        <ol
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing[2],
+            listStyle: 'none',
+            margin: 0,
+            padding: 0,
+          }}
+        >
           {items.map((item, index) => (
             <li key={index} style={itemStyles}>
               {index > 0 && (
-                <span className="breadcrumb-separator" style={separatorStyles} aria-hidden="true">
+                <span
+                  className='breadcrumb-separator'
+                  style={separatorStyles}
+                  aria-hidden='true'
+                >
                   ›
                 </span>
               )}
               {item.href && !item.current ? (
-                <Link 
+                <Link
                   href={item.href}
-                  className="breadcrumb-link"
+                  className='breadcrumb-link'
                   style={linkStyles}
                 >
                   {item.label}
                 </Link>
               ) : (
-                <span 
+                <span
                   style={item.current ? currentStyles : linkStyles}
                   aria-current={item.current ? 'page' : undefined}
                 >

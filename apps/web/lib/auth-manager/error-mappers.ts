@@ -3,7 +3,7 @@
  * No side effects, no state dependencies.
  */
 
-export interface MappedAuthError {
+interface MappedAuthError {
   matched: boolean;
   error: string;
 }
@@ -40,10 +40,7 @@ export function mapLoginAuthError(authError: {
   }
 
   // Rate limiting
-  if (
-    message.includes('too many requests') ||
-    message.includes('rate limit')
-  ) {
+  if (message.includes('too many requests') || message.includes('rate limit')) {
     return {
       matched: true,
       error: 'Too many login attempts. Please try again later.',

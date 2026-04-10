@@ -6,26 +6,6 @@
 
 export { escapeHtml } from './shared';
 
-export type {
-  QuoteEmailData,
-  BidEmailData,
-  ConnectionRequestEmailData,
-  ContractNotificationData,
-  MessageNotificationData,
-  PaymentConfirmationData,
-  PaymentReceivedData,
-  BidAcceptedData,
-  ContractSignedData,
-  JobStartedData,
-  JobCompletedData,
-  LocationSharingData,
-  WorkApprovedData,
-  ChangesRequestedData,
-  PaymentReleasedData,
-  TenantInviteData,
-  InvoiceNotificationData,
-} from './types';
-
 export {
   quoteNotificationTemplate,
   bidNotificationTemplate,

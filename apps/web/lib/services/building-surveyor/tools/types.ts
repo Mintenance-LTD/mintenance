@@ -3,10 +3,15 @@
  * Single interface: tool name, params, result, summary for evidence recording.
  */
 
-export const TOOL_NAMES = ['detect', 'segment', 'vision_labels', 'retrieve_memory'] as const;
+export const TOOL_NAMES = [
+  'detect',
+  'segment',
+  'vision_labels',
+  'retrieve_memory',
+] as const;
 export type ToolName = (typeof TOOL_NAMES)[number];
 
-export interface ToolCall {
+interface ToolCall {
   tool: ToolName;
   params?: Record<string, unknown>;
 }

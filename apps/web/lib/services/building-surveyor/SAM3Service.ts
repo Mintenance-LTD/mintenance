@@ -5,7 +5,7 @@
 
 import { logger } from '@mintenance/shared';
 
-export interface SAM3SegmentationRequest {
+interface SAM3SegmentationRequest {
   image_base64: string;
   text_prompt: string;
   threshold?: number;
@@ -33,7 +33,7 @@ export interface DamageTypeSegmentation {
   >;
 }
 
-export interface SAM3HealthResponse {
+interface SAM3HealthResponse {
   status: string;
   model_loaded: boolean;
   service: string;
@@ -49,7 +49,8 @@ export class SAM3Service {
     return 'http://localhost:8001';
   }
 
-  private static readonly TIMEOUT_MS = Number(process.env.SAM3_TIMEOUT_MS) || 30000;
+  private static readonly TIMEOUT_MS =
+    Number(process.env.SAM3_TIMEOUT_MS) || 30000;
 
   // P0 Security: Shared secret for authenticating requests to SAM3 microservice
   private static readonly AUTH_TOKEN = process.env.SAM3_AUTH_TOKEN || '';
@@ -64,15 +65,21 @@ export class SAM3Service {
     if (this.AUTH_TOKEN) {
       headers['Authorization'] = `Bearer ${this.AUTH_TOKEN}`;
     } else {
-      logger.warn('SAM3_AUTH_TOKEN not configured - requests are unauthenticated', {
-        service: 'sam3-service',
-      });
+      logger.warn(
+        'SAM3_AUTH_TOKEN not configured - requests are unauthenticated',
+        {
+          service: 'sam3-service',
+        }
+      );
     }
     return headers;
   }
 
   // Cache health check results
-  private static healthCheckCache: { result: boolean; timestamp: number } | null = null;
+  private static healthCheckCache: {
+    result: boolean;
+    timestamp: number;
+  } | null = null;
   private static readonly HEALTH_CHECK_CACHE_TTL = 60000; // 60 seconds
 
   // Circuit breaker for failures
@@ -127,10 +134,13 @@ export class SAM3Service {
   static async healthCheck(): Promise<boolean> {
     // Check circuit breaker
     if (this.isCircuitBreakerOpen()) {
-      logger.warn('SAM3Service circuit breaker is open, skipping health check', {
-        service: 'sam3-service',
-        failureCount: this.failureCount,
-      });
+      logger.warn(
+        'SAM3Service circuit breaker is open, skipping health check',
+        {
+          service: 'sam3-service',
+          failureCount: this.failureCount,
+        }
+      );
       return false;
     }
 
@@ -192,11 +202,14 @@ export class SAM3Service {
 
         if (attempt < maxRetries - 1) {
           const delay = initialDelay * Math.pow(2, attempt);
-          logger.info(`SAM3Service retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`, {
-            service: 'sam3-service',
-            error: lastError.message,
-          });
-          await new Promise(resolve => setTimeout(resolve, delay));
+          logger.info(
+            `SAM3Service retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`,
+            {
+              service: 'sam3-service',
+              error: lastError.message,
+            }
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
         }
       }
     }
@@ -218,9 +231,12 @@ export class SAM3Service {
   ): Promise<SAM3SegmentationResponse | null> {
     // Check circuit breaker
     if (this.isCircuitBreakerOpen()) {
-      logger.warn('SAM3Service circuit breaker is open, skipping segmentation', {
-        service: 'sam3-service',
-      });
+      logger.warn(
+        'SAM3Service circuit breaker is open, skipping segmentation',
+        {
+          service: 'sam3-service',
+        }
+      );
       return null;
     }
 
@@ -329,4 +345,3 @@ export class SAM3Service {
     }
   }
 }
-

@@ -35,7 +35,7 @@ const RATE_LIMIT_SKIP_PREFIXES = [
   '/api/subscriptions',
 ];
 
-export interface ApiRateLimitResult {
+interface ApiRateLimitResult {
   response?: NextResponse;
   headers?: Headers;
 }

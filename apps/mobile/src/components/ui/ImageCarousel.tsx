@@ -19,7 +19,7 @@ import { theme } from '../../theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-export interface ImageCarouselProps {
+interface ImageCarouselProps {
   images: string[];
   height?: number;
   width?: number;
@@ -183,5 +183,3 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.5)',
   },
 });
-
-export default ImageCarousel;

@@ -48,7 +48,7 @@ export interface NotificationPrefs {
   pushMarketing: boolean;
 }
 
-export interface SidebarSection {
+interface SidebarSection {
   key: SectionKey;
   label: string;
 }

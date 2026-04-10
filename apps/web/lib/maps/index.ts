@@ -1,6 +1,6 @@
 /**
  * Map Utilities Index
- * 
+ *
  * Centralized exports for all map-related utilities
  */
 
@@ -18,8 +18,6 @@ export {
   getOptimalZoom,
   clearMarkers,
   clearCircles,
-  type ContractorMarkerData,
-  type ServiceAreaData,
 } from './map-utils';
 
 // Overlap detection
@@ -33,6 +31,4 @@ export {
   suggestOptimalRadius,
   validateNewArea,
   type ServiceArea,
-  type OverlapResult,
 } from './overlap-detection';
-

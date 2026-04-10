@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
 import { Input, InputProps } from './Input';
 
-export interface FormFieldProps extends InputProps {
+interface FormFieldProps extends InputProps {
   children?: React.ReactNode;
   fieldStyle?: ViewStyle;
 }
@@ -16,7 +16,15 @@ export const FormField: React.FC<FormFieldProps> = ({
   if (children) {
     return <View style={[styles.fieldContainer, fieldStyle]}>{children}</View>;
   }
-  return <Input {...inputProps} containerStyle={StyleSheet.flatten([styles.fieldContainer, containerStyle])} />;
+  return (
+    <Input
+      {...inputProps}
+      containerStyle={StyleSheet.flatten([
+        styles.fieldContainer,
+        containerStyle,
+      ])}
+    />
+  );
 };
 
 const styles = StyleSheet.create({
@@ -24,5 +32,3 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 });
-
-export default FormField;

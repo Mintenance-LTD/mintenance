@@ -1,7 +1,7 @@
 import * as Notifications from 'expo-notifications';
 
 // Database row type (snake_case matching Supabase schema)
-export interface DatabaseNotificationRow {
+interface DatabaseNotificationRow {
   id: string;
   user_id: string;
   title: string;

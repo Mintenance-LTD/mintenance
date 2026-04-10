@@ -16,14 +16,21 @@ import { RecentTransactions } from './FinancialsScreen/RecentTransactions';
 import { styles } from './FinancialsScreen/styles';
 
 export const FinancialsScreen: React.FC = () => {
-  const navigation = useNavigation<NativeStackNavigationProp<ProfileStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<ProfileStackParamList>>();
   const insets = useSafeAreaInsets();
 
   const { data, isLoading, error, refetch } = useFinancialsData();
 
   if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorView message="Failed to load financial data" onRetry={refetch} />;
-  if (!data) return <ErrorView message="No financial data available" onRetry={refetch} />;
+  if (error)
+    return (
+      <ErrorView message='Failed to load financial data' onRetry={refetch} />
+    );
+  if (!data)
+    return (
+      <ErrorView message='No financial data available' onRetry={refetch} />
+    );
 
   // Budget overview values
   const budgeted = data.totalSpent + data.inEscrow + data.refunded;
@@ -33,13 +40,24 @@ export const FinancialsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      <StatusBar
+        translucent
+        backgroundColor='transparent'
+        barStyle='light-content'
+      />
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor="#FFFFFF" colors={[theme.colors.primary]} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={false}
+            onRefresh={refetch}
+            tintColor='#FFFFFF'
+            colors={[theme.colors.primary]}
+          />
+        }
       >
         <HeroSection
           totalSpent={data.totalSpent}
@@ -56,7 +74,12 @@ export const FinancialsScreen: React.FC = () => {
         />
 
         <View style={styles.contentBody}>
-          <BudgetOverview budgeted={budgeted} spent={spent} left={left} spentPct={spentPct} />
+          <BudgetOverview
+            budgeted={budgeted}
+            spent={spent}
+            left={left}
+            spentPct={spentPct}
+          />
 
           <SpendingBreakdown
             totalSpent={data.totalSpent}
@@ -82,5 +105,3 @@ export const FinancialsScreen: React.FC = () => {
     </View>
   );
 };
-
-export default FinancialsScreen;

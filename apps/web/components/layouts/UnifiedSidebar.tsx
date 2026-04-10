@@ -12,8 +12,6 @@ import { SidebarUserMenu } from './sidebar/SidebarUserMenu';
 import { useBadgeCounts } from './sidebar/SidebarNotifications';
 import { useSidebarState } from './sidebar/useSidebarState';
 
-export type { NavItem, NavSection } from './sidebar/SidebarNavItems';
-
 interface UnifiedSidebarProps {
   userRole: 'homeowner' | 'contractor' | 'admin';
   userInfo?: {

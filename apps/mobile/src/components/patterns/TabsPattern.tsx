@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useState, useCallback, useMemo, memo } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useMemo,
+  memo,
+} from 'react';
 import { View, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
 import { theme } from '../../theme';
 
@@ -21,7 +28,7 @@ const useTabs = () => {
   return context;
 };
 
-export interface TabsProps {
+interface TabsProps {
   children: React.ReactNode;
   defaultValue?: string;
   value?: string;
@@ -29,47 +36,53 @@ export interface TabsProps {
   testID?: string;
 }
 
-export const Tabs = memo<TabsProps>(({ 
-  children, 
-  defaultValue = '', 
-  value: controlledValue,
-  onValueChange,
-  testID 
-}) => {
-  const [internalValue, setInternalValue] = useState(defaultValue);
-  const activeTab = controlledValue ?? internalValue;
+export const Tabs = memo<TabsProps>(
+  ({
+    children,
+    defaultValue = '',
+    value: controlledValue,
+    onValueChange,
+    testID,
+  }) => {
+    const [internalValue, setInternalValue] = useState(defaultValue);
+    const activeTab = controlledValue ?? internalValue;
 
-  const setActiveTab = useCallback((tab: string) => {
-    if (controlledValue === undefined) {
-      setInternalValue(tab);
-    }
-    onValueChange?.(tab);
-  }, [controlledValue, onValueChange]);
+    const setActiveTab = useCallback(
+      (tab: string) => {
+        if (controlledValue === undefined) {
+          setInternalValue(tab);
+        }
+        onValueChange?.(tab);
+      },
+      [controlledValue, onValueChange]
+    );
 
-  const contextValue = useMemo<TabsContextType>(() => ({
-    activeTab,
-    setActiveTab,
-  }), [activeTab, setActiveTab]);
+    const contextValue = useMemo<TabsContextType>(
+      () => ({
+        activeTab,
+        setActiveTab,
+      }),
+      [activeTab, setActiveTab]
+    );
 
-  return (
-    <TabsContext.Provider value={contextValue}>
-      <View testID={testID}>
-        {children}
-      </View>
-    </TabsContext.Provider>
-  );
-});
+    return (
+      <TabsContext.Provider value={contextValue}>
+        <View testID={testID}>{children}</View>
+      </TabsContext.Provider>
+    );
+  }
+);
 
 Tabs.displayName = 'Tabs';
 
 // Tabs List
-export interface TabsListProps {
+interface TabsListProps {
   children: React.ReactNode;
   style?: ViewStyle;
   testID?: string;
 }
 
-export const TabsList = memo<TabsListProps>(({ children, style, testID }) => (
+const TabsList = memo<TabsListProps>(({ children, style, testID }) => (
   <View style={[styles.tabsList, style]} testID={testID}>
     {children}
   </View>
@@ -78,7 +91,7 @@ export const TabsList = memo<TabsListProps>(({ children, style, testID }) => (
 TabsList.displayName = 'Tabs.List';
 
 // Tabs Trigger
-export interface TabsTriggerProps {
+interface TabsTriggerProps {
   children: React.ReactNode;
   value: string;
   style?: ViewStyle;
@@ -86,58 +99,51 @@ export interface TabsTriggerProps {
   testID?: string;
 }
 
-export const TabsTrigger = memo<TabsTriggerProps>(({ 
-  children, 
-  value, 
-  style, 
-  activeStyle,
-  testID 
-}) => {
-  const { activeTab, setActiveTab } = useTabs();
-  const isActive = activeTab === value;
+const TabsTrigger = memo<TabsTriggerProps>(
+  ({ children, value, style, activeStyle, testID }) => {
+    const { activeTab, setActiveTab } = useTabs();
+    const isActive = activeTab === value;
 
-  return (
-    <TouchableOpacity 
-      style={[
-        styles.tabsTrigger, 
-        isActive && styles.tabsTriggerActive,
-        style,
-        isActive && activeStyle
-      ]} 
-      onPress={() => setActiveTab(value)}
-      testID={testID}
-    >
-      {children}
-    </TouchableOpacity>
-  );
-});
+    return (
+      <TouchableOpacity
+        style={[
+          styles.tabsTrigger,
+          isActive && styles.tabsTriggerActive,
+          style,
+          isActive && activeStyle,
+        ]}
+        onPress={() => setActiveTab(value)}
+        testID={testID}
+      >
+        {children}
+      </TouchableOpacity>
+    );
+  }
+);
 
 TabsTrigger.displayName = 'Tabs.Trigger';
 
 // Tabs Content
-export interface TabsContentProps {
+interface TabsContentProps {
   children: React.ReactNode;
   value: string;
   style?: ViewStyle;
   testID?: string;
 }
 
-export const TabsContent = memo<TabsContentProps>(({ 
-  children, 
-  value, 
-  style,
-  testID 
-}) => {
-  const { activeTab } = useTabs();
-  
-  if (activeTab !== value) return null;
+const TabsContent = memo<TabsContentProps>(
+  ({ children, value, style, testID }) => {
+    const { activeTab } = useTabs();
 
-  return (
-    <View style={[styles.tabsContent, style]} testID={testID}>
-      {children}
-    </View>
-  );
-});
+    if (activeTab !== value) return null;
+
+    return (
+      <View style={[styles.tabsContent, style]} testID={testID}>
+        {children}
+      </View>
+    );
+  }
+);
 
 TabsContent.displayName = 'Tabs.Content';
 
@@ -152,8 +158,20 @@ type TabsCompound = React.NamedExoticComponent<TabsProps> & {
 (Tabs as TabsCompound).Content = TabsContent;
 
 const styles = StyleSheet.create({
-  tabsList: { flexDirection: "row", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
-  tabsTrigger: { flex: 1, paddingVertical: 12, paddingHorizontal: 16, alignItems: "center", justifyContent: "center", borderBottomWidth: 2, borderBottomColor: "transparent" },
+  tabsList: {
+    flexDirection: 'row',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
+  },
+  tabsTrigger: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
   tabsTriggerActive: { borderBottomColor: theme.colors.textPrimary },
   tabsContent: { padding: 16 },
 });

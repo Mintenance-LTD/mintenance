@@ -38,53 +38,40 @@ import { cn } from '@/lib/utils';
 
 const cardVariants = cva(
   // Base styles - consistent with design tokens
-  "bg-white rounded-xl transition-all duration-200",
+  'bg-white rounded-xl transition-all duration-200',
   {
     variants: {
       variant: {
         // Default: Standard card with subtle border and shadow
-        default: [
-          "border border-gray-200",
-          "shadow-sm",
-        ],
+        default: ['border border-gray-200', 'shadow-sm'],
         // Elevated: Floating card with larger shadow
-        elevated: [
-          "shadow-lg",
-          "border-0",
-        ],
+        elevated: ['shadow-lg', 'border-0'],
         // Interactive: Clickable card with hover effects
         interactive: [
-          "border border-gray-200",
-          "shadow-sm cursor-pointer",
-          "hover:shadow-md hover:border-ck-blue-300",
-          "active:shadow-sm",
+          'border border-gray-200',
+          'shadow-sm cursor-pointer',
+          'hover:shadow-md hover:border-ck-blue-300',
+          'active:shadow-sm',
         ],
         // Ghost: Minimal card with no border
-        ghost: [
-          "border border-transparent",
-          "shadow-none",
-          "hover:bg-gray-50",
-        ],
+        ghost: ['border border-transparent', 'shadow-none', 'hover:bg-gray-50'],
         // Outline: Emphasized border, no shadow
-        outline: [
-          "border-2 border-gray-200",
-          "shadow-none",
-        ],
+        outline: ['border-2 border-gray-200', 'shadow-none'],
       },
       padding: {
-        none: "p-0",
-        sm: "p-4",     // 16px
-        md: "p-6",     // 24px (default)
-        lg: "p-8",     // 32px
-        xl: "p-10",    // 40px
+        none: 'p-0',
+        sm: 'p-4', // 16px
+        md: 'p-6', // 24px (default)
+        lg: 'p-8', // 32px
+        xl: 'p-10', // 40px
       },
       fullHeight: {
-        true: "h-full",
+        true: 'h-full',
       },
     },
     defaultVariants: {
-      variant: "default",
-      padding: "md",
+      variant: 'default',
+      padding: 'md',
       fullHeight: false,
     },
   }
@@ -94,26 +81,27 @@ const cardVariants = cva(
 // TYPE DEFINITIONS
 // ============================================
 
-export interface CardProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+interface CardProps
+  extends
+    React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof cardVariants> {
   asChild?: boolean;
   href?: string;
 }
 
-export interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
+interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
   actions?: React.ReactNode;
 }
 
-export interface CardTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {
+interface CardTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {
   as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 }
 
-export interface CardDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement> {}
+interface CardDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement> {}
 
-export interface CardContentProps extends React.HTMLAttributes<HTMLDivElement> {}
+interface CardContentProps extends React.HTMLAttributes<HTMLDivElement> {}
 
-export interface CardFooterProps extends React.HTMLAttributes<HTMLDivElement> {
+interface CardFooterProps extends React.HTMLAttributes<HTMLDivElement> {
   align?: 'left' | 'center' | 'right' | 'between';
 }
 
@@ -122,8 +110,23 @@ export interface CardFooterProps extends React.HTMLAttributes<HTMLDivElement> {
 // ============================================
 
 const UnifiedCard = forwardRef<HTMLDivElement, CardProps>(
-  ({ className, variant, padding, fullHeight, href, onClick, children, ...props }, ref) => {
-    const cardClass = cn(cardVariants({ variant, padding, fullHeight }), className);
+  (
+    {
+      className,
+      variant,
+      padding,
+      fullHeight,
+      href,
+      onClick,
+      children,
+      ...props
+    },
+    ref
+  ) => {
+    const cardClass = cn(
+      cardVariants({ variant, padding, fullHeight }),
+      className
+    );
 
     // Handle click if href is provided
     const handleClick = href
@@ -136,25 +139,23 @@ const UnifiedCard = forwardRef<HTMLDivElement, CardProps>(
       : onClick;
 
     // Add role and tabIndex for interactive cards
-    const interactiveProps = (variant === 'interactive' || href || onClick) ? {
-      role: 'button',
-      tabIndex: 0,
-      onClick: handleClick,
-      onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          handleClick?.(e as unknown as React.MouseEvent<HTMLDivElement>);
-        }
-      },
-    } : {};
+    const interactiveProps =
+      variant === 'interactive' || href || onClick
+        ? {
+            role: 'button',
+            tabIndex: 0,
+            onClick: handleClick,
+            onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleClick?.(e as unknown as React.MouseEvent<HTMLDivElement>);
+              }
+            },
+          }
+        : {};
 
     return (
-      <div
-        ref={ref}
-        className={cardClass}
-        {...interactiveProps}
-        {...props}
-      >
+      <div ref={ref} className={cardClass} {...interactiveProps} {...props}>
         {children}
       </div>
     );
@@ -173,19 +174,15 @@ export const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(
       <div
         ref={ref}
         className={cn(
-          "flex items-start justify-between",
-          "pb-4 mb-4 border-b border-gray-100",
+          'flex items-start justify-between',
+          'pb-4 mb-4 border-b border-gray-100',
           className
         )}
         {...props}
       >
-        <div className="flex-1">
-          {children}
-        </div>
+        <div className='flex-1'>{children}</div>
         {actions && (
-          <div className="ml-4 flex items-center gap-2">
-            {actions}
-          </div>
+          <div className='ml-4 flex items-center gap-2'>{actions}</div>
         )}
       </div>
     );
@@ -203,10 +200,7 @@ export const CardTitle = forwardRef<HTMLHeadingElement, CardTitleProps>(
     return (
       <Component
         ref={ref as React.Ref<HTMLHeadingElement>}
-        className={cn(
-          "text-xl font-semibold text-gray-900",
-          className
-        )}
+        className={cn('text-xl font-semibold text-gray-900', className)}
         {...props}
       >
         {children}
@@ -221,22 +215,20 @@ CardTitle.displayName = 'CardTitle';
 // CARD DESCRIPTION
 // ============================================
 
-export const CardDescription = forwardRef<HTMLParagraphElement, CardDescriptionProps>(
-  ({ className, children, ...props }, ref) => {
-    return (
-      <p
-        ref={ref}
-        className={cn(
-          "text-sm text-gray-600 mt-1",
-          className
-        )}
-        {...props}
-      >
-        {children}
-      </p>
-    );
-  }
-);
+export const CardDescription = forwardRef<
+  HTMLParagraphElement,
+  CardDescriptionProps
+>(({ className, children, ...props }, ref) => {
+  return (
+    <p
+      ref={ref}
+      className={cn('text-sm text-gray-600 mt-1', className)}
+      {...props}
+    >
+      {children}
+    </p>
+  );
+});
 
 CardDescription.displayName = 'CardDescription';
 
@@ -247,11 +239,7 @@ CardDescription.displayName = 'CardDescription';
 export const CardContent = forwardRef<HTMLDivElement, CardContentProps>(
   ({ className, children, ...props }, ref) => {
     return (
-      <div
-        ref={ref}
-        className={cn("text-gray-700", className)}
-        {...props}
-      >
+      <div ref={ref} className={cn('text-gray-700', className)} {...props}>
         {children}
       </div>
     );
@@ -277,8 +265,8 @@ export const CardFooter = forwardRef<HTMLDivElement, CardFooterProps>(
       <div
         ref={ref}
         className={cn(
-          "flex items-center gap-3",
-          "pt-4 mt-4 border-t border-gray-100",
+          'flex items-center gap-3',
+          'pt-4 mt-4 border-t border-gray-100',
           alignmentClasses[align],
           className
         )}
@@ -324,12 +312,7 @@ export const CardGrid: React.FC<CardGridProps> = ({
 
   return (
     <div
-      className={cn(
-        'grid',
-        columnClasses[columns],
-        gapClasses[gap],
-        className
-      )}
+      className={cn('grid', columnClasses[columns], gapClasses[gap], className)}
     >
       {children}
     </div>
@@ -361,31 +344,30 @@ export const StatCard: React.FC<StatCardProps> = ({
   icon,
   className,
 }) => {
-  const trendColor = trend?.direction === 'up' ? 'text-emerald-600' : 'text-red-600';
+  const trendColor =
+    trend?.direction === 'up' ? 'text-emerald-600' : 'text-red-600';
   const TrendIcon = trend?.direction === 'up' ? '↑' : '↓';
 
   return (
     <UnifiedCard className={className}>
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="mt-2 text-3xl font-bold text-gray-900">{value}</p>
+      <div className='flex items-start justify-between'>
+        <div className='flex-1'>
+          <p className='text-sm font-medium text-gray-600'>{title}</p>
+          <p className='mt-2 text-3xl font-bold text-gray-900'>{value}</p>
           {description && (
-            <p className="mt-1 text-sm text-gray-500">{description}</p>
+            <p className='mt-1 text-sm text-gray-500'>{description}</p>
           )}
           {trend && (
-            <div className={cn("mt-2 flex items-center gap-1 text-sm", trendColor)}>
+            <div
+              className={cn('mt-2 flex items-center gap-1 text-sm', trendColor)}
+            >
               <span>{TrendIcon}</span>
-              <span className="font-medium">{trend.value}%</span>
-              <span className="text-gray-600">{trend.label}</span>
+              <span className='font-medium'>{trend.value}%</span>
+              <span className='text-gray-600'>{trend.label}</span>
             </div>
           )}
         </div>
-        {icon && (
-          <div className="ml-4 p-3 bg-teal-50 rounded-lg">
-            {icon}
-          </div>
-        )}
+        {icon && <div className='ml-4 p-3 bg-teal-50 rounded-lg'>{icon}</div>}
       </div>
     </UnifiedCard>
   );
@@ -415,17 +397,17 @@ export const ActionCard: React.FC<ActionCardProps> = ({
   className,
 }) => {
   return (
-    <UnifiedCard variant="interactive" className={className}>
+    <UnifiedCard variant='interactive' className={className}>
       <CardContent>
-        <div className="flex items-start">
+        <div className='flex items-start'>
           {icon && (
-            <div className="mr-4 p-3 bg-teal-50 rounded-lg shrink-0">
+            <div className='mr-4 p-3 bg-teal-50 rounded-lg shrink-0'>
               {icon}
             </div>
           )}
-          <div className="flex-1">
-            <h3 className="font-semibold text-gray-900">{title}</h3>
-            <p className="mt-1 text-sm text-gray-600">{description}</p>
+          <div className='flex-1'>
+            <h3 className='font-semibold text-gray-900'>{title}</h3>
+            <p className='mt-1 text-sm text-gray-600'>{description}</p>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -435,7 +417,7 @@ export const ActionCard: React.FC<ActionCardProps> = ({
                   action.onClick();
                 }
               }}
-              className="mt-3 text-sm font-medium text-teal-600 hover:text-teal-700"
+              className='mt-3 text-sm font-medium text-teal-600 hover:text-teal-700'
             >
               {action.label} →
             </button>

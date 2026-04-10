@@ -7,7 +7,7 @@ import { apiProtectionService, ApiRequest, ApiResponse } from './ApiProtection';
 import { logger } from './logger';
 import { config } from '../config/environment';
 
-export interface MiddlewareConfig {
+interface MiddlewareConfig {
   enableProtection: boolean;
   bypassEndpoints: string[];
   maxRetries: number;
@@ -15,7 +15,7 @@ export interface MiddlewareConfig {
   timeoutMs: number;
 }
 
-export interface RequestContext {
+interface RequestContext {
   userId?: string;
   userTier?: string;
   clientId?: string;
@@ -64,14 +64,20 @@ export class ApiMiddleware {
 
     try {
       // Check if protection should be applied
-      if (this.config.enableProtection && !this.shouldBypassProtection(context.endpoint)) {
+      if (
+        this.config.enableProtection &&
+        !this.shouldBypassProtection(context.endpoint)
+      ) {
         const protectionCheck = await this.checkProtection(requestContext);
         if (!protectionCheck.allowed) {
-          throw new ApiProtectionError(protectionCheck.reason || 'Request blocked', {
-            endpoint: context.endpoint,
-            reason: protectionCheck.reason,
-            rateLimitInfo: protectionCheck.rateLimitInfo,
-          });
+          throw new ApiProtectionError(
+            protectionCheck.reason || 'Request blocked',
+            {
+              endpoint: context.endpoint,
+              reason: protectionCheck.reason,
+              rateLimitInfo: protectionCheck.rateLimitInfo,
+            }
+          );
         }
       }
 
@@ -192,17 +198,23 @@ export class ApiMiddleware {
     }
 
     // Don't retry client errors (4xx)
-    if (error.message.includes('400') || error.message.includes('401') ||
-        error.message.includes('403') || error.message.includes('404')) {
+    if (
+      error.message.includes('400') ||
+      error.message.includes('401') ||
+      error.message.includes('403') ||
+      error.message.includes('404')
+    ) {
       return false;
     }
 
     // Retry network errors and server errors (5xx)
-    if (error.message.includes('Network') ||
-        error.message.includes('500') ||
-        error.message.includes('502') ||
-        error.message.includes('503') ||
-        error.message.includes('timeout')) {
+    if (
+      error.message.includes('Network') ||
+      error.message.includes('500') ||
+      error.message.includes('502') ||
+      error.message.includes('503') ||
+      error.message.includes('timeout')
+    ) {
       return true;
     }
 
@@ -215,7 +227,11 @@ export class ApiMiddleware {
   private createTimeoutPromise<T>(endpoint: string): Promise<T> {
     return new Promise((_, reject) => {
       setTimeout(() => {
-        reject(new Error(`Request timeout: ${endpoint} took longer than ${this.config.timeoutMs}ms`));
+        reject(
+          new Error(
+            `Request timeout: ${endpoint} took longer than ${this.config.timeoutMs}ms`
+          )
+        );
       }, this.config.timeoutMs);
     });
   }
@@ -224,7 +240,7 @@ export class ApiMiddleware {
    * Check if endpoint should bypass protection
    */
   private shouldBypassProtection(endpoint: string): boolean {
-    return this.config.bypassEndpoints.some(bypass =>
+    return this.config.bypassEndpoints.some((bypass) =>
       endpoint.includes(bypass)
     );
   }
@@ -313,7 +329,7 @@ export class ApiMiddleware {
    * Delay utility
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -373,7 +389,10 @@ export class ApiProtectionError extends Error {
 export class ProtectedSupabaseClient {
   private middleware: ApiMiddleware;
 
-  constructor(private supabaseClient: unknown, middlewareConfig?: Partial<MiddlewareConfig>) {
+  constructor(
+    private supabaseClient: unknown,
+    middlewareConfig?: Partial<MiddlewareConfig>
+  ) {
     this.middleware = new ApiMiddleware(middlewareConfig);
   }
 
@@ -389,7 +408,17 @@ export class ProtectedSupabaseClient {
     } = {}
   ): Promise<T> {
     return this.middleware.requestMiddleware(
-      () => (this.supabaseClient as { functions: { invoke: (name: string, opts: Record<string, unknown>) => Promise<T> } }).functions.invoke(functionName, options),
+      () =>
+        (
+          this.supabaseClient as {
+            functions: {
+              invoke: (
+                name: string,
+                opts: Record<string, unknown>
+              ) => Promise<T>;
+            };
+          }
+        ).functions.invoke(functionName, options),
       {
         endpoint: `/functions/${functionName}`,
         method: 'POST',
@@ -410,15 +439,12 @@ export class ProtectedSupabaseClient {
       userTier?: string;
     }
   ): Promise<T> {
-    return this.middleware.requestMiddleware(
-      queryFn,
-      {
-        endpoint: `/database/${context.table}`,
-        method: context.operation.toUpperCase(),
-        userId: context.userId,
-        userTier: context.userTier,
-      }
-    );
+    return this.middleware.requestMiddleware(queryFn, {
+      endpoint: `/database/${context.table}`,
+      method: context.operation.toUpperCase(),
+      userId: context.userId,
+      userTier: context.userTier,
+    });
   }
 
   /**

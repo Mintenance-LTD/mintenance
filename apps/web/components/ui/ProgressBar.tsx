@@ -3,7 +3,7 @@ import { theme } from '@/lib/theme';
 
 type ProgressTone = 'primary' | 'success' | 'warning' | 'error' | 'neutral';
 
-export interface ProgressBarProps {
+interface ProgressBarProps {
   /** Current progress value between 0 and 100 */
   value: number;
   /** Optional accessible label shown above the bar */
@@ -34,11 +34,20 @@ export function ProgressBar({
   height = 8,
   style = {},
 }: ProgressBarProps) {
-  const safeValue = Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : 0;
+  const safeValue = Number.isFinite(value)
+    ? Math.min(100, Math.max(0, value))
+    : 0;
   const barColor = toneToColor[tone] ?? toneToColor.primary;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2], ...style }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: theme.spacing[2],
+        ...style,
+      }}
+    >
       {(label || showValue) && (
         <div
           style={{
@@ -54,7 +63,7 @@ export function ProgressBar({
         </div>
       )}
       <div
-        role="progressbar"
+        role='progressbar'
         aria-valuenow={Math.round(safeValue)}
         aria-valuemin={0}
         aria-valuemax={100}
@@ -83,4 +92,3 @@ export function ProgressBar({
     </div>
   );
 }
-

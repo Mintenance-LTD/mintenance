@@ -35,13 +35,18 @@ export const initSentry = () => {
 
   // Set up Sentry functions for logger after initialization
   setSentryFunctions({
-    captureMessage: (message: string, level: string) => { Sentry.captureMessage(message, level as Sentry.SeverityLevel); },
+    captureMessage: (message: string, level: string) => {
+      Sentry.captureMessage(message, level as Sentry.SeverityLevel);
+    },
     captureException: Sentry.captureException,
     addBreadcrumb: Sentry.addBreadcrumb,
   });
 };
 
-export const captureException = (error: Error, extra?: Record<string, unknown>) => {
+export const captureException = (
+  error: Error,
+  extra?: Record<string, unknown>
+) => {
   if (
     !isFeatureEnabled('enableCrashReporting') ||
     config.environment === 'development'
@@ -55,7 +60,7 @@ export const captureException = (error: Error, extra?: Record<string, unknown>) 
   });
 };
 
-export const captureMessage = (
+const captureMessage = (
   message: string,
   level: Sentry.SeverityLevel = 'info'
 ) => {
@@ -76,7 +81,7 @@ export const captureMessage = (
   Sentry.captureMessage(message, level);
 };
 
-export const setUserContext = (user: User | null) => {
+const setUserContext = (user: User | null) => {
   if (user) {
     Sentry.setUser({
       id: user.id,
@@ -110,7 +115,7 @@ export const addBreadcrumb = (
 };
 
 // Performance monitoring utilities
-export const startTransaction = (name: string, op: string) => {
+const startTransaction = (name: string, op: string) => {
   if (
     !isFeatureEnabled('enablePerformanceMonitoring') ||
     config.environment === 'development'
@@ -128,7 +133,7 @@ export const startTransaction = (name: string, op: string) => {
   return { name, op, finish: () => {} }; // Return mock transaction
 };
 
-export const measureAsyncPerformance = async <T>(
+const measureAsyncPerformance = async <T>(
   operation: () => Promise<T>,
   name: string,
   op: string = 'function'
@@ -173,7 +178,7 @@ export const measureAsyncPerformance = async <T>(
 };
 
 // Network request monitoring
-export const trackNetworkRequest = (url: string, method: string) => {
+const trackNetworkRequest = (url: string, method: string) => {
   const requestId = `${method.toUpperCase()}_${url}`;
   const startTime = Date.now();
 
@@ -214,10 +219,7 @@ export const trackNetworkRequest = (url: string, method: string) => {
 };
 
 // Navigation tracking
-export const trackNavigation = (
-  screenName: string,
-  previousScreen?: string
-) => {
+const trackNavigation = (screenName: string, previousScreen?: string) => {
   addBreadcrumb(`Navigated to ${screenName}`, 'navigation', {
     screenName,
     previousScreen,
@@ -239,6 +241,6 @@ export const trackUserAction = (
 };
 
 // App state monitoring
-export const trackAppState = (state: 'active' | 'background' | 'inactive') => {
+const trackAppState = (state: 'active' | 'background' | 'inactive') => {
   addBreadcrumb(`App state changed to ${state}`, 'app.lifecycle');
 };

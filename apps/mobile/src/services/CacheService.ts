@@ -151,7 +151,7 @@ export class CacheService {
     try {
       // Remove from memory
       this.memoryCache.delete(key);
-      this.lruKeys = this.lruKeys.filter(k => k !== key);
+      this.lruKeys = this.lruKeys.filter((k) => k !== key);
 
       // Remove from disk
       await AsyncStorage.removeItem(this.getDiskKey(key));
@@ -173,7 +173,9 @@ export class CacheService {
 
       // Clear disk cache
       const keys = await AsyncStorage.getAllKeys();
-      const cacheKeys = keys.filter(k => k.startsWith(CACHE_CONFIG.CACHE_PREFIX));
+      const cacheKeys = keys.filter((k) =>
+        k.startsWith(CACHE_CONFIG.CACHE_PREFIX)
+      );
       await AsyncStorage.multiRemove(cacheKeys);
 
       // Reset stats
@@ -212,7 +214,8 @@ export class CacheService {
           : 0,
       diskHitRate:
         this.stats.diskHits + this.stats.diskMisses > 0
-          ? (this.stats.diskHits / (this.stats.diskHits + this.stats.diskMisses)) *
+          ? (this.stats.diskHits /
+              (this.stats.diskHits + this.stats.diskMisses)) *
             100
           : 0,
     };
@@ -232,7 +235,7 @@ export class CacheService {
     const results = new Map<string, T>();
 
     await Promise.all(
-      keys.map(async key => {
+      keys.map(async (key) => {
         const value = await this.get<T>(key);
         if (value !== null) {
           results.set(key, value);
@@ -251,7 +254,9 @@ export class CacheService {
     ttl: number = CACHE_CONFIG.DEFAULT_TTL
   ): Promise<void> {
     await Promise.all(
-      Array.from(items.entries()).map(([key, value]) => this.set(key, value, ttl))
+      Array.from(items.entries()).map(([key, value]) =>
+        this.set(key, value, ttl)
+      )
     );
   }
 
@@ -269,7 +274,7 @@ export class CacheService {
     // Check if expired
     if (Date.now() - entry.timestamp > entry.ttl) {
       this.memoryCache.delete(key);
-      this.lruKeys = this.lruKeys.filter(k => k !== key);
+      this.lruKeys = this.lruKeys.filter((k) => k !== key);
       return null;
     }
 
@@ -300,7 +305,7 @@ export class CacheService {
 
   private updateLRU(key: string): void {
     // Remove key if exists
-    this.lruKeys = this.lruKeys.filter(k => k !== key);
+    this.lruKeys = this.lruKeys.filter((k) => k !== key);
 
     // Add to end (most recently used)
     this.lruKeys.push(key);
@@ -373,9 +378,12 @@ export class CacheService {
 
   private startCleanupTimer(): void {
     // Clean up expired entries every 5 minutes
-    setInterval(() => {
-      this.cleanupExpired();
-    }, 1000 * 60 * 5);
+    setInterval(
+      () => {
+        this.cleanupExpired();
+      },
+      1000 * 60 * 5
+    );
   }
 
   private async cleanupExpired(): Promise<void> {
@@ -387,14 +395,16 @@ export class CacheService {
       for (const [key, entry] of this.memoryCache.entries()) {
         if (Date.now() - entry.timestamp > entry.ttl) {
           this.memoryCache.delete(key);
-          this.lruKeys = this.lruKeys.filter(k => k !== key);
+          this.lruKeys = this.lruKeys.filter((k) => k !== key);
           cleaned++;
         }
       }
 
       // Cleanup disk cache
       const keys = await AsyncStorage.getAllKeys();
-      const cacheKeys = keys.filter(k => k.startsWith(CACHE_CONFIG.CACHE_PREFIX));
+      const cacheKeys = keys.filter((k) =>
+        k.startsWith(CACHE_CONFIG.CACHE_PREFIX)
+      );
 
       for (const diskKey of cacheKeys) {
         const json = await AsyncStorage.getItem(diskKey);
@@ -410,7 +420,11 @@ export class CacheService {
       const duration = Date.now() - startTime;
 
       logger.info('Cache cleanup completed', { cleaned, duration });
-      performanceMonitor.recordMetric('cache_cleanup_duration', duration, 'custom');
+      performanceMonitor.recordMetric(
+        'cache_cleanup_duration',
+        duration,
+        'custom'
+      );
     } catch (error) {
       logger.error('Cache cleanup error', error as Error);
     }
@@ -429,12 +443,9 @@ export class CacheService {
   }
 
   private recordCacheHit(layer: 'memory' | 'disk', duration: number): void {
-    performanceMonitor.recordMetric(
-      `cache_hit_${layer}`,
-      duration,
-      'custom',
-      { layer }
-    );
+    performanceMonitor.recordMetric(`cache_hit_${layer}`, duration, 'custom', {
+      layer,
+    });
   }
 
   private recordCacheMiss(duration: number): void {
@@ -455,4 +466,3 @@ export class CacheService {
 
 // Export singleton instance
 export const cacheService = CacheService.getInstance();
-export default cacheService;

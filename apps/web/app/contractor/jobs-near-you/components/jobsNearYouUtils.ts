@@ -8,7 +8,7 @@
  * on skill match, distance, budget, and posting recency.
  */
 
-export interface JobWithDistanceForScoring {
+interface JobWithDistanceForScoring {
   skillMatchCount?: number;
   distance?: number;
   budget?: string;
@@ -49,10 +49,16 @@ export function calculateDistance(
  *  - Budget: up to 20 points (proportional, 1000 baseline)
  *  - Recency: up to 10 points (inversely proportional, 30-day baseline)
  */
-export function calculateRecommendationScore(job: JobWithDistanceForScoring): number {
+export function calculateRecommendationScore(
+  job: JobWithDistanceForScoring
+): number {
   const skillMatchScore = (job.skillMatchCount || 0) * 40;
-  const distanceScore = job.distance ? Math.max(0, 30 * (1 - job.distance / 500)) : 0;
-  const budgetScore = job.budget ? Math.min(20, (parseFloat(job.budget) / 1000) * 20) : 0;
+  const distanceScore = job.distance
+    ? Math.max(0, 30 * (1 - job.distance / 500))
+    : 0;
+  const budgetScore = job.budget
+    ? Math.min(20, (parseFloat(job.budget) / 1000) * 20)
+    : 0;
   const daysSincePosted = Math.floor(
     (Date.now() - new Date(job.created_at).getTime()) / (1000 * 60 * 60 * 24)
   );

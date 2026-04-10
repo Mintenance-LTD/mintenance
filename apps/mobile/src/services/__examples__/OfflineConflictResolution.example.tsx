@@ -8,14 +8,21 @@
 
 import React, { useEffect, useState } from 'react';
 import { View, Text, Button, FlatList, Alert } from 'react-native';
-import { OfflineManager, DataConflict, ConflictResolutionStrategy } from '../OfflineManager';
+import {
+  OfflineManager,
+  DataConflict,
+  ConflictResolutionStrategy,
+} from '../OfflineManager';
 import { logger } from '@mintenance/shared';
 
 // =============================================
 // EXAMPLE 1: Queue Action with Version Tracking
 // =============================================
 
-export const UpdateJobWithVersioning = async (jobId: string, updates: unknown) => {
+export const UpdateJobWithVersioning = async (
+  jobId: string,
+  updates: unknown
+) => {
   try {
     // Queue an update action with version tracking
     const actionId = await OfflineManager.queueAction({
@@ -51,7 +58,10 @@ export const UpdatePaymentInfo = async (paymentId: string, data: unknown) => {
 };
 
 // User preferences: Client always wins
-export const UpdateUserPreferences = async (userId: string, preferences: unknown) => {
+export const UpdateUserPreferences = async (
+  userId: string,
+  preferences: unknown
+) => {
   await OfflineManager.queueAction({
     type: 'UPDATE',
     entity: 'profile',
@@ -117,9 +127,7 @@ export const ConflictResolutionScreen: React.FC = () => {
 
   const renderConflict = ({ item }: { item: DataConflict }) => (
     <View style={{ padding: 16, borderBottomWidth: 1 }}>
-      <Text style={{ fontWeight: 'bold' }}>
-        {item.entity} Conflict
-      </Text>
+      <Text style={{ fontWeight: 'bold' }}>{item.entity} Conflict</Text>
       <Text>Entity ID: {item.entityId}</Text>
       <Text>Strategy: {item.strategy}</Text>
 
@@ -135,16 +143,16 @@ export const ConflictResolutionScreen: React.FC = () => {
 
       <View style={{ flexDirection: 'row', marginTop: 16, gap: 8 }}>
         <Button
-          title="Keep Mine"
+          title='Keep Mine'
           onPress={() => handleResolve(item.id, 'client')}
         />
         <Button
-          title="Use Server"
+          title='Use Server'
           onPress={() => handleResolve(item.id, 'server')}
         />
         {item.strategy === 'merge' && (
           <Button
-            title="Merge Both"
+            title='Merge Both'
             onPress={() => handleResolve(item.id, 'merged')}
           />
         )}
@@ -170,7 +178,7 @@ export const ConflictResolutionScreen: React.FC = () => {
       />
 
       <Button
-        title="Clear Resolved Conflicts"
+        title='Clear Resolved Conflicts'
         onPress={() => OfflineManager.clearResolvedConflicts()}
       />
     </View>
@@ -181,7 +189,7 @@ export const ConflictResolutionScreen: React.FC = () => {
 // EXAMPLE 4: Monitoring Sync Status with Conflicts
 // =============================================
 
-export const useSyncStatus = () => {
+const useSyncStatus = () => {
   const [status, setStatus] = useState<{
     syncStatus: 'syncing' | 'synced' | 'error' | 'pending' | 'conflict';
     pendingCount: number;
@@ -194,14 +202,18 @@ export const useSyncStatus = () => {
 
   useEffect(() => {
     // Monitor sync status
-    const unsubscribeSync = OfflineManager.onSyncStatusChange((syncStatus, pendingCount) => {
-      setStatus(prev => ({ ...prev, syncStatus, pendingCount }));
-    });
+    const unsubscribeSync = OfflineManager.onSyncStatusChange(
+      (syncStatus, pendingCount) => {
+        setStatus((prev) => ({ ...prev, syncStatus, pendingCount }));
+      }
+    );
 
     // Monitor conflicts
-    const unsubscribeConflicts = OfflineManager.onConflictDetected((conflicts) => {
-      setStatus(prev => ({ ...prev, conflictCount: conflicts.length }));
-    });
+    const unsubscribeConflicts = OfflineManager.onConflictDetected(
+      (conflicts) => {
+        setStatus((prev) => ({ ...prev, conflictCount: conflicts.length }));
+      }
+    );
 
     return () => {
       unsubscribeSync();
@@ -213,7 +225,7 @@ export const useSyncStatus = () => {
 };
 
 // Usage in a component
-export const SyncStatusIndicator: React.FC = () => {
+const SyncStatusIndicator: React.FC = () => {
   const { syncStatus, pendingCount, conflictCount } = useSyncStatus();
 
   return (
@@ -231,7 +243,7 @@ export const SyncStatusIndicator: React.FC = () => {
 // EXAMPLE 5: Advanced Merge with Custom Logic
 // =============================================
 
-export const resolveJobConflictWithCustomMerge = async (
+const resolveJobConflictWithCustomMerge = async (
   conflictId: string,
   clientData: unknown,
   serverData: unknown
@@ -240,28 +252,32 @@ export const resolveJobConflictWithCustomMerge = async (
   const mergedData = {
     ...serverData,
     // Keep client's title if changed
-    title: clientData.title !== serverData.title
-      ? clientData.title
-      : serverData.title,
+    title:
+      clientData.title !== serverData.title
+        ? clientData.title
+        : serverData.title,
     // Merge photos from both versions
-    photos: Array.from(new Set([
-      ...(serverData.photos || []),
-      ...(clientData.photos || []),
-    ])),
+    photos: Array.from(
+      new Set([...(serverData.photos || []), ...(clientData.photos || [])])
+    ),
     // Keep higher budget
     budget: Math.max(clientData.budget || 0, serverData.budget || 0),
     // Server wins for status
     status: serverData.status,
   };
 
-  await OfflineManager.resolveConflictManually(conflictId, 'merged', mergedData);
+  await OfflineManager.resolveConflictManually(
+    conflictId,
+    'merged',
+    mergedData
+  );
 };
 
 // =============================================
 // EXAMPLE 6: Batch Conflict Resolution
 // =============================================
 
-export const resolveBatchConflicts = async (
+const resolveBatchConflicts = async (
   strategy: 'all-client' | 'all-server' | 'smart'
 ) => {
   const conflicts = await OfflineManager.getConflicts();
@@ -278,9 +294,10 @@ export const resolveBatchConflicts = async (
 
       case 'smart':
         // Use last-write-wins logic
-        const resolution = conflict.clientTimestamp > conflict.serverTimestamp
-          ? 'client'
-          : 'server';
+        const resolution =
+          conflict.clientTimestamp > conflict.serverTimestamp
+            ? 'client'
+            : 'server';
         await OfflineManager.resolveConflictManually(conflict.id, resolution);
         break;
     }
@@ -291,7 +308,7 @@ export const resolveBatchConflicts = async (
 // EXAMPLE 7: Testing Conflict Scenarios
 // =============================================
 
-export const simulateConflict = async () => {
+const simulateConflict = async () => {
   const jobId = 'test-job-123';
 
   // 1. User edits job offline

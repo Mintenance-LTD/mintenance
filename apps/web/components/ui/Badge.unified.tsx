@@ -1,9 +1,9 @@
 /**
  * Badge Component - Compatibility Wrapper
- * 
+ *
  * Wraps the shared Badge component to maintain backward compatibility
  * with existing web app code while migrating to shared components.
- * 
+ *
  * This wrapper will be removed once all files are migrated.
  */
 
@@ -14,8 +14,15 @@ import { cn } from '@/lib/utils';
 import { Icon } from './Icon';
 
 // Extend shared Badge props for backward compatibility
-export type BadgeVariant = 'default' | 'primary' | 'success' | 'warning' | 'error' | 'info' | 'neutral';
-export type BadgeStatus =
+type BadgeVariant =
+  | 'default'
+  | 'primary'
+  | 'success'
+  | 'warning'
+  | 'error'
+  | 'info'
+  | 'neutral';
+type BadgeStatus =
   | 'completed'
   | 'in_progress'
   | 'pending'
@@ -35,9 +42,9 @@ export type BadgeStatus =
   | 'active'
   | 'inactive'
   | 'failed';
-export type BadgeSize = 'xs' | 'sm' | 'md' | 'lg';
+type BadgeSize = 'xs' | 'sm' | 'md' | 'lg';
 
-export interface BadgeProps extends Omit<WebBadgeProps, 'variant' | 'size'> {
+interface BadgeProps extends Omit<WebBadgeProps, 'variant' | 'size'> {
   variant?: BadgeVariant;
   status?: BadgeStatus; // Auto-maps to variant with predefined colors
   size?: BadgeSize;
@@ -118,17 +125,30 @@ export function Badge({
   ...props
 }: BadgeProps) {
   // Determine effective variant
-  const effectiveVariant = status ? statusToVariant(status) : mapVariant(variant);
+  const effectiveVariant = status
+    ? statusToVariant(status)
+    : mapVariant(variant);
   const mappedSize = mapSize(size);
 
   // Render icon if provided
-  const iconElement = (icon || withDot) ? (
-    <Icon
-      name={withDot ? 'dot' : icon!}
-      size={withDot ? 8 : (size === 'xs' ? 10 : size === 'sm' ? 12 : size === 'md' ? 14 : 16)}
-      color="currentColor"
-    />
-  ) : undefined;
+  const iconElement =
+    icon || withDot ? (
+      <Icon
+        name={withDot ? 'dot' : icon!}
+        size={
+          withDot
+            ? 8
+            : size === 'xs'
+              ? 10
+              : size === 'sm'
+                ? 12
+                : size === 'md'
+                  ? 14
+                  : 16
+        }
+        color='currentColor'
+      />
+    ) : undefined;
 
   return (
     <SharedBadge
@@ -152,8 +172,16 @@ export function Badge({
 /**
  * Badge Subcomponents for common use cases
  */
-export function StatusBadge({ status, size = 'md' }: { status: BadgeStatus; size?: BadgeSize }) {
-  const label = status.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+export function StatusBadge({
+  status,
+  size = 'md',
+}: {
+  status: BadgeStatus;
+  size?: BadgeSize;
+}) {
+  const label = status
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (l) => l.toUpperCase());
   return (
     <Badge status={status} size={size}>
       {label}
@@ -161,7 +189,15 @@ export function StatusBadge({ status, size = 'md' }: { status: BadgeStatus; size
   );
 }
 
-export function CountBadge({ count, variant = 'primary', size = 'sm' }: { count: number; variant?: BadgeVariant; size?: BadgeSize }) {
+export function CountBadge({
+  count,
+  variant = 'primary',
+  size = 'sm',
+}: {
+  count: number;
+  variant?: BadgeVariant;
+  size?: BadgeSize;
+}) {
   if (count === 0) return null;
   return (
     <Badge variant={variant} size={size}>

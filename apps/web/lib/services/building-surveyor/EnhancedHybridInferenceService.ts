@@ -13,29 +13,43 @@
 import { logger } from '@mintenance/shared';
 import { EnhancedBayesianFusionService } from './EnhancedBayesianFusionService';
 import type { EnhancedFusionOutput } from './EnhancedBayesianFusionService';
-import type { AssessmentContext, Phase1BuildingAssessment, RoboflowDetection } from './types';
+import type {
+  AssessmentContext,
+  Phase1BuildingAssessment,
+  RoboflowDetection,
+} from './types';
 
 // Re-export sub-module utilities for external consumers
-export { runYOLOInference, runSAM3Inference, runGPT4Inference, processModelResult } from './fusion/modelRunners';
-export type { YOLOOutput, SAM3Output, GPT4Output } from './fusion/modelRunners';
-export { prepareFusionInput, generateFinalAssessment, getTimelineForUrgency, getRecommendationForSeverity } from './fusion/fusionPreparation';
+export {
+  runYOLOInference,
+  runSAM3Inference,
+  runGPT4Inference,
+  processModelResult,
+} from './fusion/modelRunners';
+export {
+  prepareFusionInput,
+  generateFinalAssessment,
+  getTimelineForUrgency,
+  getRecommendationForSeverity,
+} from './fusion/fusionPreparation';
 export {
   checkServiceAvailability,
   determineRoute,
   recordRoutingDecision,
   updatePerformanceMetrics,
   createInitialAvailability,
-  createInitialMetrics
+  createInitialMetrics,
 } from './fusion/serviceTracking';
-export type { ServiceAvailabilityMap, PerformanceMetrics, ServiceStatus } from './fusion/serviceTracking';
-
 import {
   runYOLOInference,
   runSAM3Inference,
   runGPT4Inference,
-  processModelResult
+  processModelResult,
 } from './fusion/modelRunners';
-import { prepareFusionInput, generateFinalAssessment } from './fusion/fusionPreparation';
+import {
+  prepareFusionInput,
+  generateFinalAssessment,
+} from './fusion/fusionPreparation';
 import {
   checkServiceAvailability,
   determineRoute,
@@ -43,14 +57,20 @@ import {
   updatePerformanceMetrics,
   createInitialAvailability,
   createInitialMetrics,
-  MAX_FAILURES_BEFORE_DISABLE
+  MAX_FAILURES_BEFORE_DISABLE,
 } from './fusion/serviceTracking';
-import type { ServiceAvailabilityMap, PerformanceMetrics } from './fusion/serviceTracking';
+import type {
+  ServiceAvailabilityMap,
+  PerformanceMetrics,
+} from './fusion/serviceTracking';
 
 /**
  * Enhanced routing options with SAM3 always included
  */
-export type EnhancedInferenceRoute = 'yolo_sam3' | 'gpt4_sam3' | 'three_way_fusion';
+export type EnhancedInferenceRoute =
+  | 'yolo_sam3'
+  | 'gpt4_sam3'
+  | 'three_way_fusion';
 
 /**
  * Enhanced result with three-way fusion data
@@ -92,8 +112,10 @@ export interface EnhancedHybridInferenceResult {
 export class EnhancedHybridInferenceService {
   private static readonly SERVICE_NAME = 'EnhancedHybridInferenceService';
 
-  private static serviceAvailability: ServiceAvailabilityMap = createInitialAvailability();
-  private static performanceMetrics: PerformanceMetrics = createInitialMetrics();
+  private static serviceAvailability: ServiceAvailabilityMap =
+    createInitialAvailability();
+  private static performanceMetrics: PerformanceMetrics =
+    createInitialMetrics();
 
   /**
    * Main entry point: Three-way fusion assessment
@@ -109,7 +131,7 @@ export class EnhancedHybridInferenceService {
       logger.info('Starting enhanced three-way fusion assessment', {
         service: this.SERVICE_NAME,
         imageCount: imageUrls.length,
-        context
+        context,
       });
 
       // Step 1: Check service availability
@@ -120,26 +142,54 @@ export class EnhancedHybridInferenceService {
       const [yoloResult, sam3Result, gpt4Result] = await Promise.allSettled([
         runYOLOInference(imageUrls, context),
         runSAM3Inference(imageUrls),
-        runGPT4Inference(imageUrls, context)
+        runGPT4Inference(imageUrls, context),
       ]);
       const parallelExecutionMs = Date.now() - parallelStartTime;
 
       // Step 3: Process results and handle failures
-      const yoloOutput = processModelResult(yoloResult, 'yolo', fallbacksUsed, this.serviceAvailability, MAX_FAILURES_BEFORE_DISABLE);
-      const sam3Output = processModelResult(sam3Result, 'sam3', fallbacksUsed, this.serviceAvailability, MAX_FAILURES_BEFORE_DISABLE);
-      const gpt4Output = processModelResult(gpt4Result, 'gpt4', fallbacksUsed, this.serviceAvailability, MAX_FAILURES_BEFORE_DISABLE);
+      const yoloOutput = processModelResult(
+        yoloResult,
+        'yolo',
+        fallbacksUsed,
+        this.serviceAvailability,
+        MAX_FAILURES_BEFORE_DISABLE
+      );
+      const sam3Output = processModelResult(
+        sam3Result,
+        'sam3',
+        fallbacksUsed,
+        this.serviceAvailability,
+        MAX_FAILURES_BEFORE_DISABLE
+      );
+      const gpt4Output = processModelResult(
+        gpt4Result,
+        'gpt4',
+        fallbacksUsed,
+        this.serviceAvailability,
+        MAX_FAILURES_BEFORE_DISABLE
+      );
 
       // Step 4: Prepare fusion input
-      const fusionInput = prepareFusionInput(yoloOutput, sam3Output, gpt4Output);
+      const fusionInput = prepareFusionInput(
+        yoloOutput,
+        sam3Output,
+        gpt4Output
+      );
 
       // Step 5: Perform three-way Bayesian fusion
       const fusionStartTime = Date.now();
-      const fusionOutput = EnhancedBayesianFusionService.fuseThreeWayEvidence(fusionInput);
+      const fusionOutput =
+        EnhancedBayesianFusionService.fuseThreeWayEvidence(fusionInput);
       const fusionMs = Date.now() - fusionStartTime;
 
       // Step 6: Generate final assessment
       const assessment = generateFinalAssessment(
-        fusionOutput, yoloOutput, sam3Output, gpt4Output, imageUrls, context
+        fusionOutput,
+        yoloOutput,
+        sam3Output,
+        gpt4Output,
+        imageUrls,
+        context
       );
 
       // Step 7-8: Agreement score and route
@@ -165,7 +215,7 @@ export class EnhancedHybridInferenceService {
         parallelExecutionMs,
         fusionMs,
         agreementScore,
-        fallbacksUsed
+        fallbacksUsed,
       };
 
       // Step 10-11: Record and update metrics
@@ -178,13 +228,13 @@ export class EnhancedHybridInferenceService {
         agreementScore,
         uncertaintyLevel: fusionOutput.uncertaintyLevel,
         totalInferenceMs: result.totalInferenceMs,
-        fallbacksUsed
+        fallbacksUsed,
       });
 
       return result;
     } catch (error) {
       logger.error('Enhanced hybrid inference failed', error, {
-        service: this.SERVICE_NAME
+        service: this.SERVICE_NAME,
       });
       throw error;
     }

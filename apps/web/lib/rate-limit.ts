@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 
-export interface RateLimitConfig {
+interface RateLimitConfig {
   interval: number; // Time window in milliseconds
   uniqueTokenPerInterval: number; // Max requests per interval
   identifier?: (req: NextRequest) => string; // Custom identifier function
@@ -23,14 +23,17 @@ interface RateLimitStore {
 const rateLimitStore = new Map<string, RateLimitStore>();
 
 // Cleanup old entries every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, value] of rateLimitStore.entries()) {
-    if (now > value.resetTime) {
-      rateLimitStore.delete(key);
+setInterval(
+  () => {
+    const now = Date.now();
+    for (const [key, value] of rateLimitStore.entries()) {
+      if (now > value.resetTime) {
+        rateLimitStore.delete(key);
+      }
     }
-  }
-}, 5 * 60 * 1000);
+  },
+  5 * 60 * 1000
+);
 
 /**
  * Default identifier: IP address or user ID
@@ -78,7 +81,9 @@ export async function checkRateLimit(
   }
 
   // Remove requests outside the sliding window
-  entry.requests = entry.requests.filter(timestamp => timestamp > windowStart);
+  entry.requests = entry.requests.filter(
+    (timestamp) => timestamp > windowStart
+  );
 
   // Check if limit exceeded
   if (entry.requests.length >= config.uniqueTokenPerInterval) {
@@ -139,9 +144,18 @@ export function withRateLimit(
 
     // Add rate limit headers to response
     const response = await handler(req);
-    response.headers.set('X-RateLimit-Limit', config.uniqueTokenPerInterval.toString());
-    response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
-    response.headers.set('X-RateLimit-Reset', rateLimitResult.resetTime.toString());
+    response.headers.set(
+      'X-RateLimit-Limit',
+      config.uniqueTokenPerInterval.toString()
+    );
+    response.headers.set(
+      'X-RateLimit-Remaining',
+      rateLimitResult.remaining.toString()
+    );
+    response.headers.set(
+      'X-RateLimit-Reset',
+      rateLimitResult.resetTime.toString()
+    );
 
     return response;
   };

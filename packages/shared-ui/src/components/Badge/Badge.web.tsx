@@ -1,6 +1,6 @@
 /**
  * Badge Component - Web Implementation
- * 
+ *
  * Web-specific Badge component using design tokens
  */
 'use client';
@@ -10,7 +10,7 @@ import { cn } from '../../utils/cn';
 import type { WebBadgeProps, BadgeVariant, BadgeSize } from './types';
 /**
  * Badge Component for Web
- * 
+ *
  * Uses design tokens for consistent styling across platforms
  */
 export function Badge({
@@ -86,10 +86,17 @@ export function Badge({
       className={cn('badge', `badge-${variant}`, className)}
       style={badgeStyles}
       aria-label={ariaLabel}
-      role="status"
+      role='status'
     >
       {(showIcon || icon) && icon && (
-        <span style={{ marginRight: webTokens.spacing.xs, display: 'inline-flex', alignItems: 'center' }} aria-hidden="true">
+        <span
+          style={{
+            marginRight: webTokens.spacing.xs,
+            display: 'inline-flex',
+            alignItems: 'center',
+          }}
+          aria-hidden='true'
+        >
           {icon}
         </span>
       )}
@@ -97,4 +104,3 @@ export function Badge({
     </span>
   );
 }
-export default Badge;

@@ -37,7 +37,10 @@ export const RateBookingScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const handleSubmit = async () => {
     if (rating === 0) {
-      toast.error('Rating required', 'Please select a star rating before submitting.');
+      toast.error(
+        'Rating required',
+        'Please select a star rating before submitting.'
+      );
       return;
     }
 
@@ -61,28 +64,49 @@ export const RateBookingScreen: React.FC<Props> = ({ navigation, route }) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.surface} />
+      <StatusBar
+        barStyle='dark-content'
+        backgroundColor={theme.colors.surface}
+      />
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons
+            name='arrow-back'
+            size={24}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Rate Booking</Text>
         <View style={styles.headerButton} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps='handled'
+      >
         <View style={styles.card}>
           <Text style={styles.cardTitle}>How was your experience?</Text>
-          <Text style={styles.cardSubtitle}>Your feedback helps us improve the service quality.</Text>
+          <Text style={styles.cardSubtitle}>
+            Your feedback helps us improve the service quality.
+          </Text>
 
           {/* Star Rating */}
           <View style={styles.starsRow}>
             {[1, 2, 3, 4, 5].map((star) => (
-              <TouchableOpacity key={star} onPress={() => setRating(star)} style={styles.starButton}>
+              <TouchableOpacity
+                key={star}
+                onPress={() => setRating(star)}
+                style={styles.starButton}
+              >
                 <Ionicons
                   name={star <= rating ? 'star' : 'star-outline'}
                   size={40}
-                  color={star <= rating ? theme.colors.accent : theme.colors.border}
+                  color={
+                    star <= rating ? theme.colors.accent : theme.colors.border
+                  }
                 />
               </TouchableOpacity>
             ))}
@@ -98,18 +122,21 @@ export const RateBookingScreen: React.FC<Props> = ({ navigation, route }) => {
             style={styles.commentInput}
             multiline
             numberOfLines={4}
-            placeholder="Share your experience with this contractor..."
+            placeholder='Share your experience with this contractor...'
             placeholderTextColor={theme.colors.textTertiary}
             value={comment}
             onChangeText={setComment}
             maxLength={500}
-            textAlignVertical="top"
+            textAlignVertical='top'
           />
           <Text style={styles.charCount}>{comment.length}/500</Text>
         </View>
 
         <TouchableOpacity
-          style={[styles.submitButton, (loading || rating === 0) && styles.submitButtonDisabled]}
+          style={[
+            styles.submitButton,
+            (loading || rating === 0) && styles.submitButtonDisabled,
+          ]}
           onPress={handleSubmit}
           disabled={loading || rating === 0}
         >
@@ -135,7 +162,11 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
   },
   headerButton: { padding: 8, width: 40 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
   content: { padding: 16 },
   card: {
     backgroundColor: theme.colors.surface,
@@ -143,12 +174,26 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 20,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 4 },
-  cardSubtitle: { fontSize: 14, color: theme.colors.textSecondary, marginBottom: 20 },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: 4,
+  },
+  cardSubtitle: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginBottom: 20,
+  },
   starsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -192,7 +237,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   submitButtonDisabled: { opacity: 0.5 },
-  submitButtonText: { color: theme.colors.textInverse, fontSize: 16, fontWeight: '700' },
+  submitButtonText: {
+    color: theme.colors.textInverse,
+    fontSize: 16,
+    fontWeight: '700',
+  },
 });
-
-export default RateBookingScreen;

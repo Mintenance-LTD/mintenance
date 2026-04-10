@@ -4,7 +4,7 @@ import { useOfflineQuery, useOfflineMutation } from './useOfflineQuery';
 import { Job } from '@mintenance/types';
 
 // Query hooks
-export const useJobs = (limit: number = 20, offset: number = 0) => {
+const useJobs = (limit: number = 20, offset: number = 0) => {
   return useOfflineQuery({
     queryKey: queryKeys.jobs.list(`limit:${limit},offset:${offset}`),
     queryFn: () => JobService.getJobs(undefined, limit),
@@ -12,7 +12,7 @@ export const useJobs = (limit: number = 20, offset: number = 0) => {
   });
 };
 
-export const useAvailableJobs = () => {
+const useAvailableJobs = () => {
   return useOfflineQuery({
     queryKey: queryKeys.jobs.list('available'),
     queryFn: () => JobService.getAvailableJobs(),
@@ -20,7 +20,7 @@ export const useAvailableJobs = () => {
   });
 };
 
-export const useJobsByHomeowner = (homeownerId: string) => {
+const useJobsByHomeowner = (homeownerId: string) => {
   return useOfflineQuery({
     queryKey: queryKeys.jobs.list(`homeowner:${homeownerId}`),
     queryFn: () => JobService.getJobsByHomeowner(homeownerId),
@@ -28,7 +28,7 @@ export const useJobsByHomeowner = (homeownerId: string) => {
   });
 };
 
-export const useJobsByStatus = (status: Job['status'], userId?: string) => {
+const useJobsByStatus = (status: Job['status'], userId?: string) => {
   return useOfflineQuery({
     queryKey: queryKeys.jobs.list(`status:${status},user:${userId || 'all'}`),
     queryFn: () => JobService.getJobsByStatus(status, userId),
@@ -56,7 +56,7 @@ export const useJobBids = (jobId: string) => {
   });
 };
 
-export const useSearchJobs = (query: string, limit: number = 20) => {
+const useSearchJobs = (query: string, limit: number = 20) => {
   return useOfflineQuery({
     queryKey: queryKeys.search.jobs(query),
     queryFn: () => JobService.searchJobs(query, {}, limit),
@@ -129,27 +129,28 @@ export const useCreateJob = () => {
     actionType: 'CREATE',
     getQueryKey: (variables) =>
       queryKeys.jobs.list(`homeowner:${variables.homeownerId}`),
-    optimisticUpdate: (variables) => ({
-      id: `temp_job_${Date.now()}`,
-      title: variables.title.trim(),
-      description: variables.description.trim(),
-      location: variables.location.trim(),
-      budget: variables.budget,
-      homeownerId: variables.homeownerId,
-      contractorId: null,
-      category: variables.category || 'handyman',
-      subcategory: variables.subcategory,
-      priority: variables.priority || 'medium',
-      status: 'posted' as const,
-      photos: variables.photos || [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      bids: [],
-    }) as unknown as Job,
+    optimisticUpdate: (variables) =>
+      ({
+        id: `temp_job_${Date.now()}`,
+        title: variables.title.trim(),
+        description: variables.description.trim(),
+        location: variables.location.trim(),
+        budget: variables.budget,
+        homeownerId: variables.homeownerId,
+        contractorId: null,
+        category: variables.category || 'handyman',
+        subcategory: variables.subcategory,
+        priority: variables.priority || 'medium',
+        status: 'posted' as const,
+        photos: variables.photos || [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        bids: [],
+      }) as unknown as Job,
   });
 };
 
-export const useUpdateJobStatus = () => {
+const useUpdateJobStatus = () => {
   return useOfflineMutation({
     mutationFn: ({
       jobId,
@@ -166,7 +167,7 @@ export const useUpdateJobStatus = () => {
   });
 };
 
-export const useStartJob = () => {
+const useStartJob = () => {
   return useOfflineMutation({
     mutationFn: (jobId: string) => JobService.startJob(jobId),
     entity: 'job',
@@ -176,7 +177,7 @@ export const useStartJob = () => {
   });
 };
 
-export const useCompleteJob = () => {
+const useCompleteJob = () => {
   return useOfflineMutation({
     mutationFn: (jobId: string) => JobService.completeJob(jobId),
     entity: 'job',
@@ -186,7 +187,7 @@ export const useCompleteJob = () => {
   });
 };
 
-export const useSubmitBid = () => {
+const useSubmitBid = () => {
   return useOfflineMutation({
     mutationFn: JobService.submitBid,
     entity: 'bid',

@@ -68,7 +68,7 @@ export interface GeneratorMessage {
       >;
 }
 
-export interface GeneratorResult {
+interface GeneratorResult {
   content: string;
   model: string;
   usage?: {

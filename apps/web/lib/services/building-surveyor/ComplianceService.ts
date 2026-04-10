@@ -1,13 +1,13 @@
 /**
  * Compliance Service
- * 
+ *
  * Handles building regulation compliance checking and scoring
  * for UK building standards.
  */
 
 import type { ComplianceSeverity } from './types';
 
-export interface ComplianceIssue {
+interface ComplianceIssue {
   issue: string;
   regulation?: string;
   severity: ComplianceSeverity;
@@ -15,7 +15,7 @@ export interface ComplianceIssue {
   recommendation: string;
 }
 
-export interface ComplianceResult {
+interface ComplianceResult {
   complianceIssues: ComplianceIssue[];
   requiresProfessionalInspection: boolean;
   complianceScore: number;
@@ -25,19 +25,22 @@ export class ComplianceService {
   /**
    * Process compliance issues from AI response
    */
-  static processCompliance(issues: Array<{
-    issue?: string;
-    regulation?: string;
-    severity?: string;
-    description?: string;
-    recommendation?: string;
-  }>): ComplianceResult {
+  static processCompliance(
+    issues: Array<{
+      issue?: string;
+      regulation?: string;
+      severity?: string;
+      description?: string;
+      recommendation?: string;
+    }>
+  ): ComplianceResult {
     const processedIssues = issues.map((issue) => ({
       issue: issue.issue || 'unknown_issue',
       regulation: issue.regulation,
       severity: this.normalizeComplianceSeverity(issue.severity),
       description: issue.description || 'Compliance issue detected',
-      recommendation: issue.recommendation || 'Professional inspection recommended',
+      recommendation:
+        issue.recommendation || 'Professional inspection recommended',
     }));
 
     const complianceScore = this.calculateComplianceScore(processedIssues);
@@ -52,7 +55,9 @@ export class ComplianceService {
   /**
    * Normalize compliance severity
    */
-  private static normalizeComplianceSeverity(severity: string | undefined | null): ComplianceSeverity {
+  private static normalizeComplianceSeverity(
+    severity: string | undefined | null
+  ): ComplianceSeverity {
     const valid: ComplianceSeverity[] = ['info', 'warning', 'violation'];
     if (severity && valid.includes(severity as ComplianceSeverity)) {
       return severity as ComplianceSeverity;
@@ -94,4 +99,3 @@ export class ComplianceService {
     return Math.max(0, Math.min(100, score));
   }
 }
-

@@ -7,7 +7,6 @@
 
 // Base skeleton components
 export { default as Skeleton } from '../Skeleton';
-export type { SkeletonProps } from '../Skeleton';
 export {
   SkeletonGroup,
   SkeletonText,
@@ -19,23 +18,11 @@ export {
 
 // Content-shaped skeletons
 export { JobCardSkeleton } from './JobCardSkeleton';
-export type { JobCardSkeletonProps } from './JobCardSkeleton';
-
 export { ContractorCardSkeleton } from './ContractorCardSkeleton';
-export type { ContractorCardSkeletonProps } from './ContractorCardSkeleton';
-
 export { DashboardSkeleton } from './DashboardSkeleton';
-export type { DashboardSkeletonProps } from './DashboardSkeleton';
-
 export { MessageListSkeleton } from './MessageListSkeleton';
-export type { MessageListSkeletonProps } from './MessageListSkeleton';
-
 export { FormSkeleton } from './FormSkeleton';
-export type { FormSkeletonProps } from './FormSkeleton';
-
 export { TableSkeleton } from './TableSkeleton';
-export type { TableSkeletonProps } from './TableSkeleton';
-
 // Performance-optimized skeletons for code splitting
 export { MapSkeleton } from './MapSkeleton';
 export { ChartSkeleton } from './ChartSkeleton';

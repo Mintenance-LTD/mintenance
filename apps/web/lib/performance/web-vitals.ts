@@ -10,7 +10,7 @@
 import { logger } from '@mintenance/shared';
 
 /** Shape of a Web Vital metric reported by Next.js */
-export interface WebVitalMetric {
+interface WebVitalMetric {
   /** Metric name (CLS, FID, FCP, LCP, TTFB, INP) */
   name: string;
   /** Metric value */
@@ -28,12 +28,12 @@ export interface WebVitalMetric {
  * Based on https://web.dev/vitals/#core-web-vitals-thresholds
  */
 const POOR_THRESHOLDS: Record<string, number> = {
-  FCP: 1800,  // First Contentful Paint (ms)
-  LCP: 2500,  // Largest Contentful Paint (ms)
-  CLS: 0.1,   // Cumulative Layout Shift (unitless)
-  FID: 100,   // First Input Delay (ms)
-  TTFB: 600,  // Time to First Byte (ms)
-  INP: 200,   // Interaction to Next Paint (ms)
+  FCP: 1800, // First Contentful Paint (ms)
+  LCP: 2500, // Largest Contentful Paint (ms)
+  CLS: 0.1, // Cumulative Layout Shift (unitless)
+  FID: 100, // First Input Delay (ms)
+  TTFB: 600, // Time to First Byte (ms)
+  INP: 200, // Interaction to Next Paint (ms)
 };
 
 /**
@@ -82,7 +82,7 @@ function logMetricToConsole(metric: WebVitalMetric): void {
   // eslint-disable-next-line no-console -- intentional dev-only diagnostic output
   console.log(
     `%c[Web Vitals] ${metric.name}: ${metric.value.toFixed(2)} (${label})`,
-    `color: ${colour}; font-weight: bold;`,
+    `color: ${colour}; font-weight: bold;`
   );
 }
 
@@ -99,7 +99,8 @@ function warnOnPoorMetric(metric: WebVitalMetric): void {
       name: metric.name,
       value: metric.value,
       threshold,
-      page: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
+      page:
+        typeof window !== 'undefined' ? window.location.pathname : 'unknown',
       service: 'web-vitals',
     });
   }

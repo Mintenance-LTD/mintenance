@@ -5,7 +5,7 @@ import { logger } from './logger';
 // SERVICE HEALTH MONITORING TYPES
 // ============================================================================
 
-export interface ServiceHealthStatus {
+interface ServiceHealthStatus {
   serviceName: string;
   status: 'healthy' | 'degraded' | 'unhealthy' | 'unknown';
   lastCheck: string;
@@ -20,7 +20,7 @@ export interface ServiceHealthStatus {
   };
 }
 
-export interface ServiceHealthCheck {
+interface ServiceHealthCheck {
   serviceName: string;
   healthCheckUrl?: string;
   timeout: number;
@@ -28,7 +28,7 @@ export interface ServiceHealthCheck {
   dependencies?: string[];
 }
 
-export interface HealthThresholds {
+interface HealthThresholds {
   responseTimeWarning: number; // ms
   responseTimeError: number; // ms
   errorRateWarning: number; // percentage
@@ -36,7 +36,7 @@ export interface HealthThresholds {
   uptimeWarning: number; // percentage
 }
 
-export interface SystemHealthReport {
+interface SystemHealthReport {
   overall: 'healthy' | 'degraded' | 'unhealthy';
   timestamp: string;
   services: ServiceHealthStatus[];

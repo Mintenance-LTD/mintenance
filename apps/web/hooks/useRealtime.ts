@@ -12,11 +12,11 @@ const activeChannels = new Set<string>();
 /**
  * Payload for realtime database changes
  */
-export type RealtimePayload<
+type RealtimePayload<
   T extends Record<string, unknown> = Record<string, unknown>,
 > = RealtimePostgresChangesPayload<T>;
 
-export interface RealtimeConfig<
+interface RealtimeConfig<
   T extends Record<string, unknown> = Record<string, unknown>,
 > {
   table: string;
@@ -28,7 +28,7 @@ export interface RealtimeConfig<
   onError?: (error: Error) => void;
 }
 
-export interface RealtimeStatus {
+interface RealtimeStatus {
   connected: boolean;
   error: string | null;
   lastUpdate: Date | null;

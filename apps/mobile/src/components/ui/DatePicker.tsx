@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+} from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
@@ -22,7 +28,11 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   const [show, setShow] = useState(false);
 
   const formatted = value
-    ? value.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    ? value.toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
     : null;
 
   return (
@@ -31,20 +41,28 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       <TouchableOpacity
         style={styles.button}
         onPress={() => setShow(true)}
-        accessibilityRole="button"
+        accessibilityRole='button'
         accessibilityLabel={`${label}: ${formatted ?? placeholder}. Double tap to change`}
       >
-        <Ionicons name="calendar-outline" size={18} color={theme.colors.textPrimary} />
+        <Ionicons
+          name='calendar-outline'
+          size={18}
+          color={theme.colors.textPrimary}
+        />
         <Text style={[styles.valueText, !formatted && styles.placeholder]}>
           {formatted ?? placeholder}
         </Text>
-        <Ionicons name="chevron-down" size={16} color={theme.colors.textTertiary} />
+        <Ionicons
+          name='chevron-down'
+          size={16}
+          color={theme.colors.textTertiary}
+        />
       </TouchableOpacity>
 
       {show && (
         <DateTimePicker
           value={value ?? new Date()}
-          mode="date"
+          mode='date'
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           minimumDate={minimumDate}
           onChange={(_, date) => {
@@ -85,5 +103,3 @@ const styles = StyleSheet.create({
     color: theme.colors.textTertiary,
   },
 });
-
-export default DatePicker;

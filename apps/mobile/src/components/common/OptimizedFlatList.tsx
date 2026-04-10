@@ -120,7 +120,7 @@ function OptimizedFlatListComponent<T = unknown>(
           changed: info.changed.length,
           firstItem: info.viewableItems[0]?.index,
           lastItem: info.viewableItems[info.viewableItems.length - 1]?.index,
-          service: 'ui'
+          service: 'ui',
         });
       }
       onViewableItemsChanged?.(info);
@@ -146,8 +146,10 @@ function OptimizedFlatListComponent<T = unknown>(
 
     return {
       removeClippedSubviews: removeClippedSubviews ?? isAndroid,
-      maxToRenderPerBatch: maxToRenderPerBatch ?? (isLowEndDevice ? 5 : batchSize),
-      updateCellsBatchingPeriod: updateCellsBatchingPeriod ?? (isLowEndDevice ? 100 : 50),
+      maxToRenderPerBatch:
+        maxToRenderPerBatch ?? (isLowEndDevice ? 5 : batchSize),
+      updateCellsBatchingPeriod:
+        updateCellsBatchingPeriod ?? (isLowEndDevice ? 100 : 50),
       initialNumToRender: initialNumToRender ?? (isLowEndDevice ? 5 : 10),
       windowSize: windowSize ?? (isLowEndDevice ? 5 : windowMultiplier),
       maintainVisibleContentPosition:
@@ -177,10 +179,15 @@ function OptimizedFlatListComponent<T = unknown>(
         dataLength: data.length,
         estimatedItemSize,
         ...platformOptimizations,
-        service: 'ui'
+        service: 'ui',
       });
     }
-  }, [debugPerformance, data?.length, estimatedItemSize, platformOptimizations]);
+  }, [
+    debugPerformance,
+    data?.length,
+    estimatedItemSize,
+    platformOptimizations,
+  ]);
 
   return (
     <FlatList
@@ -198,16 +205,18 @@ function OptimizedFlatListComponent<T = unknown>(
       {...platformOptimizations}
       {...restProps}
       scrollEventThrottle={16}
-      decelerationRate="fast"
+      decelerationRate='fast'
       disableVirtualization={false}
       directionalLockEnabled={true}
-      scrollPerfTag="OptimizedFlatList"
+      scrollPerfTag='OptimizedFlatList'
     />
   );
 }
 
 // Export with forwardRef support
-export const OptimizedFlatList = React.forwardRef(OptimizedFlatListComponent) as <T = unknown>(
+const OptimizedFlatList = React.forwardRef(OptimizedFlatListComponent) as <
+  T = unknown,
+>(
   props: OptimizedFlatListProps<T> & { ref?: React.Ref<FlatList<T>> }
 ) => React.ReactElement;
 
@@ -224,15 +233,12 @@ export function useOptimizedRenderItem<T>(
 }
 
 // Helper to create memoized item separators
-export function useItemSeparator(
+function useItemSeparator(
   height: number = 1,
   color: string = theme.colors.border
 ): React.ComponentType<Record<string, never>> {
   return useMemo(
-    () =>
-      React.memo(() => (
-        <View style={{ height, backgroundColor: color }} />
-      )),
+    () => React.memo(() => <View style={{ height, backgroundColor: color }} />),
     [height, color]
   );
 }
@@ -243,5 +249,3 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.border,
   },
 });
-
-export default OptimizedFlatList;

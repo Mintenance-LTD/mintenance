@@ -15,7 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
 
-export interface StickyBottomCTAProps {
+interface StickyBottomCTAProps {
   price?: number;
   priceLabel?: string;
   buttonText: string;
@@ -27,66 +27,65 @@ export interface StickyBottomCTAProps {
   testID?: string;
 }
 
-export const StickyBottomCTA: React.FC<StickyBottomCTAProps> = memo(({
-  price,
-  priceLabel,
-  buttonText,
-  onPress,
-  loading = false,
-  disabled = false,
-  secondaryText,
-  style,
-  testID,
-}) => {
-  const insets = useSafeAreaInsets();
-  const bottomPadding = Math.max(insets.bottom, 20);
+export const StickyBottomCTA: React.FC<StickyBottomCTAProps> = memo(
+  ({
+    price,
+    priceLabel,
+    buttonText,
+    onPress,
+    loading = false,
+    disabled = false,
+    secondaryText,
+    style,
+    testID,
+  }) => {
+    const insets = useSafeAreaInsets();
+    const bottomPadding = Math.max(insets.bottom, 20);
 
-  return (
-    <View
-      style={[
-        styles.container,
-        { paddingBottom: bottomPadding },
-        style,
-      ]}
-      testID={testID}
-    >
-      {price !== undefined && (
-        <View style={styles.priceSection}>
-          <Text style={styles.priceText}>
-            {'\u00A3'}{price.toLocaleString()}
-          </Text>
-          {priceLabel && (
-            <Text style={styles.priceLabel}>{priceLabel}</Text>
+    return (
+      <View
+        style={[styles.container, { paddingBottom: bottomPadding }, style]}
+        testID={testID}
+      >
+        {price !== undefined && (
+          <View style={styles.priceSection}>
+            <Text style={styles.priceText}>
+              {'\u00A3'}
+              {price.toLocaleString()}
+            </Text>
+            {priceLabel && <Text style={styles.priceLabel}>{priceLabel}</Text>}
+          </View>
+        )}
+
+        <View
+          style={price !== undefined ? styles.buttonHalf : styles.buttonFull}
+        >
+          <TouchableOpacity
+            style={[styles.button, disabled && styles.buttonDisabled]}
+            onPress={onPress}
+            disabled={disabled || loading}
+            activeOpacity={0.8}
+            accessibilityRole='button'
+            accessibilityLabel={buttonText}
+            testID={`${testID}-button`}
+          >
+            {loading ? (
+              <ActivityIndicator
+                size='small'
+                color={theme.colors.textInverse}
+              />
+            ) : (
+              <Text style={styles.buttonText}>{buttonText}</Text>
+            )}
+          </TouchableOpacity>
+          {secondaryText && (
+            <Text style={styles.secondaryText}>{secondaryText}</Text>
           )}
         </View>
-      )}
-
-      <View style={price !== undefined ? styles.buttonHalf : styles.buttonFull}>
-        <TouchableOpacity
-          style={[
-            styles.button,
-            disabled && styles.buttonDisabled,
-          ]}
-          onPress={onPress}
-          disabled={disabled || loading}
-          activeOpacity={0.8}
-          accessibilityRole="button"
-          accessibilityLabel={buttonText}
-          testID={`${testID}-button`}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color={theme.colors.textInverse} />
-          ) : (
-            <Text style={styles.buttonText}>{buttonText}</Text>
-          )}
-        </TouchableOpacity>
-        {secondaryText && (
-          <Text style={styles.secondaryText}>{secondaryText}</Text>
-        )}
       </View>
-    </View>
-  );
-});
+    );
+  }
+);
 
 StickyBottomCTA.displayName = 'StickyBottomCTA';
 
@@ -104,7 +103,12 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: theme.colors.border,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 4 },
     }),
   },
@@ -153,5 +157,3 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
-
-export default StickyBottomCTA;

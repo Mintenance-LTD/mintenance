@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import { Icon } from './Icon';
 import { theme } from '@/lib/theme';
 
-export interface ModalProps {
+interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
@@ -13,13 +13,13 @@ export interface ModalProps {
   showCloseButton?: boolean;
 }
 
-export function Modal({ 
-  isOpen, 
-  onClose, 
-  title, 
-  children, 
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  children,
   maxWidth = 800,
-  showCloseButton = true 
+  showCloseButton = true,
 }: ModalProps) {
   // Handle ESC key to close modal
   useEffect(() => {
@@ -67,9 +67,9 @@ export function Modal({
       }}
     >
       <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-title"
+        role='dialog'
+        aria-modal='true'
+        aria-labelledby='modal-title'
         style={{
           backgroundColor: theme.colors.surface,
           borderRadius: theme.borderRadius.xl,
@@ -94,7 +94,7 @@ export function Modal({
           }}
         >
           <h2
-            id="modal-title"
+            id='modal-title'
             style={{
               margin: 0,
               fontSize: theme.typography.fontSize['2xl'],
@@ -120,16 +120,17 @@ export function Modal({
                 transition: 'all 0.2s',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                e.currentTarget.style.backgroundColor =
+                  theme.colors.backgroundSecondary;
                 e.currentTarget.style.color = theme.colors.textPrimary;
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
                 e.currentTarget.style.color = theme.colors.textSecondary;
               }}
-              aria-label="Close modal"
+              aria-label='Close modal'
             >
-              <Icon name="x" size={24} />
+              <Icon name='x' size={24} />
             </button>
           )}
         </div>
@@ -148,4 +149,3 @@ export function Modal({
     </div>
   );
 }
-

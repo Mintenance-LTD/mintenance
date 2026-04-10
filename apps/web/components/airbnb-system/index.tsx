@@ -12,20 +12,6 @@
 
 import '@/styles/airbnb-system.css';
 
-export type {
-  ListingCardProps,
-  SearchBarProps,
-  SearchParams,
-  ContractorCardProps,
-  PhotoGalleryProps,
-  RatingStarsProps,
-  BadgeProps,
-  ButtonProps,
-  InputProps,
-  ModalProps,
-  CarouselProps,
-} from './types';
-
 export { ListingCard } from './ListingCard';
 export { SearchBar } from './SearchBar';
 export { ContractorCard } from './ContractorCard';

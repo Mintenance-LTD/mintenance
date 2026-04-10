@@ -14,12 +14,12 @@ import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { ABTestMonitoringService } from './ABTestMonitoringService';
 
-export type AlertSeverity = 'critical' | 'warning' | 'info';
+type AlertSeverity = 'critical' | 'warning' | 'info';
 
 /**
  * Alert metadata structure
  */
-export interface AlertMetadata {
+interface AlertMetadata {
   totalOutcomes?: number;
   violations?: Array<{
     stratum: string;
@@ -33,7 +33,7 @@ export interface AlertMetadata {
   [key: string]: unknown; // Allow additional metadata fields
 }
 
-export interface Alert {
+interface Alert {
   id?: string;
   experimentId: string;
   severity: AlertSeverity;
@@ -48,7 +48,7 @@ export interface Alert {
   createdAt: string;
 }
 
-export interface AlertCheckResult {
+interface AlertCheckResult {
   hasAlerts: boolean;
   alerts: Alert[];
   criticalCount: number;

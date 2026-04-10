@@ -17,11 +17,9 @@
 
 // Re-export types from dedicated types file
 export type {
-  ContractorSubscriptionTier,
   HomeownerSubscriptionTier,
   SubscriptionTier,
   UserRole,
-  FeatureLimit,
   FeatureDefinition,
 } from './feature-access-types';
 
@@ -73,7 +71,7 @@ export const FEATURE_CATEGORIES = [
   'Team',
 ] as const;
 
-export type FeatureCategory = (typeof FEATURE_CATEGORIES)[number];
+type FeatureCategory = (typeof FEATURE_CATEGORIES)[number];
 
 // =====================================================
 // UTILITY FUNCTIONS

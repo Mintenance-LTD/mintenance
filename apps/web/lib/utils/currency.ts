@@ -3,9 +3,9 @@
  * Supports multiple currencies with fluid conversion
  */
 
-export type CurrencyCode = 'GBP' | 'USD' | 'EUR';
+type CurrencyCode = 'GBP' | 'USD' | 'EUR';
 
-export interface CurrencyConfig {
+interface CurrencyConfig {
   code: CurrencyCode;
   symbol: string;
   name: string;
@@ -44,7 +44,7 @@ function detectCurrencyFromLocation(): CurrencyCode {
 
   // Try to detect from browser locale
   const locale = navigator.language || navigator.languages?.[0] || 'en-GB';
-  
+
   // Check locale for currency hints
   if (locale.includes('GB') || locale.includes('UK')) {
     return 'GBP';
@@ -52,24 +52,30 @@ function detectCurrencyFromLocation(): CurrencyCode {
   if (locale.includes('US') || locale.includes('en-US')) {
     return 'USD';
   }
-  if (locale.includes('EU') || locale.includes('FR') || locale.includes('DE') || locale.includes('IT') || locale.includes('ES')) {
+  if (
+    locale.includes('EU') ||
+    locale.includes('FR') ||
+    locale.includes('DE') ||
+    locale.includes('IT') ||
+    locale.includes('ES')
+  ) {
     return 'EUR';
   }
 
   // Try to detect from timezone
   try {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    
+
     // UK timezones
     if (timezone.includes('London') || timezone.includes('Europe/London')) {
       return 'GBP';
     }
-    
+
     // US timezones
     if (timezone.includes('America/') || timezone.includes('US/')) {
       return 'USD';
     }
-    
+
     // European timezones
     if (timezone.includes('Europe/')) {
       // Most European countries use EUR, but UK uses GBP
@@ -92,12 +98,12 @@ function detectCurrencyFromLocation(): CurrencyCode {
  */
 export function getCurrentCurrency(): CurrencyCode {
   if (typeof window === 'undefined') return DEFAULT_CURRENCY;
-  
+
   const stored = localStorage.getItem('preferredCurrency');
   if (stored && stored in CURRENCIES) {
     return stored as CurrencyCode;
   }
-  
+
   // Always default to GBP for British app (no auto-detection)
   return DEFAULT_CURRENCY;
 }
@@ -134,13 +140,13 @@ export function formatCurrency(
 
   // Build output
   const parts: string[] = [];
-  
+
   if (options?.showSymbol !== false) {
     parts.push(config.symbol);
   }
-  
+
   parts.push(formatted);
-  
+
   if (options?.showCode) {
     parts.push(config.code);
   }
@@ -170,7 +176,10 @@ export function parseCurrency(value: string): number {
 /**
  * Format currency without trailing zeros
  */
-export function formatCurrencyCompact(amount: number, currency?: CurrencyCode): string {
+export function formatCurrencyCompact(
+  amount: number,
+  currency?: CurrencyCode
+): string {
   const formatted = formatCurrency(amount, currency);
   return formatted.replace(/\.00$/, '');
 }
@@ -182,4 +191,3 @@ export function getCurrencySymbol(currency?: CurrencyCode): string {
   const code = currency || getCurrentCurrency();
   return CURRENCIES[code].symbol;
 }
-

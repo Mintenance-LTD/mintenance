@@ -11,7 +11,7 @@ import type { LucideIcon } from 'lucide-react';
  * Uses Lucide React for professional, consistent iconography
  */
 
-export interface IconProps {
+interface IconProps {
   name: string;
   size?: number;
   color?: string;

@@ -17,7 +17,7 @@ export interface Document {
   contract_status?: string;
 }
 
-export interface CategoryOption {
+interface CategoryOption {
   value: string;
   label: string;
 }
