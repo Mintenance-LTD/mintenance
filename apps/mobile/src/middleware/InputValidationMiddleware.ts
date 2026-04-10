@@ -5,6 +5,7 @@
  * Prevents SQL injection, XSS, and other injection attacks
  */
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../utils/logger';
 
 // Validation rules and patterns
@@ -395,32 +396,106 @@ export class InputValidationMiddleware {
     return { isValid, sanitized, errors };
   }
 
+  // In-memory rate limit store (fallback when AsyncStorage is unavailable)
+  private static memoryStore: Map<
+    string,
+    { attempts: number; windowStart: number }
+  > = new Map();
+
   /**
-   * Rate limiting validation
+   * Rate limiting validation with persistent storage via AsyncStorage.
+   * Falls back to in-memory storage if AsyncStorage read/write fails.
    */
-  static validateRateLimit(
+  static async validateRateLimit(
     identifier: string,
     maxAttempts: number = 5,
     windowMs: number = 60000
-  ): { allowed: boolean; remainingAttempts: number; resetTime: number } {
-    // This should be implemented with a proper rate limiting store (Redis, memory cache, etc.)
-    // For now, using a simple in-memory implementation
+  ): Promise<{
+    allowed: boolean;
+    remainingAttempts: number;
+    resetTime: number;
+  }> {
     const now = Date.now();
-    const key = `rate_limit_${identifier}`;
+    const storageKey = `rate_limit_${identifier}`;
 
-    // TODO(GH-PENDING): Implement persistent rate limiting storage.
-    // NOTE: Current in-memory rate limit resets on app restart.
-    // Use expo-sqlite to persist the rate limit window across restarts.
-    // Issue: "[Mobile Security] Implement persistent rate limiting in InputValidationMiddleware"
-    logger.warn(
-      'Rate limiting should be implemented with persistent storage for production'
-    );
+    let attempts = 0;
+    let windowStart = now;
+    let usedPersistent = false;
 
-    return {
-      allowed: true,
-      remainingAttempts: maxAttempts - 1,
-      resetTime: now + windowMs,
-    };
+    // Try to load from AsyncStorage first
+    try {
+      const stored = await AsyncStorage.getItem(storageKey);
+      if (stored) {
+        const parsed = JSON.parse(stored) as {
+          attempts: number;
+          windowStart: number;
+        };
+        if (parsed.windowStart && parsed.attempts !== undefined) {
+          windowStart = parsed.windowStart;
+          attempts = parsed.attempts;
+          usedPersistent = true;
+        }
+      }
+    } catch {
+      // AsyncStorage failed; fall back to in-memory store
+      const memEntry = this.memoryStore.get(storageKey);
+      if (memEntry) {
+        windowStart = memEntry.windowStart;
+        attempts = memEntry.attempts;
+      }
+    }
+
+    // Reset window if expired
+    if (now - windowStart >= windowMs) {
+      attempts = 0;
+      windowStart = now;
+    }
+
+    // Increment attempt count
+    attempts += 1;
+    const allowed = attempts <= maxAttempts;
+    const remainingAttempts = Math.max(0, maxAttempts - attempts);
+    const resetTime = windowStart + windowMs;
+
+    // Persist updated counters
+    const entry = { attempts, windowStart };
+    try {
+      await AsyncStorage.setItem(storageKey, JSON.stringify(entry));
+      usedPersistent = true;
+    } catch {
+      // Persist to memory as fallback
+      this.memoryStore.set(storageKey, entry);
+      if (!usedPersistent) {
+        logger.warn(
+          'InputValidation',
+          'AsyncStorage unavailable for rate limiting; using in-memory fallback.'
+        );
+      }
+    }
+
+    if (!allowed) {
+      logger.warn('InputValidation', 'Rate limit exceeded', {
+        identifier,
+        attempts,
+        maxAttempts,
+        resetTime,
+      });
+    }
+
+    return { allowed, remainingAttempts, resetTime };
+  }
+
+  /**
+   * Clear rate limit entry for an identifier (e.g., after successful auth).
+   */
+  static async clearRateLimit(identifier: string): Promise<void> {
+    const storageKey = `rate_limit_${identifier}`;
+    this.memoryStore.delete(storageKey);
+    try {
+      await AsyncStorage.removeItem(storageKey);
+    } catch {
+      // Best-effort cleanup
+    }
   }
 }
 

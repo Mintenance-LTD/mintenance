@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { formatMoney } from '@/lib/utils/currency';
 import { AirbnbSearchBar } from './AirbnbSearchBar';
 import Link from 'next/link';
@@ -38,46 +39,45 @@ export function DashboardWithAirbnbSearch({
     upcomingAppointments = [],
     recommendations = [],
   } = data;
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [loadingProperties, setLoadingProperties] = useState(true);
-  const [portfolioAccess, setPortfolioAccess] =
-    useState<PortfolioAccessState | null>(null);
-  const [loadingPortfolioAccess, setLoadingPortfolioAccess] = useState(true);
-
-  // Fetch properties for the search bar
-  useEffect(() => {
-    fetch('/api/properties')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.properties) {
-          setProperties(data.properties);
-        }
-      })
-      .catch((error) => {
+  const { data: properties = [], isLoading: loadingProperties } = useQuery<
+    Property[]
+  >({
+    queryKey: ['dashboard', 'properties'],
+    queryFn: async () => {
+      const res = await fetch('/api/properties');
+      const data = await res.json();
+      return data.properties ?? [];
+    },
+    meta: {
+      onError: (error: unknown) => {
         logger.error('Failed to fetch properties', { error });
-      })
-      .finally(() => setLoadingProperties(false));
-  }, []);
+      },
+    },
+  });
 
-  useEffect(() => {
-    fetch('/api/portfolio/access')
-      .then((res) => res.json())
-      .then((result) => {
+  const { data: portfolioAccess = null, isLoading: loadingPortfolioAccess } =
+    useQuery<PortfolioAccessState | null>({
+      queryKey: ['dashboard', 'portfolioAccess'],
+      queryFn: async () => {
+        const res = await fetch('/api/portfolio/access');
+        const result = await res.json();
         if (result && typeof result.allowed === 'boolean') {
-          setPortfolioAccess({
+          return {
             allowed: result.allowed,
             requiresSubscription: Boolean(result.requiresSubscription),
             subscriptionStatus: String(result.subscriptionStatus || 'none'),
             message: result.message ?? null,
             upgradeUrl: result.upgradeUrl || '/homeowner/subscription',
-          });
+          };
         }
-      })
-      .catch((error) => {
-        logger.error('Failed to fetch portfolio access status', { error });
-      })
-      .finally(() => setLoadingPortfolioAccess(false));
-  }, []);
+        return null;
+      },
+      meta: {
+        onError: (error: unknown) => {
+          logger.error('Failed to fetch portfolio access status', { error });
+        },
+      },
+    });
 
   // upcomingAppointments now provided via props from real appointments table
 

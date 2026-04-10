@@ -22,25 +22,34 @@ const CONFIG = {
   ENVIRONMENT: process.env.EXPO_PUBLIC_ENVIRONMENT || 'development',
 
   // API Configuration
-  API_BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL || 'https://demo.supabase.co/rest/v1',
+  API_BASE_URL:
+    process.env.EXPO_PUBLIC_API_BASE_URL || 'https://demo.supabase.co/rest/v1',
   API_TIMEOUT: parseInt(process.env.EXPO_PUBLIC_API_TIMEOUT || '30000'),
 
   // Feature Flags
-  ENABLE_BIOMETRIC_AUTH: process.env.EXPO_PUBLIC_ENABLE_BIOMETRIC_AUTH === 'true',
-  ENABLE_PUSH_NOTIFICATIONS: process.env.EXPO_PUBLIC_ENABLE_PUSH_NOTIFICATIONS === 'true',
+  ENABLE_BIOMETRIC_AUTH:
+    process.env.EXPO_PUBLIC_ENABLE_BIOMETRIC_AUTH === 'true',
+  ENABLE_PUSH_NOTIFICATIONS:
+    process.env.EXPO_PUBLIC_ENABLE_PUSH_NOTIFICATIONS === 'true',
   ENABLE_ANALYTICS: process.env.EXPO_PUBLIC_ENABLE_ANALYTICS === 'true',
 } as const;
 
 // Validate required configuration
 const validateEnvironment = (): void => {
   const required = ['SUPABASE_URL', 'SUPABASE_ANON_KEY'];
-  const missing = required.filter(key => !CONFIG[key as keyof typeof CONFIG] || CONFIG[key as keyof typeof CONFIG] === '');
+  const missing = required.filter(
+    (key) =>
+      !CONFIG[key as keyof typeof CONFIG] ||
+      CONFIG[key as keyof typeof CONFIG] === ''
+  );
 
   if (missing.length > 0) {
     const { logger } = require('../utils/logger');
     logger.warn('Missing required environment variables', { missing });
     if (CONFIG.ENVIRONMENT === 'production') {
-      throw new Error(`Production deployment missing required environment variables: ${missing.join(', ')}`);
+      throw new Error(
+        `Production deployment missing required environment variables: ${missing.join(', ')}`
+      );
     }
   }
 };
@@ -59,12 +68,19 @@ const validateSecurityConfig = (): void => {
 
   // Check for exposed dashboard URLs
   if (CONFIG.SUPABASE_URL.includes('/dashboard/')) {
-    logger.error('SECURITY: Supabase dashboard URL detected - use project API URL');
-    throw new Error('Invalid Supabase URL - use project API URL, not dashboard URL');
+    logger.error(
+      'SECURITY: Supabase dashboard URL detected - use project API URL'
+    );
+    throw new Error(
+      'Invalid Supabase URL - use project API URL, not dashboard URL'
+    );
   }
 
   // Validate anon key format (basic JWT structure check)
-  if (CONFIG.SUPABASE_ANON_KEY !== '' && !CONFIG.SUPABASE_ANON_KEY.includes('.')) {
+  if (
+    CONFIG.SUPABASE_ANON_KEY !== '' &&
+    !CONFIG.SUPABASE_ANON_KEY.includes('.')
+  ) {
     logger.error('SECURITY: Invalid Supabase anon key format');
     if (CONFIG.ENVIRONMENT === 'production') {
       throw new Error('Invalid Supabase anon key format');
@@ -76,29 +92,56 @@ const validateSecurityConfig = (): void => {
 validateEnvironment();
 validateSecurityConfig();
 
-// Server-side credential proxy functions
-// These should make requests to your backend API, not expose keys directly
+// Credential access functions
+// In Expo apps, public credentials are provided via EXPO_PUBLIC_ environment variables.
+// These are embedded at build time and are appropriate for client-safe keys
+// (e.g., restricted Google Maps keys, publishable Stripe keys).
 export const getServerCredentials = {
   /**
-   * Get Google Maps API key from server
-   * ⚠️ This should be implemented as a server endpoint that returns restricted keys
+   * Get Google Maps API key from environment
+   * The key should have platform restrictions (iOS/Android bundle ID) configured
+   * in the Google Cloud Console to prevent unauthorized usage.
    */
   async getGoogleMapsKey(): Promise<string> {
-    // TODO: Implement server endpoint /api/credentials/google-maps
-    // For now, return a restricted key or implement domain restrictions
-    const { logger } = require('../utils/logger');
-    logger.warn('SECURITY: Google Maps key should be fetched from server with domain restrictions');
-    return 'GOOGLE_MAPS_KEY_FROM_SERVER';
+    const key = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+    if (!key) {
+      const { logger } = require('../utils/logger');
+      logger.warn(
+        'CredentialAccess',
+        'EXPO_PUBLIC_GOOGLE_MAPS_API_KEY is not set. Google Maps features will be unavailable.'
+      );
+    }
+    return key;
   },
 
   /**
-   * Get third-party service credentials from server
-   * ⚠️ Never expose these on the client side
+   * Get third-party service credentials from environment
+   * Looks up EXPO_PUBLIC_{SERVICE}_API_KEY and EXPO_PUBLIC_{SERVICE}_BASE_URL.
+   * Only client-safe (publishable/restricted) keys should be stored in EXPO_PUBLIC_ vars.
    */
-  async getServiceCredentials(service: string): Promise<{ token: string; baseUrl: string }> {
-    // TODO: Implement server endpoint /api/credentials/:service
-    throw new Error(`Server credential endpoint not implemented for ${service}`);
-  }
+  async getServiceCredentials(
+    service: string
+  ): Promise<{ token: string; baseUrl: string }> {
+    const envPrefix = `EXPO_PUBLIC_${service.toUpperCase().replace(/-/g, '_')}`;
+    const token =
+      (process.env as Record<string, string | undefined>)[
+        `${envPrefix}_API_KEY`
+      ] || '';
+    const baseUrl =
+      (process.env as Record<string, string | undefined>)[
+        `${envPrefix}_BASE_URL`
+      ] || '';
+
+    if (!token) {
+      const { logger } = require('../utils/logger');
+      logger.warn(
+        'CredentialAccess',
+        `Environment variable ${envPrefix}_API_KEY is not set for service "${service}".`
+      );
+    }
+
+    return { token, baseUrl };
+  },
 };
 
 // Log security status
@@ -108,7 +151,7 @@ logger.info('Security Configuration initialized', {
   supabaseConfigured: CONFIG.SUPABASE_URL !== '',
   stripeConfigured: CONFIG.STRIPE_PUBLISHABLE_KEY !== '',
   analyticsEnabled: CONFIG.ENABLE_ANALYTICS,
-  biometricEnabled: CONFIG.ENABLE_BIOMETRIC_AUTH
+  biometricEnabled: CONFIG.ENABLE_BIOMETRIC_AUTH,
 });
 
 export default CONFIG;

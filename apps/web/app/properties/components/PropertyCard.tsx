@@ -1,11 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
-import { MoreVertical } from 'lucide-react';
+import { MoreVertical, Eye, Pencil, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { formatMoney } from '@/lib/utils/currency';
 
@@ -26,16 +26,68 @@ interface PropertyCardProps {
 
 export function PropertyCard({ property }: PropertyCardProps) {
   const router = useRouter();
-  const hasPhotos = property.photos && property.photos.length > 0;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const firstPhoto = property.photos?.[0] || null;
   const totalJobs = property.activeJobs + property.completedJobs;
   const isActive = property.activeJobs > 0 || property.completedJobs > 0;
 
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+        setConfirmDelete(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpen]);
+
+  // Close menu on Escape
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMenuOpen(false);
+        setConfirmDelete(false);
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [menuOpen]);
+
   const handleEllipsisClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // TODO: Open menu
+    setMenuOpen((prev) => !prev);
+    setConfirmDelete(false);
   };
+
+  const handleDelete = useCallback(
+    async (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!confirmDelete) {
+        setConfirmDelete(true);
+        return;
+      }
+      try {
+        const res = await fetch(`/api/properties/${property.id}`, {
+          method: 'DELETE',
+        });
+        if (res.ok) {
+          router.refresh();
+        }
+      } finally {
+        setMenuOpen(false);
+        setConfirmDelete(false);
+      }
+    },
+    [confirmDelete, property.id, router]
+  );
 
   const handleCardClick = () => {
     router.push(`/properties/${property.id}`);
@@ -45,50 +97,79 @@ export function PropertyCard({ property }: PropertyCardProps) {
     <Link
       href={`/properties/${property.id}`}
       onClick={handleCardClick}
-      className="block bg-white rounded-xl border border-gray-200 p-6 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-gray-300 relative"
+      className='block bg-white rounded-xl border border-gray-200 p-6 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-gray-300 relative'
     >
       {/* Card Layout: Image on left, content on right */}
-      <div style={{ display: 'flex', gap: theme.spacing[4], alignItems: 'flex-start' }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: theme.spacing[4],
+          alignItems: 'flex-start',
+        }}
+      >
         {/* Image Section - Left Side (Square) */}
         <div style={{ flexShrink: 0 }}>
           {firstPhoto ? (
-            <div className="rounded-lg overflow-hidden border border-gray-200 bg-gray-50 relative" style={{ width: '150px', height: '150px' }}>
+            <div
+              className='rounded-lg overflow-hidden border border-gray-200 bg-gray-50 relative'
+              style={{ width: '150px', height: '150px' }}
+            >
               <Image
                 src={firstPhoto}
                 alt={property.property_name || 'Property'}
                 width={150}
                 height={150}
-                className="object-cover"
+                className='object-cover'
                 style={{
                   display: 'block',
                   width: '100%',
-                  height: '100%'
+                  height: '100%',
                 }}
-                loading="lazy"
+                loading='lazy'
               />
             </div>
           ) : (
-            <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center" style={{ width: '150px', height: '150px' }}>
-              <Icon name="info" size={48} color={theme.colors.textSecondary} />
+            <div
+              className='rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center'
+              style={{ width: '150px', height: '150px' }}
+            >
+              <Icon name='info' size={48} color={theme.colors.textSecondary} />
             </div>
           )}
         </div>
 
         {/* Content Section - Right Side */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: theme.spacing[2], position: 'relative' }}>
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: theme.spacing[2],
+            position: 'relative',
+          }}
+        >
           {/* Top Row: Title, Tag, Ellipsis */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: theme.spacing[2] }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              gap: theme.spacing[2],
+            }}
+          >
             <div style={{ flex: 1 }}>
-              <h3 className="text-xl font-bold text-gray-900 tracking-tight mb-1">
+              <h3 className='text-xl font-bold text-gray-900 tracking-tight mb-1'>
                 {property.property_name || 'Unnamed Property'}
               </h3>
-              <p style={{
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.textSecondary,
-                lineHeight: 1.5,
-                margin: 0,
-                marginBottom: theme.spacing[1],
-              }}>
+              <p
+                style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.textSecondary,
+                  lineHeight: 1.5,
+                  margin: 0,
+                  marginBottom: theme.spacing[1],
+                }}
+              >
                 {property.address || 'Address not specified'}
               </p>
               {/* Green Tag */}
@@ -102,86 +183,193 @@ export function PropertyCard({ property }: PropertyCardProps) {
                   marginTop: theme.spacing[1],
                 }}
               >
-                <span style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  color: '#065F46',
-                  fontWeight: theme.typography.fontWeight.semibold,
-                }}>
+                <span
+                  style={{
+                    fontSize: theme.typography.fontSize.xs,
+                    color: '#065F46',
+                    fontWeight: theme.typography.fontWeight.semibold,
+                  }}
+                >
                   My Properties
                 </span>
               </div>
             </div>
             {/* Ellipsis Menu */}
-            <button
-              onClick={handleEllipsisClick}
-              className="p-1 hover:bg-gray-100 rounded transition-colors"
-              aria-label="More options"
-            >
-              <MoreVertical className="w-5 h-5 text-gray-600" />
-            </button>
+            <div ref={menuRef} style={{ position: 'relative' }}>
+              <button
+                onClick={handleEllipsisClick}
+                className='p-1 hover:bg-gray-100 rounded transition-colors'
+                aria-label='More options'
+                aria-expanded={menuOpen}
+                aria-haspopup='true'
+              >
+                <MoreVertical className='w-5 h-5 text-gray-600' />
+              </button>
+              {menuOpen && (
+                <div
+                  role='menu'
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: '100%',
+                    marginTop: theme.spacing[1],
+                    backgroundColor: 'white',
+                    borderRadius: theme.borderRadius.lg,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+                    border: `1px solid ${theme.colors.border}`,
+                    minWidth: '160px',
+                    zIndex: 50,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <button
+                    role='menuitem'
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setMenuOpen(false);
+                      router.push(`/properties/${property.id}`);
+                    }}
+                    className='w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors'
+                  >
+                    <Eye className='w-4 h-4' />
+                    View Details
+                  </button>
+                  <button
+                    role='menuitem'
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setMenuOpen(false);
+                      router.push(`/properties/${property.id}/edit`);
+                    }}
+                    className='w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors'
+                  >
+                    <Pencil className='w-4 h-4' />
+                    Edit Property
+                  </button>
+                  <div
+                    style={{
+                      height: '1px',
+                      backgroundColor: theme.colors.border,
+                    }}
+                  />
+                  <button
+                    role='menuitem'
+                    onClick={handleDelete}
+                    className='w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors'
+                    style={{
+                      color: confirmDelete ? 'white' : '#DC2626',
+                      backgroundColor: confirmDelete
+                        ? '#DC2626'
+                        : 'transparent',
+                    }}
+                  >
+                    <Trash2 className='w-4 h-4' />
+                    {confirmDelete ? 'Confirm Delete' : 'Delete'}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Details Section - Horizontal Layout */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing[6],
-            paddingTop: theme.spacing[3],
-            borderTop: `1px solid ${theme.colors.border}`,
-            flexWrap: 'wrap',
-          }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing[6],
+              paddingTop: theme.spacing[3],
+              borderTop: `1px solid ${theme.colors.border}`,
+              flexWrap: 'wrap',
+            }}
+          >
             {/* Status */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-              <span style={{
-                fontSize: theme.typography.fontSize.xs,
-                color: theme.colors.textSecondary,
-              }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing[2],
+              }}
+            >
+              <span
+                style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  color: theme.colors.textSecondary,
+                }}
+              >
                 Status
               </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[1] }}>
-                {isActive && (
-                  <Icon name="check" size={16} color="#10B981" />
-                )}
-                <span style={{
-                  fontSize: theme.typography.fontSize.sm,
-                  color: isActive ? '#10B981' : theme.colors.textSecondary,
-                  fontWeight: theme.typography.fontWeight.medium,
-                }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: theme.spacing[1],
+                }}
+              >
+                {isActive && <Icon name='check' size={16} color='#10B981' />}
+                <span
+                  style={{
+                    fontSize: theme.typography.fontSize.sm,
+                    color: isActive ? '#10B981' : theme.colors.textSecondary,
+                    fontWeight: theme.typography.fontWeight.medium,
+                  }}
+                >
                   {isActive ? 'Active' : 'Inactive'}
                 </span>
               </div>
             </div>
 
             {/* Jobs */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[0.5] }}>
-              <span style={{
-                fontSize: theme.typography.fontSize.xs,
-                color: theme.colors.textSecondary,
-              }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: theme.spacing[0.5],
+              }}
+            >
+              <span
+                style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  color: theme.colors.textSecondary,
+                }}
+              >
                 Jobs
               </span>
-              <span style={{
-                fontSize: theme.typography.fontSize.lg,
-                color: theme.colors.textPrimary,
-                fontWeight: theme.typography.fontWeight.bold,
-              }}>
+              <span
+                style={{
+                  fontSize: theme.typography.fontSize.lg,
+                  color: theme.colors.textPrimary,
+                  fontWeight: theme.typography.fontWeight.bold,
+                }}
+              >
                 {totalJobs}
               </span>
             </div>
 
             {/* Spend */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[0.5] }}>
-              <span style={{
-                fontSize: theme.typography.fontSize.xs,
-                color: theme.colors.textSecondary,
-              }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: theme.spacing[0.5],
+              }}
+            >
+              <span
+                style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  color: theme.colors.textSecondary,
+                }}
+              >
                 Spend
               </span>
-              <span style={{
-                fontSize: theme.typography.fontSize.lg,
-                color: theme.colors.textPrimary,
-                fontWeight: theme.typography.fontWeight.bold,
-              }}>
+              <span
+                style={{
+                  fontSize: theme.typography.fontSize.lg,
+                  color: theme.colors.textPrimary,
+                  fontWeight: theme.typography.fontWeight.bold,
+                }}
+              >
                 {formatMoney(Number(property.totalSpent || 0), 'GBP')}
               </span>
             </div>
@@ -191,4 +379,3 @@ export function PropertyCard({ property }: PropertyCardProps) {
     </Link>
   );
 }
-

@@ -35,7 +35,7 @@ export class ErrorBoundary extends Component<Props, State> {
       stack: error.stack,
       componentStack: errorInfo.componentStack,
     });
-    
+
     this.setState({
       error,
       errorInfo,
@@ -45,10 +45,21 @@ export class ErrorBoundary extends Component<Props, State> {
       this.props.onError(error, errorInfo);
     }
 
-    // Log to external service in production
+    // Send to Sentry in production
     if (process.env.NODE_ENV === 'production') {
-      // TODO: Send to error tracking service (Sentry, LogRocket, etc.)
-      logger.error('Production error:', error);
+      import('@sentry/nextjs')
+        .then((Sentry) => {
+          Sentry.captureException(error, {
+            contexts: {
+              react: {
+                componentStack: errorInfo.componentStack || undefined,
+              },
+            },
+          });
+        })
+        .catch(() => {
+          // Sentry not available — already logged above via logger
+        });
     }
   }
 
@@ -67,105 +78,121 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: theme.colors.backgroundSecondary,
-          padding: theme.spacing[6],
-        }}>
-          <Card variant="elevated" style={{
-            maxWidth: '600px',
-            width: '100%',
-            padding: theme.spacing[8],
-            textAlign: 'center',
-          }}>
-            <div style={{
-              marginBottom: theme.spacing[4],
-              color: theme.colors.error,
-              display: 'flex',
-              justifyContent: 'center',
-            }}>
+        <div
+          style={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.colors.backgroundSecondary,
+            padding: theme.spacing[6],
+          }}
+        >
+          <Card
+            variant='elevated'
+            style={{
+              maxWidth: '600px',
+              width: '100%',
+              padding: theme.spacing[8],
+              textAlign: 'center',
+            }}
+          >
+            <div
+              style={{
+                marginBottom: theme.spacing[4],
+                color: theme.colors.error,
+                display: 'flex',
+                justifyContent: 'center',
+              }}
+            >
               <AlertTriangle size={48} />
             </div>
-            
-            <h1 style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-              marginBottom: theme.spacing[4],
-            }}>
+
+            <h1
+              style={{
+                fontSize: theme.typography.fontSize['2xl'],
+                fontWeight: theme.typography.fontWeight.bold,
+                color: theme.colors.textPrimary,
+                marginBottom: theme.spacing[4],
+              }}
+            >
               Something went wrong
             </h1>
-            
-            <p style={{
-              fontSize: theme.typography.fontSize.lg,
-              color: theme.colors.textSecondary,
-              marginBottom: theme.spacing[6],
-              lineHeight: theme.typography.lineHeight.relaxed,
-            }}>
-              We're sorry, but something unexpected happened. Our team has been notified and is working to fix this issue.
+
+            <p
+              style={{
+                fontSize: theme.typography.fontSize.lg,
+                color: theme.colors.textSecondary,
+                marginBottom: theme.spacing[6],
+                lineHeight: theme.typography.lineHeight.relaxed,
+              }}
+            >
+              We're sorry, but something unexpected happened. Our team has been
+              notified and is working to fix this issue.
             </p>
 
             {process.env.NODE_ENV === 'development' && this.state.error && (
-              <details style={{
-                backgroundColor: theme.colors.surfaceSecondary,
-                padding: theme.spacing[4],
-                borderRadius: theme.borderRadius.lg,
-                marginBottom: theme.spacing[6],
-                textAlign: 'left',
-              }}>
-                <summary style={{
-                  cursor: 'pointer',
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  marginBottom: theme.spacing[2],
-                }}>
+              <details
+                style={{
+                  backgroundColor: theme.colors.surfaceSecondary,
+                  padding: theme.spacing[4],
+                  borderRadius: theme.borderRadius.lg,
+                  marginBottom: theme.spacing[6],
+                  textAlign: 'left',
+                }}
+              >
+                <summary
+                  style={{
+                    cursor: 'pointer',
+                    fontWeight: theme.typography.fontWeight.semibold,
+                    marginBottom: theme.spacing[2],
+                  }}
+                >
                   Error Details (Development Only)
                 </summary>
-                <pre style={{
-                  fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.error,
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                }}>
+                <pre
+                  style={{
+                    fontSize: theme.typography.fontSize.sm,
+                    color: theme.colors.error,
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                  }}
+                >
                   {this.state.error.toString()}
                   {this.state.errorInfo?.componentStack}
                 </pre>
               </details>
             )}
 
-            <div style={{
-              display: 'flex',
-              gap: theme.spacing[3],
-              justifyContent: 'center',
-              flexWrap: 'wrap',
-            }}>
-              <Button
-                variant="primary"
-                onClick={this.handleRetry}
-              >
+            <div
+              style={{
+                display: 'flex',
+                gap: theme.spacing[3],
+                justifyContent: 'center',
+                flexWrap: 'wrap',
+              }}
+            >
+              <Button variant='primary' onClick={this.handleRetry}>
                 Try Again
               </Button>
-              <Button
-                variant="outline"
-                onClick={this.handleReload}
-              >
+              <Button variant='outline' onClick={this.handleReload}>
                 Reload Page
               </Button>
               <Button
-                variant="ghost"
-                onClick={() => window.location.href = '/'}
+                variant='ghost'
+                onClick={() => (window.location.href = '/')}
               >
                 Go Home
               </Button>
             </div>
 
-            <p style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textTertiary,
-              marginTop: theme.spacing[6],
-            }}>
+            <p
+              style={{
+                fontSize: theme.typography.fontSize.sm,
+                color: theme.colors.textTertiary,
+                marginTop: theme.spacing[6],
+              }}
+            >
               If this problem persists, please contact our support team.
             </p>
           </Card>

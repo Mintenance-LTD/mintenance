@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   DynamicBarChart,
   DynamicLineChart,
@@ -77,31 +78,29 @@ export function AnalyticsClient(props: AnalyticsClientProps) {
     },
     contractorId = '',
   } = props || {};
-  const [insights, setInsights] = useState<PerformanceInsight[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: insights = [], isLoading: loading } = useQuery<
+    PerformanceInsight[]
+  >({
+    queryKey: ['analytics', 'insights', contractorId],
+    queryFn: async () => {
+      const response = await fetch('/api/analytics/insights');
+      if (!response.ok) {
+        throw new Error('Failed to fetch insights');
+      }
+      const data = await response.json();
+      return data.insights || [];
+    },
+    // Don't show error to user, just log it - insights are optional
+    meta: {
+      onError: (error: unknown) => {
+        logger.error('Failed to load insights:', error);
+      },
+    },
+  });
+
   const [selectedPeriod, setSelectedPeriod] = useState<
     'week' | 'month' | 'quarter' | 'year'
   >('month');
-
-  useEffect(() => {
-    async function loadInsights() {
-      try {
-        const response = await fetch('/api/analytics/insights');
-        if (!response.ok) {
-          throw new Error('Failed to fetch insights');
-        }
-        const data = await response.json();
-        setInsights(data.insights || []);
-      } catch (error) {
-        logger.error('Failed to load insights:', error);
-        // Don't show error to user, just log it - insights are optional
-        setInsights([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadInsights();
-  }, [contractorId]);
 
   // Transform data for charts
   const revenueChartData = Object.entries(initialData.revenueByMonth).map(

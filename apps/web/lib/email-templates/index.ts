@@ -23,6 +23,7 @@ export type {
   ChangesRequestedData,
   PaymentReleasedData,
   TenantInviteData,
+  InvoiceNotificationData,
 } from './types';
 
 export {
@@ -42,6 +43,7 @@ export {
   paymentConfirmationTemplate,
   paymentReceivedTemplate,
   paymentReleasedTemplate,
+  invoiceNotificationTemplate,
 } from './payments';
 
 export {
@@ -56,7 +58,4 @@ export { messageNotificationTemplate } from './messages';
 
 export { newsletterWelcomeTemplate } from './newsletter';
 
-export {
-  tenantInviteTemplate,
-  tenantJobNotificationTemplate,
-} from './tenant';
+export { tenantInviteTemplate, tenantJobNotificationTemplate } from './tenant';

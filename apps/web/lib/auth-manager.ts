@@ -504,11 +504,8 @@ export class AuthManager {
 
       // AUDIT FIX: Verify current password via Supabase Auth (the legacy
       // DatabaseManager.authenticateUser never actually verified passwords)
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabaseAuth = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
+      const { createAnonClient } = await import('@/lib/api/supabaseServer');
+      const supabaseAuth = createAnonClient();
       const { error: authError } = await supabaseAuth.auth.signInWithPassword({
         email: user.email,
         password: currentPassword,

@@ -5,7 +5,7 @@
  * Applies database migrations safely with rollback capabilities
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createServerSupabaseClient } from '@/lib/api/supabaseServer';
 import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { logger } from '@mintenance/shared';
@@ -28,14 +28,7 @@ class MigrationRunner {
   private migrationsDir: string;
 
   constructor() {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Missing Supabase environment variables');
-    }
-
-    this.supabase = createClient(supabaseUrl, supabaseServiceKey);
+    this.supabase = createServerSupabaseClient();
     this.migrationsDir = join(process.cwd(), 'supabase', 'migrations');
   }
 
@@ -45,7 +38,7 @@ class MigrationRunner {
   private getMigrationFiles(): string[] {
     try {
       const files = readdirSync(this.migrationsDir)
-        .filter(file => file.endsWith('.sql'))
+        .filter((file) => file.endsWith('.sql'))
         .sort();
       return files;
     } catch (error) {
@@ -83,7 +76,7 @@ class MigrationRunner {
         return [];
       }
 
-      return data?.map(row => row.filename) || [];
+      return data?.map((row) => row.filename) || [];
     } catch (error) {
       logger.error('Error checking applied migrations:', error);
       return [];
@@ -115,11 +108,14 @@ class MigrationRunner {
 
     if (error && error.code === 'PGRST116') {
       // Table doesn't exist, create it using raw SQL
-      const { error: createError } = await this.supabase
-        .rpc('exec', { sql: createTableSQL });
-      
+      const { error: createError } = await this.supabase.rpc('exec', {
+        sql: createTableSQL,
+      });
+
       if (createError) {
-        throw new Error(`Failed to create migrations table: ${createError.message}`);
+        throw new Error(
+          `Failed to create migrations table: ${createError.message}`
+        );
       }
     }
   }
@@ -130,8 +126,10 @@ class MigrationRunner {
   async getStatus(): Promise<MigrationStatus> {
     const allMigrations = this.getMigrationFiles();
     const appliedMigrations = await this.getAppliedMigrations();
-    
-    const pending = allMigrations.filter(migration => !appliedMigrations.includes(migration));
+
+    const pending = allMigrations.filter(
+      (migration) => !appliedMigrations.includes(migration)
+    );
     const failed: string[] = []; // Would need to track failed migrations
 
     return {
@@ -146,25 +144,30 @@ class MigrationRunner {
    */
   private async applyMigration(filename: string): Promise<MigrationResult> {
     const startTime = Date.now();
-    
+
     try {
       logger.info(`🔄 Applying migration: ${filename}`);
-      
+
       // Read migration file
       const migrationPath = join(this.migrationsDir, filename);
       const migrationSQL = readFileSync(migrationPath, 'utf8');
-      
+
       // Calculate checksum
       const crypto = require('crypto');
-      const checksum = crypto.createHash('sha256').update(migrationSQL).digest('hex');
-      
+      const checksum = crypto
+        .createHash('sha256')
+        .update(migrationSQL)
+        .digest('hex');
+
       // Apply migration
-      const { error } = await this.supabase.rpc('exec_sql', { sql: migrationSQL });
-      
+      const { error } = await this.supabase.rpc('exec_sql', {
+        sql: migrationSQL,
+      });
+
       if (error) {
         throw new Error(`Migration failed: ${error.message}`);
       }
-      
+
       // Record migration as applied
       const { error: recordError } = await this.supabase
         .from('migrations')
@@ -173,26 +176,30 @@ class MigrationRunner {
           checksum,
           applied_at: new Date().toISOString(),
         });
-      
+
       if (recordError) {
-        logger.warn(`⚠️  Migration applied but failed to record: ${recordError.message}`);
+        logger.warn(
+          `⚠️  Migration applied but failed to record: ${recordError.message}`
+        );
       }
-      
+
       const duration = Date.now() - startTime;
-      logger.info(`✅ Migration applied successfully: ${filename} (${duration}ms)`);
-      
+      logger.info(
+        `✅ Migration applied successfully: ${filename} (${duration}ms)`
+      );
+
       return {
         success: true,
         migration: filename,
         duration,
       };
-      
     } catch (error) {
       const duration = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+
       logger.error(`❌ Migration failed: ${filename} - ${errorMessage}`);
-      
+
       return {
         success: false,
         migration: filename,
@@ -208,24 +215,26 @@ class MigrationRunner {
   async applyPending(): Promise<MigrationResult[]> {
     const status = await this.getStatus();
     const results: MigrationResult[] = [];
-    
+
     if (status.pending.length === 0) {
       logger.info('✅ No pending migrations');
       return results;
     }
-    
+
     logger.info(`📋 Found ${status.pending.length} pending migrations`);
-    
+
     for (const migration of status.pending) {
       const result = await this.applyMigration(migration);
       results.push(result);
-      
+
       if (!result.success) {
-        logger.error(`❌ Stopping migration process due to failure: ${migration}`);
+        logger.error(
+          `❌ Stopping migration process due to failure: ${migration}`
+        );
         break;
       }
     }
-    
+
     return results;
   }
 
@@ -234,7 +243,7 @@ class MigrationRunner {
    */
   async applySpecific(filename: string): Promise<MigrationResult> {
     const status = await this.getStatus();
-    
+
     if (!status.pending.includes(filename)) {
       if (status.applied.includes(filename)) {
         return {
@@ -251,7 +260,7 @@ class MigrationRunner {
         };
       }
     }
-    
+
     return await this.applyMigration(filename);
   }
 
@@ -266,7 +275,7 @@ class MigrationRunner {
         .order('applied_at', { ascending: false })
         .limit(1)
         .single();
-      
+
       if (!lastMigration) {
         return {
           success: false,
@@ -275,7 +284,7 @@ class MigrationRunner {
           duration: 0,
         };
       }
-      
+
       if (!lastMigration.rollback_sql) {
         return {
           success: false,
@@ -284,33 +293,33 @@ class MigrationRunner {
           duration: 0,
         };
       }
-      
+
       logger.info(`🔄 Rolling back migration: ${lastMigration.filename}`);
-      
-      const { error } = await this.supabase.rpc('exec_sql', { 
-        sql: lastMigration.rollback_sql 
+
+      const { error } = await this.supabase.rpc('exec_sql', {
+        sql: lastMigration.rollback_sql,
       });
-      
+
       if (error) {
         throw new Error(`Rollback failed: ${error.message}`);
       }
-      
+
       // Remove migration record
       await this.supabase
         .from('migrations')
         .delete()
         .eq('filename', lastMigration.filename);
-      
+
       logger.info(`✅ Migration rolled back: ${lastMigration.filename}`);
-      
+
       return {
         success: true,
         migration: lastMigration.filename,
         duration: 0,
       };
-      
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       return {
         success: false,
         migration: 'unknown',
@@ -327,10 +336,10 @@ class MigrationRunner {
 async function main() {
   const command = process.argv[2];
   const migrationFile = process.argv[3];
-  
+
   try {
     const runner = new MigrationRunner();
-    
+
     switch (command) {
       case 'status':
         const status = await runner.getStatus();
@@ -338,38 +347,47 @@ async function main() {
         logger.info(`  Applied: ${status.applied.length}`);
         logger.info(`  Pending: ${status.pending.length}`);
         logger.info(`  Failed: ${status.failed.length}`);
-        
+
         if (status.pending.length > 0) {
           logger.info('\n📋 Pending migrations:');
-          status.pending.forEach(migration => logger.info(`  - ${migration}`));
+          status.pending.forEach((migration) =>
+            logger.info(`  - ${migration}`)
+          );
         }
         break;
-        
+
       case 'apply':
         if (migrationFile) {
           const result = await runner.applySpecific(migrationFile);
           process.exit(result.success ? 0 : 1);
         } else {
           const results = await runner.applyPending();
-          const failed = results.filter(r => !r.success);
+          const failed = results.filter((r) => !r.success);
           process.exit(failed.length > 0 ? 1 : 0);
         }
         break;
-        
+
       case 'rollback':
         const rollbackResult = await runner.rollbackLast();
         process.exit(rollbackResult.success ? 0 : 1);
         break;
-        
+
       default:
         logger.info('Usage:');
-        logger.info('  npm run migrate status          - Show migration status');
-        logger.info('  npm run migrate apply           - Apply all pending migrations');
-        logger.info('  npm run migrate apply <file>    - Apply specific migration');
-        logger.info('  npm run migrate rollback        - Rollback last migration');
+        logger.info(
+          '  npm run migrate status          - Show migration status'
+        );
+        logger.info(
+          '  npm run migrate apply           - Apply all pending migrations'
+        );
+        logger.info(
+          '  npm run migrate apply <file>    - Apply specific migration'
+        );
+        logger.info(
+          '  npm run migrate rollback        - Rollback last migration'
+        );
         process.exit(1);
     }
-    
   } catch (error) {
     logger.error('❌ Migration runner error:', error);
     process.exit(1);

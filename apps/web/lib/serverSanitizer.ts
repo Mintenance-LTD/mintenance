@@ -4,7 +4,7 @@
  * DO NOT import in client components - use sanitizer.ts instead
  */
 
-import DOMPurify from 'dompurify';
+import DOMPurify, { type WindowLike } from 'dompurify';
 
 // Lazy-load jsdom only when needed (server-side)
 let serverPurify: typeof DOMPurify | null = null;
@@ -23,9 +23,8 @@ function getServerPurify(): typeof DOMPurify {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { JSDOM } = require('jsdom');
   const domWindow = new JSDOM('').window;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  serverPurify = DOMPurify(domWindow as any);
-  
+  serverPurify = DOMPurify(domWindow as unknown as WindowLike);
+
   return serverPurify;
 }
 
@@ -33,20 +32,35 @@ function getServerPurify(): typeof DOMPurify {
  * Sanitize HTML content on the server side
  * Only use this in API routes or server components
  */
-export function sanitizeHtmlServer(input: string, options?: {
-  allowedTags?: string[];
-  allowedAttributes?: string[];
-  maxLength?: number;
-}): string {
+export function sanitizeHtmlServer(
+  input: string,
+  options?: {
+    allowedTags?: string[];
+    allowedAttributes?: string[];
+    maxLength?: number;
+  }
+): string {
   if (!input || typeof input !== 'string') {
     return '';
   }
 
   const maxLength = options?.maxLength || 10000;
-  const truncated = input.length > maxLength ? input.substring(0, maxLength) : input;
+  const truncated =
+    input.length > maxLength ? input.substring(0, maxLength) : input;
 
   const config = {
-    ALLOWED_TAGS: options?.allowedTags || ['p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'h1', 'h2', 'h3'],
+    ALLOWED_TAGS: options?.allowedTags || [
+      'p',
+      'br',
+      'strong',
+      'em',
+      'ul',
+      'ol',
+      'li',
+      'h1',
+      'h2',
+      'h3',
+    ],
     ALLOWED_ATTR: options?.allowedAttributes || [],
     ALLOW_DATA_ATTR: false,
     ALLOW_UNKNOWN_PROTOCOLS: false,
@@ -56,4 +70,3 @@ export function sanitizeHtmlServer(input: string, options?: {
 
   return getServerPurify().sanitize(truncated, config);
 }
-

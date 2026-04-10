@@ -1,13 +1,13 @@
 /**
  * Detector Fusion Service
- * 
+ *
  * Implements correlation-aware Bayesian fusion for multiple detector outputs.
  * Currently supports YOLO (Roboflow) with placeholders for Mask R-CNN and SAM.
- * 
+ *
  * Mathematical model:
  * - Fusion mean: μ = w^T p (weighted average)
  * - Fusion variance: σ² = σ²_ε + V_w[w^T ỹ] + w^T Σ w (correlation term)
- * 
+ *
  * Where:
  * - w: detector weights
  * - p: detector probabilities
@@ -57,17 +57,22 @@ export class DetectorFusionService {
   // Empirical correlation matrix Σ (from validation data)
   // [YOLO, Mask R-CNN, SAM]
   private static readonly CORRELATION_MATRIX = [
-    [1.00, 0.31, 0.27], // YOLO
-    [0.31, 1.00, 0.35], // Mask R-CNN
-    [0.27, 0.35, 1.00], // SAM
+    [1.0, 0.31, 0.27], // YOLO
+    [0.31, 1.0, 0.35], // Mask R-CNN
+    [0.27, 0.35, 1.0], // SAM
   ];
 
   // Epistemic variance (weight uncertainty)
   private static readonly EPISTEMIC_VAR = 0.01;
 
+  /** Return the current detector weights. Used by DriftMonitorService. */
+  static getBaseWeights() {
+    return { ...this.detectorWeights };
+  }
+
   /**
    * Fuse detector outputs with correlation-aware Bayesian fusion
-   * 
+   *
    * @param roboflowDetections - Roboflow/YOLO detections
    * @param assessmentConfidence - GPT-4 Vision assessment confidence
    * @param context - Optional context for drift detection (property type, region, season)
@@ -114,9 +119,12 @@ export class DetectorFusionService {
       }
     }
     // Extract YOLO confidence from Roboflow detections
-    const avgRoboflowConfidence = roboflowDetections.length > 0
-      ? roboflowDetections.reduce((sum, d) => sum + d.confidence, 0) / roboflowDetections.length / 100
-      : assessmentConfidence / 100;
+    const avgRoboflowConfidence =
+      roboflowDetections.length > 0
+        ? roboflowDetections.reduce((sum, d) => sum + d.confidence, 0) /
+          roboflowDetections.length /
+          100
+        : assessmentConfidence / 100;
 
     // Mask R-CNN and SAM detectors are not yet integrated.
     // Only YOLO (Roboflow) provides real detections. Unavailable detectors report 0 confidence.
@@ -212,7 +220,6 @@ export class DetectorFusionService {
    * Get correlation matrix (for external use)
    */
   static getCorrelationMatrix(): number[][] {
-    return this.CORRELATION_MATRIX.map(row => [...row]);
+    return this.CORRELATION_MATRIX.map((row) => [...row]);
   }
 }
-

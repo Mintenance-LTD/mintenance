@@ -1,25 +1,19 @@
 /**
  * NotificationScreen Component
  *
- * Displays user notifications with filter tabs and compact card layout.
- * Airbnb-style: borderless cards, soft shadows, clean typography.
+ * Thin orchestrator that composes notification sub-components.
+ * Manages state and delegates rendering to extracted components.
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
-  Text,
   FlatList,
-  TouchableOpacity,
   StyleSheet,
   RefreshControl,
   Alert,
-  Platform,
-  ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { LoadingSpinner, ErrorView } from '../components/shared';
 import {
@@ -28,206 +22,16 @@ import {
 } from '../services/NotificationService';
 import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
-import { theme, gradients, semanticBg } from '../theme';
-
-type FilterTab = 'all' | 'unread' | 'jobs' | 'payments' | 'messages';
-
-const FILTER_TABS: { key: FilterTab; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'unread', label: 'Unread' },
-  { key: 'jobs', label: 'Jobs' },
-  { key: 'payments', label: 'Payments' },
-  { key: 'messages', label: 'Messages' },
-];
-
-function formatRelativeTime(timestamp: string): string {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  if (days > 0) return `${days}d ago`;
-  if (hours > 0) return `${hours}h ago`;
-  if (minutes > 0) return `${minutes}m ago`;
-  return 'just now';
-}
-
-const ICON_COLORS: Record<string, { icon: string; bg: string }> = {
-  job_update: { icon: '#3B82F6', bg: '#DBEAFE' },
-  bid_received: { icon: theme.colors.primary, bg: theme.colors.primaryLight },
-  bid_accepted: { icon: theme.colors.primary, bg: theme.colors.primaryLight },
-  contract_created: { icon: '#8B5CF6', bg: '#EDE9FE' },
-  contract_accepted: {
-    icon: theme.colors.primary,
-    bg: theme.colors.primaryLight,
-  },
-  meeting_scheduled: { icon: '#8B5CF6', bg: '#EDE9FE' },
-  payment_received: { icon: theme.colors.accent, bg: theme.colors.accentLight },
-  message_received: { icon: '#06B6D4', bg: '#CFFAFE' },
-  new_message: { icon: '#06B6D4', bg: '#CFFAFE' },
-  new_job: { icon: '#3B82F6', bg: '#DBEAFE' },
-  job_posted: { icon: '#3B82F6', bg: '#DBEAFE' },
-  job_completed: { icon: theme.colors.primary, bg: theme.colors.primaryLight },
-  escrow_released: { icon: theme.colors.accent, bg: theme.colors.accentLight },
-  quote_sent: { icon: '#EC4899', bg: '#FCE7F3' },
-  system: {
-    icon: theme.colors.textSecondary,
-    bg: theme.colors.backgroundSecondary,
-  },
-};
-
-const getIconName = (
-  type: NotificationData['type']
-): keyof typeof Ionicons.glyphMap => {
-  switch (type) {
-    case 'job_update':
-      return 'briefcase-outline';
-    case 'bid_received':
-      return 'cash-outline';
-    case 'bid_accepted' as NotificationData['type']:
-      return 'checkmark-circle-outline';
-    case 'contract_created' as NotificationData['type']:
-      return 'document-outline';
-    case 'contract_accepted' as NotificationData['type']:
-      return 'shield-checkmark-outline';
-    case 'new_job' as NotificationData['type']:
-      return 'briefcase-outline';
-    case 'new_message' as NotificationData['type']:
-      return 'chatbubble-outline';
-    case 'job_posted' as NotificationData['type']:
-      return 'add-circle-outline';
-    case 'job_completed' as NotificationData['type']:
-      return 'checkmark-done-outline';
-    case 'escrow_released' as NotificationData['type']:
-      return 'wallet-outline';
-    case 'meeting_scheduled':
-      return 'calendar-outline';
-    case 'payment_received':
-      return 'card-outline';
-    case 'message_received':
-      return 'chatbubble-outline';
-    case 'quote_sent':
-      return 'document-text-outline';
-    case 'system':
-      return 'information-circle-outline';
-    default:
-      return 'notifications-outline';
-  }
-};
-
-const filterNotifications = (
-  notifications: NotificationData[],
-  tab: FilterTab
-): NotificationData[] => {
-  switch (tab) {
-    case 'unread':
-      return notifications.filter((n) => !n.read);
-    case 'jobs':
-      return notifications.filter((n) =>
-        [
-          'job_update',
-          'bid_received',
-          'quote_sent',
-          'new_job',
-          'job_posted',
-          'job_completed',
-          'bid_accepted',
-          'contract_created',
-          'contract_accepted',
-        ].includes(n.type)
-      );
-    case 'payments':
-      return notifications.filter((n) =>
-        ['payment_received', 'escrow_released'].includes(n.type)
-      );
-    case 'messages':
-      return notifications.filter((n) =>
-        ['message_received', 'meeting_scheduled', 'new_message'].includes(
-          n.type
-        )
-      );
-    default:
-      return notifications;
-  }
-};
-
-function stripEmoji(text: string): string {
-  return text
-    .replace(
-      /[\u{1F600}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{FE00}-\u{FE0F}]|[\u{1F000}-\u{1FFFF}]|[\u200D]|[\u{E0020}-\u{E007F}]/gu,
-      ''
-    )
-    .trim();
-}
-
-interface CompactNotificationProps {
-  notification: NotificationData;
-  onPress: () => void;
-  onMarkRead?: () => void;
-}
-
-const CompactNotification: React.FC<CompactNotificationProps> = ({
-  notification,
-  onPress,
-  onMarkRead,
-}) => {
-  const colors = ICON_COLORS[notification.type] ??
-    ICON_COLORS.system ?? {
-      icon: theme.colors.textSecondary,
-      bg: theme.colors.backgroundSecondary,
-    };
-  return (
-    <TouchableOpacity
-      style={[styles.notifCard, !notification.read && styles.notifCardUnread]}
-      onPress={onPress}
-      activeOpacity={0.7}
-      accessibilityRole='button'
-      accessibilityLabel={`${notification.read ? '' : 'Unread: '}${notification.title}`}
-    >
-      <View style={[styles.iconCircle, { backgroundColor: colors.bg }]}>
-        <Ionicons
-          name={getIconName(notification.type)}
-          size={20}
-          color={colors.icon}
-        />
-      </View>
-      <View style={styles.notifContent}>
-        <View style={styles.notifHeader}>
-          <Text
-            style={[
-              styles.notifTitle,
-              !notification.read && styles.notifTitleUnread,
-            ]}
-            numberOfLines={1}
-          >
-            {stripEmoji(notification.title)}
-          </Text>
-          <Text style={styles.notifTime}>
-            {formatRelativeTime(notification.createdAt)}
-          </Text>
-        </View>
-        <Text style={styles.notifBody} numberOfLines={2}>
-          {notification.body}
-        </Text>
-      </View>
-      {!notification.read && (
-        <TouchableOpacity
-          style={styles.markReadBtn}
-          onPress={(e) => {
-            e.stopPropagation();
-            onMarkRead?.();
-          }}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityRole='button'
-          accessibilityLabel='Mark as read'
-        >
-          <Ionicons name='checkmark' size={14} color={theme.colors.primary} />
-        </TouchableOpacity>
-      )}
-    </TouchableOpacity>
-  );
-};
+import { theme } from '../theme';
+import {
+  NotificationHeader,
+  NotificationTabs,
+  CompactNotification,
+  NotificationEmpty,
+  navigateForNotification,
+  filterNotifications,
+  FilterTab,
+} from './notifications';
 
 export const NotificationScreen: React.FC = () => {
   const { user } = useAuth();
@@ -277,92 +81,18 @@ export const NotificationScreen: React.FC = () => {
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
     }
-
-    const data = notification.data as Record<string, string> | undefined;
-    // Support both camelCase and snake_case keys from notification payload
-    const jobId = data?.jobId || data?.job_id;
-    const conversationId = data?.conversationId || data?.conversation_id;
-    const meetingId = data?.meetingId || data?.meeting_id;
-    const senderId = data?.senderId || data?.sender_id;
-    const senderName = data?.senderName || data?.sender_name;
-    const jobTitle = data?.jobTitle || data?.job_title;
-
-    switch (notification.type) {
-      case 'job_update':
-      case 'bid_accepted' as NotificationData['type']:
-        if (jobId) {
-          (navigation as any).navigate('Main', {
-            screen: 'JobsTab',
-            params: { screen: 'JobDetails', params: { jobId } },
-          });
-        }
-        break;
-      case 'payment_received':
-        if (jobId) {
-          (navigation as any).navigate('Main', {
-            screen: 'ProfileTab',
-            params: { screen: 'PaymentHistory' },
-          });
-        } else {
-          (navigation as any).navigate('Main', {
-            screen: 'ProfileTab',
-            params: { screen: 'PaymentHistory' },
-          });
-        }
-        break;
-      case 'quote_sent':
-        if (jobId) {
-          (navigation as any).navigate('Main', {
-            screen: 'JobsTab',
-            params: { screen: 'JobDetails', params: { jobId } },
-          });
-        }
-        break;
-      case 'bid_received':
-        if (jobId) {
-          (navigation as any).navigate('Main', {
-            screen: 'JobsTab',
-            params: { screen: 'BidReview', params: { jobId } },
-          });
-        }
-        break;
-      case 'message_received':
-        if (conversationId) {
-          (navigation as any).navigate('Main', {
-            screen: 'MessagingTab',
-            params: {
-              screen: 'Messaging',
-              params: {
-                conversationId,
-                jobTitle: jobTitle || '',
-                recipientId: senderId || '',
-                recipientName: senderName || '',
-              },
-            },
-          });
-        }
-        break;
-      case 'meeting_scheduled':
-        if (meetingId) {
-          (navigation as any).navigate('Modal', {
-            screen: 'MeetingDetails',
-            params: { meetingId },
-          });
-        } else {
-          (navigation as any).navigate('Main', {
-            screen: 'ProfileTab',
-            params: { screen: 'Calendar' },
-          });
-        }
-        break;
-      default:
-        // Navigate to home for unhandled notification types
-        (navigation as any).navigate('Main', { screen: 'HomeTab' });
-        break;
-    }
+    navigateForNotification(navigation, notification);
   };
 
-  const handleMarkAllAsRead = async () => {
+  const handleMarkRead = (notification: NotificationData) => {
+    NotificationService.markAsRead(notification.id);
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n))
+    );
+    setUnreadCount((prev) => Math.max(0, prev - 1));
+  };
+
+  const handleMarkAllAsRead = () => {
     if (!user) return;
     Alert.alert('Mark All as Read', 'Mark all notifications as read?', [
       { text: 'Cancel', style: 'cancel' },
@@ -391,86 +121,18 @@ export const NotificationScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Hero Header */}
-      <LinearGradient
-        colors={gradients.heroGreen}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.heroHeader, { paddingTop: insets.top + 12 }]}
-      >
-        <View style={styles.heroDecor1} />
-        <View style={styles.heroDecor2} />
-        <View style={styles.headerBar}>
-          <View>
-            <Text style={styles.headerTitle}>Notifications</Text>
-            <Text style={styles.headerSubtitle}>
-              {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
-            </Text>
-          </View>
-          {unreadCount > 0 && (
-            <TouchableOpacity
-              style={styles.markAllButton}
-              onPress={handleMarkAllAsRead}
-              accessibilityRole='button'
-              accessibilityLabel='Mark all as read'
-            >
-              <Ionicons
-                name='checkmark-done-outline'
-                size={18}
-                color={theme.colors.primary}
-              />
-              <Text style={styles.markAllText}>Mark All</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </LinearGradient>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.tabsWrapper}
-        contentContainerStyle={styles.tabsRow}
-      >
-        {FILTER_TABS.map((tab) => {
-          const isActive = activeTab === tab.key;
-          const count = tab.key === 'unread' ? unreadCount : undefined;
-          return (
-            <TouchableOpacity
-              key={tab.key}
-              style={[styles.tab, isActive && styles.tabActive]}
-              onPress={() => setActiveTab(tab.key)}
-              accessibilityRole='tab'
-              accessibilityLabel={`Filter ${tab.label}${count != null && count > 0 ? `, ${count} notifications` : ''}`}
-              accessibilityState={{ selected: isActive }}
-            >
-              <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
-                {tab.label}
-                {count != null && count > 0 ? ` ${count}` : ''}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-
+      <NotificationHeader
+        unreadCount={unreadCount}
+        paddingTop={insets.top}
+        onMarkAllAsRead={handleMarkAllAsRead}
+      />
+      <NotificationTabs
+        activeTab={activeTab}
+        unreadCount={unreadCount}
+        onTabChange={setActiveTab}
+      />
       {filteredNotifications.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconWrap}>
-            <Ionicons
-              name='notifications-off-outline'
-              size={32}
-              color={theme.colors.textSecondary}
-              accessible={false}
-            />
-          </View>
-          <Text style={styles.emptyTitle}>
-            {activeTab === 'unread' ? 'All caught up!' : 'No notifications'}
-          </Text>
-          <Text style={styles.emptySubtitle}>
-            {activeTab === 'unread'
-              ? 'You have no unread notifications.'
-              : 'New notifications will appear here.'}
-          </Text>
-        </View>
+        <NotificationEmpty activeTab={activeTab} />
       ) : (
         <FlatList
           data={filteredNotifications}
@@ -479,13 +141,7 @@ export const NotificationScreen: React.FC = () => {
             <CompactNotification
               notification={item}
               onPress={() => handleNotificationPress(item)}
-              onMarkRead={() => {
-                NotificationService.markAsRead(item.id);
-                setNotifications((prev) =>
-                  prev.map((n) => (n.id === item.id ? { ...n, read: true } : n))
-                );
-                setUnreadCount((prev) => Math.max(0, prev - 1));
-              }}
+              onMarkRead={() => handleMarkRead(item)}
             />
           )}
           refreshControl={
@@ -509,205 +165,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.backgroundSecondary,
   },
-  heroHeader: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    overflow: 'hidden',
-  },
-  heroDecor1: {
-    position: 'absolute',
-    top: -30,
-    right: -30,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  heroDecor2: {
-    position: 'absolute',
-    bottom: -20,
-    left: -20,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-  },
-  headerBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: theme.colors.textInverse,
-    letterSpacing: -0.5,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 2,
-  },
-  markAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 20,
-  },
-  markAllText: {
-    fontSize: 13,
-    color: theme.colors.primary,
-    fontWeight: '600',
-  },
   listContainer: {
     paddingHorizontal: 12,
     paddingTop: 8,
     paddingBottom: 24,
-  },
-  tabsWrapper: {
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
-    flexShrink: 0,
-    minHeight: 52,
-  },
-  tabsRow: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 12,
-    gap: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  tab: {
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
-  },
-  tabActive: {
-    backgroundColor: theme.colors.primary,
-  },
-  tabText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: theme.colors.textSecondary,
-  },
-  tabTextActive: {
-    color: theme.colors.textInverse,
-    fontWeight: '600',
-  },
-  notifCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  notifCardUnread: {
-    backgroundColor: theme.colors.primaryLight,
-    borderLeftWidth: 3,
-    borderLeftColor: theme.colors.primary,
-  },
-  markReadBtn: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: theme.colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-    marginTop: 2,
-  },
-  notifContent: {
-    flex: 1,
-  },
-  notifHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 3,
-  },
-  notifTitle: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: theme.colors.textPrimary,
-    flex: 1,
-    marginRight: 8,
-  },
-  notifTitleUnread: {
-    fontWeight: '700',
-  },
-  notifBody: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    lineHeight: 18,
-  },
-  notifTime: {
-    fontSize: 12,
-    color: theme.colors.textTertiary,
-    flexShrink: 0,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  emptyIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: theme.colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-    marginBottom: 4,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
   },
 });

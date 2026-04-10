@@ -1,5 +1,8 @@
 import { headers } from 'next/headers';
-import { getCurrentUserFromHeaders, getCurrentUserFromCookies } from '@/lib/auth';
+import {
+  getCurrentUserFromHeaders,
+  getCurrentUserFromCookies,
+} from '@/lib/auth';
 import UnauthenticatedCard from '@/components/UnauthenticatedCard';
 import { OnboardingWrapper } from '@/components/onboarding/OnboardingWrapper';
 import { DashboardClient } from './components/DashboardClient';
@@ -53,13 +56,8 @@ export default async function DashboardPage2025() {
   // Process data
   const allBids = combineBidsAndQuotes(bids, quotes);
 
-  const {
-    activeJobs,
-    completedJobs,
-    postedJobs,
-    awaitingBids,
-    scheduledJobs,
-  } = filterJobsByStatus(jobs);
+  const { activeJobs, completedJobs, postedJobs, awaitingBids, scheduledJobs } =
+    filterJobsByStatus(jobs);
 
   const kpiData = calculateKpiData(
     jobs,
@@ -72,21 +70,32 @@ export default async function DashboardPage2025() {
   );
 
   const userDisplayName = homeownerProfile
-    ? `${homeownerProfile.first_name} ${homeownerProfile.last_name}`.trim() || user.email
+    ? `${homeownerProfile.first_name} ${homeownerProfile.last_name}`.trim() ||
+      user.email
     : user.email;
 
   // Calculate total spent from actual payments (escrow transactions), not job budgets
-  const totalSpent = payments.length > 0
-    ? payments
-        .filter((p: { status?: string }) => p.status === 'released' || p.status === 'held' || p.status === 'completed')
-        .reduce((sum: number, p: { amount?: number }) => sum + (Number(p.amount) || 0), 0)
-    : kpiData.jobsData.totalRevenue; // Fallback to budget sum if no payment records
+  const totalSpent =
+    payments.length > 0
+      ? payments
+          .filter(
+            (p: { status?: string }) =>
+              p.status === 'released' ||
+              p.status === 'held' ||
+              p.status === 'completed'
+          )
+          .reduce(
+            (sum: number, p: { amount?: number }) =>
+              sum + (Number(p.amount) || 0),
+            0
+          )
+      : kpiData.jobsData.totalRevenue; // Fallback to budget sum if no payment records
 
   // PERFORMANCE FIX: Batch queries instead of N+1
   // Collect all job and contractor IDs
-  const jobIds = activeJobs.map(j => j.id);
+  const jobIds = activeJobs.map((j) => j.id);
   const contractorIds = activeJobs
-    .map(j => j.contractor_id)
+    .map((j) => j.contractor_id)
     .filter((id): id is string => id !== null && id !== undefined);
 
   // Batch query 1: Get all job photos at once
@@ -104,12 +113,13 @@ export default async function DashboardPage2025() {
     .in('job_id', jobIds);
 
   // Batch query 3: Get all contractors at once
-  const { data: allContractors } = contractorIds.length > 0
-    ? await serverSupabase
-        .from('profiles')
-        .select('id, first_name, last_name, profile_image_url')
-        .in('id', contractorIds)
-    : { data: [] };
+  const { data: allContractors } =
+    contractorIds.length > 0
+      ? await serverSupabase
+          .from('profiles')
+          .select('id, first_name, last_name, profile_image_url')
+          .in('id', contractorIds)
+      : { data: [] };
 
   // Batch query 4: Get all job progress at once
   const { data: allJobProgress } = await serverSupabase
@@ -119,29 +129,29 @@ export default async function DashboardPage2025() {
 
   // Create lookup maps for O(1) access
   const photoMap = new Map<string, string>();
-  allJobPhotos?.forEach(photo => {
+  allJobPhotos?.forEach((photo) => {
     if (!photoMap.has(photo.job_id)) {
       photoMap.set(photo.job_id, photo.file_url);
     }
   });
 
   const bidCountMap = new Map<string, number>();
-  allBidCounts?.forEach(bid => {
+  allBidCounts?.forEach((bid) => {
     const current = bidCountMap.get(bid.job_id) || 0;
     bidCountMap.set(bid.job_id, current + 1);
   });
 
-  const contractorMap = new Map(
-    allContractors?.map(c => [c.id, c]) || []
-  );
+  const contractorMap = new Map(allContractors?.map((c) => [c.id, c]) || []);
 
   const progressMap = new Map(
-    allJobProgress?.map(p => [p.job_id, p.progress_percentage]) || []
+    allJobProgress?.map((p) => [p.job_id, p.progress_percentage]) || []
   );
 
   // Map data in memory (no more queries!)
-  const jobsWithContractors = activeJobs.map(job => {
-    const contractor = job.contractor_id ? contractorMap.get(job.contractor_id) : undefined;
+  const jobsWithContractors = activeJobs.map((job) => {
+    const contractor = job.contractor_id
+      ? contractorMap.get(job.contractor_id)
+      : undefined;
     const progress = progressMap.get(job.id);
     const photoUrl = photoMap.get(job.id) || null;
     const bidsCount = bidCountMap.get(job.id) || 0;
@@ -152,13 +162,16 @@ export default async function DashboardPage2025() {
       status: job.status,
       budget: job.budget || 0,
       category: typeof job.category === 'string' ? job.category : undefined,
-      contractor: contractor ? {
-        name: `${contractor.first_name} ${contractor.last_name}`.trim(),
-        image: contractor.profile_image_url,
-      } : undefined,
+      contractor: contractor
+        ? {
+            name: `${contractor.first_name} ${contractor.last_name}`.trim(),
+            image: contractor.profile_image_url,
+          }
+        : undefined,
       progress: progress ? parseFloat(progress.toString()) : 0,
       bidsCount: job.contractor_id ? 0 : bidsCount,
-      scheduledDate: typeof job.scheduled_date === 'string' ? job.scheduled_date : undefined,
+      scheduledDate:
+        typeof job.scheduled_date === 'string' ? job.scheduled_date : undefined,
       photoUrl,
     };
   });
@@ -166,7 +179,10 @@ export default async function DashboardPage2025() {
   // Prepare pending bids for the "Bids Received" section
   const pendingBids = allBids
     .filter((bid) => bid.status === 'pending')
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
     .slice(0, 10)
     .map((bid) => ({
       id: bid.id,
@@ -174,7 +190,8 @@ export default async function DashboardPage2025() {
       jobId: bid.job?.id || '',
       jobTitle: bid.job?.title || 'Untitled Job',
       contractorName: bid.contractor
-        ? `${bid.contractor.first_name || ''} ${bid.contractor.last_name || ''}`.trim() || 'Contractor'
+        ? `${bid.contractor.first_name || ''} ${bid.contractor.last_name || ''}`.trim() ||
+          'Contractor'
         : 'Contractor',
       contractorImage: bid.contractor?.profile_image_url || undefined,
       createdAt: bid.created_at,
@@ -188,39 +205,53 @@ export default async function DashboardPage2025() {
     .order('created_at', { ascending: false })
     .limit(10);
 
-  const recentActivity = (notifications && notifications.length > 0)
-    ? notifications.map((n: { id: string; type?: string; title?: string; message?: string; created_at: string }) => ({
-        id: n.id,
-        type: n.type || 'info',
-        message: n.message || n.title || 'Notification',
-        timestamp: n.created_at,
-      }))
-    : [
-        // Fallback: derive from jobs + bids if no notifications exist yet
-        ...jobs.slice(0, 5).map((job) => ({
-          id: `job-${job.id}`,
-          type: 'job_posted',
-          message: `Posted job: ${job.title || 'Untitled'}`,
-          timestamp: job.created_at,
-        })),
-        ...allBids.slice(0, 5).map((bid) => ({
-          id: `bid-${bid.id}`,
-          type: 'bid_received',
-          message: `Received bid for ${bid.job?.title || 'a job'}`,
-          timestamp: bid.created_at,
-        })),
-      ]
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-        .slice(0, 10);
+  const recentActivity =
+    notifications && notifications.length > 0
+      ? notifications.map(
+          (n: {
+            id: string;
+            type?: string;
+            title?: string;
+            message?: string;
+            created_at: string;
+          }) => ({
+            id: n.id,
+            type: n.type || 'info',
+            message: n.message || n.title || 'Notification',
+            timestamp: n.created_at,
+          })
+        )
+      : [
+          // Fallback: derive from jobs + bids if no notifications exist yet
+          ...jobs.slice(0, 5).map((job) => ({
+            id: `job-${job.id}`,
+            type: 'job_posted',
+            message: `Posted job: ${job.title || 'Untitled'}`,
+            timestamp: job.created_at,
+          })),
+          ...allBids.slice(0, 5).map((bid) => ({
+            id: `bid-${bid.id}`,
+            type: 'bid_received',
+            message: `Received bid for ${bid.job?.title || 'a job'}`,
+            timestamp: bid.created_at,
+          })),
+        ]
+          .sort(
+            (a, b) =>
+              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          )
+          .slice(0, 10);
 
   // Fetch upcoming appointments from the appointments table
   const { data: appointmentsData } = await serverSupabase
     .from('appointments')
-    .select(`
+    .select(
+      `
       id, title, appointment_date, start_time, end_time,
       location_type, status, notes,
       contractor:profiles!contractor_id(id, first_name, last_name)
-    `)
+    `
+    )
     .eq('client_id', user.id)
     .gte('appointment_date', new Date().toISOString().split('T')[0])
     .in('status', ['scheduled', 'confirmed'])
@@ -229,21 +260,32 @@ export default async function DashboardPage2025() {
     .limit(5);
 
   // Supabase FK joins return arrays; extract first element
-  const upcomingAppointments = (appointmentsData || []).map((apt: Record<string, unknown>) => {
-    const contractor = Array.isArray(apt.contractor) ? apt.contractor[0] : apt.contractor;
-    return {
-      id: apt.id as string,
-      title: apt.title as string,
-      date: apt.appointment_date as string,
-      time: apt.start_time as string,
-      endTime: apt.end_time as string | undefined,
-      locationType: apt.location_type as string | undefined,
-      status: apt.status as string,
-      contractor: contractor
-        ? { name: `${contractor.first_name} ${contractor.last_name}`.trim() }
-        : undefined,
-    };
-  });
+  const upcomingAppointments = (appointmentsData || []).map(
+    (apt: Record<string, unknown>) => {
+      const contractor = Array.isArray(apt.contractor)
+        ? apt.contractor[0]
+        : apt.contractor;
+      return {
+        id: apt.id as string,
+        title: apt.title as string,
+        date: apt.appointment_date as string,
+        time: apt.start_time as string,
+        endTime: apt.end_time as string | undefined,
+        locationType: apt.location_type as string | undefined,
+        status: apt.status as string,
+        contractor: contractor
+          ? { name: `${contractor.first_name} ${contractor.last_name}`.trim() }
+          : undefined,
+      };
+    }
+  );
+
+  // Fetch saved/liked contractors count
+  const { count: savedContractorsCount } = await serverSupabase
+    .from('contractor_matches')
+    .select('id', { count: 'exact', head: true })
+    .eq('homeowner_id', user.id)
+    .eq('action', 'like');
 
   // Prepare dashboard data for professional component
   const professionalDashboardData = {
@@ -258,7 +300,7 @@ export default async function DashboardPage2025() {
       totalSpent,
       activeJobs: activeJobs.length,
       completedJobs: completedJobs.length,
-      savedContractors: 0, // TODO: Add saved contractors feature
+      savedContractors: savedContractorsCount ?? 0,
     },
     activeJobs: jobsWithContractors,
     pendingBids,
@@ -270,7 +312,7 @@ export default async function DashboardPage2025() {
   return (
     <ErrorBoundary>
       <OnboardingWrapper
-        userType="homeowner"
+        userType='homeowner'
         autoStart={!onboardingStatus.completed}
       >
         <DashboardClient data={professionalDashboardData} />

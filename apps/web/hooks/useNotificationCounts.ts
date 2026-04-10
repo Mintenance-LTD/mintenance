@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
 import { logger } from '@mintenance/shared';
 
 interface NotificationCounts {
@@ -11,69 +12,63 @@ interface NotificationCounts {
   quotes?: number;
 }
 
+const EMPTY_COUNTS: NotificationCounts = { messages: 0 };
+
+async function fetchNotificationCounts(): Promise<NotificationCounts> {
+  const response = await fetch('/api/notifications/counts', {
+    credentials: 'same-origin',
+  });
+
+  if (!response.ok) {
+    // If unauthorized, return empty counts instead of throwing
+    if (response.status === 401) {
+      return EMPTY_COUNTS;
+    }
+    throw new Error(`Failed to fetch notification counts: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  if (data.success && data.counts) {
+    return data.counts as NotificationCounts;
+  }
+
+  // Fallback to empty counts if response format is unexpected
+  return EMPTY_COUNTS;
+}
+
 /**
  * Hook to fetch real-time notification badge counts
- * Polls every 30 seconds for updates
+ * Polls every 60 seconds for updates via React Query
  */
 export function useNotificationCounts() {
-  const [counts, setCounts] = useState<NotificationCounts>({
-    messages: 0,
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchCounts = async () => {
-    try {
-      const response = await fetch('/api/notifications/counts', {
-        credentials: 'same-origin',
-      });
+  const { data: counts = EMPTY_COUNTS, isLoading: loading } =
+    useQuery<NotificationCounts>({
+      queryKey: ['notifications', 'counts'],
+      queryFn: fetchNotificationCounts,
+      refetchInterval: 60000,
+      // Silently swallow errors - don't show to user for background polling
+      retry: false,
+      meta: {
+        onError: (err: unknown) => {
+          logger.error('Failed to fetch notification counts:', err);
+        },
+      },
+    });
 
-      if (!response.ok) {
-        // If unauthorized, return empty counts instead of throwing
-        if (response.status === 401) {
-          setCounts({ messages: 0 });
-          setError(null);
-          setLoading(false);
-          return;
-        }
-        throw new Error(`Failed to fetch notification counts: ${response.status}`);
-      }
+  const refresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['notifications', 'counts'] });
+  }, [queryClient]);
 
-      const data = await response.json();
-      
-      if (data.success && data.counts) {
-        setCounts(data.counts);
-        setError(null);
-      } else {
-        // Fallback to empty counts if response format is unexpected
-        setCounts({ messages: 0 });
-        setError(null);
-      }
-    } catch (err) {
-      // Silently handle errors - don't show error to user for background polling
-      setError(null);
-      setCounts({ messages: 0 });
-      logger.error('Failed to fetch notification counts:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    // Initial fetch
-    fetchCounts();
-
-    // Poll every 60 seconds
-    const interval = setInterval(fetchCounts, 60000);
-
-    // Cleanup on unmount
-    return () => clearInterval(interval);
-  }, []);
+  // Keep error always null to match original silent-error behavior
+  const error: string | null = null;
 
   return {
     counts,
     loading,
     error,
-    refresh: fetchCounts,
+    refresh,
   };
 }

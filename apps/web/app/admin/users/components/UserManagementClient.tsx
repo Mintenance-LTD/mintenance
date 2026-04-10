@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { AdminCard } from '@/components/admin/AdminCard';
@@ -19,14 +20,42 @@ interface UserManagementClientProps {
   initialPagination: Pagination;
 }
 
+interface UsersResponse {
+  users: User[];
+  pagination: Pagination;
+}
+
+async function fetchUsers(params: {
+  page: number;
+  search: string;
+  roleFilter: string;
+  verifiedFilter: string;
+  excludeTestUsers: boolean;
+}): Promise<UsersResponse> {
+  const searchParams = new URLSearchParams({
+    page: params.page.toString(),
+    limit: '20',
+  });
+  if (params.roleFilter !== 'all')
+    searchParams.append('role', params.roleFilter);
+  if (params.verifiedFilter !== 'all')
+    searchParams.append('verified', params.verifiedFilter);
+  if (params.search.trim()) searchParams.append('search', params.search.trim());
+  if (params.excludeTestUsers) searchParams.append('excludeTestUsers', 'true');
+
+  const response = await fetch(`/api/admin/users?${searchParams.toString()}`);
+  if (!response.ok) throw new Error('Failed to fetch users');
+  return response.json();
+}
+
 export function UserManagementClient({
   initialUsers,
   initialPagination,
 }: UserManagementClientProps) {
-  const [users, setUsers] = useState<User[]>(initialUsers);
-  const [pagination, setPagination] = useState<Pagination>(initialPagination);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<
     'all' | 'contractor' | 'homeowner'
   >('all');
@@ -45,37 +74,89 @@ export function UserManagementClient({
   >(null);
   const [bulkRejectReason, setBulkRejectReason] = useState('');
 
-  const fetchUsers = useCallback(
-    async (page: number = 1) => {
-      setLoading(true);
-      try {
-        const params = new URLSearchParams({
-          page: page.toString(),
-          limit: '20',
-        });
-        if (roleFilter !== 'all') params.append('role', roleFilter);
-        if (verifiedFilter !== 'all') params.append('verified', verifiedFilter);
-        if (search.trim()) params.append('search', search.trim());
-        if (excludeTestUsers) params.append('excludeTestUsers', 'true');
-
-        const response = await fetch(`/api/admin/users?${params.toString()}`);
-        if (!response.ok) throw new Error('Failed to fetch users');
-        const data = await response.json();
-        setUsers(data.users);
-        setPagination(data.pagination);
-      } catch (error) {
-        logger.error('Error fetching users:', error);
-      } finally {
-        setLoading(false);
-      }
+  // Debounce search input
+  const [debounceTimer, setDebounceTimer] = useState<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearch(value);
+      if (debounceTimer) clearTimeout(debounceTimer);
+      const timer = setTimeout(() => {
+        setDebouncedSearch(value);
+        setPage(1);
+      }, 300);
+      setDebounceTimer(timer);
     },
-    [search, roleFilter, verifiedFilter, excludeTestUsers]
+    [debounceTimer]
   );
 
-  useEffect(() => {
-    const timer = setTimeout(() => fetchUsers(1), 300);
-    return () => clearTimeout(timer);
-  }, [search, roleFilter, verifiedFilter, excludeTestUsers, fetchUsers]);
+  const queryKey = [
+    'admin',
+    'users',
+    {
+      search: debouncedSearch,
+      roleFilter,
+      verifiedFilter,
+      excludeTestUsers,
+      page,
+    },
+  ];
+
+  const { data, isFetching: loading } = useQuery<UsersResponse>({
+    queryKey,
+    queryFn: () =>
+      fetchUsers({
+        page,
+        search: debouncedSearch,
+        roleFilter,
+        verifiedFilter,
+        excludeTestUsers,
+      }),
+    initialData:
+      page === 1 &&
+      debouncedSearch === '' &&
+      roleFilter === 'all' &&
+      verifiedFilter === 'all' &&
+      excludeTestUsers
+        ? { users: initialUsers, pagination: initialPagination }
+        : undefined,
+    placeholderData: (previousData) => previousData,
+    meta: {
+      onError: (err: unknown) => {
+        logger.error('Error fetching users:', err);
+      },
+    },
+  });
+
+  const users = data?.users ?? initialUsers;
+  const pagination = data?.pagination ?? initialPagination;
+
+  // Reset page when filters change
+  const handleRoleFilterChange = useCallback(
+    (value: 'all' | 'contractor' | 'homeowner') => {
+      setRoleFilter(value);
+      setPage(1);
+    },
+    []
+  );
+
+  const handleVerifiedFilterChange = useCallback(
+    (value: 'all' | 'verified' | 'pending' | 'false') => {
+      setVerifiedFilter(value);
+      setPage(1);
+    },
+    []
+  );
+
+  const handleExcludeTestUsersChange = useCallback((value: boolean) => {
+    setExcludeTestUsers(value);
+    setPage(1);
+  }, []);
+
+  const invalidateUsers = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+  }, [queryClient]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -140,7 +221,7 @@ export function UserManagementClient({
       setSelectedUserIds(new Set());
       setShowBulkActionModal(null);
       setBulkRejectReason('');
-      fetchUsers(pagination.page);
+      invalidateUsers();
     } catch (error) {
       logger.error('Error performing bulk action:', error);
       toast.error(
@@ -245,13 +326,13 @@ export function UserManagementClient({
       <div className='bg-white rounded-[1.5rem] p-4'>
         <UserManagementFilters
           search={search}
-          onSearchChange={setSearch}
+          onSearchChange={handleSearchChange}
           roleFilter={roleFilter}
-          onRoleFilterChange={setRoleFilter}
+          onRoleFilterChange={handleRoleFilterChange}
           verifiedFilter={verifiedFilter}
-          onVerifiedFilterChange={setVerifiedFilter}
+          onVerifiedFilterChange={handleVerifiedFilterChange}
           excludeTestUsers={excludeTestUsers}
-          onExcludeTestUsersChange={setExcludeTestUsers}
+          onExcludeTestUsersChange={handleExcludeTestUsersChange}
           selectedCount={selectedUserIds.size}
           bulkActionLoading={bulkActionLoading}
           onBulkApprove={() => setShowBulkActionModal('approve')}
@@ -275,7 +356,7 @@ export function UserManagementClient({
             setSelectedUserId(userId);
             setShowDetailModal(true);
           }}
-          onPageChange={fetchUsers}
+          onPageChange={setPage}
         />
       </div>
 
@@ -287,7 +368,7 @@ export function UserManagementClient({
             if (!open) setSelectedUserId(null);
           }}
           userId={selectedUserId || ''}
-          onVerificationUpdate={() => fetchUsers(pagination.page)}
+          onVerificationUpdate={invalidateUsers}
         />
       )}
 

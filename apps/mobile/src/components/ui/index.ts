@@ -56,16 +56,23 @@ export { default as Toast } from './Toast';
 export { default as Banner } from './Banner';
 
 // Named component exports
-export {
-  type ButtonProps,
-} from './Button';
+export { type ButtonProps } from './Button';
 
 export {
-  H1, H2, H3, H4, H5, H6,
-  Display1, Display2,
-  Subtitle1, Subtitle2,
-  Body1, Body2,
-  Caption, Overline,
+  H1,
+  H2,
+  H3,
+  H4,
+  H5,
+  H6,
+  Display1,
+  Display2,
+  Subtitle1,
+  Subtitle2,
+  Body1,
+  Body2,
+  Caption,
+  Overline,
   type TypographyProps,
   type TypographyVariant,
   type TypographyColor,
@@ -157,10 +164,8 @@ export const UI = {
   Toast,
   Banner,
 
-  // TODO: Add remaining components as they're standardized
-  // Modal: Modal,
-  // Avatar: Avatar,
-  // Dropdown: Dropdown,
+  // Modal, Avatar, and Dropdown components are not yet created in ui/.
+  // Export them here once they are standardized and added to this directory.
 };
 
 // Default export for convenience

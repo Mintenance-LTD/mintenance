@@ -7,11 +7,14 @@ import { ContractorMapView } from './ContractorMapView';
 import { ContractorListView } from './ContractorListView';
 import { ContractorSwipeView } from './ContractorSwipeView';
 import { ContractorFilters } from './ContractorFilters';
-// import { ContractorComparison } from './ContractorComparison'; // Component not created yet
-// import { a11yColors } from '@/lib/a11y'; // Module not found
+import { ContractorComparison } from './ContractorComparison';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { BrowseHero } from './ContractorsBrowse/BrowseHero';
-import { BrowseToolbar, type ViewMode, type SortOption } from './ContractorsBrowse/BrowseToolbar';
+import {
+  BrowseToolbar,
+  type ViewMode,
+  type SortOption,
+} from './ContractorsBrowse/BrowseToolbar';
 import { BrowseEmptyState } from './ContractorsBrowse/BrowseEmptyState';
 
 interface ContractorData {
@@ -41,7 +44,7 @@ export function ContractorsBrowseClient({
   contractors,
 }: ContractorsBrowseClientProps) {
   return (
-    <ErrorBoundary componentName="ContractorsBrowseClient">
+    <ErrorBoundary componentName='ContractorsBrowseClient'>
       <ContractorsBrowseContent contractors={contractors} />
     </ErrorBoundary>
   );
@@ -62,7 +65,9 @@ function ContractorsBrowseContent({
   const [minExperience, setMinExperience] = useState<number>(0);
   const [hasPortfolio, setHasPortfolio] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('recommended');
-  const [savedContractors, setSavedContractors] = useState<Set<string>>(new Set());
+  const [savedContractors, setSavedContractors] = useState<Set<string>>(
+    new Set()
+  );
   const [compareList, setCompareList] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
@@ -73,16 +78,16 @@ function ContractorsBrowseContent({
 
   // Extract unique skills and cities from contractors
   const uniqueSkills = Array.from(
-    new Set(contractors.flatMap(c => c.specialties))
+    new Set(contractors.flatMap((c) => c.specialties))
   ).sort();
 
   const uniqueCities = Array.from(
-    new Set(contractors.map(c => c.location).filter(Boolean))
+    new Set(contractors.map((c) => c.location).filter(Boolean))
   ).sort();
 
   // Toggle save/favorite contractor
   const toggleSave = (contractorId: string) => {
-    setSavedContractors(prev => {
+    setSavedContractors((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(contractorId)) {
         newSet.delete(contractorId);
@@ -95,9 +100,9 @@ function ContractorsBrowseContent({
 
   // Toggle contractor in comparison list
   const toggleCompare = (contractorId: string) => {
-    setCompareList(prev => {
+    setCompareList((prev) => {
       if (prev.includes(contractorId)) {
-        return prev.filter(id => id !== contractorId);
+        return prev.filter((id) => id !== contractorId);
       }
       if (prev.length >= 4) {
         return prev; // Max 4 contractors
@@ -116,18 +121,29 @@ function ContractorsBrowseContent({
       const skills = contractor.specialties.join(' ').toLowerCase();
       const location = contractor.location.toLowerCase();
 
-      if (!name.includes(query) && !company.includes(query) && !skills.includes(query) && !location.includes(query)) {
+      if (
+        !name.includes(query) &&
+        !company.includes(query) &&
+        !skills.includes(query) &&
+        !location.includes(query)
+      ) {
         return false;
       }
     }
 
     // Specialty filter
-    if (selectedSpecialty !== 'all' && !contractor.specialties.some(s => s === selectedSpecialty)) {
+    if (
+      selectedSpecialty !== 'all' &&
+      !contractor.specialties.some((s) => s === selectedSpecialty)
+    ) {
       return false;
     }
 
     // Location filter
-    if (selectedLocation !== 'all' && contractor.location !== selectedLocation) {
+    if (
+      selectedLocation !== 'all' &&
+      contractor.location !== selectedLocation
+    ) {
       return false;
     }
 
@@ -152,12 +168,18 @@ function ContractorsBrowseContent({
     }
 
     // Experience filter
-    if (minExperience > 0 && (contractor.yearsExperience || 0) < minExperience) {
+    if (
+      minExperience > 0 &&
+      (contractor.yearsExperience || 0) < minExperience
+    ) {
       return false;
     }
 
     // Portfolio filter
-    if (hasPortfolio && (!contractor.portfolio || contractor.portfolio.length === 0)) {
+    if (
+      hasPortfolio &&
+      (!contractor.portfolio || contractor.portfolio.length === 0)
+    ) {
       return false;
     }
 
@@ -178,8 +200,14 @@ function ContractorsBrowseContent({
       case 'recommended':
       default:
         // Weighted score: rating (40%) + jobs (30%) + verified (30%)
-        const scoreA = (a.rating * 0.4) + (Math.min(a.completedJobs / 100, 1) * 0.3) + (a.verified ? 0.3 : 0);
-        const scoreB = (b.rating * 0.4) + (Math.min(b.completedJobs / 100, 1) * 0.3) + (b.verified ? 0.3 : 0);
+        const scoreA =
+          a.rating * 0.4 +
+          Math.min(a.completedJobs / 100, 1) * 0.3 +
+          (a.verified ? 0.3 : 0);
+        const scoreB =
+          b.rating * 0.4 +
+          Math.min(b.completedJobs / 100, 1) * 0.3 +
+          (b.verified ? 0.3 : 0);
         return scoreB - scoreA;
     }
   });
@@ -212,7 +240,7 @@ function ContractorsBrowseContent({
       {/* Skip Link for Keyboard Navigation */}
       <a
         href={`#${resultsRegionId}`}
-        className="skip-link"
+        className='skip-link'
         style={{
           position: 'absolute',
           left: '-9999px',
@@ -236,7 +264,9 @@ function ContractorsBrowseContent({
         resultsCount={sortedContractors.length}
       />
 
-      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 2rem 4rem' }}>
+      <div
+        style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 2rem 4rem' }}
+      >
         <BrowseToolbar
           viewMode={viewMode}
           setViewMode={setViewMode}
@@ -277,25 +307,30 @@ function ContractorsBrowseContent({
           />
         )}
 
-        {/* Comparison Modal - TODO: Implement ContractorComparison component */}
-        {/* {showComparison && compareList.length > 0 && (
+        {/* Comparison Modal */}
+        {showComparison && compareList.length > 0 && (
           <ContractorComparison
-            contractors={sortedContractors.filter(c => compareList.includes(c.id))}
+            contractors={sortedContractors.filter((c) =>
+              compareList.includes(c.id)
+            )}
             onClose={() => setShowComparison(false)}
           />
-        )} */}
+        )}
 
         {/* Results */}
-        <div id={resultsRegionId} aria-live="polite" aria-atomic="false">
+        <div id={resultsRegionId} aria-live='polite' aria-atomic='false'>
           {viewMode === 'grid' && (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-              gap: '1.5rem',
-            }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                gap: '1.5rem',
+              }}
+            >
               {sortedContractors.map((contractor) => {
                 // Transform ContractorData to ContractorCardData format
-                const [firstName, ...lastNameParts] = contractor.name.split(' ');
+                const [firstName, ...lastNameParts] =
+                  contractor.name.split(' ');
                 const cardData = {
                   id: contractor.id,
                   first_name: firstName,
@@ -306,15 +341,14 @@ function ContractorsBrowseContent({
                   rating: contractor.rating,
                   total_jobs_completed: contractor.completedJobs,
                   admin_verified: contractor.verified,
-                  contractor_skills: contractor.specialties.map(s => ({ skill_name: s })),
+                  contractor_skills: contractor.specialties.map((s) => ({
+                    skill_name: s,
+                  })),
                   company_name: contractor.company,
                 };
 
                 return (
-                  <ContractorCard
-                    key={contractor.id}
-                    contractor={cardData}
-                  />
+                  <ContractorCard key={contractor.id} contractor={cardData} />
                 );
               })}
             </div>
@@ -332,8 +366,9 @@ function ContractorsBrowseContent({
 
           {viewMode === 'map' && (
             <ContractorMapView
-              contractors={sortedContractors.map(contractor => {
-                const [firstName, ...lastNameParts] = contractor.name.split(' ');
+              contractors={sortedContractors.map((contractor) => {
+                const [firstName, ...lastNameParts] =
+                  contractor.name.split(' ');
                 return {
                   id: contractor.id,
                   first_name: firstName,
@@ -344,7 +379,9 @@ function ContractorsBrowseContent({
                   rating: contractor.rating,
                   profile_image_url: contractor.avatar,
                   city: contractor.location,
-                  contractor_skills: contractor.specialties.map(s => ({ skill_name: s })),
+                  contractor_skills: contractor.specialties.map((s) => ({
+                    skill_name: s,
+                  })),
                 };
               })}
             />
@@ -365,8 +402,9 @@ function ContractorsBrowseContent({
       </div>
 
       {/* Styles with Focus States */}
-      <style dangerouslySetInnerHTML={{
-        __html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
           /* Skip Link Focus */
           .skip-link:focus {
             left: 0.5rem;
@@ -461,8 +499,9 @@ function ContractorsBrowseContent({
               transition-duration: 0.01ms !important;
             }
           }
-        `
-      }} />
+        `,
+        }}
+      />
     </div>
   );
 }

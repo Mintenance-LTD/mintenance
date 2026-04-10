@@ -1,9 +1,9 @@
 /**
  * A/B Test Alerting Service
- * 
+ *
  * Monitors A/B test metrics and triggers alerts when thresholds are exceeded.
  * Alerts are persisted to the database and can trigger notifications.
- * 
+ *
  * Alert Types:
  * - CRITICAL: SFN rate > 0.1% (safety violation)
  * - WARNING: Coverage violation > 5%, automation rate spike > 20%
@@ -83,7 +83,9 @@ export class ABTestAlertingService {
   /**
    * Check for alerts and persist them to database
    */
-  static async checkAndPersistAlerts(experimentId: string): Promise<AlertCheckResult> {
+  static async checkAndPersistAlerts(
+    experimentId: string
+  ): Promise<AlertCheckResult> {
     try {
       const result = await this.checkAlerts(experimentId);
 
@@ -135,7 +137,12 @@ export class ABTestAlertingService {
         threshold: this.SFN_RATE_CRITICAL_THRESHOLD,
         actualValue: metrics.sfnRate,
         metadata: {
-          totalOutcomes: metrics.sfnRate > 0 ? Math.round(metrics.sfnRate / this.SFN_RATE_CRITICAL_THRESHOLD * 100) : 0,
+          totalOutcomes:
+            metrics.sfnRate > 0
+              ? Math.round(
+                  (metrics.sfnRate / this.SFN_RATE_CRITICAL_THRESHOLD) * 100
+                )
+              : 0,
         },
         acknowledged: false,
         createdAt: now,
@@ -143,9 +150,10 @@ export class ABTestAlertingService {
     }
 
     // 2. Check coverage violations (WARNING)
-    const coverageViolations = await ABTestMonitoringService.getCoverageViolations();
+    const coverageViolations =
+      await ABTestMonitoringService.getCoverageViolations();
     const significantViolations = coverageViolations.filter(
-      v => v.violation * 100 > this.COVERAGE_VIOLATION_WARNING_THRESHOLD
+      (v) => v.violation * 100 > this.COVERAGE_VIOLATION_WARNING_THRESHOLD
     );
 
     if (significantViolations.length > 0) {
@@ -155,9 +163,11 @@ export class ABTestAlertingService {
         type: 'coverage_violation',
         message: `${significantViolations.length} strata have coverage violations > ${this.COVERAGE_VIOLATION_WARNING_THRESHOLD}%`,
         threshold: this.COVERAGE_VIOLATION_WARNING_THRESHOLD,
-        actualValue: Math.max(...significantViolations.map(v => v.violation * 100)),
+        actualValue: Math.max(
+          ...significantViolations.map((v) => v.violation * 100)
+        ),
         metadata: {
-          violations: significantViolations.map(v => ({
+          violations: significantViolations.map((v) => ({
             stratum: v.stratum,
             violation: v.violation * 100,
             sampleSize: v.sampleSize,
@@ -169,7 +179,8 @@ export class ABTestAlertingService {
     }
 
     // 3. Check automation rate spike (WARNING)
-    const automationOverTime = await ABTestMonitoringService.getAutomationRateOverTime(experimentId, 2);
+    const automationOverTime =
+      await ABTestMonitoringService.getAutomationRateOverTime(experimentId, 2);
     if (automationOverTime.length >= 2) {
       const [yesterday, today] = automationOverTime.slice(-2);
       const dayOverDayChange = Math.abs(today.rate - yesterday.rate);
@@ -194,7 +205,9 @@ export class ABTestAlertingService {
     }
 
     // 4. Check critic model observations (INFO)
-    if (metrics.criticModelObservations < this.CRITIC_OBSERVATIONS_INFO_THRESHOLD) {
+    if (
+      metrics.criticModelObservations < this.CRITIC_OBSERVATIONS_INFO_THRESHOLD
+    ) {
       alerts.push({
         experimentId,
         severity: 'info',
@@ -203,7 +216,9 @@ export class ABTestAlertingService {
         threshold: this.CRITIC_OBSERVATIONS_INFO_THRESHOLD,
         actualValue: metrics.criticModelObservations,
         metadata: {
-          recommendations: ['Validate more assessments to train the critic model'],
+          recommendations: [
+            'Validate more assessments to train the critic model',
+          ],
         },
         acknowledged: false,
         createdAt: now,
@@ -227,9 +242,11 @@ export class ABTestAlertingService {
       });
     }
 
-    const criticalCount = alerts.filter(a => a.severity === 'critical').length;
-    const warningCount = alerts.filter(a => a.severity === 'warning').length;
-    const infoCount = alerts.filter(a => a.severity === 'info').length;
+    const criticalCount = alerts.filter(
+      (a) => a.severity === 'critical'
+    ).length;
+    const warningCount = alerts.filter((a) => a.severity === 'warning').length;
+    const infoCount = alerts.filter((a) => a.severity === 'info').length;
 
     return {
       hasAlerts: alerts.length > 0,
@@ -243,16 +260,26 @@ export class ABTestAlertingService {
   /**
    * Persist alerts to database
    */
-  private static async persistAlerts(experimentId: string, alerts: Alert[]): Promise<void> {
+  private static async persistAlerts(
+    experimentId: string,
+    alerts: Alert[]
+  ): Promise<void> {
     // Check if alert table exists, if not, log warning
     // For now, we'll use a simple logging approach
     // In production, you'd want to create an ab_alerts table
 
     for (const alert of alerts) {
       // Check if similar alert already exists (avoid duplicates)
-      const existingAlerts = await this.getRecentAlerts(experimentId, alert.type, 1);
-      
-      if (existingAlerts.length === 0 || this.shouldCreateNewAlert(alert, existingAlerts[0])) {
+      const existingAlerts = await this.getRecentAlerts(
+        experimentId,
+        alert.type,
+        1
+      );
+
+      if (
+        existingAlerts.length === 0 ||
+        this.shouldCreateNewAlert(alert, existingAlerts[0])
+      ) {
         logger.warn('A/B Test Alert', {
           service: 'ABTestAlertingService',
           experimentId,
@@ -345,7 +372,10 @@ export class ABTestAlertingService {
   /**
    * Determine if a new alert should be created (avoid spam)
    */
-  private static shouldCreateNewAlert(newAlert: Alert, existingAlert: Alert): boolean {
+  private static shouldCreateNewAlert(
+    newAlert: Alert,
+    existingAlert: Alert
+  ): boolean {
     // Don't create duplicate alerts within 1 hour
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     if (existingAlert.createdAt > oneHourAgo) {
@@ -358,13 +388,18 @@ export class ABTestAlertingService {
       warning: 2,
       critical: 3,
     };
-    if (severityOrder[newAlert.severity] > severityOrder[existingAlert.severity]) {
+    if (
+      severityOrder[newAlert.severity] > severityOrder[existingAlert.severity]
+    ) {
       return true;
     }
 
     // Create new alert if value changed significantly (>10%)
-    const valueChange = Math.abs(newAlert.actualValue - existingAlert.actualValue);
-    const percentChange = (valueChange / Math.max(existingAlert.actualValue, 0.01)) * 100;
+    const valueChange = Math.abs(
+      newAlert.actualValue - existingAlert.actualValue
+    );
+    const percentChange =
+      (valueChange / Math.max(existingAlert.actualValue, 0.01)) * 100;
     if (percentChange > 10) {
       return true;
     }
@@ -379,20 +414,42 @@ export class ABTestAlertingService {
     alertId: string,
     acknowledgedBy: string
   ): Promise<void> {
-    // TODO: Update ab_alerts table when schema is created
-    logger.info('Alert acknowledged', {
-      service: 'ABTestAlertingService',
-      alertId,
-      acknowledgedBy,
-    });
+    try {
+      const { error } = await serverSupabase
+        .from('ab_alerts')
+        .update({
+          is_resolved: true,
+          resolved_by: acknowledgedBy,
+          resolved_at: new Date().toISOString(),
+        })
+        .eq('id', alertId);
+
+      if (error) {
+        logger.error('Failed to acknowledge alert in ab_alerts', error, {
+          service: 'ABTestAlertingService',
+          alertId,
+          acknowledgedBy,
+        });
+        return;
+      }
+
+      logger.info('Alert acknowledged', {
+        service: 'ABTestAlertingService',
+        alertId,
+        acknowledgedBy,
+      });
+    } catch (error) {
+      logger.error('Error acknowledging alert', error, {
+        service: 'ABTestAlertingService',
+        alertId,
+      });
+    }
   }
 
   /**
    * Get unacknowledged alerts
    */
   static async getUnacknowledgedAlerts(experimentId: string): Promise<Alert[]> {
-    // TODO: Query from ab_alerts table when schema is created
-    return [];
+    return this.getRecentAlerts(experimentId, undefined, 50);
   }
 }
-

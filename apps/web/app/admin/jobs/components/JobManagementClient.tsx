@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@/components/ui/Icon';
 import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
 import { logger } from '@mintenance/shared';
@@ -10,26 +11,38 @@ import { STATUS_TABS, PAGE_SIZE } from './JobManagementTypes';
 
 const AUTO_REFRESH_INTERVAL = 30_000;
 
-export function JobManagementClient() {
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [stats, setStats] = useState<JobStats>({
-    total: 0,
-    posted: 0,
-    assigned: 0,
-    inProgress: 0,
-    completed: 0,
-    cancelled: 0,
-    active: 0,
+async function fetchAdminJobs(params: {
+  page: number;
+  statusFilter: string;
+  search: string;
+  sortColumn: string;
+  sortOrder: 'asc' | 'desc';
+}): Promise<JobsResponse> {
+  const searchParams = new URLSearchParams({
+    page: params.page.toString(),
+    limit: PAGE_SIZE.toString(),
+    sort: params.sortColumn,
+    order: params.sortOrder,
   });
-  const [total, setTotal] = useState(0);
+  if (params.statusFilter !== 'all')
+    searchParams.append('status', params.statusFilter);
+  if (params.search.trim()) searchParams.append('search', params.search.trim());
+
+  const response = await fetch(`/api/admin/jobs?${searchParams.toString()}`, {
+    credentials: 'include',
+  });
+  if (!response.ok) throw new Error('Failed to fetch jobs');
+  return response.json();
+}
+
+export function JobManagementClient() {
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortColumn, setSortColumn] = useState('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -43,46 +56,47 @@ export function JobManagementClient() {
     setPage(1);
   }, [statusFilter]);
 
-  const fetchJobs = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: PAGE_SIZE.toString(),
-        sort: sortColumn,
-        order: sortOrder,
-      });
-      if (statusFilter !== 'all') params.append('status', statusFilter);
-      if (debouncedSearch.trim())
-        params.append('search', debouncedSearch.trim());
+  const queryKey = [
+    'admin',
+    'jobs',
+    { page, statusFilter, search: debouncedSearch, sortColumn, sortOrder },
+  ];
 
-      const response = await fetch(`/api/admin/jobs?${params.toString()}`, {
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Failed to fetch jobs');
-      const result: JobsResponse = await response.json();
-      setJobs(result.data);
-      setTotal(result.total);
-      setStats(result.stats);
-    } catch (error) {
-      logger.error('Error fetching admin jobs:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, statusFilter, debouncedSearch, sortColumn, sortOrder]);
+  const { data, isFetching: loading } = useQuery<JobsResponse>({
+    queryKey,
+    queryFn: () =>
+      fetchAdminJobs({
+        page,
+        statusFilter,
+        search: debouncedSearch,
+        sortColumn,
+        sortOrder,
+      }),
+    placeholderData: (previousData) => previousData,
+    refetchInterval: AUTO_REFRESH_INTERVAL,
+    refetchIntervalInBackground: false,
+    meta: {
+      onError: (err: unknown) => {
+        logger.error('Error fetching admin jobs:', err);
+      },
+    },
+  });
 
-  useEffect(() => {
-    fetchJobs();
-  }, [fetchJobs]);
+  const jobs = data?.data ?? [];
+  const total = data?.total ?? 0;
+  const stats: JobStats = data?.stats ?? {
+    total: 0,
+    posted: 0,
+    assigned: 0,
+    inProgress: 0,
+    completed: 0,
+    cancelled: 0,
+    active: 0,
+  };
 
-  useEffect(() => {
-    refreshTimerRef.current = setInterval(() => {
-      if (!document.hidden) fetchJobs();
-    }, AUTO_REFRESH_INTERVAL);
-    return () => {
-      if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
-    };
-  }, [fetchJobs]);
+  const handleRefresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['admin', 'jobs'] });
+  }, [queryClient]);
 
   const handleSort = (column: string) => {
     if (sortColumn === column) {
@@ -115,7 +129,7 @@ export function JobManagementClient() {
           </p>
         </div>
         <button
-          onClick={fetchJobs}
+          onClick={handleRefresh}
           disabled={loading}
           className='px-5 py-2.5 bg-[#e1e9ee] text-[#2a3439] rounded-xl font-medium text-sm hover:bg-[#d9e4ea] transition-all flex items-center gap-2 disabled:opacity-50'
         >
