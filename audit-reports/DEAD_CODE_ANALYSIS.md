@@ -1,45 +1,54 @@
 # Dead Code Audit — Mintenance Monorepo
 
 **Date:** 2026-04-10 **Tool:** knip v5.88.1 (TypeScript equivalent of Python ruff/vulture)
-**Scope:** apps/web (Next.js), apps/mobile (React Native), 8/10 shared packages (packages/ai-core
-and packages/design-tokens timed out during scan — both small, manual spot-check recommended)
+**Scope:** apps/web (Next.js), apps/mobile (React Native), all 10 shared packages
 
 > **Caveat:** knip reports files unreachable from entry points (page/route/layout/middleware). Some
 > flagged files may be referenced only by dynamic imports or runtime strings — always verify before
-> deleting. However, spot checks confirmed knip is accurate: flagged files are either unimported or
-> part of dead chains.
+> deleting. Spot checks confirmed knip is accurate: flagged files are either unimported or part of
+> dead chains.
 
 ## Executive Summary
 
-| Area               | Unused Files | Unused Exports | Unused Types | Unused Deps | Duplicate Exports |
-| ------------------ | ------------ | -------------- | ------------ | ----------- | ----------------- |
-| apps/web           | 532          | 686            | 463          | 14 (+7 dev) | 53                |
-| apps/mobile        | 76           | 675            | 386          | 7 (+3 dev)  | 158               |
-| packages/security  | 0            | 0              | 1            | 0 (+2 dev)  | 1                 |
-| packages/shared-ui | 4            | 24             | 26           | 0 (+2 dev)  | 10                |
-| packages/shared    | 4            | 2              | 3            | 1 (+0 dev)  | 0                 |
-| **TOTAL**          | **616**      | —              | —            | —           | —                 |
+| Area                   | Unused Files | Unused Exports | Unused Types | Unused Deps | Duplicate Exports |
+| ---------------------- | ------------ | -------------- | ------------ | ----------- | ----------------- |
+| apps/web               | 532          | 686            | 463          | 14 (+7 dev) | 53                |
+| apps/mobile            | 76           | 675            | 386          | 7 (+3 dev)  | 158               |
+| packages/ai-core       | 0            | 0              | 0            | 2 (+0 dev)  | 0                 |
+| packages/api-client    | 0            | 0              | 0            | 1 (+0 dev)  | 0                 |
+| packages/api-contracts | 0            | 0              | 0            | 0 (+0 dev)  | 0                 |
+| packages/auth          | 1            | 2              | 1            | 0 (+1 dev)  | 0                 |
+| packages/data-access   | 0            | 0              | 0            | 1 (+0 dev)  | 0                 |
+| packages/design-tokens | 0            | 9              | 1            | 0 (+0 dev)  | 0                 |
+| packages/security      | 0            | 0              | 1            | 0 (+2 dev)  | 1                 |
+| packages/shared        | 4            | 2              | 3            | 1 (+0 dev)  | 0                 |
+| packages/shared-ui     | 4            | 24             | 26           | 0 (+2 dev)  | 10                |
+| **TOTAL**              | **617**      | —              | —            | —           | —                 |
 
 ## Deletion Priority Matrix
 
 ### Tier A — Safe to delete (high confidence)
 
-1. **Root-level orphans** (fix-\*.cjs test migration scripts, middleware-cache.ts,
-   middleware-security.ts, version-checker.tsx)
-2. **Commented-out imports** (`PerformanceDashboard` disabled in layout.tsx — "Temporarily disabled
+1. **Root-level orphans** — fix-\*.cjs test migration scripts, middleware-cache.ts,
+   middleware-security.ts, version-checker.tsx
+2. **Commented-out imports** — `PerformanceDashboard` disabled in layout.tsx ("Temporarily disabled
    for testing")
 3. **Duplicate components** where both paths exist but only one is imported (e.g.,
-   components/dashboard/JobCard.tsx vs components/cards/JobCard.tsx)
-4. **Old middleware modules** (security-headers.ts replaced by inline CSP; csrf-protection.ts
-   replaced by csrf.ts)
+   `components/dashboard/JobCard.tsx` vs `components/cards/JobCard.tsx`)
+4. **Old middleware modules** — security-headers.ts (replaced by inline CSP), csrf-protection.ts
+   (replaced by csrf.ts)
+5. **Unused production dependencies** — remove from package.json (listed below)
 
 ### Tier B — Verify then delete (medium confidence)
 
-1. Files in dead chains (entire feature trees where the entry component is unused)
-2. Hooks superseded by newer React Query hooks (useFeatureFlag, useLoadingState,
-   useOnboardingTooltips)
-3. Design system duplicates (Card.unified.tsx vs Card.tsx, Badge.unified.tsx vs Badge.tsx,
-   UnifiedButton vs Button)
+1. Files in dead chains — entire feature trees where the entry component is unused
+   (AnalyticsClient + its chart deps)
+2. Hooks superseded by newer React Query hooks — useFeatureFlag, useLoadingState,
+   useOnboardingTooltips, useAccessibility
+3. Design system duplicates — Card.unified.tsx vs Card.tsx, Badge.unified.tsx vs Badge.tsx,
+   UnifiedButton vs Button
+4. Unused exports in `packages/design-tokens/src/unified-tokens.ts` — typography, spacing,
+   borderRadius, etc.
 
 ### Tier C — Keep or archive (low confidence)
 
@@ -47,6 +56,8 @@ and packages/design-tokens timed out during scan — both small, manual spot-che
    or keep.
 2. **Test mocks/fixtures** — may be loaded implicitly by test runners.
 3. **Mobile feature stubs** — some services may be for planned features (e.g., FeedPostsService).
+4. **packages/ai-core deps** (openai, @google-cloud/vision) — FALSE POSITIVE: consumed by apps/web
+   but declared in ai-core package
 
 ## Unused Production Dependencies
 
@@ -97,7 +108,7 @@ and packages/design-tokens timed out during scan — both small, manual spot-che
 - `jest-circus`
 - `react-native-worklets-core`
 
-### ⚠️ Mobile unlisted dependencies (used but not declared)
+### ⚠️ Mobile unlisted dependencies (used but not declared in package.json)
 
 - `@testing-library/react`
 - `@jest/globals`
@@ -110,7 +121,7 @@ and packages/design-tokens timed out during scan — both small, manual spot-che
 **53 in apps/web, 158 in apps/mobile**
 
 Common React pattern where a component is exported as both `default` and as a named export.
-**Recommendation:** standardize on named exports only (better for tree-shaking, avoids import
+**Recommendation:** standardize on named exports only (better tree-shaking, avoids import
 inconsistency).
 
 Sample (first 15 in web):
@@ -807,68 +818,62 @@ Sample (first 15 in web):
 
 ## Shared Packages
 
+### packages/ai-core
+
+**Unused deps:** `openai`, `@google-cloud/vision`
+
+### packages/api-client
+
+**Unused deps:** `@mintenance/types`
+
+### packages/api-contracts — clean ✅
+
+### packages/auth
+
+**Unused files:**
+
+- `packages/auth/src/secure-config.ts`
+
+**Unused devDeps:** `@types/jsdom`
+
+**Unused exports:**
+
+- `packages/auth/src/password-security.ts`:84 → `hashPassword`
+- `packages/auth/src/password-security.ts`:141 → `verifyPassword`
+
+**Unused types:**
+
+- `packages/auth/src/password-security.ts`:9 → `HashAlgorithm`
+
+### packages/data-access
+
+**Unused deps:** `@mintenance/types`
+
+### packages/design-tokens
+
+**Unused exports:**
+
+- `packages/design-tokens/src/unified-tokens.ts`:120 → `semanticColors`
+- `packages/design-tokens/src/unified-tokens.ts`:210 → `typography`
+- `packages/design-tokens/src/unified-tokens.ts`:318 → `spacing`
+- `packages/design-tokens/src/unified-tokens.ts`:358 → `borderRadius`
+- `packages/design-tokens/src/unified-tokens.ts`:372 → `shadows`
+- `packages/design-tokens/src/unified-tokens.ts`:403 → `gradients`
+- `packages/design-tokens/src/unified-tokens.ts`:425 → `transitions`
+- `packages/design-tokens/src/unified-tokens.ts`:452 → `zIndex`
+- `packages/design-tokens/src/unified-tokens.ts`:469 → `components`
+
+**Unused types:**
+
+- `packages/design-tokens/src/unified-tokens.ts`:685 → `UnifiedTokens`
+
 ### packages/security
+
+**Unused devDeps:** `@types/dompurify`, `@vitest/coverage-v8`
 
 **Unused types:**
 
 - `packages/security/src/core/BaseSanitizer.ts`:11 → `SanitizationResult`
-
-### packages/shared-ui
-
-**Unused files:**
-
-- `packages/shared-ui/src/components/Badge/index.ts`
-- `packages/shared-ui/src/components/Button/index.ts`
-- `packages/shared-ui/src/components/Card/index.ts`
-- `packages/shared-ui/src/components/Input/index.ts`
-
-**Unused exports:**
-
-- `packages/shared-ui/src/components/Input/Input.web.tsx`:291 → `default`
-- `packages/shared-ui/src/components/Badge/Badge.web.tsx`:100 → `default`
-- `packages/shared-ui/src/components/Badge/Badge.native.tsx`:143 → `default`
-- `packages/shared-ui/src/components/Button/Button.native.tsx`:254 → `default`
-- `packages/shared-ui/src/components/Card/Card.native.tsx`:128 → `CardHeader`
-- `packages/shared-ui/src/components/Card/Card.native.tsx`:135 → `CardBody`
-- `packages/shared-ui/src/components/Card/Card.native.tsx`:142 → `CardFooter`
-- `packages/shared-ui/src/components/Card/Card.native.tsx`:215 → `default`
-- `packages/shared-ui/src/components/Input/Input.native.tsx`:192 → `default`
-- `packages/shared-ui/src/components/Card.tsx`:11 → `CardHeader`
-- `packages/shared-ui/src/components/Card.tsx`:15 → `CardContent`
-- `packages/shared-ui/src/components/Card.tsx`:19 → `CardFooter`
-- `packages/shared-ui/src/utils/usePlatform.ts`:11 → `detectPlatform`
-- `packages/shared-ui/src/utils/usePlatform.ts`:30 → `isWeb`
-- `packages/shared-ui/src/utils/usePlatform.ts`:36 → `isNative`
-- `packages/shared-ui/src/components/Badge/Badge.tsx`:14 → `default`
-- `packages/shared-ui/src/components/Button/Button.tsx`:16 → `default`
-- `packages/shared-ui/src/components/Card/Card.tsx`:15 → `CardHeader`
-- `packages/shared-ui/src/components/Card/Card.tsx`:16 → `CardFooter`
-- `packages/shared-ui/src/components/Card/Card.tsx`:17 → `CardTitle`
-- ...and 4 more
-
-**Unused types:**
-
-- `packages/shared-ui/src/components/Card/Card.native.tsx`:124 → `CardHeaderProps`
-- `packages/shared-ui/src/components/Card/Card.native.tsx`:131 → `CardBodyProps`
-- `packages/shared-ui/src/components/Card/Card.native.tsx`:138 → `CardFooterProps`
-- `packages/shared-ui/src/components/Card.tsx`:3 → `CardProps`
-- `packages/shared-ui/src/utils/usePlatform.ts`:6 → `Platform`
-- `packages/shared-ui/src/components/Badge/Badge.tsx`:11 → `WebBadgeProps`
-- `packages/shared-ui/src/components/Badge/Badge.tsx`:11 → `NativeBadgeProps`
-- `packages/shared-ui/src/components/Badge/Badge.tsx`:11 → `BaseBadgeProps`
-- `packages/shared-ui/src/components/Badge/Badge.tsx`:11 → `BadgeVariant`
-- `packages/shared-ui/src/components/Badge/Badge.tsx`:11 → `BadgeSize`
-- `packages/shared-ui/src/components/Button/Button.tsx`:13 → `WebButtonProps`
-- `packages/shared-ui/src/components/Button/Button.tsx`:13 → `NativeButtonProps`
-- `packages/shared-ui/src/components/Button/Button.tsx`:13 → `BaseButtonProps`
-- `packages/shared-ui/src/components/Button/Button.tsx`:13 → `ButtonVariant`
-- `packages/shared-ui/src/components/Button/Button.tsx`:13 → `ButtonSize`
-- `packages/shared-ui/src/components/Card/Card.tsx`:11 → `WebCardProps`
-- `packages/shared-ui/src/components/Card/Card.tsx`:11 → `NativeCardProps`
-- `packages/shared-ui/src/components/Card/Card.tsx`:11 → `BaseCardProps`
-- `packages/shared-ui/src/components/Card/Card.tsx`:11 → `CardVariant`
-- `packages/shared-ui/src/components/Card/Card.tsx`:11 → `CardPadding`
-- ...and 6 more
 
 ### packages/shared
 
@@ -892,9 +897,78 @@ Sample (first 15 in web):
 - `packages/shared/src/logger.ts`:15 → `LogContext`
 - `packages/shared/src/logger.ts`:22 → `LogEntry`
 
+### packages/shared-ui
+
+**Unused files:**
+
+- `packages/shared-ui/src/components/Badge/index.ts`
+- `packages/shared-ui/src/components/Button/index.ts`
+- `packages/shared-ui/src/components/Card/index.ts`
+- `packages/shared-ui/src/components/Input/index.ts`
+
+**Unused devDeps:** `@types/react-dom`, `react-dom`
+
+**Unused exports:**
+
+- `packages/shared-ui/src/components/Input/Input.web.tsx`:291 → `default`
+- `packages/shared-ui/src/components/Badge/Badge.web.tsx`:100 → `default`
+- `packages/shared-ui/src/components/Badge/Badge.native.tsx`:143 → `default`
+- `packages/shared-ui/src/components/Button/Button.native.tsx`:254 → `default`
+- `packages/shared-ui/src/components/Card/Card.native.tsx`:128 → `CardHeader`
+- `packages/shared-ui/src/components/Card/Card.native.tsx`:135 → `CardBody`
+- `packages/shared-ui/src/components/Card/Card.native.tsx`:142 → `CardFooter`
+- `packages/shared-ui/src/components/Card/Card.native.tsx`:215 → `default`
+- `packages/shared-ui/src/components/Input/Input.native.tsx`:192 → `default`
+- `packages/shared-ui/src/components/Card.tsx`:11 → `CardHeader`
+- `packages/shared-ui/src/components/Card.tsx`:15 → `CardContent`
+- `packages/shared-ui/src/components/Card.tsx`:19 → `CardFooter`
+- `packages/shared-ui/src/utils/usePlatform.ts`:11 → `detectPlatform`
+- `packages/shared-ui/src/utils/usePlatform.ts`:30 → `isWeb`
+- `packages/shared-ui/src/utils/usePlatform.ts`:36 → `isNative`
+- `packages/shared-ui/src/components/Badge/Badge.tsx`:14 → `default`
+- `packages/shared-ui/src/components/Button/Button.tsx`:16 → `default`
+- `packages/shared-ui/src/components/Card/Card.tsx`:15 → `CardHeader`
+- `packages/shared-ui/src/components/Card/Card.tsx`:16 → `CardFooter`
+- `packages/shared-ui/src/components/Card/Card.tsx`:17 → `CardTitle`
+- `packages/shared-ui/src/components/Card/Card.tsx`:17 → `CardDescription`
+- `packages/shared-ui/src/components/Card/Card.tsx`:17 → `CardContent`
+- `packages/shared-ui/src/components/Card/Card.tsx`:18 → `default`
+- `packages/shared-ui/src/components/Input/Input.tsx`:14 → `default`
+
+**Unused types:**
+
+- `packages/shared-ui/src/components/Card/Card.native.tsx`:124 → `CardHeaderProps`
+- `packages/shared-ui/src/components/Card/Card.native.tsx`:131 → `CardBodyProps`
+- `packages/shared-ui/src/components/Card/Card.native.tsx`:138 → `CardFooterProps`
+- `packages/shared-ui/src/components/Card.tsx`:3 → `CardProps`
+- `packages/shared-ui/src/utils/usePlatform.ts`:6 → `Platform`
+- `packages/shared-ui/src/components/Badge/Badge.tsx`:11 → `WebBadgeProps`
+- `packages/shared-ui/src/components/Badge/Badge.tsx`:11 → `NativeBadgeProps`
+- `packages/shared-ui/src/components/Badge/Badge.tsx`:11 → `BaseBadgeProps`
+- `packages/shared-ui/src/components/Badge/Badge.tsx`:11 → `BadgeVariant`
+- `packages/shared-ui/src/components/Badge/Badge.tsx`:11 → `BadgeSize`
+- `packages/shared-ui/src/components/Button/Button.tsx`:13 → `WebButtonProps`
+- `packages/shared-ui/src/components/Button/Button.tsx`:13 → `NativeButtonProps`
+- `packages/shared-ui/src/components/Button/Button.tsx`:13 → `BaseButtonProps`
+- `packages/shared-ui/src/components/Button/Button.tsx`:13 → `ButtonVariant`
+- `packages/shared-ui/src/components/Button/Button.tsx`:13 → `ButtonSize`
+- `packages/shared-ui/src/components/Card/Card.tsx`:11 → `WebCardProps`
+- `packages/shared-ui/src/components/Card/Card.tsx`:11 → `NativeCardProps`
+- `packages/shared-ui/src/components/Card/Card.tsx`:11 → `BaseCardProps`
+- `packages/shared-ui/src/components/Card/Card.tsx`:11 → `CardVariant`
+- `packages/shared-ui/src/components/Card/Card.tsx`:11 → `CardPadding`
+- `packages/shared-ui/src/components/Input/Input.tsx`:11 → `WebInputProps`
+- `packages/shared-ui/src/components/Input/Input.tsx`:11 → `NativeInputProps`
+- `packages/shared-ui/src/components/Input/Input.tsx`:11 → `BaseInputProps`
+- `packages/shared-ui/src/components/Input/Input.tsx`:11 → `InputType`
+- `packages/shared-ui/src/components/Input/Input.tsx`:11 → `InputSize`
+- ...and 1 more
+
 ## Recommended Deletion Order
 
 1. **Remove unused dependencies** from package.json files (fastest, no code impact)
+   - 21 from apps/web (14 prod + 7 dev)
+   - 10 from apps/mobile (7 prod + 3 dev)
 2. **Delete duplicate components** where both copies exist (JobCard dashboard/ vs cards/)
 3. **Delete root-level orphans** (apps/web/fix-_.cjs, middleware-_.ts, version-checker.tsx)
 4. **Delete commented-out dead imports** (PerformanceDashboard)
@@ -906,7 +980,7 @@ Sample (first 15 in web):
 ## Verification Steps Before Deletion
 
 ```bash
-# 1. Search for imports
+# 1. Search for imports by filename
 grep -rn "filename" apps/ packages/ --include="*.ts" --include="*.tsx"
 
 # 2. Check dynamic imports
@@ -920,13 +994,17 @@ npx tsc --noEmit --project apps/web/tsconfig.json
 npx tsc --noEmit --project apps/mobile/tsconfig.json
 ```
 
-## JSON Reports
+## Regenerate This Report
 
-Machine-readable results saved to:
+```bash
+# Install knip if not present
+npm install --no-save knip@5
 
-- `audit-reports/knip-web.json`
-- `audit-reports/knip-mobile.json`
-- `audit-reports/knip-pkg-*.json` (one per shared package)
+# Run per-workspace (full monorepo scan OOMs at 4GB)
+NODE_OPTIONS="--max-old-space-size=8192" node_modules/.bin/knip --workspace apps/web --reporter json > audit-reports/knip-web.json
+NODE_OPTIONS="--max-old-space-size=8192" node_modules/.bin/knip --workspace apps/mobile --reporter json > audit-reports/knip-mobile.json
+# ...repeat for each packages/* workspace
 
-To regenerate:
-`NODE_OPTIONS="--max-old-space-size=8192" node_modules/.bin/knip --workspace apps/web --reporter json`
+# Regenerate markdown
+node audit-reports/generate-report.mjs
+```
