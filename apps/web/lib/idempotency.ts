@@ -35,7 +35,7 @@ const LOCK_TIMEOUT_MS = 30000;
  * @param ttl - Time to live in milliseconds (default: 30 seconds)
  * @returns Lock result with acquisition status and lock ID
  */
-export async function acquireDistributedLock(
+async function acquireDistributedLock(
   key: string,
   ttl: number = LOCK_TIMEOUT_MS
 ): Promise<LockResult> {
@@ -103,7 +103,7 @@ export async function acquireDistributedLock(
  * @param key - The key that was locked
  * @param lockId - Optional lock ID (will be computed from key if not provided)
  */
-export async function releaseDistributedLock(
+async function releaseDistributedLock(
   key: string,
   lockId?: number
 ): Promise<void> {
@@ -323,7 +323,7 @@ export async function storeIdempotencyResult<T>(
 /**
  * Generate an idempotency key for an operation
  */
-export function generateIdempotencyKey(
+function generateIdempotencyKey(
   operation: string,
   userId: string,
   resourceId?: string

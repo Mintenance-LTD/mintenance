@@ -3,7 +3,11 @@
  * Applies learned adjustments from memory system to assessments
  */
 
-import type { Phase1BuildingAssessment, DamageSeverity, UrgencyLevel } from './types';
+import type {
+  Phase1BuildingAssessment,
+  DamageSeverity,
+  UrgencyLevel,
+} from './types';
 
 /**
  * Apply memory adjustments to assessment
@@ -13,7 +17,8 @@ export function applyMemoryAdjustments(
   assessment: Phase1BuildingAssessment,
   adjustments: number[]
 ): Phase1BuildingAssessment {
-  const [damageTypeAdj, severityAdj, costAdj, urgencyAdj, confidenceCal] = adjustments;
+  const [damageTypeAdj, severityAdj, costAdj, urgencyAdj, confidenceCal] =
+    adjustments;
 
   // Apply confidence calibration
   const calibratedConfidence = calibrateConfidence(
@@ -28,10 +33,7 @@ export function applyMemoryAdjustments(
   );
 
   // Apply urgency adjustment
-  const adjustedUrgency = applyUrgency(
-    assessment.urgency.urgency,
-    urgencyAdj
-  );
+  const adjustedUrgency = applyUrgency(assessment.urgency.urgency, urgencyAdj);
 
   // Apply cost adjustment
   const adjustedCost = adjustCostEstimate(
@@ -61,7 +63,10 @@ export function applyMemoryAdjustments(
 /**
  * Apply damage type adjustment (currently not modifying type, but could be enhanced)
  */
-export function applyDamageTypeAdjustment(originalType: string, adjustment: number): string {
+function applyDamageTypeAdjustment(
+  originalType: string,
+  adjustment: number
+): string {
   // For now, return original type
   // Future: Could adjust confidence or suggest alternative types
   return originalType;
@@ -70,7 +75,7 @@ export function applyDamageTypeAdjustment(originalType: string, adjustment: numb
 /**
  * Apply severity adjustment
  */
-export function applySeverityAdjustment(
+function applySeverityAdjustment(
   originalSeverity: DamageSeverity,
   adjustment: number
 ): DamageSeverity {
@@ -104,7 +109,10 @@ export function applySeverityAdjustment(
 /**
  * Calibrate confidence based on memory feedback
  */
-export function calibrateConfidence(originalConfidence: number, calibration: number): number {
+function calibrateConfidence(
+  originalConfidence: number,
+  calibration: number
+): number {
   // Calibration is in range [-1, 1], where:
   // -1 = reduce confidence significantly
   // +1 = increase confidence significantly
@@ -119,7 +127,7 @@ export function calibrateConfidence(originalConfidence: number, calibration: num
 /**
  * Adjust cost estimate based on memory feedback
  */
-export function adjustCostEstimate(
+function adjustCostEstimate(
   originalCost: { min: number; max: number; recommended: number },
   adjustment: number
 ): { min: number; max: number; recommended: number } {
@@ -132,7 +140,7 @@ export function adjustCostEstimate(
     return originalCost; // No significant adjustment
   }
 
-  const multiplier = 1 + (adjustment * 0.5); // Scale to ±50%
+  const multiplier = 1 + adjustment * 0.5; // Scale to ±50%
 
   return {
     min: Math.max(0, Math.round(originalCost.min * multiplier)),
@@ -144,7 +152,10 @@ export function adjustCostEstimate(
 /**
  * Adjust urgency level
  */
-export function applyUrgency(originalUrgency: UrgencyLevel, adjustment: number): UrgencyLevel {
+function applyUrgency(
+  originalUrgency: UrgencyLevel,
+  adjustment: number
+): UrgencyLevel {
   // Adjustment is in range [-1, 1], where:
   // -1 = reduce urgency (immediate -> urgent -> soon -> planned -> monitor)
   // +1 = increase urgency (monitor -> planned -> soon -> urgent -> immediate)
@@ -154,7 +165,13 @@ export function applyUrgency(originalUrgency: UrgencyLevel, adjustment: number):
     return originalUrgency; // No significant adjustment
   }
 
-  const urgencyOrder: UrgencyLevel[] = ['monitor', 'planned', 'soon', 'urgent', 'immediate'];
+  const urgencyOrder: UrgencyLevel[] = [
+    'monitor',
+    'planned',
+    'soon',
+    'urgent',
+    'immediate',
+  ];
   const currentIndex = urgencyOrder.indexOf(originalUrgency);
 
   if (adjustment > 0.3) {
@@ -171,4 +188,3 @@ export function applyUrgency(originalUrgency: UrgencyLevel, adjustment: number):
 
   return originalUrgency;
 }
-

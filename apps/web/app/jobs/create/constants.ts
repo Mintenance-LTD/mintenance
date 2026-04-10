@@ -37,7 +37,7 @@ export const JOB_CATEGORIES = [
 ] as const;
 
 // Urgency Levels
-export const URGENCY_OPTIONS = [
+const URGENCY_OPTIONS = [
   {
     value: 'low',
     label: 'Flexible',
@@ -59,7 +59,7 @@ export const URGENCY_OPTIONS = [
 ] as const;
 
 // Multi-Step Form Configuration
-export const FORM_STEPS = [
+const FORM_STEPS = [
   { id: 1, label: 'Details', shortLabel: 'Details' },
   { id: 2, label: 'Photos', shortLabel: 'Photos' },
   { id: 3, label: 'Budget', shortLabel: 'Budget' },
@@ -67,7 +67,7 @@ export const FORM_STEPS = [
 ] as const;
 
 // Error Messages
-export const ERROR_MESSAGES = {
+const ERROR_MESSAGES = {
   PROPERTY_REQUIRED: 'Please select a property',
   CATEGORY_REQUIRED: 'Please select a service category',
   TITLE_REQUIRED: 'Please enter a job title',
@@ -83,7 +83,7 @@ export const ERROR_MESSAGES = {
 } as const;
 
 // API Endpoints
-export const API_ENDPOINTS = {
+const API_ENDPOINTS = {
   JOBS: '/api/jobs',
   PROPERTIES: '/api/properties',
   UPLOAD_PHOTOS: '/api/jobs/upload-photos',

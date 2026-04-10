@@ -133,10 +133,12 @@ export function loadClassNames(dataYamlPath?: string): string[] {
 /**
  * Get class name by index
  */
-export function getClassName(classIndex: number, classNames: string[] = DEFAULT_CLASS_NAMES): string {
+function getClassName(
+  classIndex: number,
+  classNames: string[] = DEFAULT_CLASS_NAMES
+): string {
   if (classIndex >= 0 && classIndex < classNames.length) {
     return classNames[classIndex];
   }
   return `class_${classIndex}`;
 }
-

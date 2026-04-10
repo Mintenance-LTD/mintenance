@@ -52,7 +52,7 @@ export function calculateBounds(
  * @param onClick Click handler callback
  * @returns Marker instance
  */
-export function createContractorMarker(
+function createContractorMarker(
   map: google.maps.Map,
   contractor: ContractorMarkerData,
   onClick?: () => void
@@ -108,7 +108,7 @@ export function createContractorMarker(
  * @param contractor Contractor data
  * @returns InfoWindow instance
  */
-export function createContractorInfoWindow(
+function createContractorInfoWindow(
   contractor: ContractorMarkerData
 ): google.maps.InfoWindow {
   const content = `
@@ -286,7 +286,7 @@ export function isPointInServiceArea(
  * @param userLocation User's current location
  * @returns Control div element
  */
-export function createRecenterControl(
+function createRecenterControl(
   map: google.maps.Map,
   userLocation: { lat: number; lng: number }
 ): HTMLDivElement {
@@ -321,7 +321,7 @@ export function createRecenterControl(
  * @param distanceKm Distance in kilometers
  * @returns Zoom level (1-20)
  */
-export function getOptimalZoom(distanceKm: number): number {
+function getOptimalZoom(distanceKm: number): number {
   if (distanceKm < 1) return 15;
   if (distanceKm < 5) return 13;
   if (distanceKm < 10) return 12;

@@ -229,25 +229,23 @@ export const theme = {
 type Theme = typeof theme;
 
 // Utility functions for web (using design tokens)
-export const getColor = tokens.getColor;
+const getColor = tokens.getColor;
 
-export const getSpacing = (size: keyof typeof tokens.spacing): string => {
+const getSpacing = (size: keyof typeof tokens.spacing): string => {
   const value = tokens.spacing[size];
   return typeof value === 'string' ? value : `${value}px`;
 };
 
-export const getFontSize = (
-  size: keyof typeof tokens.typography.fontSize
-): string => {
+const getFontSize = (size: keyof typeof tokens.typography.fontSize): string => {
   return tokens.typography.fontSize[size];
 };
 
-export const getShadow = (size: keyof typeof tokens.shadows): string => {
+const getShadow = (size: keyof typeof tokens.shadows): string => {
   return tokens.shadows[size];
 };
 
 // Status color helper
-export const getStatusColor = (status: string): string => {
+const getStatusColor = (status: string): string => {
   switch (status) {
     case 'posted':
       return tokens.colors.statusPosted;
@@ -265,7 +263,7 @@ export const getStatusColor = (status: string): string => {
 };
 
 // Priority color helper
-export const getPriorityColor = (priority: string): string => {
+const getPriorityColor = (priority: string): string => {
   switch (priority) {
     case 'high':
       return tokens.colors.priorityHigh;
@@ -277,5 +275,3 @@ export const getPriorityColor = (priority: string): string => {
       return tokens.colors.textSecondary;
   }
 };
-
-export default theme;

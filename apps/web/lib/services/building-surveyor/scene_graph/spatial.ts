@@ -10,7 +10,7 @@ import type { BoundingBox, EdgeRelation } from './types';
 /**
  * Calculate IoU (Intersection over Union) between two bounding boxes
  */
-export function calculateIoU(boxA: BoundingBox, boxB: BoundingBox): number {
+function calculateIoU(boxA: BoundingBox, boxB: BoundingBox): number {
   const x1 = Math.max(boxA.x, boxB.x);
   const y1 = Math.max(boxA.y, boxB.y);
   const x2 = Math.min(boxA.x + boxA.width, boxB.x + boxB.width);
@@ -31,7 +31,7 @@ export function calculateIoU(boxA: BoundingBox, boxB: BoundingBox): number {
 /**
  * Check if boxA contains boxB
  */
-export function contains(boxA: BoundingBox, boxB: BoundingBox): boolean {
+function contains(boxA: BoundingBox, boxB: BoundingBox): boolean {
   return (
     boxA.x <= boxB.x &&
     boxA.y <= boxB.y &&
@@ -43,7 +43,7 @@ export function contains(boxA: BoundingBox, boxB: BoundingBox): boolean {
 /**
  * Check if two boxes are adjacent (touching or very close)
  */
-export function isAdjacent(boxA: BoundingBox, boxB: BoundingBox): boolean {
+function isAdjacent(boxA: BoundingBox, boxB: BoundingBox): boolean {
   const threshold = 10; // pixels
 
   // Check horizontal adjacency
@@ -102,10 +102,11 @@ export function calculateSpatialRelationship(
   const distance = Math.sqrt(dx * dx + dy * dy);
 
   // Proximity threshold
-  const maxDistance = Math.max(
-    Math.sqrt(boxA.width ** 2 + boxA.height ** 2),
-    Math.sqrt(boxB.width ** 2 + boxB.height ** 2)
-  ) * 1.5;
+  const maxDistance =
+    Math.max(
+      Math.sqrt(boxA.width ** 2 + boxA.height ** 2),
+      Math.sqrt(boxB.width ** 2 + boxB.height ** 2)
+    ) * 1.5;
 
   if (distance < maxDistance) {
     // Determine direction

@@ -115,7 +115,7 @@ export function mapRegistrationThrownError(error: Error): string | null {
  * Return a user-safe error message (no internal details exposed).
  * Only allows through messages that match known-safe strings.
  */
-export function getSafeErrorMessage(error: unknown): string {
+function getSafeErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     const safeMessages = [
       'User not found',

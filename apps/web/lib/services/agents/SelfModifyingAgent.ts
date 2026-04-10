@@ -37,7 +37,7 @@ interface PerformanceMetrics {
  *
  * Provides foundation for agents that can modify their own update rules
  */
-export abstract class SelfModifyingAgent {
+abstract class SelfModifyingAgent {
   protected config: SelfModificationConfig;
   protected performanceHistory: PerformanceMetrics[] = [];
   protected modificationCount: number = 0;

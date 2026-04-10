@@ -119,5 +119,3 @@ export function Button({
     </SharedButton>
   );
 }
-
-export default Button;

@@ -115,5 +115,3 @@ export const MessageListSkeleton: React.FC<MessageListSkeletonProps> = ({
     </div>
   );
 };
-
-export default MessageListSkeleton;

@@ -15,14 +15,8 @@ import '@/styles/airbnb-system.css';
 export { ListingCard } from './ListingCard';
 export { SearchBar } from './SearchBar';
 export { ContractorCard } from './ContractorCard';
-export { PhotoGallery } from './PhotoGallery';
-export { RatingStars } from './RatingStars';
 export { Badge } from './Badge';
 export { Button } from './Button';
-export { Input } from './Input';
-export { Modal } from './Modal';
-export { Carousel } from './Carousel';
-
 import { ListingCard } from './ListingCard';
 import { SearchBar } from './SearchBar';
 import { ContractorCard } from './ContractorCard';
@@ -33,16 +27,3 @@ import { Button } from './Button';
 import { Input } from './Input';
 import { Modal } from './Modal';
 import { Carousel } from './Carousel';
-
-export default {
-  ListingCard,
-  SearchBar,
-  ContractorCard,
-  PhotoGallery,
-  RatingStars,
-  Badge,
-  Button,
-  Input,
-  Modal,
-  Carousel,
-};

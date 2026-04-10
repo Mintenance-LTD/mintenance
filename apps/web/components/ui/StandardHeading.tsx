@@ -197,7 +197,7 @@ interface HeadingGroupProps {
  * Groups a heading with supporting text (e.g., description)
  * Maintains consistent spacing
  */
-export const HeadingGroup: React.FC<HeadingGroupProps> = ({
+const HeadingGroup: React.FC<HeadingGroupProps> = ({
   children,
   className,
   spacing = 'md',
@@ -228,26 +228,25 @@ interface SupportingTextProps extends React.HTMLAttributes<HTMLParagraphElement>
  * Descriptive text that accompanies headings
  * Uses secondary text color
  */
-export const SupportingText = forwardRef<
-  HTMLParagraphElement,
-  SupportingTextProps
->(({ children, size = 'base', className, ...props }, ref) => {
-  const sizeClasses = {
-    sm: 'text-sm', // 14px
-    base: 'text-base', // 16px
-    lg: 'text-lg', // 18px
-  };
+const SupportingText = forwardRef<HTMLParagraphElement, SupportingTextProps>(
+  ({ children, size = 'base', className, ...props }, ref) => {
+    const sizeClasses = {
+      sm: 'text-sm', // 14px
+      base: 'text-base', // 16px
+      lg: 'text-lg', // 18px
+    };
 
-  return (
-    <p
-      ref={ref}
-      className={cn('text-gray-600', sizeClasses[size], className)}
-      {...props}
-    >
-      {children}
-    </p>
-  );
-});
+    return (
+      <p
+        ref={ref}
+        className={cn('text-gray-600', sizeClasses[size], className)}
+        {...props}
+      >
+        {children}
+      </p>
+    );
+  }
+);
 
 SupportingText.displayName = 'SupportingText';
 

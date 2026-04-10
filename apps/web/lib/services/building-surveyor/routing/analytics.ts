@@ -257,7 +257,7 @@ interface CalibrationAnalysisResult {
  * @param minDataPoints - Minimum data points required for a meaningful analysis (default 50)
  * @param lookbackDays  - Number of days of data to analyse (default 30)
  */
-export async function analyzeCalibration(
+async function analyzeCalibration(
   minDataPoints: number = 50,
   lookbackDays: number = 30
 ): Promise<CalibrationAnalysisResult> {

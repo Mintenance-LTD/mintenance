@@ -168,5 +168,3 @@ export const DashboardSkeleton: React.FC<DashboardSkeletonProps> = ({
     </div>
   );
 };
-
-export default DashboardSkeleton;

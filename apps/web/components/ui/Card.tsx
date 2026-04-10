@@ -134,11 +134,9 @@ export const Card = Object.assign(CardComponent, {
 // Re-export sub-components
 export {
   CardHeader,
-  CardFooter,
   CardTitle,
   CardDescription,
   CardContent,
 } from '@mintenance/shared-ui';
 
 // Default export
-export default Card;

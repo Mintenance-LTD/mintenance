@@ -15,10 +15,7 @@ interface ExportData {
 /**
  * Export data as CSV file
  */
-export function exportToCSV(
-  data: ExportData,
-  filename: string = 'report.csv'
-): void {
+function exportToCSV(data: ExportData, filename: string = 'report.csv'): void {
   const { headers, rows, title, metadata } = data;
 
   let csvContent = '';
@@ -52,10 +49,7 @@ export function exportToCSV(
 /**
  * Export data as JSON file
  */
-export function exportToJSON(
-  data: unknown,
-  filename: string = 'report.json'
-): void {
+function exportToJSON(data: unknown, filename: string = 'report.json'): void {
   const jsonString = JSON.stringify(data, null, 2);
   const blob = new Blob([jsonString], { type: 'application/json' });
   downloadFile(blob, filename);
@@ -65,10 +59,7 @@ export function exportToJSON(
  * Generate PDF from HTML content using browser's print functionality
  * SECURITY: Sanitizes HTML content to prevent XSS attacks
  */
-export function exportToPDF(
-  elementId: string,
-  filename: string = 'report.pdf'
-): void {
+function exportToPDF(elementId: string, filename: string = 'report.pdf'): void {
   const element = document.getElementById(elementId);
   if (!element) {
     logger.error(`Element with id "${elementId}" not found`, undefined, {
@@ -278,7 +269,7 @@ function addPrintStyles(): void {
 /**
  * Format date for export
  */
-export function formatDateForExport(date: Date | string): string {
+function formatDateForExport(date: Date | string): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   return d.toLocaleDateString('en-GB', {
     year: 'numeric',
@@ -290,6 +281,6 @@ export function formatDateForExport(date: Date | string): string {
 /**
  * Format currency for export
  */
-export function formatCurrencyForExport(amount: number): string {
+function formatCurrencyForExport(amount: number): string {
   return `£${amount.toFixed(2)}`;
 }

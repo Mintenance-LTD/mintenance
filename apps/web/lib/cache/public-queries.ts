@@ -42,7 +42,8 @@ export const getCachedContractors = unstable_cache(
   async (limit = 20, offset = 0) => {
     const { data: contractors, error } = await serverSupabase
       .from('profiles')
-      .select(`
+      .select(
+        `
         id,
         first_name,
         last_name,
@@ -59,7 +60,8 @@ export const getCachedContractors = unstable_cache(
         contractor_skills (
           skill_name
         )
-      `)
+      `
+      )
       .eq('role', 'contractor')
       .eq('is_available', true)
       .order('rating', { ascending: false })
@@ -84,17 +86,19 @@ export const getCachedContractors = unstable_cache(
 /**
  * Cached function to get service categories
  */
-export const getCachedServiceCategories = unstable_cache(
+const getCachedServiceCategories = unstable_cache(
   async () => {
     const { data: categories, error } = await serverSupabase
       .from('service_categories')
-      .select(`
+      .select(
+        `
         id,
         name,
         icon,
         color,
         display_order
-      `)
+      `
+      )
       .eq('is_active', true)
       .order('display_order');
 
@@ -117,11 +121,12 @@ export const getCachedServiceCategories = unstable_cache(
 /**
  * Cached function to get contractor by ID
  */
-export const getCachedContractorById = unstable_cache(
+const getCachedContractorById = unstable_cache(
   async (contractorId: string) => {
     const { data: contractor, error } = await serverSupabase
       .from('profiles')
-      .select(`
+      .select(
+        `
         id,
         first_name,
         last_name,
@@ -147,7 +152,8 @@ export const getCachedContractorById = unstable_cache(
             last_name
           )
         )
-      `)
+      `
+      )
       .eq('id', contractorId)
       .eq('role', 'contractor')
       .single();

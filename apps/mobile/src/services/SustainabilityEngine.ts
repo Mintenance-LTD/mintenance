@@ -8,7 +8,6 @@ export type {
   SustainabilityMetrics,
   ESGScore,
   MaterialSwapSuggestion,
-  ContractorESGProfile,
   JobSustainabilityAnalysis,
 } from './sustainability/types';
 

@@ -3,7 +3,11 @@
  * Provides access to environment and application settings
  */
 
-import { isProduction as checkIsProduction, isDevelopment, isTest } from './env';
+import {
+  isProduction as checkIsProduction,
+  isDevelopment,
+  isTest,
+} from './env';
 
 /**
  * Configuration object for application settings
@@ -32,5 +36,3 @@ export const config = {
 };
 
 // Default export for compatibility
-export default config;
-

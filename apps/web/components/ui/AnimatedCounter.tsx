@@ -146,5 +146,3 @@ export function AnimatedCounter(props: AnimatedCounterProps) {
     </span>
   );
 }
-
-export default AnimatedCounter;

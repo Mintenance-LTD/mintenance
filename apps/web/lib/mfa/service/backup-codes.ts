@@ -16,7 +16,7 @@ const BACKUP_CODE_ALPHABET = '0123456789ABCDEFGHJKLMNPQRSTUVWXYZ';
  * Generate a single backup code of BACKUP_CODE_LENGTH characters using
  * cryptographically random bytes.
  */
-export function generateBackupCode(): string {
+function generateBackupCode(): string {
   let code = '';
   const bytes = randomBytes(BACKUP_CODE_LENGTH);
   for (let i = 0; i < BACKUP_CODE_LENGTH; i++) {

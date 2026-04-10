@@ -12,7 +12,7 @@ import type { NodeType, SceneNode } from './types';
 /**
  * Map detection class name to node type
  */
-export function mapClassNameToNodeType(className: string): NodeType {
+function mapClassNameToNodeType(className: string): NodeType {
   const normalized = className.toLowerCase();
 
   // Structural elements
@@ -28,12 +28,17 @@ export function mapClassNameToNodeType(className: string): NodeType {
   // Damage types
   if (normalized.includes('crack')) return 'crack';
   if (normalized.includes('stain')) return 'stain';
-  if (normalized.includes('moisture') || normalized.includes('water')) return 'moisture';
+  if (normalized.includes('moisture') || normalized.includes('water'))
+    return 'moisture';
   if (normalized.includes('mold')) return 'mold';
-  if (normalized.includes('electrical') || normalized.includes('wire')) return 'electrical';
-  if (normalized.includes('plumbing') || normalized.includes('pipe')) return 'plumbing';
-  if (normalized.includes('pest') || normalized.includes('termite')) return 'pest_damage';
-  if (normalized.includes('fire') || normalized.includes('smoke')) return 'fire_damage';
+  if (normalized.includes('electrical') || normalized.includes('wire'))
+    return 'electrical';
+  if (normalized.includes('plumbing') || normalized.includes('pipe'))
+    return 'plumbing';
+  if (normalized.includes('pest') || normalized.includes('termite'))
+    return 'pest_damage';
+  if (normalized.includes('fire') || normalized.includes('smoke'))
+    return 'fire_damage';
   if (normalized.includes('insulation')) return 'insulation';
 
   return 'unknown';
@@ -42,7 +47,7 @@ export function mapClassNameToNodeType(className: string): NodeType {
 /**
  * Extract node type from natural language text (NLP)
  */
-export function extractNodeTypeFromText(text: string): NodeType | null {
+function extractNodeTypeFromText(text: string): NodeType | null {
   const normalized = text.toLowerCase();
 
   // Check for structural elements
@@ -113,7 +118,9 @@ export function createNodesFromSAM3(
   }
 
   let nodeIndex = 0;
-  for (const [damageType, segmentation] of Object.entries(sam3Segmentation.damage_types)) {
+  for (const [damageType, segmentation] of Object.entries(
+    sam3Segmentation.damage_types
+  )) {
     if (segmentation.error) {
       continue; // Skip damaged types with errors
     }

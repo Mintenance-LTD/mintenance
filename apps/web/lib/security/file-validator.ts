@@ -12,7 +12,7 @@
 import { logger } from '@mintenance/shared';
 
 // File size limits (in bytes)
-export const FILE_SIZE_LIMITS = {
+const FILE_SIZE_LIMITS = {
   image: 10 * 1024 * 1024, // 10MB
   video: 100 * 1024 * 1024, // 100MB
   document: 5 * 1024 * 1024, // 5MB
@@ -20,7 +20,7 @@ export const FILE_SIZE_LIMITS = {
 } as const;
 
 // Allowed MIME types by category
-export const ALLOWED_MIME_TYPES = {
+const ALLOWED_MIME_TYPES = {
   image: [
     'image/jpeg',
     'image/png',
@@ -203,7 +203,7 @@ function validateMimeType(
  * Main file validation function
  * Validates file against security criteria
  */
-export async function validateFile(
+async function validateFile(
   file: File | Buffer,
   options: {
     category: keyof typeof FILE_SIZE_LIMITS;
@@ -303,7 +303,7 @@ export async function validateFile(
  * Sanitize filename
  * Removes dangerous characters and ensures safe storage
  */
-export function sanitizeFilename(filename: string): string {
+function sanitizeFilename(filename: string): string {
   // Remove path components
   const basename = filename.split('/').pop()?.split('\\').pop() || 'file';
 
@@ -333,7 +333,7 @@ export function generateSecureFilename(originalFilename: string): string {
 /**
  * Validate multiple files
  */
-export async function validateFiles(
+async function validateFiles(
   files: Array<{ file: File | Buffer; originalName: string; mimeType: string }>,
   category: keyof typeof FILE_SIZE_LIMITS
 ): Promise<{
@@ -372,9 +372,7 @@ export async function validateImageUpload(
 /**
  * Helper to validate video uploads
  */
-export async function validateVideoUpload(
-  file: File
-): Promise<FileValidationResult> {
+async function validateVideoUpload(file: File): Promise<FileValidationResult> {
   return validateFile(file, {
     category: 'video',
     originalName: file.name,
@@ -385,7 +383,7 @@ export async function validateVideoUpload(
 /**
  * Helper to validate document uploads
  */
-export async function validateDocumentUpload(
+async function validateDocumentUpload(
   file: File
 ): Promise<FileValidationResult> {
   return validateFile(file, {

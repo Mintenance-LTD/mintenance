@@ -236,7 +236,7 @@ function generateEmptyMonths(months: number): MonthlyRevenue[] {
 /**
  * Format currency for display
  */
-export function formatRevenue(amount: number): string {
+function formatRevenue(amount: number): string {
   return new Intl.NumberFormat('en-GB', {
     style: 'currency',
     currency: 'GBP',
@@ -248,7 +248,7 @@ export function formatRevenue(amount: number): string {
 /**
  * Format growth percentage
  */
-export function formatGrowth(percentage: number): string {
+function formatGrowth(percentage: number): string {
   const sign = percentage >= 0 ? '+' : '';
   return `${sign}${percentage.toFixed(1)}%`;
 }
@@ -257,6 +257,6 @@ export function formatGrowth(percentage: number): string {
 // EXPORTS FOR TESTING
 // ==========================================================
 
-export const __testing = {
+const __testing = {
   generateEmptyMonths,
 };

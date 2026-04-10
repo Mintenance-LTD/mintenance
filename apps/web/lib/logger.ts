@@ -49,7 +49,7 @@ let sentryFunctions: SentryFunctions = {
 };
 
 // Function to set Sentry functions after initialization
-export const setSentryFunctions = (functions: SentryFunctions) => {
+const setSentryFunctions = (functions: SentryFunctions) => {
   sentryFunctions = functions;
 };
 
@@ -407,7 +407,7 @@ class Logger {
 export const logger = new Logger();
 
 // Convenience methods for backward compatibility
-export const log = {
+const log = {
   debug: (
     messageOrTag: string,
     contextOrMessage?: LogContext | unknown | string,
@@ -447,5 +447,3 @@ export const log = {
   auth: (action: string, success: boolean, context?: LogContext | unknown) =>
     logger.auth(action, success, context),
 };
-
-export default logger;

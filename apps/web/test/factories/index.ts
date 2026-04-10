@@ -60,9 +60,7 @@ export const createTestContractor = (
   });
 };
 
-export const createTestAdmin = (
-  overrides: Partial<TestUser> = {}
-): TestUser => {
+const createTestAdmin = (overrides: Partial<TestUser> = {}): TestUser => {
   return createTestUser({
     role: 'admin',
     first_name: 'Admin',
@@ -95,7 +93,7 @@ interface TestJob {
   updated_at: string;
 }
 
-export const createTestJob = (overrides: Partial<TestJob> = {}): TestJob => {
+const createTestJob = (overrides: Partial<TestJob> = {}): TestJob => {
   const id = `job-test-${getTestId()}`;
   const budget = overrides.budget ?? 150;
 
@@ -122,7 +120,7 @@ export const createTestJob = (overrides: Partial<TestJob> = {}): TestJob => {
   };
 };
 
-export const createTestJobWithPhotos = (photoCount = 3): TestJob => {
+const createTestJobWithPhotos = (photoCount = 3): TestJob => {
   return createTestJob({
     photos: Array.from(
       { length: photoCount },
@@ -131,9 +129,7 @@ export const createTestJobWithPhotos = (photoCount = 3): TestJob => {
   });
 };
 
-export const createTestUrgentJob = (
-  overrides: Partial<TestJob> = {}
-): TestJob => {
+const createTestUrgentJob = (overrides: Partial<TestJob> = {}): TestJob => {
   return createTestJob({
     urgency: 'urgent',
     title: 'URGENT: Burst pipe flooding bathroom',
@@ -160,7 +156,7 @@ interface TestBid {
   updated_at: string;
 }
 
-export const createTestBid = (overrides: Partial<TestBid> = {}): TestBid => {
+const createTestBid = (overrides: Partial<TestBid> = {}): TestBid => {
   const id = `bid-test-${getTestId()}`;
 
   return {
@@ -178,9 +174,7 @@ export const createTestBid = (overrides: Partial<TestBid> = {}): TestBid => {
   };
 };
 
-export const createTestAcceptedBid = (
-  overrides: Partial<TestBid> = {}
-): TestBid => {
+const createTestAcceptedBid = (overrides: Partial<TestBid> = {}): TestBid => {
   return createTestBid({
     status: 'accepted',
     start_date: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
@@ -205,7 +199,7 @@ interface TestPayment {
   updated_at: string;
 }
 
-export const createTestPayment = (
+const createTestPayment = (
   overrides: Partial<TestPayment> = {}
 ): TestPayment => {
   const id = `payment-test-${getTestId()}`;
@@ -225,7 +219,7 @@ export const createTestPayment = (
   };
 };
 
-export const createTestCompletedPayment = (
+const createTestCompletedPayment = (
   overrides: Partial<TestPayment> = {}
 ): TestPayment => {
   return createTestPayment({
@@ -239,7 +233,7 @@ export const createTestCompletedPayment = (
 // STRIPE TEST CARDS
 // ============================================================================
 
-export const STRIPE_TEST_CARDS = {
+const STRIPE_TEST_CARDS = {
   SUCCESS: {
     number: '4242424242424242',
     exp_month: 12,
@@ -297,7 +291,7 @@ interface TestContractorProfile {
   updated_at: string;
 }
 
-export const createTestContractorProfile = (
+const createTestContractorProfile = (
   overrides: Partial<TestContractorProfile> = {}
 ): TestContractorProfile => {
   const id = `profile-test-${getTestId()}`;
@@ -339,7 +333,7 @@ export const resetTestCounter = () => {
 /**
  * Create a complete test scenario with user, job, bid, and payment
  */
-export const createTestJobScenario = () => {
+const createTestJobScenario = () => {
   const homeowner = createTestHomeowner();
   const contractor = createTestContractor();
   const job = createTestJob({ homeowner_id: homeowner.id });
@@ -357,7 +351,7 @@ export const createTestJobScenario = () => {
 /**
  * Create a complete accepted job scenario
  */
-export const createTestAcceptedJobScenario = () => {
+const createTestAcceptedJobScenario = () => {
   const scenario = createTestJobScenario();
   return {
     ...scenario,

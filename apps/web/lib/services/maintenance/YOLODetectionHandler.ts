@@ -16,7 +16,7 @@ const MODEL_NAME = 'maintenance-yolo-v1';
 /**
  * Check if a local YOLO model exists in the database
  */
-export async function checkLocalModel(): Promise<boolean> {
+async function checkLocalModel(): Promise<boolean> {
   try {
     const supabase = serverSupabase;
     const { data } = await supabase
@@ -35,7 +35,7 @@ export async function checkLocalModel(): Promise<boolean> {
 /**
  * Get class ID from issue name
  */
-export function getClassIdFromName(className: string): number {
+function getClassIdFromName(className: string): number {
   const category = Object.entries(MAINTENANCE_CATEGORIES).find(
     ([key]) => key === className
   );
@@ -45,7 +45,7 @@ export function getClassIdFromName(className: string): number {
 /**
  * Convert Roboflow detection format to local format
  */
-export function convertRoboflowToLocal(
+function convertRoboflowToLocal(
   roboflowDetections: Record<string, unknown>[]
 ): Record<string, unknown>[] {
   return roboflowDetections.map((d: Record<string, unknown>) => ({
@@ -63,7 +63,7 @@ export function convertRoboflowToLocal(
 /**
  * Map a raw detection result to the MaintenanceDetection format
  */
-export function mapToMaintenanceDetection(
+function mapToMaintenanceDetection(
   detection: Record<string, unknown>
 ): MaintenanceDetection {
   const issueType = Object.keys(MAINTENANCE_CATEGORIES)[
@@ -97,7 +97,7 @@ export function mapToMaintenanceDetection(
 /**
  * Estimate severity based on bounding box size relative to standard YOLO input
  */
-export function estimateSeverity(bbox: {
+function estimateSeverity(bbox: {
   width: number;
   height: number;
 }): 'minor' | 'moderate' | 'major' | 'critical' {
@@ -114,7 +114,7 @@ export function estimateSeverity(bbox: {
 /**
  * Check if an issue urgency level requires immediate attention
  */
-export function isUrgent(urgency: string): boolean {
+function isUrgent(urgency: string): boolean {
   return urgency === 'high' || urgency === 'immediate';
 }
 

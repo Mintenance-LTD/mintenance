@@ -1,34 +1,27 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Job } from '@/types';
-import { theme } from '../theme';
 import {
   sustainabilityEngine,
   ESGScore,
   JobSustainabilityAnalysis,
-  MaterialSwapSuggestion,
-  ContractorESGProfile,
-  SustainabilityMetrics,
 } from '../services/SustainabilityEngine';
 import { logger } from '../utils/logger';
+import {
+  SUSTAINABILITY_KEYS,
+  SUSTAINABILITY_ACHIEVEMENTS,
+  SUSTAINABILITY_BADGES,
+} from './useSustainability/config';
+import {
+  formatCarbonFootprint,
+  formatESGScore,
+  formatSustainabilityMetrics,
+  formatMaterialSwap,
+  getSustainabilityInsights,
+  getProgressInsights,
+} from './useSustainability/calculations';
 
-// Query Keys for React Query
-export const SUSTAINABILITY_KEYS = {
-  all: ['sustainability'] as const,
-  esgScore: (contractorId: string) =>
-    ['sustainability', 'esg', contractorId] as const,
-  jobAnalysis: (jobId: string) => ['sustainability', 'job', jobId] as const,
-  materialAlternatives: (materials: string[]) =>
-    ['sustainability', 'materials', materials] as const,
-  carbonFootprint: (jobDetails: unknown) =>
-    ['sustainability', 'carbon', jobDetails] as const,
-  ranking: (location: string, category?: string) =>
-    ['sustainability', 'ranking', location, category] as const,
-  progress: (contractorId: string, timeframe: string) =>
-    ['sustainability', 'progress', contractorId, timeframe] as const,
-};
-
+// Re-exports for backward compatibility
 // Hook for contractor ESG score calculation and retrieval
-export const useContractorESGScore = (
+const useContractorESGScore = (
   contractorId: string,
   autoCalculate: boolean = false
 ) => {
@@ -42,14 +35,12 @@ export const useContractorESGScore = (
           contractorId
         );
       }
-      // Try to get existing score first
-      // In real implementation, would query database for existing score
       return await sustainabilityEngine.calculateContractorESGScore(
         contractorId
       );
     },
     enabled: Boolean(contractorId),
-    staleTime: 24 * 60 * 60 * 1000, // 24 hours - ESG scores don't change frequently
+    staleTime: 24 * 60 * 60 * 1000,
   });
 
   const recalculateESG = useMutation({
@@ -84,7 +75,7 @@ export const useContractorESGScore = (
 };
 
 // Hook for job sustainability analysis
-export const useJobSustainabilityAnalysis = (
+const useJobSustainabilityAnalysis = (
   jobTitle: string,
   jobDescription: string,
   location: string,
@@ -103,12 +94,12 @@ export const useJobSustainabilityAnalysis = (
       );
     },
     enabled: Boolean(jobTitle && jobDescription && location && category),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 
 // Hook for sustainable material alternatives
-export const useSustainableMaterials = (originalMaterials: string[]) => {
+const useSustainableMaterials = (originalMaterials: string[]) => {
   return useQuery({
     queryKey: SUSTAINABILITY_KEYS.materialAlternatives(originalMaterials),
     queryFn: async () => {
@@ -117,12 +108,12 @@ export const useSustainableMaterials = (originalMaterials: string[]) => {
       );
     },
     enabled: originalMaterials.length > 0,
-    staleTime: 30 * 60 * 1000, // 30 minutes - material data changes infrequently
+    staleTime: 30 * 60 * 1000,
   });
 };
 
 // Hook for carbon footprint calculation
-export const useCarbonFootprintCalculator = () => {
+const useCarbonFootprintCalculator = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -144,10 +135,7 @@ export const useCarbonFootprintCalculator = () => {
 };
 
 // Hook for contractor sustainability ranking
-export const useSustainabilityRanking = (
-  location: string,
-  category?: string
-) => {
+const useSustainabilityRanking = (location: string, category?: string) => {
   return useQuery({
     queryKey: SUSTAINABILITY_KEYS.ranking(location, category),
     queryFn: async () => {
@@ -157,12 +145,12 @@ export const useSustainabilityRanking = (
       );
     },
     enabled: Boolean(location),
-    staleTime: 15 * 60 * 1000, // 15 minutes
+    staleTime: 15 * 60 * 1000,
   });
 };
 
 // Hook for tracking sustainability progress
-export const useSustainabilityProgress = (
+const useSustainabilityProgress = (
   contractorId: string,
   timeframe: 'month' | 'quarter' | 'year'
 ) => {
@@ -175,193 +163,12 @@ export const useSustainabilityProgress = (
       );
     },
     enabled: Boolean(contractorId),
-    staleTime: 60 * 60 * 1000, // 1 hour
+    staleTime: 60 * 60 * 1000,
   });
 };
 
 // Hook for sustainability insights and formatting
-export const useSustainabilityFormatters = () => {
-  const formatESGScore = (score: ESGScore) => {
-    const getScoreColor = (value: number) => {
-      if (value >= 90) return theme.colors.primary;
-      if (value >= 80) return theme.colors.success;
-      if (value >= 70) return theme.colors.warning;
-      if (value >= 60) return theme.colors.error;
-      return theme.colors.textSecondary;
-    };
-
-    const getScoreGrade = (value: number) => {
-      if (value >= 90) return 'A+';
-      if (value >= 85) return 'A';
-      if (value >= 80) return 'A-';
-      if (value >= 75) return 'B+';
-      if (value >= 70) return 'B';
-      if (value >= 65) return 'B-';
-      if (value >= 60) return 'C+';
-      if (value >= 55) return 'C';
-      return 'D';
-    };
-
-    const getCertificationIcon = (level: string) => {
-      switch (level) {
-        case 'platinum':
-          return '🏆';
-        case 'gold':
-          return '🥇';
-        case 'silver':
-          return '🥈';
-        case 'bronze':
-          return '🥉';
-        default:
-          return '📊';
-      }
-    };
-
-    return {
-      overallGrade: getScoreGrade(score.overall_score),
-      overallColor: getScoreColor(score.overall_score),
-      environmentalGrade: getScoreGrade(score.environmental_score),
-      socialGrade: getScoreGrade(score.social_score),
-      governanceGrade: getScoreGrade(score.governance_score),
-      certificationIcon: getCertificationIcon(score.certification_level),
-      certificationLabel:
-        score.certification_level.charAt(0).toUpperCase() +
-        score.certification_level.slice(1),
-    };
-  };
-
-  const formatCarbonFootprint = (kg: number) => {
-    if (kg < 1) return `${Math.round(kg * 1000)}g CO₂`;
-    if (kg < 1000) return `${Math.round(kg * 10) / 10}kg CO₂`;
-    return `${Math.round(kg / 100) / 10}t CO₂`;
-  };
-
-  const formatSustainabilityMetrics = (metrics: SustainabilityMetrics) => {
-    return {
-      carbonFootprint: formatCarbonFootprint(metrics.carbon_footprint_kg),
-      waterUsage: `${Math.round(metrics.water_usage_liters)}L`,
-      wasteGenerated: `${Math.round(metrics.waste_generated_kg * 10) / 10}kg`,
-      energyUsage: `${Math.round(metrics.energy_usage_kwh * 10) / 10}kWh`,
-      renewablePercentage: `${Math.round(metrics.renewable_energy_percentage)}%`,
-      localSourcing: `${Math.round(metrics.local_sourcing_percentage)}%`,
-      recycledMaterials: `${Math.round(metrics.recycled_materials_percentage)}%`,
-    };
-  };
-
-  const formatMaterialSwap = (swap: MaterialSwapSuggestion) => {
-    const savingsColor =
-      swap.carbon_reduction > 5
-        ? theme.colors.primary
-        : swap.carbon_reduction > 2
-          ? theme.colors.warning
-          : theme.colors.textSecondary;
-
-    const availabilityIcon =
-      swap.availability === 'readily_available'
-        ? '✅'
-        : swap.availability === 'order_required'
-          ? '📦'
-          : '⏳';
-
-    return {
-      carbonSavings: formatCarbonFootprint(swap.carbon_reduction),
-      savingsColor,
-      costImpact:
-        swap.cost_difference > 0
-          ? `+${swap.cost_difference}%`
-          : `${swap.cost_difference}%`,
-      costColor:
-        swap.cost_difference > 20
-          ? theme.colors.error
-          : swap.cost_difference > 10
-            ? theme.colors.warning
-            : theme.colors.primary,
-      availabilityIcon,
-      availabilityText: swap.availability
-        .replace('_', ' ')
-        .replace(/\b\w/g, (l) => l.toUpperCase()),
-    };
-  };
-
-  const getSustainabilityInsights = (analysis: JobSustainabilityAnalysis) => {
-    const insights = [];
-
-    if (analysis.sustainability_score >= 80) {
-      insights.push({
-        type: 'success' as const,
-        message:
-          'Excellent sustainability score! This job has minimal environmental impact.',
-        icon: '🌱',
-      });
-    } else if (analysis.sustainability_score >= 60) {
-      insights.push({
-        type: 'info' as const,
-        message: 'Good sustainability potential with room for improvement.',
-        icon: '🌿',
-      });
-    } else {
-      insights.push({
-        type: 'warning' as const,
-        message:
-          'Consider sustainable alternatives to reduce environmental impact.',
-        icon: '⚠️',
-      });
-    }
-
-    if (analysis.certification_eligible) {
-      insights.push({
-        type: 'success' as const,
-        message: 'This job qualifies for green certification upon completion!',
-        icon: '🏅',
-      });
-    }
-
-    if (analysis.improvement_suggestions.potential_carbon_reduction > 10) {
-      insights.push({
-        type: 'info' as const,
-        message: `Potential to reduce carbon footprint by ${formatCarbonFootprint(analysis.improvement_suggestions.potential_carbon_reduction)}`,
-        icon: '🌍',
-      });
-    }
-
-    return insights;
-  };
-
-  const getProgressInsights = (progress: { trend: string; carbon_reduction_kg: number; renewable_increase_percent: number }) => {
-    const insights = [];
-
-    if (progress.trend === 'improving') {
-      insights.push({
-        type: 'success' as const,
-        message: 'Great progress! Your sustainability metrics are improving.',
-        details: `Reduced carbon footprint by ${formatCarbonFootprint(progress.carbon_reduction_kg)}`,
-      });
-    } else if (progress.trend === 'declining') {
-      insights.push({
-        type: 'warning' as const,
-        message: 'Your sustainability metrics need attention.',
-        details: 'Consider implementing green practices in upcoming jobs',
-      });
-    } else if (progress.trend === 'stable') {
-      insights.push({
-        type: 'info' as const,
-        message:
-          'Stable performance. Look for opportunities to improve further.',
-        details: 'Small changes can make a big environmental impact',
-      });
-    }
-
-    if (progress.renewable_increase_percent > 5) {
-      insights.push({
-        type: 'success' as const,
-        message: `Increased renewable energy usage by ${progress.renewable_increase_percent}%`,
-        details: 'Excellent progress towards clean energy goals',
-      });
-    }
-
-    return insights;
-  };
-
+const useSustainabilityFormatters = () => {
   return {
     formatESGScore,
     formatCarbonFootprint,
@@ -373,60 +180,17 @@ export const useSustainabilityFormatters = () => {
 };
 
 // Hook for sustainability gamification
-export const useSustainabilityGamification = (contractorId: string) => {
-  const achievements = [
-    {
-      id: 'carbon_reducer',
-      title: 'Carbon Reducer',
-      description: 'Reduce carbon footprint by 50kg in a month',
-      icon: '🌱',
-      progress: 0,
-      target: 50,
-      unlocked: false,
-    },
-    {
-      id: 'waste_warrior',
-      title: 'Waste Warrior',
-      description: 'Achieve 80% waste diversion rate',
-      icon: '♻️',
-      progress: 0,
-      target: 80,
-      unlocked: false,
-    },
-    {
-      id: 'green_champion',
-      title: 'Green Champion',
-      description: 'Complete 10 jobs with ESG score above 80',
-      icon: '🏆',
-      progress: 0,
-      target: 10,
-      unlocked: false,
-    },
-    {
-      id: 'renewable_advocate',
-      title: 'Renewable Advocate',
-      description: 'Use 100% renewable energy sources',
-      icon: '⚡',
-      progress: 0,
-      target: 100,
-      unlocked: false,
-    },
-  ];
-
-  const badges = [
-    { level: 'bronze', threshold: 60, color: '#CD7F32', icon: '🥉' },
-    { level: 'silver', threshold: 70, color: '#C0C0C0', icon: '🥈' },
-    { level: 'gold', threshold: 80, color: '#FFD700', icon: '🥇' },
-    { level: 'platinum', threshold: 90, color: '#E5E4E2', icon: '🏆' },
-  ];
+const useSustainabilityGamification = (_contractorId: string) => {
+  const achievements = SUSTAINABILITY_ACHIEVEMENTS;
+  const badges = SUSTAINABILITY_BADGES;
 
   const calculateLevel = (esgScore: number) => {
-    const badge = badges.reverse().find((badge) => esgScore >= badge.threshold);
+    const badge = [...badges].reverse().find((b) => esgScore >= b.threshold);
     return badge || badges[0];
   };
 
   const getNextMilestone = (currentScore: number) => {
-    const nextBadge = badges.find((badge) => currentScore < badge.threshold);
+    const nextBadge = badges.find((b) => currentScore < b.threshold);
     if (!nextBadge) return null;
 
     return {
@@ -445,7 +209,7 @@ export const useSustainabilityGamification = (contractorId: string) => {
 };
 
 // Utility functions
-export const sustainabilityUtils = {
+const sustainabilityUtils = {
   isHighImpactJob: (analysis: JobSustainabilityAnalysis) => {
     return (
       analysis.predicted_impact.carbon_footprint_kg > 30 ||
@@ -479,7 +243,6 @@ export const sustainabilityUtils = {
   },
 
   getComplianceStatus: (certificationLevel: string, location: string) => {
-    // UK sustainability compliance requirements
     const requirements = {
       london: { minScore: 70, required: true },
       manchester: { minScore: 65, required: false },

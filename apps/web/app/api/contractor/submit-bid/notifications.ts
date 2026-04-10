@@ -35,7 +35,7 @@ interface Contractor {
 /**
  * Send email notification to homeowner about new bid
  */
-export async function sendBidEmailNotification(
+async function sendBidEmailNotification(
   homeowner: Homeowner,
   contractor: Contractor,
   job: Job,
@@ -89,7 +89,7 @@ export async function sendBidEmailNotification(
 /**
  * Create database notification for homeowner
  */
-export async function createBidNotification(
+async function createBidNotification(
   homeowner: Homeowner,
   contractor: Contractor,
   job: Job,

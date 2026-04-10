@@ -49,7 +49,7 @@ export function getOnboardingState(): OnboardingState {
 /**
  * Save onboarding state to localStorage
  */
-export function saveOnboardingState(state: OnboardingState): void {
+function saveOnboardingState(state: OnboardingState): void {
   if (typeof window === 'undefined') return;
 
   try {
@@ -131,7 +131,7 @@ export function calculateProfileCompletion(
 
   const totalWeight = items.reduce((sum, item) => sum + item.weight, 0);
   const completedWeight = items
-    .filter(item => item.completed)
+    .filter((item) => item.completed)
     .reduce((sum, item) => sum + item.weight, 0);
 
   return Math.round((completedWeight / totalWeight) * 100);
@@ -170,13 +170,18 @@ export function shouldShowTooltip(
   }
 
   // Dismissed too many times
-  const dismissCount = state.dismissedTips.filter(id => id === featureId).length;
+  const dismissCount = state.dismissedTips.filter(
+    (id) => id === featureId
+  ).length;
   if (options?.maxDismissals && dismissCount >= options.maxDismissals) {
     return false;
   }
 
   // Profile not complete enough
-  if (options?.requireCompletion && state.profileCompletion < options.requireCompletion) {
+  if (
+    options?.requireCompletion &&
+    state.profileCompletion < options.requireCompletion
+  ) {
     return false;
   }
 
@@ -196,7 +201,7 @@ export function markFeatureSeen(featureId: string): OnboardingState {
 /**
  * Dismiss a tooltip/tip
  */
-export function dismissTip(featureId: string): OnboardingState {
+function dismissTip(featureId: string): OnboardingState {
   const state = getOnboardingState();
   state.dismissedTips.push(featureId);
   saveOnboardingState(state);
@@ -228,7 +233,7 @@ export function resetOnboarding(): OnboardingState {
  */
 export function isOnboardingComplete(flowSteps: string[]): boolean {
   const state = getOnboardingState();
-  return flowSteps.every(stepId => state.completedSteps.includes(stepId));
+  return flowSteps.every((stepId) => state.completedSteps.includes(stepId));
 }
 
 /**
@@ -236,7 +241,7 @@ export function isOnboardingComplete(flowSteps: string[]): boolean {
  */
 export function getOnboardingProgress(flowSteps: string[]): number {
   const state = getOnboardingState();
-  const completed = flowSteps.filter(stepId =>
+  const completed = flowSteps.filter((stepId) =>
     state.completedSteps.includes(stepId)
   ).length;
   return flowSteps.length > 0 ? completed / flowSteps.length : 0;

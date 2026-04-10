@@ -21,4 +21,3 @@ export const openai = new OpenAI({
 });
 
 // Export for easier mocking in tests
-export default openai;

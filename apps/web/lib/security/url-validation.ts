@@ -294,7 +294,7 @@ export async function validateURLs(
 /**
  * Validate that URLs are from Supabase storage
  */
-export async function validateSupabaseStorageURL(
+async function validateSupabaseStorageURL(
   urlString: string
 ): Promise<URLValidationResult> {
   const result = await validateURL(urlString, true);
@@ -321,6 +321,6 @@ export async function validateSupabaseStorageURL(
 /**
  * Get allowed domains for image URLs (for client-side validation hints)
  */
-export function getAllowedImageDomains(): string[] {
+function getAllowedImageDomains(): string[] {
   return getAllowedDomains();
 }

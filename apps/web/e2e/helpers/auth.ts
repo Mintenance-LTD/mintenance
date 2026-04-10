@@ -81,7 +81,7 @@ export async function loginAsContractor(page: Page): Promise<void> {
  *
  * Use this before tests that require admin authentication.
  */
-export async function loginAsAdmin(page: Page): Promise<void> {
+async function loginAsAdmin(page: Page): Promise<void> {
   await login(page, TEST_USERS.admin);
 
   // Verify we're on admin dashboard
@@ -160,7 +160,7 @@ export async function login(page: Page, user: TestUser): Promise<void> {
  * Logs out the current user.
  * Verifies redirect to login or home page.
  */
-export async function logout(page: Page): Promise<void> {
+async function logout(page: Page): Promise<void> {
   // Look for logout button/link
   const logoutButton = page.getByRole('button', { name: /log out|sign out/i });
   const logoutLink = page.getByRole('link', { name: /log out|sign out/i });
@@ -211,10 +211,7 @@ export async function logout(page: Page): Promise<void> {
  *   // ... test onboarding flow
  * });
  */
-export async function signUpAndLogin(
-  page: Page,
-  user: TestUser
-): Promise<void> {
+async function signUpAndLogin(page: Page, user: TestUser): Promise<void> {
   // Navigate to signup page
   await page.goto('/auth/signup');
 
@@ -253,7 +250,7 @@ export async function signUpAndLogin(
  *
  * Verifies that a user is logged in by checking for common auth indicators.
  */
-export async function isAuthenticated(page: Page): Promise<boolean> {
+async function isAuthenticated(page: Page): Promise<boolean> {
   // Check for common authenticated state indicators
   const hasLogoutButton = await page
     .getByRole('button', { name: /log out|sign out/i })
@@ -276,7 +273,7 @@ export async function isAuthenticated(page: Page): Promise<boolean> {
  *
  * Attempts to determine the user's role based on the current URL.
  */
-export async function getCurrentUserRole(
+async function getCurrentUserRole(
   page: Page
 ): Promise<'homeowner' | 'contractor' | 'admin' | 'guest'> {
   const url = page.url();

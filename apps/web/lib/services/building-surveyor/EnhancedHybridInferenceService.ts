@@ -20,26 +20,6 @@ import type {
 } from './types';
 
 // Re-export sub-module utilities for external consumers
-export {
-  runYOLOInference,
-  runSAM3Inference,
-  runGPT4Inference,
-  processModelResult,
-} from './fusion/modelRunners';
-export {
-  prepareFusionInput,
-  generateFinalAssessment,
-  getTimelineForUrgency,
-  getRecommendationForSeverity,
-} from './fusion/fusionPreparation';
-export {
-  checkServiceAvailability,
-  determineRoute,
-  recordRoutingDecision,
-  updatePerformanceMetrics,
-  createInitialAvailability,
-  createInitialMetrics,
-} from './fusion/serviceTracking';
 import {
   runYOLOInference,
   runSAM3Inference,

@@ -36,9 +36,6 @@ import { HOMEOWNER_FEATURES } from './feature-access-homeowner';
 import { CONTRACTOR_FEATURES } from './feature-access-contractor';
 
 // Re-export feature definition objects
-export { HOMEOWNER_FEATURES } from './feature-access-homeowner';
-export { CONTRACTOR_FEATURES } from './feature-access-contractor';
-
 // =====================================================
 // MERGED FEATURES & CATEGORIES
 // =====================================================
@@ -48,7 +45,7 @@ export const FEATURES = {
   ...CONTRACTOR_FEATURES,
 };
 
-export const FEATURE_CATEGORIES = [
+const FEATURE_CATEGORIES = [
   'Job Management',
   'Bidding',
   'Discovery',
@@ -80,9 +77,7 @@ type FeatureCategory = (typeof FEATURE_CATEGORIES)[number];
 /**
  * Get all features for a specific category
  */
-export function getFeaturesByCategory(
-  category: FeatureCategory
-): FeatureDefinition[] {
+function getFeaturesByCategory(category: FeatureCategory): FeatureDefinition[] {
   return Object.values(FEATURES).filter(
     (feature) => feature.category === category
   );
@@ -128,7 +123,7 @@ function resolveHomeownerLimit(
 /**
  * Get all features available to a specific role and tier
  */
-export function getAvailableFeatures(
+function getAvailableFeatures(
   role: UserRole,
   tier?: SubscriptionTier
 ): FeatureDefinition[] {

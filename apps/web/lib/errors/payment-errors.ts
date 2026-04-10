@@ -184,7 +184,7 @@ const STRIPE_ERROR_MAP: Record<
  * @param isDevelopment - Whether to include debug information
  * @returns Sanitized error object safe for client consumption
  */
-export function sanitizePaymentError(
+function sanitizePaymentError(
   error: unknown,
   isDevelopment: boolean = false
 ): SanitizedPaymentError {
@@ -316,10 +316,7 @@ export function sanitizePaymentError(
  * @param error - The error to log
  * @param context - Additional context for the error
  */
-export function logPaymentError(
-  error: unknown,
-  context: PaymentErrorContext
-): void {
+function logPaymentError(error: unknown, context: PaymentErrorContext): void {
   const sanitized = sanitizePaymentError(error, true);
 
   // Build log metadata
@@ -358,7 +355,7 @@ export function logPaymentError(
 /**
  * Check if an error is retryable
  */
-export function isRetryablePaymentError(error: unknown): boolean {
+function isRetryablePaymentError(error: unknown): boolean {
   const sanitized = sanitizePaymentError(error);
   return sanitized.retryable;
 }
@@ -366,7 +363,7 @@ export function isRetryablePaymentError(error: unknown): boolean {
 /**
  * Get user-friendly error message
  */
-export function getPaymentErrorMessage(error: unknown): string {
+function getPaymentErrorMessage(error: unknown): string {
   const sanitized = sanitizePaymentError(error);
   return sanitized.message;
 }

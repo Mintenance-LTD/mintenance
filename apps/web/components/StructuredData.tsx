@@ -147,10 +147,10 @@ export function LocalBusinessStructuredData({
 
   return (
     <Script
-      id="local-business-structured-data"
-      type="application/ld+json"
+      id='local-business-structured-data'
+      type='application/ld+json'
       dangerouslySetInnerHTML={{ __html: JSON.stringify(sanitizedData) }}
-      strategy="beforeInteractive"
+      strategy='beforeInteractive'
     />
   );
 }
@@ -233,10 +233,10 @@ export function WebApplicationStructuredData({
 
   return (
     <Script
-      id="web-application-structured-data"
-      type="application/ld+json"
+      id='web-application-structured-data'
+      type='application/ld+json'
       dangerouslySetInnerHTML={{ __html: JSON.stringify(sanitizedData) }}
-      strategy="beforeInteractive"
+      strategy='beforeInteractive'
     />
   );
 }
@@ -260,7 +260,7 @@ interface ContractorProps {
   services?: string[];
 }
 
-export function ContractorStructuredData({
+function ContractorStructuredData({
   name,
   description,
   url,
@@ -295,19 +295,20 @@ export function ContractorStructuredData({
         }
       : undefined,
     priceRange,
-    hasOfferCatalog: services.length > 0
-      ? {
-          '@type': 'OfferCatalog',
-          name: 'Services Offered',
-          itemListElement: services.map((service) => ({
-            '@type': 'Offer',
-            itemOffered: {
-              '@type': 'Service',
-              name: service,
-            },
-          })),
-        }
-      : undefined,
+    hasOfferCatalog:
+      services.length > 0
+        ? {
+            '@type': 'OfferCatalog',
+            name: 'Services Offered',
+            itemListElement: services.map((service) => ({
+              '@type': 'Offer',
+              itemOffered: {
+                '@type': 'Service',
+                name: service,
+              },
+            })),
+          }
+        : undefined,
   };
 
   // Sanitize all user-controlled data before rendering (CRITICAL for contractor data)
@@ -316,9 +317,9 @@ export function ContractorStructuredData({
   return (
     <Script
       id={`contractor-structured-data-${sanitizeForJsonLd(name).toLowerCase().replace(/\s+/g, '-')}`}
-      type="application/ld+json"
+      type='application/ld+json'
       dangerouslySetInnerHTML={{ __html: JSON.stringify(sanitizedData) }}
-      strategy="beforeInteractive"
+      strategy='beforeInteractive'
     />
   );
 }
@@ -330,7 +331,7 @@ interface FAQProps {
   }>;
 }
 
-export function FAQStructuredData({ questions }: FAQProps) {
+function FAQStructuredData({ questions }: FAQProps) {
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -349,10 +350,10 @@ export function FAQStructuredData({ questions }: FAQProps) {
 
   return (
     <Script
-      id="faq-structured-data"
-      type="application/ld+json"
+      id='faq-structured-data'
+      type='application/ld+json'
       dangerouslySetInnerHTML={{ __html: JSON.stringify(sanitizedData) }}
-      strategy="beforeInteractive"
+      strategy='beforeInteractive'
     />
   );
 }
@@ -364,7 +365,7 @@ interface BreadcrumbProps {
   }>;
 }
 
-export function BreadcrumbStructuredData({ items }: BreadcrumbProps) {
+function BreadcrumbStructuredData({ items }: BreadcrumbProps) {
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
@@ -381,10 +382,10 @@ export function BreadcrumbStructuredData({ items }: BreadcrumbProps) {
 
   return (
     <Script
-      id="breadcrumb-structured-data"
-      type="application/ld+json"
+      id='breadcrumb-structured-data'
+      type='application/ld+json'
       dangerouslySetInnerHTML={{ __html: JSON.stringify(sanitizedData) }}
-      strategy="beforeInteractive"
+      strategy='beforeInteractive'
     />
   );
 }

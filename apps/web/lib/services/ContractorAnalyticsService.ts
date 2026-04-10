@@ -9,8 +9,6 @@ import { getTrendsData } from './contractor-analytics/trends';
 import { getMarketData } from './contractor-analytics/market-data';
 import { generatePerformanceInsights } from './contractor-analytics/insights';
 
-export { generatePerformanceInsights } from './contractor-analytics/insights';
-
 import type {
   ContractorAnalytics,
   PerformanceInsight,

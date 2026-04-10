@@ -13,7 +13,7 @@ import type {
 /**
  * Extract bounding coordinates from a binary mask
  */
-export function extractBoundaries(mask: number[][]): {
+function extractBoundaries(mask: number[][]): {
   top: number;
   bottom: number;
   left: number;

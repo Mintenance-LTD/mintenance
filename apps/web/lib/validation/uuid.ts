@@ -9,12 +9,13 @@ import { z } from 'zod';
  * UUID v4 regex pattern
  * Matches: 8-4-4-4-12 hex characters with dashes
  */
-const UUID_V4_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_V4_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /**
  * Zod schema for UUID validation
  */
-export const uuidSchema = z.string().regex(UUID_V4_REGEX, 'Invalid UUID format');
+const uuidSchema = z.string().regex(UUID_V4_REGEX, 'Invalid UUID format');
 
 /**
  * Validate a UUID string
@@ -31,7 +32,7 @@ export function isValidUUID(id: string): boolean {
  * @param fieldName - Name of the field for error message
  * @throws Error if UUID is invalid
  */
-export function validateUUID(id: string, fieldName: string = 'ID'): void {
+function validateUUID(id: string, fieldName: string = 'ID'): void {
   if (!isValidUUID(id)) {
     throw new Error(`Invalid ${fieldName} format`);
   }
@@ -43,7 +44,7 @@ export function validateUUID(id: string, fieldName: string = 'ID'): void {
  * @param fieldName - Name of the field for error message
  * @returns NextResponse with error if invalid, null if valid
  */
-export function validateUUIDOrRespond(id: string, fieldName: string = 'ID') {
+function validateUUIDOrRespond(id: string, fieldName: string = 'ID') {
   if (!isValidUUID(id)) {
     return {
       error: true,
@@ -55,4 +56,3 @@ export function validateUUIDOrRespond(id: string, fieldName: string = 'ID') {
   }
   return { error: false };
 }
-

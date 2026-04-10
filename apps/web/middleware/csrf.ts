@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 
-export function getCsrfCookieName(isDevelopment: boolean): string {
+function getCsrfCookieName(isDevelopment: boolean): string {
   return isDevelopment ? 'csrf-token' : '__Host-csrf-token';
 }
 

@@ -193,5 +193,3 @@ export const TableSkeleton: React.FC<TableSkeletonProps> = ({
     </div>
   );
 };
-
-export default TableSkeleton;

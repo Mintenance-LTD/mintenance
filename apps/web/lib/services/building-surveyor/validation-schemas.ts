@@ -8,7 +8,7 @@ import { z } from 'zod';
 /**
  * Optional number preprocessor that handles null, undefined, empty strings, and invalid numbers
  */
-export const optionalNumber = () =>
+const optionalNumber = () =>
   z
     .preprocess((value) => {
       if (value === null || value === undefined || value === '') {
@@ -26,7 +26,9 @@ export const optionalNumber = () =>
     .optional();
 
 // P1: Severity and urgency enums for structured validation
-const hazardSeverityEnum = z.enum(['low', 'medium', 'high', 'critical']).optional();
+const hazardSeverityEnum = z
+  .enum(['low', 'medium', 'high', 'critical'])
+  .optional();
 // Normalise GPT-4o's generic severity labels ('low'/'medium'/'high'/'critical') into
 // our canonical three-value enum so validation never rejects a valid response.
 const complianceSeverityEnum = z.preprocess(
@@ -36,14 +38,16 @@ const complianceSeverityEnum = z.preprocess(
     if (val === 'high' || val === 'critical') return 'major';
     return val;
   },
-  z.enum(['minor', 'moderate', 'major']).optional(),
+  z.enum(['minor', 'moderate', 'major']).optional()
 );
 const riskSeverityEnum = z.enum(['low', 'medium', 'high']).optional();
-const urgencyEnum = z.enum(['immediate', 'urgent', 'soon', 'planned', 'monitor']).optional();
+const urgencyEnum = z
+  .enum(['immediate', 'urgent', 'soon', 'planned', 'monitor'])
+  .optional();
 const damageSeverityEnum = z.enum(['early', 'midway', 'full']).optional();
 const complexityEnum = z.enum(['low', 'medium', 'high']).optional();
 
-export const hazardSchema = z.object({
+const hazardSchema = z.object({
   type: z.string().optional(),
   severity: hazardSeverityEnum,
   location: z.string().optional(),
@@ -52,7 +56,7 @@ export const hazardSchema = z.object({
   urgency: urgencyEnum,
 });
 
-export const complianceIssueSchema = z.object({
+const complianceIssueSchema = z.object({
   issue: z.string().optional(),
   regulation: z.string().optional(),
   severity: complianceSeverityEnum,
@@ -60,25 +64,25 @@ export const complianceIssueSchema = z.object({
   recommendation: z.string().optional(),
 });
 
-export const riskFactorSchema = z.object({
+const riskFactorSchema = z.object({
   factor: z.string().optional(),
   severity: riskSeverityEnum,
   impact: z.string().optional(),
 });
 
-export const materialSchema = z.object({
+const materialSchema = z.object({
   name: z.string().optional(),
   quantity: z.string().optional(),
   estimatedCost: optionalNumber(),
 });
 
-export const homeownerExplanationSchema = z.object({
+const homeownerExplanationSchema = z.object({
   whatIsIt: z.string().optional(),
   whyItHappened: z.string().optional(),
   whatToDo: z.string().optional(),
 });
 
-export const contractorAdviceSchema = z.object({
+const contractorAdviceSchema = z.object({
   repairNeeded: z.array(z.string()).optional().default([]),
   materials: z.array(materialSchema).optional().default([]),
   tools: z.array(z.string()).optional().default([]),
@@ -93,10 +97,13 @@ export const contractorAdviceSchema = z.object({
   complexity: complexityEnum,
 });
 
-export const specialistReferralSchema = z.object({
+const specialistReferralSchema = z.object({
   specialistType: z.string(),
   reason: z.string(),
-  urgency: z.enum(['routine', 'soon', 'urgent', 'immediate']).optional().default('routine'),
+  urgency: z
+    .enum(['routine', 'soon', 'urgent', 'immediate'])
+    .optional()
+    .default('routine'),
 });
 
 export const AI_ASSESSMENT_SCHEMA = z.object({
@@ -107,7 +114,11 @@ export const AI_ASSESSMENT_SCHEMA = z.object({
   description: z.string().optional(),
   detectedItems: z.array(z.string()).max(50).optional().default([]),
   safetyHazards: z.array(hazardSchema).max(20).optional().default([]),
-  complianceIssues: z.array(complianceIssueSchema).max(20).optional().default([]),
+  complianceIssues: z
+    .array(complianceIssueSchema)
+    .max(20)
+    .optional()
+    .default([]),
   riskFactors: z.array(riskFactorSchema).max(20).optional().default([]),
   riskScore: optionalNumber().pipe(z.number().min(0).max(100).optional()),
   premiumImpact: z.enum(['none', 'low', 'medium', 'high']).optional(),
@@ -120,10 +131,13 @@ export const AI_ASSESSMENT_SCHEMA = z.object({
   contractorAdvice: contractorAdviceSchema.optional(),
   ricsConditionRating: z.preprocess(
     (val) => (val === 1 || val === 2 || val === 3 ? val : undefined),
-    z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+    z.union([z.literal(1), z.literal(2), z.literal(3)]).optional()
   ),
-  specialistReferrals: z.array(specialistReferralSchema).max(5).optional().default([]),
+  specialistReferrals: z
+    .array(specialistReferralSchema)
+    .max(5)
+    .optional()
+    .default([]),
 });
 
 export type AiAssessmentPayload = z.infer<typeof AI_ASSESSMENT_SCHEMA>;
-

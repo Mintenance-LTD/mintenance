@@ -12,28 +12,11 @@
  * For backward compatibility, this file re-exports the main assessment function.
  */
 
-export { AssessmentOrchestrator } from './orchestration/AssessmentOrchestrator';
-export { FeatureExtractionService } from './orchestration/FeatureExtractionService';
-export { PromptBuilder } from './orchestration/PromptBuilder';
-export {
-  getConfig,
-  loadBuildingSurveyorConfig,
-  validateConfig,
-  resetConfig,
-} from './config/BuildingSurveyorConfig';
-export { extractHandcraftedFeatures } from './utils/FeatureExtractionUtils';
-
 // Export Hybrid Inference System
-export {
-  HybridInferenceService,
-  CONFIDENCE_THRESHOLDS,
-} from './HybridInferenceService';
-export { InternalDamageClassifier } from './InternalDamageClassifier';
 // Re-export types
 export type * from './types';
 
 // Export SAM 3 service
-export { SAM3Service } from './SAM3Service';
 /**
  * Main assessment function (backward compatible)
  */

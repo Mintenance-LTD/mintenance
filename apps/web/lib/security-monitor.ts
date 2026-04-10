@@ -43,7 +43,7 @@ interface IPRecord {
   firstSeen: number;
 }
 
-export class SecurityMonitor {
+class SecurityMonitor {
   private static instance: SecurityMonitor;
   private eventQueue: SecurityEvent[] = [];
   private readonly BATCH_SIZE = 10;

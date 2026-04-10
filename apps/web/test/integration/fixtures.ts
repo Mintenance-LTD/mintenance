@@ -274,7 +274,7 @@ export async function createTestEscrow(opts: {
  * Wipe all rows in a table whose text columns start with the itest_ prefix.
  * Safety net in case a test crashes without calling cleanup.
  */
-export async function wipeTestData(
+async function wipeTestData(
   admin: SupabaseClient,
   table: string,
   column: string

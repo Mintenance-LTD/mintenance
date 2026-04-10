@@ -12,7 +12,7 @@ interface CurrencyConfig {
   locale: string;
 }
 
-export const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
+const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
   GBP: {
     code: 'GBP',
     symbol: '£',
@@ -96,7 +96,7 @@ function detectCurrencyFromLocation(): CurrencyCode {
  * Get current currency from user settings or default to GBP
  * Always defaults to GBP for British app (no auto-detection)
  */
-export function getCurrentCurrency(): CurrencyCode {
+function getCurrentCurrency(): CurrencyCode {
   if (typeof window === 'undefined') return DEFAULT_CURRENCY;
 
   const stored = localStorage.getItem('preferredCurrency');
@@ -111,7 +111,7 @@ export function getCurrentCurrency(): CurrencyCode {
 /**
  * Set user's preferred currency
  */
-export function setPreferredCurrency(currency: CurrencyCode): void {
+function setPreferredCurrency(currency: CurrencyCode): void {
   if (typeof window === 'undefined') return;
   localStorage.setItem('preferredCurrency', currency);
 }
@@ -119,7 +119,7 @@ export function setPreferredCurrency(currency: CurrencyCode): void {
 /**
  * Format amount with currency symbol
  */
-export function formatCurrency(
+function formatCurrency(
   amount: number,
   currencyCode?: CurrencyCode,
   options?: {
@@ -167,7 +167,7 @@ export function formatMoney(amount: number, currency?: CurrencyCode): string {
 /**
  * Parse currency string to number
  */
-export function parseCurrency(value: string): number {
+function parseCurrency(value: string): number {
   const cleaned = value.replace(/[£$€,\s]/g, '');
   const parsed = parseFloat(cleaned);
   return isNaN(parsed) ? 0 : parsed;
@@ -176,7 +176,7 @@ export function parseCurrency(value: string): number {
 /**
  * Format currency without trailing zeros
  */
-export function formatCurrencyCompact(
+function formatCurrencyCompact(
   amount: number,
   currency?: CurrencyCode
 ): string {
@@ -187,7 +187,7 @@ export function formatCurrencyCompact(
 /**
  * Get currency symbol only
  */
-export function getCurrencySymbol(currency?: CurrencyCode): string {
+function getCurrencySymbol(currency?: CurrencyCode): string {
   const code = currency || getCurrentCurrency();
   return CURRENCIES[code].symbol;
 }

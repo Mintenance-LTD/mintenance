@@ -162,7 +162,7 @@ export function ResponsiveGrid({
  * SECURITY: grid-area CSS property only accepts valid grid area names.
  * No XSS risk as this is a CSS property value, not HTML content.
  */
-export function GridArea({
+function GridArea({
   area,
   children,
   className = '',

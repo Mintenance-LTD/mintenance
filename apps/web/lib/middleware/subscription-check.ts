@@ -34,7 +34,7 @@ interface PortfolioModeCheckResult {
 /**
  * Check if contractor has active subscription or valid trial
  */
-export async function checkSubscriptionAccess(
+async function checkSubscriptionAccess(
   request: NextRequest,
   contractorId: string
 ): Promise<SubscriptionCheckResult> {

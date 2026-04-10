@@ -120,7 +120,7 @@ export async function mondrianConformalPrediction(
 /**
  * Get calibration data for a stratum
  */
-export async function getCalibrationData(
+async function getCalibrationData(
   stratum: string
 ): Promise<CalibrationDataPoint[]> {
   try {
@@ -150,7 +150,7 @@ export async function getCalibrationData(
 /**
  * Compute weighted quantile
  */
-export function weightedQuantile(
+function weightedQuantile(
   scores: number[],
   weights: number[],
   percentile: number
@@ -179,7 +179,7 @@ export function weightedQuantile(
  * Beta quantile for Small Sample Beta Correction (SSBC)
  * Special case: Beta(n+1, 1) has closed form: p^(1/(n+1))
  */
-export function betaQuantile(p: number, a: number, b: number): number {
+function betaQuantile(p: number, a: number, b: number): number {
   if (b === 1) {
     return Math.pow(p, 1 / a);
   }

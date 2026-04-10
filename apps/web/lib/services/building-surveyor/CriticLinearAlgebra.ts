@@ -33,7 +33,7 @@ export function dotProduct(a: number[], b: number[]): number {
  * Matrix-vector product: A * x.
  */
 export function matrixVectorProduct(A: number[][], x: number[]): number[] {
-  return A.map(row => dotProduct(row, x));
+  return A.map((row) => dotProduct(row, x));
 }
 
 /**
@@ -85,7 +85,7 @@ export function inverseMatrix(A: number[][]): number[][] {
 /**
  * Matrix inverse using Cholesky decomposition (for positive definite matrices).
  */
-export function inverseCholesky(A: number[][]): number[][] {
+function inverseCholesky(A: number[][]): number[][] {
   const n = A.length;
 
   // Compute Cholesky decomposition: A = L * L^T
@@ -149,7 +149,7 @@ export function inverseCholesky(A: number[][]): number[][] {
 /**
  * Matrix inverse using LU decomposition with partial pivoting.
  */
-export function inverseLU(A: number[][]): number[][] {
+function inverseLU(A: number[][]): number[][] {
   const n = A.length;
   const inv: number[][] = [];
 
@@ -173,11 +173,11 @@ export function inverseLU(A: number[][]): number[][] {
 /**
  * Solve linear system A * x = b using LU decomposition with partial pivoting.
  */
-export function solveLU(A: number[][], b: number[]): number[] {
+function solveLU(A: number[][], b: number[]): number[] {
   const n = A.length;
 
   // Create copies
-  const LU: number[][] = A.map(row => [...row]);
+  const LU: number[][] = A.map((row) => [...row]);
   const x = [...b];
   const P: number[] = Array.from({ length: n }, (_, i) => i);
 
@@ -243,7 +243,7 @@ export function solveLU(A: number[][], b: number[]): number[] {
 /**
  * Return regularized identity matrix (fallback for singular matrices).
  */
-export function regularizedIdentity(n: number): number[][] {
+function regularizedIdentity(n: number): number[][] {
   const inv: number[][] = [];
   const lambda = 0.1; // Regularization parameter
   for (let i = 0; i < n; i++) {

@@ -90,7 +90,12 @@ interface PageHeaderProps {
   backUrl?: string;
 }
 
-export function PageHeader({ title, description, actions, backUrl }: PageHeaderProps) {
+export function PageHeader({
+  title,
+  description,
+  actions,
+  backUrl,
+}: PageHeaderProps) {
   return (
     <div
       style={{
@@ -153,7 +158,7 @@ interface StatsGridProps {
   columns?: number;
 }
 
-export function StatsGrid({ children, columns = 3 }: StatsGridProps) {
+function StatsGrid({ children, columns = 3 }: StatsGridProps) {
   return (
     <div
       style={{
@@ -166,4 +171,3 @@ export function StatsGrid({ children, columns = 3 }: StatsGridProps) {
     </div>
   );
 }
-

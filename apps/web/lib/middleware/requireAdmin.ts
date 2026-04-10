@@ -15,13 +15,19 @@ import type { User } from '@mintenance/types';
  * CRITICAL: Never trust JWT claims alone for admin operations
  * Always verify against the database to prevent token forgery attacks
  */
-export async function requireAdmin(request: NextRequest): Promise<{
-  user: Pick<User, 'id' | 'email' | 'role'> & { verified?: boolean; dbVerified?: boolean };
-  error?: never;
-} | {
-  error: NextResponse;
-  user?: never;
-}> {
+export async function requireAdmin(request: NextRequest): Promise<
+  | {
+      user: Pick<User, 'id' | 'email' | 'role'> & {
+        verified?: boolean;
+        dbVerified?: boolean;
+      };
+      error?: never;
+    }
+  | {
+      error: NextResponse;
+      user?: never;
+    }
+> {
   try {
     // Step 1: Get user from JWT cookies (fast check)
     const user = await getCurrentUserFromCookies();
@@ -30,7 +36,9 @@ export async function requireAdmin(request: NextRequest): Promise<{
     if (!user) {
       logger.warn('[SECURITY] Unauthenticated admin access attempt', {
         service: 'requireAdmin',
-        ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
+        ip:
+          request.headers.get('x-forwarded-for') ||
+          request.headers.get('x-real-ip'),
         path: request.nextUrl.pathname,
       });
 
@@ -38,7 +46,7 @@ export async function requireAdmin(request: NextRequest): Promise<{
         error: NextResponse.json(
           { error: 'Authentication required' },
           { status: 401 }
-        )
+        ),
       };
     }
 
@@ -48,7 +56,9 @@ export async function requireAdmin(request: NextRequest): Promise<{
         userId: user.id,
         email: user.email,
         jwtRole: user.role,
-        ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
+        ip:
+          request.headers.get('x-forwarded-for') ||
+          request.headers.get('x-real-ip'),
         path: request.nextUrl.pathname,
       });
 
@@ -56,7 +66,7 @@ export async function requireAdmin(request: NextRequest): Promise<{
         error: NextResponse.json(
           { error: 'Admin access required' },
           { status: 403 }
-        )
+        ),
       };
     }
 
@@ -90,20 +100,23 @@ export async function requireAdmin(request: NextRequest): Promise<{
         error: NextResponse.json(
           { error: 'Authorization verification failed' },
           { status: 403 }
-        )
+        ),
       };
     }
 
     // Step 4: Verify database role matches admin
     if (dbUser.role !== 'admin') {
-      logger.error('[SECURITY] JWT-DB role mismatch - potential token forgery', {
-        service: 'requireAdmin',
-        userId: user.id,
-        email: user.email,
-        jwtRole: user.role,
-        dbRole: dbUser.role,
-        severity: 'CRITICAL',
-      });
+      logger.error(
+        '[SECURITY] JWT-DB role mismatch - potential token forgery',
+        {
+          service: 'requireAdmin',
+          userId: user.id,
+          email: user.email,
+          jwtRole: user.role,
+          dbRole: dbUser.role,
+          severity: 'CRITICAL',
+        }
+      );
 
       // This is a critical security event - log it
       await logSecurityEvent(user.id, 'ADMIN_TOKEN_FORGERY_ATTEMPT', {
@@ -116,7 +129,7 @@ export async function requireAdmin(request: NextRequest): Promise<{
         error: NextResponse.json(
           { error: 'Invalid authorization token - security event logged' },
           { status: 403 }
-        )
+        ),
       };
     }
 
@@ -132,7 +145,7 @@ export async function requireAdmin(request: NextRequest): Promise<{
         error: NextResponse.json(
           { error: 'Admin account requires verification' },
           { status: 403 }
-        )
+        ),
       };
     }
 
@@ -146,9 +159,8 @@ export async function requireAdmin(request: NextRequest): Promise<{
         // Include database-verified fields
         verified: dbUser.verified,
         dbVerified: true, // Flag indicating database verification passed
-      }
+      },
     };
-
   } catch (error) {
     logger.error('[SECURITY] Unexpected error in admin authorization', {
       service: 'requireAdmin',
@@ -161,7 +173,7 @@ export async function requireAdmin(request: NextRequest): Promise<{
       error: NextResponse.json(
         { error: 'Authorization error - access denied' },
         { status: 500 }
-      )
+      ),
     };
   }
 }
@@ -200,11 +212,7 @@ async function logSecurityEvent(
 /**
  * Log successful admin access for audit trail
  */
-async function logAdminAccess(
-  userId: string,
-  path: string,
-  method: string
-) {
+async function logAdminAccess(userId: string, path: string, method: string) {
   try {
     const supabase = serverSupabase;
 
@@ -236,9 +244,7 @@ async function logAdminAccess(
  */
 const adminRateLimits = new Map<string, { count: number; resetAt: number }>();
 
-export async function checkAdminRateLimit(
-  userId: string
-): Promise<boolean> {
+export async function checkAdminRateLimit(userId: string): Promise<boolean> {
   const now = Date.now();
   const key = `admin:${userId}`;
   const limit = adminRateLimits.get(key);
@@ -249,9 +255,13 @@ export async function checkAdminRateLimit(
   }
 
   // Check current limit
-  const current = adminRateLimits.get(key) || { count: 0, resetAt: now + 60000 }; // 1 minute window
+  const current = adminRateLimits.get(key) || {
+    count: 0,
+    resetAt: now + 60000,
+  }; // 1 minute window
 
-  if (current.count >= 100) { // 100 requests per minute for admin
+  if (current.count >= 100) {
+    // 100 requests per minute for admin
     logger.warn('[SECURITY] Admin rate limit exceeded', {
       userId,
       count: current.count,
@@ -271,7 +281,7 @@ export async function checkAdminRateLimit(
 /**
  * Helper function for consistent admin response format
  */
-export function adminErrorResponse(
+function adminErrorResponse(
   message: string,
   status: number = 403
 ): NextResponse {

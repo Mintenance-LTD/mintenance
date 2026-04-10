@@ -6,7 +6,7 @@
 /**
  * Calculate Intersection over Union (IoU) between two bounding boxes
  */
-export function calculateIoU(
+function calculateIoU(
   box1: { x: number; y: number; width: number; height: number },
   box2: { x: number; y: number; width: number; height: number }
 ): number {
@@ -44,5 +44,7 @@ export function findBestSAM3Match(
   }
 
   // Only accept matches with IoU > 0.3
-  return bestIoU > 0.3 ? { index: bestIndex, iou: bestIoU } : { index: -1, iou: 0 };
+  return bestIoU > 0.3
+    ? { index: bestIndex, iou: bestIoU }
+    : { index: -1, iou: 0 };
 }

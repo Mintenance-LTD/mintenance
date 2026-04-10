@@ -40,11 +40,18 @@ interface UseOnboardingOptions {
 }
 
 export function useOnboarding(options: UseOnboardingOptions = {}) {
-  const { userType = 'homeowner', autoStart = false, onComplete, onSkip } = options;
+  const {
+    userType = 'homeowner',
+    autoStart = false,
+    onComplete,
+    onSkip,
+  } = options;
 
   const [state, setState] = useState<OnboardingState>(getOnboardingState());
   const [flow, setFlow] = useState<OnboardingFlow>(getFlowByUserType(userType));
-  const [currentStep, setCurrentStepState] = useState<OnboardingStep | null>(null);
+  const [currentStep, setCurrentStepState] = useState<OnboardingStep | null>(
+    null
+  );
   const [isActive, setIsActive] = useState(false);
 
   // Initialize onboarding
@@ -195,7 +202,10 @@ export function useOnboarding(options: UseOnboardingOptions = {}) {
             id: 'bio',
             label: 'Complete your bio',
             weight: 10,
-            completed: !!userData?.bio && typeof userData.bio === 'string' && userData.bio.length > 20,
+            completed:
+              !!userData?.bio &&
+              typeof userData.bio === 'string' &&
+              userData.bio.length > 20,
             action: '/profile',
           },
           {
@@ -234,7 +244,10 @@ export function useOnboarding(options: UseOnboardingOptions = {}) {
             id: 'bio',
             label: 'Write your bio',
             weight: 10,
-            completed: !!userData?.bio && typeof userData.bio === 'string' && userData.bio.length > 50,
+            completed:
+              !!userData?.bio &&
+              typeof userData.bio === 'string' &&
+              userData.bio.length > 50,
             action: '/contractor/profile',
           },
           {
@@ -284,7 +297,7 @@ export function useOnboarding(options: UseOnboardingOptions = {}) {
 
   // Get current step index
   const currentStepIndex = currentStep
-    ? flow.steps.findIndex(s => s.id === currentStep.id)
+    ? flow.steps.findIndex((s) => s.id === currentStep.id)
     : -1;
 
   const isFirstStep = currentStepIndex === 0;
@@ -323,5 +336,3 @@ export function useOnboarding(options: UseOnboardingOptions = {}) {
     updateProfileCompletion,
   };
 }
-
-export default useOnboarding;

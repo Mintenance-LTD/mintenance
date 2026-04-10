@@ -10,7 +10,9 @@ let _stripe: Stripe | null = null;
 function getStripe(): Stripe {
   if (!_stripe) {
     if (!process.env.STRIPE_SECRET_KEY) {
-      throw new Error('STRIPE_SECRET_KEY is not defined in environment variables');
+      throw new Error(
+        'STRIPE_SECRET_KEY is not defined in environment variables'
+      );
     }
     _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
       apiVersion: '2025-01-27.acacia' as Stripe.LatestApiVersion,
@@ -27,5 +29,3 @@ export const stripe: Stripe = new Proxy({} as Stripe, {
     return typeof value === 'function' ? value.bind(client) : value;
   },
 });
-
-export default stripe;

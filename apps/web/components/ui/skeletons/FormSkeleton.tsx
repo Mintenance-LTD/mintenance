@@ -114,5 +114,3 @@ export const FormSkeleton: React.FC<FormSkeletonProps> = ({
     </div>
   );
 };
-
-export default FormSkeleton;

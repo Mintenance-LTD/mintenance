@@ -189,7 +189,7 @@ export function StatusBadge({
   );
 }
 
-export function CountBadge({
+function CountBadge({
   count,
   variant = 'primary',
   size = 'sm',
@@ -205,5 +205,3 @@ export function CountBadge({
     </Badge>
   );
 }
-
-export default Badge;

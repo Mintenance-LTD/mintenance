@@ -113,5 +113,3 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
     </>
   );
 };
-
-export default Breadcrumbs;

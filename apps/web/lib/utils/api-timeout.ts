@@ -20,7 +20,7 @@ interface TimeoutConfig {
 /**
  * Timeout error class
  */
-export class TimeoutError extends Error {
+class TimeoutError extends Error {
   constructor(
     public operation: string,
     public timeoutMs: number
@@ -43,7 +43,7 @@ export class TimeoutError extends Error {
  *   { timeoutMs: 5000, operation: 'fetch-external-data' }
  * );
  */
-export async function withTimeout<T>(
+async function withTimeout<T>(
   operation: () => Promise<T>,
   config: TimeoutConfig
 ): Promise<T> {
@@ -132,7 +132,7 @@ export async function withTimeout<T>(
  *   5000
  * );
  */
-export async function fetchWithTimeout(
+async function fetchWithTimeout(
   url: string,
   options: RequestInit = {},
   timeoutMs: number = 10000
@@ -245,7 +245,7 @@ export async function stripeWithTimeout<T>(
  *   30000
  * );
  */
-export async function mlWithTimeout<T>(
+async function mlWithTimeout<T>(
   operation: () => Promise<T>,
   modelName: string,
   timeoutMs: number = 30000
@@ -266,7 +266,7 @@ export async function mlWithTimeout<T>(
  * @param timeoutMs - Timeout in milliseconds (default: 15000)
  * @returns Query result
  */
-export async function dbWithTimeout<T>(
+async function dbWithTimeout<T>(
   operation: () => Promise<T>,
   queryName: string,
   timeoutMs: number = 15000

@@ -120,5 +120,3 @@ export const JobCardSkeleton: React.FC<JobCardSkeletonProps> = ({
     </>
   );
 };
-
-export default JobCardSkeleton;

@@ -209,7 +209,7 @@ type PresenceState = Record<string, PresenceUserData[]>;
 /**
  * Hook for realtime presence (track online users)
  */
-export function useRealtimePresence(roomId: string) {
+function useRealtimePresence(roomId: string) {
   const [presenceState, setPresenceState] = useState<PresenceState>({});
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
@@ -277,9 +277,9 @@ interface BroadcastMessage {
 /**
  * Hook for realtime broadcast (send and receive messages)
  */
-export function useRealtimeBroadcast<
-  T extends BroadcastMessage = BroadcastMessage,
->(channelName: string) {
+function useRealtimeBroadcast<T extends BroadcastMessage = BroadcastMessage>(
+  channelName: string
+) {
   const [messages, setMessages] = useState<T[]>([]);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 

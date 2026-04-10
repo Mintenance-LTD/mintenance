@@ -3,7 +3,7 @@
  * Single interface: tool name, params, result, summary for evidence recording.
  */
 
-export const TOOL_NAMES = [
+const TOOL_NAMES = [
   'detect',
   'segment',
   'vision_labels',

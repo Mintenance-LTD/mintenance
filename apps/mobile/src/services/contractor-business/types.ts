@@ -210,7 +210,7 @@ interface EquipmentManagement {
 // MARKETING & GROWTH TYPES
 // =====================================================
 
-export interface MarketingCampaign {
+interface MarketingCampaign {
   id: string;
   contractor_id: string;
   campaign_name: string;

@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import React, { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 
 interface AccordionItemProps {
   title: string;
@@ -17,9 +17,9 @@ export const AccordionItem: React.FC<AccordionItemProps> = ({
   title,
   content,
   defaultOpen = false,
-  className = "",
-  titleClassName = "",
-  contentClassName = "",
+  className = '',
+  titleClassName = '',
+  contentClassName = '',
   onToggle,
 }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -37,21 +37,23 @@ export const AccordionItem: React.FC<AccordionItemProps> = ({
         className={`w-full flex items-center justify-between py-4 text-left hover:bg-gray-50 transition-colors duration-200 ${titleClassName}`}
         aria-expanded={isOpen}
       >
-        <span className="text-base font-medium text-gray-900 pr-4">{title}</span>
+        <span className='text-base font-medium text-gray-900 pr-4'>
+          {title}
+        </span>
         <ChevronDown
           className={`w-5 h-5 text-gray-500 flex-shrink-0 transition-transform duration-300 ${
-            isOpen ? "rotate-180" : "rotate-0"
+            isOpen ? 'rotate-180' : 'rotate-0'
           }`}
         />
       </button>
 
       <div
         className={`overflow-hidden transition-all duration-300 ease-in-out ${
-          isOpen ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
+          isOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
         }`}
       >
         <div className={`pb-4 pt-1 ${contentClassName}`}>
-          <div className="text-gray-700 leading-relaxed">{content}</div>
+          <div className='text-gray-700 leading-relaxed'>{content}</div>
         </div>
       </div>
     </div>
@@ -69,11 +71,11 @@ interface AccordionProps {
   className?: string;
 }
 
-export const Accordion: React.FC<AccordionProps> = ({
+const Accordion: React.FC<AccordionProps> = ({
   items,
   allowMultiple = false,
   defaultOpenIds = [],
-  className = "",
+  className = '',
 }) => {
   const [openIds, setOpenIds] = useState<Set<string>>(new Set(defaultOpenIds));
 
@@ -106,5 +108,3 @@ export const Accordion: React.FC<AccordionProps> = ({
     </div>
   );
 };
-
-export default AccordionItem;

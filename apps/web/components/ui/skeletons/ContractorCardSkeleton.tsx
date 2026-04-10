@@ -152,5 +152,3 @@ export const ContractorCardSkeleton: React.FC<ContractorCardSkeletonProps> = ({
     </>
   );
 };
-
-export default ContractorCardSkeleton;

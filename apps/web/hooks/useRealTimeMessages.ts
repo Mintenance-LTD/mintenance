@@ -14,12 +14,7 @@ export function useRealTimeMessages(
   jobId: string,
   options: UseRealTimeMessagesOptions = {}
 ) {
-  const {
-    enabled = true,
-    onNewMessage,
-    onMessageUpdate,
-    onError
-  } = options;
+  const { enabled = true, onNewMessage, onMessageUpdate, onError } = options;
 
   const cleanupRef = useRef<(() => void) | null>(null);
 
@@ -34,7 +29,10 @@ export function useRealTimeMessages(
     const cleanup = MessagingService.subscribeToJobMessages(
       jobId,
       (newMessage: Message) => {
-        logger.info('New message received', { messageId: newMessage.id, jobId });
+        logger.info('New message received', {
+          messageId: newMessage.id,
+          jobId,
+        });
         onNewMessage?.(newMessage);
       },
       (updatedMessage: Message) => {
@@ -73,7 +71,7 @@ export function useRealTimeMessages(
 }
 
 // Hook for managing multiple real-time message subscriptions
-export function useRealTimeMessageThreads(
+function useRealTimeMessageThreads(
   userId: string,
   onNewMessage?: (message: Message) => void,
   onError?: (error: Error) => void
@@ -114,20 +112,20 @@ export function useRealTimeMessageThreads(
   const subscribeToMultipleJobs = (jobIds: string[]) => {
     // Unsubscribe from jobs no longer in the list
     const currentJobIds = Array.from(subscriptionsRef.current.keys());
-    currentJobIds.forEach(jobId => {
+    currentJobIds.forEach((jobId) => {
       if (!jobIds.includes(jobId)) {
         unsubscribeFromJob(jobId);
       }
     });
 
     // Subscribe to new jobs
-    jobIds.forEach(jobId => {
+    jobIds.forEach((jobId) => {
       subscribeToJob(jobId);
     });
   };
 
   const cleanup = () => {
-    subscriptionsRef.current.forEach(cleanupFn => cleanupFn());
+    subscriptionsRef.current.forEach((cleanupFn) => cleanupFn());
     subscriptionsRef.current.clear();
   };
 

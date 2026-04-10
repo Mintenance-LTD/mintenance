@@ -32,7 +32,7 @@ export interface OnboardingFlow {
 /**
  * Homeowner Onboarding Flow
  */
-export const homeownerFlow: OnboardingFlow = {
+const homeownerFlow: OnboardingFlow = {
   id: 'homeowner-onboarding',
   name: 'Homeowner Onboarding',
   userType: 'homeowner',
@@ -42,7 +42,7 @@ export const homeownerFlow: OnboardingFlow = {
       id: 'welcome',
       title: 'Welcome to Mintenance!',
       description:
-        'Your all-in-one platform for finding trusted contractors, managing home projects, and ensuring quality work. Let\'s give you a quick tour of what\'s available!',
+        "Your all-in-one platform for finding trusted contractors, managing home projects, and ensuring quality work. Let's give you a quick tour of what's available!",
       skippable: true,
       nextLabel: 'Get Started',
     },
@@ -105,7 +105,7 @@ export const homeownerFlow: OnboardingFlow = {
       id: 'profile',
       title: 'Your Profile',
       description:
-        'Update your profile whenever you like — add your name, photo, and location. This helps contractors know who they\'re working with, but it\'s completely optional.',
+        "Update your profile whenever you like — add your name, photo, and location. This helps contractors know who they're working with, but it's completely optional.",
       targetSelector: '[data-tutorial="profile"]',
       action: 'observe',
       position: 'right',
@@ -114,9 +114,9 @@ export const homeownerFlow: OnboardingFlow = {
     },
     {
       id: 'ready',
-      title: 'You\'re All Set!',
+      title: "You're All Set!",
       description:
-        'That\'s the tour! When you\'re ready, head to Jobs to post your first maintenance request. You can explore any of these sections at your own pace.',
+        "That's the tour! When you're ready, head to Jobs to post your first maintenance request. You can explore any of these sections at your own pace.",
       skippable: true,
       nextLabel: 'Finish',
     },
@@ -126,7 +126,7 @@ export const homeownerFlow: OnboardingFlow = {
 /**
  * Contractor Onboarding Flow
  */
-export const contractorFlow: OnboardingFlow = {
+const contractorFlow: OnboardingFlow = {
   id: 'contractor-onboarding',
   name: 'Contractor Onboarding',
   userType: 'contractor',
@@ -136,7 +136,7 @@ export const contractorFlow: OnboardingFlow = {
       id: 'welcome',
       title: 'Welcome to Mintenance!',
       description:
-        'Join thousands of contractors finding quality leads and growing their business. Here\'s a quick tour of the platform!',
+        "Join thousands of contractors finding quality leads and growing their business. Here's a quick tour of the platform!",
       skippable: true,
       nextLabel: 'Get Started',
     },
@@ -199,7 +199,7 @@ export const contractorFlow: OnboardingFlow = {
       id: 'profile',
       title: 'Your Profile',
       description:
-        'Set up your business profile whenever you\'re ready — add your skills, portfolio photos, service areas, and certifications. A complete profile helps you win more jobs.',
+        "Set up your business profile whenever you're ready — add your skills, portfolio photos, service areas, and certifications. A complete profile helps you win more jobs.",
       targetSelector: '[data-tutorial="profile"]',
       action: 'observe',
       position: 'right',
@@ -208,9 +208,9 @@ export const contractorFlow: OnboardingFlow = {
     },
     {
       id: 'ready',
-      title: 'You\'re All Set!',
+      title: "You're All Set!",
       description:
-        'That\'s the tour! Start by browsing available jobs, or complete your profile to attract more clients. Everything is at your own pace — no rush.',
+        "That's the tour! Start by browsing available jobs, or complete your profile to attract more clients. Everything is at your own pace — no rush.",
       skippable: true,
       nextLabel: 'Finish',
     },
@@ -233,7 +233,7 @@ export function getStepById(
   flow: OnboardingFlow,
   stepId: string
 ): OnboardingStep | undefined {
-  return flow.steps.find(step => step.id === stepId);
+  return flow.steps.find((step) => step.id === stepId);
 }
 
 /**
@@ -243,7 +243,9 @@ export function getNextStepInFlow(
   flow: OnboardingFlow,
   currentStepId: string
 ): OnboardingStep | null {
-  const currentIndex = flow.steps.findIndex(step => step.id === currentStepId);
+  const currentIndex = flow.steps.findIndex(
+    (step) => step.id === currentStepId
+  );
   if (currentIndex === -1 || currentIndex === flow.steps.length - 1) {
     return null;
   }
@@ -257,7 +259,9 @@ export function getPreviousStepInFlow(
   flow: OnboardingFlow,
   currentStepId: string
 ): OnboardingStep | null {
-  const currentIndex = flow.steps.findIndex(step => step.id === currentStepId);
+  const currentIndex = flow.steps.findIndex(
+    (step) => step.id === currentStepId
+  );
   if (currentIndex <= 0) {
     return null;
   }
@@ -267,13 +271,13 @@ export function getPreviousStepInFlow(
 /**
  * Get step index (for progress indication)
  */
-export function getStepIndex(flow: OnboardingFlow, stepId: string): number {
-  return flow.steps.findIndex(step => step.id === stepId);
+function getStepIndex(flow: OnboardingFlow, stepId: string): number {
+  return flow.steps.findIndex((step) => step.id === stepId);
 }
 
 /**
  * Get all step IDs for a flow
  */
 export function getAllStepIds(flow: OnboardingFlow): string[] {
-  return flow.steps.map(step => step.id);
+  return flow.steps.map((step) => step.id);
 }

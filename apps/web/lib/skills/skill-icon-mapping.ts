@@ -4,7 +4,7 @@
  * Used for displaying skill icons on maps and in the UI
  */
 
-export const SKILL_ICON_MAPPING: Record<string, string> = {
+const SKILL_ICON_MAPPING: Record<string, string> = {
   // General
   'General Contracting': 'briefcase',
   'General Maintenance': 'briefcase',

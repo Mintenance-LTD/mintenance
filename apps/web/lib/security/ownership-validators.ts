@@ -54,7 +54,7 @@ export async function requireJobOwnership(
  * Verifies that the user is either the homeowner or contractor on the job.
  * Returns the job and the user's role on it.
  */
-export async function requireJobParticipant(
+async function requireJobParticipant(
   jobId: string,
   userId: string
 ): Promise<{

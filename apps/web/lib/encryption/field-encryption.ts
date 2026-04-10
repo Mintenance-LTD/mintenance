@@ -206,7 +206,7 @@ const SENSITIVE_PAYMENT_FIELDS = [
  * @param data - Payment data object
  * @returns Data with sensitive fields encrypted
  */
-export function encryptPaymentData(data: PaymentData): PaymentData {
+function encryptPaymentData(data: PaymentData): PaymentData {
   const encrypted: PaymentData = { ...data };
 
   for (const field of SENSITIVE_PAYMENT_FIELDS) {
@@ -234,7 +234,7 @@ export function encryptPaymentData(data: PaymentData): PaymentData {
  * @param data - Payment data with encrypted fields
  * @returns Data with sensitive fields decrypted
  */
-export function decryptPaymentData(data: PaymentData): PaymentData {
+function decryptPaymentData(data: PaymentData): PaymentData {
   const decrypted: PaymentData = { ...data };
 
   for (const field of SENSITIVE_PAYMENT_FIELDS) {
@@ -262,7 +262,7 @@ export function decryptPaymentData(data: PaymentData): PaymentData {
  * Securely compare two strings in constant time
  * Prevents timing attacks when comparing sensitive values
  */
-export function secureCompare(a: string, b: string): boolean {
+function secureCompare(a: string, b: string): boolean {
   const bufferA = Buffer.from(a, 'utf8');
   const bufferB = Buffer.from(b, 'utf8');
 
@@ -281,7 +281,7 @@ export function secureCompare(a: string, b: string): boolean {
  * Hash sensitive data for comparison without storing plaintext
  * Useful for checking if a value has changed without storing the actual value
  */
-export function hashForComparison(value: string, salt?: string): string {
+function hashForComparison(value: string, salt?: string): string {
   const hash = createHash('sha256');
 
   if (salt) {
@@ -297,7 +297,7 @@ export function hashForComparison(value: string, salt?: string): string {
  * Generate a secure random token
  * Useful for generating one-time tokens, session IDs, etc.
  */
-export function generateSecureToken(length: number = 32): string {
+function generateSecureToken(length: number = 32): string {
   return randomBytes(length).toString('hex');
 }
 
@@ -305,7 +305,7 @@ export function generateSecureToken(length: number = 32): string {
  * Redact sensitive information from logs
  * Replaces sensitive data with asterisks while preserving structure
  */
-export function redactSensitiveData(data: unknown): unknown {
+function redactSensitiveData(data: unknown): unknown {
   if (typeof data === 'string') {
     // Check if it looks like a card number
     if (/^\d{13,19}$/.test(data.replace(/\s/g, ''))) {
@@ -365,7 +365,7 @@ export function redactSensitiveData(data: unknown): unknown {
  * Validate encryption configuration
  * Should be called on application startup
  */
-export function validateEncryptionConfig(): boolean {
+function validateEncryptionConfig(): boolean {
   try {
     const masterKey = process.env.ENCRYPTION_MASTER_KEY;
 

@@ -54,14 +54,14 @@ export const formatCurrency = (amount: number) =>
     amount
   );
 
-export const formatDate = (dateString: string) =>
+const formatDate = (dateString: string) =>
   new Date(dateString).toLocaleDateString('en-GB', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
   });
 
-export function getStatusBadge(status: string): {
+function getStatusBadge(status: string): {
   label: string;
   bg: string;
   text: string;

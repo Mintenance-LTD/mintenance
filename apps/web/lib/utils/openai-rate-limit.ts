@@ -37,14 +37,14 @@ interface RetryMetrics {
   totalDelayTimeMs: number;
 }
 
-export const DEFAULT_RETRY_CONFIG: RetryConfig = {
+const DEFAULT_RETRY_CONFIG: RetryConfig = {
   maxAttempts: 5,
   baseDelayMs: 2000, // Start with 2 seconds
   maxDelayMs: 60000, // Max 60 seconds
   backoffMultiplier: 2,
 };
 
-export const BATCH_PROCESSING_RETRY_CONFIG: RetryConfig = {
+const BATCH_PROCESSING_RETRY_CONFIG: RetryConfig = {
   maxAttempts: 10, // More retries for batch jobs
   baseDelayMs: 20000, // 20 seconds - longer for batch
   maxDelayMs: 300000, // 5 minutes - longer for batch
@@ -68,14 +68,14 @@ let retryMetrics: RetryMetrics = {
 /**
  * Get current retry metrics
  */
-export function getRetryMetrics(): RetryMetrics {
+function getRetryMetrics(): RetryMetrics {
   return { ...retryMetrics };
 }
 
 /**
  * Reset retry metrics (useful for testing or batch processing)
  */
-export function resetRetryMetrics(): void {
+function resetRetryMetrics(): void {
   retryMetrics = {
     totalRequests: 0,
     totalRetries: 0,
@@ -93,14 +93,14 @@ export function resetRetryMetrics(): void {
 /**
  * Check if base delay should be increased based on retry metrics
  */
-export function shouldIncreaseBaseDelay(metrics: RetryMetrics): boolean {
+function shouldIncreaseBaseDelay(metrics: RetryMetrics): boolean {
   return metrics.retryRate > 50;
 }
 
 /**
  * Parse OpenAI rate limit headers from response
  */
-export function parseRateLimitHeaders(headers: Headers): OpenAIRateLimitInfo {
+function parseRateLimitHeaders(headers: Headers): OpenAIRateLimitInfo {
   const info: OpenAIRateLimitInfo = {
     limitRequests: null,
     remainingRequests: null,
@@ -188,7 +188,7 @@ export function parseRateLimitHeaders(headers: Headers): OpenAIRateLimitInfo {
 /**
  * Check if error is a rate limit error (429)
  */
-export function isRateLimitError(error: unknown): boolean {
+function isRateLimitError(error: unknown): boolean {
   if (error instanceof Error) {
     return (
       error.message.includes('429') ||
@@ -202,7 +202,7 @@ export function isRateLimitError(error: unknown): boolean {
 /**
  * Calculate delay based on retry attempt and rate limit info
  */
-export function calculateDelay(
+function calculateDelay(
   attempt: number,
   config: RetryConfig,
   rateLimitInfo?: OpenAIRateLimitInfo
@@ -235,7 +235,7 @@ export function calculateDelay(
 /**
  * Execute a function with retry logic for OpenAI API rate limits
  */
-export async function withOpenAIRetry<T>(
+async function withOpenAIRetry<T>(
   fn: () => Promise<T>,
   config: Partial<RetryConfig> = {}
 ): Promise<T> {

@@ -18,9 +18,11 @@ import type {
   CreateCampaignRequest,
   MarketingCampaign,
 } from '../marketing-management/types';
+export type {
+  CreateCampaignRequest,
+  MarketingCampaign,
+} from '../marketing-management/types';
 export * from './types';
-export type { MarketingCampaign } from '../marketing-management/types';
-
 // Export domain services
 export { FinancialManagementService } from './FinancialManagementService';
 // Singleton instances

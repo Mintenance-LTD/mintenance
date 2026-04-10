@@ -341,7 +341,7 @@ export function Icon({
  * Convenience export for filled icons
  * Note: Most Lucide icons are outline by default. Use fill prop for filled variants.
  */
-export function IconFilled({
+function IconFilled({
   name,
   size = 20,
   color = 'currentColor',

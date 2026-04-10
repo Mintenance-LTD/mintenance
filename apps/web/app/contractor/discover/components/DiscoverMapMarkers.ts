@@ -59,9 +59,9 @@ export interface ContractorLocationForMap {
  * Return a Google Maps Symbol object whose colour is derived from the job
  * category and whose size scales with priority.
  */
-export function getMarkerIcon(
+function getMarkerIcon(
   category: string | null,
-  priority: string | null,
+  priority: string | null
 ): google.maps.Symbol {
   const categoryColors: Record<string, string> = {
     plumbing: '#3B82F6',
@@ -76,8 +76,7 @@ export function getMarkerIcon(
     commercial: '#EC4899',
   };
 
-  const color =
-    categoryColors[category?.toLowerCase() || ''] || '#14B8A6';
+  const color = categoryColors[category?.toLowerCase() || ''] || '#14B8A6';
   const scale = priority === 'high' ? 12 : priority === 'low' ? 8 : 10;
 
   return {
@@ -102,7 +101,7 @@ export function updateMapMarkers(
   map: google.maps.Map,
   existingMarkers: google.maps.Marker[],
   jobs: MapJob[],
-  contractorLocation: ContractorLocationForMap | null | undefined,
+  contractorLocation: ContractorLocationForMap | null | undefined
 ): google.maps.Marker[] {
   // Clear existing markers
   existingMarkers.forEach((marker) => marker.setMap(null));
@@ -210,10 +209,7 @@ export function updateMapMarkers(
     markersCreated++;
 
     // Build carousel HTML
-    const carouselHTML = buildCarouselHTML(
-      jobsAtLocation,
-      carouselId,
-    );
+    const carouselHTML = buildCarouselHTML(jobsAtLocation, carouselId);
 
     const infoWindow = new google.maps.InfoWindow({ content: carouselHTML });
 
@@ -228,10 +224,7 @@ export function updateMapMarkers(
       currentIndex = (currentIndex + 1) % jobsAtLocation.length;
       document
         .querySelector(`.${carouselId}-job-card-${currentIndex}`)
-        ?.setAttribute(
-          'style',
-          'display: block; animation: fadeIn 0.3s',
-        );
+        ?.setAttribute('style', 'display: block; animation: fadeIn 0.3s');
       const indexEl = document.getElementById(`${carouselId}-index`);
       if (indexEl) indexEl.textContent = String(currentIndex + 1);
     };
@@ -244,10 +237,7 @@ export function updateMapMarkers(
         (currentIndex - 1 + jobsAtLocation.length) % jobsAtLocation.length;
       document
         .querySelector(`.${carouselId}-job-card-${currentIndex}`)
-        ?.setAttribute(
-          'style',
-          'display: block; animation: fadeIn 0.3s',
-        );
+        ?.setAttribute('style', 'display: block; animation: fadeIn 0.3s');
       const indexEl = document.getElementById(`${carouselId}-index`);
       if (indexEl) indexEl.textContent = String(currentIndex + 1);
     };
@@ -280,7 +270,7 @@ export function updateMapMarkers(
 
 function buildCarouselHTML(
   jobsAtLocation: MapJob[],
-  carouselId: string,
+  carouselId: string
 ): string {
   const cards = jobsAtLocation
     .map((job, i) => buildJobCardHTML(job, i, carouselId))
@@ -324,7 +314,7 @@ function buildCarouselHTML(
 function buildJobCardHTML(
   job: MapJob,
   index: number,
-  carouselId: string,
+  carouselId: string
 ): string {
   const categoryDisplay = job.category
     ? job.category.charAt(0).toUpperCase() + job.category.slice(1)
@@ -341,16 +331,18 @@ function buildJobCardHTML(
       ? [...job.building_assessments].sort(
           (a, b) =>
             new Date(b.created_at || 0).getTime() -
-            new Date(a.created_at || 0).getTime(),
+            new Date(a.created_at || 0).getTime()
         )[0]
       : null;
 
   const severityBadge = aiAssessment
-    ? ({
-        early: { color: '#10b981', label: 'Minor' },
-        midway: { color: '#f59e0b', label: 'Moderate' },
-        full: { color: '#ef4444', label: 'Severe' },
-      } as const)[aiAssessment.severity] ?? null
+    ? ((
+        {
+          early: { color: '#10b981', label: 'Minor' },
+          midway: { color: '#f59e0b', label: 'Moderate' },
+          full: { color: '#ef4444', label: 'Severe' },
+        } as const
+      )[aiAssessment.severity] ?? null)
     : null;
 
   return `

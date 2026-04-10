@@ -81,7 +81,7 @@ export interface ProcessOptimization {
   difficulty: 'easy' | 'moderate' | 'complex';
 }
 
-export interface ContractorESGProfile {
+interface ContractorESGProfile {
   contractor_id: string;
   esg_score: ESGScore;
   certifications: GreenCertification[];

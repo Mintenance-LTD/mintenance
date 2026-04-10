@@ -110,5 +110,3 @@ export const ErrorView: React.FC<ErrorViewProps> = ({
     </Card>
   );
 };
-
-export default ErrorView;

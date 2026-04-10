@@ -11,18 +11,18 @@
  */
 
 /** Payout threshold: contractors accumulate earnings until this amount, then paid out. */
-export const PAYOUT_MIN_THRESHOLD_MINOR: Record<string, number> = {
+const PAYOUT_MIN_THRESHOLD_MINOR: Record<string, number> = {
   GBP: 5000, // £50.00
 };
 
 /** Weekly payout day (0 = Sunday, 1 = Monday, ..., 5 = Friday) */
-export const PAYOUT_DAY_OF_WEEK = 5; // Friday
+const PAYOUT_DAY_OF_WEEK = 5; // Friday
 
 /** Primary supported currency */
 export const PRIMARY_CURRENCY = 'GBP';
 
 /** Fallback allowed currencies */
-export const SUPPORTED_CURRENCIES = ['GBP'] as const;
+const SUPPORTED_CURRENCIES = ['GBP'] as const;
 
 type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number];
 
@@ -66,7 +66,7 @@ export function getOnboardingRefreshUrl(appUrl: string): string {
 }
 
 /** Return URL after a SetupIntent completes (Elements flow) */
-export function getSetupIntentReturnUrl(appUrl: string): string {
+function getSetupIntentReturnUrl(appUrl: string): string {
   return `${appUrl}/account/payment-methods/return`;
 }
 

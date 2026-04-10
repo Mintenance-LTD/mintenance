@@ -131,7 +131,7 @@ export async function checkRateLimit(
 /**
  * Rate limit middleware wrapper
  */
-export function withRateLimit(
+function withRateLimit(
   handler: (req: NextRequest) => Promise<NextResponse>,
   config: RateLimitConfig
 ) {
@@ -211,14 +211,14 @@ export const RATE_LIMIT_CONFIGS = {
 /**
  * Clear rate limit for identifier (admin use)
  */
-export function clearRateLimit(identifier: string): boolean {
+function clearRateLimit(identifier: string): boolean {
   return rateLimitStore.delete(identifier);
 }
 
 /**
  * Get rate limit stats
  */
-export function getRateLimitStats(): {
+function getRateLimitStats(): {
   totalIdentifiers: number;
   activeIdentifiers: number;
   totalRequests: number;

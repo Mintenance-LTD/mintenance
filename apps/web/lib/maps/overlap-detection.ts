@@ -31,7 +31,7 @@ interface OverlapResult {
  * @param area2 Second service area
  * @returns True if areas overlap
  */
-export function areasOverlap(area1: ServiceArea, area2: ServiceArea): boolean {
+function areasOverlap(area1: ServiceArea, area2: ServiceArea): boolean {
   const distance = calculateDistance(
     area1.latitude,
     area1.longitude,
@@ -146,7 +146,7 @@ export function findOverlappingAreas(areas: ServiceArea[]): OverlapResult[] {
  * @param gridSize Grid resolution (higher = more accurate but slower)
  * @returns Approximate coverage area in km²
  */
-export function calculateTotalCoverageArea(
+function calculateTotalCoverageArea(
   areas: ServiceArea[],
   gridSize: number = 100
 ): number {
@@ -280,7 +280,7 @@ export function suggestOptimalRadius(
  * @param thresholdPercentage Maximum acceptable overlap percentage
  * @returns Object with validation result and warnings
  */
-export function validateNewArea(
+function validateNewArea(
   newArea: ServiceArea,
   existingAreas: ServiceArea[],
   thresholdPercentage: number = 30

@@ -262,7 +262,7 @@ export function getActiveDomain(): DomainConfig {
 /**
  * Get domain config by ID. Falls back to residential if unknown.
  */
-export function getDomainConfig(domainId: string): DomainConfig {
+function getDomainConfig(domainId: string): DomainConfig {
   const domain = DOMAIN_REGISTRY[domainId];
   if (!domain) {
     logger.warn(`Unknown domain "${domainId}", falling back to residential`, {
@@ -276,13 +276,13 @@ export function getDomainConfig(domainId: string): DomainConfig {
 /**
  * List all registered domain IDs
  */
-export function getRegisteredDomains(): string[] {
+function getRegisteredDomains(): string[] {
   return Object.keys(DOMAIN_REGISTRY);
 }
 
 /**
  * Register a new domain at runtime (e.g. loaded from DB)
  */
-export function registerDomain(domain: DomainConfig): void {
+function registerDomain(domain: DomainConfig): void {
   DOMAIN_REGISTRY[domain.id] = domain;
 }

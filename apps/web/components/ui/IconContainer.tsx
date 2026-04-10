@@ -23,7 +23,7 @@ interface IconContainerProps {
  * - Border radius: 8px (lg) by default
  * - Consistent spacing and colors from theme
  */
-export function IconContainer({
+function IconContainer({
   children,
   size = 24,
   color,
