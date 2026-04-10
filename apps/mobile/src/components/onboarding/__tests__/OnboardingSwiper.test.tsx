@@ -1,14 +1,15 @@
-
 import React from 'react';
 import { render, fireEvent } from '../../test-utils';
-import OnboardingSwiper from '../OnboardingSwiper';
+import { OnboardingSwiper } from '../OnboardingSwiper';
 
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
 
 jest.mock('react-native-swiper', () => {
   const React = require('react');
@@ -32,7 +33,6 @@ describe('OnboardingSwiper', () => {
     jest.clearAllMocks();
   });
 
-
   it('should render without crashing', () => {
     const { getByText } = render(<OnboardingSwiper {...defaultProps} />);
     expect(getByText('Welcome')).toBeTruthy();
@@ -51,7 +51,10 @@ describe('OnboardingSwiper', () => {
 
   it('should handle edge cases', () => {
     const { getByText } = render(
-      <OnboardingSwiper slides={[defaultProps.slides[0]]} onComplete={jest.fn()} />
+      <OnboardingSwiper
+        slides={[defaultProps.slides[0]]}
+        onComplete={jest.fn()}
+      />
     );
     expect(getByText('Get Started')).toBeTruthy();
   });

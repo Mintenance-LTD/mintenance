@@ -1,4 +1,4 @@
-import testHelpers from '../TestHelpers';
+import { testHelpers } from '../TestHelpers';
 
 describe('testHelpers', () => {
   it('exports helper collection', () => {

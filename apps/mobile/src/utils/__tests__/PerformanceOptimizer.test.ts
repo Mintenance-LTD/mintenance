@@ -1,4 +1,4 @@
-import PerformanceOptimizer from '../PerformanceOptimizer';
+import { PerformanceOptimizer } from '../PerformanceOptimizer';
 
 describe('PerformanceOptimizer', () => {
   it('should initialize with default values', () => {
